@@ -83,11 +83,12 @@
 ./ci/test_generator.py:94:    def _extract_public_methods(self):
 ./ci/test_generator.py:102:    def _extract_fields(self):
 ./ci/test_generator.py:121:    def _to_camel_case(self, snake_str):
-./ci/weak_test_fixer.py:82:    def __init__(self, root_dir: str | Path | None = None):
-./ci/weak_test_fixer.py:86:    def analyze_test_file(self, test_file: Path) -> list[dict]:
-./ci/weak_test_fixer.py:113:    def _extract_operations(self, func_node):
-./ci/weak_test_fixer.py:121:    def _suggest_assertions(self, operations):
-./ci/weak_test_fixer.py:134:    def iter_test_files(self):
+./ci/weak_test_fixer.py:102:    def __init__(self, root_dir: str | Path | None = None):
+./ci/weak_test_fixer.py:105:    def analyze_test_file(self, test_file: Path) -> list[dict]:
+./ci/weak_test_fixer.py:132:    def _extract_operations(self, func_node):
+./ci/weak_test_fixer.py:140:    def _suggest_assertions(self, operations):
+./ci/weak_test_fixer.py:153:    def iter_test_files(self):
+./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:22:    def require(condition, desc):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:189:    def _compute_kpis(self):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:441:    def _compute_ai_config(self):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:462:    def _get_or_create(self):
@@ -130,9 +131,9 @@
 ./plasticos_automation/models/stock_picking_automation.py:34:    def cron_trucker_followup(self):
 ./plasticos_automation/models/stock_reorder_alert.py:14:    def cron_stock_reorder_alert(self):
 ./plasticos_base/models/ir_attachment.py:14:    def _cron_cleanup_missing_filestore_orphans(self):
-./plasticos_base/models/midnight_recompute.py:35:    def _cron_midnight_recompute(self):
-./plasticos_base/models/midnight_recompute.py:59:    def _recompute_document_expiry(self):
-./plasticos_base/models/midnight_recompute.py:102:    def _recompute_claim_time_fields(self):
+./plasticos_base/models/midnight_recompute.py:36:    def _cron_midnight_recompute(self):
+./plasticos_base/models/midnight_recompute.py:60:    def _recompute_document_expiry(self):
+./plasticos_base/models/midnight_recompute.py:63:    def _recompute_claim_time_fields(self):
 ./plasticos_base/test_common.py:34:    def _create_partner(cls, name="Test Partner", **kw):
 ./plasticos_base/test_common.py:41:    def _get_or_create_polymer(cls, code="HDPE", name=None):
 ./plasticos_base/test_common.py:51:    def _get_or_create_form(cls, code="pellet", name=None):
@@ -167,6 +168,7 @@
 ./plasticos_claims/models/claim.py:467:    def _create_reminder_activity(self):
 ./plasticos_claims/models/document_inherit.py:8:    def create(self, vals_list):
 ./plasticos_claims/models/document_inherit.py:18:    def _check_claim_trigger(self):
+./plasticos_claims/models/midnight_recompute.py:17:    def _recompute_claim_time_fields(self):
 ./plasticos_claims/models/transaction_claims.py:31:    def _compute_claim_count(self):
 ./plasticos_claims/models/transaction_claims.py:36:    def _compute_has_quality_claim(self):
 ./plasticos_claims/models/transaction_claims.py:51:    def _compute_chargebacks_penalties(self):
@@ -189,24 +191,24 @@
 ./plasticos_commission/models/commission_payout.py:164:    def action_reset_draft(self):
 ./plasticos_commission/models/commission_payout.py:170:    def action_cancel(self):
 ./plasticos_commission/models/commission_payout.py:178:    def action_generate_for_rep(self, sales_rep_id, period_start, period_end):
-./plasticos_commission/models/commission_rule.py:108:    def _compute_display_percentage(self):
-./plasticos_commission/models/commission_rule.py:112:    def _inverse_display_percentage(self):
-./plasticos_commission/models/commission_rule.py:117:    def _check_unique_active_sales_rep(self, vals_list):
-./plasticos_commission/models/commission_rule.py:133:    def create(self, vals_list):
-./plasticos_commission/models/commission_rule.py:137:    def write(self, vals):
-./plasticos_commission/models/commission_rule.py:154:    def _check_name_required(self):
-./plasticos_commission/models/commission_rule.py:161:    def _check_sales_rep_required(self):
-./plasticos_commission/models/commission_rule.py:168:    def _check_percentage_range(self):
-./plasticos_commission/models/commission_rule.py:178:    def _check_date_range(self):
-./plasticos_commission/models/commission_rule.py:185:    def _check_amount_range(self):
-./plasticos_commission/models/commission_rule.py:192:    def toggle_active(self):
-./plasticos_commission/models/commission_rule.py:198:    def calculate_commission(self, gross_margin, transaction_amount=0.0):
-./plasticos_commission/models/commission_rule.py:221:    def _calculate_tiered_commission(self, gross_margin, transaction_amount):
-./plasticos_commission/models/commission_rule.py:235:    def is_applicable(self, transaction_date=None, transaction_amount=0.0, product=None, partner=None):
-./plasticos_commission/models/commission_rule.py:310:    def _compute_display_rate(self):
-./plasticos_commission/models/commission_rule.py:314:    def _inverse_display_rate(self):
-./plasticos_commission/models/commission_rule.py:319:    def _check_rate_range(self):
-./plasticos_commission/models/commission_rule.py:326:    def _check_amount_range(self):
+./plasticos_commission/models/commission_rule.py:114:    def _compute_display_percentage(self):
+./plasticos_commission/models/commission_rule.py:118:    def _inverse_display_percentage(self):
+./plasticos_commission/models/commission_rule.py:122:    def _reject_active_sales_rep_conflicts(self, rep_ids, exclude_ids):
+./plasticos_commission/models/commission_rule.py:146:    def create(self, vals_list):
+./plasticos_commission/models/commission_rule.py:153:    def write(self, vals):
+./plasticos_commission/models/commission_rule.py:166:    def _check_name_required(self):
+./plasticos_commission/models/commission_rule.py:173:    def _check_sales_rep_required(self):
+./plasticos_commission/models/commission_rule.py:180:    def _check_percentage_range(self):
+./plasticos_commission/models/commission_rule.py:190:    def _check_date_range(self):
+./plasticos_commission/models/commission_rule.py:197:    def _check_amount_range(self):
+./plasticos_commission/models/commission_rule.py:204:    def toggle_active(self):
+./plasticos_commission/models/commission_rule.py:210:    def calculate_commission(self, gross_margin, transaction_amount=0.0):
+./plasticos_commission/models/commission_rule.py:233:    def _calculate_tiered_commission(self, gross_margin, transaction_amount):
+./plasticos_commission/models/commission_rule.py:247:    def is_applicable(self, transaction_date=None, transaction_amount=0.0, product=None, partner=None):
+./plasticos_commission/models/commission_rule.py:322:    def _compute_display_rate(self):
+./plasticos_commission/models/commission_rule.py:326:    def _inverse_display_rate(self):
+./plasticos_commission/models/commission_rule.py:331:    def _check_rate_range(self):
+./plasticos_commission/models/commission_rule.py:338:    def _check_amount_range(self):
 ./plasticos_commission/models/commission_service.py:22:    def compute_commission(self, record):
 ./plasticos_commission/models/sales_dashboard.py:149:    def init(self):
 ./plasticos_commission/models/sales_dashboard.py:194:    def _compute_doc_checklist(self):
@@ -221,6 +223,15 @@
 ./plasticos_commission/models/transaction_commission.py:80:    def _check_override_pct_range(self):
 ./plasticos_commission/models/transaction_commission.py:90:    def _validate_write_immutability(self, rec, vals):
 ./plasticos_commission/models/transaction_commission.py:100:    def _apply_close(self, rec):
+./plasticos_commission/tests/test_commission_uniqueness.py:10:    def setUpClass(cls):
+./plasticos_commission/tests/test_commission_uniqueness.py:15:    def _rule(self, rep, active=True):
+./plasticos_commission/tests/test_commission_uniqueness.py:18:    def test_second_active_rule_is_rejected(self):
+./plasticos_commission/tests/test_commission_uniqueness.py:23:    def test_same_batch_duplicate_rep_is_rejected(self):
+./plasticos_commission/tests/test_commission_uniqueness.py:27:    def test_inactive_rule_for_the_same_rep_is_legal(self):
+./plasticos_commission/tests/test_commission_uniqueness.py:32:    def test_activating_a_second_rule_is_rejected(self):
+./plasticos_commission/tests/test_commission_uniqueness.py:38:    def test_reassigning_onto_an_active_rep_is_rejected(self):
+./plasticos_commission/tests/test_commission_uniqueness.py:44:    def test_distinct_reps_are_accepted(self):
+./plasticos_commission/tests/test_commission_uniqueness.py:54:    def test_database_index_rejects_a_second_active_row(self):
 ./plasticos_crm_bridge/models/crm_lead.py:97:    def _compute_web_lead_count(self):
 ./plasticos_crm_bridge/models/crm_lead.py:102:    def _compute_intake_count(self):
 ./plasticos_crm_bridge/models/crm_lead.py:107:    def _compute_commercial_image_count(self):
@@ -275,9 +286,9 @@
 ./plasticos_crm_sync/models/crm_connection.py:58:    def _get_api_credentials(self):
 ./plasticos_crm_sync/models/crm_connection.py:67:    def get_or_create_vanillasoft_connection(self):
 ./plasticos_crm_sync/models/crm_connection.py:92:    def action_test_connection(self):
-./plasticos_crm_sync/models/crm_connection.py:124:    def action_sync_now(self):
-./plasticos_crm_sync/models/crm_connection.py:149:    def _cron_sync_all(self):
-./plasticos_crm_sync/models/crm_connection.py:172:    def default_contact_modified_after(self) -> str:
+./plasticos_crm_sync/models/crm_connection.py:121:    def action_sync_now(self):
+./plasticos_crm_sync/models/crm_connection.py:144:    def _cron_sync_all(self):
+./plasticos_crm_sync/models/crm_connection.py:167:    def default_contact_modified_after(self) -> str:
 ./plasticos_crm_sync/models/crm_lead_sync.py:34:    def _compute_crm_sync_counts(self):
 ./plasticos_crm_sync/models/res_config_settings.py:31:    def action_plasticos_crm_sync_run_vanillasoft(self):
 ./plasticos_crm_sync/services/orchestrator.py:155:    def __init__(self, env):
@@ -313,9 +324,13 @@
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:13:    def setUpClass(cls):
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:24:    def test_upsert_lead_idempotent(self):
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:48:    def test_orphan_call_resolves_after_contact(self):
-./plasticos_crm_sync/tests/test_settings_import_action.py:11:    def test_get_or_create_vanillasoft_connection_idempotent(self):
-./plasticos_crm_sync/tests/test_settings_import_action.py:24:    def test_settings_action_requires_api_key(self):
-./plasticos_crm_sync/tests/test_settings_import_action.py:42:    def test_settings_action_calls_sync_now(self):
+./plasticos_crm_sync/tests/test_settings_import_action.py:15:    def _make_connection(self):
+./plasticos_crm_sync/tests/test_settings_import_action.py:21:    def test_action_test_connection_live_adapter_succeeds(self):
+./plasticos_crm_sync/tests/test_settings_import_action.py:37:    def test_action_test_connection_adapter_rejection_fails_closed(self):
+./plasticos_crm_sync/tests/test_settings_import_action.py:51:    def test_action_sync_now_failure_propagates(self):
+./plasticos_crm_sync/tests/test_settings_import_action.py:66:    def test_get_or_create_vanillasoft_connection_idempotent(self):
+./plasticos_crm_sync/tests/test_settings_import_action.py:79:    def test_settings_action_requires_api_key(self):
+./plasticos_crm_sync/tests/test_settings_import_action.py:97:    def test_settings_action_calls_sync_now(self):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:47:    def __init__(self, contact_pages=(), call_batches=()):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:51:    def healthcheck(self):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:54:    def iter_contacts(self, *, modified_after, limit=200):
@@ -351,6 +366,7 @@
 ./plasticos_documents/models/document_validation_matrix.py:76:    def _check_unique_category_tag_before_save(self, doc_category, tag_id, active, exclude_id=None):
 ./plasticos_documents/models/load_docs_bridge.py:21:    def _compute_document_count(self):
 ./plasticos_documents/models/load_docs_bridge.py:25:    def action_view_documents(self):
+./plasticos_documents/models/midnight_recompute.py:17:    def _recompute_document_expiry(self):
 ./plasticos_documents/models/transaction_docs.py:60:    def _compute_missing_doc_flags(self):
 ./plasticos_documents/models/transaction_docs.py:101:    def _count_business_days(start_date, end_date):
 ./plasticos_documents/models/transaction_docs.py:116:    def cron_check_missing_docs(self):
@@ -379,21 +395,21 @@
 ./plasticos_enrichment/models/enrichment_run.py:442:    def action_retry_enrichment(self):
 ./plasticos_enrichment/models/enrichment_run.py:462:    def _inject_gate_proposal(self):
 ./plasticos_enrichment/models/enrichment_run.py:506:    def action_inject(self):
-./plasticos_enrichment/models/enrichment_run.py:698:    def _record_provenance(
-./plasticos_enrichment/models/enrichment_run.py:735:    def action_run_inference(self):
-./plasticos_enrichment/models/enrichment_run.py:739:    def action_cron_enrich_pending(self, run_inference: bool = True):
-./plasticos_enrichment/models/enrichment_run.py:747:    def action_cron_inference_only(self):
+./plasticos_enrichment/models/enrichment_run.py:703:    def _record_provenance(
+./plasticos_enrichment/models/enrichment_run.py:740:    def action_run_inference(self):
+./plasticos_enrichment/models/enrichment_run.py:744:    def action_cron_enrich_pending(self, run_inference: bool = True):
+./plasticos_enrichment/models/enrichment_run.py:752:    def action_cron_inference_only(self):
 ./plasticos_enrichment/models/enrichment_service.py:199:    def _inference_stub_enabled(self):
 ./plasticos_enrichment/models/enrichment_service.py:209:    def _get_inference_engine(self):
 ./plasticos_enrichment/models/enrichment_service.py:265:    def run_inference(self, profile_vals: dict, entity_type: str = "supplier") -> dict:
 ./plasticos_enrichment/models/enrichment_service.py:344:    def run_inference_on_profile(self, profile):
-./plasticos_enrichment/models/enrichment_service.py:402:    def _resolve_polymer_id(self, code):
-./plasticos_enrichment/models/enrichment_service.py:424:    def _resolve_form_id(self, code):
-./plasticos_enrichment/models/enrichment_service.py:438:    def _resolve_source_type_id(self, code):
-./plasticos_enrichment/models/enrichment_service.py:465:    def crawl_source(self, source):
-./plasticos_enrichment/models/enrichment_service.py:472:    def extract_from_source(self, source):
-./plasticos_enrichment/models/enrichment_service.py:479:    def normalize_material(self, raw_mat):
-./plasticos_enrichment/models/enrichment_service.py:489:        def _prov(field, value, raw_entry):
+./plasticos_enrichment/models/enrichment_service.py:407:    def _resolve_polymer_id(self, code):
+./plasticos_enrichment/models/enrichment_service.py:429:    def _resolve_form_id(self, code):
+./plasticos_enrichment/models/enrichment_service.py:443:    def _resolve_source_type_id(self, code):
+./plasticos_enrichment/models/enrichment_service.py:470:    def crawl_source(self, source):
+./plasticos_enrichment/models/enrichment_service.py:477:    def extract_from_source(self, source):
+./plasticos_enrichment/models/enrichment_service.py:484:    def normalize_material(self, raw_mat):
+./plasticos_enrichment/models/enrichment_service.py:494:        def _prov(field, value, raw_entry):
 ./plasticos_enrichment/tests/test_gate_enrichment_fallback.py:86:    def setUpClass(cls):
 ./plasticos_enrichment/tests/test_gate_enrichment_fallback.py:90:    def _new_partner(self, **vals):
 ./plasticos_enrichment/tests/test_gate_enrichment_fallback.py:95:    def _new_run(self, partner):
@@ -417,10 +433,11 @@
 ./plasticos_facility_profile/models/facility_profile.py:273:    def _compute_equipment_flags(self):
 ./plasticos_facility_profile/models/facility_profile.py:294:    def _compute_form_preference(self):
 ./plasticos_facility_profile/models/facility_profile.py:299:    def _compute_embedding_ready(self):
-./plasticos_facility_profile/models/facility_profile.py:318:    def create(self, vals_list):
-./plasticos_facility_profile/models/facility_profile.py:327:    def write(self, vals):
-./plasticos_facility_profile/models/facility_profile.py:338:    def unlink(self):
-./plasticos_facility_profile/models/facility_profile.py:356:    def action_view_partner(self):
+./plasticos_facility_profile/models/facility_profile.py:317:    def _reject_duplicate_facility_partners(self, partner_ids):
+./plasticos_facility_profile/models/facility_profile.py:344:    def create(self, vals_list):
+./plasticos_facility_profile/models/facility_profile.py:348:    def write(self, vals):
+./plasticos_facility_profile/models/facility_profile.py:353:    def unlink(self):
+./plasticos_facility_profile/models/facility_profile.py:371:    def action_view_partner(self):
 ./plasticos_facility_profile/models/facility_template.py:92:    def _name_search(self, name, domain=None, operator="ilike", limit=None, order=None):
 ./plasticos_facility_profile/models/facility_template.py:98:    def get_template_values(self):
 ./plasticos_facility_profile/models/lead_source.py:124:    def normalize_raw_source(self, raw_value):
@@ -434,12 +451,21 @@
 ./plasticos_facility_profile/models/res_partner.py:265:    def _compute_facility_profile_count(self):
 ./plasticos_facility_profile/models/res_partner.py:269:    def action_view_facility_profiles(self):
 ./plasticos_facility_profile/models/res_partner.py:281:    def create(self, vals_list):
-./plasticos_facility_profile/models/res_partner.py:325:    def _compute_address_type_meaning(self):
-./plasticos_facility_profile/models/res_partner.py:335:    def _compute_location_child_ids(self):
-./plasticos_facility_profile/models/res_partner.py:339:    def _avatar_get_placeholder_path(self):
-./plasticos_facility_profile/models/res_partner.py:346:    def _compute_avatar(self, avatar_field, image_field):
-./plasticos_facility_profile/models/res_partner.py:366:    def _compute_avatar_128(self):
-./plasticos_facility_profile/models/res_partner.py:369:    def write(self, vals):
+./plasticos_facility_profile/models/res_partner.py:340:    def _compute_address_type_meaning(self):
+./plasticos_facility_profile/models/res_partner.py:350:    def _compute_mobile(self):
+./plasticos_facility_profile/models/res_partner.py:355:    def _search_mobile(self, operator, value):
+./plasticos_facility_profile/models/res_partner.py:358:    def _inverse_mobile(self):
+./plasticos_facility_profile/models/res_partner.py:380:    def _compute_contact_header_name(self):
+./plasticos_facility_profile/models/res_partner.py:393:    def _compute_location_child_ids(self):
+./plasticos_facility_profile/models/res_partner.py:397:    def _avatar_get_placeholder_path(self):
+./plasticos_facility_profile/models/res_partner.py:404:    def _compute_avatar(self, avatar_field, image_field):
+./plasticos_facility_profile/models/res_partner.py:424:    def _compute_avatar_128(self):
+./plasticos_facility_profile/models/res_partner.py:427:    def write(self, vals):
+./plasticos_facility_profile/tests/test_facility_uniqueness.py:10:    def setUpClass(cls):
+./plasticos_facility_profile/tests/test_facility_uniqueness.py:16:    def test_same_batch_duplicate_partner_is_rejected(self):
+./plasticos_facility_profile/tests/test_facility_uniqueness.py:22:    def test_multi_write_to_one_partner_is_rejected(self):
+./plasticos_facility_profile/tests/test_facility_uniqueness.py:28:    def test_distinct_partners_are_accepted(self):
+./plasticos_facility_profile/tests/test_facility_uniqueness.py:34:    def test_database_unique_partner_constraint_exists(self):
 ./plasticos_gate/services/dual_write.py:27:    def as_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/dual_write.py:40:    def as_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/field_family_cutover.py:50:    def as_dict(self) -> dict[str, Any]:
@@ -553,46 +579,46 @@
 ./plasticos_logistics/models/freight_quote.py:686:    def _check_selectable(self):
 ./plasticos_logistics/models/freight_quote.py:698:    def action_select(self):
 ./plasticos_logistics/models/load.py:258:    def create(self, vals_list):
-./plasticos_logistics/models/load.py:293:    def copy_data(self, default=None):
-./plasticos_logistics/models/load.py:305:    def _compute_freight_evidence_counts(self):
-./plasticos_logistics/models/load.py:314:    def _require_freight_operator(self):
-./plasticos_logistics/models/load.py:323:    def _freight_write(self, values):
-./plasticos_logistics/models/load.py:327:    def write(self, vals):
-./plasticos_logistics/models/load.py:402:    def _compute_cycle_time(self):
-./plasticos_logistics/models/load.py:411:    def _compute_transaction_id(self):
-./plasticos_logistics/models/load.py:423:    def _get_default_delivery_term(self):
-./plasticos_logistics/models/load.py:433:    def _compute_delivery_term_overridden(self):
-./plasticos_logistics/models/load.py:444:    def _check_override_reason_required(self):
-./plasticos_logistics/models/load.py:452:    def action_confirm_ready(self):
-./plasticos_logistics/models/load.py:460:    def action_create_freight_quote_request(self):
-./plasticos_logistics/models/load.py:522:    def action_request_freight_estimate(self):
-./plasticos_logistics/models/load.py:671:    def action_view_freight_quote_requests(self):
-./plasticos_logistics/models/load.py:680:    def action_record_actual_freight_cost(self):
-./plasticos_logistics/models/load.py:748:    def action_correct_actual_freight_cost(self, actual_cost, currency, reason):
-./plasticos_logistics/models/load.py:814:    def action_open_actual_freight_correction_wizard(self):
-./plasticos_logistics/models/load.py:830:    def action_view_freight_estimates(self):
-./plasticos_logistics/models/load.py:838:    def action_confirm_rate(self, rate=None):
-./plasticos_logistics/models/load.py:860:    def _cancel_stale_freight_quote_requests(
-./plasticos_logistics/models/load.py:909:    def action_resolve_freight(self):
-./plasticos_logistics/models/load.py:978:    def _confirm_freight_rate(
-./plasticos_logistics/models/load.py:1066:    def action_schedule(self, pickup_dt, delivery_dt):
-./plasticos_logistics/models/load.py:1074:    def action_dispatch(self):
-./plasticos_logistics/models/load.py:1091:    def _ensure_sal_context_current(self):
-./plasticos_logistics/models/load.py:1105:    def action_close(self):
-./plasticos_logistics/models/load.py:1112:    def _transition(self, new_state, *, correlation_id=None):
-./plasticos_logistics/models/load.py:1145:    def _store_rate_memory(self):
-./plasticos_logistics/models/load.py:1152:    def _lane_key(self):
-./plasticos_logistics/models/load.py:1157:    def _check_datetime_order(self):
-./plasticos_logistics/models/load.py:1165:    def _cron_escalation_check(self):
-./plasticos_logistics/models/load.py:1185:    def _cron_check_dispatch_acknowledgments(self):
-./plasticos_logistics/models/load.py:1238:    def action_send_delivery_order(self):
-./plasticos_logistics/models/load.py:1244:    def action_send_bol_pickup(self):
-./plasticos_logistics/models/load.py:1250:    def action_send_bol_delivery(self):
-./plasticos_logistics/models/load.py:1256:    def action_send_dispatch_packet(self):
-./plasticos_logistics/models/load.py:1262:    def action_send_dispatch_direct(self):
-./plasticos_logistics/models/load.py:1280:    def _get_email_template(self, template_name):
-./plasticos_logistics/models/load.py:1296:    def _open_mail_composer(self, template):
-./plasticos_logistics/models/load.py:1318:    def action_view_transaction(self):
+./plasticos_logistics/models/load.py:300:    def copy_data(self, default=None):
+./plasticos_logistics/models/load.py:312:    def _compute_freight_evidence_counts(self):
+./plasticos_logistics/models/load.py:321:    def _require_freight_operator(self):
+./plasticos_logistics/models/load.py:330:    def _freight_write(self, values):
+./plasticos_logistics/models/load.py:334:    def write(self, vals):
+./plasticos_logistics/models/load.py:409:    def _compute_cycle_time(self):
+./plasticos_logistics/models/load.py:418:    def _compute_transaction_id(self):
+./plasticos_logistics/models/load.py:430:    def _get_default_delivery_term(self):
+./plasticos_logistics/models/load.py:440:    def _compute_delivery_term_overridden(self):
+./plasticos_logistics/models/load.py:450:    def _check_override_reason_required(self):
+./plasticos_logistics/models/load.py:458:    def action_confirm_ready(self):
+./plasticos_logistics/models/load.py:466:    def action_create_freight_quote_request(self):
+./plasticos_logistics/models/load.py:528:    def action_request_freight_estimate(self):
+./plasticos_logistics/models/load.py:677:    def action_view_freight_quote_requests(self):
+./plasticos_logistics/models/load.py:686:    def action_record_actual_freight_cost(self):
+./plasticos_logistics/models/load.py:754:    def action_correct_actual_freight_cost(self, actual_cost, currency, reason):
+./plasticos_logistics/models/load.py:820:    def action_open_actual_freight_correction_wizard(self):
+./plasticos_logistics/models/load.py:836:    def action_view_freight_estimates(self):
+./plasticos_logistics/models/load.py:844:    def action_confirm_rate(self, rate=None):
+./plasticos_logistics/models/load.py:866:    def _cancel_stale_freight_quote_requests(
+./plasticos_logistics/models/load.py:915:    def action_resolve_freight(self):
+./plasticos_logistics/models/load.py:984:    def _confirm_freight_rate(
+./plasticos_logistics/models/load.py:1072:    def action_schedule(self, pickup_dt, delivery_dt):
+./plasticos_logistics/models/load.py:1080:    def action_dispatch(self):
+./plasticos_logistics/models/load.py:1097:    def _ensure_sal_context_current(self):
+./plasticos_logistics/models/load.py:1111:    def action_close(self):
+./plasticos_logistics/models/load.py:1118:    def _transition(self, new_state, *, correlation_id=None):
+./plasticos_logistics/models/load.py:1151:    def _store_rate_memory(self):
+./plasticos_logistics/models/load.py:1158:    def _lane_key(self):
+./plasticos_logistics/models/load.py:1163:    def _check_datetime_order(self):
+./plasticos_logistics/models/load.py:1171:    def _cron_escalation_check(self):
+./plasticos_logistics/models/load.py:1191:    def _cron_check_dispatch_acknowledgments(self):
+./plasticos_logistics/models/load.py:1244:    def action_send_delivery_order(self):
+./plasticos_logistics/models/load.py:1250:    def action_send_bol_pickup(self):
+./plasticos_logistics/models/load.py:1256:    def action_send_bol_delivery(self):
+./plasticos_logistics/models/load.py:1262:    def action_send_dispatch_packet(self):
+./plasticos_logistics/models/load.py:1268:    def action_send_dispatch_direct(self):
+./plasticos_logistics/models/load.py:1286:    def _get_email_template(self, template_name):
+./plasticos_logistics/models/load.py:1302:    def _open_mail_composer(self, template):
+./plasticos_logistics/models/load.py:1324:    def action_view_transaction(self):
 ./plasticos_logistics/models/load_dashboard.py:73:    def init(self):
 ./plasticos_logistics/models/load_dashboard.py:161:    def action_view_load(self):
 ./plasticos_logistics/models/load_dashboard.py:175:    def action_view_transaction(self):
@@ -604,12 +630,18 @@
 ./plasticos_logistics/models/rate_memory.py:40:    def action_reconcile_to_canonical_history(self):
 ./plasticos_logistics/models/rate_memory.py:90:    def unlink(self):
 ./plasticos_logistics/models/sale_order_inherit.py:7:    def action_create_load(self):
-./plasticos_logistics/models/transaction_inherit.py:19:    def create(self, vals_list):
-./plasticos_logistics/models/transaction_inherit.py:28:    def write(self, vals):
-./plasticos_logistics/models/transaction_inherit.py:49:    def _check_load_requires_supplier_buyer(self):
-./plasticos_logistics/models/transaction_inherit.py:58:    def action_view_load(self):
+./plasticos_logistics/models/transaction_inherit.py:25:    def create(self, vals_list):
+./plasticos_logistics/models/transaction_inherit.py:34:    def write(self, vals):
+./plasticos_logistics/models/transaction_inherit.py:55:    def _check_load_requires_supplier_buyer(self):
+./plasticos_logistics/models/transaction_inherit.py:64:    def action_view_load(self):
 ./plasticos_logistics/services/freight_quote_ranking.py:50:    def as_dict(self) -> dict:
 ./plasticos_logistics/services/freight_reasoning.py:17:    def as_dict(self) -> dict:
+./plasticos_logistics/tests/test_load_cardinality.py:13:    def setUpClass(cls):
+./plasticos_logistics/tests/test_load_cardinality.py:23:    def _transaction(self, name, sale_order=None):
+./plasticos_logistics/tests/test_load_cardinality.py:34:    def test_create_links_the_sale_order_transaction_once(self):
+./plasticos_logistics/tests/test_load_cardinality.py:41:    def test_close_posts_one_chatter_message(self):
+./plasticos_logistics/tests/test_load_cardinality.py:49:    def test_delivery_term_override_reads_the_linked_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:55:    def test_a_second_transaction_cannot_take_the_same_load(self):
 ./plasticos_logistics/wizards/freight_actual_correction_wizard.py:16:    def action_apply(self):
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:49:    def _compute_load_count(self):
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:54:    def default_get(self, fields_list):
@@ -622,15 +654,15 @@
 ./plasticos_matching/models/match_exclusion.py:107:    def get_excluded_buyer_ids(self, supplier_partner_id):
 ./plasticos_matching/models/match_exclusion.py:130:    def is_pair_excluded(self, supplier_partner_id, buyer_partner_id):
 ./plasticos_matching/models/match_exclusion.py:161:    def _cron_expire_temporary_exclusions(self):
-./plasticos_matching/models/match_orchestrator.py:78:    def _state_for_failure(self, failure_class: str) -> str:
-./plasticos_matching/models/match_orchestrator.py:86:    def _rollback_then_persist_failed_run_durable(self, run_id, vals):
-./plasticos_matching/models/match_orchestrator.py:110:    def _persist_failed_run_durable(self, run_id, vals):
-./plasticos_matching/models/match_orchestrator.py:141:    def _durable_run_vals(self, run):
-./plasticos_matching/models/match_orchestrator.py:147:    def run_match_for_intake(self, intake, max_results=20, mode="strict", *, retry_of=None):
-./plasticos_matching/models/match_orchestrator.py:352:    def retry_match_run(self, prior_run):
-./plasticos_matching/models/match_orchestrator.py:384:    def _build_intake_match_line_vals(self, intake, matches):
-./plasticos_matching/models/match_orchestrator.py:403:    def _create_intake_match_lines(self, vals_list):
-./plasticos_matching/models/match_orchestrator.py:410:    def persist_review_results(self, intake, matches, run):
+./plasticos_matching/models/match_orchestrator.py:65:    def _state_for_failure(self, failure_class: str) -> str:
+./plasticos_matching/models/match_orchestrator.py:73:    def _rollback_then_persist_failed_run_durable(self, run_id, vals):
+./plasticos_matching/models/match_orchestrator.py:97:    def _persist_failed_run_durable(self, run_id, vals):
+./plasticos_matching/models/match_orchestrator.py:128:    def _durable_run_vals(self, run):
+./plasticos_matching/models/match_orchestrator.py:134:    def run_match_for_intake(self, intake, max_results=20, mode="strict", *, retry_of=None):
+./plasticos_matching/models/match_orchestrator.py:339:    def retry_match_run(self, prior_run):
+./plasticos_matching/models/match_orchestrator.py:371:    def _build_intake_match_line_vals(self, intake, matches):
+./plasticos_matching/models/match_orchestrator.py:390:    def _create_intake_match_lines(self, vals_list):
+./plasticos_matching/models/match_orchestrator.py:397:    def persist_review_results(self, intake, matches, run):
 ./plasticos_matching/models/match_result.py:178:    def write(self, vals):
 ./plasticos_matching/models/match_result.py:189:    def unlink(self):
 ./plasticos_matching/models/match_result.py:204:    def _compute_display_name(self):
@@ -744,79 +776,79 @@
 ./plasticos_offer/wizards/offer_bulk_action_wizard.py:108:    def _action_reject(self):
 ./plasticos_offer/wizards/offer_bulk_action_wizard.py:127:    def _action_cancel(self):
 ./plasticos_offer/wizards/offer_bulk_action_wizard.py:143:    def _return_notification(self, message):
-./plasticos_order_lines/models/purchase_order_line.py:74:    def _build_main_description_part(self, line):
-./plasticos_order_lines/models/purchase_order_line.py:87:    def _build_extras_parts(self, line):
-./plasticos_order_lines/models/purchase_order_line.py:108:    def _compute_material_description(self):
-./plasticos_order_lines/models/purchase_order_line.py:125:    def _onchange_material_profile_id(self):
-./plasticos_order_lines/models/purchase_order_line.py:147:    def action_view_material_profile(self):
-./plasticos_order_lines/models/sale_order_line.py:83:    def _compute_material_description(self):
-./plasticos_order_lines/models/sale_order_line.py:131:    def _onchange_material_profile_id(self):
-./plasticos_order_lines/models/sale_order_line.py:153:    def action_view_material_profile(self):
-./plasticos_partner_import/erp/header_forensics.py:90:    def is_complete(self) -> bool:
-./plasticos_partner_import/erp/header_forensics.py:94:    def as_dict(self) -> dict[str, object]:
-./plasticos_partner_import/erp/reader.py:156:    def rows(self, table: str) -> list[dict[str, str | None]]:
-./plasticos_partner_import/erp/reader.py:163:    def row_counts(self) -> dict[str, int]:
-./plasticos_partner_import/erp/reader.py:231:    def connect() -> Any:
+./plasticos_order_lines/models/purchase_order_line.py:86:    def _compute_material_description(self):
+./plasticos_order_lines/models/purchase_order_line.py:92:    def _onchange_material_profile_id(self):
+./plasticos_order_lines/models/purchase_order_line.py:114:    def action_view_material_profile(self):
+./plasticos_order_lines/models/sale_order_line.py:86:    def _compute_material_description(self):
+./plasticos_order_lines/models/sale_order_line.py:92:    def _onchange_material_profile_id(self):
+./plasticos_order_lines/models/sale_order_line.py:114:    def action_view_material_profile(self):
+./plasticos_partner_import/erp/header_forensics.py:89:    def is_complete(self) -> bool:
+./plasticos_partner_import/erp/header_forensics.py:93:    def as_dict(self) -> dict[str, object]:
+./plasticos_partner_import/erp/native_orders.py:443:    def _key(number: str) -> tuple[int, int | str]:
+./plasticos_partner_import/erp/native_orders.py:562:    def _key(value: str) -> tuple[int, int | str]:
+./plasticos_partner_import/erp/reader.py:172:    def rows(self, table: str) -> list[dict[str, str | None]]:
+./plasticos_partner_import/erp/reader.py:179:    def row_counts(self) -> dict[str, int]:
+./plasticos_partner_import/erp/reader.py:247:    def connect() -> Any:
 ./plasticos_partner_import/erp/report.py:25:    def __init__(self) -> None:
-./plasticos_partner_import/erp/report.py:38:    def bump(self, bucket: str, outcome: str, amount: int = 1) -> None:
-./plasticos_partner_import/erp/report.py:41:    def skip(self, bucket: str, amount: int = 1) -> None:
-./plasticos_partner_import/erp/report.py:45:    def reject(self, bucket: str, amount: int = 1) -> None:
-./plasticos_partner_import/erp/report.py:49:    def unresolved_ref(self, table: str, kind: str, key: str, detail: str) -> None:
-./plasticos_partner_import/erp/report.py:53:    def anomaly(self, table: str, key: str, detail: str) -> None:
-./plasticos_partner_import/erp/report.py:56:    def error(self, key: str, detail: str) -> None:
-./plasticos_partner_import/erp/report.py:59:    def as_dict(self) -> dict:
-./plasticos_partner_import/erp/source_index.py:53:    def as_dict(self) -> dict[str, str]:
-./plasticos_partner_import/erp/source_index.py:93:    def counterparty_ids(self) -> list[str]:
-./plasticos_partner_import/erp/source_index.py:96:    def address_ids(self) -> list[str]:
-./plasticos_partner_import/erp/source_index.py:99:    def contact_ids(self) -> list[str]:
-./plasticos_partner_import/erp/source_index.py:102:    def contact_role_ids(self) -> list[str]:
-./plasticos_partner_import/erp/source_index.py:105:    def buysell_numbers(self) -> list[str]:
-./plasticos_partner_import/erp/source_index.py:109:    def detail_ids(self, buysell_no: str) -> list[str]:
-./plasticos_partner_import/erp/source_index.py:113:    def unresolved(self, kind: str) -> list[IdentityViolation]:
-./plasticos_partner_import/erp/source_index.py:116:    def counts(self) -> dict[str, int]:
-./plasticos_partner_import/models/erp_import_service.py:87:    def run(
-./plasticos_partner_import/models/erp_import_service.py:148:        def stage_done(name: str) -> None:
-./plasticos_partner_import/models/erp_import_service.py:180:    def _run_layer(self, layer: str, index, report, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:200:    def _import_counterparties(self, index, report, dry_run: bool) -> dict:
-./plasticos_partner_import/models/erp_import_service.py:250:    def _resolve_payment_term(self, values: dict, row, cp_id: str, report) -> None:
-./plasticos_partner_import/models/erp_import_service.py:261:    def _resolve_industry(self, values: dict, row, cp_id: str, report) -> None:
-./plasticos_partner_import/models/erp_import_service.py:275:    def _import_addresses(self, index, report, partner_by_cp: dict, dry_run: bool) -> dict:
-./plasticos_partner_import/models/erp_import_service.py:343:    def _create_location(
-./plasticos_partner_import/models/erp_import_service.py:377:    def _apply_billing_address(self, partner, row) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:385:        def fill(field_name: str, value: str) -> None:
-./plasticos_partner_import/models/erp_import_service.py:407:    def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
-./plasticos_partner_import/models/erp_import_service.py:440:    def _address_values(self, values: dict, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:450:    def _resolve_country_state(self, values: dict, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:486:    def _import_contacts(self, index, report, partner_by_cp: dict, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:563:    def _import_person(
-./plasticos_partner_import/models/erp_import_service.py:601:    def _merge_person_channels(self, values: dict, members, report) -> list:
-./plasticos_partner_import/models/erp_import_service.py:632:    def _apply_non_person(self, company, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:657:    def _retire_stale_contact(self, partner_model, contact_id: str) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:680:    def _import_roles(self, index, report, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:730:    def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
-./plasticos_partner_import/models/erp_import_service.py:740:    def _import_sales_reps(self, index, report, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:805:    def _address_catalog(self) -> list[tuple[str, str, str, int]]:
-./plasticos_partner_import/models/erp_import_service.py:828:    def _partners_by_prefix(self, prefix: str) -> dict[str, int]:
-./plasticos_partner_import/models/erp_import_service.py:844:    def _stamp_partner_count(self) -> None:
-./plasticos_partner_import/models/erp_import_service.py:851:    def _sync_address_phones(self, partner, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:862:    def _sync_phone_lines(self, partner, lines: list) -> None:
-./plasticos_partner_import/models/erp_import_service.py:876:    def _anchor_contact_id(self, partner_model, members) -> str:
-./plasticos_partner_import/models/erp_import_service.py:883:    def _partner_by_xmlid(self, model, xml_id: str):
-./plasticos_partner_import/models/erp_import_service.py:892:    def _alias_xmlid(self, model, xml_id: str, record, report, bucket: str) -> None:
-./plasticos_partner_import/models/erp_import_service.py:916:    def _retire_superseded_partner(self, superseded, record) -> None:
-./plasticos_partner_import/models/erp_import_service.py:925:    def _contact_roles(self, index, contact_id: str) -> list:
-./plasticos_partner_import/models/erp_import_service.py:936:    def _apply_contact_roles(self, partner, rows: list, tag_cache: dict, report) -> list:
-./plasticos_partner_import/models/erp_import_service.py:971:    def _role_tag_id(self, role: str, tag_cache: dict, report) -> int | None:
-./plasticos_partner_import/models/erp_import_service.py:989:    def _import_transactions(
-./plasticos_partner_import/models/erp_import_service.py:1020:    def _import_one_transaction(self, index, header, report, partner_by_cp: dict) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1042:    def _import_lines(self, index, header, transaction, report) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1093:    def _upsert(self, model, xml_id: str, values: dict, report, bucket: str | None):
-./plasticos_partner_import/models/erp_import_service.py:1127:    def _write_identity_marker(self, model, xml_id: str, record) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1139:    def _copied_role(self, parent) -> dict:
-./plasticos_partner_import/models/erp_import_service.py:1151:    def _apply_site_mailbox(self, partner_by_address: dict, address_id: str, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1161:    def _erp_lead_source_id(self) -> int | bool:
-./plasticos_partner_import/models/erp_import_service.py:1238:    def norm(value: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1319:    def rank(row) -> tuple:
+./plasticos_partner_import/erp/report.py:47:    def bump(self, bucket: str, outcome: str, amount: int = 1) -> None:
+./plasticos_partner_import/erp/report.py:50:    def skip(self, bucket: str, amount: int = 1) -> None:
+./plasticos_partner_import/erp/report.py:54:    def reject(self, bucket: str, amount: int = 1) -> None:
+./plasticos_partner_import/erp/report.py:58:    def unresolved_ref(self, table: str, kind: str, key: str, detail: str) -> None:
+./plasticos_partner_import/erp/report.py:62:    def anomaly(self, table: str, key: str, detail: str) -> None:
+./plasticos_partner_import/erp/report.py:65:    def error(self, key: str, detail: str) -> None:
+./plasticos_partner_import/erp/report.py:68:    def fail(self, check: str, detail: str) -> None:
+./plasticos_partner_import/erp/report.py:72:    def as_dict(self) -> dict:
+./plasticos_partner_import/erp/source_index.py:56:    def as_dict(self) -> dict[str, str]:
+./plasticos_partner_import/erp/source_index.py:103:    def counterparty_ids(self) -> list[str]:
+./plasticos_partner_import/erp/source_index.py:106:    def address_ids(self) -> list[str]:
+./plasticos_partner_import/erp/source_index.py:109:    def contact_ids(self) -> list[str]:
+./plasticos_partner_import/erp/source_index.py:112:    def contact_role_ids(self) -> list[str]:
+./plasticos_partner_import/erp/source_index.py:115:    def buysell_numbers(self) -> list[str]:
+./plasticos_partner_import/erp/source_index.py:119:    def detail_ids(self, buysell_no: str) -> list[str]:
+./plasticos_partner_import/erp/source_index.py:123:    def unresolved(self, kind: str) -> list[IdentityViolation]:
+./plasticos_partner_import/erp/source_index.py:126:    def counts(self) -> dict[str, int]:
+./plasticos_partner_import/models/erp_import_service.py:85:    def run(
+./plasticos_partner_import/models/erp_import_service.py:155:        def stage_done(name: str) -> None:
+./plasticos_partner_import/models/erp_import_service.py:190:    def _extend_historical_import(self, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:194:    def _run_layer(self, layer: str, index, report, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:214:    def _import_counterparties(self, index, report, dry_run: bool) -> dict:
+./plasticos_partner_import/models/erp_import_service.py:264:    def _resolve_payment_term(self, values: dict, row, cp_id: str, report) -> None:
+./plasticos_partner_import/models/erp_import_service.py:275:    def _resolve_industry(self, values: dict, row, cp_id: str, report) -> None:
+./plasticos_partner_import/models/erp_import_service.py:289:    def _import_addresses(self, index, report, partner_by_cp: dict, dry_run: bool) -> dict:
+./plasticos_partner_import/models/erp_import_service.py:362:    def _create_location(
+./plasticos_partner_import/models/erp_import_service.py:396:    def _apply_billing_address(self, partner, row) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:404:        def fill(field_name: str, value: str) -> None:
+./plasticos_partner_import/models/erp_import_service.py:426:    def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
+./plasticos_partner_import/models/erp_import_service.py:459:    def _address_values(self, values: dict, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:469:    def _resolve_country_state(self, values: dict, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:505:    def _import_contacts(self, index, report, partner_by_cp: dict, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:582:    def _import_person(
+./plasticos_partner_import/models/erp_import_service.py:620:    def _merge_person_channels(self, values: dict, members, report) -> list:
+./plasticos_partner_import/models/erp_import_service.py:651:    def _apply_non_person(self, company, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:676:    def _retire_stale_contact(self, partner_model, contact_id: str) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:699:    def _import_roles(self, index, report, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:749:    def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
+./plasticos_partner_import/models/erp_import_service.py:759:    def _import_sales_reps(self, index, report, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:824:    def _address_catalog(self) -> list[tuple[str, str, str, int]]:
+./plasticos_partner_import/models/erp_import_service.py:847:    def _partners_by_prefix(self, prefix: str) -> dict[str, int]:
+./plasticos_partner_import/models/erp_import_service.py:863:    def _stamp_partner_count(self) -> None:
+./plasticos_partner_import/models/erp_import_service.py:870:    def _sync_address_phones(self, partner, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:881:    def _sync_phone_lines(self, partner, lines: list) -> None:
+./plasticos_partner_import/models/erp_import_service.py:895:    def _anchor_contact_id(self, partner_model, members) -> str:
+./plasticos_partner_import/models/erp_import_service.py:902:    def _partner_by_xmlid(self, model, xml_id: str):
+./plasticos_partner_import/models/erp_import_service.py:911:    def _alias_xmlid(self, model, xml_id: str, record, report, bucket: str) -> None:
+./plasticos_partner_import/models/erp_import_service.py:935:    def _retire_superseded_partner(self, superseded, record) -> None:
+./plasticos_partner_import/models/erp_import_service.py:944:    def _contact_roles(self, index, contact_id: str) -> list:
+./plasticos_partner_import/models/erp_import_service.py:955:    def _apply_contact_roles(self, partner, rows: list, tag_cache: dict, report) -> list:
+./plasticos_partner_import/models/erp_import_service.py:990:    def _role_tag_id(self, role: str, tag_cache: dict, report) -> int | None:
+./plasticos_partner_import/models/erp_import_service.py:1008:    def _upsert(self, model, xml_id: str, values: dict, report, bucket: str | None):
+./plasticos_partner_import/models/erp_import_service.py:1042:    def _ensure_identity_marker(self, model, xml_id: str, record) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1059:    def _write_identity_marker(self, model, xml_id: str, record) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1071:    def _copied_role(self, parent) -> dict:
+./plasticos_partner_import/models/erp_import_service.py:1083:    def _apply_site_mailbox(self, partner_by_address: dict, address_id: str, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1093:    def _erp_lead_source_id(self) -> int | bool:
+./plasticos_partner_import/models/erp_import_service.py:1180:    def norm(value: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1261:    def rank(row) -> tuple:
 ./plasticos_partner_import/models/partner_import_service.py:36:    def get_module_path(self) -> str:
 ./plasticos_partner_import/models/partner_import_service.py:45:    def resolve_default_csv_path(self, which: str) -> str:
 ./plasticos_partner_import/models/partner_import_service.py:67:    def run_default_csv_import(self):
@@ -846,7 +878,7 @@
 ./plasticos_partner_import/models/validation.py:33:    def validate_partner_graph(self):
 ./plasticos_partner_import/models/validation.py:85:    def audit_import_integrity(self):
 ./plasticos_partner_import/models/validation.py:168:    def repair_import_data(self, dry_run=True):
-./plasticos_partner_import/scripts/import_erp_shell.py:117:    def after_stage(name: str, payload) -> None:
+./plasticos_partner_import/scripts/import_erp_shell.py:149:    def after_stage(name: str, payload) -> None:
 ./plasticos_partner_import/wizards/partner_bulk_update_wizard.py:100:    def _compute_partner_count(self):
 ./plasticos_partner_import/wizards/partner_bulk_update_wizard.py:105:    def _compute_stats(self):
 ./plasticos_partner_import/wizards/partner_bulk_update_wizard.py:111:    def default_get(self, fields_list):
@@ -866,11 +898,19 @@
 ./plasticos_partner_import/wizards/partner_import_wizard.py:188:    def action_view_partners(self):
 ./plasticos_partner_import/wizards/partner_import_wizard.py:199:    def action_audit_import(self):
 ./plasticos_partner_import/wizards/partner_import_wizard.py:237:    def action_repair_import(self):
-./plasticos_product/models/product_template.py:51:    def create(self, vals_list):
-./plasticos_product/models/product_template.py:58:    def write(self, vals):
-./plasticos_product/models/product_template.py:66:    def _ensure_product(self):
-./plasticos_product/models/product_template.py:83:    def _sync_product(self):
-./plasticos_product/models/product_template.py:94:    def action_create_products(self):
+./plasticos_product/models/product_template.py:18:    def _compute_display_name(self):
+./plasticos_product/models/product_template.py:44:    def _compute_display_name(self):
+./plasticos_product/models/product_template.py:81:    def create(self, vals_list):
+./plasticos_product/models/product_template.py:88:    def write(self, vals):
+./plasticos_product/models/product_template.py:96:    def _ensure_product(self):
+./plasticos_product/models/product_template.py:113:    def _sync_product(self):
+./plasticos_product/models/product_template.py:124:    def action_create_products(self):
+./plasticos_security_base/tests/test_purchase_order_access.py:16:    def setUpClass(cls):
+./plasticos_security_base/tests/test_purchase_order_access.py:44:    def _visible(self, user):
+./plasticos_security_base/tests/test_purchase_order_access.py:51:    def test_all_documents_rule_is_gone(self):
+./plasticos_security_base/tests/test_purchase_order_access.py:59:    def test_sales_rep_sees_own_purchase_orders_only(self):
+./plasticos_security_base/tests/test_purchase_order_access.py:67:    def test_all_leads_group_does_not_widen_purchase_order_access(self):
+./plasticos_security_base/tests/test_purchase_order_access.py:74:    def test_accounting_reads_every_purchase_order_without_write(self):
 ./plasticos_semantic_kernel/models/buyer_demand.py:117:    def create(self, vals_list):
 ./plasticos_semantic_kernel/models/buyer_demand.py:123:    def write(self, vals):
 ./plasticos_semantic_kernel/models/buyer_demand.py:129:    def _check_quantity_order(self):
@@ -894,57 +934,67 @@
 ./plasticos_transaction/models/audit_cron.py:13:    def run_monthly_audit(self):
 ./plasticos_transaction/models/intake_bridge.py:20:    def _compute_transaction_count(self):
 ./plasticos_transaction/models/intake_bridge.py:24:    def action_view_transactions(self):
+./plasticos_transaction/models/legacy_erp_import_service.py:15:    def _extend_historical_import(self, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
+./plasticos_transaction/models/native_document_import.py:436:        def bump(self, *_args, **_kwargs):
 ./plasticos_transaction/models/offer_bridge.py:18:    def action_view_transaction(self):
 ./plasticos_transaction/models/partner_bridge.py:25:    def _compute_plasticos_transaction_count(self):
 ./plasticos_transaction/models/partner_bridge.py:29:    def action_view_plasticos_transactions(self):
 ./plasticos_transaction/models/purchase_inherit.py:23:    def _compute_delivery_term_from_transaction(self):
-./plasticos_transaction/models/purchase_inherit.py:39:    def button_confirm(self):
-./plasticos_transaction/models/purchase_inherit.py:55:    def button_approve(self, force=False):
-./plasticos_transaction/models/purchase_inherit.py:83:    def _find_transaction_for_po(self, order):
-./plasticos_transaction/models/sale_inherit.py:9:    def action_confirm(self):
-./plasticos_transaction/models/transaction.py:498:    def _check_override_pct_range(self):
-./plasticos_transaction/models/transaction.py:502:    def _get_default_delivery_term(self):
-./plasticos_transaction/models/transaction.py:530:    def _compute_is_supplier_confirmed(self):
-./plasticos_transaction/models/transaction.py:540:    def _compute_profile_refs(self):
-./plasticos_transaction/models/transaction.py:577:    def _compute_profiles(self):
-./plasticos_transaction/models/transaction.py:602:    def _compute_weight_variance(self):
-./plasticos_transaction/models/transaction.py:614:    def _compute_tare_per_unit(self):
-./plasticos_transaction/models/transaction.py:641:    def _inverse_tare_per_unit(self):
-./plasticos_transaction/models/transaction.py:647:    def _compute_total_tare(self):
-./plasticos_transaction/models/transaction.py:653:    def _compute_final_weight(self):
-./plasticos_transaction/models/transaction.py:680:    def _compute_weight_discrepancy(self):
-./plasticos_transaction/models/transaction.py:700:    def _compute_light_weight_deduction(self):
-./plasticos_transaction/models/transaction.py:725:    def _compute_line_count(self):
-./plasticos_transaction/models/transaction.py:730:    def _compute_historical_totals(self):
-./plasticos_transaction/models/transaction.py:747:    def _compute_financials(self):
-./plasticos_transaction/models/transaction.py:769:    def _compute_net_margin(self):
-./plasticos_transaction/models/transaction.py:775:    def _compute_chargebacks_penalties(self):
-./plasticos_transaction/models/transaction.py:787:    def _compute_commission(self):
-./plasticos_transaction/models/transaction.py:795:    def _compute_compliance(self):
-./plasticos_transaction/models/transaction.py:821:    def _auto_post_pending_invoices(self):
-./plasticos_transaction/models/transaction.py:843:    def create(self, vals_list):
-./plasticos_transaction/models/transaction.py:852:    def write(self, vals):
-./plasticos_transaction/models/transaction.py:866:    def _validate_state_transition(self, rec, vals):
-./plasticos_transaction/models/transaction.py:890:    def _validate_write_immutability(self, rec, vals):
-./plasticos_transaction/models/transaction.py:911:    def _validate_bill_uniqueness(self, rec, vals, field, label):
-./plasticos_transaction/models/transaction.py:932:    def unlink(self):
-./plasticos_transaction/models/transaction.py:940:    def action_activate(self):
-./plasticos_transaction/models/transaction.py:947:    def action_close(self):
-./plasticos_transaction/models/transaction.py:968:    def _validate_close_preconditions(self, rec, service_docs):
-./plasticos_transaction/models/transaction.py:991:    def _apply_close(self, rec):
-./plasticos_transaction/models/transaction.py:999:    def action_mark_do_created(self):
-./plasticos_transaction/models/transaction.py:1014:    def action_mark_dispatched(self):
-./plasticos_transaction/models/transaction.py:1031:    def action_mark_in_transit(self):
-./plasticos_transaction/models/transaction.py:1042:    def action_mark_delivered(self):
-./plasticos_transaction/models/transaction.py:1055:    def action_mark_supplier_not_ready(self, reason=None):
-./plasticos_transaction/models/transaction.py:1081:    def action_mark_supplier_ready(self):
-./plasticos_transaction/models/transaction.py:1091:    def action_send_supplier_confirmation(self):
-./plasticos_transaction/models/transaction.py:1111:    def _escalate_supplier_confirmation(self):
-./plasticos_transaction/models/transaction.py:1138:    def action_view_supplier(self):
-./plasticos_transaction/models/transaction.py:1151:    def action_view_buyer(self):
-./plasticos_transaction/models/transaction.py:1164:    def action_view_lines(self):
-./plasticos_transaction/models/transaction.py:1181:    def _cron_supplier_confirmation_followup(self):
-./plasticos_transaction/models/transaction.py:1250:    def _cron_auto_create_delivery_orders(self):
+./plasticos_transaction/models/purchase_inherit.py:43:    def button_confirm(self):
+./plasticos_transaction/models/purchase_inherit.py:59:    def button_approve(self, force=False):
+./plasticos_transaction/models/purchase_inherit.py:87:    def _find_transaction_for_po(self, order):
+./plasticos_transaction/models/sale_inherit.py:20:    def _prepare_confirmation_values(self):
+./plasticos_transaction/models/sale_inherit.py:27:    def action_confirm(self):
+./plasticos_transaction/models/sale_inherit.py:52:    def _compile_worksheet_transactions(self):
+./plasticos_transaction/models/sale_inherit.py:78:    def _transaction_vals(self, historical: bool, worksheet: str) -> dict:
+./plasticos_transaction/models/sale_inherit.py:111:    def _lock_historical_commission(self, vals: dict, worksheet: str) -> None:
+./plasticos_transaction/models/sale_inherit.py:123:    def _post_worksheet_note(self, transaction, worksheet: str, sales: list[int]) -> None:
+./plasticos_transaction/models/sale_inherit.py:142:    def _salesperson_id(self) -> int | bool:
+./plasticos_transaction/models/sale_inherit.py:151:    def _worksheet_document_vals(self, worksheet: str) -> dict:
+./plasticos_transaction/models/sale_inherit.py:191:    def _worksheet_transaction_name(self, worksheet: str) -> str:
+./plasticos_transaction/models/transaction.py:508:    def _check_override_pct_range(self):
+./plasticos_transaction/models/transaction.py:512:    def _get_default_delivery_term(self):
+./plasticos_transaction/models/transaction.py:540:    def _compute_is_supplier_confirmed(self):
+./plasticos_transaction/models/transaction.py:553:    def _compute_profile_refs(self):
+./plasticos_transaction/models/transaction.py:604:    def _compute_profiles(self):
+./plasticos_transaction/models/transaction.py:633:    def _compute_weight_variance(self):
+./plasticos_transaction/models/transaction.py:645:    def _compute_tare_per_unit(self):
+./plasticos_transaction/models/transaction.py:672:    def _inverse_tare_per_unit(self):
+./plasticos_transaction/models/transaction.py:678:    def _compute_total_tare(self):
+./plasticos_transaction/models/transaction.py:684:    def _compute_final_weight(self):
+./plasticos_transaction/models/transaction.py:711:    def _compute_weight_discrepancy(self):
+./plasticos_transaction/models/transaction.py:731:    def _compute_light_weight_deduction(self):
+./plasticos_transaction/models/transaction.py:756:    def _compute_line_count(self):
+./plasticos_transaction/models/transaction.py:761:    def _compute_historical_totals(self):
+./plasticos_transaction/models/transaction.py:785:    def _compute_financials(self):
+./plasticos_transaction/models/transaction.py:819:    def _compute_net_margin(self):
+./plasticos_transaction/models/transaction.py:825:    def _compute_chargebacks_penalties(self):
+./plasticos_transaction/models/transaction.py:837:    def _compute_commission(self):
+./plasticos_transaction/models/transaction.py:845:    def _compute_compliance(self):
+./plasticos_transaction/models/transaction.py:871:    def _auto_post_pending_invoices(self):
+./plasticos_transaction/models/transaction.py:893:    def create(self, vals_list):
+./plasticos_transaction/models/transaction.py:902:    def write(self, vals):
+./plasticos_transaction/models/transaction.py:916:    def _validate_state_transition(self, rec, vals):
+./plasticos_transaction/models/transaction.py:940:    def _validate_write_immutability(self, rec, vals):
+./plasticos_transaction/models/transaction.py:961:    def _validate_bill_uniqueness(self, rec, vals, field, label):
+./plasticos_transaction/models/transaction.py:982:    def unlink(self):
+./plasticos_transaction/models/transaction.py:990:    def action_activate(self):
+./plasticos_transaction/models/transaction.py:997:    def action_close(self):
+./plasticos_transaction/models/transaction.py:1018:    def _validate_close_preconditions(self, rec, service_docs):
+./plasticos_transaction/models/transaction.py:1041:    def _apply_close(self, rec):
+./plasticos_transaction/models/transaction.py:1049:    def action_mark_do_created(self):
+./plasticos_transaction/models/transaction.py:1064:    def action_mark_dispatched(self):
+./plasticos_transaction/models/transaction.py:1081:    def action_mark_in_transit(self):
+./plasticos_transaction/models/transaction.py:1092:    def action_mark_delivered(self):
+./plasticos_transaction/models/transaction.py:1105:    def action_mark_supplier_not_ready(self, reason=None):
+./plasticos_transaction/models/transaction.py:1131:    def action_mark_supplier_ready(self):
+./plasticos_transaction/models/transaction.py:1141:    def action_send_supplier_confirmation(self):
+./plasticos_transaction/models/transaction.py:1161:    def _escalate_supplier_confirmation(self):
+./plasticos_transaction/models/transaction.py:1188:    def action_view_supplier(self):
+./plasticos_transaction/models/transaction.py:1201:    def action_view_buyer(self):
+./plasticos_transaction/models/transaction.py:1214:    def action_view_lines(self):
+./plasticos_transaction/models/transaction.py:1231:    def _cron_supplier_confirmation_followup(self):
+./plasticos_transaction/models/transaction.py:1300:    def _cron_auto_create_delivery_orders(self):
 ./plasticos_transaction/models/transaction_bridge.py:20:    def action_view_intake(self):
 ./plasticos_transaction/models/transaction_import_service.py:50:    def run_csv_import(self, csv_path: str, dry_run: bool = False) -> dict:
 ./plasticos_transaction/models/transaction_import_service.py:106:    def _read_csv(self, csv_path: str) -> list:
@@ -962,6 +1012,61 @@
 ./plasticos_transaction/services/status_cascade.py:42:    def cascade_status(self, model_name, record_id, new_status, reason=None):
 ./plasticos_transaction/services/status_cascade.py:93:    def _log_cascade_start(self, record, old_status, new_status, reason):
 ./plasticos_transaction/services/status_cascade.py:106:    def _log_cascade_effect(self, target_record, old_status, new_status, source_record):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:112:    def setUpClass(cls):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:147:    def _index(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:152:    def _add_order(self, index, poid, number, source, cp_id, po_date="2022-02-18 00:00:00"):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:156:    def _add_line(self, index, line_key, order_number, detail):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:161:    def _worksheet_54839(self, index):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:198:    def _run(self, index, limit=None):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:203:    def _marked(self, model_name, prefix):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:209:    def _snapshot(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:224:    def test_import_leaves_tax_configuration_alone_and_imports_without_taxes(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:251:    def test_historical_documents_stay_draft_with_no_settlement_entries(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:268:    def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:410:    def test_unbilled_freight_row_is_not_folded_beside_freight_bills(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:432:    def _payable_set(self, number, vendor=VENDOR):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:441:    def _quarantine_by_id(self, report):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:444:    def test_no_link_worksheet_quarantines_every_source_payable(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:486:    def test_purchase_only_worksheet_carries_no_handling_or_equipment_cost(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:525:    def test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:567:    def test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:620:    def test_diagnostic_limit_counts_the_payables_it_leaves_out(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:647:    def _worksheet_with_sale_and_costs(self, index, number, so_poid, so_number, po_poid, po_number, day):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:666:    def _anomaly_details(self, report):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:669:    def test_empty_order_graph_quarantines_every_payable_and_still_reconciles(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:705:    def test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:769:    def test_dry_run_excludes_every_payable_by_name_and_writes_nothing(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:791:    def test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:855:    def test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:909:    def test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:942:    def test_sub_cent_unit_price_keeps_the_source_amount_and_is_only_rounded_for_display(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:981:    def test_source_amount_drift_is_reported_when_a_quantity_cannot_be_stored_exactly(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1017:    def test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1086:    def test_worksheet_53797_nets_to_zero_revenue_and_negative_margin(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1113:    def test_two_worksheets_on_one_sale_order_compile_two_transactions_and_replay_adds_nothing(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1153:    def test_two_worksheets_on_one_order_across_commit_batches(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1179:    def test_worksheet_with_two_sale_orders_compiles_one_transaction(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1213:    def test_worksheet_whose_sale_orders_have_different_customers_is_rejected(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1234:    def test_rejected_worksheet_does_not_poison_the_product_cache(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1271:    def _commission_worksheet(self, index, number, order_dt, **slots):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1286:    def test_commission_recipient_amount_and_cutoff_per_slot(self):
+./plasticos_transaction/tests/test_relationship_batch.py:9:    def setUpClass(cls):
+./plasticos_transaction/tests/test_relationship_batch.py:40:    def test_profile_refs_match_polymer_for_a_recordset(self):
+./plasticos_transaction/tests/test_relationship_batch.py:51:    def test_buyer_facility_recomputes_when_the_profile_is_created(self):
+./plasticos_transaction/tests/test_relationship_batch.py:59:    def test_purchase_delivery_term_uses_m2m_membership(self):
+./plasticos_transaction/tests/test_relationship_batch.py:73:    def test_supplier_material_uses_the_first_purchase_partner_profile(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:26:    def setUpClass(cls):
+./plasticos_transaction/tests/test_transaction_form_ui.py:33:    def _installed(self, module):
+./plasticos_transaction/tests/test_transaction_form_ui.py:36:    def _group(self, name):
+./plasticos_transaction/tests/test_transaction_form_ui.py:43:    def test_profit_snapshot_is_the_only_margin_presentation(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:76:    def test_orders_group_puts_counterparties_and_material_first(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:88:    def test_freight_and_material_groups(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:99:    def test_delivery_group_carries_carrier_freight_and_load(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:109:    def test_every_form_field_exists_on_the_model(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:117:    def test_default_list_is_the_transaction_list_not_the_wizard_list(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:130:    def test_list_keeps_lifecycle_decorations_and_margin_highlight(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:157:    def test_bulk_wizard_keeps_its_own_list(self):
+./plasticos_transaction/tests/test_transaction_form_ui.py:171:    def test_search_keeps_negative_margin_filter_and_carrier_grouping(self):
 ./plasticos_transaction/wizards/transaction_bulk_assign_wizard.py:58:    def _compute_transaction_count(self):
 ./plasticos_transaction/wizards/transaction_bulk_assign_wizard.py:63:    def default_get(self, fields_list):
 ./plasticos_transaction/wizards/transaction_bulk_assign_wizard.py:70:    def action_execute(self):
@@ -986,16 +1091,16 @@
 ./plasticos_web_leads/adapters/base.py:146:    def sample_payload(cls) -> dict[str, Any]:
 ./plasticos_web_leads/adapters/base.py:149:    def presented_tokens(self, request: InboundRequest) -> tuple[str, ...]:
 ./plasticos_web_leads/adapters/base.py:169:    def authenticate(self, request: InboundRequest, *, secret: str) -> bool:
-./plasticos_web_leads/adapters/cognito.py:44:    def _text(value: Any) -> str:
-./plasticos_web_leads/adapters/cognito.py:48:    def _first_text(cls, payload: Mapping[str, Any], *keys: str) -> str:
-./plasticos_web_leads/adapters/cognito.py:56:    def _contact_name(cls, payload: Mapping[str, Any]) -> str:
-./plasticos_web_leads/adapters/cognito.py:70:    def _entry(cls, payload: Mapping[str, Any]) -> Mapping[str, Any]:
-./plasticos_web_leads/adapters/cognito.py:75:    def _external_id(cls, payload: Mapping[str, Any]) -> str:
-./plasticos_web_leads/adapters/cognito.py:80:    def _attachment_items(cls, payload: Mapping[str, Any]) -> tuple[str, list[Any]]:
-./plasticos_web_leads/adapters/cognito.py:92:    def _attachments(cls, payload: Mapping[str, Any]) -> tuple[WebLeadAttachment, ...]:
-./plasticos_web_leads/adapters/cognito.py:140:    def classify_event(self, payload: Mapping[str, Any]) -> InboundEvent:
-./plasticos_web_leads/adapters/cognito.py:165:    def sample_payload(cls) -> dict[str, Any]:
-./plasticos_web_leads/adapters/cognito.py:188:    def to_packet(self, payload: Mapping[str, Any]) -> WebLeadPacket:
+./plasticos_web_leads/adapters/cognito.py:46:    def _text(value: Any) -> str:
+./plasticos_web_leads/adapters/cognito.py:50:    def _first_text(cls, payload: Mapping[str, Any], *keys: str) -> str:
+./plasticos_web_leads/adapters/cognito.py:58:    def _contact_name(cls, payload: Mapping[str, Any]) -> str:
+./plasticos_web_leads/adapters/cognito.py:72:    def _entry(cls, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+./plasticos_web_leads/adapters/cognito.py:77:    def _external_id(cls, payload: Mapping[str, Any]) -> str:
+./plasticos_web_leads/adapters/cognito.py:82:    def _attachment_items(cls, payload: Mapping[str, Any]) -> tuple[str, list[Any]]:
+./plasticos_web_leads/adapters/cognito.py:94:    def _attachments(cls, payload: Mapping[str, Any]) -> tuple[WebLeadAttachment, ...]:
+./plasticos_web_leads/adapters/cognito.py:142:    def classify_event(self, payload: Mapping[str, Any]) -> InboundEvent:
+./plasticos_web_leads/adapters/cognito.py:174:    def sample_payload(cls) -> dict[str, Any]:
+./plasticos_web_leads/adapters/cognito.py:197:    def to_packet(self, payload: Mapping[str, Any]) -> WebLeadPacket:
 ./plasticos_web_leads/controllers/web_lead_api.py:41:    def _inbound_request(req) -> InboundRequest:
 ./plasticos_web_leads/controllers/web_lead_api.py:51:    def _authenticate(req, adapter):
 ./plasticos_web_leads/controllers/web_lead_api.py:136:    def receive_inbound(self, provider_key, **kwargs):
@@ -1120,6 +1225,7 @@
 ./scripts/audit/business_logic_audit.py:98:    def check_sql_injection_risks(self):
 ./scripts/audit/business_logic_audit.py:129:    def check_missing_access_checks(self):
 ./scripts/audit/business_logic_audit.py:162:    def check_state_machine_bypasses(self):
+./scripts/audit/check_baseline.py:70:    def fail(message: str) -> int:
 ./scripts/audit/odoo_audit.py:106:    def __init__(self, root_dir="."):
 ./scripts/audit/odoo_audit.py:114:    def scan_model_fields(self):
 ./scripts/audit/odoo_audit.py:174:    def scan_view_field_refs(self):
@@ -1130,22 +1236,23 @@
 ./scripts/audit/odoo_audit.py:348:    def check_onchange_methods(self):
 ./scripts/audit/odoo_audit.py:386:    def check_state_machine(self):
 ./scripts/audit/odoo_audit.py:426:    def run_all_checks(self):
-./scripts/audit/performance_audit.py:14:    def __init__(self, root_dir="."):
-./scripts/audit/performance_audit.py:17:    def check_n_plus_one_queries(self):
-./scripts/audit/performance_audit.py:62:    def check_unbounded_searches(self):
+./scripts/audit/performance_audit.py:73:    def visit(node, in_loop, loop_lineno, aliases):
+./scripts/audit/performance_audit.py:105:    def __init__(self, root_dir="."):
+./scripts/audit/performance_audit.py:108:    def check_n_plus_one_queries(self):
+./scripts/audit/performance_audit.py:151:    def check_unbounded_searches(self):
 ./scripts/audit/schema_audit.py:11:    def __init__(self, db_config):
 ./scripts/audit/schema_audit.py:15:    def get_database_tables(self):
 ./scripts/audit/schema_audit.py:25:    def get_database_columns(self, table):
 ./scripts/audit/schema_audit.py:37:    def get_missing_indexes(self):
 ./scripts/audit/schema_audit.py:55:    def check_orphaned_fields(self):
 ./scripts/audit/schema_audit.py:88:    def check_type_mismatches(self, model_fields):
-./scripts/audit/security_audit.py:14:    def __init__(self, root_dir="."):
-./scripts/audit/security_audit.py:17:    def check_controller_security(self):
-./scripts/audit/security_audit.py:60:    def check_sensitive_logging(self):
-./scripts/audit/test_audit.py:16:    def __init__(self, root_dir="."):
-./scripts/audit/test_audit.py:19:    def get_models_without_tests(self):
-./scripts/audit/test_audit.py:58:    def check_weak_tests(self):
-./scripts/audit/test_audit.py:97:    def run_pytest_coverage(self):
+./scripts/audit/security_audit.py:86:    def __init__(self, root_dir="."):
+./scripts/audit/security_audit.py:89:    def check_controller_security(self):
+./scripts/audit/security_audit.py:132:    def check_sensitive_logging(self):
+./scripts/audit/test_audit.py:27:    def __init__(self, root_dir="."):
+./scripts/audit/test_audit.py:30:    def get_models_without_tests(self):
+./scripts/audit/test_audit.py:34:    def check_weak_tests(self):
+./scripts/audit/test_audit.py:58:    def run_pytest_coverage(self):
 ./scripts/check_external_intelligence_readiness.py:53:        def get_param(self, key: str, default=None):
 ./scripts/check_external_intelligence_readiness.py:57:        def __getitem__(self, key: str):
 ./scripts/check_external_intelligence_readiness.py:62:        def sudo(self):
@@ -1154,11 +1261,10 @@
 ./scripts/generate_subsystem_readmes.py:120:    def __init__(self) -> None:
 ./scripts/generate_subsystem_readmes.py:125:    def visit_ClassDef(self, node: ast.ClassDef) -> None:
 ./scripts/generate_subsystem_readmes.py:133:    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-./scripts/pr_autopilot.py:192:        def http_error_302(self, req, fp, code, msg, headers):  # type: ignore[override]
-./scripts/pr_autopilot.py:232:    def __str__(self) -> str:
-./scripts/pr_autopilot.py:718:    def get_file(fpath: str) -> str:
-./scripts/pr_autopilot.py:790:    def load_file(fpath: str) -> tuple[str, str]:
-./scripts/pr_autopilot.py:1003:    def api(method: str, path: str, data: dict | None = None) -> Any:
+./scripts/pr_autopilot.py:191:        def http_error_302(self, req, fp, code, msg, headers):  # type: ignore[override]
+./scripts/pr_autopilot.py:231:    def __str__(self) -> str:
+./scripts/pr_autopilot.py:717:    def get_file(fpath: str) -> str:
+./scripts/pr_autopilot.py:789:    def load_file(fpath: str) -> tuple[str, str]:
 ./scripts/pr_repair_adapter.py:483:    def _make_executor(approved: bool):
 ./scripts/pr_repair_adapter.py:486:        def _executor(plan: RepairPlan, _config: AppConfig, _repo_root: Path | None) -> RepairExecution:
 ./scripts/pr_repair_adapter.py:498:    def _finding_provider(_pr_ref: PRRef) -> list[Finding]:
@@ -1492,18 +1598,18 @@
 ./tests/runtime_gates/run_c6_replay_checkpoint.py:91:    def iter_table_rows(self, x):
 ./tests/runtime_gates/run_c6_replay_checkpoint.py:96:    def iter_contacts(self, *, modified_after, limit=200):
 ./tests/runtime_gates/run_c6_replay_checkpoint.py:105:    def iter_contacts(self, *, modified_after, limit=200):
-./tests/runtime_gates/run_f1_f3_full_import.py:127:    def __init__(self, contact_passes, call_passes):
-./tests/runtime_gates/run_f1_f3_full_import.py:134:    def healthcheck(self):
-./tests/runtime_gates/run_f1_f3_full_import.py:137:    def iter_contacts(self, *, modified_after, limit=200):
-./tests/runtime_gates/run_f1_f3_full_import.py:142:    def iter_calls(self, *, start, end, limit=500):
-./tests/runtime_gates/run_f1_f3_full_import.py:150:    def iter_table_rows(self, contact_external_id):
-./tests/runtime_gates/run_s1_s3_pristine_seams.py:118:    def _send(self, payload, status=200):
-./tests/runtime_gates/run_s1_s3_pristine_seams.py:126:    def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
-./tests/runtime_gates/run_s1_s3_pristine_seams.py:141:    def log_message(self, *args):  # silence per-request logging
-./tests/runtime_gates/run_s1_s3_pristine_seams.py:148:    def __init__(self):
-./tests/runtime_gates/run_s1_s3_pristine_seams.py:153:    def __enter__(self):
-./tests/runtime_gates/run_s1_s3_pristine_seams.py:157:    def __exit__(self, *exc):
-./tests/runtime_gates/run_s1_s3_pristine_seams.py:162:    def root(self) -> str:
+./tests/runtime_gates/run_f1_f3_full_import.py:126:    def __init__(self, contact_passes, call_passes):
+./tests/runtime_gates/run_f1_f3_full_import.py:133:    def healthcheck(self):
+./tests/runtime_gates/run_f1_f3_full_import.py:136:    def iter_contacts(self, *, modified_after, limit=200):
+./tests/runtime_gates/run_f1_f3_full_import.py:141:    def iter_calls(self, *, start, end, limit=500):
+./tests/runtime_gates/run_f1_f3_full_import.py:149:    def iter_table_rows(self, contact_external_id):
+./tests/runtime_gates/run_s1_s3_pristine_seams.py:117:    def _send(self, payload, status=200):
+./tests/runtime_gates/run_s1_s3_pristine_seams.py:125:    def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
+./tests/runtime_gates/run_s1_s3_pristine_seams.py:140:    def log_message(self, *args):  # silence per-request logging
+./tests/runtime_gates/run_s1_s3_pristine_seams.py:147:    def __init__(self):
+./tests/runtime_gates/run_s1_s3_pristine_seams.py:152:    def __enter__(self):
+./tests/runtime_gates/run_s1_s3_pristine_seams.py:156:    def __exit__(self, *exc):
+./tests/runtime_gates/run_s1_s3_pristine_seams.py:161:    def root(self) -> str:
 ./tests/runtime_gates/run_web_lead_concurrent_admission.py:127:            def _once():
 ./tests/test_action_methods.py:32:    def setUpClass(cls):
 ./tests/test_action_methods.py:38:    def _make_intake(self, **kw):
@@ -1598,6 +1704,18 @@
 ./tests/test_action_methods.py:664:    def test_action_cancel(self):
 ./tests/test_action_methods.py:670:    def test_action_complete(self):
 ./tests/test_action_methods.py:676:    def test_action_view_loads(self):
+./tests/test_audit_n_plus_one.py:27:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:42:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:57:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:70:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:83:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:98:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:112:            def run(self, rows):
+./tests/test_audit_n_plus_one.py:128:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:143:            def run(self, rows):
+./tests/test_audit_n_plus_one.py:157:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:170:            def run(self, xs):
+./tests/test_audit_n_plus_one.py:184:            def run(self, xs):
 ./tests/test_bridge_contracts.py:21:    def test_model_exists(self):
 ./tests/test_bridge_contracts.py:25:    def test_intake_has_transaction_ids_one2many(self):
 ./tests/test_bridge_contracts.py:55:    def setUpClass(cls):
@@ -1941,24 +2059,38 @@
 ./tests/test_depends_transaction_claims_bridge.py:68:    def test_freight_chargeback_recovery_flows_to_transaction(self):
 ./tests/test_depends_transaction_claims_bridge.py:77:    def test_lightweight_penalty_recovery_flows_to_transaction(self):
 ./tests/test_depends_transaction_claims_bridge.py:86:    def test_unresolved_claim_contributes_no_recovery(self):
-./tests/test_erp_layer_gate.py:39:    def __init__(self):
-./tests/test_erp_layer_gate.py:44:    def execute(self, query):
-./tests/test_erp_layer_gate.py:47:    def fetchone(self):
-./tests/test_erp_layer_gate.py:50:    def commit(self):
-./tests/test_erp_layer_gate.py:53:    def rollback(self):
-./tests/test_erp_layer_gate.py:58:    def __init__(self):
-./tests/test_erp_layer_gate.py:65:    def __init__(self, monkeypatch, failing=(), database=None):
-./tests/test_erp_layer_gate.py:73:        def validate(env, layer, payload=None):
-./tests/test_erp_layer_gate.py:78:        def run(env, **kwargs):
-./tests/test_erp_layer_gate.py:117:    def main(self):
-./tests/test_erp_source_layer.py:654:    def __init__(self, result_sets):
-./tests/test_erp_source_layer.py:660:    def execute(self, statement):
-./tests/test_erp_source_layer.py:667:    def fetchall(self):
-./tests/test_erp_source_layer.py:670:    def close(self):
-./tests/test_erp_source_layer.py:675:    def __init__(self, result_sets):
-./tests/test_erp_source_layer.py:680:    def cursor(self):
-./tests/test_erp_source_layer.py:685:    def close(self):
-./tests/test_erp_source_layer.py:764:    def refuse():
+./tests/test_erp_layer_gate.py:52:    def __init__(self, partner_rows="empty"):
+./tests/test_erp_layer_gate.py:58:    def execute(self, query):
+./tests/test_erp_layer_gate.py:61:    def fetchone(self):
+./tests/test_erp_layer_gate.py:73:    def commit(self):
+./tests/test_erp_layer_gate.py:76:    def rollback(self):
+./tests/test_erp_layer_gate.py:81:    def __init__(self, partner_rows="empty"):
+./tests/test_erp_layer_gate.py:88:    def __init__(self, monkeypatch, failing=(), database=None, partner_rows="empty", odoo_env=None):
+./tests/test_erp_layer_gate.py:97:        def validate(env, layer, payload=None):
+./tests/test_erp_layer_gate.py:102:        def run(env, **kwargs):
+./tests/test_erp_layer_gate.py:124:        def database_source_from_env(environ):
+./tests/test_erp_layer_gate.py:158:    def main(self):
+./tests/test_erp_layer_gate.py:341:    def __init__(self, installed):
+./tests/test_erp_layer_gate.py:345:    def search(self, domain):
+./tests/test_erp_layer_gate.py:354:    def __init__(self, installed, models=("plasticos.transaction",), name="erp_import_gate"):
+./tests/test_erp_layer_gate.py:361:    def __getitem__(self, model):
+./tests/test_erp_layer_gate.py:365:    def __contains__(self, model):
+./tests/test_erp_layer_gate.py:368:    def ref(self, _xmlid, raise_if_not_found=True):
+./tests/test_erp_layer_gate.py:475:    def validate(_env, layer, payload=None):
+./tests/test_erp_layer_gate.py:496:    def run(env, **kwargs):
+./tests/test_erp_layer_gate.py:512:    def run(env, **kwargs):
+./tests/test_erp_scratch_db_guard.py:56:    def __enter__(self):
+./tests/test_erp_scratch_db_guard.py:59:        def guarded(name, global_ns=None, local_ns=None, fromlist=(), level=0):
+./tests/test_erp_scratch_db_guard.py:68:    def __exit__(self, *exc):
+./tests/test_erp_scratch_db_guard.py:102:    def connect(dbname: str):
+./tests/test_erp_source_layer.py:656:    def __init__(self, result_sets):
+./tests/test_erp_source_layer.py:662:    def execute(self, statement):
+./tests/test_erp_source_layer.py:669:    def fetchall(self):
+./tests/test_erp_source_layer.py:672:    def close(self):
+./tests/test_erp_source_layer.py:677:    def __init__(self, result_sets):
+./tests/test_erp_source_layer.py:682:    def cursor(self):
+./tests/test_erp_source_layer.py:687:    def close(self):
+./tests/test_erp_source_layer.py:802:    def refuse():
 ./tests/test_error_handling.py:44:    def test_enrichment_api_failure_caught(self):
 ./tests/test_error_handling.py:56:    def test_geo_backfill_api_timeout(self):
 ./tests/test_error_handling.py:68:    def test_classification_failure_sets_error_state(self):
@@ -2104,6 +2236,9 @@
 ./tests/test_odoo19_compat.py:254:    def test_no_tree_view_type(self):
 ./tests/test_odoo19_compat.py:271:    def test_xml_well_formed(self):
 ./tests/test_odoo19_compat.py:284:    def test_no_duplicate_xml_ids(self):
+./tests/test_odoo19_compat.py:304:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
+./tests/test_odoo19_compat.py:317:        def field_node(record, name):
+./tests/test_odoo19_compat.py:323:        def field_text(record, name):
 ./tests/test_odoo_test_setup_validity.py:29:    def format(self) -> str:
 ./tests/test_odoo_test_setup_validity.py:79:    def is_in_assertraises(line_num):
 ./tests/test_offer_price_bridge_wiring.py:34:    def _src(self):
@@ -2137,37 +2272,38 @@
 ./tests/test_performance.py:115:    def setUpClass(cls):
 ./tests/test_performance.py:119:    def test_partner_search_under_1s(self):
 ./tests/test_performance.py:131:    def test_intake_complex_domain_under_2s(self):
-./tests/test_phantom_enum_values.py:981:    def __init__(self, filepath):
-./tests/test_phantom_enum_values.py:986:    def _record(self, value, lineno, context):
-./tests/test_phantom_enum_values.py:1015:    def visit_Compare(self, node):
-./tests/test_phantom_enum_values.py:1034:    def visit_Tuple(self, node):
-./tests/test_phantom_enum_values.py:1058:    def visit_Subscript(self, node):
-./tests/test_phantom_enum_values.py:1062:    def visit_Dict(self, node):
-./tests/test_phantom_enum_values.py:1287:    def test_selection_fields_found(self):
-./tests/test_phantom_enum_values.py:1290:    def test_xml_names_found(self):
-./tests/test_phantom_enum_values.py:1293:    def test_known_polymers_in_registry(self):
-./tests/test_phantom_enum_values.py:1298:    def test_known_forms_in_registry(self):
-./tests/test_phantom_enum_values.py:1302:    def test_known_selection_keys_in_registry(self):
-./tests/test_phantom_enum_values.py:1313:    def test_application_class_options(self):
-./tests/test_phantom_enum_values.py:1318:    def test_process_type_options(self):
-./tests/test_phantom_enum_values.py:1361:    def test_feedstock_type_options(self):
-./tests/test_phantom_enum_values.py:1377:    def test_domain_values_match_selection_options(self):
-./tests/test_phantom_enum_values.py:1407:    def test_no_phantom_comparison_values(self):
-./tests/test_phantom_enum_values.py:1424:    def test_no_phantom_domain_values(self):
-./tests/test_phantom_enum_values.py:1441:    def test_no_phantom_in_list_values(self):
-./tests/test_phantom_enum_values.py:1467:    def test_module_has_no_phantom_enums(self, module_name):
-./tests/test_phantom_enum_values.py:1489:    def _find_selection_collisions(self):
-./tests/test_phantom_enum_values.py:1504:    def test_shared_selection_fields_are_compatible(self):
-./tests/test_phantom_enum_values.py:1536:    def test_xml_colors_are_canonical(self):
-./tests/test_phantom_enum_values.py:1546:    def test_xml_polymer_names_are_uppercase(self):
-./tests/test_phantom_enum_values.py:1657:    def test_equipment_codes_in_compute_match_seed_data(self):
-./tests/test_phantom_enum_values.py:1713:    def test_print_phantom_summary(self, capsys):
+./tests/test_phantom_enum_values.py:1016:    def __init__(self, filepath):
+./tests/test_phantom_enum_values.py:1021:    def _record(self, value, lineno, context):
+./tests/test_phantom_enum_values.py:1050:    def visit_Compare(self, node):
+./tests/test_phantom_enum_values.py:1069:    def visit_Tuple(self, node):
+./tests/test_phantom_enum_values.py:1093:    def visit_Subscript(self, node):
+./tests/test_phantom_enum_values.py:1097:    def visit_Dict(self, node):
+./tests/test_phantom_enum_values.py:1322:    def test_selection_fields_found(self):
+./tests/test_phantom_enum_values.py:1325:    def test_xml_names_found(self):
+./tests/test_phantom_enum_values.py:1328:    def test_known_polymers_in_registry(self):
+./tests/test_phantom_enum_values.py:1333:    def test_known_forms_in_registry(self):
+./tests/test_phantom_enum_values.py:1337:    def test_known_selection_keys_in_registry(self):
+./tests/test_phantom_enum_values.py:1348:    def test_application_class_options(self):
+./tests/test_phantom_enum_values.py:1353:    def test_process_type_options(self):
+./tests/test_phantom_enum_values.py:1396:    def test_feedstock_type_options(self):
+./tests/test_phantom_enum_values.py:1412:    def test_domain_values_match_selection_options(self):
+./tests/test_phantom_enum_values.py:1442:    def test_no_phantom_comparison_values(self):
+./tests/test_phantom_enum_values.py:1459:    def test_no_phantom_domain_values(self):
+./tests/test_phantom_enum_values.py:1476:    def test_no_phantom_in_list_values(self):
+./tests/test_phantom_enum_values.py:1502:    def test_module_has_no_phantom_enums(self, module_name):
+./tests/test_phantom_enum_values.py:1524:    def _find_selection_collisions(self):
+./tests/test_phantom_enum_values.py:1539:    def test_shared_selection_fields_are_compatible(self):
+./tests/test_phantom_enum_values.py:1571:    def test_xml_colors_are_canonical(self):
+./tests/test_phantom_enum_values.py:1581:    def test_xml_polymer_names_are_uppercase(self):
+./tests/test_phantom_enum_values.py:1692:    def test_equipment_codes_in_compute_match_seed_data(self):
+./tests/test_phantom_enum_values.py:1748:    def test_print_phantom_summary(self, capsys):
 ./tests/test_process_enum_alignment.py:67:    def test_registry_has_codes(self):
 ./tests/test_process_enum_alignment.py:73:    def test_mfi_ranges_cover_all_codes(self):
 ./tests/test_process_enum_alignment.py:80:    def test_facility_profile_imports_registry(self):
 ./tests/test_process_enum_alignment.py:92:    def test_matcher_imports_registry(self):
 ./tests/test_process_enum_alignment.py:96:    def test_no_hardcoded_process_literals_in_matcher(self):
 ./tests/test_process_enum_alignment.py:100:    def test_graph_service_process_alignment(self):
+./tests/test_remote_feedback_revision.py:121:    def boom(*_args, **_kwargs):
 ./tests/test_sal_resolver_service.py:26:        def now():
 ./tests/test_sal_resolver_service.py:55:    def __init__(self):
 ./tests/test_sal_resolver_service.py:60:    def search(self, domain, **kwargs):
@@ -2193,7 +2329,17 @@
 ./tests/test_security_acl.py:172:    def _bill(self):
 ./tests/test_security_acl.py:183:    def test_vendor_bill_exclusivity(self):
 ./tests/test_security_acl.py:189:    def test_freight_bill_exclusivity(self):
+./tests/test_security_acl.py:201:    def setUpClass(cls):
+./tests/test_security_acl.py:238:    def test_visible_parent_phone_is_readable(self):
+./tests/test_security_acl.py:242:    def test_private_parent_phone_is_hidden_from_another_sales_rep(self):
+./tests/test_security_acl.py:248:    def test_owner_can_read_private_parent_phone(self):
+./tests/test_security_acl.py:252:    def test_admin_can_read_private_parent_phone(self):
+./tests/test_security_acl.py:256:    def test_sales_rep_cannot_unlink_phone_and_admin_can(self):
 ./tests/test_semantic_kernel_backfill.py:70:    def factory(*, dry_run=False, existing_identities=None):
+./tests/test_state_audit_containment.py:73:            def cron_touch(self):
+./tests/test_state_audit_containment.py:91:            def _validate_state_transition(self):
+./tests/test_state_audit_containment.py:111:            def _validate_state_transition(self):
+./tests/test_state_audit_containment.py:114:            def cron_touch(self):
 ./tests/test_state_machines.py:46:    def setUpClass(cls):
 ./tests/test_state_machines.py:69:    def _create_load(self):
 ./tests/test_state_machines.py:78:    def _advance_to(self, load, target_state):
@@ -2251,14 +2397,14 @@
 ./tests/test_state_machines.py:517:    def test_cancel_accepted_raises(self):
 ./tests/test_state_machines.py:524:    def test_reject_accepted_raises(self):
 ./tests/test_state_machines.py:531:    def test_accept_records_metadata(self):
-./tests/test_suite_structure.py:93:    def test_all_test_files_parse(self):
-./tests/test_suite_structure.py:104:    def test_every_test_module_is_collectable_by_pytest(self):
-./tests/test_suite_structure.py:133:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
-./tests/test_suite_structure.py:158:    def test_odoo_tests_declare_a_recognised_base(self):
-./tests/test_suite_structure.py:172:    def test_no_duplicate_test_class_names(self):
-./tests/test_suite_structure.py:196:    def test_test_files_start_with_test(self):
-./tests/test_suite_structure.py:207:    def test_non_test_files_are_not_test_named(self):
-./tests/test_suite_structure.py:216:    def test_test_methods_contain_assertions(self):
+./tests/test_suite_structure.py:95:    def test_all_test_files_parse(self):
+./tests/test_suite_structure.py:106:    def test_every_test_module_is_collectable_by_pytest(self):
+./tests/test_suite_structure.py:135:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
+./tests/test_suite_structure.py:160:    def test_odoo_tests_declare_a_recognised_base(self):
+./tests/test_suite_structure.py:174:    def test_no_duplicate_test_class_names(self):
+./tests/test_suite_structure.py:198:    def test_test_files_start_with_test(self):
+./tests/test_suite_structure.py:209:    def test_non_test_files_are_not_test_named(self):
+./tests/test_suite_structure.py:218:    def test_test_methods_contain_assertions(self):
 ./tests/test_triage_pipeline.py:82:    def test_none_returns_zero(self):
 ./tests/test_triage_pipeline.py:87:    def test_empty_string_returns_zero(self):
 ./tests/test_triage_pipeline.py:92:    def test_explicit_lbs(self):
@@ -2328,10 +2474,29 @@
 ./tests/test_triage_pipeline.py:657:    def test_low_confidence_nulls_polymer_hint(self):
 ./tests/test_triage_pipeline.py:662:    def test_error_results_filtered(self):
 ./tests/test_triage_pipeline.py:673:    def test_byte_path_preserves_distinct_visual_evidence(self):
-./tests/test_web_lead_adapter_contract.py:91:    def to_packet(self, payload):  # pragma: no cover - not exercised here
-./tests/test_web_lead_adapter_contract.py:94:    def classify_event(self, payload):  # pragma: no cover - not exercised here
-./tests/test_web_lead_adapter_contract.py:98:    def sample_payload(cls):  # pragma: no cover - not exercised here
-./tests/test_web_lead_adapter_contract.py:101:    def authenticate(self, request: InboundRequest, *, secret: str) -> bool:
+./tests/test_weak_test_authority.py:51:        def test_bare():
+./tests/test_weak_test_authority.py:54:        def test_raises():
+./tests/test_weak_test_authority.py:58:        def test_explicit():
+./tests/test_weak_test_authority.py:61:        def test_unittest(self):
+./tests/test_weak_test_authority.py:64:        def test_assert_helper():
+./tests/test_weak_test_authority.py:67:        def test_underscore_helper():
+./tests/test_weak_test_authority.py:79:        def test_check():
+./tests/test_weak_test_authority.py:82:        def test_private_check():
+./tests/test_weak_test_authority.py:85:        def test_validate():
+./tests/test_weak_test_authority.py:88:        def test_run():
+./tests/test_weak_test_authority.py:91:        def test_safe():
+./tests/test_weak_test_authority.py:94:        def test_empty():
+./tests/test_weak_test_authority.py:113:        def test_addon_empty():
+./tests/test_weak_test_authority.py:121:        def test_hidden_empty():
+./tests/test_weak_test_authority.py:203:        def test_bare():
+./tests/test_weak_test_authority.py:206:        def test_raises():
+./tests/test_weak_test_authority.py:210:        def test_explicit():
+./tests/test_weak_test_authority.py:213:        def test_helper_is_not_evidence():
+./tests/test_weak_test_authority.py:261:        def test_addon_empty():
+./tests/test_web_lead_adapter_contract.py:103:    def to_packet(self, payload):  # pragma: no cover - not exercised here
+./tests/test_web_lead_adapter_contract.py:106:    def classify_event(self, payload):  # pragma: no cover - not exercised here
+./tests/test_web_lead_adapter_contract.py:110:    def sample_payload(cls):  # pragma: no cover - not exercised here
+./tests/test_web_lead_adapter_contract.py:113:    def authenticate(self, request: InboundRequest, *, secret: str) -> bool:
 ./tests/test_web_lead_evidence.py:37:    def __init__(self, attachment_id, values, model):
 ./tests/test_web_lead_evidence.py:48:    def exists(self):
 ./tests/test_web_lead_evidence.py:51:    def copy(self, values):
