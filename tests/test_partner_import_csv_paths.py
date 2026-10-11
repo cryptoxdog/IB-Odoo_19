@@ -11,7 +11,7 @@ import importlib.util
 import os
 import tempfile
 
-from odoo import Command
+from odoo import SUPERUSER_ID, Command
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
@@ -148,6 +148,25 @@ class TestLegacyImportUiRetired(PlasticosTestCase):
             with self.subTest(action=action), self.assertRaises(UserError) as ctx:
                 getattr(wizard, action)()
             self.assertIn("retired", str(ctx.exception))
+
+    def test_internal_user_cannot_run_the_importer_through_rpc(self):
+        """The service ACL grants read; its public import methods must still refuse non-system callers."""
+        service = self.env["plasticos.partner.import.service"].with_user(self.internal_user)
+        with self.assertRaises(AccessError):
+            service.run_default_csv_import()
+        with self.assertRaises(AccessError):
+            service.run_csv_import("/nonexistent/corporate.csv", "/nonexistent/facility.csv")
+        with self.assertRaises(AccessError):
+            service.run_full_import()
+        validation = self.env["plasticos.partner.import.validation"].with_user(self.internal_user)
+        with self.assertRaises(AccessError):
+            validation.repair_import_data(dry_run=True)
+
+    def test_operator_shell_and_system_users_pass_the_guard(self):
+        service = self.env["plasticos.partner.import.service"]
+        self.assertIsNone(service._check_import_operator())
+        self.assertIsNone(service.with_user(SUPERUSER_ID)._check_import_operator())
+        self.assertIsNone(service.with_user(self.internal_user).sudo()._check_import_operator())
 
     def test_importer_logic_is_preserved(self):
         service = self.env["plasticos.partner.import.service"]

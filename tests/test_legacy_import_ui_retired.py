@@ -141,6 +141,33 @@ def test_wizard_execution_actions_are_closed_behind_the_retirement_guard():
         assert isinstance(func, ast.Attribute) and func.attr == GUARD, f"{name} must call {GUARD} first"
 
 
+def _first_statement(func: ast.FunctionDef) -> ast.stmt:
+    first = func.body[0]
+    if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
+        return func.body[1]  # skip the docstring
+    return first
+
+
+def test_service_import_entry_points_are_guarded_against_rpc_callers():
+    """Public AbstractModel methods are RPC-reachable; the mutating ones must check the operator first."""
+    service_tree = ast.parse((MODULE / "models" / "partner_import_service.py").read_text(encoding="utf-8"))
+    service = _class_def(service_tree, "PlasticosPartnerImportService")
+    guard = _method(service, "_check_import_operator")
+    raises = [n for n in ast.walk(guard) if isinstance(n, ast.Raise)]
+    assert raises and isinstance(raises[0].exc, ast.Call) and raises[0].exc.func.id == "AccessError"
+    for name in ("run_full_import", "run_csv_import", "run_default_csv_import"):
+        first = _first_statement(_method(service, name))
+        assert isinstance(first, ast.Expr) and isinstance(first.value, ast.Call), name
+        func = first.value.func
+        assert isinstance(func, ast.Attribute) and func.attr == "_check_import_operator", name
+
+    validation_tree = ast.parse((MODULE / "models" / "validation.py").read_text(encoding="utf-8"))
+    repair = _method(_class_def(validation_tree, "PlasticosPartnerImportValidation"), "repair_import_data")
+    first = _first_statement(repair)
+    assert isinstance(first, ast.Expr) and isinstance(first.value, ast.Call)
+    assert isinstance(first.value.func, ast.Attribute) and first.value.func.attr == "_check_import_operator"
+
+
 def test_importer_logic_is_preserved_for_shell_reuse():
     service = (MODULE / "models" / "partner_import_service.py").read_text(encoding="utf-8")
     for method in ("def run_csv_import(", "def run_default_csv_import(", "def resolve_default_csv_path("):
