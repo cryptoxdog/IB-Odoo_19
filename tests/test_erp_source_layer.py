@@ -985,3 +985,83 @@ def test_g5_fails_closed_before_any_write_on_registry_drift(erp_gate, monkeypatc
     assert not passed, f"G5 passed with {drift}:\n{out}"
     assert "projection registry" in out, out
     assert calls["imports"] == [] and calls["reads"] == [], f"G5 reached the runtime with {drift}"
+
+
+# ---------------------------------------------------------------------------
+# Runtime gate exit status — a partial proof is INCOMPLETE, never PASS
+# ---------------------------------------------------------------------------
+# Without ERP_SQL_* the gate runs G1–G4 only and prints NOT RUN for G5/G6. It
+# used to exit 0 on that run, so `make runtime-gates` counted the script as
+# passed and its skipped-gate accounting never saw the unrun seam (FX-005,
+# Codex finding on PR #246). The exit code is driven here with every runtime
+# seam stubbed: 0 only when G1–G6 all ran and passed, 1 on any failure, 77
+# when the direct-SQL seam did not run.
+def _drive_gate_main(gate, monkeypatch, tmp_path, *, source, results: dict[str, bool]):
+    """Run ``main()`` with the runtime seams recorded instead of driven; returns (exit, ran, output)."""
+    ran: list[str] = []
+
+    def gate_fn(name):
+        def run(*_args):
+            ran.append(name)
+            return results[name]
+
+        return run
+
+    monkeypatch.setattr(gate, "ODOO_SRC", str(tmp_path))
+    monkeypatch.setattr(gate, "ODOO_ADDONS", str(tmp_path))
+    monkeypatch.setattr(gate, "direct_sql_source", lambda: source)
+    monkeypatch.setattr(gate, "create_scratch_db", lambda: True)
+    monkeypatch.setattr(gate, "release_scratch_db", lambda: None)
+    monkeypatch.setattr(gate, "drop_scratch_db", lambda: None)
+    monkeypatch.setattr(gate, "gate_g1_first_import_reconciles", gate_fn("G1"))
+    monkeypatch.setattr(gate, "gate_g2_repeat_is_idempotent", gate_fn("G2"))
+    monkeypatch.setattr(gate, "gate_g3_changed_source_updates", gate_fn("G3"))
+    monkeypatch.setattr(gate, "gate_g4_full_import_writes_no_transaction_object", gate_fn("G4"))
+    monkeypatch.setattr(gate, "gate_g5_direct_sql_import_reconciles", gate_fn("G5"))
+    monkeypatch.setattr(gate, "gate_g6_direct_sql_replay_is_idempotent", gate_fn("G6"))
+    monkeypatch.delenv(gate.REQUIRE_DIRECT_SQL_ENV, raising=False)
+    return gate.main(), ran
+
+
+ALL_PASS = dict.fromkeys(("G1", "G2", "G3", "G4", "G5", "G6"), True)
+
+
+def test_gate_passes_only_when_every_gate_ran_and_passed(erp_gate, monkeypatch, tmp_path, capsys):
+    source = reader.DatabaseSource(connect=lambda: None, label=SOURCE_LABEL)
+    code, ran = _drive_gate_main(erp_gate, monkeypatch, tmp_path, source=source, results=ALL_PASS)
+    out = capsys.readouterr().out
+    assert ran == ["G1", "G2", "G3", "G4", "G5", "G6"]
+    assert code == 0, out
+    assert "NOT RUN" not in out and "INCOMPLETE" not in out
+
+
+def test_gate_without_direct_sql_is_incomplete_never_pass(erp_gate, monkeypatch, tmp_path, capsys):
+    """G1–G4 pass, G5/G6 do not run: exit 77 so the aggregator counts the unrun seam."""
+    code, ran = _drive_gate_main(erp_gate, monkeypatch, tmp_path, source=None, results=ALL_PASS)
+    out = capsys.readouterr().out
+    assert ran == ["G1", "G2", "G3", "G4"]
+    assert "NOT RUN  G5/G6" in out
+    assert code != 0, f"a run that never proved the direct-SQL seam exited 0 (false green):\n{out}"
+    assert code == 77 and "INCOMPLETE" in out, out
+
+
+@pytest.mark.parametrize("source_present", [False, True], ids=["fixture-only", "direct-sql"])
+def test_gate_failure_outranks_the_incomplete_verdict(erp_gate, monkeypatch, tmp_path, capsys, source_present):
+    source = reader.DatabaseSource(connect=lambda: None, label=SOURCE_LABEL) if source_present else None
+    code, ran = _drive_gate_main(erp_gate, monkeypatch, tmp_path, source=source, results={**ALL_PASS, "G2": False})
+    out = capsys.readouterr().out
+    assert "G1" in ran and "G2" in ran
+    assert code == 1, f"a failed gate must exit 1, not pass or read INCOMPLETE:\n{out}"
+    assert "INCOMPLETE" not in out
+
+
+def test_required_direct_sql_without_a_source_skips_before_any_gate(erp_gate, monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv(erp_gate.REQUIRE_DIRECT_SQL_ENV, "1")
+    ran: list[str] = []
+    monkeypatch.setattr(erp_gate, "ODOO_SRC", str(tmp_path))
+    monkeypatch.setattr(erp_gate, "ODOO_ADDONS", str(tmp_path))
+    monkeypatch.setattr(erp_gate, "direct_sql_source", lambda: None)
+    monkeypatch.setattr(erp_gate, "create_scratch_db", lambda: ran.append("scratch") or True)
+    assert erp_gate.main() == 77
+    assert ran == [], "no scratch database may be created when the required seam cannot run"
+    assert "cannot run" in capsys.readouterr().out

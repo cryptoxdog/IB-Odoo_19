@@ -9,10 +9,11 @@ Run it directly::
 
     /opt/odoo-venv/bin/python tests/runtime_gates/run_erp_import.py
 
-Exit codes: 0 = all gates PASS, 1 = a gate FAILED or the scratch database
-was refused, 77 = SKIPPED (no local runtime, no payload, no template
-database, or direct SQL was required and is unset). Exit 77 is never a
-successful G5/G6 result. This is the live-DB proof the import milestone
+Exit codes: 0 = every gate G1–G6 ran and PASSED, 1 = a gate FAILED or the
+scratch database was refused, 77 = SKIPPED or INCOMPLETE (no local runtime,
+no payload, no template database, direct SQL was required and is unset, or
+G1–G4 passed while G5–G6 did not run). Exit 77 is never a successful G5/G6
+result and never a pass. This is the live-DB proof the import milestone
 requires; the collected pure-python tier cannot see any of it by construction.
 
 Gates:
@@ -56,9 +57,11 @@ system databases, and any name outside the ``erp_import_gate`` namespace
 fail closed before a connection is opened and before DROP or CREATE is
 built. A refusal exits 1.
 
-Without the direct-SQL settings G5–G6 report NOT RUN and the exit code covers
-G1–G4 only. ``ERP_GATE_REQUIRE_DIRECT_SQL=1`` turns that absence into exit 77
-(SKIPPED, never PASS) before any gate runs.
+Without the direct-SQL settings G5–G6 report NOT RUN: a failure among G1–G4
+still exits 1, and a run in which G1–G4 passed exits 77 (INCOMPLETE, never
+PASS), so ``make runtime-gates`` counts the unrun seam instead of reading a
+partial proof as green. ``ERP_GATE_REQUIRE_DIRECT_SQL=1`` turns that absence
+into exit 77 (SKIPPED, never PASS) before any gate runs.
 """
 
 from __future__ import annotations
@@ -492,7 +495,15 @@ def main() -> int:
     if source is None:
         print("  NOT RUN  G5/G6 direct-SQL seam (ERP_SQL_SERVER / ERP_SQL_DATABASE unset) — unproven by this run")
     print("=" * 64)
-    return 0 if all(results.values()) else 1
+    if not all(results.values()):
+        return 1
+    if source is None:
+        # G1–G4 passed, but the direct-SQL seam this gate exists to prove did
+        # not run. That is INCOMPLETE, never PASS: exit 77 so `make runtime-gates`
+        # counts the unrun gates instead of reading a partial proof as green.
+        print("INCOMPLETE: G1-G4 passed; G5/G6 did not run (exit 77, never a pass)")
+        return 77
+    return 0
 
 
 if __name__ == "__main__":
