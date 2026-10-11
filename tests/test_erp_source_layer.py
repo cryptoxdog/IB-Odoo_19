@@ -840,3 +840,148 @@ def test_projection_scripts_exist_and_are_select_only():
         for forbidden in ("INSERT ", "UPDATE ", "DELETE ", "DROP ", "ALTER ", "TRUNCATE ", "SELECT *"):
             assert forbidden not in upper, f"{script} must not contain {forbidden.strip()}"
         assert "ORDER BY" in upper, f"{script} must be deterministically ordered ({table})"
+
+
+# ---------------------------------------------------------------------------
+# Runtime gate G5 — the projection inventory it holds the registry to
+# ---------------------------------------------------------------------------
+# G5 (tests/runtime_gates/run_erp_import.py) refuses to import before it has
+# checked the projection registry. That expectation must follow the registry's
+# consumer — a full direct-SQL run reads REQUIRED_TABLES | COMMERCIAL_SQL_TABLES
+# (erp_import_service) — not a count pinned when the registry had 11 entries:
+# PR #231 registered the four commercial projections and the pinned gate could
+# no longer pass against the very inventory it was meant to prove (FX-011).
+GATE = ROOT / "tests" / "runtime_gates" / "run_erp_import.py"
+SERVICE = ROOT / "plasticos_partner_import" / "models" / "erp_import_service.py"
+FULL_DIRECT_SQL_TABLES = frozenset(reader.REQUIRED_TABLES) | frozenset(reader.COMMERCIAL_SQL_TABLES)
+SOURCE_LABEL = "erp-host/ERP_RESTORED"
+
+
+def test_registered_projection_inventory_is_the_full_direct_sql_read_set():
+    """The registry carries exactly what the full run consumes, and each script exists."""
+    assert "reader.REQUIRED_TABLES | reader.COMMERCIAL_SQL_TABLES" in SERVICE.read_text(encoding="utf-8"), (
+        "erp_import_service no longer reads REQUIRED_TABLES | COMMERCIAL_SQL_TABLES on a full "
+        "direct-SQL run; update FULL_DIRECT_SQL_TABLES and the G5 expectation together"
+    )
+    assert set(reader.PROJECTION_SCRIPTS) == set(FULL_DIRECT_SQL_TABLES)
+    assert reader.COMMERCIAL_SQL_TABLES.isdisjoint(reader.REQUIRED_TABLES)
+    for table, script in reader.PROJECTION_SCRIPTS.items():
+        assert (reader.sql_payload_root() / script).is_file(), f"{table} -> {script} is not checked in"
+
+
+@pytest.fixture
+def erp_gate(monkeypatch):
+    """The live G5 gate module, loaded without Odoo, PostgreSQL, or any database.
+
+    Only the module-level runtime bindings are stubbed (``odoo`` config and
+    registry path setup, ``psycopg2``); the reader the gate imports is the real
+    one, so the gate is judged against the real projection registry.
+    """
+    import importlib.util
+    import types
+
+    def stub(name, **attrs):
+        module = types.ModuleType(name)
+        for attr, value in attrs.items():
+            setattr(module, attr, value)
+        monkeypatch.setitem(sys.modules, name, module)
+        return module
+
+    odoo = stub("odoo", SUPERUSER_ID=1)
+    odoo.modules = stub("odoo.modules")
+    odoo.modules.module = stub("odoo.modules.module", initialize_sys_path=lambda: None)
+    odoo.sql_db = stub("odoo.sql_db")
+    stub("odoo.api", Environment=object)
+    stub("odoo.tools", config={})
+    stub("psycopg2")
+    stub("odoo.addons")
+    stub("odoo.addons.plasticos_partner_import")
+    stub("odoo.addons.plasticos_partner_import.erp", reader=reader)
+    monkeypatch.setitem(sys.modules, "odoo.addons.plasticos_partner_import.erp.reader", reader)
+    # The gate puts its own directory on sys.path to import its helpers; keep that local to the test.
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    for helper in ("_runtime_env", "scratch_db"):
+        monkeypatch.delitem(sys.modules, helper, raising=False)
+    spec = importlib.util.spec_from_file_location("erp_runtime_gate_under_test", GATE)
+    gate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gate)
+    yield gate
+    for helper in ("_runtime_env", "scratch_db"):
+        sys.modules.pop(helper, None)
+
+
+def _run_g5(gate, monkeypatch):
+    """Run G5 against the real registry with the runtime seams recorded instead of driven.
+
+    The import, the direct read, and the marker census are the Odoo and
+    SQL Server seams; each is replaced by a recorder that returns a closing,
+    database-sourced result, so the only thing left to decide G5 is the
+    registry check under test and the tables the gate asks the reader for.
+    """
+    calls: dict[str, list] = {"imports": [], "reads": []}
+    closing = {
+        "records_seen": 3,
+        "records_created": 3,
+        "records_updated": 0,
+        "records_unchanged": 0,
+        "records_rejected": 0,
+        "duplicates": 0,
+        "final_status": "success",
+        "errors": [],
+    }
+
+    def import_once(payload_root=None, database=None, partners_only=True):
+        calls["imports"].append((database.label, partners_only))
+        return {"summary": dict(closing), "counts": {}, "payload_kind": reader.PayloadKind.DATABASE.value}
+
+    def load_payload(root=None, *, only=None, database=None):
+        calls["reads"].append(only)
+        tables = {table: [] for table in (only if only is not None else reader.REQUIRED_TABLES)}
+        return reader.SourcePayload(
+            kind=reader.PayloadKind.DATABASE, root=PAYLOAD_ROOT, tables=tables, origin=database.label
+        )
+
+    monkeypatch.setattr(gate, "import_once", import_once)
+    monkeypatch.setattr(reader, "load_payload", load_payload)
+    monkeypatch.setattr(gate, "_deal_marker_census", lambda: dict.fromkeys(gate.DEAL_MARKERS, 0))
+    source = reader.DatabaseSource(connect=lambda: None, label=SOURCE_LABEL)
+    return gate.gate_g5_direct_sql_import_reconciles(source), calls
+
+
+def test_g5_holds_the_registry_to_the_full_direct_sql_read(erp_gate, monkeypatch, capsys):
+    """Against the real registry G5 passes its inventory check and reads every registered projection."""
+    passed, calls = _run_g5(erp_gate, monkeypatch)
+    out = capsys.readouterr().out
+    assert passed, f"G5 refused the real projection registry:\n{out}"
+    assert "projection registry" not in out
+    assert calls["imports"] == [(SOURCE_LABEL, True), (SOURCE_LABEL, False)]
+    assert calls["reads"] == [FULL_DIRECT_SQL_TABLES], "the direct read must cover every table the full run reads"
+
+
+@pytest.mark.parametrize(
+    ("drift", "registry"),
+    [
+        pytest.param(
+            "consumed table unregistered",
+            {table: script for table, script in reader.PROJECTION_SCRIPTS.items() if table != "PO"},
+            id="unregistered",
+        ),
+        pytest.param(
+            "orphan projection registered",
+            {**reader.PROJECTION_SCRIPTS, "Ghost": "10_counterparty.sql"},
+            id="orphan",
+        ),
+        pytest.param(
+            "registered script file missing",
+            {**reader.PROJECTION_SCRIPTS, "PO": "22_po_renamed.sql"},
+            id="script-missing",
+        ),
+    ],
+)
+def test_g5_fails_closed_before_any_write_on_registry_drift(erp_gate, monkeypatch, capsys, drift, registry):
+    monkeypatch.setattr(reader, "PROJECTION_SCRIPTS", registry)
+    passed, calls = _run_g5(erp_gate, monkeypatch)
+    out = capsys.readouterr().out
+    assert not passed, f"G5 passed with {drift}:\n{out}"
+    assert "projection registry" in out, out
+    assert calls["imports"] == [] and calls["reads"] == [], f"G5 reached the runtime with {drift}"
