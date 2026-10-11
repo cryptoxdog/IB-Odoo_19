@@ -228,6 +228,10 @@ Scoped upgrade for deploy: `make update m=plasticos_commission,plasticos_intake,
 ## Publication
 
 - Publication path: `make pr` from the Cursor-Governance SSOT, run against this workspace (`WS`), with `PR_BASE=origin/Staging`, updating the existing PR #236. Result: see the PR.
+- Attempt 1 failed before validation for environmental reasons, not because of the change:
+  - The gate's locked-writer ruff falls back to the governance venv (`ruff 0.16.1`) when the workspace has no `.venv`.
+  - This repo pins `required-version = "==0.16.0"`, so ruff refused to run (`writers stage exited 123`).
+  - Fix: built the repo's canonical `.venv` with `make venv` (`ruff==0.16.0` from `requirements-dev.txt`), then re-authorized and republished. No gate was weakened or skipped.
 
 ## Verdict
 
