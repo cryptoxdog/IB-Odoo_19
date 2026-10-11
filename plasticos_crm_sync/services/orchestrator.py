@@ -585,6 +585,10 @@ class SyncOrchestrator:
 
         with self.env.registry.cursor() as cr:
             env = api.Environment(cr, self.env.uid, dict(self.env.context))
+            # Before this row exists: the caller holds the connection's session
+            # advisory lock, so any row still `running` belongs to a process
+            # that died without recording a completion (see the helper).
+            self._close_interrupted_runs(env, connection_id)
             run = env["plasticos.crm.sync.run"].create(
                 {
                     "connection_id": connection_id,
@@ -596,6 +600,49 @@ class SyncOrchestrator:
             run_id = run.id
             cr.commit()
         return run_id
+
+    @staticmethod
+    def _close_interrupted_runs(env, connection_id: int) -> int:
+        """Close this connection's ``running`` rows that nothing is running.
+
+        A worker kill, an OOM or a deploy restart ends the process between the
+        audit row's ``running`` and any completion write, and neither
+        ``_persist_sync_failure_durable`` nor the success write ever runs. The
+        row then reads as in progress forever, and nothing in the ledger says
+        the remainder of its scope was never consumed.
+
+        The connection's advisory lock is session-scoped and dies with the
+        backend that held it, so the next run that holds it has proof that no
+        other synchronization is in flight for this connection: every row still
+        ``running`` here is interrupted. It is closed as ``failed`` — the
+        existing status for a run that did not complete its scope — with the
+        interruption named. Counters and watermarks are left exactly as the
+        interrupted run committed them, which is why the next run resumes from
+        the right place; this only makes the status say so.
+
+        Called on the owned cursor that inserts the next audit row, before that
+        insert, so the new ``running`` row is never caught by its own sweep.
+        """
+        Run = env["plasticos.crm.sync.run"]
+        finished = datetime.now(UTC).replace(tzinfo=None)
+        closed = 0
+        for row in Run.search([("connection_id", "=", connection_id), ("status", "=", "running")]):
+            row.write(
+                {
+                    "status": "failed",
+                    "finished_at": finished,
+                    "error_excerpt": (
+                        "Interrupted: this run recorded no completion and no other synchronization holds "
+                        "the connection lock, so its process ended before it finished. Counters show "
+                        "committed work only; the unprocessed remainder of its scope was never acknowledged "
+                        "and the next run resumes from the committed watermarks."
+                    ),
+                }
+            )
+            closed += 1
+        if closed:
+            _logger.warning("CRM sync closed %s interrupted run(s) connection=%s", closed, connection_id)
+        return closed
 
     def _persist_sync_failure_durable(self, connection_id: int, run_id: int | None, excerpt: str) -> None:
         """Write failed run + last_error on a clean owned cursor.
