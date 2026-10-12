@@ -81,10 +81,17 @@ def _skip_string(xpath: str, start: int) -> int:
 
 
 def _read_predicates(xpath: str, start: int) -> list[str]:
-    """Return the bodies of the ``[...]`` predicates that directly follow ``start``."""
+    """Return the bodies of the ``[...]`` predicates that follow ``start``.
+
+    XPath allows whitespace before each predicate (``notebook [1]``), so it is skipped.
+    """
     predicates: list[str] = []
     i = start
-    while i < len(xpath) and xpath[i] == "[":
+    while True:
+        while i < len(xpath) and xpath[i].isspace():
+            i += 1
+        if i >= len(xpath) or xpath[i] != "[":
+            break
         depth, j = 0, i
         while j < len(xpath):
             if xpath[j] in "'\"":

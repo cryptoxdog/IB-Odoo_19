@@ -58,6 +58,9 @@ def test_positional_index_after_any_notebook_predicate_is_a_finding():
         "//sheet/notebook[page[@name=\"x\"]][1]/page[@name='y']",
         "//form/child::notebook[3]",
         "//page[@name='x'][ancestor::notebook[1]]",
+        "//notebook [1]",
+        "//notebook[@name='pages'] [1]",
+        "//notebook\t[last()]",
     ):
         findings = checker.check_xpath(xpath, "view.xml", "sample")
         assert [item.issue_type for item in findings] == ["POSITIONAL_NOTEBOOK"], xpath
@@ -73,6 +76,7 @@ def test_indexes_owned_by_other_nodes_are_not_notebook_findings():
         "//notebook_extra[1]",
         "//field[@name='notebook'][1]",
         "//page[@notebook][1]",
+        "//notebook [@name='pages'] /page[1]",
     ):
         findings = checker.check_xpath(xpath, "view.xml", "sample")
         assert "POSITIONAL_NOTEBOOK" not in [item.issue_type for item in findings], xpath
