@@ -53,7 +53,7 @@ class PlasticosCrmConnection(models.Model):
     active = fields.Boolean(default=True)
 
     def _icp(self):
-        return self.env["ir.config_parameter"].sudo()
+        return self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
 
     def _get_api_credentials(self):
         self.ensure_one()

@@ -242,7 +242,7 @@ def create_freight_evidence(env, model_name, values, *, load):
     """
     company = _require_freight_evidence_authority(env, load)
     values = {**values, "company_id": company.id}
-    return env[model_name].sudo().create(values)
+    return env[model_name].sudo().create(values)  # sudo: evidence ACL is read-only; caller checked above
 
 
 def record_freight_event(env, *, event_type, outcome_code, load=None, facts=None, unknowns=None, correlation_id=None):

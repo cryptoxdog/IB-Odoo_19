@@ -48,7 +48,9 @@ class PlasticosPartnerImportService(models.AbstractModel):
         Empty ICP → bundled module default. Non-empty ICP that is missing or
         not a file → UserError (never silently fall back to the default).
         """
-        param = self.env["ir.config_parameter"].sudo()
+        # Public and RPC-reachable: hold the caller to this service's own ACL before reading paths.
+        self.check_access("read")
+        param = self.env["ir.config_parameter"].sudo()  # sudo: read two fixed import-path keys after the ACL check
         if which == "corporate":
             custom = (param.get_param(CONFIG_CORPORATE_CSV) or "").strip()
             default = os.path.join(self.get_module_path(), DEFAULT_CORPORATE_CSV)
