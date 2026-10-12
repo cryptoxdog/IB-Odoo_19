@@ -16,23 +16,25 @@ from path_filters import skip_path
 # line"). The accepted markers are the two spellings already used in models/.
 _SUDO_JUSTIFICATION = re.compile(r"^#\s*(?:sudo|cron-sudo-justification)\s*:\s*(?P<why>.*)$")
 _TRIVIA = frozenset({tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT, tokenize.ENCODING})
-_PLACEHOLDER_WORDS = frozenset(
-    {"todo", "tbd", "fixme", "xxx", "n/a", "na", "none", "needed", "required", "justified", "ok"}
-)
+_DEBT_MARKERS = frozenset({"todo", "tbd", "fixme", "xxx", "hack"})
+_PLACEHOLDER_WORDS = _DEBT_MARKERS | {"n/a", "na", "none", "needed", "required", "justified", "ok"}
 
 
 def _is_sudo_justification(comment: str) -> bool:
     """True for ``# sudo: <reason>`` with a substantive reason.
 
-    A generic comment (``# noqa``), an empty marker, or a one-word placeholder
-    is not a justification. This checks documentation only; it never proves
-    that the caller is authorized to perform the elevated operation.
+    A generic comment (``# noqa``), an empty marker, a one-word placeholder, or
+    a reason that admits open debt (``TODO add authorization``) is not a
+    justification. This checks documentation only; it never proves that the
+    caller is authorized to perform the elevated operation.
     """
     match = _SUDO_JUSTIFICATION.match(comment.strip())
     if not match:
         return False
-    words = re.findall(r"[A-Za-z][A-Za-z/'-]*", match.group("why"))
-    return len(words) >= 2 and not all(word.lower() in _PLACEHOLDER_WORDS for word in words)
+    words = [word.lower() for word in re.findall(r"[A-Za-z][A-Za-z/'-]*", match.group("why"))]
+    if any(word in _DEBT_MARKERS for word in words):
+        return False
+    return len(words) >= 2 and not all(word in _PLACEHOLDER_WORDS for word in words)
 
 
 def _sudo_call_lines(source: str) -> dict[int, bool] | None:

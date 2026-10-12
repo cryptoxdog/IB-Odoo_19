@@ -127,6 +127,20 @@ def test_placeholder_marker_is_not_a_justification(tmp_path: Path):
     assert [item["line"] for item in _findings(tmp_path)] == [3, 4]
 
 
+def test_debt_marker_with_more_words_is_not_a_justification(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            a = self.env["ir.config_parameter"].sudo()  # sudo: TODO add authorization
+            b = self.env["ir.config_parameter"].sudo()  # sudo: FIXME later
+            c = self.env["ir.config_parameter"].sudo()  # sudo: read config, xxx revisit
+            return a, b, c
+        """,
+    )
+    assert [item["line"] for item in _findings(tmp_path)] == [3, 4, 5]
+
+
 def test_substantive_marker_passes_documentation_check(tmp_path: Path):
     _write(
         tmp_path,
