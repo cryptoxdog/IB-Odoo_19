@@ -180,6 +180,9 @@ class PlasticosIntakeNormalizer(models.Model):
 
         try:
             config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: config read
+            # A value stored before the constraint existed is refused here,
+            # inside the lock's try/finally, before it can reach the search.
+            config._check_batch_limit()
             limit = config.batch_limit or 200
 
             pending = self.search(
