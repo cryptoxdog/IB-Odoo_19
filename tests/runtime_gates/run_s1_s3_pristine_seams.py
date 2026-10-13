@@ -35,6 +35,7 @@ import sys
 import threading
 import time
 import urllib.parse
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import psycopg2
@@ -108,7 +109,8 @@ CONTACT_PAYLOAD = {
     "last_name": "Ortiz",
     "email": "dana@example.invalid",
     "phone": "+1-555-0100",
-    "modified_date_time_utc": "2026-09-01T00:00:00Z",
+    # Must stay inside the Contacts lookback: an older watermark clamps the next run to partial.
+    "modified_date_time_utc": (datetime.now(UTC) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "custom_fields": [{"name": "Lead Status", "value": "New"}],
 }
 
@@ -432,12 +434,12 @@ def gate_s3() -> bool:
         service = env["plasticos.erp.import"]
         report = report_module.ImportReport()
         # Real service method, real registry, real create().
-        service._import_contacts(index, report, {cp_id: company.id}, {}, False)
+        service._import_contacts(index, report, {cp_id: company.id}, False)
         cr.commit()
 
         # Replay must not duplicate: identity is the ir.model.data marker.
         report_two = report_module.ImportReport()
-        service._import_contacts(index, report_two, {cp_id: company.id}, {}, False)
+        service._import_contacts(index, report_two, {cp_id: company.id}, False)
         cr.commit()
 
     rows = query(
@@ -457,9 +459,16 @@ def gate_s3() -> bool:
     # Short-circuiting on `registry_has_mobile` would leave the branch this
     # fix exists to serve — a deployment that restores the field — unproven.
     if registry_has_mobile:
-        stored = query("select mobile from res_partner where id = %s", (partner_id,))[0][0]
-        mobile_retained = stored == mobile_phone
-        where = f"res_partner.mobile={stored!r}"
+        # plasticos_facility_profile computes `mobile` from the partner's phone lines; it has no column.
+        stored = [
+            number
+            for (number,) in query(
+                "select number from plasticos_partner_phone where partner_id = %s and label = 'mobile'",
+                (partner_id,),
+            )
+        ]
+        mobile_retained = stored == [mobile_phone]
+        where = f"plasticos_partner_phone mobile={stored!r}"
     else:
         mobile_retained = mobile_phone in comment_text
         where = "comment"

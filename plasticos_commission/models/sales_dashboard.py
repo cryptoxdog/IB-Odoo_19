@@ -227,7 +227,7 @@ class PlasticosSalesDashboard(models.Model):
 
         docs = (
             self.env[active_model]
-            .sudo()
+            .sudo()  # sudo: read-only rep dashboard; document ACL is narrower
             .search(
                 [
                     ("transaction_id", "in", tx_ids),
@@ -346,7 +346,6 @@ class PlasticosSalesDashboard(models.Model):
         self.ensure_one()
         payout_ids = (
             self.env["plasticos.commission.payout"]
-            .sudo()
             .search(
                 [
                     ("transaction_ids", "in", [self.transaction_id.id]),

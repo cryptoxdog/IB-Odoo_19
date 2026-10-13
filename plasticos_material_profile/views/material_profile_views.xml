@@ -79,7 +79,7 @@
             <field name="image_ids" nolabel="1" widget="many2many_binary"/>
           </group>
 
-          <notebook>
+          <notebook name="material_profile_pages">
             <page string="Profile">
               <!-- Row 1: Source + Packaging -->
               <group>

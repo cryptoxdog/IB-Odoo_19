@@ -447,7 +447,7 @@ class PlasticosAdminKpi(models.Model):
                 rec.ai_openai_key_set = False
                 continue
             try:
-                config = self.env[config_model].sudo().get_config()
+                config = self.env[config_model].sudo().get_config()  # sudo: reports key presence; keys are system-only
                 rec.ai_normalized_enabled = bool(getattr(config, "ai_enabled", False))
                 rec.ai_vision_enabled = bool(getattr(config, "vision_enabled", False))
                 rec.ai_openai_key_set = bool(getattr(config, "openai_api_key", ""))

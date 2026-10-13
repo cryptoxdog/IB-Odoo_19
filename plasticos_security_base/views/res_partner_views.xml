@@ -76,7 +76,7 @@
 
             <!-- ═══ PROMOTED FIELDS: Add key fields above notebook ═══ -->
             <!-- Salesperson and Payment Terms moved to upper right (plasticos_facility_profile) -->
-            <xpath expr="//sheet/notebook" position="before">
+            <xpath expr="//notebook[page[@name='internal_notes']]" position="before">
 
                 <!-- Internal Notes - prominent, always visible for companies -->
                 <group string="Notes" invisible="not is_company" class="mt-3">

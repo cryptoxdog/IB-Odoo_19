@@ -28,6 +28,33 @@ class PlasticosCrmSyncRun(models.Model):
         required=True,
         index=True,
     )
+    # Scope — what this run asked the provider for. Without it a rolling
+    # incremental pass and the operator's full import are indistinguishable in
+    # the ledger, and a ≤30-day `success` reads like a historical census.
+    kind = fields.Selection(
+        [
+            ("incremental", "Incremental (rolling window)"),
+            ("full_import", "Full import (operator floors)"),
+        ],
+        index=True,
+        help="Incremental: the cron/manual pass over the provider's rolling window. "
+        "Full import: the one-shot bootstrap from operator-supplied historical floors. "
+        "Empty on runs recorded before scope tracking existed.",
+    )
+    contact_scope_from_utc = fields.Char(
+        string="Contacts Requested From (UTC)",
+        help="The modified_after bound actually sent to the Contacts endpoint, after any clamp "
+        "to the provider lookback. A clamp is reported in the error excerpt and makes the run partial.",
+    )
+    call_scope_from_utc = fields.Char(
+        string="Calls Requested From (UTC)",
+        help="Start of the call-history window this run asked for.",
+    )
+    call_scope_to_utc = fields.Char(
+        string="Calls Requested To (UTC)",
+        help="End of the call-history window this run asked for. A full import fills this when its "
+        "catch-up phase closes the window; it stays empty when the import did not get that far.",
+    )
     started_at = fields.Datetime(default=fields.Datetime.now, required=True)
     finished_at = fields.Datetime()
     contacts_seen = fields.Integer(default=0)

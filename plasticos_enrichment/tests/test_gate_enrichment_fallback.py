@@ -9,6 +9,7 @@ outside the request transaction (see EnrichmentRun._persist_operator_state).
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -86,6 +87,28 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls._skip_if_model_missing("plasticos.enrichment.run")
+        # The durable failure write opens pool.cursor(); in test mode that is a
+        # TestCursor over this test's connection.
+        cls.registry_enter_test_mode_cls()
+
+    @contextmanager
+    def _request_rollback(self):
+        """Stand in for the RPC rollback: roll back to a savepoint instead of the forbidden cr.rollback()."""
+        savepoint = self.env.cr.savepoint(flush=True)
+        try:
+            with patch.object(self.env.cr, "rollback", savepoint.rollback):
+                yield
+        finally:
+            savepoint.close(rollback=False)
+
+    @contextmanager
+    def _raises(self, exc_type):
+        """Expect ``exc_type`` without Odoo's assertRaises savepoint, which would undo the durable write."""
+        try:
+            yield
+        except exc_type:
+            return
+        self.fail(f"{exc_type.__name__} not raised")
 
     def _new_partner(self, **vals):
         base = {"name": "Gate Converge Co", "is_company": True, "supplier_rank": 1}
@@ -159,7 +182,7 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
                 ),
             ),
         ):
-            with self.assertRaises(UserError):
+            with self._request_rollback(), self._raises(UserError):
                 run.action_execute()
         run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
@@ -178,7 +201,7 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
                 return_value=_fake_gate_result(final_fields={"unknown_key": "x", "notes": "y"}),
             ),
         ):
-            with self.assertRaises(UserError):
+            with self._request_rollback(), self._raises(UserError):
                 run.action_execute()
         run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
@@ -193,7 +216,7 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
             patch(_ENABLED, return_value=True),
             patch(_SEND, return_value=_fake_gate_result(state="failed", failure_reason="no_valid_responses")),
         ):
-            with self.assertRaises(UserError):
+            with self._request_rollback(), self._raises(UserError):
                 run.action_execute()
         run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
@@ -232,7 +255,7 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
             patch(_ENABLED, return_value=False),
             patch(_SEND, side_effect=AssertionError("Gate must not be called when disabled")),
         ):
-            with self.assertRaises(UserError):
+            with self._request_rollback(), self._raises(UserError):
                 run.action_execute()
         run.invalidate_recordset()
         self.assertEqual(run.state, "failed")

@@ -1,6 +1,15 @@
 """
-Partner Import Wizard
-Provides UI to trigger the partner import from CSV files.
+Partner Import Wizard — legacy ERP CSV path, UI RETIRED.
+
+The corporate/facility CSV import UI is retired (ADR-021: historical ERP
+partners load through the direct SQL importer, ``make import-erp``). This
+wizard has no window action, form view, Settings button or menu any more
+(``migrations/19.0.2.10.23`` retires the records persisted by older builds),
+its ACL is ``base.group_system`` only, and every execution action refuses to
+run (``_ensure_legacy_ui_retired``). The model and its code are kept as the
+historical implementation for a possible future reuse; the underlying
+importer (``plasticos.partner.import.service``) is untouched and remains
+callable from the Odoo shell via ``scripts/run_import.py``.
 """
 
 import logging
@@ -14,7 +23,22 @@ _logger = logging.getLogger(__name__)
 
 class PartnerImportWizard(models.TransientModel):
     _name = "plasticos.partner.import.wizard"
-    _description = "Partner Import Wizard"
+    _description = "Partner Import Wizard (retired legacy ERP CSV UI)"
+
+    def _ensure_legacy_ui_retired(self):
+        """Close the retired UI execution boundary on every invocation path.
+
+        Raised unconditionally: not only is the wizard unreachable through
+        menus and actions, a direct RPC ``call_kw`` or a shell call on a
+        wizard record must not run the legacy CSV import either. Re-enabling
+        is a deliberate code change, never a runtime switch.
+        """
+        raise UserError(
+            _(
+                "The legacy ERP partner CSV import UI is retired. "
+                "Historical ERP partners load through the direct SQL importer (make import-erp)."
+            )
+        )
 
     corporate_file = fields.Binary(
         string="Corporate CSV",
@@ -85,7 +109,8 @@ class PartnerImportWizard(models.TransientModel):
         return path
 
     def action_import(self):
-        """Run the partner import."""
+        """Run the partner import (retired: always refused, see module docstring)."""
+        self._ensure_legacy_ui_retired()
         self.ensure_one()
 
         import_svc = self.env["plasticos.partner.import.service"]
@@ -197,7 +222,8 @@ class PartnerImportWizard(models.TransientModel):
         }
 
     def action_audit_import(self):
-        """Run import integrity audit and show results (no changes)."""
+        """Run import integrity audit and show results (retired: always refused)."""
+        self._ensure_legacy_ui_retired()
         self.ensure_one()
         validation = self.env["plasticos.partner.import.validation"]
         report = validation.audit_import_integrity()
@@ -235,7 +261,8 @@ class PartnerImportWizard(models.TransientModel):
         return self._return_wizard()
 
     def action_repair_import(self):
-        """Migrate old external IDs. Facility roles are left to enrichment."""
+        """Migrate old external IDs (retired: always refused)."""
+        self._ensure_legacy_ui_retired()
         self.ensure_one()
         validation = self.env["plasticos.partner.import.validation"]
         report = validation.repair_import_data(dry_run=False)

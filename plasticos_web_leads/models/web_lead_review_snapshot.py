@@ -131,7 +131,8 @@ class PlasticosWebLeadReviewSnapshot(models.Model):
         # model, so the checked approval path above is its sole writer
         # (plasticos_logistics freight-evidence pattern). The approver identity
         # was captured from the real user before elevation.
-        return self.sudo().with_context(**{_APPROVAL_CONTEXT_KEY: _APPROVAL_TOKEN}).create(vals)
+        elevated = self.sudo()  # sudo: checked approval is the sole writer
+        return elevated.with_context(**{_APPROVAL_CONTEXT_KEY: _APPROVAL_TOKEN}).create(vals)
 
     # ═══════════════════════════════════════════════════════════
     # CRUD guards

@@ -287,7 +287,8 @@ class EnrichmentRun(models.Model):
             to_write[field_name] = value
         if not to_write:
             return 0
-        partner.write(to_write)
+        # A copy: res.partner.write overrides (base_geolocalize) add keys to vals in place.
+        partner.write(dict(to_write))
         packet_id = audit.get("gate_packet_id") or ""
         if confidence is None:
             proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}

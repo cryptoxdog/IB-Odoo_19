@@ -34,7 +34,7 @@ class PlasticosMatchResultWriter(models.AbstractModel):
 
         vals_list = self._validated_result_vals(intake, matches, match_run)
         Result = self.env["plasticos.match.result"]
-        existing = Result.sudo().search(
+        existing = Result.sudo().search(  # sudo: server-owned result read after Gate receipt checks
             [
                 ("intake_id", "=", intake.id),
                 ("run_id", "=", match_run.operation_id),
@@ -56,7 +56,7 @@ class PlasticosMatchResultWriter(models.AbstractModel):
                 to_create.append(vals)
         # Standard users consume results but must never create arbitrary rows.
         # The orchestrator is the sole server-owned writer after Gate mapping.
-        return Result.sudo().create(to_create) if to_create else Result.browse()
+        return Result.sudo().create(to_create) if to_create else Result.browse()  # sudo: sole canonical writer
 
     def _validated_result_vals(self, intake, matches, match_run):
         if not isinstance(matches, list):

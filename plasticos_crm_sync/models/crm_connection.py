@@ -53,7 +53,7 @@ class PlasticosCrmConnection(models.Model):
     active = fields.Boolean(default=True)
 
     def _icp(self):
-        return self.env["ir.config_parameter"].sudo()
+        return self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
 
     def _get_api_credentials(self):
         self.ensure_one()
@@ -121,22 +121,26 @@ class PlasticosCrmConnection(models.Model):
     def action_sync_now(self):
         self.ensure_one()
         from ..adapters.base import CrmAdapterError
-        from ..services.orchestrator import CrmSyncLockedError, SyncOrchestrator
+        from ..services.orchestrator import CrmSyncLockedError, SyncOrchestrator, completion_notice
 
         try:
-            SyncOrchestrator(self.env).run_connection(self)
+            run = SyncOrchestrator(self.env).run_connection(self)
         except CrmSyncLockedError as exc:
             raise UserError(_("A sync is already running for this connection: %s") % exc) from exc
         except CrmAdapterError as exc:
             raise UserError(_("Sync failed: %s") % exc) from exc
+        # A run that finished without raising may still be `failed` (per-record
+        # write failures) or `partial` (scope limitation, identity conflicts,
+        # buffered orphans). The toast must say what the run row says.
+        notice_type, notice = completion_notice(run)
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",
             "params": {
                 "title": _("CRM Sync"),
-                "message": _("Sync finished for %s") % self.name,
-                "type": "success",
-                "sticky": False,
+                "message": _("%s for %s") % (notice, self.name),
+                "type": notice_type,
+                "sticky": notice_type != "success",
             },
         }
 

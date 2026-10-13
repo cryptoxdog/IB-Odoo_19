@@ -8,6 +8,8 @@ production behavior. The cross-session/rollback invariants (I2/I3/I5) are
 therefore real-runtime deployment gates in tests/runtime_gates/.
 """
 
+from contextlib import contextmanager
+
 from odoo.addons.plasticos_crm_sync.adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
 from odoo.tests import TransactionCase, tagged
@@ -83,14 +85,30 @@ class TestWatermarkAcknowledgement(TransactionCase):
 
     def setUp(self):
         super().setUp()
+        # The page/batch commits stand in as flushes: their work stays in the test
+        # transaction and nothing later undoes it, as with a real commit.
+        self.patch(self.env.cr, "commit", self.env.cr.flush)
         self.orch = SyncOrchestrator(self.env)
         self.connection.write({"contact_watermark_utc": W0, "call_watermark_utc": W0})
+
+    @contextmanager
+    def _raises(self, exc_type):
+        """Expect ``exc_type`` without Odoo's assertRaises savepoint, which would undo committed pages."""
+        try:
+            yield
+        except exc_type:
+            return
+        self.fail(f"{exc_type.__name__} not raised")
+
+    def _known_contact(self, external_id):
+        """A call lands as a call event only once its lead is known; otherwise it is buffered as an orphan."""
+        self.orch._upsert_lead(self.connection, _lead(external_id))
 
     # ── contacts ────────────────────────────────────────────────────────────
 
     def test_malformed_contact_page_leaves_watermark_untouched(self):
         adapter = _StubAdapter(contact_pages=[CrmAdapterError("Contact payload missing contact_id")])
-        with self.assertRaises(CrmAdapterError):
+        with self._raises(CrmAdapterError):
             self.orch._sync_contacts(self.connection, adapter, None)
         self.assertEqual(self.connection.contact_watermark_utc, W0)
 
@@ -101,7 +119,7 @@ class TestWatermarkAcknowledgement(TransactionCase):
                 CrmAdapterError("page 2 exploded"),
             ]
         )
-        with self.assertRaises(CrmAdapterError):
+        with self._raises(CrmAdapterError):
             self.orch._sync_contacts(self.connection, adapter, None)
         # Page 1's work is acknowledged; page 2's is not.
         self.assertEqual(self.connection.contact_watermark_utc, W1)
@@ -116,7 +134,7 @@ class TestWatermarkAcknowledgement(TransactionCase):
 
         # BaseCase.patch reverts on cleanup — no manual restore needed.
         self.patch(SyncOrchestrator, "_upsert_lead", _boom)
-        with self.assertRaises(CrmAdapterError):
+        with self._raises(CrmAdapterError):
             self.orch._sync_contacts(self.connection, adapter, None)
         self.assertEqual(self.connection.contact_watermark_utc, W0)
 
@@ -147,7 +165,7 @@ class TestWatermarkAcknowledgement(TransactionCase):
                 CrmAdapterError("Call 10 payload missing contact_id"),
             ]
         )
-        with self.assertRaises(CrmAdapterError):
+        with self._raises(CrmAdapterError):
             self.orch._sync_calls(self.connection, adapter, None)
         self.assertEqual(self.connection.call_watermark_utc, W0)
 
@@ -161,20 +179,21 @@ class TestWatermarkAcknowledgement(TransactionCase):
                 CrmAdapterError("Call pagination failed to advance: '...' -> '...' (500 rows at the page limit)"),
             ]
         )
-        with self.assertRaises(CrmAdapterError):
+        with self._raises(CrmAdapterError):
             self.orch._sync_calls(self.connection, adapter, None)
         self.assertEqual(self.connection.call_watermark_utc, W0)
 
     def test_calls_from_a_failed_window_are_still_persisted_and_replayable(self):
         """Yielded batches stay committed; the unchanged watermark makes the
         next run re-read the window and upsert them idempotently (I4)."""
+        self._known_contact("wm-1")
         adapter = _StubAdapter(
             call_batches=[
                 [_call("wm-call-4")],
                 CrmAdapterError("Full call-history page has no usable pagination timestamp"),
             ]
         )
-        with self.assertRaises(CrmAdapterError):
+        with self._raises(CrmAdapterError):
             self.orch._sync_calls(self.connection, adapter, None)
         self.assertEqual(self.connection.call_watermark_utc, W0)
         self.orch._upsert_calls(self.connection, [_call("wm-call-4")], None)
@@ -189,11 +208,12 @@ class TestWatermarkAcknowledgement(TransactionCase):
                 CrmAdapterError("VanillaSoft reported partial contact fulfillment without a batch_end cursor"),
             ]
         )
-        with self.assertRaises(CrmAdapterError):
+        with self._raises(CrmAdapterError):
             self.orch._sync_contacts(self.connection, adapter, None)
         self.assertEqual(self.connection.contact_watermark_utc, W0)
 
     def test_replayed_calls_create_no_duplicate_call_event(self):
+        self._known_contact("wm-1")
         batch = [_call("wm-call-2")]
         self.orch._upsert_calls(self.connection, batch, None)
         self.orch._upsert_calls(self.connection, batch, None)

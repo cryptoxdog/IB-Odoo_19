@@ -114,14 +114,6 @@ class TestMatchRunReceipts(PlasticosTestCase):
         # test mode that is a TestCursor over this test's connection.
         cls.registry_enter_test_mode_cls()
         os.environ["GATE_URL"] = "https://gate.example.internal"
-
-    @classmethod
-    def tearDownClass(cls):
-        if cls._prior_gate_url is None:
-            os.environ.pop("GATE_URL", None)
-        else:
-            os.environ["GATE_URL"] = cls._prior_gate_url
-        super().tearDownClass()
         cls.supplier = cls._create_partner("Gate Receipt Supplier", supplier_rank=1)
         cls.buyer = cls._create_partner("Gate Receipt Buyer", customer_rank=1)
         polymer = cls._get_or_create_polymer()
@@ -136,6 +128,14 @@ class TestMatchRunReceipts(PlasticosTestCase):
         cls.ServerRun = cls.Run.with_context(**{RECEIPT_WRITE_CONTEXT: True})
         cls.Result = cls.env["plasticos.match.result"]
         cls.orchestrator = cls.env["plasticos.match.orchestrator"]
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._prior_gate_url is None:
+            os.environ.pop("GATE_URL", None)
+        else:
+            os.environ["GATE_URL"] = cls._prior_gate_url
+        super().tearDownClass()
 
     # ── helpers ───────────────────────────────────────────────
 

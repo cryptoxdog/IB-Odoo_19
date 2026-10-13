@@ -874,7 +874,11 @@ gate-db:
 
 # Exit 77 from a gate means "cannot run in this environment" (a documented,
 # narrow precondition such as a private SDK), and is reported as SKIPPED. It is
-# never counted as a pass: a gate that did not run must not read green.
+# never counted as a pass: a gate that did not run must not read green, so the
+# aggregate exits 0 only when every gate ran and passed. Nothing failed but
+# something did not run -> exit 77 (INCOMPLETE, the same "did not run" code,
+# distinct from a defect); any gate failed -> exit 1 regardless of skips.
+# Pinned by tests/test_makefile_failure_propagation.py.
 runtime-gates: check-local-runtime gate-db
 	@fail=0; passed=0; skipped=0; failed=""; \
 	for f in tests/runtime_gates/run_*.py; do \
@@ -888,8 +892,12 @@ runtime-gates: check-local-runtime gate-db
 		else failed="$$failed $$(basename $$f)"; fail=1; fi; \
 	done; \
 	echo ""; \
-	echo "runtime gates: $$passed passed, $$skipped skipped, $$(echo $$failed | wc -w) failed"; \
+	echo "runtime gates: $$passed passed, $$skipped skipped, $$(echo $$failed | wc -w | tr -d ' ') failed"; \
 	[ -n "$$failed" ] && echo "  failed:$$failed"; \
+	if [ $$fail -eq 0 ] && [ $$skipped -gt 0 ]; then \
+		echo "  INCOMPLETE: $$skipped gate(s) did not run; a skipped gate is not a pass (exit 77)"; \
+		exit 77; \
+	fi; \
 	exit $$fail
 
 # One gate script: make runtime-gate g=run_s1_s3_pristine_seams.py

@@ -196,7 +196,7 @@ class PlasticosLoad(models.Model):
         string="Pickup Hours",
         default=lambda self: (
             self.env["ir.config_parameter"]
-            .sudo()
+            .sudo()  # sudo: ir.config_parameter is settings-admin only
             .get_param("plasticos.load.default_pickup_hours", "M-F: 9:00 AM - 3:00 PM")
         ),
     )
@@ -214,7 +214,7 @@ class PlasticosLoad(models.Model):
         string="Delivery Hours",
         default=lambda self: (
             self.env["ir.config_parameter"]
-            .sudo()
+            .sudo()  # sudo: ir.config_parameter is settings-admin only
             .get_param("plasticos.load.default_delivery_hours", "M-F: 9:00 AM - 3:00 PM")
         ),
     )

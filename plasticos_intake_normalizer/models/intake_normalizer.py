@@ -69,8 +69,7 @@ class PlasticosIntakeNormalizer(models.Model):
     def action_normalize(self):
         """Validate and normalize a single intake (button action)."""
         self.ensure_one()
-        # sudo: config may not be readable by all users
-        config = self.env["plasticos.normalizer.config"].sudo().get_config()
+        config = self.env["plasticos.normalizer.config"].get_config()
         errors, warnings = self._validate_for_normalization(config)
 
         if errors:
@@ -181,6 +180,9 @@ class PlasticosIntakeNormalizer(models.Model):
 
         try:
             config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: config read
+            # A value stored before the constraint existed is refused here,
+            # inside the lock's try/finally, before it can reach the search.
+            config._check_batch_limit()
             limit = config.batch_limit or 200
 
             pending = self.search(
@@ -614,8 +616,7 @@ class PlasticosIntakeNormalizer(models.Model):
             detail = json.dumps(errors, indent=2)
 
         try:
-            # sudo: create audit log regardless of user permissions
-            AutoLog.sudo().create(
+            AutoLog.create(
                 {
                     "model_name": "plasticos.intake",
                     "record_id": self.id,

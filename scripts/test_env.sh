@@ -905,8 +905,10 @@ main() {
         local tty=()
         [ -t 0 ] || tty=(-T)
         # Subcommand (e.g. shell) first, then the verified database and addons path.
-        compose run --rm --no-deps "${tty[@]}" "${RUN_OPTS[@]}" odoo odoo "${RUN_ARGS[@]}" -d "$target" \
-          --addons-path="$(addons_path)"
+        # ${a[@]+"${a[@]}"}: bash 3.2 (macOS /bin/bash) treats an empty array as unbound
+        # under set -u, and with the EXIT trap installed the script then exits 0.
+        compose run --rm --no-deps ${tty[@]+"${tty[@]}"} ${RUN_OPTS[@]+"${RUN_OPTS[@]}"} \
+          odoo odoo ${RUN_ARGS[@]+"${RUN_ARGS[@]}"} -d "$target" --addons-path="$(addons_path)"
       fi
       ;;
     status) status ;;

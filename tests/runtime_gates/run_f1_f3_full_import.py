@@ -345,11 +345,13 @@ f4_unchanged = indep("select contacts_unchanged from plasticos_crm_sync_run wher
 f4_seen = indep("select contacts_seen from plasticos_crm_sync_run where id=%s", (f4_run,))[0][0]
 n_again = indep("select count(*) from crm_lead where vanillasoft_id=%s", (f"{TAG}-again",))[0][0]
 print(
-    f"F4  status={f4_status} created={f4_created} updated={f4_updated} unchanged={f4_unchanged} seen={f4_seen} leads={n_again}"
+    f"F4  status={f4_status} upserted={f4_contacts} created={f4_created} updated={f4_updated} "
+    f"unchanged={f4_unchanged} seen={f4_seen} leads={n_again}"
 )
 
+# contacts_upserted counts every contact both passes processed, unchanged ones included.
 results["F4 the repeat pass created nothing and recorded unchanged"] = (
-    f4_contacts == 1 and f4_created == 1 and f4_updated == 0 and f4_unchanged == 1 and n_again == 1
+    f4_contacts == 2 and f4_created == 1 and f4_updated == 0 and f4_unchanged == 1 and n_again == 1
 )
 
 f5_cid = make_connection("changed record")

@@ -198,7 +198,7 @@ class EnrichmentService(models.AbstractModel):
     @api.model
     def _inference_stub_enabled(self):
         """Return True when inference must run in deterministic no-op mode."""
-        ICP = self.env["ir.config_parameter"].sudo()
+        ICP = self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
         enabled = (ICP.get_param("plasticos.inference_engine.enabled", "False") or "False").strip().lower()
         stubbed = (ICP.get_param("plasticos.inference_engine.stubbed", "True") or "True").strip().lower()
         return enabled not in {"1", "true", "yes", "on"} or stubbed in {"1", "true", "yes", "on"}

@@ -9,6 +9,8 @@
                 <field name="connection_id"/>
                 <field name="provider"/>
                 <field name="status"/>
+                <field name="kind"/>
+                <field name="contact_scope_from_utc"/>
                 <field name="contacts_upserted"/>
                 <field name="calls_upserted"/>
                 <field name="orphans_buffered"/>

@@ -35,6 +35,13 @@ cannot satisfy a documented precondition. C7/C8 does this when
 absent; both require the private `constellation_node_sdk`. Every other gate
 runs without it, so a real failure cannot hide behind that skip.
 
+`make runtime-gates` exits 0 only when **every** gate ran and passed. When
+nothing failed but one or more gates were skipped it prints `INCOMPLETE` and
+the recipe exits 77 (make reports `Error 77`): the run proved what it ran and
+nothing more, and that is not a pass. Any failed gate fails the target
+whatever else was skipped. The three outcomes are pinned by
+`tests/test_makefile_failure_propagation.py` against stub gates.
+
 Each script exits non-zero if any assertion fails, and prints a PASS/FAIL table.
 
 ## Rules these scripts follow

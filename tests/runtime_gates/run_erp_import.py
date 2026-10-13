@@ -9,10 +9,11 @@ Run it directly::
 
     /opt/odoo-venv/bin/python tests/runtime_gates/run_erp_import.py
 
-Exit codes: 0 = all gates PASS, 1 = a gate FAILED or the scratch database
-was refused, 77 = SKIPPED (no local runtime, no payload, no template
-database, or direct SQL was required and is unset). Exit 77 is never a
-successful G5/G6 result. This is the live-DB proof the import milestone
+Exit codes: 0 = every gate G1–G6 ran and PASSED, 1 = a gate FAILED or the
+scratch database was refused, 77 = SKIPPED or INCOMPLETE (no local runtime,
+no payload, no template database, direct SQL was required and is unset, or
+G1–G4 passed while G5–G6 did not run). Exit 77 is never a successful G5/G6
+result and never a pass. This is the live-DB proof the import milestone
 requires; the collected pure-python tier cannot see any of it by construction.
 
 Gates:
@@ -37,7 +38,11 @@ ERP database; the source is read with SELECT projection scripts only::
         make runtime-gate g=run_erp_import.py
 
     G5 direct-SQL import reconciles  the restored SQL Server is the selected
-                                      source; all 11 projection scripts are
+                                      source; the projection registry carries
+                                      exactly the tables a full direct-SQL run
+                                      reads (``REQUIRED_TABLES`` plus
+                                      ``COMMERCIAL_SQL_TABLES``), each backed by
+                                      a script file, and every one of them is
                                       read through the shared reader; the
                                       partner summary closes; a full import
                                       writes no transaction or line marker.
@@ -52,9 +57,11 @@ system databases, and any name outside the ``erp_import_gate`` namespace
 fail closed before a connection is opened and before DROP or CREATE is
 built. A refusal exits 1.
 
-Without the direct-SQL settings G5–G6 report NOT RUN and the exit code covers
-G1–G4 only. ``ERP_GATE_REQUIRE_DIRECT_SQL=1`` turns that absence into exit 77
-(SKIPPED, never PASS) before any gate runs.
+Without the direct-SQL settings G5–G6 report NOT RUN: a failure among G1–G4
+still exits 1, and a run in which G1–G4 passed exits 77 (INCOMPLETE, never
+PASS), so ``make runtime-gates`` counts the unrun seam instead of reading a
+partial proof as green. ``ERP_GATE_REQUIRE_DIRECT_SQL=1`` turns that absence
+into exit 77 (SKIPPED, never PASS) before any gate runs.
 """
 
 from __future__ import annotations
@@ -341,15 +348,53 @@ def _deal_marker_census() -> dict[str, int]:
     return {pattern: marker_count(SCRATCH_DB, pattern) for pattern in DEAL_MARKERS}
 
 
+def full_direct_sql_tables(reader) -> frozenset[str]:
+    """The tables a full direct-SQL run reads: the consumer expectation G5 holds the registry to.
+
+    This is ``erp_import_service`` 's own ``only`` set for a full database run
+    (``REQUIRED_TABLES | COMMERCIAL_SQL_TABLES``), so the gate follows the
+    registered inventory instead of pinning a count that goes stale the next
+    time a projection is added.
+    """
+    return frozenset(reader.REQUIRED_TABLES) | frozenset(reader.COMMERCIAL_SQL_TABLES)
+
+
+def projection_registry_gap(reader) -> list[str]:
+    """Why the projection registry cannot serve a full direct-SQL run; empty when it can.
+
+    Every table the full run reads must be registered, nothing else may be
+    (an unregistered consumer or an orphan projection is drift either way),
+    and each registered script must exist where the reader executes it from.
+    """
+    expected = full_direct_sql_tables(reader)
+    registered = frozenset(reader.PROJECTION_SCRIPTS)
+    gap = []
+    missing = sorted(expected - registered)
+    if missing:
+        gap.append(f"full direct-SQL run reads {missing} but no projection is registered for them")
+    orphans = sorted(registered - expected)
+    if orphans:
+        gap.append(f"projections {orphans} are registered but no direct-SQL run reads them")
+    scripts_root = reader.sql_payload_root()
+    absent = sorted(
+        f"{table} -> {script}"
+        for table, script in reader.PROJECTION_SCRIPTS.items()
+        if not (scripts_root / script).is_file()
+    )
+    if absent:
+        gap.append(f"projection scripts missing under {scripts_root}: {absent}")
+    return gap
+
+
 def gate_g5_direct_sql_import_reconciles(source) -> bool:
     from odoo.addons.plasticos_partner_import.erp import reader
 
     # Identity was enforced by create_scratch_database before this gate was called.
-    if set(reader.PROJECTION_SCRIPTS) != set(reader.REQUIRED_TABLES) or len(reader.PROJECTION_SCRIPTS) != 11:
-        print(
-            f"G5 projection registry {sorted(reader.PROJECTION_SCRIPTS)} != required {sorted(reader.REQUIRED_TABLES)}"
-        )
+    gap = projection_registry_gap(reader)
+    if gap:
+        print("G5 projection registry cannot serve a full direct-SQL run: " + "; ".join(gap))
         return False
+    full = full_direct_sql_tables(reader)
 
     result = import_once(database=source, partners_only=True)
     summary = result["summary"]
@@ -361,9 +406,10 @@ def gate_g5_direct_sql_import_reconciles(source) -> bool:
         print(f"G5 summary does not close: {summary['errors'][:5]}")
         return False
 
-    payload = reader.load_payload(None, database=source)
-    if set(payload.tables) != set(reader.REQUIRED_TABLES):
-        print(f"G5 direct read returned {sorted(payload.tables)}")
+    # Every registered projection is read through the shared reader, as the full run reads it.
+    payload = reader.load_payload(None, database=source, only=full)
+    if set(payload.tables) != set(full):
+        print(f"G5 direct read returned {sorted(payload.tables)}, expected {sorted(full)}")
         return False
     print(f"G5 projection row counts: {payload.row_counts()}")
     import_once(database=source, partners_only=False)
@@ -449,7 +495,15 @@ def main() -> int:
     if source is None:
         print("  NOT RUN  G5/G6 direct-SQL seam (ERP_SQL_SERVER / ERP_SQL_DATABASE unset) — unproven by this run")
     print("=" * 64)
-    return 0 if all(results.values()) else 1
+    if not all(results.values()):
+        return 1
+    if source is None:
+        # G1–G4 passed, but the direct-SQL seam this gate exists to prove did
+        # not run. That is INCOMPLETE, never PASS: exit 77 so `make runtime-gates`
+        # counts the unrun gates instead of reading a partial proof as green.
+        print("INCOMPLETE: G1-G4 passed; G5/G6 did not run (exit 77, never a pass)")
+        return 77
+    return 0
 
 
 if __name__ == "__main__":

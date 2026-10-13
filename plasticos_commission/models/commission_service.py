@@ -88,7 +88,7 @@ class PlasticosCommissionService(models.AbstractModel):
 
         # 4. ICP default rate fallback
         try:
-            icp = record.env["ir.config_parameter"].sudo()
+            icp = record.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
             default_rate = float(icp.get_param("plasticos.commission.default_rate", "0.0"))
             if default_rate > 0:
                 amount = gross_margin * default_rate
