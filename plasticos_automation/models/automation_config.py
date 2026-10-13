@@ -58,19 +58,14 @@ class PlasticosAutomationConfig(models.Model):
     @api.constrains("active")
     def _check_singleton(self):
         """Ensure only one active configuration record exists."""
-        for record in self:
-            if record.active:
-                existing = self.search_count(
-                    [
-                        ("active", "=", True),
-                        ("id", "!=", record.id),
-                    ]
-                )
-                if existing:
-                    raise ValidationError(
-                        "Only one active automation configuration record is allowed. "
-                        "Deactivate the existing record before creating a new one."
-                    )
+        active = self.filtered("active")
+        if not active:
+            return
+        if len(active) > 1 or self.search_count([("active", "=", True), ("id", "not in", active.ids)], limit=1):
+            raise ValidationError(
+                "Only one active automation configuration record is allowed. "
+                "Deactivate the existing record before creating a new one."
+            )
 
     @api.model
     def get_config(self):
