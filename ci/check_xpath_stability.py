@@ -6,7 +6,8 @@ Detects risky XPath patterns that can cause silent UI corruption:
 - Multi-match field selectors (field exists in both form and list)
 - Unscoped list field selectors (missing //list/ prefix)
 - Class-based anchors (fragile @class selectors)
-- Unscoped notebook selectors (missing [1] index)
+- Unscoped notebook selectors (no named notebook or named page)
+- Positional notebook indexes (notebook[1] is not a stable anchor)
 - Duplicate xpath usage in same view
 
 Exit codes:
@@ -54,24 +55,115 @@ RISKY_PATTERNS = [
         r"^//notebook(?!\[|\/)$",
         "UNSCOPED_NOTEBOOK",
         "MEDIUM",
-        "Unscoped notebook selector - assumes single notebook",
-        "Add index: //notebook[1]",
+        "Unscoped notebook selector - assumes a single unnamed notebook",
+        "Use a named notebook or a named page: //notebook[@name='...'] or //notebook[page[@name='...']]",
     ),
-    # Sheet/notebook without index
+    # Sheet/notebook without a name
     (
         r"//sheet/notebook(?!\[)",
         "UNSCOPED_SHEET_NOTEBOOK",
         "MEDIUM",
-        "Sheet/notebook without index - may match wrong notebook",
-        "Add index: //sheet/notebook[1]",
+        "Sheet notebook selector has no named anchor",
+        "Use a named notebook or a named page: //notebook[@name='...'] or //notebook[page[@name='...']]",
     ),
 ]
+
+NOTEBOOK_STEP = "notebook"
+# Characters that continue an XML name, or mark an attribute/variable, around a node test.
+_NAME_CHARS = re.compile(r"[\w.\-@$]")
+_POSITION_FUNCTION = re.compile(r"\b(?:last|position)\s*\(\s*\)")
+
+
+def _skip_string(xpath: str, start: int) -> int:
+    """Return the index after the quoted literal that opens at ``start``."""
+    end = xpath.find(xpath[start], start + 1)
+    return len(xpath) if end == -1 else end + 1
+
+
+def _read_predicates(xpath: str, start: int) -> list[str]:
+    """Return the bodies of the ``[...]`` predicates that follow ``start``.
+
+    XPath allows whitespace before each predicate (``notebook [1]``), so it is skipped.
+    """
+    predicates: list[str] = []
+    i = start
+    while True:
+        while i < len(xpath) and xpath[i].isspace():
+            i += 1
+        if i >= len(xpath) or xpath[i] != "[":
+            break
+        depth, j = 0, i
+        while j < len(xpath):
+            if xpath[j] in "'\"":
+                j = _skip_string(xpath, j)
+                continue
+            if xpath[j] == "[":
+                depth += 1
+            elif xpath[j] == "]":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        if depth:
+            break  # unbalanced: malformed XPath, nothing further to attribute
+        predicates.append(xpath[i + 1 : j])
+        i = j + 1
+    return predicates
+
+
+def _top_level(predicate: str) -> str:
+    """Drop quoted literals and nested predicates, leaving the predicate's own expression."""
+    out: list[str] = []
+    depth, i = 0, 0
+    while i < len(predicate):
+        ch = predicate[i]
+        if ch in "'\"":
+            i = _skip_string(predicate, i)
+            continue
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+        elif depth == 0:
+            out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def _is_positional(predicate: str) -> bool:
+    expr = _top_level(predicate)
+    return bool(re.fullmatch(r"\s*\d+\s*", expr) or _POSITION_FUNCTION.search(expr))
+
+
+def has_positional_notebook(xpath: str) -> bool:
+    """True when any ``notebook`` step carries a positional predicate.
+
+    Every predicate in the step's sequence is checked, so ``notebook[1]``,
+    ``notebook[@name='x'][1]`` and ``notebook[page[@name='x']][1]`` all match.
+    An index inside a nested predicate (``notebook[page[1]]``) or on a later
+    step (``//notebook//group[1]``) belongs to another node and does not.
+    """
+    i = 0
+    while i < len(xpath):
+        if xpath[i] in "'\"":
+            i = _skip_string(xpath, i)
+            continue
+        end = i + len(NOTEBOOK_STEP)
+        if (
+            xpath.startswith(NOTEBOOK_STEP, i)
+            and (i == 0 or not _NAME_CHARS.match(xpath[i - 1]))
+            and (end == len(xpath) or not _NAME_CHARS.match(xpath[end]))
+            and any(_is_positional(p) for p in _read_predicates(xpath, end))
+        ):
+            return True
+        i += 1
+    return False
+
 
 # Known safe patterns (whitelist)
 SAFE_PATTERNS = [
     r"//list/field\[@name=",  # Properly scoped list field
-    r"//notebook\[1\]",  # Indexed notebook
-    r"//notebook//field\[@name=",  # Scoped to notebook
+    r"//notebook//field\[@name=",  # Named field inside a notebook
     r"//page\[@name=",  # Named page anchor
     r"//group\[@name=",  # Named group anchor
     r"//div\[@name=",  # Named div anchor
@@ -91,6 +183,22 @@ def is_safe_xpath(xpath: str) -> bool:
 def check_xpath(xpath: str, file_path: str, view_id: str) -> list[Finding]:
     """Check a single xpath for risky patterns."""
     findings: list[Finding] = []
+
+    if has_positional_notebook(xpath):
+        findings.append(
+            Finding(
+                file=file_path,
+                view_id=view_id,
+                xpath=xpath,
+                severity="MEDIUM",
+                issue_type="POSITIONAL_NOTEBOOK",
+                message="Positional notebook index is not a stable anchor",
+                fix_suggestion=(
+                    "Replace the index with a named notebook or a named page: "
+                    "//notebook[@name='...'] or //notebook[page[@name='...']]"
+                ),
+            )
+        )
 
     if is_safe_xpath(xpath):
         return findings

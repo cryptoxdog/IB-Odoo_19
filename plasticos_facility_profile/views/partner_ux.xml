@@ -87,7 +87,7 @@
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='country_id']" position="before">
+            <xpath expr="//list/field[@name='country_id']" position="before">
                 <field name="company_role"
                        widget="badge"
                        decoration-success="company_role == 'buyer'"

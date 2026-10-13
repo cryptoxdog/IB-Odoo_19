@@ -22,7 +22,7 @@
             </xpath>
 
             <!-- Add normalization audit page in notebook -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook[@name='intake_pages']" position="inside">
                 <page string="Normalization" name="normalization_page">
                     <group>
                         <group string="Status">

@@ -14,7 +14,7 @@
         <field name="arch" type="xml">
 
             <!-- ═══ Quality Warning Banners (above notebook) ═══ -->
-            <xpath expr="//notebook" position="before">
+            <xpath expr="//notebook[@name='material_profile_pages']" position="before">
 
                 <!-- High contamination warning (>5%) -->
                 <div class="alert alert-warning d-flex align-items-center"
