@@ -5,7 +5,6 @@ Finds N+1 queries and other performance issues.
 """
 
 import ast
-import re
 from pathlib import Path
 
 from path_filters import skip_path
