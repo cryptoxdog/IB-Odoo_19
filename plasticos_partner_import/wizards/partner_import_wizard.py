@@ -4,7 +4,7 @@ Partner Import Wizard — legacy ERP CSV path, UI RETIRED.
 The corporate/facility CSV import UI is retired (ADR-021: historical ERP
 partners load through the direct SQL importer, ``make import-erp``). This
 wizard has no window action, form view, Settings button or menu any more
-(``migrations/19.0.2.10.23`` retires the records persisted by older builds),
+(the manifest-version ``migrations/`` script retires records persisted by older builds),
 its ACL is ``base.group_system`` only, and every execution action refuses to
 run (``_ensure_legacy_ui_retired``). The model and its code are kept as the
 historical implementation for a possible future reuse; the underlying

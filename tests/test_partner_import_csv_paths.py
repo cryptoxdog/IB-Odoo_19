@@ -3,10 +3,11 @@
 The importer service still resolves the configured / bundled CSV paths for a
 shell caller (``plasticos_partner_import/scripts/run_import.py``). The Settings
 block, the wizard window action / form view and the wizard execution actions
-are retired (``plasticos_partner_import/migrations/19.0.2.10.23``). Runs under
+are retired (``plasticos_partner_import/migrations/<manifest version>``). Runs under
 ``odoo --test-enable``; the pure-Python twin is ``test_legacy_import_ui_retired``.
 """
 
+import ast
 import importlib.util
 import os
 import tempfile
@@ -184,7 +185,11 @@ class TestLegacyImportUiRetired(PlasticosTestCase):
     def test_upgrade_migration_retires_persisted_records_and_keeps_icp(self):
         """A database that still carries the old action is cleaned by the migration."""
         module_path = self.env["plasticos.partner.import.service"].get_module_path()
-        script = os.path.join(module_path, "migrations", "19.0.2.10.23", "post-migrate.py")
+        # The retirement migration lives under the manifest version (enforced by
+        # test_legacy_import_ui_retired), so a version bump cannot strand this path.
+        with open(os.path.join(module_path, "__manifest__.py"), encoding="utf-8") as handle:
+            version = ast.literal_eval(handle.read())["version"]
+        script = os.path.join(module_path, "migrations", version, "post-migrate.py")
         spec = importlib.util.spec_from_file_location("legacy_ui_post_migrate", script)
         migration = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(migration)
