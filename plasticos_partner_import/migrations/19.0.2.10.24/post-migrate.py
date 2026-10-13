@@ -35,4 +35,4 @@ def migrate(cr, version):
         record = env.ref(f"plasticos_partner_import.{xml_id}", raise_if_not_found=False)
         if record:
             record.unlink()
-            _logger.info("plasticos_partner_import 19.0.2.10.23: retired legacy CSV import UI record %s", xml_id)
+            _logger.info("plasticos_partner_import 19.0.2.10.24: retired legacy CSV import UI record %s", xml_id)
