@@ -215,9 +215,36 @@ class _Env:
             "plasticos.crm.call.event": _Model("plasticos.crm.call.event"),
             "plasticos.crm.external.table.row": _Model("plasticos.crm.external.table.row"),
             "plasticos.crm.sync.orphan": _Model("plasticos.crm.sync.orphan", {"resolved": False}),
+            # Same `default=0` the real model declares on every counter, so a
+            # run that fails before its call phase still projects onto the
+            # shared summary exactly as the database row would.
             "plasticos.crm.sync.run": _Model(
                 "plasticos.crm.sync.run",
-                {"contacts_upserted": 0, "calls_upserted": 0, "orphans_buffered": 0, "orphans_resolved": 0},
+                {
+                    **dict.fromkeys(
+                        (
+                            "contacts_seen",
+                            "contacts_upserted",
+                            "contacts_created",
+                            "contacts_updated",
+                            "contacts_unchanged",
+                            "contacts_duplicate_rejected",
+                            "contacts_failed",
+                            "calls_seen",
+                            "calls_upserted",
+                            "calls_created",
+                            "calls_updated",
+                            "calls_unchanged",
+                            "calls_failed",
+                            "table_rows_upserted",
+                            "orphans_buffered",
+                            "orphans_resolved",
+                        ),
+                        0,
+                    ),
+                    "error_excerpt": False,
+                    "finished_at": False,
+                },
             ),
         }
 
@@ -333,10 +360,21 @@ class _Orchestrator(SyncOrchestrator):
     def _advisory_unlock(self, lock_key):
         self.locked -= 1
 
-    def _create_sync_run_durable(self, connection_id):
+    def _create_sync_run_durable(self, connection_id, vals=None):
+        # Same ordering as the production seam: rows a dead process left
+        # `running` are closed on the cursor that inserts the new row.
+        self._close_interrupted_runs(self.env, connection_id)
         return (
             self.env["plasticos.crm.sync.run"]
-            .create({"connection_id": connection_id, "status": "running", "contacts_upserted": 0, "calls_upserted": 0})
+            .create(
+                {
+                    "connection_id": connection_id,
+                    "status": "running",
+                    "contacts_upserted": 0,
+                    "calls_upserted": 0,
+                    **(vals or {}),
+                }
+            )
             .id
         )
 
