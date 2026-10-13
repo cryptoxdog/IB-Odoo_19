@@ -892,7 +892,7 @@ runtime-gates: check-local-runtime gate-db
 		else failed="$$failed $$(basename $$f)"; fail=1; fi; \
 	done; \
 	echo ""; \
-	echo "runtime gates: $$passed passed, $$skipped skipped, $$(echo $$failed | wc -w) failed"; \
+	echo "runtime gates: $$passed passed, $$skipped skipped, $$(echo $$failed | wc -w | tr -d ' ') failed"; \
 	[ -n "$$failed" ] && echo "  failed:$$failed"; \
 	if [ $$fail -eq 0 ] && [ $$skipped -gt 0 ]; then \
 		echo "  INCOMPLETE: $$skipped gate(s) did not run; a skipped gate is not a pass (exit 77)"; \
