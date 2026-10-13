@@ -178,6 +178,8 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         Returns:
             dict with keys: facilities_fixed, external_ids_migrated, errors, summary
         """
+        # Rewrites ir.model.data ownership: same operator boundary as the import itself.
+        self.env["plasticos.partner.import.service"]._check_import_operator()
         IrModelData = self.env["ir.model.data"]
 
         facilities_fixed = 0

@@ -1,4 +1,3 @@
 from . import erp_import_service
 from . import partner_import_service
-from . import res_config_settings
 from . import validation

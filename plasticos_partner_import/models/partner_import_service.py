@@ -3,8 +3,8 @@ import logging
 import os
 import re
 
-from odoo import api, models
-from odoo.exceptions import UserError, ValidationError
+from odoo import SUPERUSER_ID, api, models
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -31,6 +31,19 @@ ROLE_TOKEN_TO_CATEGORY_XMLID = {
 class PlasticosPartnerImportService(models.AbstractModel):
     _name = "plasticos.partner.import.service"
     _description = "Deterministic Partner Import Service"
+
+    def _check_import_operator(self):
+        """Reserve the mutating import entry points for the shell or Settings users.
+
+        Public methods on an AbstractModel are reachable through RPC
+        ``call_kw`` by any authenticated internal user; the ACL rows govern
+        ORM CRUD only, never custom methods. The legacy CSV import bulk-creates
+        and updates partners, so it is reserved for the operator shell
+        (``scripts/run_import.py`` under SUPERUSER) and ``base.group_system``.
+        """
+        if self.env.su or self.env.uid == SUPERUSER_ID or self.env.is_system():
+            return
+        raise AccessError("Only system administrators may run the legacy ERP partner import.")
 
     @api.model
     def get_module_path(self) -> str:
@@ -68,6 +81,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
     @api.model
     def run_default_csv_import(self):
         """One-shot server-side import from resolved default CSV paths."""
+        self._check_import_operator()
         corporate = self.resolve_default_csv_path("corporate")
         facility = self.resolve_default_csv_path("facility")
         if not os.path.isfile(corporate):
@@ -237,6 +251,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         Returns:
             dict with counts
         """
+        self._check_import_operator()
         _logger.info("Starting partner import pipeline")
 
         self.env["plasticos.partner.import.validation"].validate_reference_integrity()
@@ -263,6 +278,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         Returns:
             dict with counts
         """
+        self._check_import_operator()
         _logger.info(
             "Starting CSV import: corporate=%s, facility=%s",
             corporate_csv_path,
