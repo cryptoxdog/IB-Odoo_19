@@ -64,3 +64,50 @@ class TestProfileFormCoexistence(TransactionCase):
         )
         tx._compute_profile_refs()
         self.assertEqual(tx.supplier_profile_id, unspecified)
+
+    def test_form_change_recomputes_stored_supplier_and_buyer_links(self):
+        polymer = self._polymer()
+        other_form = self.env["plasticos.material.form"].create(
+            {"name": "Coexistence Other Form", "code": f"COEXF-{uuid.uuid4().hex[:8].upper()}"}
+        )
+        buyer = self.env["res.partner"].create(
+            {
+                "name": "Coexistence Buyer",
+                "is_company": True,
+                "parent_id": self.supplier.parent_id.id,
+                "customer_rank": 1,
+            }
+        )
+        supplier_profiles = self.env["plasticos.material.profile"].create(
+            [
+                {"partner_id": self.supplier.id, "polymer_id": polymer.id, "form_id": self.form.id},
+                {"partner_id": self.supplier.id, "polymer_id": polymer.id, "form_id": other_form.id},
+            ]
+        )
+        buyer_profiles = self.env["plasticos.material.profile"].create(
+            [
+                {"partner_id": buyer.id, "polymer_id": polymer.id, "form_id": self.form.id},
+                {"partner_id": buyer.id, "polymer_id": polymer.id, "form_id": other_form.id},
+            ]
+        )
+        tx = self.env["plasticos.transaction"].create(
+            {
+                "name": f"TX-COEX-{uuid.uuid4().hex[:8]}",
+                "supplier_id": self.supplier.id,
+                "buyer_id": buyer.id,
+                "product_id": self._product(polymer).id,
+            }
+        )
+        linked_supplier = tx.supplier_profile_id
+        linked_buyer = tx.buyer_profile_id
+        self.assertIn(linked_supplier, supplier_profiles)
+        self.assertIn(linked_buyer, buyer_profiles)
+        self.assertTrue(linked_supplier.form_id)
+        self.assertTrue(linked_buyer.form_id)
+        linked_supplier.write({"form_id": False})
+        linked_buyer.write({"form_id": False})
+        fresh = self.env["plasticos.transaction"].browse(tx.id)
+        self.assertEqual(fresh.supplier_profile_id, supplier_profiles - linked_supplier)
+        self.assertEqual(fresh.buyer_profile_id, buyer_profiles - linked_buyer)
+        self.assertTrue(fresh.supplier_profile_id.form_id)
+        self.assertTrue(fresh.buyer_profile_id.form_id)

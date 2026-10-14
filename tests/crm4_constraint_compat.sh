@@ -40,20 +40,36 @@ cleanup() {
     fi
   fi
   rm -f "$log"
-  if [ "$proof_ok" -ne 1 ] || [ "$status" -ne 0 ]; then
+  if [ "$proof_ok" -ne 1 ]; then
     rm -f "$sql_out"
-    exit "${status:-1}"
+    if [ "$status" -eq 0 ]; then
+      status=1
+    fi
+    exit "$status"
+  fi
+  if [ "$status" -ne 0 ]; then
+    rm -f "$sql_out"
+    exit "$status"
   fi
   printf '%s\n' 'UNIQUE NULLS NOT DISTINCT (partner_id, polymer_id, form_id)' >"$sql_out"
   exit 0
 }
 trap cleanup EXIT
 
-bash scripts/test_env.sh clone "$db"
-cloned=1
+if [ "${CRM4_COMPAT_NEGATIVE:-}" = "missing-marker" ]; then
+  sql_out="$(mktemp)"
+  rc=0
+  proof_ok=0
+elif [ "${CRM4_COMPAT_NEGATIVE:-}" = "trap-zero" ]; then
+  sql_out="$(mktemp)"
+  proof_ok=0
+  exit 0
+else
+  bash scripts/test_env.sh clone "$db"
+  cloned=1
 
-set +e
-bash scripts/test_env.sh run "$db" -- shell >"$log" 2>&1 <<'PY'
+  set +e
+  bash scripts/test_env.sh run "$db" -- shell >"$log" 2>&1 <<'PY'
 import inspect
 import sys
 
@@ -77,7 +93,14 @@ env.cr.execute(
     """
 )
 before = env.cr.fetchone()
-if not before or before[1] is not True or "NULLS NOT DISTINCT" in (before[0] or ""):
+# A fresh install of this branch already applies the selected constraint.
+# The probe below still has to show Odoo can perform that replacement.
+if (
+    not before
+    or before[1] is not False
+    or (before[0] or "") != "UNIQUE NULLS NOT DISTINCT (partner_id, polymer_id, form_id)"
+):
+    print("CRM4_PROOF_PRECONDITION", repr(before), file=sys.stderr)
     sys.exit(1)
 
 apply_src = inspect.getsource(Constraint.apply_to_database)
@@ -134,13 +157,19 @@ if after != before:
 print("CRM4_PROOF_OK")
 sys.exit(0)
 PY
-rc=$?
-set -e
-if [ "$rc" -eq 0 ] && grep -q '^CRM4_PROOF_OK$' "$log"; then
-  proof_ok=1
+  rc=$?
+  set -e
+  if [ "$rc" -eq 0 ] && grep -q '^CRM4_PROOF_OK$' "$log"; then
+    proof_ok=1
+  fi
 fi
 if [ "$proof_ok" -ne 1 ]; then
   echo "CRM4 constraint compatibility proof failed (status ${rc})" >&2
-  tail -n 80 "$log" >&2 || true
-  exit "${rc:-1}"
+  if [ -f "$log" ]; then
+    tail -n 80 "$log" >&2 || true
+  fi
+  if [ "${rc}" -eq 0 ]; then
+    exit 1
+  fi
+  exit "${rc}"
 fi

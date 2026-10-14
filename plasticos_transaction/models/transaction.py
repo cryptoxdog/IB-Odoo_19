@@ -545,8 +545,10 @@ class PlasticosTransaction(models.Model):
     @api.depends(
         "supplier_id",
         "supplier_id.material_profile_ids",
+        "supplier_id.material_profile_ids.form_id",
         "buyer_id",
         "buyer_id.material_profile_ids",
+        "buyer_id.material_profile_ids.form_id",
         "product_id",
         "product_id.product_tmpl_id.polymer_id",
     )
