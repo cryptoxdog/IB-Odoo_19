@@ -20,6 +20,8 @@ from __future__ import annotations
 import glob
 import os
 import re
+import subprocess
+import sys
 
 DB = os.environ.get("SEAM_DB") or os.environ.get("F1_DB") or "c1c6_test"
 PG_HOST = os.environ.get("SEAM_PG_HOST") or os.environ.get("F1_PG_HOST") or "/tmp"
@@ -55,7 +57,8 @@ def require_f1_disposable_database(name: str) -> str:
     """Stub CRM commits may land only on a dedicated disposable clone.
 
     Integration clones (``odoo_test_crm*`` and every other ``odoo_test_*`` name)
-    are refused. The F1 gate drops its ``odoo_test_f1_*`` clone before exit.
+    are refused before ``scripts/test_env.sh`` is asked to look at them. The F1
+    gate retires its ``odoo_test_f1_*`` clone through that script's ``drop``.
     """
     if not isinstance(name, str) or _F1_DB_RE.fullmatch(name) is None:
         raise SystemExit(
@@ -73,3 +76,57 @@ def bind_config(config) -> None:
     config["db_port"] = PG_PORT
     config["db_user"] = PG_USER
     config["addons_path"] = addons_path()
+
+
+def invoke_test_env(*args: str, runner=None) -> int:
+    """Run ``scripts/test_env.sh``. ``runner`` is the test seam; production passes through."""
+    if runner is not None:
+        return int(runner(list(args)))
+    script = os.path.join(REPO, "scripts", "test_env.sh")
+    completed = subprocess.run(["bash", script, *args], check=False)
+    return int(completed.returncode)
+
+
+def prove_owned_f1_clone(name: str, *, runner=None) -> str:
+    """Name gate, then ``assert-clone``. Nothing is registered for deletion here."""
+    require_f1_disposable_database(name)
+    code = invoke_test_env("assert-clone", name, runner=runner)
+    if code != 0:
+        raise SystemExit(code or 2)
+    return name
+
+
+def retire_owned_f1_clone(name: str, *, runner=None) -> None:
+    """Retire through ``test_env.sh drop`` (database and filestore). Non-zero fails the gate."""
+    require_f1_disposable_database(name)
+    code = invoke_test_env("drop", name, runner=runner)
+    if code != 0:
+        raise SystemExit(code or 1)
+
+
+def execute_owned_f1(name: str, body, *, runner=None) -> int:
+    """Prove ownership, run ``body``, then retire. A cleanup failure is never success.
+
+    ``body`` is not called when the name gate or ``assert-clone`` refuses.
+    Retirement still runs when ``body`` returns non-zero or raises.
+    """
+    prove_owned_f1_clone(name, runner=runner)
+    body_code = 1
+    cleanup = 0
+    try:
+        body_code = int(body(name) or 0)
+    except SystemExit as exc:
+        body_code = exc.code if isinstance(exc.code, int) else 1
+        body_code = int(body_code or 0)
+    finally:
+        try:
+            retire_owned_f1_clone(name, runner=runner)
+        except SystemExit as exc:
+            cleanup = exc.code if isinstance(exc.code, int) else 1
+            cleanup = int(cleanup or 1)
+            print(f"owned clone retirement failed: {name} status {cleanup}", file=sys.stderr)
+    if cleanup:
+        raise SystemExit(cleanup)
+    if body_code:
+        raise SystemExit(body_code)
+    return 0
