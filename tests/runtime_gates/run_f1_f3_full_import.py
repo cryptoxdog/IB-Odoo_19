@@ -1,7 +1,10 @@
 """Gates F1–F3 — manual full import, on a real registry and a real PostgreSQL.
 
 Not a pytest module and deliberately not collected: needs a live Odoo 19
-registry and a live PostgreSQL server. Setup: scripts/setup_local_runtime.sh.
+registry and a live PostgreSQL server. ``make runtime-gates`` does not run
+this file. CRM acceptance is ``make runtime-gate-f1``, which clones an owned
+``odoo_test_f1_*`` database, runs these assertions inside ``scripts/test_env.sh
+run -- shell``, and drops the clone after that lease is released.
 
 The pure-Python tier drives `run_full_import` against an in-memory ORM, which
 proves the algorithm but not the thing that has already bitten this module
@@ -98,7 +101,11 @@ def _run(db: str) -> int:
 
     def indep(sql, args=()):
         """Assert from a session Odoo does not own."""
-        conn = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname=DB)
+        connect = {"host": PG_HOST, "port": PG_PORT, "user": PG_USER, "dbname": DB}
+        password = os.environ.get("SEAM_PG_PASSWORD") or os.environ.get("F1_PG_PASSWORD") or ""
+        if password:
+            connect["password"] = password
+        conn = psycopg2.connect(**connect)
         conn.set_session(autocommit=True)
         with conn.cursor() as cur:
             cur.execute(sql, args)
