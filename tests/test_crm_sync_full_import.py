@@ -193,15 +193,62 @@ class _Model:
         return True
 
 
+class _Savepoint:
+    """In-memory stand-in for ``cr.savepoint()``.
+
+    Snapshots every bound fake model on enter. An exception restores row
+    identity and field values, then propagates. A clean exit keeps the writes.
+    """
+
+    def __init__(self, models):
+        self._models = tuple(models)
+        self._saved = None
+
+    def __enter__(self):
+        self._saved = [
+            (
+                model,
+                model._next,
+                {rec_id: dict(record.__dict__) for rec_id, record in model.rows.items()},
+            )
+            for model in self._models
+        ]
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if exc_type is None or self._saved is None:
+            return False
+        for model, next_id, rows in self._saved:
+            model._next = next_id
+            for rec_id in list(model.rows):
+                if rec_id not in rows:
+                    del model.rows[rec_id]
+            for rec_id, state in rows.items():
+                record = model.rows.get(rec_id)
+                if record is None:
+                    record = _Record(model, rec_id, {})
+                    model.rows[rec_id] = record
+                record.__dict__.clear()
+                record.__dict__.update(state)
+        return False
+
+
 class _Cursor:
     def __init__(self):
         self.commits = 0
+        self._models = ()
+
+    def bind(self, models):
+        self._models = tuple(models)
 
     def commit(self):
         self.commits += 1
 
     def rollback(self):
         pass
+
+    def savepoint(self):
+        return _Savepoint(self._models)
 
 
 class _Env:
@@ -247,6 +294,7 @@ class _Env:
                 },
             ),
         }
+        self.cr.bind(self.models.values())
 
     def __getitem__(self, name):
         return self.models[name]
@@ -402,6 +450,51 @@ def _harness(adapter, connection=None):
 
 def _one_page(leads, batch_end):
     return [(leads, batch_end, False)]
+
+
+def test_fake_savepoint_rolls_back_partial_identity():
+    """The full-import cursor undoes a lead whose external ref write raises."""
+    orch, connection, env = _harness(_Adapter())
+    leads = env["crm.lead"]
+    refs = env["plasticos.crm.external.ref"]
+    orch.outcomes = _new_outcomes()
+
+    def boom(_vals):
+        raise RuntimeError("injected ref failure")
+
+    refs.create = boom
+    returned = orch._upsert_lead(connection, _lead("atomic"))
+    assert orch.outcomes["failed"] == 1 and orch.outcomes["created"] == 0
+    assert orch.last_lead_outcome == "failed"
+    assert not returned
+    assert not leads.rows and not refs.rows
+    assert "injected ref failure" in orch.error_rows[-1]["message"]
+
+    seeded = leads.create(
+        {
+            "name": "Old",
+            "partner_name": "Old Co",
+            "email_from": "old@example.com",
+            "vanillasoft_id": "atomic-upd",
+        }
+    )
+    orch.outcomes = _new_outcomes()
+    orch.error_rows = []
+    returned = orch._upsert_lead(
+        connection,
+        CanonicalLead(
+            provider="vanillasoft",
+            external_id="atomic-upd",
+            company="Co",
+            email="new@example.com",
+        ),
+    )
+    assert orch.outcomes["failed"] == 1 and orch.outcomes["updated"] == 0
+    assert seeded.name == "Old"
+    assert seeded.partner_name == "Old Co"
+    assert seeded.email_from == "old@example.com"
+    assert not refs.rows
+    assert returned.id == seeded.id
 
 
 # ── contact enumeration reaches past the rolling window ─────────────────────

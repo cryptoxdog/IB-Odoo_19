@@ -74,12 +74,58 @@ class _Model:
         return matches
 
 
+class _Savepoint:
+    """In-memory stand-in for ``cr.savepoint()``.
+
+    Snapshots the fake models on enter. An exception restores row identity and
+    field values, then propagates. A clean exit keeps the writes.
+    """
+
+    def __init__(self, models):
+        self._models = tuple(models)
+        self._saved = None
+
+    def __enter__(self):
+        self._saved = [
+            (
+                model,
+                model._next,
+                {rec_id: dict(record.__dict__) for rec_id, record in model.rows.items()},
+            )
+            for model in self._models
+        ]
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if exc_type is None or self._saved is None:
+            return False
+        for model, next_id, rows in self._saved:
+            model._next = next_id
+            for rec_id in list(model.rows):
+                if rec_id not in rows:
+                    del model.rows[rec_id]
+            for rec_id, state in rows.items():
+                record = model.rows.get(rec_id)
+                if record is None:
+                    record = _Record(rec_id, {})
+                    model.rows[rec_id] = record
+                record.__dict__.clear()
+                record.__dict__.update(state)
+        return False
+
+
 class _Cr:
+    def __init__(self, models):
+        self._models = tuple(models)
+
     def commit(self):
         pass
 
     def rollback(self):
         pass
+
+    def savepoint(self):
+        return _Savepoint(self._models)
 
 
 class _Env(dict):
@@ -87,7 +133,7 @@ class _Env(dict):
         super().__init__()
         self["crm.lead"] = lead_model
         self["plasticos.crm.external.ref"] = ref_model
-        self.cr = _Cr()
+        self.cr = _Cr((lead_model, ref_model))
 
 
 class _Orchestrator(SyncOrchestrator):
@@ -189,6 +235,57 @@ def test_duplicate_identity_is_rejected_not_repointed():
     assert len(orch.error_rows) == 1 and orch.error_rows[0]["record_ref"] == "dup"
     assert not refs.rows, "an ambiguous identity must not mint an external ref"
     assert result.id in leads.rows
+
+
+def test_fake_savepoint_rolls_back_partial_identity():
+    """An exception inside the fake savepoint leaves neither a new lead nor a dirty one."""
+    orch, connection, leads, refs = _harness()
+    outcomes = _outcomes(orch)
+    original_create = refs.create
+
+    def boom(_vals):
+        raise RuntimeError("injected ref failure")
+
+    refs.create = boom
+    returned = orch._upsert_lead(connection, _lead("atomic"))
+    assert outcomes["failed"] == 1 and outcomes["created"] == 0
+    assert orch.last_lead_outcome == "failed"
+    assert not returned
+    assert not leads.rows and not refs.rows
+    assert orch.error_rows[-1]["record_ref"] == "atomic"
+    assert "injected ref failure" in orch.error_rows[-1]["message"]
+
+    refs.create = original_create
+    follow_outcomes = _outcomes(orch)
+    follow = orch._upsert_lead(connection, _lead("after-atomic"))
+    assert follow_outcomes["created"] == 1
+    assert follow.id == 1
+    assert list(refs.rows.values())[0].external_id == "after-atomic"
+
+    orch, connection, leads, refs = _harness()
+    outcomes = _outcomes(orch)
+    seeded = leads.create(
+        {
+            "name": "Old",
+            "type": "lead",
+            "partner_name": "Old Co",
+            "email_from": "old@example.com",
+            "vanillasoft_id": "atomic-upd",
+        }
+    )
+
+    def boom_update(_vals):
+        raise RuntimeError("injected ref failure")
+
+    refs.create = boom_update
+    returned = orch._upsert_lead(connection, _lead("atomic-upd", email="new@example.com"))
+    assert outcomes["failed"] == 1 and outcomes["updated"] == 0
+    assert seeded.email_from == "old@example.com"
+    assert seeded.name == "Old"
+    assert seeded.partner_name == "Old Co"
+    assert seeded.writes == 0
+    assert not refs.rows
+    assert returned.id == seeded.id
 
 
 def test_write_failure_is_recorded_not_silent():
