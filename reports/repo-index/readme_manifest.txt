@@ -1,5 +1,6 @@
 ./.claude/README.md:1:# PlasticOS Agent Configuration
 ./.github/governance/README.md:1:# L9 governed analysis pipeline — IB-Odoo_19 adoption
+./README.md:1:# PlasticOS · Odoo 19
 ./ci/baselines/README.md:1:# Audit baselines — per-finding allowlist, not a count
 ./contracts/schemas/README.md:1:# Odoo PlasticOS payload schemas
 ./data/erp_sm_export/README.md:1:# ERP `SM_EXPORT` — tracked extract pack
@@ -42,8 +43,6 @@
 ./plasticos_semantic_kernel/README.md:1:# plasticos_semantic_kernel
 ./plasticos_transaction/README.md:1:# plasticos_transaction
 ./plasticos_web_leads/README.md:13:# PlasticOS Web Leads
-./reports/README-PIPELINE-AUDIT-2026-02-24.md:1:# /readme Pipeline Audit — 2026-02-24
-./reports/adr/README.md:1:# ADRs moved
 ./reports/repo-index/README_ODOO_INDEX.md:1:# Odoo 19 Repo Index
 ./reports/repo-index/README_ODOO_INDEX.md:28:# Find model
 ./reports/repo-index/README_ODOO_INDEX.md:31:# Check external ID collisions
