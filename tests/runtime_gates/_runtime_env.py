@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import glob
 import os
+import re
 
 DB = os.environ.get("SEAM_DB") or os.environ.get("F1_DB") or "c1c6_test"
 PG_HOST = os.environ.get("SEAM_PG_HOST") or os.environ.get("F1_PG_HOST") or "/tmp"
@@ -45,6 +46,25 @@ def odoo_addons() -> str:
 def addons_path() -> str:
     """`addons_path` for odoo.tools.config: core addons plus this checkout."""
     return f"{odoo_addons()},{REPO}"
+
+
+_F1_DB_RE = re.compile(r"^odoo_test_f1_[a-z0-9_]{1,40}$")
+
+
+def require_f1_disposable_database(name: str) -> str:
+    """Stub CRM commits may land only on a dedicated disposable clone.
+
+    Integration clones (``odoo_test_crm*`` and every other ``odoo_test_*`` name)
+    are refused. The F1 gate drops its ``odoo_test_f1_*`` clone before exit.
+    """
+    if not isinstance(name, str) or _F1_DB_RE.fullmatch(name) is None:
+        raise SystemExit(
+            f"refusing stub CRM gate on {name!r}: commits are allowed only on a disposable "
+            "odoo_test_f1_* clone, which the gate drops before exit"
+        )
+    if "prod" in name or "staging" in name:
+        raise SystemExit(f"refusing stub CRM gate on {name!r}: production and staging names are never disposable")
+    return name
 
 
 def bind_config(config) -> None:

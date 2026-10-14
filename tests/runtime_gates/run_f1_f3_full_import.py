@@ -19,8 +19,13 @@ constraints. Specifically —
 
 Every assertion reads through an independent psycopg2 session, because reading
 through the env under test can return uncommitted values and prove nothing.
+
+The database must be an owned ``odoo_test_f1_*`` test-env clone. This process
+drops that clone on the way out, including when an assertion fails, so stub
+leads, calls, and sync runs are not left on an integration database.
 """
 
+import atexit
 import os
 import sys
 from datetime import UTC, datetime, timedelta
@@ -38,7 +43,16 @@ from odoo.tools import config
 # plain run of this gate died on `No module named odoo.addons.plasticos_crm_sync`
 # before reaching an assertion.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, addons_path  # noqa: E402
+from _runtime_env import DB as _REQUESTED_DB  # noqa: E402
+from _runtime_env import (  # noqa: E402
+    PG_HOST,
+    PG_PORT,
+    PG_USER,
+    addons_path,
+    require_f1_disposable_database,
+)
+
+DB = require_f1_disposable_database(_REQUESTED_DB)
 
 ADDONS = os.environ.get("F1_ADDONS_PATH") or addons_path()
 
@@ -47,6 +61,61 @@ config["db_port"] = PG_PORT
 config["db_user"] = PG_USER
 config["addons_path"] = ADDONS
 odoo.modules.module.initialize_sys_path()
+
+_CLONE_SCHEMA = "plasticos-test-env/2"
+
+
+def _maintenance():
+    conn = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname="postgres")
+    conn.set_session(autocommit=True)
+    return conn
+
+
+def _clone_comment(name: str) -> str:
+    conn = _maintenance()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT coalesce(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = %s",
+            (name,),
+        )
+        row = cur.fetchone()
+    conn.close()
+    return row[0] if row else ""
+
+
+def _assert_test_env_clone(name: str) -> None:
+    require_f1_disposable_database(name)
+    parts = _clone_comment(name).split()
+    if not parts or parts[0] != _CLONE_SCHEMA or "role=clone" not in parts:
+        raise SystemExit(f"refusing stub CRM gate on {name!r}: database is not an owned test-env clone")
+
+
+def _drop_f1_clone(name: str) -> None:
+    """Drop only the dedicated gate clone. Integration databases never match the name."""
+    require_f1_disposable_database(name)
+    _assert_test_env_clone(name)
+    try:
+        odoo.modules.registry.Registry.delete(name)
+    except Exception:
+        pass
+    try:
+        odoo.sql_db.close_db(name)
+    except Exception:
+        pass
+    from psycopg2 import sql as pg_sql
+
+    conn = _maintenance()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s AND pid <> pg_backend_pid()",
+            (name,),
+        )
+        cur.execute(pg_sql.SQL("DROP DATABASE {}").format(pg_sql.Identifier(name)))
+    conn.close()
+
+
+_assert_test_env_clone(DB)
+atexit.register(_drop_f1_clone, DB)
 
 from odoo.addons.plasticos_crm_sync.adapters.base import (  # noqa: E402
     CanonicalCall,

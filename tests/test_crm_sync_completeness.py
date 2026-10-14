@@ -317,6 +317,17 @@ def test_shell_driver_imports_through_odoo_addons():
     assert bare == []
 
 
+def test_f1_gate_accepts_only_its_disposable_clone():
+    """Stub commits must not be aimed at an integration clone or a retained scratch name."""
+    sys.path.insert(0, str(ROOT / "tests" / "runtime_gates"))
+    from _runtime_env import require_f1_disposable_database
+
+    assert require_f1_disposable_database("odoo_test_f1_gate") == "odoo_test_f1_gate"
+    for name in ("odoo_test_crm1r1", "odoo_test_crm1live", "c1c6_test", "odoo", "odoo_test_f1_staging"):
+        with pytest.raises(SystemExit):
+            require_f1_disposable_database(name)
+
+
 # ── every page of the requested scope is retrieved, through the real adapter ─
 #
 # The adapter-level pagination tests prove `iter_contacts` follows
