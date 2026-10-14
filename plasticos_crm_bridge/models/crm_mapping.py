@@ -9,6 +9,7 @@ STAGE_MAPPING = {
     "3=Qualified/Resist": "plasticos_crm_bridge.stage_resistant",
     "1= Currently Working With": "plasticos_crm_bridge.stage_active_supplier",
     "4=Unqualified": "plasticos_crm_bridge.stage_dead_lead",
+    "5=Dead Lead": "plasticos_crm_bridge.stage_dead_lead",
     "7=Do Not Call": "plasticos_crm_bridge.stage_dead_lead",
     "8=Duplicate": "plasticos_crm_bridge.stage_dead_lead",
     "6=Wrong #": "plasticos_crm_bridge.stage_dead_lead",
