@@ -65,6 +65,7 @@ from tests.test_crm_sync_full_import import (  # noqa: E402
 from tests.test_crm_sync_vanillasoft_client import _FakeResponse  # noqa: E402
 
 ORCHESTRATOR = ROOT / "plasticos_crm_sync" / "services" / "orchestrator.py"
+SHELL = ROOT / "plasticos_crm_sync" / "scripts" / "import_vanillasoft_shell.py"
 
 
 def _parse(value: str) -> datetime:
@@ -298,6 +299,33 @@ def test_shell_import_refuses_a_blank_call_floor(monkeypatch, capsys):
 
     assert shell.main() == 2
     assert "VANILLASOFT_CALL_FLOOR" in capsys.readouterr().out
+
+
+def test_shell_driver_imports_through_odoo_addons():
+    """Odoo 19 rejects model classes loaded as plasticos_crm_sync.* inside odoo shell."""
+    tree = ast.parse(SHELL.read_text(encoding="utf-8"))
+    main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "main")
+    imports = {
+        node.module: tuple(alias.name for alias in node.names)
+        for node in main.body
+        if isinstance(node, ast.ImportFrom) and node.module
+    }
+    assert imports["odoo.addons.plasticos_crm_sync.models.crm_connection"] == ("ICP_ROOT", "ICP_VS_KEY_PARAM")
+    assert imports["odoo.addons.plasticos_crm_sync.services.import_summary"] == ("build_run_summary", "utc_now")
+    assert imports["odoo.addons.plasticos_crm_sync.services.orchestrator"] == ("SyncOrchestrator",)
+    bare = [module for module in imports if module.startswith("plasticos_crm_sync")]
+    assert bare == []
+
+
+def test_f1_gate_accepts_only_its_disposable_clone():
+    """Stub commits must not be aimed at an integration clone or a retained scratch name."""
+    sys.path.insert(0, str(ROOT / "tests" / "runtime_gates"))
+    from _runtime_env import require_f1_disposable_database
+
+    assert require_f1_disposable_database("odoo_test_f1_gate") == "odoo_test_f1_gate"
+    for name in ("odoo_test_crm1r1", "odoo_test_crm1live", "c1c6_test", "odoo", "odoo_test_f1_staging"):
+        with pytest.raises(SystemExit):
+            require_f1_disposable_database(name)
 
 
 # ── every page of the requested scope is retrieved, through the real adapter ─

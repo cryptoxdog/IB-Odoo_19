@@ -51,9 +51,9 @@ def main() -> int:
         print("Nothing was imported.")
         return 2
     env = _odoo_env()
-    from plasticos_crm_sync.models.crm_connection import ICP_ROOT, ICP_VS_KEY_PARAM
-    from plasticos_crm_sync.services.import_summary import build_run_summary, utc_now
-    from plasticos_crm_sync.services.orchestrator import SyncOrchestrator
+    from odoo.addons.plasticos_crm_sync.models.crm_connection import ICP_ROOT, ICP_VS_KEY_PARAM
+    from odoo.addons.plasticos_crm_sync.services.import_summary import build_run_summary, utc_now
+    from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
 
     icp = env["ir.config_parameter"].sudo()
     api_key = (icp.get_param(ICP_VS_KEY_PARAM) or "").strip()

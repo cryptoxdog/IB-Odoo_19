@@ -70,6 +70,21 @@ def _first_present(raw: dict[str, Any], *keys: str) -> Any:
     return None
 
 
+def _payload_text(raw: dict[str, Any], *keys: str) -> str:
+    """First nonempty alias, with surrounding whitespace removed.
+
+    A whitespace-only earlier key must not hide a later accepted alias.
+    """
+    for key in keys:
+        value = raw.get(key)
+        if value is None:
+            continue
+        cleaned = str(value).strip()
+        if cleaned:
+            return cleaned
+    return ""
+
+
 def _cf_map(raw: Any) -> dict[str, str]:
     out: dict[str, str] = {}
     if not raw:
@@ -96,7 +111,6 @@ def _phone_from_list(phones: Any, preferred: tuple[str, ...]) -> str:
     if not phones or not isinstance(phones, list):
         return ""
     by_name: dict[str, str] = {}
-    first = ""
     for p in phones:
         if not isinstance(p, dict):
             continue
@@ -106,13 +120,11 @@ def _phone_from_list(phones: Any, preferred: tuple[str, ...]) -> str:
         number = str(p.get("number") or "").strip()
         if not number:
             continue
-        if not first:
-            first = number
         by_name[name] = number
     for key in preferred:
         if key in by_name:
             return by_name[key]
-    return first
+    return ""
 
 
 def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
@@ -131,9 +143,10 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         custom.get("Lead Source")
         or custom.get("LeadSource")
         or str(raw.get("lead_source") or raw.get("Lead Source") or "")
+        or str(raw.get("lead_source_name") or "")
     )
     owner = custom.get("Contact Owner") or str(
-        raw.get("user_name") or raw.get("owner") or raw.get("Contact Owner") or ""
+        raw.get("user_name") or raw.get("owner") or raw.get("Contact Owner") or raw.get("contact_owner") or ""
     )
 
     deleted = vs_bool(_first_present(raw, "deleted", "Deleted"), field="deleted")
@@ -152,11 +165,11 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         or str(raw.get("phone") or raw.get("Direct") or ""),
         mobile=_phone_from_list(phones, ("mobile", "mobile 1", "cell"))
         or str(raw.get("mobile") or raw.get("Mobile 1") or ""),
-        street=str(raw.get("address") or raw.get("Address") or raw.get("street") or ""),
-        street2=str(raw.get("address_2") or raw.get("Address 2") or raw.get("street2") or ""),
-        city=str(raw.get("city") or raw.get("City") or ""),
-        state_code=str(raw.get("state") or raw.get("State") or ""),
-        zip=str(raw.get("zip") or raw.get("Zip") or raw.get("zip_code") or ""),
+        street=_payload_text(raw, "address", "Address", "street", "address1"),
+        street2=_payload_text(raw, "address_2", "Address 2", "street2"),
+        city=_payload_text(raw, "city", "City"),
+        state_code=_payload_text(raw, "state", "State"),
+        zip=_payload_text(raw, "zip", "Zip", "zip_code", "postal_code"),
         country_code=str(raw.get("country") or raw.get("Country") or ""),
         lead_status_raw=lead_status,
         lead_source_raw=lead_source,

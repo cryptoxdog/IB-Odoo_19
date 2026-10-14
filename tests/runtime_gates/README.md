@@ -16,14 +16,29 @@ The gate each script proves is the table below.
 | `run_c6_replay_checkpoint.py` | C6 replay resumes from the durable watermark, no duplicates, monotonic watermark, per-run counters |
 | `run_c7_c8_enrichment_failures.py` | C7 Gate disabled · C8 Gate transport failure — durability across RPC rollback, partner untouched, caller budget honoured |
 | `run_c9_c10_matching_failures.py` | C9 Gate matching disabled (+ operator retry) · C10 Gate matching transport failure — `plasticos.match.run` failure receipt and intake operator note survive the RPC rollback, no match result / intake match line / status / rank mutation, request receipt (operation identity + fingerprint) durable, caller budget honoured |
-| `run_f1_f3_full_import.py` | F1 full import → incremental handoff, no duplicate identities · F2 census verdict and fail-closed floors · F3 delete/restore provenance |
 | `run_s1_s3_pristine_seams.py` | S1 first-run Settings sync across the orchestrator's owned cursor · S2 authenticated webhook → elevated `Environment` → orchestrator, over real HTTP · S3 ERP contact import against the installed `res.partner` registry |
 | `run_web_lead_concurrent_admission.py` | W1 two concurrent identical Cognito admissions (two registry cursors, barrier-forced pre-check miss) converge to one committed web lead; the loser recovers from the `unique(lead_id)` violation and returns the prior receipt (F187-07) |
 
 ```bash
-make runtime-gates                                   # all of them
-make runtime-gate g=run_s1_s3_pristine_seams.py      # just one
+make runtime-gates                                   # the gates in the table above
+make runtime-gate g=run_s1_s3_pristine_seams.py      # just one of those
+make runtime-gate-f1                                 # F1–F3, separately, on Docker
+make runtime-gate-f1-accept                          # require that F1 receipt for this HEAD
 ```
+
+`run_f1_f3_full_import.py` is **not** in this aggregate. It commits stub CRM
+rows, so it runs only on an owned `odoo_test_f1_*` clone through
+`scripts/test_env.sh` (`make runtime-gate-f1`): clone, then `run -- shell`,
+then `drop` after the run releases the lease. The aggregate's summary says
+`F1–F3: not run by this aggregate (not a pass)`. That line is not a skip and
+not a pass. CRM admission is a separate successful `make runtime-gate-f1`
+receipt for the same git HEAD (`make runtime-gate-f1-accept`). No Docker
+backend, no admitted template, a failed assertion, or a failed drop leaves no
+receipt: F1 is unproven.
+
+| Script | Gates |
+|---|---|
+| `run_f1_f3_full_import.py` | F1 full import → incremental handoff, no duplicate identities · F2 census verdict and fail-closed floors · F3 delete/restore provenance · F4 repeat-run classification · F5 changed-record classification |
 
 `make setup-local-runtime` builds the runtime these need (Odoo 19 +
 PostgreSQL 16, no Docker); `make runtime-gates` depends on the check, so it
@@ -35,7 +50,8 @@ cannot satisfy a documented precondition. C7/C8 does this when
 absent; both require the private `constellation_node_sdk`. Every other gate
 runs without it, so a real failure cannot hide behind that skip.
 
-`make runtime-gates` exits 0 only when **every** gate ran and passed. When
+`make runtime-gates` exits 0 only when **every gate in the table above** ran and
+passed. F1–F3 is not in that count. When
 nothing failed but one or more gates were skipped it prints `INCOMPLETE` and
 the recipe exits 77 (make reports `Error 77`): the run proved what it ran and
 nothing more, and that is not a pass. Any failed gate fails the target

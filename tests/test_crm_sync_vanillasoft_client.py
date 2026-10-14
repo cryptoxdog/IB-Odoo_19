@@ -249,8 +249,89 @@ def test_phone_marked_disabled_is_still_skipped():
             ],
         }
     )
-    assert contact.phone != "555-0100"
+    assert contact.phone == ""
     assert contact.mobile == "555-0200"
+
+
+def test_unrelated_first_number_does_not_fill_phone_or_mobile():
+    """Business and main numbers are not a direct line and not a mobile."""
+    contact = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "phone_numbers": [
+                {"name": "business", "number": "555-0300"},
+                {"name": "main", "number": "555-0400"},
+            ],
+        }
+    )
+    assert contact.phone == ""
+    assert contact.mobile == ""
+
+
+def test_direct_and_mobile_keep_separate_meanings():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "phone_numbers": [
+                {"name": "business", "number": "555-0300"},
+                {"name": "direct", "number": "555-0100"},
+                {"name": "mobile 1", "number": "555-0200"},
+            ],
+        }
+    )
+    assert contact.phone == "555-0100"
+    assert contact.mobile == "555-0200"
+
+
+def test_observed_payload_keys_fill_only_when_the_accepted_key_is_absent():
+    preferred = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "address": "1 Kept",
+            "address1": "9 Ignored",
+            "zip": "11111",
+            "postal_code": "99999",
+            "custom_fields": [
+                {"name": "Lead Source", "value": "Referral"},
+                {"name": "Contact Owner", "value": "Kept Owner"},
+            ],
+            "lead_source_name": "Ignored Source",
+            "contact_owner": "Ignored Owner",
+        }
+    )
+    assert preferred.street == "1 Kept"
+    assert preferred.zip == "11111"
+    assert preferred.lead_source_raw == "Referral"
+    assert preferred.owner_name == "Kept Owner"
+
+    observed = contact_to_canonical(
+        {
+            "contact_id": 2,
+            "address1": "9 Observed",
+            "postal_code": "30301",
+            "lead_source_name": "Google",
+            "contact_owner": "Observed Owner",
+        }
+    )
+    assert observed.street == "9 Observed"
+    assert observed.zip == "30301"
+    assert observed.lead_source_raw == "Google"
+    assert observed.owner_name == "Observed Owner"
+
+
+def test_blank_address_does_not_hide_address1_and_text_is_stripped():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 3,
+            "address": "   ",
+            "address1": " 9 Observed ",
+            "city": " Atlanta ",
+            "postal_code": " 30301 ",
+        }
+    )
+    assert contact.street == "9 Observed"
+    assert contact.city == "Atlanta"
+    assert contact.zip == "30301"
 
 
 # ── custom-table row identity ───────────────────────────────────────────────

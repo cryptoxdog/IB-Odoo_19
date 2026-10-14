@@ -23,7 +23,8 @@
 # Imperative targets that produce no same-named file — phony so a stray file or
 # directory of that name can never short-circuit them.
 .PHONY: venv bash-syntax check-plasticos-skills pr-remote-feedback \
-        setup-local-runtime check-local-runtime gate-db runtime-gates runtime-gate test-odoo-local
+        setup-local-runtime check-local-runtime gate-db runtime-gates runtime-gate \
+        runtime-gate-f1 runtime-gate-f1-accept test-odoo-local
 
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
@@ -875,14 +876,21 @@ gate-db:
 # Exit 77 from a gate means "cannot run in this environment" (a documented,
 # narrow precondition such as a private SDK), and is reported as SKIPPED. It is
 # never counted as a pass: a gate that did not run must not read green, so the
-# aggregate exits 0 only when every gate ran and passed. Nothing failed but
+# aggregate exits 0 only when every gate it runs passed. Nothing failed but
 # something did not run -> exit 77 (INCOMPLETE, the same "did not run" code,
 # distinct from a defect); any gate failed -> exit 1 regardless of skips.
-# Pinned by tests/test_makefile_failure_propagation.py.
+# F1–F3 is not one of those gates: its disposable clone is Docker-owned.
+# Omitting it here is not a pass. Pinned by tests/test_makefile_failure_propagation.py.
+F1_RECEIPT ?= .l9/runtime/f1-f3-receipt.json
 runtime-gates: check-local-runtime gate-db
 	@fail=0; passed=0; skipped=0; failed=""; \
 	for f in tests/runtime_gates/run_*.py; do \
 		echo "==> $$f"; \
+		case $$f in \
+			*/run_f1_f3_full_import.py) \
+				echo "  NOT IN THIS AGGREGATE: F1–F3 is not run and not passed. CRM acceptance is make runtime-gate-f1."; \
+				continue ;; \
+		esac; \
 		SEAM_DB="$(L9_GATE_DB)" SEAM_PG_HOST="$(L9_PG_HOST)" SEAM_PG_PORT="$(L9_PG_PORT)" \
 		SEAM_PG_USER="$(L9_PG_USER)" \
 			"$(L9_ODOO_VENV)/bin/python" "$$f"; \
@@ -893,6 +901,7 @@ runtime-gates: check-local-runtime gate-db
 	done; \
 	echo ""; \
 	echo "runtime gates: $$passed passed, $$skipped skipped, $$(echo $$failed | wc -w | tr -d ' ') failed"; \
+	echo "F1–F3: not run by this aggregate (not a pass)"; \
 	[ -n "$$failed" ] && echo "  failed:$$failed"; \
 	if [ $$fail -eq 0 ] && [ $$skipped -gt 0 ]; then \
 		echo "  INCOMPLETE: $$skipped gate(s) did not run; a skipped gate is not a pass (exit 77)"; \
@@ -900,11 +909,64 @@ runtime-gates: check-local-runtime gate-db
 	fi; \
 	exit $$fail
 
-# One gate script: make runtime-gate g=run_s1_s3_pristine_seams.py
+# One no-Docker gate script: make runtime-gate g=run_s1_s3_pristine_seams.py
 runtime-gate: check-local-runtime
 	@test -n "$(g)" || { echo "usage: make runtime-gate g=run_s1_s3_pristine_seams.py"; exit 2; }
+	@if [ "$(g)" = "run_f1_f3_full_import.py" ]; then \
+		echo "F1–F3 is not a no-Docker gate. Run make runtime-gate-f1. Not run, not a pass." >&2; \
+		exit 2; \
+	fi
 	@SEAM_PG_HOST="$(L9_PG_HOST)" SEAM_PG_PORT="$(L9_PG_PORT)" SEAM_PG_USER="$(L9_PG_USER)" \
 		"$(L9_ODOO_VENV)/bin/python" "tests/runtime_gates/$(g)"
+
+# F1–F3 on the guarded Docker lifecycle. Clone and drop are scripts/test_env.sh.
+# The shell does not drop: `run` holds the clone lease until it exits.
+# A receipt is written only after the assertions pass and the drop returns 0.
+# No Docker, no admitted template, or a failed drop leaves F1 unproven.
+runtime-gate-f1:
+	@set -eu; \
+	rm -f "$(F1_RECEIPT)"; \
+	owner_db=$$(bash scripts/test_env.sh name); \
+	suffix=$${owner_db#odoo_test_}; \
+	db="odoo_test_f1_$$suffix"; \
+	case "$$db" in \
+		odoo_test_f1_[a-z0-9_]*) ;; \
+		*) echo "refusing F1 clone name $$db" >&2; exit 2 ;; \
+	esac; \
+	bash scripts/test_env.sh clone "$$db"; \
+	log=$$(mktemp); \
+	rc=0; \
+	retire() { \
+		drop_rc=0; \
+		bash scripts/test_env.sh drop "$$db" || drop_rc=$$?; \
+		if [ "$$drop_rc" -ne 0 ]; then \
+			echo "owned clone retirement failed: $$db status $$drop_rc" >&2; \
+			rm -f "$(F1_RECEIPT)"; \
+			exit "$$drop_rc"; \
+		fi; \
+	}; \
+	trap 'rc=130; retire; exit "$$rc"' INT TERM; \
+	bash scripts/test_env.sh run "$$db" -- shell < tests/runtime_gates/f1_guarded_shell.py > "$$log" 2>&1 || rc=$$?; \
+	cat "$$log"; \
+	trap - INT TERM; \
+	retire; \
+	if [ "$$rc" -ne 0 ]; then \
+		echo "F1–F3 failed status $$rc; clone retired; no acceptance receipt" >&2; \
+		rm -f "$(F1_RECEIPT)"; \
+		rm -f "$$log"; \
+		exit "$$rc"; \
+	fi; \
+	head=$$(git rev-parse HEAD); \
+	python3 -c 'import sys; sys.path.insert(0, "tests/runtime_gates"); from f1_guarded_shell import write_receipt; write_receipt(open(sys.argv[1], encoding="utf-8", errors="replace").read(), sys.argv[2], sys.argv[3], sys.argv[4])' \
+		"$$log" "$$db" "$(F1_RECEIPT)" "$$head" \
+		|| { rm -f "$(F1_RECEIPT)" "$$log"; exit 2; }; \
+	rm -f "$$log"
+
+# CRM admission check. Missing, stale, or failed F1 evidence exits 2.
+runtime-gate-f1-accept:
+	@head=$$(git rev-parse HEAD); \
+	python3 -c 'import sys; sys.path.insert(0, "tests/runtime_gates"); from f1_guarded_shell import accept_receipt; raise SystemExit(accept_receipt(sys.argv[1], sys.argv[2]))' \
+		"$(F1_RECEIPT)" "$$head"
 
 # Odoo's own module test suite on the local runtime — the no-Docker counterpart
 # of `make test-odoo`. Runs on a throwaway clone of the template database so a

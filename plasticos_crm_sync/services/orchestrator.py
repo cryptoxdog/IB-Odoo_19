@@ -114,6 +114,24 @@ OUTCOME_FIELDS = ("created", "updated", "unchanged", "duplicate_rejected", "fail
 # must produce zero child-table side effects.
 ADMITTED_OUTCOMES = ("created", "updated", "unchanged")
 
+# Exact tokens only. "USA" must not match "USA Minor Outlying Islands" by substring.
+_US_COUNTRY_ALIASES = frozenset(
+    {
+        "us",
+        "usa",
+        "united states",
+        "united states of america",
+    }
+)
+
+
+def _collapse_ws(value: str | None) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _country_token(value: str) -> str:
+    return _collapse_ws(value).casefold()
+
 
 def _new_outcomes() -> dict[str, int]:
     return {"seen": 0, "table_rows": 0, **{key: 0 for key in OUTCOME_FIELDS}}
@@ -900,8 +918,10 @@ class SyncOrchestrator:
           the ``vanillasoft_id`` fallback finds, or several fallback matches).
           Refusing is the only honest choice: writing either would silently
           repoint identity, and creating would duplicate.
-        * ``failed`` — the write raised; the record is reported, never silently
-          dropped.
+        * ``failed`` — the lead write or the external-reference write raised.
+          Both run in one savepoint, so a failure leaves no partial identity.
+          The record is reported, never silently dropped, and a later replay
+          is not what repairs it.
 
         The classification is also left in ``self.last_lead_outcome`` so a
         caller can tell an admitted lead from a rejected one: the returned
@@ -959,38 +979,44 @@ class SyncOrchestrator:
             vals["active"] = True
             vals["vanillasoft_sync_archived"] = False
 
+        prior_lead_id = lead.id if lead else False
         try:
-            if lead:
-                changed = {k: v for k, v in vals.items() if _differs(lead, k, v)}
-                if changed:
-                    lead.write(changed)
-                    outcome = "updated"
+            with self.env.cr.savepoint():
+                if lead:
+                    changed = {k: v for k, v in vals.items() if _differs(lead, k, v)}
+                    if changed:
+                        lead.write(changed)
+                        outcome = "updated"
+                    else:
+                        outcome = "unchanged"
                 else:
-                    outcome = "unchanged"
-            else:
-                lead = Lead.create(vals)
-                outcome = "created"
+                    lead = Lead.create(vals)
+                    outcome = "created"
+                if outcome in ADMITTED_OUTCOMES:
+                    if not ref:
+                        Ref.create(
+                            {
+                                "provider": dto.provider,
+                                "external_id": dto.external_id,
+                                "res_model": CRM_LEAD,
+                                "res_id": lead.id,
+                                "lead_id": lead.id,
+                            }
+                        )
+                    elif ref.res_id != lead.id or (getattr(ref.lead_id, "id", ref.lead_id) or False) != lead.id:
+                        ref.write({"res_id": lead.id, "lead_id": lead.id})
         except Exception as exc:  # noqa: BLE001 - per-record failure is recorded, never silent loss
-            self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
+            if outcomes is not None:
+                outcomes["failed"] += 1
+            self.error_rows.append(
+                {"record_ref": dto.external_id, "error_type": type(exc).__name__, "message": str(exc)}
+            )
             self.last_lead_outcome = "failed"
-            return lead
+            return Lead.browse(prior_lead_id) if prior_lead_id else Lead.browse()
 
         if outcomes is not None:
             outcomes[outcome] += 1
         self.last_lead_outcome = outcome
-        if outcome in ADMITTED_OUTCOMES:
-            if not ref:
-                Ref.create(
-                    {
-                        "provider": dto.provider,
-                        "external_id": dto.external_id,
-                        "res_model": CRM_LEAD,
-                        "res_id": lead.id,
-                        "lead_id": lead.id,
-                    }
-                )
-            elif ref.res_id != lead.id or (getattr(ref.lead_id, "id", ref.lead_id) or False) != lead.id:
-                ref.write({"res_id": lead.id, "lead_id": lead.id})
         return lead
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
@@ -1000,12 +1026,33 @@ class SyncOrchestrator:
         outcomes[outcome] += 1
         self.error_rows.append({"record_ref": record_ref, "message": message})
 
+    def _resolve_country_id(self, raw: str | None) -> int | bool:
+        """Resolve a country by exact alias, ISO code, or exact name.
+
+        ``USA`` is the United States. It is not a prefix of USA Minor Outlying
+        Islands, and a two-letter code is never taken from the start of a longer
+        name.
+        """
+        text = (raw or "").strip()
+        if not text:
+            return False
+        token = _country_token(text)
+        Country = self.env["res.country"]
+        if token in _US_COUNTRY_ALIASES:
+            country = Country.search([("code", "=", "US")], limit=1)
+            return country.id if country else False
+        if len(token) == 2 and token.isalpha():
+            country = Country.search([("code", "=", token.upper())], limit=1)
+            return country.id if country else False
+        country = Country.search([("name", "=ilike", _collapse_ws(text))], limit=1)
+        return country.id if country else False
+
     def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
         # Lazy import mapping SSOT from crm_bridge
         from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING
         from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
 
-        contact_name = " ".join(filter(None, [dto.first_name, dto.last_name])).strip()
+        contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
         company = (dto.company or "").strip()
         name = f"{company} — {contact_name}" if company and contact_name else (company or contact_name or "Unknown")
 
@@ -1019,35 +1066,27 @@ class SyncOrchestrator:
             stage_id = stage.id if stage else False
 
         source_id = False
-        if dto.lead_source_raw:
-            utm_name = LEAD_SOURCE_MAPPING.get(dto.lead_source_raw.strip(), "Other")
+        raw_source = (dto.lead_source_raw or "").strip()
+        if raw_source and raw_source in LEAD_SOURCE_MAPPING:
+            utm_name = LEAD_SOURCE_MAPPING[raw_source]
             source = self.env["utm.source"].search([("name", "=", utm_name)], limit=1)
             source_id = source.id if source else False
 
-        country_id = False
-        if dto.country_code:
-            country = self.env["res.country"].search(
-                [
-                    "|",
-                    ("code", "=", dto.country_code.strip().upper()[:2]),
-                    ("name", "ilike", dto.country_code.strip()),
-                ],
-                limit=1,
-            )
-            country_id = country.id if country else False
+        country_id = self._resolve_country_id(dto.country_code)
 
         state_id = False
-        if dto.state_code:
-            domain: list[tuple[str, str, Any]] = [("code", "=", dto.state_code.strip().upper())]
-            if country_id:
-                domain.append(("country_id", "=", country_id))
-            state = self.env["res.country.state"].search(domain, limit=1)
+        if dto.state_code and country_id:
+            state = self.env["res.country.state"].search(
+                [("code", "=", dto.state_code.strip().upper()), ("country_id", "=", country_id)],
+                limit=1,
+            )
             state_id = state.id if state else False
 
         user_id = False
-        if dto.owner_name and dto.owner_name.strip() not in ("FALSE", ""):
-            user = self.env["res.users"].search([("name", "ilike", dto.owner_name.strip())], limit=1)
-            user_id = user.id if user else False
+        owner_name = _collapse_ws(dto.owner_name)
+        if owner_name and owner_name.casefold() != "false":
+            users = self.env["res.users"].search([("name", "=ilike", owner_name)])
+            user_id = users.id if len(users) == 1 else False
 
         return {
             "name": name,

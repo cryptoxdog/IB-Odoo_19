@@ -141,6 +141,48 @@ def _assert_every_gate_ran(proc: subprocess.CompletedProcess, gate_exit_codes: d
     return output
 
 
+def test_runtime_gates_does_not_count_f1_as_passed(tmp_path):
+    """F1 is outside this aggregate. A green stub of that filename is not a pass."""
+    gates = {"a": 0, "b": 0, "f1_f3_full_import": 0}
+    proc = _run_runtime_gates(tmp_path, gates)
+    output = proc.stdout + proc.stderr
+    assert f"{STUB_MARKER} a" in output and f"{STUB_MARKER} b" in output, output
+    assert f"{STUB_MARKER} f1_f3_full_import" not in output, output
+    assert "NOT IN THIS AGGREGATE" in output and "not a pass" in output, output
+    assert "F1–F3: not run by this aggregate (not a pass)" in output, output
+    assert "2 passed, 0 skipped, 0 failed" in output, output
+    assert proc.returncode == 0, output
+
+
+def test_runtime_gate_refuses_f1_on_the_no_docker_target(tmp_path):
+    make = shutil.which("make")
+    assert make is not None
+    overrides = _write_runtime_gate_stubs(tmp_path, {"f1_f3_full_import": 0})
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("COV_CORE_", "COVERAGE_"))}
+    env.update(overrides)
+    proc = subprocess.run(
+        [
+            make,
+            "--no-print-directory",
+            "-C",
+            str(tmp_path),
+            "-f",
+            str(MAKEFILE),
+            "runtime-gate",
+            "g=run_f1_f3_full_import.py",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+        env=env,
+    )
+    output = proc.stdout + proc.stderr
+    assert proc.returncode != 0, output
+    assert "not a pass" in output, output
+    assert STUB_MARKER not in output, output
+
+
 def test_runtime_gates_pass_only_when_every_gate_passed(tmp_path):
     gates = {"a": 0, "b": 0, "c": 0}
     proc = _run_runtime_gates(tmp_path, gates)
