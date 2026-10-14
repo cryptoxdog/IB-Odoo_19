@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class MaterialProfileCRMBridge(models.Model):
@@ -104,6 +105,42 @@ class MaterialProfileCRMBridge(models.Model):
                 "type": "warning",
             },
         }
+
+    @api.model
+    def reuse_facility_polymer_profile(self, partner, polymer, forms, note_line=None):
+        """Reuse one facility profile for a polymer and a resolved form.
+
+        Exactly one selected form is stored. Zero forms or more than one form
+        collapse to a single empty-form profile. A note line is appended only
+        when that exact line is not already present.
+        """
+        if not partner or not partner.parent_id:
+            raise ValidationError("A facility partner with a parent company is required.")
+        if not polymer:
+            raise ValidationError("A polymer is required.")
+        form_id = forms.id if len(forms) == 1 else False
+        profile = self.search(
+            [
+                ("partner_id", "=", partner.id),
+                ("polymer_id", "=", polymer.id),
+                ("form_id", "=", form_id),
+            ],
+            limit=1,
+        )
+        if not profile:
+            profile = self.create(
+                {
+                    "partner_id": partner.id,
+                    "polymer_id": polymer.id,
+                    "form_id": form_id,
+                }
+            )
+        if note_line:
+            existing_lines = (profile.freeform_notes or "").splitlines()
+            if note_line not in existing_lines:
+                notes = profile.freeform_notes or ""
+                profile.freeform_notes = f"{notes}\n{note_line}" if notes else note_line
+        return profile
 
     def action_view_transactions(self):
         """Navigate to transactions for this material profile."""
