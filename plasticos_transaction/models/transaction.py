@@ -545,8 +545,10 @@ class PlasticosTransaction(models.Model):
     @api.depends(
         "supplier_id",
         "supplier_id.material_profile_ids",
+        "supplier_id.material_profile_ids.form_id",
         "buyer_id",
         "buyer_id.material_profile_ids",
+        "buyer_id.material_profile_ids.form_id",
         "product_id",
         "product_id.product_tmpl_id.polymer_id",
     )
@@ -555,8 +557,10 @@ class PlasticosTransaction(models.Model):
 
         Matches supplier/buyer to their material profile based on the
         transaction's product polymer. One search covers the recordset.
-        When several profiles share a partner and polymer, the first row in
-        model order is kept (same row ``search(limit=1)`` returned).
+        When several profiles share a partner and polymer and at least one
+        has a form, the first form-specified row in model order is kept and
+        form-unspecified rows are ignored. When every match has an empty
+        form, that unspecified profile is selected.
 
         Note: product.template has polymer_id (via plasticos_product) but not
         form_id. We match on polymer only; form matching requires order line fields.
@@ -584,8 +588,12 @@ class PlasticosTransaction(models.Model):
                     ("polymer_id", "in", list(polymer_ids)),
                 ]
             )
+            grouped = {}
             for profile in profiles:
-                first_match.setdefault((profile.partner_id.id, profile.polymer_id.id), profile)
+                grouped.setdefault((profile.partner_id.id, profile.polymer_id.id), []).append(profile)
+            for key, rows in grouped.items():
+                specified = [row for row in rows if row.form_id]
+                first_match[key] = specified[0] if specified else rows[0]
         for rec in self:
             polymer_id = polymer_by_tx[rec.id]
             supplier_key = (rec.supplier_id.id, polymer_id) if polymer_id and rec.supplier_id else None
