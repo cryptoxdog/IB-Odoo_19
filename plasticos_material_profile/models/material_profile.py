@@ -106,11 +106,11 @@ class PlasticosMaterialProfile(models.Model):
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
-        required=True,
+        required=False,
         index=True,
         ondelete="restrict",
         tracking=True,
-        help="Canonical material form from the master registry.",
+        help="Canonical material form from the master registry. Empty when the profile has no resolved form.",
     )
     # Backward-compatible computed field
     form = fields.Selection(
@@ -387,28 +387,36 @@ class PlasticosMaterialProfile(models.Model):
     # ═════════════════════════════════════════════════════════
 
     _unique_partner_polymer_form = models.Constraint(
-        "unique(partner_id, polymer_id, form_id)",
+        "UNIQUE NULLS NOT DISTINCT (partner_id, polymer_id, form_id)",
         "A facility may only have one profile per polymer + form combination.",
     )
 
     def _check_unique_triple_before_save(self, partner_id, polymer_id, form_id, exclude_id=None):
-        """Check for duplicate partner+polymer+form before SQL insert."""
-        if partner_id and polymer_id and form_id:
-            domain = [
-                ("partner_id", "=", partner_id),
-                ("polymer_id", "=", polymer_id),
-                ("form_id", "=", form_id),
-            ]
-            if exclude_id:
-                domain.append(("id", "!=", exclude_id))
-            if self.search(domain, limit=1):
-                partner = self.env["res.partner"].browse(partner_id)
-                polymer = self.env["plasticos.polymer"].browse(polymer_id)
-                form = self.env["plasticos.material.form"].browse(form_id)
-                raise ValidationError(
-                    f"A material profile already exists for {partner.name} "
-                    f"with polymer '{polymer.name}' and form '{form.name}'."
-                )
+        """Check for duplicate partner+polymer+form before SQL insert.
+
+        An empty form is a real identity key, so one unspecified profile is allowed
+        per partner and polymer.
+        """
+        if not partner_id or not polymer_id:
+            return
+        domain = [
+            ("partner_id", "=", partner_id),
+            ("polymer_id", "=", polymer_id),
+            ("form_id", "=", form_id or False),
+        ]
+        if exclude_id:
+            domain.append(("id", "!=", exclude_id))
+        if self.search(domain, limit=1):
+            partner = self.env["res.partner"].browse(partner_id)
+            polymer = self.env["plasticos.polymer"].browse(polymer_id)
+            form = (
+                self.env["plasticos.material.form"].browse(form_id) if form_id else self.env["plasticos.material.form"]
+            )
+            form_label = form.name or "unspecified"
+            raise ValidationError(
+                f"A material profile already exists for {partner.name} "
+                f"with polymer '{polymer.name}' and form '{form_label}'."
+            )
 
     # ═════════════════════════════════════════════════════════
     # Computed

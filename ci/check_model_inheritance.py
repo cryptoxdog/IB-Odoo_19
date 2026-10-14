@@ -200,7 +200,7 @@ def check_test_required_fields(root: Path) -> list[dict]:
         "plasticos.offer": ["intake_id", "supplier_id", "buyer_id"],
         "plasticos.document": ["attachment_id", "tag_id"],
         "plasticos.match.result": ["intake_id", "buyer_partner_id"],
-        "plasticos.material.profile": ["partner_id", "polymer_id", "form_id"],
+        "plasticos.material.profile": ["partner_id", "polymer_id"],
     }
 
     for test_file in root.rglob("test_*.py"):
