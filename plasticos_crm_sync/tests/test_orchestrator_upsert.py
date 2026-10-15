@@ -271,7 +271,11 @@ class TestCrmSyncOrchestrator(TransactionCase):
             lead = orch._upsert_lead(self.connection, dto)
         self.assertTrue(calls)
         self.assertFalse(self._profiles(facility))
-        self.assertTrue(any("facility unresolved" in row["message"] for row in orch.error_rows))
+        self.assertFalse(lead.partner_id)
+        owned = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)])
+        self.assertEqual(len(owned), 1)
+        self.assertFalse(owned.partner_id)
+        self.assertFalse(any("facility unresolved" in row["message"] for row in orch.error_rows))
         self.assertEqual(lead.vanillasoft_id, "vs-mat-1")
         lead.partner_id = facility
         orch.error_rows.clear()
@@ -482,3 +486,66 @@ class TestCrmSyncOrchestrator(TransactionCase):
         self.assertEqual((replayed["PLASTIC_PALLETS"].freeform_notes or "").splitlines().count("Pallets"), 1)
         self.assertEqual(orch.outcomes["failed"], 0)
         self.assertEqual(orch.outcomes["deferred"], 0)
+
+    def test_new_lead_without_partner_owns_one_facility_and_replays(self):
+        """A VanillaSoft lead with no partner owns one facility and its materials."""
+        partners_before = self.env["res.partner"].search_count([])
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        dto = self._lead(
+            "vs-lead-owned",
+            custom_fields={"Materials": "HDPE Drums\nLDPE Film\nPP Supersacs"},
+        )
+        lead = orch._upsert_lead(self.connection, dto)
+        self.assertFalse(lead.partner_id)
+        self.assertEqual(self.env["res.partner"].search_count([]), partners_before)
+        facilities = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)])
+        self.assertEqual(len(facilities), 1)
+        facility = facilities
+        self.assertFalse(facility.partner_id)
+        self.assertFalse(facility.equipment_type_ids)
+        self.assertFalse(facility.accepted_polymer_ids)
+        self.assertFalse(facility.process_type)
+        self.assertFalse(facility.form_preference_id)
+        self.assertFalse(facility.capacity_lbs_month)
+        profiles = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP"})
+        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertFalse(by_polymer["PP"].form_id)
+        self.assertFalse(profiles.mapped("partner_id"))
+        self.assertFalse(orch.error_rows)
+        ids = {code: profile.id for code, profile in by_polymer.items()}
+        orch._upsert_lead(self.connection, dto)
+        replayed = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
+        self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
+        self.assertEqual(len(self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)])), 1)
+        self.assertEqual(self.env["res.partner"].search_count([]), partners_before)
+        other = orch._upsert_lead(
+            self.connection,
+            self._lead("vs-lead-owned-other", custom_fields={"Materials": "PP Supersacs"}),
+        )
+        other_facility = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", other.id)])
+        self.assertEqual(len(other_facility), 1)
+        self.assertNotEqual(other_facility, facility)
+        other_profiles = self.env["plasticos.material.profile"].search(
+            [("facility_profile_id", "=", other_facility.id)]
+        )
+        self.assertEqual(len(other_profiles), 1)
+        self.assertEqual(other_profiles.polymer_id.code, "PP")
+        self.assertFalse(other_profiles.form_id)
+        self.assertNotEqual(other_profiles.id, by_polymer["PP"].id)
+        location = self._facility("Verified Later")
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        facility = self.env["plasticos.facility.profile"].browse(facility.id)
+        self.assertEqual(facility.partner_id, location)
+        self.assertEqual(facility.crm_lead_id, lead)
+        linked = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
+        self.assertEqual({profile.polymer_id.code: profile.id for profile in linked}, ids)
+        self.assertEqual(set(linked.mapped("partner_id")), {location})
+        self.assertFalse(facility.equipment_type_ids)
+        self.assertFalse(facility.accepted_polymer_ids)
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", location.id)]), 1)
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 3)

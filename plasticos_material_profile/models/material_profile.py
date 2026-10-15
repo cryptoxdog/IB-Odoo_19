@@ -389,8 +389,8 @@ class PlasticosMaterialProfile(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _unique_partner_polymer_form = models.Constraint(
-        "UNIQUE NULLS NOT DISTINCT (partner_id, polymer_id, form_id)",
+    _unique_partner_polymer_form = models.UniqueIndex(
+        "(partner_id, polymer_id, form_id) NULLS NOT DISTINCT WHERE partner_id IS NOT NULL",
         "A facility may only have one profile per polymer + form combination.",
     )
 

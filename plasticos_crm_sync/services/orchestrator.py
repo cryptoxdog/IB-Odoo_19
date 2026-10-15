@@ -1309,11 +1309,14 @@ class SyncOrchestrator:
             self._apply_contact_materials(lead, *landed_fields)
 
     def _apply_contact_materials(self, lead, *field_maps) -> None:
-        """Normalize each distinct material onto one existing facility profile.
+        """Normalize each distinct material onto the lead's facility profile.
 
-        Manual sync and the scheduled cron both reach this through
-        ``run_connection``. An unresolved facility or material is reported and
-        the contact is kept. Sync counters and watermarks are not changed.
+        A lead with no partner owns one facility profile and the material
+        profiles on it. A lead that already has one resolvable facility partner
+        keeps the partner-owned profiles. Manual sync and the scheduled cron
+        both reach this through ``run_connection``. An unresolved material is
+        reported and the contact is kept. Sync counters and watermarks are not
+        changed.
         """
         try:
             self._apply_resolved_materials(lead, *field_maps)
@@ -1339,13 +1342,30 @@ class SyncOrchestrator:
         texts = _dedupe_phrases(candidates) or list(weak)
         if not texts:
             return
-        facility, reason = _facility_for_material(lead)
-        if facility is None:
-            for text in texts:
-                self.error_rows.append(
-                    {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
-                )
+        partner = None
+        if lead.partner_id:
+            partner, reason = _facility_for_material(lead)
+            if partner is None:
+                for text in texts:
+                    self.error_rows.append(
+                        {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
+                    )
+                return
+        owned = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)], limit=1)
+        if partner is not None and not owned:
+            self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
             return
+        if owned and partner is not None and not owned.partner_id:
+            owned.link_verified_location(partner)
+        elif not owned:
+            owned = self.env["plasticos.facility.profile"].create({"crm_lead_id": lead.id})
+        self._store_normalized_materials(lead, texts, plain_hints, facility_profile=owned)
+
+    def _store_normalized_materials(self, lead, texts, plain_hints, partner=None, facility_profile=None) -> None:
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+            normalize_material,
+        )
+
         profiles = self.env["plasticos.material.profile"]
         for text in texts:
             normalized = normalize_material(self.env, text, structured=plain_hints)
@@ -1358,12 +1378,20 @@ class SyncOrchestrator:
                     }
                 )
                 continue
-            profile = profiles.reuse_facility_polymer_profile(
-                facility,
-                normalized.polymer,
-                normalized.form,
-                note_line=normalized.source_description,
-            )
+            if partner is not None:
+                profile = profiles.reuse_facility_polymer_profile(
+                    partner,
+                    normalized.polymer,
+                    normalized.form,
+                    note_line=normalized.source_description,
+                )
+            else:
+                profile = profiles.reuse_lead_facility_material(
+                    facility_profile,
+                    normalized.polymer,
+                    normalized.form,
+                    note_line=normalized.source_description,
+                )
             self._write_profile_classification(profile, normalized)
 
     def _write_profile_classification(self, profile, normalized) -> None:

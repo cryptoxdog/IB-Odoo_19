@@ -248,6 +248,8 @@ class PlasticosFacilityProfile(models.Model):
     @api.constrains("partner_id")
     def _check_partner_is_facility(self):
         for rec in self:
+            if not rec.partner_id:
+                continue
             if not rec.partner_id.is_facility:
                 raise ValidationError(
                     "Capability profile can only be attached to facility-level partners (locations or standalone companies)."
@@ -352,6 +354,8 @@ class PlasticosFacilityProfile(models.Model):
 
     def unlink(self):
         for rec in self:
+            if not rec.partner_id:
+                continue
             if (
                 rec.env["sale.order"].search_count(
                     [
