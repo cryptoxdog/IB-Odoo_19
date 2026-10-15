@@ -482,8 +482,10 @@ def _upsert_sale_line(importer, context, report, order, detail_id, line):
     quantity, uom_code, price = _line_terms(context, report, detail_id, line, "sale")
     if order.state not in _OPEN_SALE_STATES:
         return
-    product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
+    normalized = _normalize_line(importer, line.get("GradeID"), line.get("InvoiceDesc"))
+    product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"), normalized)
     uom = _uom(importer, context, uom_code)
+    xml_id = f"legacy_erp_sol_{_token(detail_id)}"
     values = {
         "order_id": order.id,
         "product_id": product.id,
@@ -494,16 +496,21 @@ def _upsert_sale_line(importer, context, report, order, detail_id, line):
     }
     if uom:
         values["product_uom_id"] = uom.id
+    values.update(
+        _material_line_values(importer, "sale.order.line", _existing(importer, "sale.order.line", xml_id), normalized)
+    )
     model = importer.env["sale.order.line"].with_context(**_import_context())
-    importer._upsert(model, f"legacy_erp_sol_{_token(detail_id)}", values, _silent(), None)
+    importer._upsert(model, xml_id, values, _silent(), None)
 
 
 def _upsert_purchase_line(importer, context, report, order, detail_id, line):
     quantity, uom_code, price = _line_terms(context, report, detail_id, line, "purchase")
     if order.state not in _OPEN_PURCHASE_STATES:
         return
-    product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
+    normalized = _normalize_line(importer, line.get("GradeID"), line.get("InvoiceDesc"))
+    product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"), normalized)
     uom = _uom(importer, context, uom_code)
+    xml_id = f"legacy_erp_pol_{_token(detail_id)}"
     values = {
         "order_id": order.id,
         "product_id": product.id,
@@ -515,8 +522,13 @@ def _upsert_purchase_line(importer, context, report, order, detail_id, line):
     }
     if uom:
         values["product_uom_id"] = uom.id
+    values.update(
+        _material_line_values(
+            importer, "purchase.order.line", _existing(importer, "purchase.order.line", xml_id), normalized
+        )
+    )
     model = importer.env["purchase.order.line"].with_context(**_import_context())
-    importer._upsert(model, f"legacy_erp_pol_{_token(detail_id)}", values, _silent(), None)
+    importer._upsert(model, xml_id, values, _silent(), None)
 
 
 def _customer_invoice(importer, report, context, partner_by_cp, number, buysell, sale_groups):
@@ -1078,19 +1090,71 @@ def _remember_carrier(importer, context, partner_by_cp, number, deliveries) -> N
     context.setdefault("carriers", {})[number] = partner_id or False
 
 
-def _product(importer, context, grade_id, description):
+def _normalize_line(importer, grade_id, description):
+    from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+        normalize_material,
+    )
+
+    return normalize_material(importer.env, description, grade_evidence=grade_id)
+
+
+def _product(importer, context, grade_id, description, normalized=None):
+    """One product per GradeID, unless that grade already names a different polymer.
+
+    A second supported classification keeps the GradeID on ``default_code`` and
+    gets its own external id. An unresolved description does not clear a polymer
+    already stored on the grade product.
+    """
+    if normalized is None:
+        normalized = _normalize_line(importer, grade_id, description)
     grade = (grade_id or "").strip() or "unspecified"
-    cached = context["product_cache"].get(grade)
+    polymer = normalized.polymer
+    code = polymer.code if polymer else ""
+    cache_key = f"{grade}|{code}"
+    cached = context["product_cache"].get(cache_key)
     # A product created inside a worksheet savepoint vanishes when that
     # worksheet is rolled back; the cache must not hand out the dead record.
     if cached and cached.exists():
         return cached
-    context["product_cache"].pop(grade, None)
-    xml_id = f"legacy_erp_grade_{_token(grade)}"
+    context["product_cache"].pop(cache_key, None)
+    base_xml = f"legacy_erp_grade_{_token(grade)}"
+    product = _grade_product(importer, base_xml, polymer)
+    if product is None:
+        xml_id = base_xml
+        if _existing(importer, "product.product", base_xml) is not None:
+            xml_id = f"{base_xml}_{_token(code or 'other')}"
+        product = _existing(importer, "product.product", xml_id)
+        if product is None:
+            product = _create_grade_product(importer, xml_id, grade, description)
+    _fill_polymer(importer, product, polymer)
+    context["product_cache"][cache_key] = product
+    return product
+
+
+def _grade_product(importer, xml_id, polymer):
     existing = _existing(importer, "product.product", xml_id)
-    if existing is not None:
-        context["product_cache"][grade] = existing
+    if existing is not None and _polymer_compatible(existing, polymer):
         return existing
+    return None
+
+
+def _polymer_compatible(product, polymer) -> bool:
+    current = product.product_tmpl_id.polymer_id
+    if not current or not polymer:
+        return True
+    return current == polymer
+
+
+def _fill_polymer(importer, product, polymer) -> None:
+    if not polymer:
+        return
+    template = product.product_tmpl_id
+    if template.polymer_id:
+        return
+    template.with_context(**_import_context()).write({"polymer_id": polymer.id})
+
+
+def _create_grade_product(importer, xml_id, grade, description):
     values = {
         "name": (description or "").strip() or grade,
         "default_code": grade,
@@ -1104,8 +1168,28 @@ def _product(importer, context, grade_id, description):
         values["is_storable"] = False
     product = importer.env["product.product"].with_context(**_import_context()).create(values)
     importer._write_identity_marker(product, xml_id, product)
-    context["product_cache"][grade] = product
     return product
+
+
+def _material_line_values(importer, model_name, existing, normalized):
+    """Form, source, and attributes that the normalizer actually resolved.
+
+    An empty attribute set is unspecified. It does not clear attributes already
+    stored on the line, and a replay that already has the resolved attributes
+    does not write the relation again.
+    """
+    values = {}
+    fields = importer.env[model_name]._fields
+    if normalized.form and "form_id" in fields:
+        values["form_id"] = normalized.form.id
+    if normalized.source_type and "source_type_id" in fields:
+        values["source_type_id"] = normalized.source_type.id
+    if normalized.attributes and "material_attribute_ids" in fields:
+        current = existing.material_attribute_ids if existing is not None else normalized.attributes.browse()
+        missing = normalized.attributes - current
+        if missing:
+            values["material_attribute_ids"] = [Command.link(attribute_id) for attribute_id in missing.ids]
+    return values
 
 
 def _uom(importer, context, code):

@@ -129,6 +129,67 @@ def _collapse_ws(value: str | None) -> str:
     return " ".join(str(value or "").split())
 
 
+def _split_material_values(value) -> list[str]:
+    text = str(value or "").replace("|", "\n").replace(";", "\n")
+    return [part for part in (_collapse_ws(piece) for piece in text.splitlines()) if part]
+
+
+def _material_field_kind(label: str) -> str:
+    if label in {"materials", "material"} or label.startswith("material ("):
+        return "phrase"
+    if label in {"material form", "material type", "form"} or label.startswith("form ("):
+        return "hint"
+    return ""
+
+
+def _material_inputs(*field_maps):
+    phrases = []
+    hints = {}
+    weak = []
+    for fields in field_maps:
+        for key, value in (fields or {}).items():
+            label = _collapse_ws(key).casefold()
+            parts = _split_material_values(value)
+            kind = _material_field_kind(label)
+            if kind == "phrase":
+                phrases.extend(parts)
+            elif kind == "hint":
+                if parts:
+                    hints[label] = parts[0]
+                weak.extend(parts)
+    return _dedupe_phrases(phrases), hints, _dedupe_phrases(weak)
+
+
+def _dedupe_phrases(phrases) -> list[str]:
+    seen = set()
+    kept = []
+    for phrase in phrases:
+        key = phrase.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(phrase)
+    return kept
+
+
+def _facility_for_material(lead):
+    """Existing facility only. A missing or ambiguous facility is not created."""
+    partner = lead.partner_id
+    if not partner:
+        return None, "facility unresolved"
+    if partner.parent_id and partner.is_company:
+        return partner, ""
+    parent = partner.parent_id
+    if parent and parent.is_company and parent.parent_id:
+        return parent, ""
+    children = partner.child_ids.filtered(lambda child: child.is_company)
+    if len(children) == 1:
+        return children, ""
+    if len(children) > 1:
+        return None, "facility unresolved: ambiguous child facilities"
+    return None, "facility unresolved"
+
+
 def _country_token(value: str) -> str:
     return _collapse_ws(value).casefold()
 
@@ -1017,6 +1078,8 @@ class SyncOrchestrator:
         if outcomes is not None:
             outcomes[outcome] += 1
         self.last_lead_outcome = outcome
+        if outcome in ADMITTED_OUTCOMES and not dto.deleted:
+            self._apply_contact_materials(lead, dto.custom_fields)
         return lead
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
@@ -1193,6 +1256,7 @@ class SyncOrchestrator:
         outcomes = getattr(self, "outcomes", None)
         if lead is None:
             lead = self._find_lead(connection.provider, contact_external_id, Ref)
+        landed_fields = []
         for dto in adapter.iter_table_rows(contact_external_id):
             if not lead:
                 Orphan.create(
@@ -1240,6 +1304,94 @@ class SyncOrchestrator:
                 Row.create(vals)
                 if outcomes is not None:
                     outcomes["table_rows"] += 1
+            landed_fields.append(dto.fields)
+        if lead and landed_fields:
+            self._apply_contact_materials(lead, *landed_fields)
+
+    def _apply_contact_materials(self, lead, *field_maps) -> None:
+        """Normalize each distinct material onto one existing facility profile.
+
+        Manual sync and the scheduled cron both reach this through
+        ``run_connection``. An unresolved facility or material is reported and
+        the contact is kept. Sync counters and watermarks are not changed.
+        """
+        try:
+            self._apply_resolved_materials(lead, *field_maps)
+        except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
+            _logger.warning("Material normalization failed for lead %s: %s", lead.id, exc)
+            self.error_rows.append(
+                {"record_ref": str(lead.id or ""), "message": f"material normalization failed: {exc}"}
+            )
+
+    def _apply_resolved_materials(self, lead, *field_maps) -> None:
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+            normalize_material,
+        )
+
+        phrases, hints, weak = _material_inputs(*field_maps)
+        candidates = list(phrases)
+        plain_hints = {}
+        for label, value in hints.items():
+            if normalize_material(self.env, value).polymer:
+                candidates.append(value)
+            else:
+                plain_hints[label] = value
+        texts = _dedupe_phrases(candidates) or list(weak)
+        if not texts:
+            return
+        facility, reason = _facility_for_material(lead)
+        if facility is None:
+            for text in texts:
+                self.error_rows.append(
+                    {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
+                )
+            return
+        profiles = self.env["plasticos.material.profile"]
+        for text in texts:
+            normalized = normalize_material(self.env, text, structured=plain_hints)
+            if normalized.unresolved or not normalized.polymer:
+                detail = ", ".join(normalized.unresolved) or "unresolved material"
+                self.error_rows.append(
+                    {
+                        "record_ref": lead.vanillasoft_id or str(lead.id),
+                        "message": f"{detail}: {normalized.source_description}",
+                    }
+                )
+                continue
+            profile = profiles.reuse_facility_polymer_profile(
+                facility,
+                normalized.polymer,
+                normalized.form,
+                note_line=normalized.source_description,
+            )
+            self._write_profile_classification(profile, normalized)
+
+    def _write_profile_classification(self, profile, normalized) -> None:
+        """Fill empty grade, source, and attributes. A second grade is not merged."""
+        from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
+
+        if normalized.grade:
+            current = (profile.sub_grade or "").strip()
+            if current and current != normalized.grade:
+                self.error_rows.append(
+                    {
+                        "record_ref": str(profile.id),
+                        "message": (
+                            f"grade {normalized.grade} conflicts with stored grade {current} "
+                            f"on profile {profile.id}; attributes unchanged"
+                        ),
+                    }
+                )
+                return
+            if not current:
+                profile.sub_grade = normalized.grade
+        if normalized.source_type and not profile.source_type_id:
+            profile.source_type_id = normalized.source_type
+        if not normalized.attributes:
+            return
+        missing = normalized.attributes - profile.material_attribute_ids
+        if missing:
+            profile.write({"material_attribute_ids": [Command.link(attribute.id) for attribute in missing]})
 
     def _resolve_orphans(self, connection, adapter, run) -> int:
         Orphan = self.env["plasticos.crm.sync.orphan"]

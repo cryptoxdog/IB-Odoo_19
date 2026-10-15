@@ -1,8 +1,9 @@
 """TransactionCase: lead upsert idempotency + orphan resolve (requires Odoo runtime)."""
 
+import inspect
 from unittest.mock import MagicMock, patch
 
-from odoo.addons.plasticos_crm_sync.adapters.base import CanonicalCall, CanonicalLead
+from odoo.addons.plasticos_crm_sync.adapters.base import CanonicalCall, CanonicalLead, CanonicalTableRow
 from odoo.addons.plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator, _new_outcomes
 from odoo.exceptions import UserError
@@ -235,3 +236,212 @@ class TestCrmSyncOrchestrator(TransactionCase):
             ),
             1,
         )
+
+    def _facility(self, name):
+        parent = self.env["res.partner"].create({"name": f"{name} Parent", "is_company": True})
+        return self.env["res.partner"].create({"name": name, "is_company": True, "parent_id": parent.id})
+
+    def _profiles(self, facility):
+        return self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+
+    def test_admitted_contact_normalizes_each_material_and_replays(self):
+        from odoo.addons.plasticos_material_profile.models import material_normalizer
+
+        facility = self._facility("Sync Materials")
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        contact_mark = self.connection.contact_watermark_utc
+        call_mark = self.connection.call_watermark_utc
+        dto = self._lead(
+            "vs-mat-1",
+            custom_fields={
+                "Materials": "99 Clear LDPE Film; HDPE Drums | PC/ABS",
+                "Material Form": "Film",
+                "Not A Material": "PE",
+            },
+        )
+        calls = []
+        original = material_normalizer.normalize_material
+
+        def wrapped(env, description, grade_evidence=None, structured=None):
+            calls.append(description)
+            return original(env, description, grade_evidence=grade_evidence, structured=structured)
+
+        with patch.object(material_normalizer, "normalize_material", wrapped):
+            lead = orch._upsert_lead(self.connection, dto)
+        self.assertTrue(calls)
+        self.assertFalse(self._profiles(facility))
+        self.assertTrue(any("facility unresolved" in row["message"] for row in orch.error_rows))
+        self.assertEqual(lead.vanillasoft_id, "vs-mat-1")
+        lead.partner_id = facility
+        orch.error_rows.clear()
+        calls.clear()
+        with patch.object(material_normalizer, "normalize_material", wrapped):
+            again = orch._upsert_lead(self.connection, dto)
+        self.assertEqual(again, lead)
+        self.assertIn("99 Clear LDPE Film", calls)
+        self.assertIn("HDPE Drums", calls)
+        self.assertIn("PC/ABS", calls)
+        profiles = {profile.polymer_id.code: profile for profile in self._profiles(facility)}
+        self.assertEqual(set(profiles), {"LDPE", "HDPE", "PC_ABS"})
+        film = profiles["LDPE"]
+        self.assertEqual(film.form_id.code, "FILM")
+        self.assertEqual(film.sub_grade, "A")
+        self.assertFalse(film.source_type_id)
+        self.assertEqual(set(film.material_attribute_ids.mapped("code")), {"clean", "dry"})
+        self.assertIn("99 Clear LDPE Film", film.freeform_notes or "")
+        self.assertEqual(profiles["HDPE"].form_id.code, "DRUMS")
+        self.assertFalse(profiles["HDPE"].sub_grade)
+        self.assertFalse(profiles["HDPE"].material_attribute_ids)
+        self.assertFalse(profiles["PC_ABS"].form_id)
+        self.assertEqual(profiles["PC_ABS"].source_type_id.code, "POST_INDUSTRIAL")
+        notes = film.freeform_notes
+        attributes = set(film.material_attribute_ids.ids)
+        with patch.object(material_normalizer, "normalize_material", wrapped):
+            orch._upsert_lead(self.connection, dto)
+        film = self._profiles(facility).filtered(lambda profile: profile.polymer_id.code == "LDPE")
+        self.assertEqual(len(self._profiles(facility)), 3)
+        self.assertEqual(film.freeform_notes, notes)
+        self.assertEqual(set(film.material_attribute_ids.ids), attributes)
+        self.assertEqual(orch.outcomes["created"], 1)
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(self.connection.contact_watermark_utc, contact_mark)
+        self.assertEqual(self.connection.call_watermark_utc, call_mark)
+        refs = self.env["plasticos.crm.external.ref"].search(
+            [("provider", "=", "vanillasoft"), ("external_id", "=", "vs-mat-1"), ("res_model", "=", "crm.lead")]
+        )
+        self.assertEqual(len(refs), 1)
+
+        orch._upsert_lead(self.connection, self._lead("vs-mat-1", custom_fields={"Materials": "95 Clear LDPE Film"}))
+        film = self._profiles(facility).filtered(lambda profile: profile.polymer_id.code == "LDPE")
+        self.assertEqual(film.sub_grade, "A")
+        self.assertEqual(set(film.material_attribute_ids.mapped("code")), {"clean", "dry"})
+        self.assertIn("95 Clear LDPE Film", film.freeform_notes or "")
+        self.assertTrue(any("conflicts with stored grade" in row["message"] for row in orch.error_rows))
+        self.assertEqual(len(self._profiles(facility)), 3)
+        self.assertEqual(orch.outcomes["failed"], 0)
+
+    def test_unresolved_material_is_reported_without_a_profile(self):
+        facility = self._facility("Unresolved Material")
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, self._lead("vs-mat-unknown"))
+        lead.partner_id = facility
+        orch._upsert_lead(
+            self.connection,
+            self._lead("vs-mat-unknown", custom_fields={"Materials": "Pallets\nnot a polymer"}),
+        )
+        profiles = self._profiles(facility)
+        self.assertEqual(profiles.polymer_id.code, "PLASTIC_PALLETS")
+        self.assertEqual(profiles.form_id.code, "PALLETS")
+        self.assertTrue(any("not a polymer" in row["message"] for row in orch.error_rows))
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(lead.vanillasoft_id, "vs-mat-unknown")
+
+    def test_ambiguous_facility_is_not_invented(self):
+        parent = self.env["res.partner"].create({"name": "Ambiguous Parent", "is_company": True})
+        self.env["res.partner"].create({"name": "Child A", "is_company": True, "parent_id": parent.id})
+        self.env["res.partner"].create({"name": "Child B", "is_company": True, "parent_id": parent.id})
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("vs-mat-ambiguous"))
+        lead.partner_id = parent
+        before = self.env["plasticos.material.profile"].search_count([])
+        orch._upsert_lead(self.connection, self._lead("vs-mat-ambiguous", custom_fields={"Materials": "Pallets"}))
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([]), before)
+        self.assertTrue(any("ambiguous" in row["message"] for row in orch.error_rows))
+        self.assertEqual(lead.vanillasoft_id, "vs-mat-ambiguous")
+
+    def test_grade_c_profile_has_neither_clean_nor_dry(self):
+        facility = self._facility("Grade C")
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("vs-grade-c"))
+        lead.partner_id = facility
+        orch._upsert_lead(self.connection, self._lead("vs-grade-c", custom_fields={"Materials": "90 Clear LDPE Film"}))
+        profile = self._profiles(facility)
+        self.assertEqual(profile.polymer_id.code, "LDPE")
+        self.assertEqual(profile.form_id.code, "FILM")
+        self.assertEqual(profile.sub_grade, "C")
+        self.assertFalse(profile.material_attribute_ids)
+        self.assertFalse(profile.source_type_id)
+
+    def test_table_row_uses_the_shared_normalizer_and_replays(self):
+        from odoo.addons.plasticos_material_profile.models import material_normalizer
+
+        facility = self._facility("Table Materials")
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("vs-table-mat"))
+        lead.partner_id = facility
+
+        class Adapter:
+            def iter_table_rows(self, contact_id):
+                yield CanonicalTableRow(
+                    provider="vanillasoft",
+                    contact_external_id=contact_id,
+                    table_id="9",
+                    table_name="Materials",
+                    external_row_id="row-1",
+                    fields={"Material": "Pallets"},
+                )
+
+        calls = []
+        original = material_normalizer.normalize_material
+
+        def wrapped(env, description, grade_evidence=None, structured=None):
+            calls.append(description)
+            return original(env, description, grade_evidence=grade_evidence, structured=structured)
+
+        with patch.object(material_normalizer, "normalize_material", wrapped):
+            orch._sync_tables_for_lead(self.connection, Adapter(), "vs-table-mat", lead)
+        self.assertIn("Pallets", calls)
+        profile = self._profiles(facility)
+        self.assertEqual(profile.polymer_id.code, "PLASTIC_PALLETS")
+        self.assertEqual(profile.form_id.code, "PALLETS")
+        notes = profile.freeform_notes
+        with patch.object(material_normalizer, "normalize_material", wrapped):
+            orch._sync_tables_for_lead(self.connection, Adapter(), "vs-table-mat", lead)
+        profile = self._profiles(facility)
+        self.assertEqual(len(profile), 1)
+        self.assertEqual(profile.freeform_notes, notes)
+
+    def test_manual_and_scheduled_entry_points_share_the_normalizer_path(self):
+        manual = inspect.getsource(type(self.connection).action_sync_now)
+        scheduled = inspect.getsource(type(self.connection)._cron_sync_all)
+        self.assertIn("run_connection", manual)
+        self.assertIn("run_connection", scheduled)
+        self.assertIn("_sync_contacts", inspect.getsource(SyncOrchestrator.run_connection))
+        self.assertIn("_upsert_lead", inspect.getsource(SyncOrchestrator._sync_contacts))
+        self.assertIn("_apply_contact_materials", inspect.getsource(SyncOrchestrator._upsert_lead))
+        self.assertIn("_sync_tables_for_lead", inspect.getsource(SyncOrchestrator._sync_contacts))
+        self.assertIn("_apply_contact_materials", inspect.getsource(SyncOrchestrator._sync_tables_for_lead))
+
+    def test_three_source_materials_become_three_profiles_and_replay(self):
+        """One distinct source material becomes one profile. Replay adds none."""
+        facility = self._facility("Three Materials")
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("vs-three-materials"))
+        lead.partner_id = facility
+        facilities_before = self.env["plasticos.facility.profile"].search_count([])
+        dto = self._lead(
+            "vs-three-materials",
+            custom_fields={"Materials": "HDPE Drums\nLDPE Film\nPP Supersacs"},
+        )
+        orch._upsert_lead(self.connection, dto)
+        profiles = self._profiles(facility)
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP"})
+        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertFalse(by_polymer["LDPE"].sub_grade)
+        self.assertFalse(by_polymer["LDPE"].material_attribute_ids)
+        self.assertFalse(by_polymer["PP"].form_id)
+        self.assertEqual(len(profiles), 3)
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([]), facilities_before)
+        notes = {code: profile.freeform_notes for code, profile in by_polymer.items()}
+        orch._upsert_lead(self.connection, dto)
+        replayed = self._profiles(facility)
+        self.assertEqual(len(replayed), 3)
+        self.assertEqual(
+            {profile.polymer_id.code: profile.freeform_notes for profile in replayed},
+            notes,
+        )
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([]), facilities_before)
