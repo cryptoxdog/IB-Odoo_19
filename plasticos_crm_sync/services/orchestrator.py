@@ -173,11 +173,15 @@ def _dedupe_phrases(phrases) -> list[str]:
 
 
 def _facility_for_material(lead):
-    """Existing facility only. A missing or ambiguous facility is not created."""
+    """Existing facility only. A missing or ambiguous facility is not created.
+
+    A standalone company is a facility when the partner model says so. A parent
+    with one child facility resolves to that child. Several children stay unresolved.
+    """
     partner = lead.partner_id
     if not partner:
         return None, "facility unresolved"
-    if partner.parent_id and partner.is_company:
+    if partner.is_facility:
         return partner, ""
     parent = partner.parent_id
     if parent and parent.is_company and parent.parent_id:
@@ -1331,6 +1335,7 @@ class SyncOrchestrator:
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
             normalize_material,
         )
+        from odoo.exceptions import ValidationError  # noqa: PLC0415
 
         phrases, hints, weak = _material_inputs(*field_maps)
         candidates = list(phrases)
@@ -1353,13 +1358,21 @@ class SyncOrchestrator:
                     )
                 return
         owned = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)], limit=1)
+        if not owned and lead.facility_profile_id and lead.facility_profile_id.partner_id == partner:
+            owned = lead.facility_profile_id
         if partner is not None and not owned:
             self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
+            located = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
+            if len(located) == 1:
+                located._remember_lead(lead)
             return
+        if owned and partner is not None and owned.partner_id and owned.partner_id != partner:
+            raise ValidationError("This lead is already associated with a different facility.")
         if owned and partner is not None and not owned.partner_id:
             owned = owned.link_verified_location(partner)
         elif not owned:
             owned = self.env["plasticos.facility.profile"].create({"crm_lead_id": lead.id})
+        owned._remember_lead(lead)
         self._store_normalized_materials(lead, texts, plain_hints, facility_profile=owned)
 
     def _store_normalized_materials(self, lead, texts, plain_hints, partner=None, facility_profile=None) -> None:

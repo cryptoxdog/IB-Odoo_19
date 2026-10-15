@@ -66,6 +66,13 @@ class CrmLeadPlastOS(models.Model):
         ondelete="set null",
         help="Material profile created from the originating intake when the opportunity is qualified for matching.",
     )
+    facility_profile_id = fields.Many2one(
+        "plasticos.facility.profile",
+        string="Facility Profile",
+        index=True,
+        ondelete="set null",
+        help="Facility profile this lead resolved to. Several leads may share one verified facility.",
+    )
     commercial_image_count = fields.Integer(
         string="Commercial Images",
         compute="_compute_commercial_image_count",

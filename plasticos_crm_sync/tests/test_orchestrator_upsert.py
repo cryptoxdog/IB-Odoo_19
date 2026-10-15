@@ -542,6 +542,7 @@ class TestCrmSyncOrchestrator(TransactionCase):
         facility = self.env["plasticos.facility.profile"].browse(facility.id)
         self.assertEqual(facility.partner_id, location)
         self.assertEqual(facility.crm_lead_id, lead)
+        self.assertEqual(lead.facility_profile_id, facility)
         linked = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
         self.assertEqual({profile.polymer_id.code: profile.id for profile in linked}, ids)
         self.assertEqual(set(linked.mapped("partner_id")), {location})
@@ -659,3 +660,143 @@ class TestCrmSyncOrchestrator(TransactionCase):
         orch._upsert_lead(self.connection, dto)
         self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 3)
         self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", location.id)]), 1)
+        self.assertEqual(lead.facility_profile_id, existing_facility)
+
+    def test_standalone_company_facility_is_reused_and_replays(self):
+        company = self.env["res.partner"].create({"name": "Standalone Mill", "is_company": True})
+        self.assertTrue(company.is_facility)
+        partners_before = self.env["res.partner"].search_count([])
+        orch = SyncOrchestrator(self.env)
+        dto = self._lead("vs-standalone", custom_fields={"Materials": "HDPE Drums"})
+        lead = orch._upsert_lead(self.connection, dto)
+        lead.partner_id = company
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual(self.env["res.partner"].search_count([]), partners_before)
+        self.assertFalse(company.child_ids.filtered("is_company"))
+        profiles = self._profiles(company)
+        self.assertEqual(len(profiles), 1)
+        self.assertEqual(profiles.polymer_id.code, "HDPE")
+        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertEqual(lead.facility_profile_id.partner_id, company)
+        profile_id = profiles.id
+        facility_id = lead.facility_profile_id.id
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual(self._profiles(company).id, profile_id)
+        self.assertEqual(lead.facility_profile_id.id, facility_id)
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", company.id)]), 1)
+
+    def test_two_leads_keep_provenance_on_one_verified_facility(self):
+        location = self._facility("Shared Mill")
+        orch = SyncOrchestrator(self.env)
+        first_dto = self._lead("vs-share-a", custom_fields={"Materials": "HDPE Drums\nLDPE Film"})
+        second_dto = self._lead("vs-share-b", custom_fields={"Materials": "PP Supersacs"})
+        first = orch._upsert_lead(self.connection, first_dto)
+        second = orch._upsert_lead(self.connection, second_dto)
+        first_facility = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", first.id)])
+        second_facility = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", second.id)])
+        self.assertEqual(len(first_facility), 1)
+        self.assertEqual(len(second_facility), 1)
+        self.assertNotEqual(first_facility, second_facility)
+        first.partner_id = location
+        orch._upsert_lead(self.connection, first_dto)
+        shared = self.env["plasticos.facility.profile"].search([("partner_id", "=", location.id)])
+        self.assertEqual(len(shared), 1)
+        self.assertEqual(shared.crm_lead_id, first)
+        self.assertEqual(first.facility_profile_id, shared)
+        second.partner_id = location
+        orch._upsert_lead(self.connection, second_dto)
+        self.assertFalse(second_facility.exists())
+        shared = self.env["plasticos.facility.profile"].search([("partner_id", "=", location.id)])
+        self.assertEqual(len(shared), 1)
+        self.assertEqual(shared.crm_lead_id, first)
+        self.assertEqual(first.facility_profile_id, shared)
+        self.assertEqual(second.facility_profile_id, shared)
+        self.assertEqual(set(shared.associated_lead_ids), {first, second})
+        self.assertEqual(first.partner_id, location)
+        self.assertEqual(second.partner_id, location)
+        materials = self.env["plasticos.material.profile"].search([("partner_id", "=", location.id)])
+        self.assertEqual({profile.polymer_id.code for profile in materials}, {"HDPE", "LDPE", "PP"})
+        ids = {profile.polymer_id.code: profile.id for profile in materials}
+        orch._upsert_lead(self.connection, first_dto)
+        orch._upsert_lead(self.connection, second_dto)
+        replayed = self.env["plasticos.material.profile"].search([("partner_id", "=", location.id)])
+        self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", location.id)]), 1)
+        self.assertEqual(shared.crm_lead_id, first)
+        self.assertEqual(second.facility_profile_id, shared)
+
+    def test_material_collision_merges_evidence_and_keeps_downstream_refs(self):
+        location = self._facility("Collision Mill")
+        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
+        hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
+        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        source = self.env["plasticos.source.type"].search([("code", "=", "POST_INDUSTRIAL")], limit=1)
+        existing = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": location.id,
+                "facility_profile_id": existing_facility.id,
+                "polymer_id": hdpe.id,
+                "form_id": drums.id,
+                "freeform_notes": "already there",
+            }
+        )
+        orch = SyncOrchestrator(self.env)
+        dto = self._lead("vs-collision", custom_fields={"Materials": "HDPE Drums"})
+        lead = orch._upsert_lead(self.connection, dto)
+        provisional = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
+        self.assertEqual(len(provisional), 1)
+        provisional.source_type_id = source
+        intake = self.env["plasticos.intake"].create(
+            {
+                "partner_id": location.id,
+                "facility_id": location.id,
+                "polymer_id": hdpe.id,
+                "form_id": drums.id,
+                "quantity_per_load_lbs": 1000,
+                "material_profile_id": provisional.id,
+            }
+        )
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        self.assertFalse(provisional.exists())
+        self.assertEqual(intake.material_profile_id, existing)
+        self.assertEqual(existing.source_type_id, source)
+        self.assertIn("already there", existing.freeform_notes)
+        self.assertIn("HDPE Drums", existing.freeform_notes)
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 1)
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual(intake.material_profile_id, existing)
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 1)
+
+    def test_conflicting_grade_keeps_both_material_profiles(self):
+        location = self._facility("Grade Conflict")
+        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
+        ldpe = self.env["plasticos.polymer"].search([("code", "=", "LDPE")], limit=1)
+        film = self.env["plasticos.material.form"].search([("code", "=", "FILM")], limit=1)
+        existing = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": location.id,
+                "facility_profile_id": existing_facility.id,
+                "polymer_id": ldpe.id,
+                "form_id": film.id,
+                "sub_grade": "C",
+            }
+        )
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        dto = self._lead("vs-grade-conflict", custom_fields={"Materials": "LDPE Film A"})
+        lead = orch._upsert_lead(self.connection, dto)
+        provisional_facility = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)])
+        provisional = self.env["plasticos.material.profile"].search(
+            [("facility_profile_id", "=", provisional_facility.id)]
+        )
+        self.assertEqual(provisional.sub_grade, "A")
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        self.assertTrue(provisional.exists())
+        self.assertTrue(provisional_facility.exists())
+        self.assertEqual(existing.sub_grade, "C")
+        self.assertEqual(provisional.sub_grade, "A")
+        self.assertTrue(any("cannot be combined" in row["message"] for row in orch.error_rows))
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(lead.partner_id, location)

@@ -136,8 +136,8 @@ class MaterialProfileCRMBridge(models.Model):
         collapse to a single empty-form profile. A note line is appended only
         when that exact line is not already present.
         """
-        if not partner or not partner.parent_id:
-            raise ValidationError("A facility partner with a parent company is required.")
+        if not partner or not partner.is_facility:
+            raise ValidationError("A facility partner is required.")
         if not polymer:
             raise ValidationError("A polymer is required.")
         form_id = forms.id if len(forms) == 1 else False
