@@ -135,7 +135,7 @@ class FacilityProfileCrmOwnership(models.Model):
                     f"Location '{partner.name}' already has a {material.polymer_id.name} profile "
                     f"and {', '.join(problems)} cannot be combined. The lead-owned profile was kept."
                 )
-            blocked = self._blocked_reference_labels(material)
+            blocked = self._blocked_reference_labels(material) + self._blocked_binding_labels(material)
             if blocked:
                 raise ValidationError(
                     f"Location '{partner.name}' already has a {material.polymer_id.name} profile "
@@ -281,8 +281,24 @@ class FacilityProfileCrmOwnership(models.Model):
             return
         rows.write({field.name: [Command.unlink(source.id), Command.link(target.id)]})
 
+    def _blocked_binding_labels(self, source):
+        """Records mail.thread deletes by model and id, when that row cannot be retargeted."""
+        if "mail.scheduled.message" not in self.env:
+            return []
+        scheduled = (
+            self.env["mail.scheduled.message"]
+            .sudo()  # sudo: sync ACL cannot read a scheduled message
+            .search(
+                [("model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)],
+                limit=1,
+            )
+        )
+        if not scheduled:
+            return []
+        return ["mail.scheduled.message"]
+
     def _retarget_profile_bindings(self, source, target):
-        """Keep image attachments and chatter on the surviving profile before unlink."""
+        """Keep images, chatter, and follower subscriptions on the surviving profile."""
         attachments = self.env["ir.attachment"].search([("res_model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)])
         if attachments:
             attachments.write({"res_id": target.id})
@@ -295,3 +311,26 @@ class FacilityProfileCrmOwnership(models.Model):
         )
         if messages:
             messages.write({"res_id": target.id})
+        self._retarget_followers(source, target)
+
+    def _retarget_followers(self, source, target):
+        """Move subscriptions onto the survivor without a second row for the same partner.
+
+        A partner already following the survivor keeps that row. Missing subtypes are
+        added. Subtypes the survivor already has are left as they are.
+        """
+        followers = self.env["mail.followers"].sudo()  # sudo: sync ACL cannot read follower rows
+        source_rows = followers.search([("res_model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)])
+        if not source_rows:
+            return
+        target_rows = followers.search([("res_model", "=", _PROFILE_MODEL), ("res_id", "=", target.id)])
+        target_by_partner = {row.partner_id.id: row for row in target_rows}
+        for row in source_rows:
+            kept = target_by_partner.get(row.partner_id.id)
+            if kept is None:
+                row.write({"res_id": target.id})
+                continue
+            missing = row.subtype_ids - kept.subtype_ids
+            if missing:
+                kept.write({"subtype_ids": [Command.link(subtype.id) for subtype in missing]})
+            row.unlink()

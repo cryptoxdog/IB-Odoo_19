@@ -875,7 +875,7 @@ class TestCrmSyncOrchestrator(TransactionCase):
         existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
         hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
         drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
-        self.env["plasticos.material.profile"].create(
+        existing = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": location.id,
                 "facility_profile_id": existing_facility.id,
@@ -904,14 +904,153 @@ class TestCrmSyncOrchestrator(TransactionCase):
             (provisional.id, transaction.id),
         )
         transaction.invalidate_recordset(["supplier_profile_id"])
+        comment = self.env.ref("mail.mt_comment")
+        survivor_partner = self.env["res.partner"].create({"name": "Computed Survivor Follower"})
+        provisional_partner = self.env["res.partner"].create({"name": "Computed Provisional Follower"})
+        survivor_follow = self.env["mail.followers"].create(
+            {
+                "res_model": "plasticos.material.profile",
+                "res_id": existing.id,
+                "partner_id": survivor_partner.id,
+                "subtype_ids": [fields.Command.link(comment.id)],
+            }
+        )
+        provisional_follow = self.env["mail.followers"].create(
+            {
+                "res_model": "plasticos.material.profile",
+                "res_id": provisional.id,
+                "partner_id": provisional_partner.id,
+                "subtype_ids": [fields.Command.link(comment.id)],
+            }
+        )
         lead.partner_id = location
         orch._upsert_lead(self.connection, dto)
         self.assertTrue(provisional.exists())
         self.assertEqual(observation.material_profile_id, provisional)
+        self.assertEqual(survivor_follow.res_id, existing.id)
+        self.assertEqual(survivor_follow.subtype_ids, comment)
+        self.assertEqual(provisional_follow.res_id, provisional.id)
         self.assertTrue(any("cannot be moved" in row["message"] for row in orch.error_rows))
         self.assertEqual(orch.outcomes["failed"], 0)
         self.env.cr.execute("SELECT supplier_profile_id FROM plasticos_transaction WHERE id = %s", (transaction.id,))
         self.assertEqual(self.env.cr.fetchone()[0], provisional.id)
+
+    def test_collision_preserves_followers_without_duplicate_subscriptions(self):
+        from odoo import fields
+
+        location = self._facility("Follower Mill")
+        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
+        hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
+        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        existing = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": location.id,
+                "facility_profile_id": existing_facility.id,
+                "polymer_id": hdpe.id,
+                "form_id": drums.id,
+            }
+        )
+        comment = self.env.ref("mail.mt_comment")
+        note = self.env.ref("mail.mt_note")
+        shared = self.env["res.partner"].create({"name": "Shared Follower"})
+        only_provisional = self.env["res.partner"].create({"name": "Provisional Only Follower"})
+        unrelated = self.env["res.partner"].create({"name": "Facility Follower"})
+        Follower = self.env["mail.followers"]
+        survivor_follow = Follower.create(
+            {
+                "res_model": "plasticos.material.profile",
+                "res_id": existing.id,
+                "partner_id": shared.id,
+                "subtype_ids": [fields.Command.link(comment.id)],
+            }
+        )
+        facility_follow = Follower.create(
+            {
+                "res_model": "plasticos.facility.profile",
+                "res_id": existing_facility.id,
+                "partner_id": unrelated.id,
+                "subtype_ids": [fields.Command.link(comment.id)],
+            }
+        )
+        orch = SyncOrchestrator(self.env)
+        dto = self._lead("vs-followers", custom_fields={"Materials": "HDPE Drums"})
+        lead = orch._upsert_lead(self.connection, dto)
+        provisional = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
+        moved = Follower.create(
+            {
+                "res_model": "plasticos.material.profile",
+                "res_id": provisional.id,
+                "partner_id": only_provisional.id,
+                "subtype_ids": [fields.Command.link(comment.id)],
+            }
+        )
+        duplicate = Follower.create(
+            {
+                "res_model": "plasticos.material.profile",
+                "res_id": provisional.id,
+                "partner_id": shared.id,
+                "subtype_ids": [fields.Command.link(note.id)],
+            }
+        )
+        mails_before = self.env["mail.mail"].search_count([])
+        survivor_id = existing.id
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        self.assertFalse(provisional.exists())
+        self.assertFalse(duplicate.exists())
+        self.assertTrue(existing.exists())
+        self.assertEqual(existing.id, survivor_id)
+        self.assertEqual(survivor_follow.res_id, existing.id)
+        self.assertEqual(set(survivor_follow.subtype_ids), {comment, note})
+        self.assertEqual(moved.res_id, existing.id)
+        self.assertEqual(moved.subtype_ids, comment)
+        on_survivor = Follower.search([("res_model", "=", "plasticos.material.profile"), ("res_id", "=", existing.id)])
+        self.assertEqual(set(on_survivor.partner_id), {shared, only_provisional})
+        self.assertEqual(len(on_survivor.filtered(lambda row: row.partner_id == shared)), 1)
+        self.assertEqual(facility_follow.res_id, existing_facility.id)
+        self.assertEqual(facility_follow.subtype_ids, comment)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mails_before)
+        orch._upsert_lead(self.connection, dto)
+        replayed = Follower.search([("res_model", "=", "plasticos.material.profile"), ("res_id", "=", existing.id)])
+        self.assertEqual(set(replayed), set(on_survivor))
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 1)
+
+    def test_scheduled_message_blocks_material_deletion(self):
+        from odoo import fields
+
+        location = self._facility("Scheduled Mill")
+        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
+        hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
+        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        existing = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": location.id,
+                "facility_profile_id": existing_facility.id,
+                "polymer_id": hdpe.id,
+                "form_id": drums.id,
+            }
+        )
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        dto = self._lead("vs-scheduled", custom_fields={"Materials": "HDPE Drums"})
+        lead = orch._upsert_lead(self.connection, dto)
+        provisional = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
+        scheduled = self.env["mail.scheduled.message"].create(
+            {
+                "model": "plasticos.material.profile",
+                "res_id": provisional.id,
+                "author_id": self.env.user.partner_id.id,
+                "scheduled_date": fields.Datetime.add(fields.Datetime.now(), days=1),
+                "body": "keep this note",
+            }
+        )
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        self.assertTrue(provisional.exists())
+        self.assertEqual(existing.partner_id, location)
+        self.assertEqual(scheduled.res_id, provisional.id)
+        self.assertTrue(any("cannot be moved" in row["message"] for row in orch.error_rows))
+        self.assertEqual(orch.outcomes["failed"], 0)
 
     def test_verified_partner_without_facility_profile_attaches_canonical_materials(self):
         company = self.env["res.partner"].create({"name": "Canonical Mill", "is_company": True})
