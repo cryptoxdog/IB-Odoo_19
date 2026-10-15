@@ -1,16 +1,7 @@
 from odoo import Command, api, fields, models
 from odoo.exceptions import ValidationError
 
-# Stored references that must follow a material row when two identities collapse.
-_MATERIAL_REFERENCES = (
-    ("plasticos.intake", "material_profile_id"),
-    ("sale.order.line", "material_profile_id"),
-    ("purchase.order.line", "material_profile_id"),
-    ("crm.lead", "material_profile_id"),
-    ("plasticos.transaction", "supplier_profile_id"),
-    ("plasticos.transaction", "buyer_profile_id"),
-    ("plasticos.transaction", "supplier_material_id"),
-)
+_PROFILE_MODEL = "plasticos.material.profile"
 _UNMERGED_FIELD_TYPES = frozenset(("one2many", "binary", "html", "reference"))
 _MERGE_IGNORE = {
     "id",
@@ -45,6 +36,11 @@ class FacilityProfileCrmOwnership(models.Model):
         "facility_profile_id",
         string="Associated CRM Leads",
         help="Leads that resolved to this facility. The provisional owner remains crm_lead_id.",
+    )
+    material_profile_ids = fields.One2many(
+        "plasticos.material.profile",
+        "facility_profile_id",
+        string="Material Profiles",
     )
 
     _unique_crm_lead = models.Constraint(
@@ -139,6 +135,12 @@ class FacilityProfileCrmOwnership(models.Model):
                     f"Location '{partner.name}' already has a {material.polymer_id.name} profile "
                     f"and {', '.join(problems)} cannot be combined. The lead-owned profile was kept."
                 )
+            blocked = self._blocked_reference_labels(material)
+            if blocked:
+                raise ValidationError(
+                    f"Location '{partner.name}' already has a {material.polymer_id.name} profile "
+                    f"and {', '.join(blocked)} cannot be moved. The lead-owned profile was kept."
+                )
             planned.append((material, conflict, updates))
         for material, conflict, updates in planned:
             if conflict is None:
@@ -147,6 +149,7 @@ class FacilityProfileCrmOwnership(models.Model):
             if updates:
                 conflict.write(updates)
             self._retarget_material_references(material, conflict)
+            self._retarget_profile_bindings(material, conflict)
             material.unlink()
         lead = self.crm_lead_id
         existing_facility._remember_lead(lead)
@@ -210,18 +213,85 @@ class FacilityProfileCrmOwnership(models.Model):
                 problems.append(field.string or name)
         return updates, problems
 
-    def _retarget_material_references(self, source, target):
-        """Move stored foreign keys onto the surviving material profile."""
-        for model_name, field_name in _MATERIAL_REFERENCES:
-            self._retarget_one_reference(source, target, model_name, field_name)
+    @api.model
+    def ensure_canonical_facility(self, partner, lead):
+        """Return the one facility profile for a verified location.
 
-    def _retarget_one_reference(self, source, target, model_name, field_name):
-        if model_name not in self.env:
+        A missing profile is created for that partner. Material profiles already
+        stored on the partner are attached to it. No child partner is created.
+        """
+        if not partner or not partner.is_facility:
+            raise ValidationError("A verified facility location is required.")
+        located = self.search([("partner_id", "=", partner.id)])
+        if len(located) > 1:
+            raise ValidationError("This location has more than one facility profile.")
+        if not located:
+            located = self.create({"partner_id": partner.id, "crm_lead_id": lead.id})
+        loose = self.env[_PROFILE_MODEL].search([("partner_id", "=", partner.id), ("facility_profile_id", "=", False)])
+        if loose:
+            loose.write({"facility_profile_id": located.id})
+        located._remember_lead(lead)
+        return located
+
+    def _profile_reference_fields(self):
+        """Installed stored many2one and many2many fields that point at a material profile."""
+        found = []
+        for model_name in self.env.registry:
+            if model_name == _PROFILE_MODEL:
+                continue
+            model = self.env[model_name]
+            if not model._auto:
+                continue
+            for field in model._fields.values():
+                if field.comodel_name != _PROFILE_MODEL or field.type not in ("many2one", "many2many"):
+                    continue
+                if not field.store:
+                    continue
+                found.append(field)
+        return found
+
+    def _rows_for_reference(self, source, field):
+        if field.type == "many2one":
+            return self.env[field.model_name].search([(field.name, "=", source.id)])
+        return self.env[field.model_name].search([(field.name, "in", source.ids)])
+
+    def _blocked_reference_labels(self, source):
+        """Computed references cannot be rewritten, so a dependent row blocks deletion."""
+        labels = []
+        for field in self._profile_reference_fields():
+            if not field.compute and not field.related:
+                continue
+            if self._rows_for_reference(source, field):
+                labels.append(f"{field.model_name}.{field.name}")
+        return labels
+
+    def _retarget_material_references(self, source, target):
+        """Move every writable installed foreign key onto the surviving material profile."""
+        for field in self._profile_reference_fields():
+            if field.compute or field.related:
+                continue
+            self._retarget_one_field(source, target, field)
+
+    def _retarget_one_field(self, source, target, field):
+        rows = self._rows_for_reference(source, field)
+        if not rows:
             return
-        model = self.env[model_name]
-        field = model._fields.get(field_name)
-        if field is None or not field.store or field.compute:
+        if field.type == "many2one":
+            rows.write({field.name: target.id})
             return
-        rows = model.search([(field_name, "=", source.id)])
-        if rows:
-            rows.write({field_name: target.id})
+        rows.write({field.name: [Command.unlink(source.id), Command.link(target.id)]})
+
+    def _retarget_profile_bindings(self, source, target):
+        """Keep image attachments and chatter on the surviving profile before unlink."""
+        attachments = self.env["ir.attachment"].search([("res_model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)])
+        if attachments:
+            attachments.write({"res_id": target.id})
+        messages = (
+            self.env["mail.message"]
+            .sudo()
+            .search(  # sync ACL cannot read chatter; unlink would drop it
+                [("model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)]
+            )
+        )
+        if messages:
+            messages.write({"res_id": target.id})

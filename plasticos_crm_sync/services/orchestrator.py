@@ -1361,10 +1361,8 @@ class SyncOrchestrator:
         if not owned and lead.facility_profile_id and lead.facility_profile_id.partner_id == partner:
             owned = lead.facility_profile_id
         if partner is not None and not owned:
-            self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
-            located = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
-            if len(located) == 1:
-                located._remember_lead(lead)
+            located = self.env["plasticos.facility.profile"].ensure_canonical_facility(partner, lead)
+            self._store_normalized_materials(lead, texts, plain_hints, facility_profile=located)
             return
         if owned and partner is not None and owned.partner_id and owned.partner_id != partner:
             raise ValidationError("This lead is already associated with a different facility.")
