@@ -11,6 +11,7 @@ _MATERIAL_REFERENCES = (
     ("plasticos.transaction", "buyer_profile_id"),
     ("plasticos.transaction", "supplier_material_id"),
 )
+_UNMERGED_FIELD_TYPES = frozenset(("one2many", "binary", "html", "reference"))
 _MERGE_IGNORE = {
     "id",
     "display_name",
@@ -163,7 +164,7 @@ class FacilityProfileCrmOwnership(models.Model):
         for name, field in provisional._fields.items():
             if name in _MERGE_IGNORE or not field.store or field.compute or field.related:
                 continue
-            if field.type in ("one2many", "binary", "html", "reference"):
+            if field.type in _UNMERGED_FIELD_TYPES:
                 continue
             incoming = provisional[name]
             current = survivor[name]
