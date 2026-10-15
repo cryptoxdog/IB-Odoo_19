@@ -30,7 +30,7 @@ class TestMaterialNormalizer(TransactionCase):
             "1-7": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", set(), None),
             "1-7 Commingled Bottles": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", set(), None),
             "PE": ("HDPE", False, False, set(), None),
-            "Pallets": ("PLASTIC_PALLETS", "PALLETS", False, set(), None),
+            "Pallets": ("PLASTIC_PALLETS", False, False, set(), None),
             "HDPE Drums": ("HDPE", "DRUMS", False, set(), None),
             "Explicit HMW-HDPE Drums": ("HDPE_HMW", "DRUMS", False, set(), None),
             "LDPE Film": ("LDPE", "FILM", False, set(), None),

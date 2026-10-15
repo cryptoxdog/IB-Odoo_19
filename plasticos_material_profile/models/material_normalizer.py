@@ -8,6 +8,8 @@ from __future__ import annotations
 
 # Exact phrases only. Unknown stays unspecified: no inferred source, cleanliness,
 # dryness, or other attribute, and no mapping onto the OTHER polymer.
+# A form is set only when the phrase names that form. An unknown form stays empty;
+# identity does not require inventing one.
 _SPECS = {
     "99 clear ldpe film": ("LDPE", "FILM", None, ("clean", "dry"), "A"),
     "ldpe grade a film": ("LDPE", "FILM", None, ("clean", "dry"), "A"),
@@ -23,7 +25,7 @@ _SPECS = {
     "1-7": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
     "1-7 commingled bottles": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
     "pe": ("HDPE", None, None, (), None),
-    "pallets": ("PLASTIC_PALLETS", "PALLETS", None, (), None),
+    "pallets": ("PLASTIC_PALLETS", None, None, (), None),
     "hdpe drums": ("HDPE", "DRUMS", None, (), None),
     "explicit hmw-hdpe drums": ("HDPE_HMW", "DRUMS", None, (), None),
     "ldpe film": ("LDPE", "FILM", None, (), None),

@@ -333,7 +333,7 @@ class TestCrmSyncOrchestrator(TransactionCase):
         )
         profiles = self._profiles(facility)
         self.assertEqual(profiles.polymer_id.code, "PLASTIC_PALLETS")
-        self.assertEqual(profiles.form_id.code, "PALLETS")
+        self.assertFalse(profiles.form_id)
         self.assertTrue(any("not a polymer" in row["message"] for row in orch.error_rows))
         self.assertEqual(orch.outcomes["failed"], 0)
         self.assertEqual(lead.vanillasoft_id, "vs-mat-unknown")
@@ -395,7 +395,7 @@ class TestCrmSyncOrchestrator(TransactionCase):
         self.assertIn("Pallets", calls)
         profile = self._profiles(facility)
         self.assertEqual(profile.polymer_id.code, "PLASTIC_PALLETS")
-        self.assertEqual(profile.form_id.code, "PALLETS")
+        self.assertFalse(profile.form_id)
         notes = profile.freeform_notes
         with patch.object(material_normalizer, "normalize_material", wrapped):
             orch._sync_tables_for_lead(self.connection, Adapter(), "vs-table-mat", lead)
@@ -445,3 +445,40 @@ class TestCrmSyncOrchestrator(TransactionCase):
             notes,
         )
         self.assertEqual(self.env["plasticos.facility.profile"].search_count([]), facilities_before)
+
+    def test_unknown_form_creates_one_profile_and_replays(self):
+        """Polymer is required. An unknown form is stored empty and reused."""
+        facility = self._facility("Nullable Form")
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("vs-null-form"))
+        lead.partner_id = facility
+        orch.outcomes = _new_outcomes()
+        orch.error_rows.clear()
+        dto = self._lead(
+            "vs-null-form",
+            custom_fields={"Materials": "HDPE Drums\nLDPE Film\nPP Supersacs\nPC/ABS\nPallets"},
+        )
+        orch._upsert_lead(self.connection, dto)
+        profiles = self._profiles(facility)
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP", "PC_ABS", "PLASTIC_PALLETS"})
+        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertFalse(by_polymer["PP"].form_id)
+        self.assertFalse(by_polymer["PC_ABS"].form_id)
+        self.assertFalse(by_polymer["PLASTIC_PALLETS"].form_id)
+        self.assertFalse(orch.error_rows)
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(orch.outcomes["deferred"], 0)
+        ids = {code: profile.id for code, profile in by_polymer.items()}
+        orch._upsert_lead(self.connection, dto)
+        replayed = {profile.polymer_id.code: profile for profile in self._profiles(facility)}
+        self.assertEqual({code: profile.id for code, profile in replayed.items()}, ids)
+        self.assertFalse(replayed["PP"].form_id)
+        self.assertFalse(replayed["PC_ABS"].form_id)
+        self.assertFalse(replayed["PLASTIC_PALLETS"].form_id)
+        self.assertEqual((replayed["PP"].freeform_notes or "").splitlines().count("PP Supersacs"), 1)
+        self.assertEqual((replayed["PC_ABS"].freeform_notes or "").splitlines().count("PC/ABS"), 1)
+        self.assertEqual((replayed["PLASTIC_PALLETS"].freeform_notes or "").splitlines().count("Pallets"), 1)
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(orch.outcomes["deferred"], 0)
