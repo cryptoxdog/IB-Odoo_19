@@ -36,17 +36,13 @@ class FacilityProfileCrmOwnership(models.Model):
             raise ValidationError("A verified facility location is required.")
         if self.partner_id and self.partner_id != partner:
             raise ValidationError("This facility profile is already linked to a different location.")
+        existing_facility = self.search([("partner_id", "=", partner.id), ("id", "!=", self.id)], limit=1)
+        if existing_facility:
+            return self._reconcile_onto_existing_facility(partner, existing_facility)
         materials = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", self.id)])
+        conflicts = self._profiles_for_partner(partner, materials)
         for material in materials:
-            conflict = self.env["plasticos.material.profile"].search(
-                [
-                    ("id", "!=", material.id),
-                    ("partner_id", "=", partner.id),
-                    ("polymer_id", "=", material.polymer_id.id),
-                    ("form_id", "=", material.form_id.id or False),
-                ],
-                limit=1,
-            )
+            conflict = conflicts.get((material.polymer_id.id, material.form_id.id or False))
             if conflict:
                 raise ValidationError(
                     f"Location '{partner.name}' already has a {material.polymer_id.name} profile. "
@@ -57,3 +53,37 @@ class FacilityProfileCrmOwnership(models.Model):
         if materials:
             materials.write({"partner_id": partner.id})
         return self
+
+    def _profiles_for_partner(self, partner, materials):
+        """Partner profiles keyed by polymer and form, excluding the rows being linked."""
+        if not materials:
+            return {}
+        found = self.env["plasticos.material.profile"].search(
+            [
+                ("id", "not in", materials.ids),
+                ("partner_id", "=", partner.id),
+                ("polymer_id", "in", materials.polymer_id.ids),
+            ]
+        )
+        return {(row.polymer_id.id, row.form_id.id or False): row for row in found}
+
+    def _reconcile_onto_existing_facility(self, partner, existing_facility):
+        """Move this lead's materials onto the location's facility without a second identity."""
+        self.ensure_one()
+        materials = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", self.id)])
+        conflicts = self._profiles_for_partner(partner, materials)
+        for material in materials:
+            conflict = conflicts.get((material.polymer_id.id, material.form_id.id or False))
+            if conflict:
+                for line in (material.freeform_notes or "").splitlines():
+                    if line and line not in (conflict.freeform_notes or "").splitlines():
+                        notes = conflict.freeform_notes or ""
+                        conflict.freeform_notes = f"{notes}\n{line}" if notes else line
+                material.unlink()
+                continue
+            material.write({"partner_id": partner.id, "facility_profile_id": existing_facility.id})
+        lead = self.crm_lead_id
+        self.unlink()
+        if lead and not existing_facility.crm_lead_id:
+            existing_facility.crm_lead_id = lead
+        return existing_facility

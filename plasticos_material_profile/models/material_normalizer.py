@@ -28,7 +28,11 @@ _SPECS = {
     "pallets": ("PLASTIC_PALLETS", None, None, (), None),
     "hdpe drums": ("HDPE", "DRUMS", None, (), None),
     "explicit hmw-hdpe drums": ("HDPE_HMW", "DRUMS", None, (), None),
+    "hdpe drums (hmw-hdpe)": ("HDPE_HMW", "DRUMS", None, (), None),
     "ldpe film": ("LDPE", "FILM", None, (), None),
+    "ldpe film a": ("LDPE", "FILM", None, (), "A"),
+    "3-7 commingled": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", None, (), None),
+    "1-7 commingled": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", None, (), None),
     "pp supersacs": ("PP", None, None, (), None),
 }
 

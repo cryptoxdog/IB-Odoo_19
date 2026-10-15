@@ -549,3 +549,113 @@ class TestCrmSyncOrchestrator(TransactionCase):
         self.assertFalse(facility.accepted_polymer_ids)
         self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", location.id)]), 1)
         self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 3)
+
+    def test_approved_aliases_create_one_facility_and_replay(self):
+        orch = SyncOrchestrator(self.env)
+        dto = self._lead(
+            "vs-aliases",
+            custom_fields={"Materials": "LDPE Film A\n3-7 Commingled\n1-7 Commingled\nHDPE Drums (HMW-HDPE)"},
+        )
+        lead = orch._upsert_lead(self.connection, dto)
+        facility = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)])
+        self.assertEqual(len(facility), 1)
+        profiles = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"LDPE", "3_7_COMMINGLED_BOTTLES", "1_7_COMMINGLED_BOTTLES", "HDPE_HMW"})
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertEqual(by_polymer["LDPE"].sub_grade, "A")
+        self.assertFalse(by_polymer["LDPE"].material_attribute_ids)
+        self.assertEqual(by_polymer["3_7_COMMINGLED_BOTTLES"].form_id.code, "BOTTLES")
+        self.assertFalse(by_polymer["3_7_COMMINGLED_BOTTLES"].source_type_id)
+        self.assertEqual(by_polymer["1_7_COMMINGLED_BOTTLES"].form_id.code, "BOTTLES")
+        self.assertFalse(by_polymer["1_7_COMMINGLED_BOTTLES"].source_type_id)
+        self.assertEqual(by_polymer["HDPE_HMW"].form_id.code, "DRUMS")
+        ids = {code: profile.id for code, profile in by_polymer.items()}
+        orch._upsert_lead(self.connection, dto)
+        replayed = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
+        self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
+
+    def test_material_database_failure_rolls_back_and_the_batch_continues(self):
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        profiles_before = self.env["plasticos.material.profile"].search_count([])
+        facilities_before = self.env["plasticos.facility.profile"].search_count([])
+        profile_model = type(self.env["plasticos.material.profile"])
+        original = profile_model.create
+
+        def boom(records, vals_list):
+            created = original(records, vals_list)
+            records.env.cr.execute("SELECT 1 FROM plasticos_material_profile_missing_for_rollback")
+            return created
+
+        failed_dto = self._lead("vs-mat-rollback", custom_fields={"Materials": "HDPE Drums\nLDPE Film"})
+        with patch.object(profile_model, "create", boom):
+            failed = orch._upsert_lead(self.connection, failed_dto)
+        self.assertEqual(failed.vanillasoft_id, "vs-mat-rollback")
+        self.assertEqual(orch.last_lead_outcome, "created")
+        self.assertEqual(orch.outcomes["created"], 1)
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertTrue(any("material normalization failed" in row["message"] for row in orch.error_rows))
+        self.assertFalse(self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", failed.id)]))
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([]), profiles_before)
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([]), facilities_before)
+
+        nxt = orch._upsert_lead(
+            self.connection, self._lead("vs-mat-after-rollback", custom_fields={"Materials": "PP Supersacs"})
+        )
+        self.assertEqual(orch.last_lead_outcome, "created")
+        self.assertEqual(orch.outcomes["created"], 2)
+        nxt_facility = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", nxt.id)])
+        self.assertEqual(len(nxt_facility), 1)
+        nxt_profile = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", nxt_facility.id)])
+        self.assertEqual(nxt_profile.polymer_id.code, "PP")
+        self.assertFalse(nxt_profile.form_id)
+
+        recovered = orch._upsert_lead(self.connection, failed_dto)
+        self.assertEqual(recovered, failed)
+        recovered_facility = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", failed.id)])
+        self.assertEqual(len(recovered_facility), 1)
+        recovered_profiles = self.env["plasticos.material.profile"].search(
+            [("facility_profile_id", "=", recovered_facility.id)]
+        )
+        self.assertEqual({profile.polymer_id.code for profile in recovered_profiles}, {"HDPE", "LDPE"})
+
+    def test_existing_facility_profiles_are_reconciled_without_duplicates(self):
+        location = self._facility("Already Profiled")
+        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
+        pp = self.env["plasticos.polymer"].search([("code", "=", "PP")], limit=1)
+        existing_pp = self.env["plasticos.material.profile"].create(
+            {"partner_id": location.id, "polymer_id": pp.id, "freeform_notes": "already there"}
+        )
+        orch = SyncOrchestrator(self.env)
+        dto = self._lead(
+            "vs-reconcile",
+            custom_fields={"Materials": "HDPE Drums\nLDPE Film\nPP Supersacs"},
+        )
+        lead = orch._upsert_lead(self.connection, dto)
+        provisional = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)])
+        self.assertEqual(len(provisional), 1)
+        self.assertNotEqual(provisional, existing_facility)
+        provisional_ids = {
+            profile.polymer_id.code: profile.id
+            for profile in self.env["plasticos.material.profile"].search([("facility_profile_id", "=", provisional.id)])
+        }
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        self.assertFalse(provisional.exists())
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", location.id)]), 1)
+        kept = self.env["plasticos.facility.profile"].search([("partner_id", "=", location.id)])
+        self.assertEqual(kept, existing_facility)
+        self.assertEqual(kept.crm_lead_id, lead)
+        materials = self.env["plasticos.material.profile"].search([("partner_id", "=", location.id)])
+        by_polymer = {profile.polymer_id.code: profile for profile in materials}
+        self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP"})
+        self.assertEqual(by_polymer["PP"], existing_pp)
+        self.assertEqual(by_polymer["HDPE"].id, provisional_ids["HDPE"])
+        self.assertEqual(by_polymer["LDPE"].id, provisional_ids["LDPE"])
+        self.assertEqual(by_polymer["HDPE"].facility_profile_id, existing_facility)
+        self.assertIn("PP Supersacs", existing_pp.freeform_notes or "")
+        self.assertEqual((existing_pp.freeform_notes or "").splitlines().count("PP Supersacs"), 1)
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 3)
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", location.id)]), 1)

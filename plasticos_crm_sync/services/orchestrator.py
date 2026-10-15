@@ -1319,7 +1319,8 @@ class SyncOrchestrator:
         changed.
         """
         try:
-            self._apply_resolved_materials(lead, *field_maps)
+            with self.env.cr.savepoint():
+                self._apply_resolved_materials(lead, *field_maps)
         except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
             _logger.warning("Material normalization failed for lead %s: %s", lead.id, exc)
             self.error_rows.append(
@@ -1356,7 +1357,7 @@ class SyncOrchestrator:
             self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
             return
         if owned and partner is not None and not owned.partner_id:
-            owned.link_verified_location(partner)
+            owned = owned.link_verified_location(partner)
         elif not owned:
             owned = self.env["plasticos.facility.profile"].create({"crm_lead_id": lead.id})
         self._store_normalized_materials(lead, texts, plain_hints, facility_profile=owned)

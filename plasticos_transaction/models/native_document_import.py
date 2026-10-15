@@ -1090,20 +1090,21 @@ def _remember_carrier(importer, context, partner_by_cp, number, deliveries) -> N
     context.setdefault("carriers", {})[number] = partner_id or False
 
 
-def _normalize_line(importer, grade_id, description):
+def _normalize_line(importer, _grade_id, description):
+    """Classify the description. GradeID identifies the historical product, not the material."""
     from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
         normalize_material,
     )
 
-    return normalize_material(importer.env, description, grade_evidence=grade_id)
+    return normalize_material(importer.env, description)
 
 
 def _product(importer, context, grade_id, description, normalized=None):
-    """One product per GradeID, unless that grade already names a different polymer.
+    """One product per GradeID and compatible classification.
 
     A second supported classification keeps the GradeID on ``default_code`` and
     gets its own external id. An unresolved description does not clear a polymer
-    already stored on the grade product.
+    already stored on the grade product, and it does not reuse that product.
     """
     if normalized is None:
         normalized = _normalize_line(importer, grade_id, description)
@@ -1140,7 +1141,9 @@ def _grade_product(importer, xml_id, polymer):
 
 def _polymer_compatible(product, polymer) -> bool:
     current = product.product_tmpl_id.polymer_id
-    if not current or not polymer:
+    if bool(current) != bool(polymer):
+        return False
+    if not current:
         return True
     return current == polymer
 
