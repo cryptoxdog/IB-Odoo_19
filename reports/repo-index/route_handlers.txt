@@ -2,5 +2,5 @@
 ./plasticos_web_leads/controllers/web_lead_api.py:128:    @http.route(
 ./plasticos_web_leads/controllers/web_lead_api.py:140:    @http.route(
 ./plasticos_web_leads/controllers/web_lead_api.py:216:    @http.route(
-./scripts/audit/security_audit.py:27:                # Find @http.route decorators
-./scripts/audit/security_audit.py:41:                                "fix": "Add auth='user' or auth='public' to @http.route",
+./scripts/audit/security_audit.py:99:                # Find @http.route decorators
+./scripts/audit/security_audit.py:113:                                "fix": "Add auth='user' or auth='public' to @http.route",
