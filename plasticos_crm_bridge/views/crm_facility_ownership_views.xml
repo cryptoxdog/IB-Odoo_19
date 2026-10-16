@@ -1,0 +1,25 @@
+<odoo>
+  <record id="view_facility_profile_form_crm_owner" model="ir.ui.view">
+    <field name="name">plasticos.facility.profile.form.crm.owner</field>
+    <field name="model">plasticos.facility.profile</field>
+    <field name="inherit_id" ref="plasticos_facility_profile.view_facility_profile_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//notebook[@name='facility_profile_pages']" position="before">
+        <group>
+          <field name="crm_lead_id"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+
+  <record id="view_material_profile_form_crm_owner" model="ir.ui.view">
+    <field name="name">plasticos.material.profile.form.crm.owner</field>
+    <field name="model">plasticos.material.profile</field>
+    <field name="inherit_id" ref="plasticos_material_profile.view_material_profile_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='partner_id']" position="after">
+        <field name="facility_profile_id"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>

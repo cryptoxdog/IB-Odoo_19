@@ -803,6 +803,31 @@ GLOBAL_ALLOWLIST = frozenset(
         # modules, so the scanner's Selection registry cannot see them
         # ─────────────────────────────────────────────────────────────────────
         "installed",  # ir.module.module.state
+        # Material normalizer source phrases (_SPECS) and CRM column labels.
+        # Exact importer text and field-kind names, not Selection values.
+        "99 clear ldpe film",
+        "ldpe grade a film",
+        "95 clear ldpe film",
+        "ldpe grade b film",
+        "90 clear ldpe film",
+        "ldpe grade c film",
+        "pp film (bopp)",
+        "pc-abs",
+        "3-7",
+        "1-7",
+        "pe",
+        "explicit hmw-hdpe drums",
+        "hdpe drums (hmw-hdpe)",
+        "ldpe film a",
+        "3-7 commingled",
+        "1-7 commingled",
+        "pp supersacs",
+        "materials",
+        "material",
+        "material form",
+        "material type",
+        "phrase",
+        "hint",
     }
 )
 

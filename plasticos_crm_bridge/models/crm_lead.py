@@ -66,6 +66,13 @@ class CrmLeadPlastOS(models.Model):
         ondelete="set null",
         help="Material profile created from the originating intake when the opportunity is qualified for matching.",
     )
+    facility_profile_id = fields.Many2one(
+        "plasticos.facility.profile",
+        string="Facility Profile",
+        index=True,
+        ondelete="set null",
+        help="Facility profile this lead resolved to. Several leads may share one verified facility.",
+    )
     commercial_image_count = fields.Integer(
         string="Commercial Images",
         compute="_compute_commercial_image_count",
@@ -181,31 +188,53 @@ class CrmLeadPlastOS(models.Model):
             },
         }
 
-    @api.depends("partner_id", "partner_id.child_ids")
-    def _compute_profile_summary(self):
-        Profile = self.env["plasticos.material.profile"]
-        for rec in self:
-            if not rec.partner_id:
-                rec.material_profile_count = 0
-                rec.total_match_count = 0
-                rec.total_transaction_count = 0
-                rec.partner_total_revenue = 0.0
-                rec.partner_last_pickup = False
-                continue
+    def _linked_material_profiles(self):
+        """Materials on this lead's facility, its standalone company, or its child facilities."""
+        self.ensure_one()
+        profiles = self.facility_profile_id.material_profile_ids
+        partner = self.partner_id
+        if partner and partner.is_facility:
+            profiles |= partner.material_profile_ids
+        if partner:
+            profiles |= partner.child_ids.material_profile_ids
+        return profiles
 
-            # All profiles for this partner's facilities
-            facilities = rec.partner_id.child_ids
-            profiles = Profile.search(
-                [
-                    ("partner_id", "in", facilities.ids),
-                ]
-            )
+    def _material_profile_domain(self):
+        """Domain matching `_linked_material_profiles` for the CRM stat button."""
+        self.ensure_one()
+        clauses = []
+        if self.facility_profile_id:
+            clauses.append([("facility_profile_id", "=", self.facility_profile_id.id)])
+        partner_ids = []
+        if self.partner_id and self.partner_id.is_facility:
+            partner_ids.append(self.partner_id.id)
+        if self.partner_id:
+            partner_ids.extend(self.partner_id.child_ids.ids)
+        if partner_ids:
+            clauses.append([("partner_id", "in", partner_ids)])
+        if not clauses:
+            return [("id", "=", 0)]
+        if len(clauses) == 1:
+            return clauses[0]
+        return ["|", *clauses[0], *clauses[1]]
+
+    @api.depends(
+        "partner_id",
+        "partner_id.is_facility",
+        "partner_id.child_ids",
+        "partner_id.material_profile_ids",
+        "partner_id.child_ids.material_profile_ids",
+        "facility_profile_id",
+        "facility_profile_id.material_profile_ids",
+    )
+    def _compute_profile_summary(self):
+        for rec in self:
+            profiles = rec._linked_material_profiles()
             rec.material_profile_count = len(profiles)
             rec.total_match_count = sum(profiles.mapped("match_count"))
             rec.total_transaction_count = sum(profiles.mapped("transaction_count"))
             rec.partner_total_revenue = sum(profiles.mapped("total_revenue"))
-            pickups = profiles.mapped("last_pickup_date")
-            pickups = [d for d in pickups if d]
+            pickups = [day for day in profiles.mapped("last_pickup_date") if day]
             rec.partner_last_pickup = max(pickups) if pickups else False
 
     @api.depends("mobile")
@@ -426,13 +455,12 @@ class CrmLeadPlastOS(models.Model):
 
     def action_view_material_profiles(self):
         self.ensure_one()
-        facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
         return {
             "type": "ir.actions.act_window",
-            "name": f"Material Profiles — {self.partner_id.name or ''}",
+            "name": f"Material Profiles — {self.partner_id.name or self.name or ''}",
             "res_model": "plasticos.material.profile",
             "view_mode": "list,form",
-            "domain": [("partner_id", "in", facilities.ids)],
+            "domain": self._material_profile_domain(),
         }
 
     def action_view_match_results(self):

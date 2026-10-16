@@ -8,6 +8,7 @@ test from the shapes the SQL projections return; no source database is read.
 from __future__ import annotations
 
 from datetime import date
+from unittest.mock import patch
 
 from odoo import Command
 from odoo.addons.plasticos_partner_import.erp import summary
@@ -1345,3 +1346,155 @@ class TestErpWorksheetImport(TransactionCase):
         # not the reverse, so it is not referenced here. A locked "paid" state is what keeps the
         # commission engine from generating a payout for settled history.
         self.assertTrue(all(t.commission_payout_state in ("paid", "unpaid") for t in tx.values()))
+
+    def test_native_import_normalizes_materials_and_replays(self):
+        """Source-index rows go through realize and the shared normalizer."""
+        from odoo.addons.plasticos_material_profile.models import material_normalizer
+
+        index = self._index()
+        number = "60706"
+        self._add_order(index, "9602", "16002", "SO", CUSTOMER, "2026-07-02 00:00:00")
+        self._add_order(index, "9603", "8002", "PO", VENDOR, "2026-07-02 00:00:00")
+        details = [
+            ("13610", "GRADE-SHARED", "99 Clear LDPE Film"),
+            ("13611", "GRADE-SHARED", "90 Clear LDPE Film"),
+            ("13612", "GRADE-SHARED", "HDPE Drums"),
+            ("13613", "GRADE-UNKNOWN", "mystery fluff"),
+        ]
+        for detail_id, grade, description in details:
+            detail = _line(detail_id, number, "9802", "9803", "1000", "100", "1000", "80", grade)
+            detail["InvoiceDesc"] = description
+            index.lines[detail_id] = detail
+            index.lines_by_buysell.setdefault(number, []).append(detail_id)
+        index.order_lines["9802"] = {"PONumber": "16002"}
+        index.order_lines["9803"] = {"PONumber": "8002"}
+        index.buysells[number] = _buysell(number, "2026-07-02 00:00:00")
+        index.payables_by_buysell[number] = [_payable("700106", number, VENDOR, "320", "50100", "8002")]
+        calls = []
+        original = material_normalizer.normalize_material
+
+        def wrapped(env, description, grade_evidence=None, structured=None):
+            calls.append(description)
+            return original(env, description, grade_evidence=grade_evidence, structured=structured)
+
+        profiles = self.env["plasticos.material.profile"].search_count([])
+        with patch.object(material_normalizer, "normalize_material", wrapped):
+            self._run(index)
+        self.assertIn("99 Clear LDPE Film", calls)
+        self.assertIn("HDPE Drums", calls)
+        self.assertIn("mystery fluff", calls)
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([]), profiles)
+
+        sale = self._order("sale.order", "legacy_erp_so_16002")
+        purchase = self._order("purchase.order.line", "legacy_erp_pol_13610")
+        lines = {line.name: line for line in sale.order_line}
+        grade_a = lines["99 Clear LDPE Film"]
+        grade_c = lines["90 Clear LDPE Film"]
+        drums = lines["HDPE Drums"]
+        unknown = lines["mystery fluff"]
+        self.assertEqual(grade_a.product_id.default_code, "GRADE-SHARED")
+        self.assertEqual(grade_a.product_id.product_tmpl_id.polymer_id.code, "LDPE")
+        self.assertEqual(grade_a.form_id.code, "FILM")
+        self.assertFalse(grade_a.source_type_id)
+        self.assertEqual(set(grade_a.material_attribute_ids.mapped("code")), {"clean", "dry"})
+        self.assertAlmostEqual(grade_a.price_subtotal, 100.0, places=2)
+        self.assertEqual(grade_c.product_id, grade_a.product_id)
+        self.assertEqual(grade_c.name, "90 Clear LDPE Film")
+        self.assertEqual(grade_c.form_id.code, "FILM")
+        self.assertFalse(grade_c.material_attribute_ids)
+        self.assertEqual(drums.product_id.default_code, "GRADE-SHARED")
+        self.assertNotEqual(drums.product_id, grade_a.product_id)
+        self.assertEqual(drums.product_id.product_tmpl_id.polymer_id.code, "HDPE")
+        self.assertEqual(drums.form_id.code, "DRUMS")
+        self.assertFalse(drums.material_attribute_ids)
+        self.assertFalse(unknown.product_id.product_tmpl_id.polymer_id)
+        self.assertEqual(unknown.product_id.default_code, "GRADE-UNKNOWN")
+        self.assertEqual(unknown.name, "mystery fluff")
+        self.assertFalse(unknown.form_id)
+        self.assertFalse(unknown.material_attribute_ids)
+        self.assertEqual(purchase.form_id.code, "FILM")
+        self.assertEqual(set(purchase.material_attribute_ids.mapped("code")), {"clean", "dry"})
+        self.assertAlmostEqual(purchase.price_subtotal, 80.0, places=2)
+        self.assertEqual(len(self.Transaction.search([("name", "=", number)])), 1)
+        self.assertEqual(len(self._marked("sale.order.line", "legacy_erp_sol_1361")), 4)
+        self.assertEqual(len(self._marked("product.product", "legacy_erp_grade_GRADE_")), 3)
+
+        sale_ids = sale.order_line.ids
+        kept = set(grade_a.material_attribute_ids.ids)
+        self._run(index)
+        sale = self._order("sale.order", "legacy_erp_so_16002")
+        self.assertEqual(sale.order_line.ids, sale_ids)
+        replayed = sale.order_line.filtered(lambda line: line.name == "99 Clear LDPE Film")
+        self.assertEqual(set(replayed.material_attribute_ids.ids), kept)
+        self.assertFalse(
+            sale.order_line.filtered(lambda line: line.name == "90 Clear LDPE Film").material_attribute_ids
+        )
+        self.assertEqual(len(self._marked("sale.order.line", "legacy_erp_sol_1361")), 4)
+        self.assertEqual(len(self._marked("product.product", "legacy_erp_grade_GRADE_")), 3)
+        self.assertEqual(len(self.Transaction.search([("name", "=", number)])), 1)
+
+    def test_grade_id_does_not_classify_or_contaminate_a_shared_product(self):
+        """GradeID PE is product identity. It is not HDPE evidence and not a shared polymer."""
+        from odoo.addons.plasticos_material_profile.models import material_normalizer
+
+        index = self._index()
+        number = "60707"
+        self._add_order(index, "9604", "16003", "SO", CUSTOMER, "2026-07-03 00:00:00")
+        self._add_order(index, "9605", "8003", "PO", VENDOR, "2026-07-03 00:00:00")
+        details = [
+            ("13620", "PE", "99 Clear LDPE Film"),
+            ("13621", "PE", "mystery fluff"),
+        ]
+        for detail_id, grade, description in details:
+            detail = _line(detail_id, number, "9804", "9805", "1000", "100", "1000", "80", grade)
+            detail["InvoiceDesc"] = description
+            index.lines[detail_id] = detail
+            index.lines_by_buysell.setdefault(number, []).append(detail_id)
+        index.order_lines["9804"] = {"PONumber": "16003"}
+        index.order_lines["9805"] = {"PONumber": "8003"}
+        index.buysells[number] = _buysell(number, "2026-07-03 00:00:00")
+        evidence = []
+        original = material_normalizer.normalize_material
+
+        def wrapped(env, description, grade_evidence=None, structured=None):
+            evidence.append(grade_evidence)
+            return original(env, description, grade_evidence=grade_evidence, structured=structured)
+
+        with patch.object(material_normalizer, "normalize_material", wrapped):
+            self._run(index)
+        self.assertTrue(evidence)
+        self.assertTrue(all(item is None for item in evidence))
+        sale = self._order("sale.order", "legacy_erp_so_16003")
+        lines = {line.name: line for line in sale.order_line}
+        classified = lines["99 Clear LDPE Film"]
+        unresolved = lines["mystery fluff"]
+        self.assertEqual(classified.product_id.default_code, "PE")
+        self.assertEqual(classified.product_id.product_tmpl_id.polymer_id.code, "LDPE")
+        self.assertNotEqual(classified.product_id.product_tmpl_id.polymer_id.code, "HDPE")
+        self.assertEqual(classified.form_id.code, "FILM")
+        self.assertFalse(unresolved.product_id.product_tmpl_id.polymer_id)
+        self.assertNotEqual(unresolved.product_id, classified.product_id)
+        self.assertEqual(unresolved.product_id.default_code, "PE")
+        self.assertFalse(unresolved.form_id)
+        self.assertEqual(len(self._marked("product.product", "legacy_erp_grade_PE")), 2)
+        sale_ids = sale.order_line.ids
+        product_ids = {classified.product_id.id, unresolved.product_id.id}
+        self._run(index)
+        sale = self._order("sale.order", "legacy_erp_so_16003")
+        self.assertEqual(sale.order_line.ids, sale_ids)
+        replayed = {line.name: line for line in sale.order_line}
+        self.assertEqual(replayed["99 Clear LDPE Film"].product_id.product_tmpl_id.polymer_id.code, "LDPE")
+        self.assertFalse(replayed["mystery fluff"].product_id.product_tmpl_id.polymer_id)
+        self.assertEqual(
+            {replayed["99 Clear LDPE Film"].product_id.id, replayed["mystery fluff"].product_id.id},
+            product_ids,
+        )
+        self.assertEqual(len(self._marked("product.product", "legacy_erp_grade_PE")), 2)
+
+    def _order(self, model_name, xml_id):
+        data = self.Data.search(
+            [("module", "=", XMLID_MODULE), ("model", "=", model_name), ("name", "=", xml_id)],
+            limit=1,
+        )
+        self.assertTrue(data, xml_id)
+        return self.env[model_name].browse(data.res_id)

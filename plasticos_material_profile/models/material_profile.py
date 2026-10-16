@@ -67,6 +67,8 @@ class PlasticosMaterialProfile(models.Model):
             ("LDPE", "LDPE"),
             ("LLDPE", "LLDPE"),
             ("PLASTIC_PALLETS", "Plastic Pallets"),
+            ("3_7_COMMINGLED_BOTTLES", "3-7 Commingled Bottles"),
+            ("1_7_COMMINGLED_BOTTLES", "1-7 Commingled Bottles"),
             ("GAYLORD_BOXES", "Gaylord Boxes"),
             ("PET", "PET"),
             ("ABS", "ABS"),
@@ -79,6 +81,7 @@ class PlasticosMaterialProfile(models.Model):
             ("PMMA", "PMMA"),
             ("PC", "PC"),
             ("PC_PMMA", "PC-PMMA"),
+            ("PC_ABS", "PC/ABS"),
             ("NYLON", "Nylon"),
             ("PBT", "PBT"),
             ("POM", "POM"),
@@ -386,8 +389,8 @@ class PlasticosMaterialProfile(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _unique_partner_polymer_form = models.Constraint(
-        "UNIQUE NULLS NOT DISTINCT (partner_id, polymer_id, form_id)",
+    _unique_partner_polymer_form = models.UniqueIndex(
+        "(partner_id, polymer_id, form_id) NULLS NOT DISTINCT WHERE partner_id IS NOT NULL",
         "A facility may only have one profile per polymer + form combination.",
     )
 

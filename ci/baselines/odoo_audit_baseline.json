@@ -863,6 +863,26 @@
       "model": "plasticos.match.exclusion",
       "field": "user_id",
       "message": "Field 'user_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "6be398eab7f2e7a0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_facility_ownership_views.xml",
+      "line": 9,
+      "model": "plasticos.facility.profile",
+      "field": "crm_lead_id",
+      "message": "Field 'crm_lead_id' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "2cfd42063cd583bc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_facility_ownership_views.xml",
+      "line": 21,
+      "model": "plasticos.material.profile",
+      "field": "facility_profile_id",
+      "message": "Field 'facility_profile_id' not defined on model 'plasticos.material.profile'"
     }
   ]
 }

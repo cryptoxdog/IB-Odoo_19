@@ -5,6 +5,28 @@ from odoo.exceptions import ValidationError
 class MaterialProfileCRMBridge(models.Model):
     _inherit = "plasticos.material.profile"
 
+    partner_id = fields.Many2one(required=False)
+    facility_profile_id = fields.Many2one(
+        "plasticos.facility.profile",
+        string="Facility Profile",
+        index=True,
+        ondelete="restrict",
+        help="Lead-owned facility profile when this material has no partner location yet.",
+    )
+
+    _unique_crm_facility_polymer_form = models.UniqueIndex(
+        "(facility_profile_id, polymer_id, form_id) NULLS NOT DISTINCT "
+        "WHERE partner_id IS NULL AND facility_profile_id IS NOT NULL",
+        "A lead-owned facility may only have one material profile per polymer and form.",
+    )
+
+    @api.constrains("partner_id", "facility_profile_id")
+    def _check_material_owner(self):
+        for rec in self:
+            if rec.partner_id or rec.facility_profile_id:
+                continue
+            raise ValidationError("A material profile needs a facility partner or a lead-owned facility profile.")
+
     # ── Match Stats (per-profile, NOT per-partner) ──────────
     match_count = fields.Integer(
         string="Match Count",
@@ -114,8 +136,8 @@ class MaterialProfileCRMBridge(models.Model):
         collapse to a single empty-form profile. A note line is appended only
         when that exact line is not already present.
         """
-        if not partner or not partner.parent_id:
-            raise ValidationError("A facility partner with a parent company is required.")
+        if not partner or not partner.is_facility:
+            raise ValidationError("A facility partner is required.")
         if not polymer:
             raise ValidationError("A polymer is required.")
         form_id = forms.id if len(forms) == 1 else False
@@ -135,6 +157,51 @@ class MaterialProfileCRMBridge(models.Model):
                     "form_id": form_id,
                 }
             )
+        if note_line:
+            existing_lines = (profile.freeform_notes or "").splitlines()
+            if note_line not in existing_lines:
+                notes = profile.freeform_notes or ""
+                profile.freeform_notes = f"{notes}\n{note_line}" if notes else note_line
+        return profile
+
+    @api.model
+    def reuse_lead_facility_material(self, facility_profile, polymer, forms, note_line=None):
+        """Reuse one material on a lead-owned facility profile.
+
+        An empty form is stored and matched as empty. A later location link
+        keeps this row and sets its partner.
+        """
+        if not facility_profile:
+            raise ValidationError("A lead-owned facility profile is required.")
+        if not polymer:
+            raise ValidationError("A polymer is required.")
+        form_id = forms.id if len(forms) == 1 else False
+        domain = [
+            ("facility_profile_id", "=", facility_profile.id),
+            ("polymer_id", "=", polymer.id),
+            ("form_id", "=", form_id),
+        ]
+        profile = self.search(domain, limit=1)
+        if not profile and facility_profile.partner_id:
+            profile = self.search(
+                [
+                    ("partner_id", "=", facility_profile.partner_id.id),
+                    ("polymer_id", "=", polymer.id),
+                    ("form_id", "=", form_id),
+                ],
+                limit=1,
+            )
+            if profile and not profile.facility_profile_id:
+                profile.facility_profile_id = facility_profile
+        if not profile:
+            vals = {
+                "facility_profile_id": facility_profile.id,
+                "polymer_id": polymer.id,
+                "form_id": form_id,
+            }
+            if facility_profile.partner_id:
+                vals["partner_id"] = facility_profile.partner_id.id
+            profile = self.create(vals)
         if note_line:
             existing_lines = (profile.freeform_notes or "").splitlines()
             if note_line not in existing_lines:
