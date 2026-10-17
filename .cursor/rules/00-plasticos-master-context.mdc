@@ -74,6 +74,9 @@ Before writing any code or making any change, identify your task and consult the
 ### Deploying to Docker / running `make update`
 - **`30-plasticos-deploy-validation`** — Pre-deploy snapshot, log validation, ICP params check, pipeline_v2 guard.
 
+### Running Docker Odoo tests (`make test-module`, `make test-odoo`, `scripts/test_env.sh`)
+- **`36-plasticos-docker-test-fixture`** — Clone only `config/test_env_fixture.conf`. Do not use another database. Do not create a new template unless that fixture is gone and the user said to rebuild it.
+
 ### Final pre-go-live pass
 - **`plasticos-final-touches`** — All 10 gates in sequence. `make pr-check` must pass last.
 

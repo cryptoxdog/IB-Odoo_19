@@ -108,6 +108,12 @@ def test_unknown_parity_is_refused(tmp_path):
     _assert_refused(result, calls, "TEST_ENV_PARITY")
 
 
+def test_community_parity_is_refused_outside_the_safety_harness(tmp_path):
+    result, calls = _run(tmp_path, "name", TEST_ENV_PARITY="community")
+    _assert_refused(result, calls, "safety harness")
+    assert calls == ""
+
+
 def test_default_clone_name_is_per_worktree_and_needs_no_docker(tmp_path):
     result, calls = _run(tmp_path, "name")
     assert result.returncode == 0, result.stderr
@@ -155,6 +161,12 @@ def test_makefile_test_targets_run_inside_the_protected_wrapper():
         (["make", "import-erp", "ODOO_DB_NAME=odoo_test_a", "COMPOSE_PROJECT_NAME=x"], "not an ERP import setting"),
         (["make", "import-erp", "ODOO_DB_NAME=odoo_test_a", "DOCKER_HOST=tcp://x"], "not an ERP import setting"),
         (["make", "import-erp", "ODOO_DB_NAME=odoo_test_a", "rebuild"], "is not accepted"),
+        (["make", "import-vanillasoft", "ODOO_DB_NAME=odoo"], "redirect the import away"),
+        (["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a"], "requires VANILLASOFT_CALL_FLOOR"),
+        (
+            ["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", "VANILLASOFT_API_KEY=secret"],
+            "not a VanillaSoft import floor",
+        ),
     ],
 )
 def test_run_refuses_recipe_forms_that_leave_the_verified_clone(tmp_path, args, reason):
@@ -170,6 +182,25 @@ def test_run_refuses_recipe_forms_that_leave_the_verified_clone(tmp_path, args, 
         ["docker", "compose", "run", "--rm", "odoo", "--test-enable", "--stop-after-init", "-d", "odoo_test_a"],
         ["--test-enable", "-u", "plasticos_transaction"],
         ["make", "import-erp", "ODOO_DB_NAME=odoo_test_a", "ERP_LIMIT=25%", "ERP_REPORT_PATH=/tmp/s.json"],
+        [
+            "make",
+            "import-vanillasoft",
+            "ODOO_DB_NAME=odoo_test_a",
+            "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z",
+            "VANILLASOFT_CONTACT_FLOOR=2020-01-01T00:00:00Z",
+        ],
+        [
+            "docker",
+            "compose",
+            "run",
+            "--rm",
+            "-e",
+            "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z",
+            "odoo",
+            "--test-enable",
+            "-d",
+            "odoo_test_a",
+        ],
     ],
 )
 def test_run_accepts_the_makefile_forms_bound_to_the_clone(tmp_path, args):
@@ -242,6 +273,7 @@ def _stateful(tmp_path: Path, databases: dict[str, str], *args: str, **env: str)
         "STUB_LOG": str(tmp_path / "stub.log"),
         "TEST_ENV_OWNER": "agenta",
         "TEST_ENV_PARITY": "community",
+        "TEST_ENV_SAFETY_HARNESS": "1",
         **env,
     }
     return subprocess.run(
@@ -267,6 +299,57 @@ def _clone(fp: str, owner: str = "agenta") -> str:
         f"plasticos-test-env/2 role=clone owner={owner} parity=ce template=odoo_test_tpl_ce_{fp[:16]} fp={fp} "
         "created=2026-10-10T00:00:00Z"
     )
+
+
+PINNED_FIXTURE = "odoo_test_tpl_ee_c9e8a81f52f23680"
+
+
+def _enterprise(tmp_path: Path) -> dict[str, str]:
+    return {
+        "TEST_ENV_PARITY": "enterprise",
+        "ODOO_ENTERPRISE_PATH": str(tmp_path / "missing-enterprise"),
+    }
+
+
+def test_enterprise_status_names_only_the_pinned_fixture(tmp_path):
+    pin = (ROOT / "config" / "test_env_fixture.conf").read_text()
+    assert f"TEMPLATE={PINNED_FIXTURE}" in pin
+    marker = (
+        "plasticos-test-env/2 role=template state=ready parity=ee fp=" + ("ab" * 32) + " builder=agentb installed=169"
+    )
+    status = _stateful(tmp_path, {PINNED_FIXTURE: marker}, "status", **_enterprise(tmp_path))
+    assert status.returncode == 0, status.stderr
+    assert f"template:     {PINNED_FIXTURE} (ready)" in status.stdout
+    assert "canonical" in status.stdout
+
+
+def test_enterprise_clone_of_another_template_is_refused(tmp_path):
+    env = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **env)
+    other = "odoo_test_tpl_ee_" + ("f" * 16)
+    databases = {
+        PINNED_FIXTURE: (
+            f"plasticos-test-env/2 role=template state=ready parity=ee fp={fp} builder=agentb installed=169"
+        ),
+        "odoo_test_a": (
+            f"plasticos-test-env/2 role=clone owner=agenta parity=ee template={other} fp={fp} "
+            "created=2026-10-10T00:00:00Z"
+        ),
+    }
+    result = _stateful(tmp_path, databases, "assert-clone", "odoo_test_a", **env)
+    assert result.returncode == 2, result.stderr
+    assert PINNED_FIXTURE in result.stderr
+    assert other in result.stderr
+
+
+def test_new_enterprise_template_is_refused_in_the_script():
+    source = SCRIPT.read_text()
+    assert '[ "${TEST_ENV_ALLOW_NEW_TEMPLATE:-}" != "$PINNED_TEMPLATE" ]' in source
+    assert (
+        "A new template is not created unless that database is absent and TEST_ENV_ALLOW_NEW_TEMPLATE equals its name"
+        in source
+    )
+    assert '[ -z "$PINNED_TEMPLATE" ] && adopt_admitted_template' in source
 
 
 def test_current_owned_clone_of_the_admitted_template_is_accepted(tmp_path):

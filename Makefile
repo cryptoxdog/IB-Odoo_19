@@ -1108,3 +1108,11 @@ import-vanillasoft:
 	else \
 		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
 	fi
+
+# 2026-10-17 — Enterprise Docker tests. The fingerprint-template comment above
+# is historical. make test-env, test-db, test-odoo, test-module, and
+# import-erp-test clone only the database named in config/test_env_fixture.conf.
+# TEST_ENV_PARITY=community is refused unless TEST_ENV_SAFETY_HARNESS=1.
+# A new template is refused unless that database is absent and
+# TEST_ENV_ALLOW_NEW_TEMPLATE equals its name. make test-odoo-local is the
+# no-Docker backend and is not this fixture.

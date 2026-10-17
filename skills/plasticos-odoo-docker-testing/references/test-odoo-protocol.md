@@ -13,10 +13,22 @@
 GHA **does not** run Odoo runtime install. Local Docker is the authority for
 registry load.
 
+## Fixture
+
+Enterprise runtime tests clone the database named by `TEMPLATE` in
+`config/test_env_fixture.conf` (`odoo_test_tpl_ee_c9e8a81f52f23680`).
+`scripts/test_env.sh` refuses a different template. It does not rename another
+template onto that name. A rebuild runs only when the database is absent and
+`TEST_ENV_ALLOW_NEW_TEMPLATE` equals the fixture name. The value `1` is refused.
+Do not set the variable for a source edit. `TEST_ENV_PARITY=community` is refused
+unless `TEST_ENV_SAFETY_HARNESS=1`, which belongs to the safety suite.
+`make test-odoo-local` is the no-Docker backend, not this fixture.
+`make install-smoke` remains the load gate; it is not a second runtime-test template.
+
 ## After install-smoke green
 
 ```bash
-# Full native test enable on ODOO_TEST_DB (see Makefile / .env)
+# Full native test enable on the worktree clone of the pinned fixture
 make test-odoo
 
 # Scoped

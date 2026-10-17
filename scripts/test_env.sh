@@ -17,13 +17,20 @@
 #   scripts/test_env.sh name                  this worktree's default clone name (no Docker needed)
 #
 # Environment:
-#   TEST_ENV_PARITY      enterprise (default) | community. community is a deliberate,
-#                        separately named, non-production template; it is never used
-#                        unless asked for.
+#   TEST_ENV_PARITY      enterprise (default) | community. community is the safety
+#                        harness only. It is refused unless TEST_ENV_SAFETY_HARNESS=1.
 #   ODOO_ENTERPRISE_PATH host directory mounted as /mnt/enterprise (default ./odoo-enterprise).
 #   TEST_ENV_OWNER       owner identity stamped on clones (default: derived from this
 #                        worktree's path, so two worktrees never share one).
 #   TEST_ENV_LOCK_TIMEOUT seconds to wait for another agent's lease (default 3600).
+#   TEST_ENV_ALLOW_NEW_TEMPLATE
+#                        set to the fixture database name only when that database
+#                        is absent and a rebuild was requested. Any other value,
+#                        including 1, is refused. The rebuild does not rename
+#                        another template onto the fixture name.
+#   TEST_ENV_SAFETY_HARNESS
+#                        set to 1 only by tests/test_test_env_safety.py. It is
+#                        not an Enterprise test path.
 #
 # Safety model (every rule is checked before anything is dropped or replaced):
 #   * Targets must match odoo_test_<suffix>; production, staging, business, system,
@@ -36,9 +43,12 @@
 #     session that dies with this process, so an interrupted run releases them.
 #   * A template is built under a separate build name and renamed into place only
 #     after admission. An incomplete build is never published or cloned.
-#   * Templates are keyed by a fingerprint of the Odoo image, the Enterprise
-#     checkout, the Postgres major version, the module list, every PlasticOS addon
-#     file, and the runtime configuration. Different inputs use a different template.
+#   * Enterprise tests use the database named in config/test_env_fixture.conf.
+#     That database is the only template. Another template is not selected, and
+#     a new one is not created unless that database is absent and
+#     TEST_ENV_ALLOW_NEW_TEMPLATE=1 is set for the rebuild. A module test
+#     upgrades its own clone of this fixture. Community parity is the safety
+#     suite's fingerprint-named template and is not the Enterprise fixture.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -76,6 +86,35 @@ case "${TEST_ENV_PARITY:-enterprise}" in
   community) PARITY=ce ;;
   *) refuse "TEST_ENV_PARITY must be 'enterprise' or 'community' (got '${TEST_ENV_PARITY}')" ;;
 esac
+if [ "$PARITY" = "ce" ] && [ "${TEST_ENV_SAFETY_HARNESS:-}" != "1" ]; then
+  refuse "TEST_ENV_PARITY=community is the safety harness, not an Enterprise test environment. Enterprise tests use config/test_env_fixture.conf"
+fi
+
+# The Enterprise template name is a repository fact, not a fingerprint. The safety
+# harness keeps fingerprint-named templates so a stale clone can be proved refused.
+PINNED_TEMPLATE=""
+load_pinned_template() {
+  local line count=0 value=""
+  [ -f "$1" ] || refuse "missing config/test_env_fixture.conf; the enterprise test fixture must be named there"
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      "" | \#*) continue ;;
+      TEMPLATE=*)
+        count=$((count + 1))
+        value="${line#TEMPLATE=}"
+        ;;
+      *) refuse "config/test_env_fixture.conf has an unrecognized line" ;;
+    esac
+  done <"$1"
+  [ "$count" -eq 1 ] || refuse "config/test_env_fixture.conf must contain exactly one TEMPLATE= line"
+  value="$(printf '%s' "$value" | tr -d '[:space:]')"
+  [[ "$value" =~ ^odoo_test_tpl_ee_[a-f0-9]{16}$ ]] ||
+    refuse "TEMPLATE in config/test_env_fixture.conf must be odoo_test_tpl_ee_<16 lowercase hex> (got '${value}')"
+  PINNED_TEMPLATE="$value"
+}
+if [ "$PARITY" = "ee" ]; then
+  load_pinned_template "$ROOT/config/test_env_fixture.conf"
+fi
 
 owner_id() {
   local raw="${TEST_ENV_OWNER:-}"
@@ -357,7 +396,6 @@ fingerprint_inputs() {
   echo "image=$(image_id)"
   echo "postgres=$(psql_admin "SELECT current_setting('server_version_num')::int / 10000")"
   echo "modules=$(module_list)"
-  echo "addons=$(content_digest git "$ROOT" 'plasticos_*')"
   echo "config=$(content_digest git "$ROOT" config/odoo.conf config/odoo_module_order.yaml docker-compose.yml Dockerfile requirements.txt constraints.txt scripts/get_odoo_module_order.py)"
   if [ "$PARITY" = "ee" ]; then echo "enterprise=$(enterprise_revision)"; fi
 }
@@ -367,7 +405,13 @@ TEMPLATE_DB=""
 BUILD_DB=""
 compute_fingerprint() {
   FP="$(fingerprint_inputs | sha256)"
-  TEMPLATE_DB="odoo_test_tpl_${PARITY}_${FP:0:16}"
+  if [ -n "$PINNED_TEMPLATE" ]; then
+    TEMPLATE_DB="$PINNED_TEMPLATE"
+  else
+    TEMPLATE_DB="odoo_test_tpl_${PARITY}_${FP:0:16}"
+  fi
+  # The build name keeps the fingerprint suffix. Retirement and stage containers
+  # identify a build by those 16 characters; a fixed suffix would miss them.
   BUILD_DB="odoo_test_bld_${PARITY}_${FP:0:16}"
 }
 
@@ -376,7 +420,13 @@ template_ready() {
   db_exists "$TEMPLATE_DB" || return 1
   comment="$(db_comment "$TEMPLATE_DB")"
   is_ours "$comment" && [ "$(field "$comment" role)" = "template" ] && [ "$(field "$comment" state)" = "ready" ] &&
-    [ "$(field "$comment" fp)" = "$FP" ] && [ "$(field "$comment" parity)" = "$PARITY" ]
+    [ "$(field "$comment" parity)" = "$PARITY" ] || return 1
+  # The pinned fixture stays the template when the image or module list drifts.
+  # A clone is still recloned; the template is not rebuilt for that drift.
+  if [ -n "$PINNED_TEMPLATE" ]; then
+    return 0
+  fi
+  [ "$(field "$comment" fp)" = "$FP" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -526,6 +576,42 @@ admit() {
   fi
 }
 
+# Fixture identity. The addon source digest is not part of it: a PlasticOS edit
+# upgrades the clone under test and must not abandon the admitted template.
+fixture_inputs() {
+  fingerprint_inputs | grep -v '^addons='
+}
+
+# Rename one already admitted template onto the current fixture name when its
+# recorded inputs match. The database is kept; it is not reinstalled.
+adopt_admitted_template() {
+  local name comment stored current renamed
+  current="$(fixture_inputs)"
+  renamed=""
+  for name in $(psql_admin "SELECT datname FROM pg_database
+                            WHERE datname LIKE 'odoo_test\_tpl\_${PARITY}\_%'
+                              AND datname <> '$TEMPLATE_DB'
+                            ORDER BY datname"); do
+    comment="$(db_comment "$name")"
+    is_ours "$comment" || continue
+    [ "$(field "$comment" role)" = "template" ] || continue
+    [ "$(field "$comment" state)" = "ready" ] || continue
+    [ "$(field "$comment" parity)" = "$PARITY" ] || continue
+    [ -f "$EVIDENCE_DIR/${name}.inputs.txt" ] || continue
+    stored="$(grep -v '^addons=' "$EVIDENCE_DIR/${name}.inputs.txt")"
+    [ "$stored" = "$current" ] || continue
+    echo "→ adopting admitted template $name as the permanent fixture $TEMPLATE_DB"
+    psql_admin "ALTER DATABASE \"$name\" WITH IS_TEMPLATE false ALLOW_CONNECTIONS true" >/dev/null
+    psql_admin "ALTER DATABASE \"$name\" RENAME TO \"$TEMPLATE_DB\"" >/dev/null
+    psql_admin "ALTER DATABASE \"$TEMPLATE_DB\" WITH ALLOW_CONNECTIONS false IS_TEMPLATE true" >/dev/null
+    set_comment "$TEMPLATE_DB" "$(printf '%s' "$comment" | sed "s| fp=[^ ]*| fp=$FP|")"
+    fixture_inputs >"$EVIDENCE_DIR/${TEMPLATE_DB}.inputs.txt"
+    renamed="$name"
+    break
+  done
+  [ -n "$renamed" ]
+}
+
 # ---------------------------------------------------------------------------
 # Template lifecycle
 # ---------------------------------------------------------------------------
@@ -533,13 +619,28 @@ build_template() {
   local modules comment state started
   lease "tpl:$TEMPLATE_DB" exclusive
   if template_ready; then
-    echo "✅ $TEMPLATE_DB is current (fingerprint ${FP:0:16}); reusing it"
+    if [ -n "$PINNED_TEMPLATE" ]; then
+      echo "✅ $TEMPLATE_DB is the canonical enterprise fixture; reusing it"
+    else
+      echo "✅ $TEMPLATE_DB is current (fingerprint ${FP:0:16}); reusing it"
+    fi
     unlease "tpl:$TEMPLATE_DB" exclusive
     retire_own_templates
     return 0
   fi
   if db_exists "$TEMPLATE_DB"; then
     refuse "$TEMPLATE_DB exists but is not an admitted template (comment: '$(db_comment "$TEMPLATE_DB")'); not touching it"
+  fi
+  if [ -n "$PINNED_TEMPLATE" ] && [ "${TEST_ENV_ALLOW_NEW_TEMPLATE:-}" != "$PINNED_TEMPLATE" ]; then
+    refuse "$TEMPLATE_DB is the canonical enterprise fixture and it is not an admitted template. Other test templates are not used. A new template is not created unless that database is absent and TEST_ENV_ALLOW_NEW_TEMPLATE equals its name"
+  fi
+  # A pinned rebuild installs the named database. It does not rename another
+  # template onto that name.
+  if [ -z "$PINNED_TEMPLATE" ] && adopt_admitted_template; then
+    echo "✅ $TEMPLATE_DB adopted (fingerprint ${FP:0:16}); the installed database was kept"
+    unlease "tpl:$TEMPLATE_DB" exclusive
+    retire_own_templates
+    return 0
   fi
   modules="$(module_list)"
   preflight_modules "$modules"
@@ -753,7 +854,9 @@ parse_run() {
       RUN_MODE="make"
       RUN_ARGS=("$1")
       shift
-      [ "${1:-}" = "import-erp" ] || refuse "run accepts only 'make import-erp', not 'make ${1:-}'"
+      [ "${1:-}" = "import-erp" ] || [ "${1:-}" = "import-vanillasoft" ] ||
+        refuse "run accepts only 'make import-erp' or 'make import-vanillasoft', not 'make ${1:-}'"
+      import_target="$1"
       RUN_ARGS+=("$1")
       shift
       for arg in "$@"; do
@@ -763,14 +866,26 @@ parse_run() {
             [ "${arg#ODOO_DB_NAME=}" = "$target" ] || refuse "'$arg' would redirect the import away from the verified clone $target"
             ;;
           *=*)
-            [[ "$name" =~ ^(ERP_[A-Z_]+|LIMIT|DRY|PAYLOAD_ROOT|REPORT_PATH|PARTNERS_ONLY|LAYER)$ ]] ||
-              refuse "'$name=' is not an ERP import setting; run does not forward it"
+            if [ "$import_target" = "import-erp" ]; then
+              [[ "$name" =~ ^(ERP_[A-Z_]+|LIMIT|DRY|PAYLOAD_ROOT|REPORT_PATH|PARTNERS_ONLY|LAYER)$ ]] ||
+                refuse "'$name=' is not an ERP import setting; run does not forward it"
+            else
+              [[ "$name" =~ ^VANILLASOFT_(CALL_FLOOR|CONTACT_FLOOR|REPORT_PATH)$ ]] ||
+                refuse "'$name=' is not a VanillaSoft import floor; run does not forward it"
+              [ -n "${arg#*=}" ] || refuse "'$name=' must name an explicit bound"
+            fi
             ;;
-          *) refuse "'$arg' is not accepted after 'make import-erp'" ;;
+          *) refuse "'$arg' is not accepted after 'make $import_target'" ;;
         esac
         RUN_ARGS+=("$arg")
       done
-      [[ " ${RUN_ARGS[*]} " == *" ODOO_DB_NAME=$target "* ]] || refuse "make import-erp must name ODOO_DB_NAME=$target"
+      [[ " ${RUN_ARGS[*]} " == *" ODOO_DB_NAME=$target "* ]] || refuse "make $import_target must name ODOO_DB_NAME=$target"
+      if [ "$import_target" = "import-vanillasoft" ]; then
+        [[ " ${RUN_ARGS[*]} " == *" VANILLASOFT_CALL_FLOOR="* ]] ||
+          refuse "import-vanillasoft requires VANILLASOFT_CALL_FLOOR"
+        [[ " ${RUN_ARGS[*]} " == *" VANILLASOFT_CONTACT_FLOOR="* ]] ||
+          refuse "import-vanillasoft requires VANILLASOFT_CONTACT_FLOOR"
+      fi
       return 0
       ;;
     docker)
@@ -785,7 +900,7 @@ parse_run() {
             ;;
           -e)
             [[ "${2:-}" =~ ^[A-Z][A-Z0-9_]*= ]] || refuse "-e needs KEY=VALUE"
-            [[ "${2%%=*}" =~ ^(ERP_[A-Z_]+|GATE_URL|L9_[A-Z_]+)$ ]] ||
+            [[ "${2%%=*}" =~ ^(ERP_[A-Z_]+|GATE_URL|L9_[A-Z_]+|VANILLASOFT_(CALL_FLOOR|CONTACT_FLOOR|REPORT_PATH))$ ]] ||
               refuse "-e ${2%%=*} is not forwarded: it could redirect the database or runtime"
             RUN_OPTS+=("$1" "$2")
             shift 2
@@ -836,8 +951,12 @@ assert_clone() {
     refuse "$target is owned by '$(field "$comment" owner)', not '$OWNER'"
   [ "$(field "$comment" parity)" = "$PARITY" ] ||
     refuse "$target was cloned with parity '$(field "$comment" parity)'; this run requires '$PARITY'"
-  [ "$(field "$comment" fp)" = "$FP" ] ||
+  if [ "$(field "$comment" fp)" != "$FP" ]; then
+    if [ -n "$PINNED_TEMPLATE" ]; then
+      refuse "$target is stale: cloned for inputs $(field "$comment" fp | cut -c1-16), current inputs are ${FP:0:16}. Reclone it from $TEMPLATE_DB. Do not create a template"
+    fi
     refuse "$target is stale: cloned for inputs $(field "$comment" fp | cut -c1-16), current inputs are ${FP:0:16}; run: scripts/test_env.sh clone $target"
+  fi
   template="$(field "$comment" template)"
   [ "$template" = "$TEMPLATE_DB" ] || refuse "$target was cloned from $template, not the current template $TEMPLATE_DB"
   template_ready || refuse "$target's template $template is not an admitted template for the current inputs"
@@ -850,6 +969,9 @@ status() {
   echo "parity:       $PARITY"
   echo "fingerprint:  $FP"
   echo "template:     $TEMPLATE_DB ($(template_ready && echo ready || echo absent))"
+  if [ -n "$PINNED_TEMPLATE" ]; then
+    echo "fixture:      canonical; a new template is refused unless this database is absent and TEST_ENV_ALLOW_NEW_TEMPLATE equals its name"
+  fi
   fingerprint_inputs | sed 's/^/  input  /'
   psql_admin "SELECT datname, coalesce(shobj_description(oid, 'pg_database'), '') FROM pg_database
               WHERE datname LIKE 'odoo\_test\_%' ORDER BY datname" | while IFS='|' read -r name comment; do
