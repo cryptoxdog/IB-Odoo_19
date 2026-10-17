@@ -129,7 +129,7 @@ class TestWatermarkAcknowledgement(TransactionCase):
         """A DB-side failure between transform and watermark is still fail-closed."""
         adapter = _StubAdapter(contact_pages=[([_lead("wm-2")], W1, False)])
 
-        def _boom(self_, connection, dto):
+        def _boom(self_, connection, dto, adapter=None):
             raise CrmAdapterError("upsert failed")
 
         # BaseCase.patch reverts on cleanup — no manual restore needed.
