@@ -94,10 +94,6 @@ if git diff --name-only "${range_base}..HEAD" | grep -q '^\.cursor-commands'; th
   exit 1
 fi
 
-echo "→ PR gate (make pr-check, once, before remote mutation)..."
-PR_CHECK_FORCE_SMOKE=1 make pr-check
-echo ""
-
 if [[ "${OPEN_PR}" != "1" ]]; then
   refuse "open_pr=${OPEN_PR}; publication must create or verify the PR"
 fi

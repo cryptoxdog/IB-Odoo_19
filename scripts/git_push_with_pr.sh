@@ -73,9 +73,69 @@ esac
 
 require_l4_release
 
+status="$(git status --porcelain)"
+if [[ -n "${status}" ]]; then
+  echo "refusing to publish: working tree, index, or untracked files are not clean" >&2
+  printf '%s\n' "${status}" >&2
+  exit 1
+fi
 LOCAL_SHA="$(git rev-parse HEAD)"
 
-if ! git push -u origin "HEAD:${TARGET}"; then
+push_urls=()
+while IFS= read -r push_url; do
+  [[ -n "${push_url}" ]] && push_urls+=("${push_url}")
+done < <(git remote get-url --push --all origin 2>/dev/null || true)
+if [[ "${#push_urls[@]}" -ne 1 ]]; then
+  refuse "origin must have exactly one push URL"
+fi
+python3 - "${push_urls[0]}" <<'PY'
+import sys
+
+url = sys.argv[1].removesuffix(".git")
+allowed = {
+    "https://github.com/cryptoxdog/IB-Odoo_19",
+    "git://github.com/cryptoxdog/IB-Odoo_19",
+    "git@github.com:cryptoxdog/IB-Odoo_19",
+    "ssh://git@github.com/cryptoxdog/IB-Odoo_19",
+}
+if url not in allowed:
+    raise SystemExit(f"refusing to publish: origin push URL is not cryptoxdog/IB-Odoo_19 ({sys.argv[1]})")
+PY
+
+export GH_REPO="cryptoxdog/IB-Odoo_19"
+case "${PR_CHECK_SKIP_REMOTE:-0}" in
+  1|true|True|yes) refuse "PR_CHECK_SKIP_REMOTE is set" ;;
+esac
+case "${PR_CHECK_SKIP_SMOKE:-0}" in
+  1|true|True|yes) refuse "PR_CHECK_SKIP_SMOKE is set" ;;
+esac
+case "${PR_CHECK_FORCE_SMOKE:-0}" in
+  1|true|True|yes) refuse "PR_CHECK_FORCE_SMOKE is set" ;;
+esac
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  refuse "gitleaks is not on PATH"
+fi
+if ! gitleaks detect --config .gitleaks.toml --redact --exit-code 2; then
+  refuse "gitleaks detect failed"
+fi
+
+if ! bash scripts/install_smoke.sh --resolve; then
+  refuse "install-smoke --resolve rejected the effective module lists"
+fi
+
+if ! make pr-check; then
+  refuse "make pr-check failed"
+fi
+
+if [[ "$(git rev-parse HEAD)" != "${LOCAL_SHA}" ]] || [[ -n "$(git status --porcelain)" ]]; then
+  refuse "HEAD or the worktree changed during validation"
+fi
+if ! bash scripts/install_smoke.sh --recheck; then
+  refuse "install-smoke --recheck rejected the live evidence"
+fi
+
+if ! git push --no-verify -u origin "HEAD:${TARGET}"; then
   echo "git push failed for origin/${TARGET} (local HEAD ${LOCAL_SHA})" >&2
   echo "Publication stays on make pr. An API push is not a fallback ceremony." >&2
   exit 1

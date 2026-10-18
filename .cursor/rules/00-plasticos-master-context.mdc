@@ -51,7 +51,7 @@ Before writing any code or making any change, identify your task and consult the
 - **`50-plasticos-web-lead-guard`** — Read this ENTIRE rule first. Do not touch write/unlink guards, partner-deferral block, or `_find_or_create_partner()`. Run web lead tests before and after.
 
 ### Pushing code to remote
-- **`70-github-api-commit`** — `make push` always (`make pr-check` first). API only after `make api-push-check` when `git push` fails. Global `01-git-push-prohibition` + `96-git-push-approval` govern commit/push approval.
+- **`70-github-api-commit`** — `make pr` is the only publication command. API publication is refused.
 
 ### Reviewing or creating a PR
 - **`plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
@@ -90,7 +90,7 @@ Before writing any code or making any change, identify your task and consult the
 
 1. **NEVER activate `pipeline_v2.py`** — `ci/check_pipeline_v2_guard.py` hard-rejects any touch
 2. **Read the current file before editing** — never write from memory
-3. **`make push` before any remote push** — runs `pr-check` → commit kernel → push → PR; API push only if `git push` fails after pr-check passed this session
+3. **`make pr` is the only publication command** — it runs the local gates, pushes the feature branch, and opens or reuses the pull request into Staging. Merge is a separate human decision.
 4. **`make update m=X`** for all module upgrades — never bare `odoo-bin` outside Docker
 5. **Staging → Production** — never merge features directly to Production
 6. **`sudo()` needs inline justification** — comment on the same line why
@@ -107,10 +107,8 @@ Before writing any code or making any change, identify your task and consult the
 
 | Task | Command |
 |------|---------|
-| Full github kernel (pr-check → commit → push → PR) | `make push` or `make push m="feat(x): ..."` |
-| Push only (no PR) | `make push pr=0` |
-| Push without new commit | `make push commit=0` |
-| Required before any push | `make pr-check` |
+| Publish a committed feature branch into Staging | `make pr` |
+| Local gate without publishing | `make pr-check` |
 | Module upgrade | `make update m=<module>` |
 | Full audit | `make audit` |
 | Scan PR + fix CI issues | `python3 scripts/pr_autopilot.py --branch <branch> --fix` |

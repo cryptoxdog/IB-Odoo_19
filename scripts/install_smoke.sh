@@ -8,7 +8,9 @@
 #
 # Usage:
 #   ./scripts/install_smoke.sh
-#   ODOO_ENTERPRISE_MODULES=none ./scripts/install_smoke.sh   # custom-only (faster)
+#   ./scripts/install_smoke.sh --resolve    # effective lists only; no Docker
+#   ./scripts/install_smoke.sh --recheck    # live evidence; no install
+#   ODOO_ENTERPRISE_MODULES=none ./scripts/install_smoke.sh   # custom-only; writes no publication evidence
 #   ODOO_INSTALL_SMOKE_NETWORK=host ./scripts/install_smoke.sh # sandbox bridge fallback
 #   make install-smoke
 #
@@ -16,12 +18,153 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+SMOKE_MODE="install"
+case "${1:-}" in
+  --resolve) SMOKE_MODE="resolve" ;;
+  --recheck) SMOKE_MODE="recheck" ;;
+  --print-snapshot) SMOKE_MODE="print-snapshot" ;;
+  "") ;;
+  *)
+    echo "❌ install-smoke: unknown argument '${1}'" >&2
+    exit 2
+    ;;
+esac
+
 if [ -f "$ROOT/.env" ]; then
   set -a
   # shellcheck source=/dev/null
   . "$ROOT/.env"
   set +a
 fi
+
+# Effective lists are resolved only here, after .env. Callers must not re-parse
+# the shell environment and treat that as the installer's configuration.
+resolve_module_lists() {
+  local scope canon_custom
+  scope="${ODOO_INSTALL_SMOKE_SCOPE:-all}"
+  if [ "$scope" = "ordered" ]; then
+    canon_custom="$(python3 "$ROOT/scripts/get_odoo_module_order.py" 2>/dev/null || true)"
+  else
+    canon_custom="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --all-installable 2>/dev/null || true)"
+  fi
+  CANON_CUSTOM="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --all-installable 2>/dev/null || true)"
+  CANON_ENTERPRISE="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --section docker_enterprise_modules 2>/dev/null || true)"
+  CUSTOM_MODULES="${ODOO_REBUILD_MODULES:-${canon_custom}}"
+  ENTERPRISE_MODULES="${ODOO_ENTERPRISE_MODULES:-${CANON_ENTERPRISE:-none}}"
+  if [ -z "$CUSTOM_MODULES" ]; then
+    echo "❌ Could not resolve custom module list from config/odoo_module_order.yaml" >&2
+    exit 1
+  fi
+  if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ] && [ ! -e "$ROOT/odoo-enterprise" ]; then
+    local candidate="${ODOO_ENTERPRISE_PATH:-$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise}"
+    if [ -d "$candidate" ]; then
+      ln -s "$candidate" "$ROOT/odoo-enterprise"
+      echo "→ Linked odoo-enterprise → $candidate"
+    elif [ "$SMOKE_MODE" != "resolve" ]; then
+      echo "❌ odoo-enterprise missing for Enterprise-parity install-smoke." >&2
+      echo "   Full parity: ln -s \"\$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise\" odoo-enterprise" >&2
+      echo "   Custom-only: ODOO_ENTERPRISE_MODULES=none make install-smoke" >&2
+      exit 1
+    fi
+  fi
+}
+
+lists_are_canonical() {
+  [ -n "$CANON_CUSTOM" ] && [ "$CUSTOM_MODULES" = "$CANON_CUSTOM" ] \
+    && [ -n "$CANON_ENTERPRISE" ] && [ "$ENTERPRISE_MODULES" = "$CANON_ENTERPRISE" ] \
+    && [ "$ENTERPRISE_MODULES" != "none" ]
+}
+
+input_snapshot() {
+  python3 - "$ROOT" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" <<'PY'
+import hashlib
+import subprocess
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+custom, enterprise = sys.argv[2], sys.argv[3]
+digest = hashlib.sha256()
+digest.update(custom.encode())
+digest.update(b"\0")
+digest.update(enterprise.encode())
+digest.update(b"\0")
+paths: list[Path] = []
+for mod in sorted(root.glob("plasticos_*")):
+    if not mod.is_dir():
+        continue
+    for pattern in ("**/*.py", "**/*.xml", "**/*.csv", "**/*.yml", "**/*.yaml"):
+        paths.extend(path for path in mod.glob(pattern) if path.is_file())
+for rel in (
+    "config/odoo_module_order.yaml",
+    "requirements.txt",
+    "constraints.txt",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "Dockerfile",
+    "scripts/install_smoke.sh",
+    "scripts/get_odoo_module_order.py",
+    ".cache/pr-check/snapshot-nonce",
+):
+    path = root / rel
+    if path.is_file():
+        paths.append(path)
+for path in sorted(set(paths), key=lambda item: str(item)):
+    digest.update(str(path.relative_to(root)).encode())
+    digest.update(b"\0")
+    digest.update(path.read_bytes())
+    digest.update(b"\0")
+link = root / "odoo-enterprise"
+if link.exists():
+    real = link.resolve()
+    digest.update(str(real).encode())
+    digest.update(b"\0")
+    if (real / ".git").exists():
+        for args in (
+            ["git", "-C", str(real), "rev-parse", "HEAD"],
+            ["git", "-C", str(real), "diff", "HEAD"],
+            ["git", "-C", str(real), "status", "--porcelain"],
+        ):
+            digest.update(subprocess.check_output(args))
+            digest.update(b"\0")
+    else:
+        for path in sorted(item for item in real.rglob("*") if item.is_file()):
+            digest.update(str(path.relative_to(real)).encode())
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
+print(digest.hexdigest())
+PY
+}
+
+EVIDENCE_FILE="$ROOT/.cache/pr-check/install-smoke.sha"
+
+acquire_smoke_lock() {
+  local wait="${SMOKE_LOCK_WAIT:-30}"
+  mkdir -p "$ROOT/.cache/pr-check"
+  SMOKE_LOCK_FILE="$ROOT/.cache/pr-check/install-smoke.${ODOO_COMPOSE_PROJECT}.${SMOKE_DB_ALLOWED}.lock"
+  # Hold the exclusive lock in this shell. macOS has no flock(1); fcntl.flock on
+  # the inherited descriptor is the same lock and stays held after Python exits.
+  exec 9>"$SMOKE_LOCK_FILE"
+  if ! python3 - "$wait" <<'PY'
+import fcntl
+import sys
+import time
+
+deadline = time.time() + int(sys.argv[1])
+while True:
+    try:
+        fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        raise SystemExit(0)
+    except BlockingIOError:
+        if time.time() >= deadline:
+            raise SystemExit(1)
+        time.sleep(0.2)
+PY
+  then
+    echo "❌ install-smoke lock busy for ${ODOO_COMPOSE_PROJECT}/${SMOKE_DB_ALLOWED}" >&2
+    exit 2
+  fi
+}
 
 # Keep a caller-supplied docker (tests stub it) ahead of the Homebrew/system paths.
 if ! command -v docker >/dev/null 2>&1; then
@@ -49,6 +192,29 @@ esac
 # The only database this script may terminate or drop. An environment value is
 # not authorization; it must match this name after the endpoint is proven.
 SMOKE_DB_ALLOWED="odoo_install_smoke"
+
+resolve_module_lists
+
+if [ "$SMOKE_MODE" = "print-snapshot" ]; then
+  input_snapshot
+  exit 0
+fi
+
+if [ "$SMOKE_MODE" = "resolve" ]; then
+  if ! lists_are_canonical; then
+    echo "❌ effective module lists are not the full canonical install set" >&2
+    echo "   custom=${CUSTOM_MODULES}" >&2
+    echo "   enterprise=${ENTERPRISE_MODULES}" >&2
+    exit 1
+  fi
+  if [ ! -d "$ROOT/odoo-enterprise" ]; then
+    echo "❌ enterprise checkout is not readable" >&2
+    exit 1
+  fi
+  echo "custom=${CUSTOM_MODULES}"
+  echo "enterprise=${ENTERPRISE_MODULES}"
+  exit 0
+fi
 
 refuse_smoke() {
   echo "❌ install-smoke refused: $*" >&2
@@ -211,44 +377,70 @@ if [ -z "${POSTGRES_PASSWORD:-}" ]; then
   exit 1
 fi
 
-# --- Module lists ------------------------------------------------------------
-# Default: ordered core + every other installable plasticos_* (minus excluded).
-# Override with ODOO_REBUILD_MODULES=... or ODOO_INSTALL_SMOKE_SCOPE=ordered.
-_SCOPE="${ODOO_INSTALL_SMOKE_SCOPE:-all}"
-if [ "$_SCOPE" = "ordered" ]; then
-  _CUSTOM="$(python3 "$ROOT/scripts/get_odoo_module_order.py" 2>/dev/null || true)"
-else
-  _CUSTOM="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --all-installable 2>/dev/null || true)"
-fi
-CUSTOM_MODULES="${ODOO_REBUILD_MODULES:-${_CUSTOM}}"
-if [ -z "$CUSTOM_MODULES" ]; then
-  echo "❌ Could not resolve custom module list from config/odoo_module_order.yaml" >&2
-  exit 1
-fi
-
-_ENTERPRISE="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --section docker_enterprise_modules 2>/dev/null || true)"
-ENTERPRISE_MODULES="${ODOO_ENTERPRISE_MODULES:-${_ENTERPRISE:-none}}"
-
-# The documented custom-only path must not require private Enterprise sources.
-# Full parity installs still fail closed until the local Enterprise mount exists.
-if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ] && [ ! -e "$ROOT/odoo-enterprise" ]; then
-  CANDIDATE="${ODOO_ENTERPRISE_PATH:-$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise}"
-  if [ -d "$CANDIDATE" ]; then
-    ln -s "$CANDIDATE" "$ROOT/odoo-enterprise"
-    echo "→ Linked odoo-enterprise → $CANDIDATE"
-  else
-    echo "❌ odoo-enterprise missing for Enterprise-parity install-smoke." >&2
-    echo "   Full parity: ln -s \"\$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise\" odoo-enterprise" >&2
-    echo "   Custom-only: ODOO_ENTERPRISE_MODULES=none make install-smoke" >&2
-    exit 1
-  fi
-fi
-
 if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
   ALL_MODULES="${ENTERPRISE_MODULES},${CUSTOM_MODULES}"
 else
   ALL_MODULES="${CUSTOM_MODULES}"
 fi
+
+recheck_evidence() {
+  local live image_id pg_cid pg_image states
+  acquire_smoke_lock
+  if [ ! -f "$EVIDENCE_FILE" ]; then
+    echo "install-smoke evidence is absent" >&2
+    exit 1
+  fi
+  live="$(input_snapshot)"
+  image_id="$(docker image inspect --format '{{.Id}}' "${ODOO_SMOKE_IMAGE:-${ODOO_COMPOSE_PROJECT}-odoo-test:latest}" 2>/dev/null || true)"
+  pg_cid="$(docker compose -p "$ODOO_COMPOSE_PROJECT" ps -q db 2>/dev/null || true)"
+  pg_image=""
+  if [ -n "$pg_cid" ]; then
+    pg_image="$(docker inspect --format '{{.Image}}' "$pg_cid" 2>/dev/null || true)"
+  fi
+  states="$(
+    docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \
+      "SELECT name || '=' || state FROM ir_module_module ORDER BY name;" 2>/dev/null || true
+  )"
+  python3 - "$EVIDENCE_FILE" "$live" "$image_id" "$pg_image" "$SMOKE_DB" "$states" <<'PY'
+import json
+import sys
+
+path, live, image_id, pg_image, database, states_raw = sys.argv[1:]
+record = json.loads(open(path, encoding="utf-8").read())
+problems = []
+if record.get("snapshot") != live:
+    problems.append("inputs changed")
+if record.get("image_id") != image_id or not image_id:
+    problems.append("odoo image changed")
+if record.get("postgres_image_id") != pg_image or not pg_image:
+    problems.append("postgres image changed")
+if record.get("database") != database:
+    problems.append("database identity changed")
+seen = {}
+for line in states_raw.splitlines():
+    if "=" not in line:
+        continue
+    name, state = line.split("=", 1)
+    seen[name.strip()] = state.strip()
+expected = record.get("states") or {}
+if not expected:
+    problems.append("evidence has no installed states")
+for name, state in expected.items():
+    if seen.get(name) != state or state != "installed":
+        problems.append(f"{name} is {seen.get(name) or 'missing'}")
+if problems:
+    print("install-smoke evidence miss: " + "; ".join(problems), file=sys.stderr)
+    raise SystemExit(1)
+PY
+  echo "→ install-smoke evidence matches"
+}
+
+if [ "$SMOKE_MODE" = "recheck" ]; then
+  recheck_evidence
+  exit 0
+fi
+
+acquire_smoke_lock
 
 echo "════════════════════════════════════════════════════════"
 echo " Odoo install-smoke"
@@ -281,6 +473,8 @@ if [ "$PG_READY" -ne 1 ]; then
   echo "❌ PostgreSQL not ready after 60s (project=$ODOO_COMPOSE_PROJECT)" >&2
   exit 1
 fi
+
+PRE_SNAPSHOT="$(input_snapshot)"
 
 # Rebuild image so xmlsec / requirements changes are present
 echo "→ Building Odoo image (xmlsec + requirements)..."
@@ -382,8 +576,13 @@ fi
 # Verify key modules installed
 echo "→ Verifying module states..."
 FAIL=0
+STATE_PAIRS=""
 # Comma-split only for this read. A global IFS would change later unquoted expansions.
-IFS=',' read -r -a _smoke_modules <<< "${CUSTOM_MODULES}"
+_CHECK_MODULES="$CUSTOM_MODULES"
+if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
+  _CHECK_MODULES="${ENTERPRISE_MODULES},${CUSTOM_MODULES}"
+fi
+IFS=',' read -r -a _smoke_modules <<< "${_CHECK_MODULES}"
 for mod in "${_smoke_modules[@]}"; do
   mod="$(echo "$mod" | xargs)"
   [ -z "$mod" ] && continue
@@ -391,6 +590,7 @@ for mod in "${_smoke_modules[@]}"; do
     "SELECT state FROM ir_module_module WHERE name = '$mod';" 2>/dev/null | tr -d '\r' || true)"
   if [ "$STATE" = "installed" ]; then
     echo "  ✅ $mod"
+    STATE_PAIRS="${STATE_PAIRS}${mod}=installed"$'\n'
   else
     echo "  ❌ $mod → '${STATE:-missing}' (expected installed)"
     FAIL=1
@@ -398,7 +598,17 @@ for mod in "${_smoke_modules[@]}"; do
 done
 
 if [ "$FAIL" -ne 0 ]; then
-  echo "❌ install-smoke FAILED: one or more custom modules not installed" >&2
+  echo "❌ install-smoke FAILED: one or more modules not installed" >&2
+  exit 1
+fi
+
+if [ "${INSTALL_SMOKE_SNAPSHOT_BREAK:-0}" = "1" ]; then
+  mkdir -p "$ROOT/.cache/pr-check"
+  echo break >>"$ROOT/.cache/pr-check/snapshot-nonce"
+fi
+POST_SNAPSHOT="$(input_snapshot)"
+if [ "$POST_SNAPSHOT" != "$PRE_SNAPSHOT" ]; then
+  echo "❌ install-smoke inputs changed during install; evidence not written" >&2
   exit 1
 fi
 
@@ -408,6 +618,43 @@ if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
   docker run --rm --network host --entrypoint python3 "$SMOKE_IMAGE" -c "import xmlsec; print('xmlsec', xmlsec.__version__)"
 else
   docker compose -p "$ODOO_COMPOSE_PROJECT" run --rm --entrypoint python3 odoo-test -c "import xmlsec; print('xmlsec', xmlsec.__version__)"
+fi
+
+if lists_are_canonical; then
+  image_id="$(docker image inspect --format '{{.Id}}' "$SMOKE_IMAGE")"
+  pg_cid="$(docker compose -p "$ODOO_COMPOSE_PROJECT" ps -q db)"
+  pg_image="$(docker inspect --format '{{.Image}}' "$pg_cid")"
+  ent_real="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$ROOT/odoo-enterprise")"
+  python3 - "$EVIDENCE_FILE" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" "$ent_real" "$POST_SNAPSHOT" \
+    "$image_id" "$pg_image" "$SMOKE_DB" "$STATE_PAIRS" <<'PY'
+import json
+import pathlib
+import sys
+
+path, custom, enterprise, realpath, snapshot, image_id, pg_image, database, pairs = sys.argv[1:]
+states = {}
+for line in pairs.splitlines():
+    if "=" not in line:
+        continue
+    name, state = line.split("=", 1)
+    states[name] = state
+record = {
+    "custom": custom,
+    "enterprise": enterprise,
+    "enterprise_realpath": realpath,
+    "snapshot": snapshot,
+    "image_id": image_id,
+    "postgres_image_id": pg_image,
+    "database": database,
+    "states": states,
+}
+target = pathlib.Path(path)
+target.parent.mkdir(parents=True, exist_ok=True)
+target.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
+PY
+  echo "→ publication evidence written"
+else
+  echo "→ shortened module list; publication evidence not written"
 fi
 
 echo ""

@@ -752,16 +752,11 @@ commit:
 	echo "============================================"; \
 	git show --stat --oneline -1; \
 	echo ""; \
-	if [ -t 0 ]; then \
-		printf "Run make pr? [y/N] "; \
-		read -r ans; \
-		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) pr ;; *) echo "Skipped. Run: make pr"; ;; esac; \
-	else \
-		echo "Run: make pr   (publishes this committed feature branch into Staging)"; \
-	fi
+	echo "Run: make pr   (publishes this committed feature branch into Staging)"; \
 
 # Retired publication path. Staging and Production stay PR-only under the
-# GitHub ruleset "Protect Staging & Production" (required check: CI Gate Result).
+# GitHub ruleset "Protect Staging & Production" (required checks: Ruff Lint & Format,
+# Static Analysis, Pure Python Tests, and CI Gate Result).
 # `make push` and `make push pr=1` are no longer a ceremony.
 push:
 	@echo "⛔ make push is not a publication ceremony."
