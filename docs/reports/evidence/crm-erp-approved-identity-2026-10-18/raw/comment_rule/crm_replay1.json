@@ -1,0 +1,77 @@
+{
+ "approved_vs_ids": 763,
+ "approved_ct_ids": 716,
+ "ct_ids_with_erp_person": 689,
+ "vs_ids_with_erp_person": 735,
+ "outcomes_per_contact": {
+  "unchanged": 735,
+  "failed": 28
+ },
+ "orchestrator_outcomes": {
+  "seen": 0,
+  "table_rows": 0,
+  "created": 0,
+  "updated": 0,
+  "unchanged": 51229,
+  "duplicate_rejected": 0,
+  "failed": 28,
+  "deferred": 0
+ },
+ "top_reasons": [
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_64200001 resolved 0 rows",
+   2
+  ],
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_127550001 resolved 0 rows",
+   1
+  ],
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_12150001 resolved 0 rows",
+   1
+  ],
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_127200001 resolved 0 rows",
+   1
+  ],
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_24050001 resolved 0 rows",
+   1
+  ],
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_23800001 resolved 0 rows",
+   1
+  ],
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_20650001 resolved 0 rows",
+   1
+  ],
+  [
+   "ERP marker plasticos_transaction.legacy_erp_contact_20750001 resolved 0 rows",
+   1
+  ]
+ ],
+ "exceptions": [],
+ "exception_count": 0,
+ "before": {
+  "partners": 5196,
+  "leads": 0,
+  "phone_lines": 1855,
+  "person_refs": 735,
+  "call_events": 50494,
+  "table_rows": 0
+ },
+ "after": {
+  "partners": 5196,
+  "leads": 0,
+  "phone_lines": 1855,
+  "person_refs": 735,
+  "call_events": 50494,
+  "table_rows": 0
+ },
+ "bound_to_crosswalk_person": 735,
+ "bound_to_other_partner": 0,
+ "new_leads_for_approved_ids": 0,
+ "phone_mobile_comment_changed": 0,
+ "phone_lines_added_on_approved_people": 0
+}

@@ -1,0 +1,453 @@
+{
+ "schema": "plasticos.evidence_receipt/v1",
+ "subject": "crm-erp-approved-identity",
+ "recorded_at": "2026-10-18",
+ "verdict": "crm_replay_idempotent_erp_replay_preserves_crm_final_crm_replay_not_executed",
+ "code": {
+  "branch": "feat/crm-erp-approved-identity",
+  "head": "795c3881a8f8f3ddd59070b1abc33a43b0a76665",
+  "base": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+  "commits": [
+   "795c388 test(crm_sync): tag semantic-kernel collision tests out of the standard run",
+   "097cba2 feat(crm_sync): match VanillaSoft contacts to ERP partners by approved identity",
+   "c36d9e1 fix(test-env): pin Enterprise Docker tests to one fixture"
+  ],
+  "fixture_pr": "https://github.com/cryptoxdog/IB-Odoo_19/pull/261",
+  "module_version": {
+   "plasticos_crm_sync": "19.0.1.8.9"
+  }
+ },
+ "environment": {
+  "fixture": "odoo_test_tpl_ee_c9e8a81f52f23680",
+  "clone": "odoo_test_w2495f48767",
+  "parity": "ee",
+  "hosted_writes": false,
+  "erp_source": {
+   "database": "supplied at run time as ERP_SQL_DATABASE",
+   "backup": "2026-10-03 backup of the ERP database",
+   "login": "erp_reader",
+   "read_only": true
+  },
+  "crm_source": {
+   "provider": "vanillasoft",
+   "project_id": "139705",
+   "key_source": "infisical via capability_bind",
+   "key_printed": false
+  },
+  "crosswalk": {
+   "sha256": "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2",
+   "vs_ids": 763,
+   "ct_ids": 716,
+   "modified": false
+  }
+ },
+ "runtime_tests": {
+  "standard": {
+   "command": "make test-module m=plasticos_crm_sync",
+   "tests": 50,
+   "failed": 0,
+   "errors": 0
+  },
+  "semantic_kernel_tagged": {
+   "tag": "crm_sync_semantic_kernel",
+   "tests": 2,
+   "failed": 0,
+   "errors": 0
+  }
+ },
+ "erp_import": {
+  "final_status": "partial",
+  "records_seen": 12518,
+  "records_created": 7682,
+  "records_updated": 2115,
+  "records_unchanged": 1432,
+  "records_rejected": 1289,
+  "duplicates": 0,
+  "errors_listed": 1000,
+  "errors_list_capped": true,
+  "validators_passed": 5
+ },
+ "vanillasoft_full_import": {
+  "contact_floor": "2019-01-01T00:00:00Z",
+  "result": "failed",
+  "error": "VanillaSoft HTTP 400 on first /Contacts page",
+  "writes": 0,
+  "lookback_probe": {
+   "30d": "ok",
+   "31d": 400,
+   "32d": 400,
+   "60d": 400,
+   "2019": 400
+  }
+ },
+ "identity_run": {
+  "entry_point": "SyncOrchestrator.upsert_contact_external_id",
+  "run_1": {
+   "approved_vs_ids": 763,
+   "approved_ct_ids": 716,
+   "ct_ids_with_erp_person": 689,
+   "vs_ids_with_erp_person": 735,
+   "outcomes_per_contact": {
+    "updated": 374,
+    "failed": 389
+   },
+   "orchestrator_outcomes": {
+    "seen": 0,
+    "table_rows": 0,
+    "created": 22834,
+    "updated": 374,
+    "unchanged": 0,
+    "duplicate_rejected": 0,
+    "failed": 389,
+    "deferred": 0
+   },
+   "top_reasons": [
+    [
+     "BLOCKED: contact note has no lead and no landed provider table row",
+     361
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_64200001 resolved 0 rows",
+     2
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_127550001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_12150001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_127200001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_24050001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_23800001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_20650001 resolved 0 rows",
+     1
+    ]
+   ],
+   "exceptions": [],
+   "exception_count": 0,
+   "before": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1434,
+    "person_refs": 0
+   },
+   "after": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1627,
+    "person_refs": 374
+   },
+   "bound_to_crosswalk_person": 374,
+   "bound_to_other_partner": 0,
+   "new_leads_for_approved_ids": 0,
+   "phone_mobile_comment_changed": 39,
+   "phone_lines_added_on_approved_people": 193
+  },
+  "replay": {
+   "approved_vs_ids": 763,
+   "approved_ct_ids": 716,
+   "ct_ids_with_erp_person": 689,
+   "vs_ids_with_erp_person": 735,
+   "outcomes_per_contact": {
+    "unchanged": 374,
+    "failed": 389
+   },
+   "orchestrator_outcomes": {
+    "seen": 0,
+    "table_rows": 0,
+    "created": 0,
+    "updated": 0,
+    "unchanged": 23208,
+    "duplicate_rejected": 0,
+    "failed": 389,
+    "deferred": 0
+   },
+   "top_reasons": [
+    [
+     "BLOCKED: contact note has no lead and no landed provider table row",
+     361
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_64200001 resolved 0 rows",
+     2
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_127550001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_12150001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_127200001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_24050001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_23800001 resolved 0 rows",
+     1
+    ],
+    [
+     "ERP marker plasticos_transaction.legacy_erp_contact_20650001 resolved 0 rows",
+     1
+    ]
+   ],
+   "exceptions": [],
+   "exception_count": 0,
+   "before": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1627,
+    "person_refs": 374,
+    "call_events": 22834,
+    "table_rows": 0
+   },
+   "after": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1627,
+    "person_refs": 374,
+    "call_events": 22834,
+    "table_rows": 0
+   },
+   "bound_to_crosswalk_person": 374,
+   "bound_to_other_partner": 0,
+   "new_leads_for_approved_ids": 0,
+   "phone_mobile_comment_changed": 0,
+   "phone_lines_added_on_approved_people": 0
+  }
+ },
+ "contacts": {
+  "approved": 763,
+  "bound": 374,
+  "failed": 389,
+  "failed_by_class": {
+   "note_has_no_holder": 361,
+   "no_erp_person": 28
+  },
+  "no_erp_person_ct_ids": 27,
+  "bound_refs_with_lead_id_empty": 374,
+  "new_partners": 0,
+  "new_leads": 0,
+  "replay_changes": {
+   "partners": 0,
+   "leads": 0,
+   "phone_lines": 0,
+   "person_refs": 0,
+   "call_events": 0,
+   "table_rows": 0
+  }
+ },
+ "not_proven": [
+  "full-history run_full_import for project 139705 (provider rejects Contacts floors older than 30 days)",
+  "note appended to an existing crm.lead against live data (clone has no leads)",
+  "non-approved contacts through the full import"
+ ],
+ "files_sha256": {
+  "README.md": "5aef36d4c9c25df07f8cd6be63f16b1e6130986859bc3ec7b7cd700ddef26069",
+  "bound_contacts.csv": "47271d719cee4b12ad0e7d2d8496d6b81068522503d17529d1d9bfa0b70fcac3",
+  "failed_contacts.csv": "c9d35b865a38aed2b836d49d68e63d24103cc25bcc913506e95c2ce741caab73",
+  "raw/comment_rule/compare_before_crm_vs_after_crm_run1.json": "35028fe0378524f34dc5f5284805aff2ae3d0ce8f1997250fc7be68bd56c3cfc",
+  "raw/comment_rule/compare_crm_run1_vs_crm_replay1.json": "62f34f003f4f111f290cdc8a8122b90305ab650a78f1f6ba08dd5e7d612ae7ba",
+  "raw/comment_rule/compare_state_before_vs_after_erp_replay.json": "d01b4321ac4f49f14dd1d67b88d9a477b81af4cee6039d6f832644df9cdfd730",
+  "raw/comment_rule/crm_replay1.json": "e59636d884255cf2af85f9a8ebe99ee93430b2c693767c58ce5000244121c567",
+  "raw/comment_rule/crm_run1.json": "e31ff4597a0636579192197c0a246c6b05498d5d4026a9fad0c6e204feb4b88a",
+  "raw/comment_rule/erp_replay_after_crm_counts.json": "04f47bd561ce2bef112e6776f9c7bc1d78a64c83d8d8b8353a604e9b64139459",
+  "raw/comment_rule/erp_replay_before_crm_counts.json": "a74349ef10ef4e82df533d4d0eef6835d1b16e1e98a7d02c060efe8dc55a0f59",
+  "raw/comment_rule/erp_run1_counts.json": "b26a327fae7524fff149e3e3c5ce1df01be7fd60d2d28003b1dcb717f3c59d45",
+  "raw/comment_rule/odoo_runtime_tests.txt": "1b3d243e3d855a33ba6455f3c40b498cc19122a4635ca3cae50389a80a2c6c89",
+  "raw/erp_import_partners_only_console.txt": "a6cd7e562aa662c5cfa1f73743e1fa6bdaf6e0d6837e495c637b33cba961d2d8",
+  "raw/erp_import_partners_only_summary.json": "a24f2b6e2d4b6e4dd5cd40efccba5c37b1b86d8bc8c65fac7aa3d9220796a440",
+  "raw/fixture_status.txt": "69bd375c996ccc6f60e05757b81a93603d1ff5f05830e49e06ef769b520f559e",
+  "raw/identity_replay.json": "b0adc8f944003c2b5bea3e2da969d3797c8e176430fad05b56b81956e9989e71",
+  "raw/identity_run_1.json": "482283248292e20477218fa78349135e0041446c375f660c010aacb7a85a2261",
+  "raw/odoo_runtime_tests.txt": "6c995fbca880deec1c90118d0fbc7bff74c1e1557b4a7ec5d9b4ece9b9c278df",
+  "raw/vanillasoft_contacts_lookback_probe.txt": "49802d206b6f6f07ca6f609cf46ba7a6403cbfd91fd33eaf369e52b00a36d5c5",
+  "raw/vanillasoft_full_import_2019_floor.txt": "48824576a75eed8e5d37b4db7592f84d0ad2e0789c99a701e58d5ba9f73458ea",
+  "scripts/approved_state.py": "e9b3716bcad70d87a23190d03091275b7fb4adce845c0b5f0405213666ea27eb",
+  "scripts/comment_snapshot.py": "b78befd4676b8b54200e3c7f49b6c8daf1f3e4926f6996d16bcc8d87db53fe8c",
+  "scripts/compare_snaps.py": "1bf0e5ac3308efb89eca816c5bc19968f702244301f7216c3aaf51a830181221",
+  "scripts/compare_state.py": "8a8bfe319afa40c4a5ecb2d91e93114f98c8550e2b7369d279431f0ae1de3be0",
+  "scripts/vs_failed_detail.py": "486a18a1bf04a4e7047382c467ccd60bca246490a0ecc1f7304769c5e030c1a4",
+  "scripts/vs_identity_run.py": "57c8eb5ce38b47e2a0e9485f6c17e896dbbfba7d6426223788a91dfbf4f67e97",
+  "scripts/vs_probe.py": "f8f2bb14b051fa19069db5fdf0ceb0f99312fbc44b3b05e2699a25cd9b50112f"
+ },
+ "folder_checks": {
+  "pre_commit": "passed",
+  "gitleaks_no_git": "no leaks found",
+  "scripts_note": "copies gained a docstring and env = globals().get('env'), ruff-formatted; logic unchanged",
+  "personal_data": "contact and company names omitted; note text excluded (presence and length only)"
+ },
+ "comment_rule_update": {
+  "requirement": "append CRM notes to res.partner.comment, keep the ERP notes, ERP and CRM replays idempotent",
+  "commit": "750f9a0",
+  "module_version": {
+   "plasticos_crm_sync": "19.0.1.8.10",
+   "plasticos_partner_import": "19.0.2.10.25"
+  },
+  "supersedes": "note_has_no_holder failures (361) in failed_contacts.csv, which came from the old lead/table-row rule",
+  "runtime_tests": {
+   "command": "make test-module m=plasticos_crm_sync,plasticos_partner_import",
+   "tests": 136,
+   "failed": 0,
+   "errors": 0
+  },
+  "pure_python_tests": {
+   "passed": 39,
+   "failed": 0
+  },
+  "erp_run1": {
+   "final_status": "partial",
+   "records_seen": 12518,
+   "records_created": 7682,
+   "records_updated": 2115,
+   "records_unchanged": 1432,
+   "records_rejected": 1289,
+   "duplicates": 0
+  },
+  "erp_replay_before_crm": {
+   "final_status": "partial",
+   "records_seen": 12518,
+   "records_created": 0,
+   "records_updated": 0,
+   "records_unchanged": 11229,
+   "records_rejected": 1289,
+   "duplicates": 0
+  },
+  "crm_run1": {
+   "outcomes_per_contact": {
+    "updated": 735,
+    "failed": 28
+   },
+   "before": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1434,
+    "person_refs": 0,
+    "call_events": 0,
+    "table_rows": 0
+   },
+   "after": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1855,
+    "person_refs": 735,
+    "call_events": 50494,
+    "table_rows": 0
+   },
+   "bound_to_crosswalk_person": 735,
+   "bound_to_other_partner": 0,
+   "new_leads_for_approved_ids": 0,
+   "exception_count": 0
+  },
+  "field_check_run1": {
+   "persons": 689,
+   "same_people": true,
+   "partner_id_changed": 0,
+   "phone_changed": 0,
+   "mobile_set_where_empty": 102,
+   "mobile_overwritten": 0,
+   "comment_unchanged": 339,
+   "comment_appended": 350,
+   "comment_erp_blocks_lost": 0,
+   "persons_with_erp_note_kept": 19,
+   "appended_blocks": 360,
+   "duplicate_blocks": 0
+  },
+  "crm_replay1": {
+   "outcomes_per_contact": {
+    "unchanged": 735,
+    "failed": 28
+   },
+   "orchestrator_outcomes": {
+    "seen": 0,
+    "table_rows": 0,
+    "created": 0,
+    "updated": 0,
+    "unchanged": 51229,
+    "duplicate_rejected": 0,
+    "failed": 28,
+    "deferred": 0
+   },
+   "before": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1855,
+    "person_refs": 735,
+    "call_events": 50494,
+    "table_rows": 0
+   },
+   "after": {
+    "partners": 5196,
+    "leads": 0,
+    "phone_lines": 1855,
+    "person_refs": 735,
+    "call_events": 50494,
+    "table_rows": 0
+   },
+   "phone_mobile_comment_changed": 0,
+   "phone_lines_added_on_approved_people": 0,
+   "snapshot_after_crm_run1_equals_after_crm_replay1": true,
+   "persons": 689
+  },
+  "erp_replay_after_crm": {
+   "final_status": "partial",
+   "records_seen": 12518,
+   "records_created": 0,
+   "records_updated": 0,
+   "records_unchanged": 11229,
+   "records_rejected": 1289,
+   "duplicates": 0,
+   "validators_passed": 6
+  },
+  "state_compare_erp_replay": {
+   "counts_equal": true,
+   "persons": {
+    "checked": 689,
+    "identical": 689,
+    "crm_paragraphs": 360,
+    "crm_paragraphs_kept_once": 360,
+    "erp_paragraphs": 19,
+    "erp_paragraphs_kept_once": 19,
+    "phone_lines": 840,
+    "phone_lines_identical_people": 689
+   },
+   "contacts": {
+    "checked": 763,
+    "identical": 763,
+    "refs": 735,
+    "calls": 50494
+   },
+   "failure_count": 0,
+   "state_sha256_before_erp_replay": "89888384957cdd1622a62d65ce008cb51244e3fdbefaf3d449582acfa96b254b",
+   "state_sha256_after_erp_replay": "89888384957cdd1622a62d65ce008cb51244e3fdbefaf3d449582acfa96b254b"
+  },
+  "proven": [
+   "CRM replay idempotent (CRM replay 1 wrote nothing)",
+   "ERP replay after CRM writes wrote nothing to approved people; database state byte-identical"
+  ],
+  "not_executed": {
+   "final_crm_replay_after_erp_replay": "intentionally not executed by operator decision; expected no-op is inferred, not proven"
+  },
+  "not_proven": [
+   "ERP branch that prepends missing ERP notes, on live data (pure test only)",
+   "that the pre-change ERP replay would erase CRM notes (code reading only)"
+  ]
+ }
+}
