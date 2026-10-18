@@ -102,7 +102,7 @@ def load_crosswalk_map(env) -> dict[str, str] | None:
     """
     try:
         model = env["ir.config_parameter"]
-    except (KeyError, AttributeError):
+    except (KeyError, AttributeError, TypeError):
         return None
     icp = model.sudo() if hasattr(model, "sudo") else model
     path = (icp.get_param(CROSSWALK_PARAM) or "").strip()

@@ -122,7 +122,7 @@ class _CountingOrchestrator(SyncOrchestrator):
     regressed.
     """
 
-    def _upsert_lead(self, connection, dto):
+    def _upsert_lead(self, connection, dto, adapter=None):
         return object()
 
     def _sync_tables_for_lead(self, connection, adapter, contact_external_id, lead=None):
