@@ -119,18 +119,26 @@ if link.exists():
     real = link.resolve()
     digest.update(str(real).encode())
     digest.update(b"\0")
+    git_identity = False
     if (real / ".git").exists():
-        for args in (
-            ["git", "-C", str(real), "rev-parse", "HEAD"],
-            ["git", "-C", str(real), "diff", "HEAD"],
-            ["git", "-C", str(real), "status", "--porcelain"],
-        ):
-            digest.update(subprocess.check_output(args))
-            digest.update(b"\0")
-    else:
+        try:
+            for args in (
+                ["git", "-C", str(real), "rev-parse", "HEAD"],
+                ["git", "-C", str(real), "diff", "HEAD"],
+                ["git", "-C", str(real), "status", "--porcelain"],
+            ):
+                digest.update(subprocess.check_output(args, stderr=subprocess.DEVNULL))
+                digest.update(b"\0")
+            git_identity = True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            git_identity = False
+    if not git_identity:
+        # A broken gitdir still has files. Size and mtime change when those files change.
         for path in sorted(item for item in real.rglob("*") if item.is_file()):
+            stat = path.stat()
             digest.update(str(path.relative_to(real)).encode())
-            digest.update(path.read_bytes())
+            digest.update(str(stat.st_size).encode())
+            digest.update(str(stat.st_mtime_ns).encode())
             digest.update(b"\0")
 print(digest.hexdigest())
 PY

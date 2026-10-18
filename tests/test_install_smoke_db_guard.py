@@ -237,6 +237,8 @@ def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> Non
     assert "--stop-after-init" in log
 
 
-def test_cache_hit_is_not_described_as_install_proof() -> None:
+def test_recheck_is_the_smoke_evidence_gate() -> None:
     text = (ROOT / "scripts" / "pr_check_run.sh").read_text(encoding="utf-8")
-    assert "cache hit is not environment-specific install proof" in text
+    assert "--recheck" in text
+    assert "smoke_fingerprint" not in text
+    assert "cache hit is not environment-specific install proof" not in text
