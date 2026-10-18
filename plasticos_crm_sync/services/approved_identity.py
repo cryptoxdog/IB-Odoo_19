@@ -3,6 +3,7 @@
 The CSV is an allowlist of source IDs. It is not an Odoo import file.
 Phase 0 binds the contact note to the VanillaSoft custom field ``Notes``.
 Call comments are a different payload and are never that note.
+The note is appended to the ERP person's ``res.partner.comment``.
 """
 
 from __future__ import annotations
@@ -11,6 +12,8 @@ import csv
 import hashlib
 import io
 import re
+from html import escape
+from html.parser import HTMLParser
 from pathlib import Path
 
 CROSSWALK_PARAM = "plasticos_crm_sync.approved_contact_crosswalk"
@@ -25,10 +28,6 @@ MOBILE_PHONE_NAMES = frozenset({"mobile", "mobile 1", "mobile 2", "cell"})
 
 class CrosswalkError(ValueError):
     """The configured crosswalk is missing or does not match the pinned census."""
-
-
-class CrosswalkBlocked(Exception):
-    """An approved contact note cannot be stored without a new field."""
 
 
 def xmlid_name(ct_id: str) -> str:
@@ -122,41 +121,75 @@ def contact_note_text(custom_fields: dict[str, str] | None) -> str:
     return str(custom_fields.get(CONTACT_NOTE_KEY) or "").strip()
 
 
-def append_note(existing: str | None, note: str) -> str | None:
-    """Return the appended description, or ``None`` when nothing should be written."""
-    text = (note or "").strip()
+_BLOCK_TAGS = frozenset({"p", "div", "li", "blockquote", "pre", "tr", "h1", "h2", "h3", "h4", "h5", "h6"})
+
+
+class _CommentBlocks(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.blocks: list[str] = []
+        self._parts: list[str] = []
+
+    def flush(self) -> None:
+        text = _squash("".join(self._parts))
+        if text:
+            self.blocks.append(text)
+        self._parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _BLOCK_TAGS:
+            self.flush()
+        elif tag == "br":
+            self._parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in _BLOCK_TAGS:
+            self.flush()
+
+    def handle_data(self, data):
+        self._parts.append(data)
+
+
+def _squash(text: str) -> str:
+    return " ".join(str(text or "").split())
+
+
+def comment_blocks(comment: str | None) -> tuple[str, ...]:
+    """The text of each paragraph in an Html ``comment``, whitespace collapsed."""
+    parser = _CommentBlocks()
+    parser.feed(str(comment or ""))
+    parser.close()
+    parser.flush()
+    return tuple(parser.blocks)
+
+
+def comment_holds(comment: str | None, note: str) -> bool:
+    """True when one paragraph, or a run of adjacent paragraphs, has the text of ``note``."""
+    text = _squash(note)
     if not text:
-        return None
-    current = existing or ""
-    if current.rstrip().endswith(text):
-        return None
-    if not current:
-        return text
-    separator = "" if current.endswith("\n") else "\n"
-    return f"{current}{separator}{text}"
-
-
-def note_held_by_fields(fields: dict | None, note: str) -> bool:
-    text = (note or "").strip()
-    if not text or not isinstance(fields, dict):
         return False
-    stored = str(fields.get(CONTACT_NOTE_KEY) or "").strip()
-    return bool(stored) and (stored == text or stored.rstrip().endswith(text))
+    blocks = comment_blocks(comment)
+    for start in range(len(blocks)):
+        joined = ""
+        for block in blocks[start:]:
+            joined = f"{joined} {block}" if joined else block
+            if joined == text:
+                return True
+            if len(joined) >= len(text):
+                break
+    return False
 
 
-def fields_with_contact_note(fields: dict | None, note: str) -> dict | None:
-    """Place ``Notes`` on an existing provider row. ``None`` means no write."""
+def comment_with_note(comment: str | None, note: str) -> str | None:
+    """``comment`` with ``note`` appended as its own paragraph. ``None`` means no write.
+
+    Whole paragraphs are compared, so the ERP notes and any other CRM note on
+    the partner are kept as they are.
+    """
     text = (note or "").strip()
-    if not text:
+    if not text or comment_holds(comment, text):
         return None
-    current = dict(fields or {})
-    if note_held_by_fields(current, text):
-        return None
-    merged = append_note(str(current.get(CONTACT_NOTE_KEY) or ""), text)
-    if merged is None:
-        return None
-    current[CONTACT_NOTE_KEY] = merged
-    return current
+    return f"{comment or ''}<p>{escape(text, quote=False)}</p>"
 
 
 def phone_kinds(phones: object) -> tuple[tuple[str, str], ...]:

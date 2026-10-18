@@ -980,6 +980,45 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(visible, profile)
         self.assertEqual(lead.material_profile_count, 1)
 
+    def test_approved_contact_notes_append_to_the_erp_comment_and_replay(self):
+        person = self.env["res.partner"].create(
+            {"name": "ERP Person", "phone": "555-0100", "comment": "negotiate prices\nrequest PO"}
+        )
+        self.env["ir.model.data"].create(
+            {
+                "module": "plasticos_transaction",
+                "name": "legacy_erp_contact_77",
+                "model": "res.partner",
+                "res_id": person.id,
+                "noupdate": True,
+            }
+        )
+        erp_comment = person.comment
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-n1": "77", "vs-n2": "77"}
+        orch._crosswalk_ready = True
+        first = self._lead("vs-n1", contact_note="CRM history & terms")
+        second = self._lead("vs-n2", contact_note="second contact\nnote")
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, first)
+        orch._upsert_lead(self.connection, second)
+        self.assertEqual(orch.outcomes["updated"], 2)
+        appended = person.comment
+        self.assertTrue(appended.startswith(erp_comment))
+        self.assertIn("<p>CRM history &amp; terms</p>", appended)
+        self.assertIn("second contact", appended)
+
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, first)
+        orch._upsert_lead(self.connection, second)
+        self.assertEqual(orch.outcomes["unchanged"], 2)
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(person.comment, appended)
+        self.assertEqual(person.phone, "555-0100")
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+
 
 @tagged("post_install", "-at_install", "-standard", "crm_sync_semantic_kernel")
 class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):

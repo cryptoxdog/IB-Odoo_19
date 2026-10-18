@@ -13,10 +13,9 @@ from plasticos_crm_sync.services.approved_identity import (
     PINNED_SHA256,
     PINNED_VS_COUNT,
     CrosswalkError,
-    append_note,
+    comment_blocks,
+    comment_with_note,
     contact_note_text,
-    fields_with_contact_note,
-    note_held_by_fields,
     phone_kinds,
     phone_match_key,
     validate_crosswalk,
@@ -68,9 +67,24 @@ def test_contact_note_is_the_notes_custom_field_not_a_call_comment():
     dto = contact_to_canonical(raw)
     assert dto.contact_note == "CRM history"
     assert contact_note_text({"Notes (LDPE)": "film"}) == ""
-    assert append_note("<p>ERP</p>", "CRM history") == "<p>ERP</p>\nCRM history"
-    assert append_note("<p>ERP</p>\nCRM history", "CRM history") is None
-    assert append_note("", "") is None
+
+
+def test_crm_note_is_appended_after_the_erp_notes_and_replays():
+    erp = "<p>negotiate prices with Rich\nrequest PO</p>"
+    first = comment_with_note(erp, "CRM history & terms")
+    assert first == erp + "<p>CRM history &amp; terms</p>"
+    assert comment_blocks(first) == ("negotiate prices with Rich request PO", "CRM history & terms")
+    assert comment_with_note(first, "CRM history & terms") is None
+    second = comment_with_note(first, "second contact note")
+    assert comment_blocks(second)[-1] == "second contact note"
+    assert comment_with_note(second, "CRM history & terms") is None
+    assert comment_with_note(False, "only CRM") == "<p>only CRM</p>"
+    assert comment_with_note(erp, "  ") is None
+
+
+def test_note_presence_is_a_whole_paragraph_not_a_substring():
+    assert comment_with_note("<p>look here</p>", "ok") == "<p>look here</p><p>ok</p>"
+    assert comment_with_note("<p>first line</p><p>second line</p>", "first line\nsecond line") is None
 
 
 def test_phone_token_match_is_the_whole_number():
@@ -87,8 +101,3 @@ def test_phone_token_match_is_the_whole_number():
     assert phone_match_key("+1 (555) 123-4567") == phone_match_key("555-123-4567")
     assert phone_match_key("555-123-4567 ext 12") == phone_match_key("5551234567")
     assert phone_match_key("555-0100") != phone_match_key("555-01000")
-    stored = fields_with_contact_note({"Material": "LDPE"}, "CRM history")
-    assert stored is not None
-    assert stored["Notes"] == "CRM history"
-    assert note_held_by_fields(stored, "CRM history")
-    assert fields_with_contact_note(stored, "CRM history") is None

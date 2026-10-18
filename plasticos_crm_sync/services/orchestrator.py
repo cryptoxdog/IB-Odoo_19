@@ -10,12 +10,9 @@ from ..adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError
 from ..adapters.registry import get_adapter
 from .approved_identity import (
     XMLID_MODULE,
-    CrosswalkBlocked,
     CrosswalkError,
-    append_note,
-    fields_with_contact_note,
+    comment_with_note,
     load_crosswalk_map,
-    note_held_by_fields,
     phone_match_key,
     xmlid_name,
 )
@@ -1070,8 +1067,11 @@ class SyncOrchestrator:
             wrote = True
         return wrote
 
-    def _bind_approved_contact(self, connection, dto: CanonicalLead, ct_id: str, adapter=None):
-        """Bind one approved ContactID onto the existing ERP person. No new lead."""
+    def _bind_approved_contact(self, dto: CanonicalLead, ct_id: str):
+        """Bind one approved ContactID onto the existing ERP person. No new lead.
+
+        The CRM note is appended to the person's ``comment`` after the ERP notes.
+        """
         outcomes = getattr(self, "outcomes", None)
         Lead = self.env[CRM_LEAD]
         partner, reason = self._erp_person_for_ct(ct_id)
@@ -1125,39 +1125,12 @@ class SyncOrchestrator:
                 elif lead and getattr(lead, "vanillasoft_sync_archived", False) and not dto.deleted:
                     lead.write({"active": True, "vanillasoft_sync_archived": False})
                     wrote = True
-                if lead and dto.contact_note:
-                    appended = append_note(lead.description or "", dto.contact_note)
-                    if appended is not None:
-                        lead.write({"description": appended})
-                        wrote = True
+                comment = comment_with_note(partner.comment, dto.contact_note)
+                if comment is not None:
+                    partner.write({"comment": comment})
+                    wrote = True
                 if not dto.deleted and self._add_approved_phones(partner, dto):
                     wrote = True
-                if dto.contact_note and not lead:
-                    if adapter is None:
-                        raise CrosswalkBlocked("BLOCKED: contact note has no lead and no provider rows were requested")
-                    self._sync_tables_for_lead(connection, adapter, dto.external_id, None)
-                    rows = self.env["plasticos.crm.external.table.row"].search(
-                        [
-                            ("provider", "=", dto.provider),
-                            ("contact_external_id", "=", dto.external_id),
-                        ]
-                    )
-                    held = False
-                    for row in rows:
-                        if note_held_by_fields(row.fields_json or {}, dto.contact_note):
-                            held = True
-                            continue
-                        merged = fields_with_contact_note(row.fields_json or {}, dto.contact_note)
-                        if merged is not None:
-                            row.write({"fields_json": merged})
-                            held = True
-                            wrote = True
-                    if not held:
-                        raise CrosswalkBlocked("BLOCKED: contact note has no lead and no landed provider table row")
-        except CrosswalkBlocked as exc:
-            self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
-            self.last_lead_outcome = "failed"
-            return Lead.browse()
         except Exception as exc:  # noqa: BLE001 - per-record failure is recorded, never silent loss
             self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
             self.last_lead_outcome = "failed"
@@ -1234,7 +1207,7 @@ class SyncOrchestrator:
         self.last_lead_outcome = None
         ct_id = self._approved_ct_id(dto.external_id)
         if ct_id:
-            return self._bind_approved_contact(connection, dto, ct_id, adapter)
+            return self._bind_approved_contact(dto, ct_id)
         Lead = self.env[CRM_LEAD]
         Ref = self.env["plasticos.crm.external.ref"]
         ref = Ref.search(
