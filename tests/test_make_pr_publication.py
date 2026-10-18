@@ -13,6 +13,8 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 PIPELINE = "scripts/make_push_pipeline.sh"
 PUSH = "scripts/git_push_with_pr.sh"
@@ -580,6 +582,8 @@ exit 0
 
 
 def test_real_gitleaks_rejects_a_seeded_secret(tmp_path: Path) -> None:
+    if shutil.which("gitleaks") is None:
+        pytest.skip("gitleaks is not installed in this job; the push script refuses a missing binary")
     repo = tmp_path / "scan"
     repo.mkdir()
     shutil.copy(ROOT / ".gitleaks.toml", repo / ".gitleaks.toml")
@@ -667,7 +671,7 @@ fi
 exit 0
 """,
     )
-    env = os.environ.copy()
+    env = {key: value for key, value in os.environ.items() if not key.startswith(("COV_CORE_", "COVERAGE_"))}
     env["PATH"] = f"{bindir}{os.pathsep}{Path(REAL_PYTHON).parent}{os.pathsep}/usr/bin{os.pathsep}/bin"
     env["HOME"] = str(tmp_path / "home")
     env["POSTGRES_PASSWORD"] = "odoo"
