@@ -1091,22 +1091,31 @@ parse_test_args() {
 # upgrades the PlasticOS modules that depend on them, and nothing else. Tests are
 # restricted to the roster, or to one module. Odoo's own summary line is the
 # evidence: a missing line, a failure, an error, or zero tests fails the run.
+# The fingerprint leaves addon source out, so the receipt names the source that
+# was tested: its digest, the Git head, and whether the worktree differs from
+# that head. Source that changes during the run was not the source tested, and
+# gets no receipt.
 run_tests() {
-  local target="$1" scope="${TEST_SCOPE// /,}" log receipt rc=0 summary failed errors total
+  local target="$1" scope="${TEST_SCOPE// /,}" log receipt rc=0 summary failed errors total head changes dirty=false
   mkdir -p "$EVIDENCE_DIR"
   log="$EVIDENCE_DIR/${target}.test.log"
   receipt="$EVIDENCE_DIR/${target}.test-receipt.json"
   rm -f "$receipt"
+  head="$(git -C "$ROOT" rev-parse --verify -q HEAD)" || die "cannot name the Git head of $ROOT; a receipt must name the tested revision"
+  changes="$(git -C "$ROOT" --no-optional-locks status --porcelain)" || die "cannot read the worktree state of $ROOT"
+  [ -z "$changes" ] || dirty=true
   echo "→ Upgrading $(tr ',' '\n' <<<"$TEST_ROSTER" | wc -l | tr -d ' ') PlasticOS modules on $target; tests: ${scope:-the PlasticOS roster}"
   compose run --rm --no-deps -T ${RUN_OPTS[@]+"${RUN_OPTS[@]}"} odoo odoo --test-enable --stop-after-init --log-level=test \
     -u "$TEST_ROSTER" --test-tags "$TEST_TAGS" -d "$target" --addons-path="$(addons_path)" </dev/null 2>&1 |
     tee "$log" || rc=$?
+  [ "$(addon_source)" = "$TEST_SOURCE" ] ||
+    die "PlasticOS addon source changed during the run on $target; it is not the source that was tested (no receipt written)"
   summary="$(grep -E "odoo\.tests\.result: [0-9]+ failed, [0-9]+ error\(s\) of [0-9]+ tests when loading database '$target'" "$log" | tail -1 || true)"
   [ -n "$summary" ] ||
     die "no Odoo test summary for $target (exit $rc); the run is not evidence of anything (log: ${log#"$ROOT"/})"
   read -r failed errors total < <(sed -E 's/.*: ([0-9]+) failed, ([0-9]+) error\(s\) of ([0-9]+) tests .*/\1 \2 \3/' <<<"$summary")
-  printf '{"database": "%s", "template": "%s", "fingerprint": "%s", "scope": "%s", "upgraded": "%s", "tests": %d, "failed": %d, "errors": %d, "exit": %d, "log": "%s"}\n' \
-    "$target" "$TEMPLATE_DB" "$FP" "${scope:-roster}" "$TEST_ROSTER" "$total" "$failed" "$errors" "$rc" "${log#"$ROOT"/}" >"$receipt"
+  printf '{"database": "%s", "template": "%s", "fingerprint": "%s", "head": "%s", "dirty": %s, "source": "%s", "scope": "%s", "upgraded": "%s", "tests": %d, "failed": %d, "errors": %d, "exit": %d, "log": "%s"}\n' \
+    "$target" "$TEMPLATE_DB" "$FP" "$head" "$dirty" "$TEST_SOURCE" "${scope:-roster}" "$TEST_ROSTER" "$total" "$failed" "$errors" "$rc" "${log#"$ROOT"/}" >"$receipt"
   echo "tests: $total run, $failed failed, $errors error(s) on $target (scope ${scope:-roster}; receipt ${receipt#"$ROOT"/})"
   [ "$total" -gt 0 ] || die "zero tests ran for ${scope:-the PlasticOS roster}; an empty run is a failure"
   [ "$failed" -eq 0 ] && [ "$errors" -eq 0 ] || die "$failed failed, $errors error(s) of $total tests"

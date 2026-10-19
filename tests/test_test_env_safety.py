@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -230,6 +231,9 @@ if args[:1] == ["info"]:
     out()
 if args[:1] == ["compose"]:
     if "run" in args and "--test-enable" in args:
+        if os.environ.get("STUB_EDIT_DURING_TEST"):
+            with open(os.environ["STUB_EDIT_DURING_TEST"], "a") as edited:
+                edited.write("# edited while the tests ran" + chr(10))
         sys.stdout.write(os.environ.get("STUB_ODOO_LOG", ""))
         sys.exit(int(os.environ.get("STUB_ODOO_RC", "0")))
     if "run" in args and os.environ.get("STUB_READ_STDIN"):
@@ -274,7 +278,12 @@ out()
 
 
 def _stateful(
-    tmp_path: Path, databases: dict[str, str], *args: str, input_text: str | None = None, **env: str
+    tmp_path: Path,
+    databases: dict[str, str],
+    *args: str,
+    input_text: str | None = None,
+    root: Path = ROOT,
+    **env: str,
 ) -> subprocess.CompletedProcess:
     stub = tmp_path / "sbin" / "docker"
     stub.parent.mkdir(exist_ok=True)
@@ -286,7 +295,7 @@ def _stateful(
         "PATH": f"{stub.parent}{os.pathsep}{os.environ['PATH']}",
         "HOME": str(tmp_path),
         "STUB_STATE": str(state),
-        "STUB_ROOT": str(ROOT),
+        "STUB_ROOT": str(root),
         "STUB_LOG": str(tmp_path / "stub.log"),
         "TEST_ENV_OWNER": "agenta",
         "TEST_ENV_PARITY": "community",
@@ -295,24 +304,24 @@ def _stateful(
         **env,
     }
     return subprocess.run(
-        ["bash", str(SCRIPT), *args],
+        ["bash", str(root / "scripts" / "test_env.sh"), *args],
         capture_output=True,
         text=True,
         env=environ,
-        cwd=ROOT,
+        cwd=root,
         check=False,
         input=input_text,
     )
 
 
-def _fingerprint(tmp_path: Path, **env: str) -> str:
-    status = _stateful(tmp_path, {}, "status", **env)
+def _fingerprint(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+    status = _stateful(tmp_path, {}, "status", root=root, **env)
     assert status.returncode == 0, status.stderr
     return re.search(r"fingerprint:\s+([0-9a-f]{64})", status.stdout).group(1)
 
 
-def _source(tmp_path: Path, **env: str) -> str:
-    status = _stateful(tmp_path, {}, "status", **env)
+def _source(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+    status = _stateful(tmp_path, {}, "status", root=root, **env)
     assert status.returncode == 0, status.stderr
     return re.search(r"source:\s+([0-9a-f]{64})", status.stdout).group(1)
 
@@ -508,11 +517,11 @@ def _summary(failed: int, errors: int, total: int, db: str = "odoo_test_a") -> s
     )
 
 
-def _test_run(tmp_path: Path, *recipe: str, **env: str) -> subprocess.CompletedProcess:
+def _test_run(tmp_path: Path, *recipe: str, root: Path = ROOT, **env: str) -> subprocess.CompletedProcess:
     base = _enterprise(tmp_path)
-    fp = _fingerprint(tmp_path, **base)
+    fp = _fingerprint(tmp_path, root=root, **base)
     databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)}
-    return _stateful(tmp_path, databases, "run", "odoo_test_a", "--", *recipe, **base, **env)
+    return _stateful(tmp_path, databases, "run", "odoo_test_a", "--", *recipe, root=root, **base, **env)
 
 
 def _odoo_call(tmp_path: Path) -> str:
@@ -534,10 +543,12 @@ def test_full_suite_upgrades_the_roster_and_reports_the_count(tmp_path):
     tags = ",".join(f"/{m}" for m in ROSTER.split(","))
     assert f" --test-tags {tags} " in call
     assert " -d odoo_test_a " in call
-    receipt = json.loads((tmp_path / "evidence" / "odoo_test_a.test-receipt.json").read_text())
+    receipt = _receipt(tmp_path)
     assert receipt["tests"] == 37
     assert receipt["template"] == PINNED_FIXTURE
     assert (receipt["failed"], receipt["errors"], receipt["exit"]) == (0, 0, 0)
+    assert receipt["head"] == _git(ROOT, "rev-parse", "HEAD")
+    assert isinstance(receipt["dirty"], bool)
 
 
 def test_module_test_upgrades_the_roster_and_runs_only_that_module(tmp_path):
@@ -557,6 +568,104 @@ def test_module_test_upgrades_the_roster_and_runs_only_that_module(tmp_path):
     call = _odoo_call(tmp_path)
     assert f" -u {ROSTER} " in call
     assert " --test-tags /plasticos_commission " in call
+
+
+# ---------------------------------------------------------------------------
+# F261-4: the receipt names the source that was tested. The fingerprint leaves
+# addon source out, so the receipt carries the addon digest, the Git head, and
+# whether the worktree differed from that head.
+# ---------------------------------------------------------------------------
+_CHECKOUT_FILES = (
+    "scripts/test_env.sh",
+    "scripts/get_odoo_module_order.py",
+    "config/test_env_fixture.conf",
+    "config/odoo_module_order.yaml",
+    "docker-compose.yml",
+)
+
+
+def _git(root: Path, *args: str) -> str:
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def _git_checkout(tmp_path: Path) -> tuple[Path, str]:
+    """A committed copy of the runner and its inputs with one PlasticOS addon file; returns (root, head)."""
+    root = tmp_path / "checkout"
+    for rel in _CHECKOUT_FILES:
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / rel, root / rel)
+    (root / "plasticos_base").mkdir()
+    (root / "plasticos_base" / "__init__.py").write_text("# fixture addon\n")
+    _git(root, "init", "-q")
+    _git(root, "add", "-A")
+    identity = {
+        "GIT_AUTHOR_NAME": "fixture",
+        "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
+        "GIT_COMMITTER_NAME": "fixture",
+        "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
+    }
+    head = subprocess.run(
+        ["git", "-C", str(root), "commit-tree", _git(root, "write-tree"), "-m", "fixture"],
+        capture_output=True,
+        text=True,
+        env={**os.environ, **identity},
+        check=True,
+    ).stdout.strip()
+    _git(root, "update-ref", "HEAD", head)
+    return root, head
+
+
+def _receipt(tmp_path: Path) -> dict:
+    return json.loads((tmp_path / "evidence" / "odoo_test_a.test-receipt.json").read_text())
+
+
+def test_receipt_binds_the_tested_source_to_a_clean_head(tmp_path):
+    root, head = _git_checkout(tmp_path)
+    source = _source(tmp_path, root=root, **_enterprise(tmp_path))
+    result = _test_run(tmp_path, *TEST_RECIPE, "-d", "odoo_test_a", root=root, STUB_ODOO_LOG=_summary(0, 0, 37))
+    assert result.returncode == 0, result.stderr
+    receipt = _receipt(tmp_path)
+    assert (receipt["head"], receipt["dirty"], receipt["source"]) == (head, False, source)
+
+
+@pytest.mark.parametrize(
+    ("path", "addon"),
+    [
+        ("plasticos_base/__init__.py", True),  # uncommitted edit of a tracked addon file
+        ("plasticos_base/models.py", True),  # untracked addon file the container loads
+        ("docs/notes.md", False),  # a change outside the addons still is not the head
+    ],
+)
+def test_receipt_of_a_worktree_that_differs_from_its_head_is_dirty(tmp_path, path, addon):
+    """A receipt never claims a clean head for source that is not that head."""
+    root, head = _git_checkout(tmp_path)
+    clean = _source(tmp_path, root=root, **_enterprise(tmp_path))
+    (root / path).parent.mkdir(parents=True, exist_ok=True)
+    with (root / path).open("a") as handle:
+        handle.write("# not committed\n")
+    result = _test_run(tmp_path, *TEST_RECIPE, "-d", "odoo_test_a", root=root, STUB_ODOO_LOG=_summary(0, 0, 37))
+    assert result.returncode == 0, result.stderr
+    receipt = _receipt(tmp_path)
+    assert receipt["head"] == head
+    assert receipt["dirty"] is True
+    assert (receipt["source"] != clean) is addon
+
+
+def test_addon_source_changed_during_the_run_leaves_no_receipt(tmp_path):
+    """The digest is of the bytes Odoo loaded: an edit during the run is not the tested source."""
+    root, _ = _git_checkout(tmp_path)
+    result = _test_run(
+        tmp_path,
+        *TEST_RECIPE,
+        "-d",
+        "odoo_test_a",
+        root=root,
+        STUB_ODOO_LOG=_summary(0, 0, 37),
+        STUB_EDIT_DURING_TEST=str(root / "plasticos_base" / "__init__.py"),
+    )
+    assert result.returncode != 0, result.stdout
+    assert "changed during the run" in result.stderr, result.stderr
+    assert not (tmp_path / "evidence" / "odoo_test_a.test-receipt.json").exists()
 
 
 @pytest.mark.parametrize(

@@ -41,7 +41,7 @@ That treats a `--test-enable` run as its test runner:
 | Upgrade | `-u` every declared PlasticOS module on the clone (`scripts/get_odoo_module_order.py`); never `-u all` |
 | Tests | `--test-tags` limits them to the roster, or to `m=` |
 | Verdict | Odoo's `N failed, N error(s) of N tests when loading database '<db>'` line. A missing line, any failure or error, a non-zero exit, or **zero tests** fails |
-| Receipt | `.l9/runtime/test-env/<db>.test-receipt.json` (tests, failed, errors, exit, scope, fixture) |
+| Receipt | `.l9/runtime/test-env/<db>.test-receipt.json` (tests, failed, errors, exit, scope, fixture, and the tested source: `source` addon digest, Git `head`, `dirty` when the worktree differs from that head). Addon source that changes during the run gets no receipt |
 
 Any other `scripts/test_env.sh run` (`make import-erp-test`, a guarded
 `make import-vanillasoft`, `shell`, `make runtime-gate-f1`) first upgrades the
