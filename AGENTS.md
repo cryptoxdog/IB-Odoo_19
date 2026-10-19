@@ -91,7 +91,7 @@ Editor semantics for Odoo models, XML, and JavaScript come from the official `Od
 | Source | Path | Indexed | OdooLS diagnostics |
 |--------|------|---------|--------------------|
 | Community | `${userHome}/dev/odoo-19` | yes | suppressed |
-| Enterprise | `${userHome}/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise` | diagnostic filter is set; gitignored `odoo-enterprise/` is not auto-detected into `addons_paths` | suppressed |
+| Enterprise | `${userHome}/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise` on `addons_paths`. `$autoDetectAddons` still skips the gitignored `odoo-enterprise` symlink | yes | suppressed |
 | PlasticOS | this workspace | yes | published |
 
 `diagnostic_filters` uses `path_type = "in"` on those two upstream trees and does not name diagnostic codes. Do not globally disable OLS codes. Do not set `disable_javascript` or an empty `tsserver_command`. JavaScript semantics need TypeScript 6 `tsserver` on `PATH` (`npm install -g typescript@6`).
