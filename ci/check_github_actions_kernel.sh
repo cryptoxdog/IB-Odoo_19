@@ -52,12 +52,7 @@ for f in "${FILES[@]}"; do
     [[ -f "$f" ]] || continue
     base="$(basename "$f")"
 
-    # triggers — each workflow must declare on:
-    if grep -qE '^[[:space:]]*on:' "$f"; then
-        pass "$base: triggers (on: present)"
-    else
-        fail "$base: missing workflow triggers (on:)"
-    fi
+    # Event keys are checked structurally below, not as source-text substrings.
 
     # hard_ban — wildcard permissions
     if grep -qE 'write-all|read-all|permissions:[[:space:]]*\*' "$f"; then
@@ -85,6 +80,9 @@ except Exception as e:
     sys.exit(1)
 if not isinstance(data, dict):
     print('Workflow root must be a mapping', file=sys.stderr)
+    sys.exit(1)
+if 'on' not in data and True not in data:
+    print('Workflow must declare events', file=sys.stderr)
     sys.exit(1)
 jobs = data.get('jobs') or {}
 if jobs and not isinstance(jobs, dict):
@@ -123,10 +121,10 @@ sys.exit(0)
     # non-zero. ci.yml must also run this kernel in static-checks, so the
     # invariant is enforced by CI, not only by local `make commit`.
     if [[ "$base" == "ci.yml" ]]; then
-        if python3 -c "
-import re, sys, yaml
+        if python3 - "$f" <<'PY'
+import re, shlex, sys, yaml
 from pathlib import Path
-data = yaml.safe_load(Path('$f').read_text())
+data = yaml.safe_load(Path(sys.argv[1]).read_text())
 jobs = data.get('jobs') or {}
 required = {'lint', 'static-checks', 'pure-python-tests', 'gate-sdk-tests', 'secret-scan', 'audit-baseline'}
 missing = required - jobs.keys()
@@ -149,16 +147,43 @@ def fail_closed_problems(job):
     steps = job.get('steps') or []
     if any(fail_open(s.get('continue-on-error')) for s in steps):
         problems.append('a step has continue-on-error')
-    script = '\n'.join(str(s.get('run') or '') for s in steps)
-    # Each required result must be compared (!= success), not merely echoed.
-    unchecked = [
-        j for j in sorted(required)
-        if not re.search(r'needs\.' + re.escape(j) + r'\.result[^\n]*?!=\s*[\x27\x22]?success', script)
-    ]
-    if unchecked:
-        problems.append(f'run script never compares needs.<job>.result != success for {unchecked}')
-    if not re.search(r'\bexit\s+[1-9]', script):
-        problems.append('run script never exits non-zero')
+    scripts = [str(s.get('run') or '') for s in steps if s.get('run')]
+    if len(scripts) != 1:
+        problems.append('aggregator must have exactly one executable run step')
+        return problems
+    # Gate-result shell is deliberately a tiny language: echo diagnostics,
+    # one OR of all six actual status checks, unconditional exit 1, then echo.
+    # Grepping substrings is unsafe: comments and dead code can fake compliance.
+    lines = [line.strip() for line in scripts[0].replace('\\\n', ' ').splitlines()
+             if line.strip() and not line.lstrip().startswith('#')]
+    starts = [i for i, line in enumerate(lines) if line.startswith('if ')]
+    if len(starts) != 1:
+        problems.append('aggregator requires one executable fail-closed if')
+        return problems
+    pos = starts[0]
+    atom = r'\[\s*"\$\{\{\s*needs\.([a-z0-9-]+)\.result\s*\}\}"\s*!=\s*"success"\s*\]'
+    names = re.findall(atom, lines[pos])
+    shape = re.sub(atom, '@', lines[pos])
+    if len(names) != len(required) or set(names) != required or not re.fullmatch(
+        r'if\s+@(?:\s*\|\|\s*@){5}\s*;\s*then', shape
+    ):
+        problems.append('aggregator must OR every actual needs result against success')
+    if lines[pos + 1:pos + 4] != [
+        'echo "::error::One or more CI Gate jobs failed — see the job that reported ❌ above."',
+        'exit 1',
+        'fi',
+    ]:
+        problems.append('aggregator failure branch must unconditionally exit 1')
+    def safe_echo(line):
+        if not line.startswith('echo "') or not line.endswith('"'):
+            return False
+        content = line[6:-1]
+        content = re.sub(r'\$\{\{\s*needs\.[a-z0-9-]+\.result\s*\}\}', '', content)
+        return not any(char in content for char in ('$', '`', '\\', '"'))
+    for line in lines[:pos] + lines[pos + 4:]:
+        if not safe_echo(line):
+            problems.append('aggregator contains executable code outside the verified gate')
+            break
     return problems
 
 candidates = []
@@ -181,8 +206,51 @@ static_run = '\n'.join(str(s.get('run') or '') for s in (jobs['static-checks'].g
 if not re.search(r'run_check\b[^\n]*check_github_actions_kernel\.sh', static_run):
     print('static-checks must run ci/check_github_actions_kernel.sh via run_check (blocking)', file=sys.stderr)
     sys.exit(1)
+
+# Read YAML structure rather than looking for strings that could be comments.
+events = data.get('on', data.get(True))
+if not isinstance(events, dict) or set(events) != {'push', 'pull_request', 'workflow_dispatch'}:
+    raise SystemExit('CI events: expected push, pull_request and workflow_dispatch only')
+push = events.get('push')
+if not isinstance(push, dict) or push != {'branches': ['Staging', 'Production']}:
+    raise SystemExit('CI events: feature pushes must not duplicate pull-request CI')
+if events.get('pull_request') not in (None, {}):
+    raise SystemExit('CI events: pull_request must retain opened/synchronize/reopened without filters')
+
+job = jobs['pure-python-tests']
+if 'if' in job or fail_open(job.get('continue-on-error')):
+    raise SystemExit('pure-python-tests must run unconditionally and fail closed')
+if str((job.get('env') or {}).get('PLASTICOS_CONTRACT_CI')) != '1':
+    raise SystemExit('pure-python-tests must enforce mandatory contract execution')
+steps = job.get('steps') or []
+selected = [step for step in steps if step.get('id') == 'pure-tests']
+if len(selected) != 1:
+    raise SystemExit('exactly one pure-tests step must own the complete pytest invocation')
+step = selected[0]
+if 'if' in step or fail_open(step.get('continue-on-error')) or step.get('working-directory'):
+    raise SystemExit('pure-tests must not be conditional, masked, or moved out of the repository root')
+for env in (data.get('env') or {}, job.get('env') or {}, step.get('env') or {}):
+    if any(key in env for key in ('PYTEST_ADDOPTS', 'PYTEST_PLUGINS', 'PYTEST_DISABLE_PLUGIN_AUTOLOAD',
+                                 'PLASTICOS_SMOKE_SOURCE')):
+        raise SystemExit('pytest runtime selection/plugin overrides require explicit review')
+if (step.get('env') or {}).get('PLASTICOS_CONTRACT_CI', '1') != '1':
+    raise SystemExit('pure-tests cannot disable mandatory contracts')
+# This owner intentionally admits one simple invocation, not arbitrary shell control flow.
+script = str(step.get('run') or '').replace('\\\n', ' ')
+tokens = shlex.split(script, comments=True)
+expected = ['python3', '-m', 'pytest', 'tests/', '-v', '--cov=.',
+            '--cov-report=term-missing:skip-covered', '--junitxml=artifacts/pytest/pure-python.xml']
+if tokens != expected:
+    raise SystemExit('pure-tests must execute the full tests/ tier once; filtering or failure masking is forbidden')
+if sum(len(re.findall(r'(?m)^\s*python3\s+-m\s+pytest\b', str(s.get('run') or ''))) for s in steps) != 1:
+    raise SystemExit('the pure-Python job must not duplicate pytest execution')
+reports = [step for step in steps if str(step.get('uses') or '').startswith('actions/upload-artifact@')]
+if not any(step.get('if') == 'always()' and (step.get('with') or {}).get('path') == 'artifacts/pytest/'
+           and (step.get('with') or {}).get('if-no-files-found') == 'error' for step in reports):
+    raise SystemExit('pure-python-tests must retain JUnit evidence even when tests fail')
 sys.exit(0)
-"; then
+PY
+        then
             pass "$base: merge_gate_logic (fail-slow parallel Phase 1 + fail-closed aggregator + kernel enforced in CI)"
         else
             fail "$base: ci.yml must run every Phase 1 job (lint/static-checks/pure-python-tests/gate-sdk-tests/secret-scan/audit-baseline) in parallel (no needs:) with a fail-closed aggregator (needs: all of them + if: always(), no continue-on-error, compares each needs.<job>.result != success and exits non-zero) and must run this kernel in static-checks"
