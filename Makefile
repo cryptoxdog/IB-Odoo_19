@@ -71,7 +71,7 @@ help:
 	@echo "──────────────────────────────────────────────────────"
 	@echo ""
 	@echo "  Code Quality"
-	@echo "    make venv             build pinned local Python dev toolchain (.venv from requirements-dev.txt; CI-aligned versions)"
+	@echo "    make venv             build .venv from requirements-dev.txt plus the requirements.txt Gate SDK pin"
 	@echo "    make install-extensions  install .vscode/extensions.json recommendations via cursor/code CLI"
 	@echo "    make lint             ruff check (lint only)"
 	@echo "    make format           ruff format --check (check only)"
@@ -173,24 +173,34 @@ help:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Build the pinned local Python developer toolchain (.venv), aligned with the
-# Python tool versions CI pins. requirements-dev.txt is the single pin source
-# (ruff, semgrep, mypy, pytest + plugins, pr-repair); nothing is re-pinned here.
+# Python tool versions CI pins. requirements-dev.txt is the toolchain pin
+# source (ruff, semgrep, mypy, pytest + plugins, pr-repair). OdooLS uses this
+# same interpreter (odools.toml python_path), so the target also installs the
+# constellation-node-sdk requirement from requirements.txt. That file stays
+# the only copy of the Gate SDK SHA. The SDK is installed with --no-deps so
+# its FastAPI 0.142+ extra cannot move semgrep's OpenTelemetry pin.
+# requirements-dev.txt pins FastAPI 0.141.1, which the SDK package init imports.
+# Odoo itself is not installed here.
 # System capabilities CI also uses (shellcheck, gitleaks, xmllint) are NOT
 # installed by this target — install them separately. The .envrc (direnv)
 # auto-activates it; `make` also auto-prefers .venv/bin/ruff via $(RUFF).
 # Idempotent: safe to re-run to repair/upgrade the environment.
 VENV ?= .venv
 venv:
-	@echo "→ Building $(VENV) (python3.12, pinned dev toolchain)..."
+	@echo "→ Building $(VENV) (python3.12, pinned dev toolchain + Gate SDK pin)..."
 	python3.12 -m venv $(VENV)
 	@$(VENV)/bin/python -m pip install --quiet --upgrade pip
 	$(VENV)/bin/python -m pip install -r requirements-dev.txt
+	@sdk_req=$$(awk '/^constellation-node-sdk @ /{print; exit}' requirements.txt); \
+		if [ -z "$$sdk_req" ]; then echo "constellation-node-sdk pin missing from requirements.txt"; exit 1; fi; \
+		$(VENV)/bin/python -m pip install --no-deps "$$sdk_req"
 	@echo ""
 	@echo "✅ $(VENV) ready:"
 	@$(VENV)/bin/ruff --version
 	@$(VENV)/bin/python -m pytest --version 2>&1 | head -1
 	@$(VENV)/bin/semgrep --version 2>&1 | head -1
 	@$(VENV)/bin/mypy --version 2>&1 | head -1
+	@$(VENV)/bin/python -c "import inspect; from constellation_node_sdk.gate.config import get_gate_client_config_from_env as builder; print('constellation-node-sdk', inspect.signature(builder))"
 	@echo "→ Activate automatically with direnv (direnv allow), or: source $(VENV)/bin/activate"
 
 install-extensions:

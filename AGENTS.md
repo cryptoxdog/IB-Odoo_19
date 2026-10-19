@@ -76,7 +76,7 @@ This repo is an **Odoo addon suite**, not a pip/uv package. No `[project]` table
 |---------|------|-------|
 | Ruff / pytest / mypy / Pyright policy | `pyproject.toml` | Pyright is **editor-only** (`typeCheckingMode = basic`) |
 | Odoo import paths (Pylance) | `.vscode/settings.json` | `${env:HOME}/dev/odoo-19` — clone Odoo 19 CE on each machine |
-| Dev venv | `make venv` + `.envrc` | ruff, pytest, semgrep — Odoo runtime is separate |
+| Dev venv | `make venv` + `.envrc` | ruff, pytest, semgrep, and the Gate SDK pin from `requirements.txt`. Odoo is not installed in `.venv` |
 | Runtime deps | `requirements.txt` | Odoo.sh |
 | Dev/CI deps | `requirements-dev.txt` | GitHub Actions Tier 3 |
 
