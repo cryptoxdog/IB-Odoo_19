@@ -75,8 +75,12 @@ sys.exit(0)
 
 
 def _run(
-    tmp_path: Path, env_extra: dict[str, str], *, inspect_json: str | None = None,
-    container_id: str = "", implicit_override: bool = False,
+    tmp_path: Path,
+    env_extra: dict[str, str],
+    *,
+    inspect_json: str | None = None,
+    container_id: str = "",
+    implicit_override: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     # Even permitted-operation tests run against a disposable copy. Never remove
     # a developer's real smoke receipt or touch their real Docker daemon.
@@ -90,7 +94,8 @@ def _run(
     (repo / "ci/check_xml_module_ref_deps.py").write_text("raise SystemExit(0)\n", encoding="utf-8")
     (repo / "docker-compose.yml").write_text(
         "name: odoo19\nservices:\n  db:\n    image: postgres:15\n    environment:\n"
-        '      POSTGRES_DB: odoo\n    ports:\n      - "5433:5432"\n', encoding="utf-8"
+        '      POSTGRES_DB: odoo\n    ports:\n      - "5433:5432"\n',
+        encoding="utf-8",
     )
     if implicit_override:
         (repo / "docker-compose.override.yml").write_text(
@@ -107,16 +112,24 @@ def _run(
     python = bindir / "python3"
     python.write_text(f'#!/bin/sh\nexec "{sys.executable}" -S "$@"\n', encoding="utf-8")
     python.chmod(0o755)
-    env = {k: v for k, v in os.environ.items() if not k.startswith((
-        "COV_CORE_", "COVERAGE_", "ODOO_", "COMPOSE_", "DOCKER_", "POSTGRES_"))}
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("COV_CORE_", "COVERAGE_", "ODOO_", "COMPOSE_", "DOCKER_", "POSTGRES_"))
+    }
     env["PATH"] = f"{bindir}{os.pathsep}{env.get('PATH', '')}"
     env["HOME"] = str(tmp_path / "home")
     env["POSTGRES_PASSWORD"] = "stub-not-a-secret"
     env["ODOO_ENTERPRISE_MODULES"] = "none"
     env.update(env_extra)
     return subprocess.run(
-        ["bash", "scripts/install_smoke.sh"], cwd=repo, capture_output=True,
-        text=True, check=False, timeout=30, env=env,
+        ["bash", "scripts/install_smoke.sh"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+        env=env,
     )
 
 

@@ -29,7 +29,7 @@ ENTERPRISE = "account_accountant,web_enterprise"
 
 # Strict command-boundary fake: it never computes a fingerprint, decides reuse,
 # acquires a lock, or writes evidence. Unknown commands are errors, not success.
-DOCKER_FAKE = r'''#!/usr/bin/env python3
+DOCKER_FAKE = r"""#!/usr/bin/env python3
 import json, os, sys, time
 from pathlib import Path
 args = sys.argv[1:]
@@ -93,7 +93,9 @@ if args[:1] == ["exec"]:
     if "pg_isready" in args: sys.exit(0)
     if "pg_terminate_backend" in query: sys.exit(0)
     if "DROP DATABASE" in query:
-        old = state(); old["modules"] = {}; save(old); sys.exit(0)
+        old = state(); old["modules"] = {}; old.pop("oid", None); save(old); sys.exit(0)
+    if "FROM pg_database" in query:
+        print(state().get("oid", "")); sys.exit(0)
     if "SELECT name || '=' || state" in query:
         if c.get("database_missing"): sys.exit(1)
         for name, value in state().get("modules", {}).items(): print(name + "=" + value)
@@ -118,11 +120,14 @@ if args[:1] == ["run"]:
         Path(c["mutate_file"]).write_text("changed during install\n")
     if c.get("install_failure"): sys.exit(7)
     current = state()
+    if "oid" not in current:  # odoo -i -d creates the dropped database: a new OID
+        current["next_oid"] = current.get("next_oid", 16384) + 1
+        current["oid"] = str(current["next_oid"])
     current["modules"] = {name: "installed" for name in args[args.index("-i") + 1].split(",")}
     for name in c.get("missing_modules", []): current["modules"].pop(name, None)
     save(current); print("registry initialized (fixture only)"); sys.exit(0)
 raise SystemExit("unexpected Docker call: " + repr(args))
-'''
+"""
 
 
 @dataclass
@@ -465,3 +470,37 @@ def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) 
         except subprocess.TimeoutExpired:
             first.kill()
             first.communicate()
+
+
+def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path: Path) -> None:
+    # Same daemon, database and image ID; different source. The image cannot tell
+    # the installs apart, so the receipt must bind the database instance itself.
+    site.establish()
+    other_root = tmp_path / "worktree-b"
+    shutil.copytree(site.root, other_root, symlinks=True, ignore=shutil.ignore_patterns(".cache"))
+    (other_root / "plasticos_base").mkdir()
+    (other_root / "plasticos_base" / "models.py").write_text("VALUE = 'B'\n")
+    other = Site(other_root, site.control, site.env)
+    other.establish()
+    result = site.run("--recheck")
+    assert result.returncode != 0, "SHARED_DB: another worktree's reinstall left this receipt valid"
+    assert "database_oid changed" in result.stdout + result.stderr
+
+
+def test_enterprise_checkout_with_unavailable_gitdir_is_still_byte_bound(site: Site) -> None:
+    enterprise = (site.root / "odoo-enterprise").resolve()
+    (enterprise / ".git").write_text("gitdir: /nonexistent/worktrees/enterprise\n")
+    site.establish()
+    (enterprise / "payload.py").write_text("VALUE = 'B'\n")
+    assert site.run("--recheck").returncode != 0, "EE_GITDIR: unreadable gitdir hid a source change"
+
+
+@pytest.mark.parametrize("mutation", ["version_2", "no_database_oid"])
+def test_receipt_without_database_binding_is_not_reusable(site: Site, mutation: str) -> None:
+    record = site.establish()
+    if mutation == "version_2":
+        record["evidence_version"] = 2
+    else:
+        record.pop("database_oid")
+    site.receipt.write_text(json.dumps(record))
+    assert site.run("--recheck").returncode != 0

@@ -438,8 +438,17 @@ else
   ALL_MODULES="${CUSTOM_MODULES}"
 fi
 
+# The smoke database is shared by every worktree on this daemon, and the image
+# ID is identical across worktrees. Its pg_database OID changes on every
+# DROP/CREATE, so another worktree's reinstall invalidates this receipt.
+smoke_db_oid() {
+  docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -X -v ON_ERROR_STOP=1 \
+    -U "$POSTGRES_USER" -d postgres -t -A -c \
+    "SELECT oid FROM pg_database WHERE datname = 'odoo_install_smoke';" 2>/dev/null | tr -d '\r'
+}
+
 recheck_evidence() {
-  local live binding image_id pg_cid pg_image states expected
+  local live binding image_id pg_cid pg_image states expected db_oid
   lists_are_canonical || refuse_smoke "recheck requires the full canonical module lists"
   acquire_smoke_lock
   [ -f "$EVIDENCE_FILE" ] || { echo "install-smoke evidence is absent" >&2; return 1; }
@@ -454,12 +463,13 @@ recheck_evidence() {
   states="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -X -v ON_ERROR_STOP=1 \
     -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \
     "SELECT name || '=' || state FROM ir_module_module ORDER BY name;" 2>/dev/null)" || return 1
+  db_oid="$(smoke_db_oid)" || return 1
   expected="${ENTERPRISE_MODULES},${CUSTOM_MODULES}"
-  python3 - "$EVIDENCE_FILE" "$live" "$image_id" "$pg_image" "$SMOKE_DB" "$states" "$expected" <<'PY'
+  python3 - "$EVIDENCE_FILE" "$live" "$image_id" "$pg_image" "$SMOKE_DB" "$db_oid" "$states" "$expected" <<'PY'
 import json
 import sys
 from pathlib import Path
-path, live, image_id, pg_image, database, states_raw, inventory = sys.argv[1:]
+path, live, image_id, pg_image, database, db_oid, states_raw, inventory = sys.argv[1:]
 try:
     record = json.loads(Path(path).read_text(encoding="utf-8"))
 except (OSError, ValueError):
@@ -468,10 +478,11 @@ if not isinstance(record, dict):
     raise SystemExit("install-smoke evidence miss: record must be an object")
 problems = []
 for key, value in (("snapshot", live), ("image_id", image_id),
-                   ("postgres_image_id", pg_image), ("database", database)):
+                   ("postgres_image_id", pg_image), ("database", database),
+                   ("database_oid", db_oid)):
     if not value or record.get(key) != value:
         problems.append(key + " changed")
-if record.get("evidence_version") != 2:
+if record.get("evidence_version") != 3:
     problems.append("unqualified evidence version")
 expected = {name: "installed" for name in inventory.split(",") if name}
 if record.get("states") != expected:
@@ -702,21 +713,23 @@ if lists_are_canonical; then
   [ "$(input_snapshot)" = "$PRE_SNAPSHOT" ] || exit 1
   pg_cid="$(docker compose -p "$ODOO_COMPOSE_PROJECT" ps -q db)"
   pg_image="$(docker inspect --format '{{.Image}}' "$pg_cid")"
+  db_oid="$(smoke_db_oid)"
   python3 - "$EVIDENCE_FILE" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" "$ENTERPRISE_REALPATH" "$POST_SNAPSHOT" \
-    "$INSTALL_IMAGE_ID" "$pg_image" "$SMOKE_DB" "$STATE_PAIRS" <<'PY'
+    "$INSTALL_IMAGE_ID" "$pg_image" "$SMOKE_DB" "$db_oid" "$STATE_PAIRS" <<'PY'
 import json
 import os
 import pathlib
 import sys
 import tempfile
-path, custom, enterprise, realpath, snapshot, image_id, pg_image, database, pairs = sys.argv[1:]
+path, custom, enterprise, realpath, snapshot, image_id, pg_image, database, db_oid, pairs = sys.argv[1:]
 states = dict(line.split("=", 1) for line in pairs.splitlines() if "=" in line)
 expected = {name: "installed" for name in (enterprise + "," + custom).split(",") if name}
-if states != expected or not image_id or not pg_image:
+if states != expected or not image_id or not pg_image or not db_oid.isdigit():
     raise SystemExit("cannot publish incomplete installation evidence")
-record = {"evidence_version": 2, "custom": custom, "enterprise": enterprise,
+record = {"evidence_version": 3, "custom": custom, "enterprise": enterprise,
           "enterprise_realpath": realpath, "snapshot": snapshot, "image_id": image_id,
-          "postgres_image_id": pg_image, "database": database, "states": states}
+          "postgres_image_id": pg_image, "database": database, "database_oid": db_oid,
+          "states": states}
 target = pathlib.Path(path)
 target.parent.mkdir(parents=True, exist_ok=True)
 fd, temporary = tempfile.mkstemp(prefix=".install-smoke-", dir=target.parent)
