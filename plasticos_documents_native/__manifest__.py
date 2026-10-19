@@ -31,6 +31,6 @@
     ],
     # Requires Enterprise modules `documents` and `documents_account` on the host.
     "installable": True,
-    "application": False,
-    "auto_install": False,
+    "application": True,
+    "auto_install": True,
 }
