@@ -599,3 +599,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `make push` and `make push pr=1` are retired and must not be used for publication.
 > The Commands block above that names those ceremonies is historical and is superseded by this correction.
 > A failed remote-feedback gate must be resolved before `make pr`.
+
+> **2026-10-18 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> The Project Structure line for `plasticos_documents_native` names it only as the Layer 4 Enterprise Documents bridge.
+> That bridge is `installable: True`, `application: True`, and `auto_install: True`. Odoo installs it when Enterprise
+> `documents`, `documents_account`, and its PlasticOS dependencies are installed.
+> `plasticos_semantic_kernel` is optional (`auto_install: False`) and stays uninstalled. No module depends on it.
+> Do not add `plasticos_semantic_kernel` to any `depends` list.
