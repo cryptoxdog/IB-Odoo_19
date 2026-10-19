@@ -35,6 +35,7 @@ These modules have `installable: True` AND `application: True`:
 | `plasticos_automation` | PlasticOS Automation Layer | Workflow automation |
 | `plasticos_logistics` | Plasticos Logistics Engine | Load management |
 | `plasticos_documents` | Plasticos Documents Engine | Document management |
+| `plasticos_documents_native` | Plasticos Documents — Native Bridge | Enterprise Documents bridge; `auto_install: True` once `documents`, `documents_account`, and its PlasticOS dependencies are installed |
 
 ### Modules to Install but NOT Display (Hidden/Utility)
 
@@ -65,7 +66,6 @@ These modules have `installable: False`:
 |--------|--------|
 | `plasticos_buyer_match_engine` | External microservice |
 | `plasticos_dev_tools` | Development only |
-| `plasticos_documents_native` | Requires Odoo Enterprise Documents |
 | `plasticos_enrichment` | External microservice |
 | `plasticos_enrichment_bridge` | External microservice |
 | `plasticos_inference_engine` | External microservice |
@@ -77,7 +77,7 @@ These modules have `installable: False`:
 ### Positive
 
 - Clear separation between user-facing apps and utility modules
-- Dashboard shows only relevant tiles (6 PlasticOS + Contacts + CRM)
+- Dashboard shows only relevant tiles (7 PlasticOS + Contacts + CRM)
 - Disabled modules don't clutter the Apps list
 
 ### Negative
@@ -102,12 +102,12 @@ plasticos_documents/__manifest__.py
 
 ## Odoo.sh Deployment Notes
 
-1. **Modules do NOT auto-install** on Odoo.sh staging/production database rebuilds
+1. A database rebuild does not reinstall modules that are already installed. `plasticos_documents_native` is the exception in item 4: it auto-installs when its dependencies are present.
 2. After a database rebuild, install modules via:
    - Apps UI: Update Apps List → search "plasticos" → install `plasticos_base` first
    - Shell: `odoo-bin -d $PGDATABASE -i plasticos_base,plasticos_transaction,... --stop-after-init`
 3. Once installed, modules persist across code pushes (only database rebuilds require reinstall)
-4. **Never use `auto_install: True`** on application modules — it's for glue modules only
+4. `plasticos_documents_native` is an application module with `auto_install: True`. Odoo installs it when Enterprise `documents`, `documents_account`, and its PlasticOS dependencies are already installed. `plasticos_semantic_kernel` stays uninstalled; no module depends on it.
 
 ## References
 
