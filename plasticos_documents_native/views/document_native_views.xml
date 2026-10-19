@@ -76,7 +76,7 @@
         <field name="model">documents.document</field>
         <field name="inherit_id" ref="documents.document_view_search"/>
         <field name="arch" type="xml">
-            <xpath expr="//search" position="inside">
+            <xpath expr="//searchpanel" position="before">
                 <separator/>
                 <filter name="filter_bol"
                         string="BOLs"
@@ -97,18 +97,17 @@
                 <filter name="filter_unverified"
                         string="Not Verified"
                         domain="[('verified', '=', False)]"/>
-                <separator/>
-                <group expand="0" string="Group By">
-                    <filter name="group_doc_type"
-                            string="Document Type"
-                            context="{'group_by': 'doc_type'}"/>
-                    <filter name="group_polymer"
-                            string="Polymer"
-                            context="{'group_by': 'polymer_id'}"/>
-                    <filter name="group_transaction"
-                            string="Transaction"
-                            context="{'group_by': 'transaction_id'}"/>
-                </group>
+            </xpath>
+            <xpath expr="//search/group" position="inside">
+                <filter name="group_doc_type"
+                        string="Document Type"
+                        context="{'group_by': 'doc_type'}"/>
+                <filter name="group_polymer"
+                        string="Polymer"
+                        context="{'group_by': 'polymer_id'}"/>
+                <filter name="group_transaction"
+                        string="Transaction"
+                        context="{'group_by': 'transaction_id'}"/>
             </xpath>
         </field>
     </record>
