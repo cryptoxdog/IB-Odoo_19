@@ -229,6 +229,9 @@ if args[:1] == ["context"]:
 if args[:1] == ["info"]:
     out()
 if args[:1] == ["compose"]:
+    if "run" in args and "--test-enable" in args:
+        sys.stdout.write(os.environ.get("STUB_ODOO_LOG", ""))
+        sys.exit(int(os.environ.get("STUB_ODOO_RC", "0")))
     if "ps" in args:
         out("stubdb")
     if "config" in args:
@@ -242,6 +245,14 @@ if args[:1] == ["inspect"]:
                               "com.docker.compose.project.working_dir": root}},
         "Mounts": [{"Name": "odoo19_odoo_pgdata", "Destination": "/var/lib/postgresql/data"}],
     }]))
+if args[:1] == ["exec"] and "-i" in args and "-c" not in args:
+    # The lease session: every request ends with SELECT '<token>'; answer it.
+    import re
+    for line in sys.stdin:
+        for token in re.findall(r"SELECT '([a-z]+-[0-9]+)';", line):
+            sys.stdout.write(token + chr(10))
+            sys.stdout.flush()
+    sys.exit(0)
 if args[:1] == ["exec"]:
     if "pg_isready" in args:
         out()
@@ -274,6 +285,7 @@ def _stateful(tmp_path: Path, databases: dict[str, str], *args: str, **env: str)
         "TEST_ENV_OWNER": "agenta",
         "TEST_ENV_PARITY": "community",
         "TEST_ENV_SAFETY_HARNESS": "1",
+        "TEST_ENV_EVIDENCE_DIR": str(tmp_path / "evidence"),
         **env,
     }
     return subprocess.run(
@@ -311,16 +323,124 @@ def _enterprise(tmp_path: Path) -> dict[str, str]:
     }
 
 
+def _ee_template(fp: str) -> str:
+    return f"plasticos-test-env/2 role=template state=ready parity=ee fp={fp} builder=agentb installed=169"
+
+
+def _ee_clone(fp: str) -> str:
+    return (
+        f"plasticos-test-env/2 role=clone owner=agenta parity=ee template={PINNED_FIXTURE} fp={fp} "
+        "created=2026-10-10T00:00:00Z"
+    )
+
+
+def _inputs(tmp_path: Path, **env: str) -> list[str]:
+    status = _stateful(tmp_path, {}, "status", **env)
+    assert status.returncode == 0, status.stderr
+    return [line.split("  input  ", 1)[1] for line in status.stdout.splitlines() if line.startswith("  input  ")]
+
+
+def _sha256(text: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+# Calls that would change a database. The stateful harness also sees `compose build`
+# (a cached image build), which is not one of them.
+DB_MUTATING = ("COMMENT ON", "DROP", "CREATE DATABASE", "RENAME", " run ", "IS_TEMPLATE")
+
+
 def test_enterprise_status_names_only_the_pinned_fixture(tmp_path):
     pin = (ROOT / "config" / "test_env_fixture.conf").read_text()
     assert f"TEMPLATE={PINNED_FIXTURE}" in pin
-    marker = (
-        "plasticos-test-env/2 role=template state=ready parity=ee fp=" + ("ab" * 32) + " builder=agentb installed=169"
-    )
-    status = _stateful(tmp_path, {PINNED_FIXTURE: marker}, "status", **_enterprise(tmp_path))
+    env = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **env)
+    status = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "status", **env)
     assert status.returncode == 0, status.stderr
     assert f"template:     {PINNED_FIXTURE} (ready)" in status.stdout
     assert "canonical" in status.stdout
+
+
+def test_enterprise_status_does_not_call_a_fixture_admitted_for_other_inputs_ready(tmp_path):
+    """F261-1: the pinned name alone is not admission; its fp must be the current inputs."""
+    status = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template("ab" * 32)}, "status", **_enterprise(tmp_path))
+    assert status.returncode == 0, status.stderr
+    assert f"template:     {PINNED_FIXTURE} (not admitted for the current inputs)" in status.stdout
+
+
+def test_clone_of_a_fixture_admitted_for_other_inputs_is_refused(tmp_path):
+    """F261-1: a current clone does not make its incompatible fixture usable."""
+    env = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **env)
+    databases = {PINNED_FIXTURE: _ee_template("ab" * 32), "odoo_test_a": _ee_clone(fp)}
+    result = _stateful(tmp_path, databases, "assert-clone", "odoo_test_a", **env)
+    assert result.returncode == 2, result.stderr
+    assert "not an admitted template for the current inputs" in result.stderr
+
+
+def test_unproven_fixture_is_refused_and_not_rebuilt(tmp_path):
+    """F261-1: no recorded inputs hash to the fixture's fp, so nothing proves it compatible."""
+    env = _enterprise(tmp_path)
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template("ab" * 32)}, "template", **env)
+    assert result.returncode == 2, result.stderr
+    assert "is unproven for the current inputs" in result.stderr
+    assert "not rebuilt or replaced" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    for marker in DB_MUTATING:
+        assert marker not in calls, f"{marker!r} reached docker: {calls}"
+
+
+def test_inputs_file_that_does_not_hash_to_the_fixture_fp_is_not_proof(tmp_path):
+    env = _enterprise(tmp_path)
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / f"{PINNED_FIXTURE}.inputs.txt").write_text("\n".join(_inputs(tmp_path, **env)) + "\n")
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template("cd" * 32)}, "template", **env)
+    assert result.returncode == 2, result.stderr
+    assert "is unproven for the current inputs" in result.stderr
+    assert "COMMENT ON" not in (tmp_path / "stub.log").read_text()
+
+
+@pytest.mark.parametrize("key", ["image", "postgres", "modules", "config", "enterprise"])
+def test_fixture_admitted_for_other_inputs_is_refused_by_name(tmp_path, key):
+    """F261-1: image, Postgres, roster, configuration, or Enterprise drift rejects the fixture."""
+    env = _enterprise(tmp_path)
+    recorded = [f"{line}-admitted-earlier" if line.startswith(f"{key}=") else line for line in _inputs(tmp_path, **env)]
+    assert any(line.startswith(f"{key}=") for line in recorded), recorded
+    text = "\n".join(recorded) + "\n"
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / f"{PINNED_FIXTURE}.inputs.txt").write_text(text)
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(_sha256(text))}, "template", **env)
+    assert result.returncode == 2, result.stderr
+    assert f"is incompatible with the current inputs: {key} changed" in result.stderr
+    assert "not rebuilt or replaced" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    for marker in DB_MUTATING:
+        assert marker not in calls, f"{marker!r} reached docker: {calls}"
+
+
+def test_fixture_recorded_with_addon_source_is_certified_without_a_rebuild(tmp_path):
+    """F261-1: a fixture admitted while addon source was in its fp is proved by its inputs file."""
+    env = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **env)
+    current = _inputs(tmp_path, **env)
+    at = next(i for i, line in enumerate(current) if line.startswith("config="))
+    recorded = current[:at] + ["addons=" + "e" * 64] + current[at:]
+    text = "\n".join(recorded) + "\n"
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / f"{PINNED_FIXTURE}.inputs.txt").write_text(text)
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(_sha256(text))}, "template", **env)
+    assert result.returncode == 0, result.stderr
+    assert "matches the current inputs" in result.stdout
+    calls = (tmp_path / "stub.log").read_text()
+    assert f'COMMENT ON DATABASE "{PINNED_FIXTURE}" IS ' in calls
+    assert f" fp={fp} " in calls
+    for marker in ("DROP", "CREATE DATABASE", "RENAME", " run ", "IS_TEMPLATE"):
+        assert marker not in calls, f"{marker!r} reached docker: {calls}"
+    assert _sha256((evidence / f"{PINNED_FIXTURE}.inputs.txt").read_text()) == fp
 
 
 def test_enterprise_clone_of_another_template_is_refused(tmp_path):
@@ -350,6 +470,256 @@ def test_new_enterprise_template_is_refused_in_the_script():
         in source
     )
     assert '[ -z "$PINNED_TEMPLATE" ] && adopt_admitted_template' in source
+
+
+# ---------------------------------------------------------------------------
+# F261-2: a --test-enable run upgrades the PlasticOS roster on the clone and is
+# judged by Odoo's own test summary.
+# ---------------------------------------------------------------------------
+ROSTER = subprocess.run(
+    ["python3", str(ROOT / "scripts" / "get_odoo_module_order.py")], capture_output=True, text=True, check=True
+).stdout.strip()
+TEST_RECIPE = ["docker", "compose", "run", "--rm", "odoo", "--test-enable", "--stop-after-init"]
+
+
+def _summary(failed: int, errors: int, total: int, db: str = "odoo_test_a") -> str:
+    return (
+        "2026-10-19 00:00:00,000 1 INFO odoo_test_a odoo.modules.loading: loading 169 modules...\n"
+        f"2026-10-19 00:00:09,000 1 INFO {db} odoo.tests.result: "
+        f"{failed} failed, {errors} error(s) of {total} tests when loading database '{db}'\n"
+    )
+
+
+def _test_run(tmp_path: Path, *recipe: str, **env: str) -> subprocess.CompletedProcess:
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)}
+    return _stateful(tmp_path, databases, "run", "odoo_test_a", "--", *recipe, **base, **env)
+
+
+def _odoo_call(tmp_path: Path) -> str:
+    calls = [line for line in (tmp_path / "stub.log").read_text().splitlines() if "--test-enable" in line]
+    assert len(calls) == 1, calls
+    return calls[0]
+
+
+def test_full_suite_upgrades_the_roster_and_reports_the_count(tmp_path):
+    """make test-odoo: every declared PlasticOS module is upgraded on the clone, not -u all."""
+    result = _test_run(
+        tmp_path, *TEST_RECIPE, "-d", "odoo_test_a", "--log-level=test", STUB_ODOO_LOG=_summary(0, 0, 37)
+    )
+    assert result.returncode == 0, result.stderr
+    assert "tests: 37 run, 0 failed, 0 error(s) on odoo_test_a (scope roster" in result.stdout
+    call = _odoo_call(tmp_path)
+    assert f" -u {ROSTER} " in call
+    assert " -u all " not in call
+    tags = ",".join(f"/{m}" for m in ROSTER.split(","))
+    assert f" --test-tags {tags} " in call
+    assert " -d odoo_test_a " in call
+    receipt = json.loads((tmp_path / "evidence" / "odoo_test_a.test-receipt.json").read_text())
+    assert receipt["tests"] == 37
+    assert receipt["template"] == PINNED_FIXTURE
+    assert (receipt["failed"], receipt["errors"], receipt["exit"]) == (0, 0, 0)
+
+
+def test_module_test_upgrades_the_roster_and_runs_only_that_module(tmp_path):
+    """make test-module m=...: the dependencies on disk are applied, the tests are that module's."""
+    result = _test_run(
+        tmp_path,
+        *TEST_RECIPE,
+        "-d",
+        "odoo_test_a",
+        "--log-level=test",
+        "-u",
+        "plasticos_commission",
+        STUB_ODOO_LOG=_summary(0, 0, 4),
+    )
+    assert result.returncode == 0, result.stderr
+    assert "scope plasticos_commission" in result.stdout
+    call = _odoo_call(tmp_path)
+    assert f" -u {ROSTER} " in call
+    assert " --test-tags /plasticos_commission " in call
+
+
+@pytest.mark.parametrize(
+    ("log", "rc", "reason"),
+    [
+        (_summary(0, 0, 0), 0, "zero tests ran"),
+        (_summary(2, 0, 30), 1, "2 failed, 0 error"),
+        (_summary(0, 1, 30), 1, "0 failed, 1 error"),
+        (_summary(0, 0, 30), 1, "odoo exited with status 1"),
+        ("odoo.modules.loading: Modules loaded.\n", 0, "no Odoo test summary"),
+        (_summary(0, 0, 30, db="odoo_test_b"), 0, "no Odoo test summary"),
+    ],
+)
+def test_test_run_without_passing_tests_fails(tmp_path, log, rc, reason):
+    """F261-2: a clean exit is not a pass. No summary, no tests, or a failure fails the run."""
+    result = _test_run(tmp_path, *TEST_RECIPE, "-d", "odoo_test_a", STUB_ODOO_LOG=log, STUB_ODOO_RC=str(rc))
+    assert result.returncode != 0, result.stdout
+    assert "test-env refused" not in result.stderr
+    assert reason in result.stderr, result.stderr
+
+
+@pytest.mark.parametrize(
+    ("extra", "reason"),
+    [
+        (["-u", "plasticos_dev_tools"], "not a declared PlasticOS module"),
+        (["-u", "base"], "not a declared PlasticOS module"),
+        (["-u", "all"], "not a declared PlasticOS module"),
+        (["-u", "plasticos_base", "-u", "plasticos_offer"], "one -u list"),
+        (["-i", "plasticos_base"], "not accepted in a test run"),
+        (["--test-tags=/base"], "not accepted in a test run"),
+        (["--log-level=debug"], "not accepted in a test run"),
+    ],
+)
+def test_test_run_scope_is_refused_before_docker(tmp_path, extra, reason):
+    result, calls = _run(tmp_path, "run", "odoo_test_a", "--", *TEST_RECIPE, "-d", "odoo_test_a", *extra)
+    _assert_refused(result, calls, reason)
+    assert calls == ""
+
+
+# ---------------------------------------------------------------------------
+# F261-3: a guarded import cannot leave the verified clone through make.
+# ---------------------------------------------------------------------------
+VANILLASOFT = [
+    "make",
+    "import-vanillasoft",
+    "ODOO_DB_NAME=odoo_test_a",
+    "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z",
+    "VANILLASOFT_CONTACT_FLOOR=2020-01-01T00:00:00Z",
+]
+
+
+def test_guarded_import_cannot_be_redirected_by_an_injected_makefile(tmp_path):
+    """Real make, real Makefile, stub docker: an `override` in MAKEFILES would name the business database."""
+    injected = tmp_path / "inject.mk"
+    injected.write_text("override ODOO_DB_NAME = odoo\n")
+    probe = subprocess.run(
+        ["make", "-n", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", "VANILLASOFT_CALL_FLOOR=x"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env={**os.environ, "MAKEFILES": str(injected)},
+        check=False,
+    )
+    assert "shell -d odoo " in probe.stdout, "the injection must redirect an unguarded make, or this proves nothing"
+
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)}
+    result = _stateful(
+        tmp_path,
+        databases,
+        "run",
+        "odoo_test_a",
+        "--",
+        *VANILLASOFT,
+        **base,
+        MAKEFILES=str(injected),
+        MAKEFLAGS="ODOO_DB_NAME=odoo",
+        GNUMAKEFLAGS="ODOO_DB_NAME=odoo",
+    )
+    assert result.returncode == 0, result.stderr
+    shells = [line for line in (tmp_path / "stub.log").read_text().splitlines() if " shell " in line]
+    assert len(shells) == 1, shells
+    assert " shell -d odoo_test_a --no-http " in shells[0]
+
+
+def test_guarded_make_starts_with_the_clone_marker_and_without_make_environment(tmp_path):
+    fake = tmp_path / "fakemake"
+    fake.mkdir()
+    dump = tmp_path / "make-env.json"
+    (fake / "make").write_text(
+        "#!/usr/bin/env python3\nimport json, os, sys\n"
+        f"json.dump({{'argv': sys.argv[1:], 'env': dict(os.environ)}}, open({str(dump)!r}, 'w'))\n"
+    )
+    (fake / "make").chmod(0o755)
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)}
+    result = _stateful(
+        tmp_path,
+        databases,
+        "run",
+        "odoo_test_a",
+        "--",
+        str(fake / "make"),
+        *VANILLASOFT[1:],
+        **base,
+        MAKEFILES="/tmp/x.mk",
+        MAKEFLAGS="-e",
+        MFLAGS="-e",
+        GNUMAKEFLAGS="-e",
+    )
+    assert result.returncode == 0, result.stderr
+    seen = json.loads(dump.read_text())
+    assert seen["argv"] == VANILLASOFT[1:]
+    for name in ("MAKEFILES", "MAKEFLAGS", "MFLAGS", "GNUMAKEFLAGS"):
+        assert name not in seen["env"], name
+    assert seen["env"]["TEST_ENV_VERIFIED_CLONE"] == "odoo_test_a"
+    assert seen["env"]["COMPOSE_PROJECT_NAME"] == "odoo19"
+    assert seen["env"]["COMPOSE_FILE"] == str(ROOT / "docker-compose.yml")
+
+
+def _make_import(
+    tmp_path: Path, target: str, *args: str, docker_up: bool
+) -> tuple[subprocess.CompletedProcess, str, Path]:
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    log = tmp_path / "docker.log"
+    (bindir / "docker").write_text(
+        "#!/usr/bin/env bash\n"
+        f'echo " $* " >> "{log}"\n' + ("" if docker_up else '[ "$1" = info ] && exit 1\n') + "exit 0\n"
+    )
+    (bindir / "docker").chmod(0o755)
+    venv = tmp_path / "venv" / "bin"
+    venv.mkdir(parents=True)
+    ran = tmp_path / "odoo.log"
+    (venv / "odoo").write_text(f'#!/usr/bin/env bash\necho "$*" >> "{ran}"\n')
+    (venv / "odoo").chmod(0o755)
+    environ = {
+        **os.environ,
+        "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}",
+        "TEST_ENV_VERIFIED_CLONE": "odoo_test_a",
+    }
+    result = subprocess.run(
+        ["make", target, *args, f"L9_ODOO_VENV={venv.parent}"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env=environ,
+        check=False,
+    )
+    return result, log.read_text() if log.exists() else "", ran
+
+
+@pytest.mark.parametrize(
+    ("target", "args"),
+    [
+        ("import-vanillasoft", ["VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z"]),
+        ("import-erp", ["ERP_DRY=1"]),
+    ],
+)
+def test_import_recipe_refuses_a_database_other_than_the_verified_clone(tmp_path, target, args):
+    result, calls, ran = _make_import(tmp_path, target, "ODOO_DB_NAME=odoo", *args, docker_up=True)
+    assert result.returncode != 0
+    assert "is not the verified clone odoo_test_a" in result.stderr
+    assert calls == ""
+    assert not ran.exists()
+
+
+@pytest.mark.parametrize(
+    ("target", "args"),
+    [
+        ("import-vanillasoft", ["VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z"]),
+        ("import-erp", ["ERP_DRY=1"]),
+    ],
+)
+def test_import_recipe_refuses_the_no_docker_fallback_for_a_verified_clone(tmp_path, target, args):
+    result, _, ran = _make_import(tmp_path, target, "ODOO_DB_NAME=odoo_test_a", *args, docker_up=False)
+    assert result.returncode != 0
+    assert "the no-Docker harness is another server" in result.stderr
+    assert not ran.exists(), ran.read_text()
 
 
 def test_current_owned_clone_of_the_admitted_template_is_accepted(tmp_path):

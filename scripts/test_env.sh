@@ -11,6 +11,7 @@
 #   scripts/test_env.sh template              build or reuse the template for the current inputs
 #   scripts/test_env.sh clone [db]            fresh clone owned by this worktree (default: `name`)
 #   scripts/test_env.sh run <db> -- <args>    assert <db> is an owned clone, then run odoo <args> on it
+#                                             (a --test-enable run is the test runner below)
 #   scripts/test_env.sh assert-clone <db>     verify identity and scope; exit non-zero otherwise
 #   scripts/test_env.sh drop <db>             drop an owned clone (database and filestore)
 #   scripts/test_env.sh status                fingerprint inputs, templates, and clones
@@ -31,6 +32,9 @@
 #   TEST_ENV_SAFETY_HARNESS
 #                        set to 1 only by tests/test_test_env_safety.py. It is
 #                        not an Enterprise test path.
+#   TEST_ENV_EVIDENCE_DIR
+#                        honoured only with TEST_ENV_SAFETY_HARNESS=1, so the
+#                        safety suite never writes into a checkout's evidence.
 #
 # Safety model (every rule is checked before anything is dropped or replaced):
 #   * Targets must match odoo_test_<suffix>; production, staging, business, system,
@@ -46,9 +50,14 @@
 #   * Enterprise tests use the database named in config/test_env_fixture.conf.
 #     That database is the only template. Another template is not selected, and
 #     a new one is not created unless that database is absent and
-#     TEST_ENV_ALLOW_NEW_TEMPLATE=1 is set for the rebuild. A module test
-#     upgrades its own clone of this fixture. Community parity is the safety
+#     TEST_ENV_ALLOW_NEW_TEMPLATE equals its name. Community parity is the safety
 #     suite's fingerprint-named template and is not the Enterprise fixture.
+#   * The fixture is used only for the inputs it was admitted for: the Odoo
+#     image, the Postgres major, the module roster, the runtime configuration,
+#     and the Enterprise checkout. Different inputs, or inputs it cannot be
+#     proved against, are refused; the fixture is not rebuilt or replaced.
+#     PlasticOS addon source is not one of those inputs: a --test-enable run
+#     upgrades every declared PlasticOS module on the clone before its tests run.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -88,6 +97,9 @@ case "${TEST_ENV_PARITY:-enterprise}" in
 esac
 if [ "$PARITY" = "ce" ] && [ "${TEST_ENV_SAFETY_HARNESS:-}" != "1" ]; then
   refuse "TEST_ENV_PARITY=community is the safety harness, not an Enterprise test environment. Enterprise tests use config/test_env_fixture.conf"
+fi
+if [ "${TEST_ENV_SAFETY_HARNESS:-}" = "1" ] && [ -n "${TEST_ENV_EVIDENCE_DIR:-}" ]; then
+  EVIDENCE_DIR="$TEST_ENV_EVIDENCE_DIR"
 fi
 
 # The Enterprise template name is a repository fact, not a fingerprint. The safety
@@ -420,13 +432,48 @@ template_ready() {
   db_exists "$TEMPLATE_DB" || return 1
   comment="$(db_comment "$TEMPLATE_DB")"
   is_ours "$comment" && [ "$(field "$comment" role)" = "template" ] && [ "$(field "$comment" state)" = "ready" ] &&
-    [ "$(field "$comment" parity)" = "$PARITY" ] || return 1
-  # The pinned fixture stays the template when the image or module list drifts.
-  # A clone is still recloned; the template is not rebuilt for that drift.
-  if [ -n "$PINNED_TEMPLATE" ]; then
-    return 0
-  fi
-  [ "$(field "$comment" fp)" = "$FP" ]
+    [ "$(field "$comment" parity)" = "$PARITY" ] && [ "$(field "$comment" fp)" = "$FP" ]
+}
+
+# Recorded inputs file of $TEMPLATE_DB from this run's evidence or any checkout
+# of this repository (a worktree counts) whose content hashes to the fp on the
+# database, or "". A file that hashes to that fp is the one the build recorded.
+fixture_evidence() {
+  local stored="$1" dir file
+  while IFS= read -r dir; do
+    file="$dir/${TEMPLATE_DB}.inputs.txt"
+    if [ -f "$file" ] && [ "$(sha256 <"$file")" = "$stored" ]; then
+      echo "$file"
+      return 0
+    fi
+  done < <(
+    echo "$EVIDENCE_DIR"
+    git -C "$ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree \(.*\)$/\1\/.l9\/runtime\/test-env/p'
+  )
+}
+
+# The pinned fixture exists but its fp is not the current fingerprint. It was
+# admitted either for other inputs or before addon source left the fingerprint.
+# It is re-stamped only on proof: a recorded inputs file that hashes to its fp
+# and, apart from the old addons= line, equals the current inputs line for line.
+# Otherwise it is refused, naming what changed. It is never rebuilt here.
+certify_pinned_fixture() {
+  local comment stored evidence changed
+  comment="$(db_comment "$TEMPLATE_DB")"
+  is_ours "$comment" && [ "$(field "$comment" role)" = "template" ] && [ "$(field "$comment" state)" = "ready" ] &&
+    [ "$(field "$comment" parity)" = "$PARITY" ] ||
+    refuse "$TEMPLATE_DB exists but is not an admitted template (comment: '$comment'); not touching it"
+  stored="$(field "$comment" fp)"
+  evidence="$(fixture_evidence "$stored")"
+  [ -n "$evidence" ] ||
+    refuse "$TEMPLATE_DB is unproven for the current inputs: it was admitted for fp ${stored:0:16}, current inputs are ${FP:0:16}, and no recorded inputs file in a checkout of this repository hashes to its fp. The fixture is not rebuilt or replaced"
+  changed="$(diff <(grep -v '^addons=' "$evidence") <(fingerprint_inputs) | sed -n 's/^[<>] \([a-z]*\)=.*/\1/p' | sort -u | paste -sd, -)" || true
+  [ -z "$changed" ] ||
+    refuse "$TEMPLATE_DB is incompatible with the current inputs: $changed changed since it was admitted (recorded in ${evidence#"$ROOT"/}). The fixture is not rebuilt or replaced"
+  set_comment "$TEMPLATE_DB" "$(printf '%s' "$comment" | sed "s| fp=[^ ]*| fp=$FP|")"
+  mkdir -p "$EVIDENCE_DIR"
+  fingerprint_inputs >"$EVIDENCE_DIR/${TEMPLATE_DB}.inputs.txt"
+  echo "✅ $TEMPLATE_DB matches the current inputs (proved by ${evidence#"$ROOT"/}); fp re-stamped ${stored:0:16} → ${FP:0:16}"
 }
 
 # ---------------------------------------------------------------------------
@@ -624,6 +671,12 @@ build_template() {
     else
       echo "✅ $TEMPLATE_DB is current (fingerprint ${FP:0:16}); reusing it"
     fi
+    unlease "tpl:$TEMPLATE_DB" exclusive
+    retire_own_templates
+    return 0
+  fi
+  if [ -n "$PINNED_TEMPLATE" ] && db_exists "$TEMPLATE_DB"; then
+    certify_pinned_fixture
     unlease "tpl:$TEMPLATE_DB" exclusive
     retire_own_templates
     return 0
@@ -937,6 +990,9 @@ parse_run() {
         ;;
     esac
   done
+  if [[ " ${RUN_ARGS[*]-} " == *" --test-enable "* ]]; then
+    parse_test_args
+  fi
 }
 
 # Identity and scope check before any test, import, or upgrade touches a database.
@@ -964,11 +1020,86 @@ assert_clone() {
   echo "✓ $target: clone of $template (parity $PARITY, owner $OWNER, $(field "$tcomment" odoo), chart $(field "$tcomment" chart), $(field "$tcomment" installed) modules)"
 }
 
+TEST_ROSTER=""
+TEST_SCOPE=""
+TEST_TAGS=""
+# The scope is checked before Docker: declared PlasticOS modules, or the roster.
+test_scope() {
+  local m modules
+  TEST_SCOPE="$1"
+  TEST_ROSTER="$(python3 scripts/get_odoo_module_order.py)"
+  [ -n "$TEST_ROSTER" ] || refuse "scripts/get_odoo_module_order.py declared no PlasticOS modules"
+  modules="${TEST_SCOPE:-${TEST_ROSTER//,/ }}"
+  TEST_TAGS=""
+  for m in $modules; do
+    [[ ",$TEST_ROSTER," == *",$m,"* ]] ||
+      refuse "'$m' is not a declared PlasticOS module (config/odoo_module_order.yaml); the fixture does not install it"
+    TEST_TAGS="${TEST_TAGS}${TEST_TAGS:+,}/$m"
+  done
+  [ -n "$TEST_TAGS" ] || refuse "the test scope '$TEST_SCOPE' names no module"
+}
+
+# A --test-enable run is the test runner. It accepts the Makefile test recipes'
+# arguments and one -u list, which becomes the test scope. The runner sets the
+# upgrade, the test tags, and the log level itself; anything else is refused.
+parse_test_args() {
+  local scope="" seen=""
+  set -- ${RUN_ARGS[@]+"${RUN_ARGS[@]}"}
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --test-enable | --stop-after-init | --log-level=test) shift ;;
+      -u | --update | --update=*)
+        [ -z "$seen" ] || refuse "a test run takes one -u list"
+        seen=1
+        if [ "$1" = "${1#--update=}" ]; then
+          scope="${2:-}"
+          shift $(($# > 1 ? 2 : 1))
+        else
+          scope="${1#--update=}"
+          shift
+        fi
+        [ -n "$scope" ] || refuse "-u needs a module"
+        ;;
+      *) refuse "'$1' is not accepted in a test run: the runner sets the upgrade, the test tags, and the log level itself" ;;
+    esac
+  done
+  RUN_MODE="test"
+  test_scope "${scope//,/ }"
+}
+
+# Odoo tests on an owned clone. Without -u, Odoo runs at_install and post_install
+# tests for every loaded module (core and Enterprise included) against whatever
+# schema the fixture was built with. Here every declared PlasticOS module is
+# upgraded on the clone, so the source on disk is what is tested; Odoo also
+# upgrades the PlasticOS modules that depend on them, and nothing else. Tests are
+# restricted to the roster, or to one module. Odoo's own summary line is the
+# evidence: a missing line, a failure, an error, or zero tests fails the run.
+run_tests() {
+  local target="$1" scope="${TEST_SCOPE// /,}" log receipt rc=0 summary failed errors total
+  mkdir -p "$EVIDENCE_DIR"
+  log="$EVIDENCE_DIR/${target}.test.log"
+  receipt="$EVIDENCE_DIR/${target}.test-receipt.json"
+  rm -f "$receipt"
+  echo "→ Upgrading $(tr ',' '\n' <<<"$TEST_ROSTER" | wc -l | tr -d ' ') PlasticOS modules on $target; tests: ${scope:-the PlasticOS roster}"
+  compose run --rm --no-deps -T ${RUN_OPTS[@]+"${RUN_OPTS[@]}"} odoo odoo --test-enable --stop-after-init --log-level=test \
+    -u "$TEST_ROSTER" --test-tags "$TEST_TAGS" -d "$target" --addons-path="$(addons_path)" 2>&1 | tee "$log" || rc=$?
+  summary="$(grep -E "odoo\.tests\.result: [0-9]+ failed, [0-9]+ error\(s\) of [0-9]+ tests when loading database '$target'" "$log" | tail -1 || true)"
+  [ -n "$summary" ] ||
+    die "no Odoo test summary for $target (exit $rc); the run is not evidence of anything (log: ${log#"$ROOT"/})"
+  read -r failed errors total < <(sed -E 's/.*: ([0-9]+) failed, ([0-9]+) error\(s\) of ([0-9]+) tests .*/\1 \2 \3/' <<<"$summary")
+  printf '{"database": "%s", "template": "%s", "fingerprint": "%s", "scope": "%s", "upgraded": "%s", "tests": %d, "failed": %d, "errors": %d, "exit": %d, "log": "%s"}\n' \
+    "$target" "$TEMPLATE_DB" "$FP" "${scope:-roster}" "$TEST_ROSTER" "$total" "$failed" "$errors" "$rc" "${log#"$ROOT"/}" >"$receipt"
+  echo "tests: $total run, $failed failed, $errors error(s) on $target (scope ${scope:-roster}; receipt ${receipt#"$ROOT"/})"
+  [ "$total" -gt 0 ] || die "zero tests ran for ${scope:-the PlasticOS roster}; an empty run is a failure"
+  [ "$failed" -eq 0 ] && [ "$errors" -eq 0 ] || die "$failed failed, $errors error(s) of $total tests"
+  [ "$rc" -eq 0 ] || die "odoo exited with status $rc after $total passing tests (log: ${log#"$ROOT"/})"
+}
+
 status() {
   echo "owner:        $OWNER (default clone $DEFAULT_CLONE)"
   echo "parity:       $PARITY"
   echo "fingerprint:  $FP"
-  echo "template:     $TEMPLATE_DB ($(template_ready && echo ready || echo absent))"
+  echo "template:     $TEMPLATE_DB ($(template_ready && echo ready || { db_exists "$TEMPLATE_DB" && echo "not admitted for the current inputs"; } || echo absent))"
   if [ -n "$PINNED_TEMPLATE" ]; then
     echo "fixture:      canonical; a new template is refused unless this database is absent and TEST_ENV_ALLOW_NEW_TEMPLATE equals its name"
   fi
@@ -1021,8 +1152,17 @@ main() {
       assert_clone "$target"
       if [ "$RUN_MODE" = "make" ]; then
         # The import's own `docker compose` is bound to this repository's
-        # verified file and project.
-        COMPOSE_FILE="$COMPOSE_FILE_HERE" COMPOSE_PROJECT_NAME="$PROJECT" "${RUN_ARGS[@]}"
+        # verified file and project. make reads MAKEFILES and MAKEFLAGS from the
+        # environment, and an `override` line in a makefile named there beats
+        # ODOO_DB_NAME on the command line, so both are cleared.
+        # TEST_ENV_VERIFIED_CLONE makes the import recipes refuse any other
+        # database and their no-Docker fallback, which targets a server none of
+        # the checks above inspected.
+        env -u MAKEFILES -u MAKEFLAGS -u MFLAGS -u GNUMAKEFLAGS \
+          COMPOSE_FILE="$COMPOSE_FILE_HERE" COMPOSE_PROJECT_NAME="$PROJECT" TEST_ENV_VERIFIED_CLONE="$target" \
+          "${RUN_ARGS[@]}"
+      elif [ "$RUN_MODE" = "test" ]; then
+        run_tests "$target"
       else
         local tty=()
         [ -t 0 ] || tty=(-T)

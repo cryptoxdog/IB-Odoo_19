@@ -25,6 +25,28 @@ unless `TEST_ENV_SAFETY_HARNESS=1`, which belongs to the safety suite.
 `make test-odoo-local` is the no-Docker backend, not this fixture.
 `make install-smoke` remains the load gate; it is not a second runtime-test template.
 
+The fixture is used only for the inputs it was admitted for (Odoo image,
+Postgres major, module roster, runtime configuration, Enterprise checkout).
+A fixture admitted for other inputs, or one that no recorded inputs file proves,
+is refused with the changed inputs named. It is not rebuilt. PlasticOS addon
+source is not one of those inputs.
+
+## Test runner
+
+`make test-odoo` and `make test-module m=…` run inside `scripts/test_env.sh run`.
+That treats a `--test-enable` run as its test runner:
+
+| Step | Behaviour |
+|------|-----------|
+| Upgrade | `-u` every declared PlasticOS module on the clone (`scripts/get_odoo_module_order.py`); never `-u all` |
+| Tests | `--test-tags` limits them to the roster, or to `m=` |
+| Verdict | Odoo's `N failed, N error(s) of N tests when loading database '<db>'` line. A missing line, any failure or error, a non-zero exit, or **zero tests** fails |
+| Receipt | `.l9/runtime/test-env/<db>.test-receipt.json` (tests, failed, errors, exit, scope, fixture) |
+
+Without `-u`, Odoo runs at_install and post_install tests of every loaded module,
+core and Enterprise included, against the fixture's schema. That is why the
+runner always upgrades the roster.
+
 ## After install-smoke green
 
 ```bash
