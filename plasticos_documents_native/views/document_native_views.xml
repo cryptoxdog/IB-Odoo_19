@@ -2,17 +2,18 @@
 <odoo>
 
     <!-- ============================================================
-         Extend the native documents.document form view with
-         plastics-specific fields (polymer, load, transaction, intake,
-         doc_type, verification, override).
+         Odoo 19 Documents has no document form. This primary form
+         holds the plastics fields. Rename and upload keep their own
+         form_view_ref, and the Documents action stays kanban/list.
          ============================================================ -->
 
     <record id="view_document_form_plasticos" model="ir.ui.view">
         <field name="name">documents.document.form.plasticos</field>
         <field name="model">documents.document</field>
-        <field name="inherit_id" ref="documents.document_view_form"/>
+        <field name="priority">64</field>
         <field name="arch" type="xml">
-            <xpath expr="//sheet" position="inside">
+            <form>
+                <sheet>
                 <group string="Plasticos Classification">
                     <group>
                         <field name="doc_type"/>
@@ -41,7 +42,8 @@
                 <group string="Legacy Sync" invisible="not plasticos_doc_id">
                     <field name="plasticos_doc_id" readonly="1"/>
                 </group>
-            </xpath>
+                </sheet>
+            </form>
         </field>
     </record>
 
@@ -53,7 +55,7 @@
     <record id="view_document_list_plasticos" model="ir.ui.view">
         <field name="name">documents.document.list.plasticos</field>
         <field name="model">documents.document</field>
-        <field name="inherit_id" ref="documents.document_view_list"/>
+        <field name="inherit_id" ref="documents.documents_view_list"/>
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
                 <field name="doc_type" optional="show"/>
