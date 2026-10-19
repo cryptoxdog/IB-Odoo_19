@@ -35,18 +35,18 @@ make roadmap-list                         # List registry items
 #   (GitHub Actions job logs, SonarCloud, CodeRabbit, Gemini, human reviews via pr_autopilot)
 #   Target a PR: make pr-check pr=100
 #     or: make pr-check https://github.com/cryptoxdog/IB-Odoo_19/pull/100
-#   Skip remote: PR_CHECK_SKIP_REMOTE=1 make push
+#   Skip remote: PR_CHECK_SKIP_REMOTE=1 make pr-check
 
-# Push (safe: pr-check first, then push feature branch; use pr=1 to open PR into Staging)
-make push                                 # pr-check then push current branch
-make push pr=1                            # push, then open PR into Staging
+# Publication: make pr validates the committed HEAD, pushes the feature branch,
+# and opens or verifies the PR into Staging. make push is retired.
+make pr                                   # publish the committed feature branch into Staging
 
 # Docker
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
 docker-compose exec web odoo -u plasticos_base --stop-after-init  # Update module
 
 # Data imports (canonical commands — odoo-intent-1 ingestion milestone)
-make import-legacy-erp                    # LegacyErp import: preflight + reconciliation + summary (DRY=1 preview)
+make import-erp                           # ERP import through SQL (DRY=1 preview)
 make import-vanillasoft                   # VanillaSoft full import: preflight + reconciliation + summary
 python3 scripts/validate_import_summary.py .l9/pr/import-*-summary.json  # validate machine summaries
 
@@ -232,7 +232,7 @@ tools/                       # Cron checks, validators
 - Merge `Staging` → `Production` for production — never merge feature branches directly to `Production`
 - Branch naming: `feat/short-description`, `fix/short-description`, `docs/short-description`, `refactor/short-description`, `test/short-description`
 - Commit messages: conventional commits with optional module scope — `feat(module): ...`, `fix(views): ...`, `docs: ...`, `refactor(intake): ...`, `test(integration): ...`
-- **`make commit` / `make push` omit `.cursor-commands`** — local symlink to Dropbox governance SSOT; that tree is pushed from a separate repo, never from IB-Odoo_19
+- **`make commit` omits `.cursor-commands`** — local symlink to Dropbox governance SSOT; that tree is pushed from a separate repo, never from IB-Odoo_19. Publication is `make pr`
 - PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan (gitleaks)
 
 ## CI Compliance Checklist (MANDATORY before commit/PR)
@@ -370,9 +370,11 @@ Optional: on a specific dev branch → Settings → **Test suite** → untick va
 **Odoo runtime tests (local Docker — not GitHub):**
 
 ```bash
-make test-odoo              # docker compose --test-enable on ODOO_TEST_DB
-make test-module m=<module>
+make test-odoo              # Docker --test-enable; clones config/test_env_fixture.conf
+make test-module m=<module> # same fixture: odoo_test_tpl_ee_c9e8a81f52f23680
 ```
+
+`make test-module`, `make test-odoo`, and `scripts/test_env.sh` clone only that database. Another test database is not a substitute. A new template is refused unless that database is absent and `TEST_ENV_ALLOW_NEW_TEMPLATE` equals its name. `TEST_ENV_PARITY=community` is refused unless `TEST_ENV_SAFETY_HARNESS=1`.
 
 ### Odoo 19 patterns that CI rejects (24 checks in `check_odoo_patterns.sh`)
 
@@ -500,23 +502,17 @@ workflow: `ci/baselines/README.md`.
 
 | Tool | Pre-commit | CI (`ci.yml`) | Local (`make venv` / `requirements-dev.txt`) | `pyproject.toml` |
 |------|-----------|--------------|------------------------------------------------|-------------------|
-| Ruff | `v0.15.5` | `0.15.5` | `make venv` pins `ruff==0.15.5` explicitly | `required-version = "==0.15.5"` (hard-fails on any drift — this is the enforcement mechanism, not a lockfile) |
+| Ruff | `v0.16.0` | `0.16.0` | `make venv` pins `ruff==0.16.0` explicitly | `required-version = "==0.16.0"` (hard-fails on any drift — this is the enforcement mechanism, not a lockfile) |
 | mypy | `v1.14.0` | `1.14.0` | `requirements-dev.txt` pins `mypy==1.14.0` | `[tool.mypy]` config (no version field — mypy has no `required-version` equivalent) |
 | Semgrep | n/a (not a hook) | `1.164.0` | `make venv` pins `semgrep==1.164.0` explicitly | n/a |
 | pytest | n/a (not a hook) | `8.3.5` / `pytest-timeout==2.4.0` / `pytest-cov==5.0.0` | `requirements-dev.txt` — same three pins | `[tool.pytest.ini_options]` |
 | gitleaks | pre-commit hook (`gitleaks-commit`/`gitleaks-push`, unpinned local binary) | SHA-pinned action (`gitleaks/gitleaks-action@ff98106e...`, tag `v2`) | local `gitleaks` binary version, unpinned | n/a |
 | shellcheck | not yet a pre-commit hook | unpinned (`apt-get install -y shellcheck` = whatever Ubuntu ships) | unpinned (`brew install shellcheck`) | n/a |
 
-> **2026-09-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
-> the Ruff row above is stale. The live pin is **`0.16.0`** — `pyproject.toml` has
-> `required-version = "==0.16.0"`, a PEP 440 specifier that makes any other ruff on PATH exit with an
-> error (observed 2026-09-20: `ruff 0.15.8` failed with `Required version ==0.16.0 does not match`).
-> Treat `0.16.0` as the lockstep value for the pre-commit hook, `ci.yml`, `make venv` and
-> `requirements-dev.txt` until the row is rewritten under a sanctioned root-file edit.
-
 Ruff is the only tool with a **hard version gate** (`required-version` in `pyproject.toml` — this is
 what caught the drift on 2026-07: a global `ruff==0.14.11` on PATH refused to run against a repo
-pinned to `0.15.5`, exactly as designed). This repo intentionally has **no `uv.lock`** — see
+then pinned to `0.15.5`). The live pin is `0.16.0` in this table, `.pre-commit-config.yaml` (`v0.16.0`),
+`ci.yml`, and `requirements-dev.txt`. This repo intentionally has **no `uv.lock`** — see
 `.cursor/rules/88-plasticos-odoo-python-tooling.mdc` "Non-goals": there's no `[project]` table in
 `pyproject.toml` because this is an Odoo addon suite, not a pip/uv-installable package. The
 equivalent of a lockfile here is **pins repeated at each of the three sites above** (pre-commit,
@@ -583,27 +579,3 @@ Exactly one formatter owns each language. Do not reformat a file with a tool oth
 Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
 
 <!-- END L9 FORMATTER OWNERSHIP -->
-
-> **2026-10-06 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
-> the `make import-legacy-erp` line in the Commands block above is superseded. The canonical ERP import
-> command is **`make import-erp`** (`plasticos_partner_import/scripts/import_erp_shell.py`, driven by
-> `plasticos_partner_import/models/erp_import_service.py`). ERP data enters through SQL (ADR-021): set
-> `ERP_SQL_SERVER` / `ERP_SQL_DATABASE` (plus `ERP_SQL_USER` / `ERP_SQL_PASSWORD`, or `ERP_SQL_DRIVER=pyodbc`)
-> for a direct read of the restored source database; the frozen grid extract under
-> `plasticos_partner_import/erp_extracted_data/bulk/` is a regression fixture, not runtime authority.
-> `PARTNERS_ONLY=1` runs Concern 1 (counterparties → addresses → contacts → roles → salespersons) with
-> each layer validated before anything commits. Runbook: `docs/runbooks/ERP_IMPORT.md`.
-
-> **2026-10-07 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
-> Publication override: `make pr` is the sole publication SSOT.
-> `make push` and `make push pr=1` are retired and must not be used for publication.
-> The Commands block above that names those ceremonies is historical and is superseded by this correction.
-> A failed remote-feedback gate must be resolved before `make pr`.
-
-> **2026-10-17 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
-> Enterprise Docker runtime tests (`make test-module`, `make test-odoo`, `scripts/test_env.sh`)
-> clone only the database named in `config/test_env_fixture.conf`
-> (`odoo_test_tpl_ee_c9e8a81f52f23680`). Another test database is not a substitute.
-> A new template is refused unless that database is absent and `TEST_ENV_ALLOW_NEW_TEMPLATE`
-> equals that name. `TEST_ENV_PARITY=community` is refused unless `TEST_ENV_SAFETY_HARNESS=1`.
-> Rule: `.cursor/rules/36-plasticos-docker-test-fixture.mdc`.
