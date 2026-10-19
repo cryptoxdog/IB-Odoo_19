@@ -12,7 +12,7 @@ alwaysApply: true
 
 `make test-module`, `make test-odoo`, `make test-db`, and `scripts/test_env.sh` clone that database. The clone name is the worktree's `odoo_test_<owner>`. The template is not a run target.
 
-A module change is applied with `-u` on the clone. It does not rebuild the template. A `--test-enable` run under `scripts/test_env.sh run` (both Make test targets) upgrades every declared PlasticOS module on the clone, never `-u all`. It runs only the roster's tests, or only `m=`'s. It fails on a missing Odoo test summary, a failure, an error, or zero tests. The receipt is `.l9/runtime/test-env/<db>.test-receipt.json`.
+A module change is applied with `-u` on the clone. It does not rebuild the template. A `--test-enable` run under `scripts/test_env.sh run` (both Make test targets) upgrades every declared PlasticOS module on the clone, never `-u all`. It runs only the roster's tests, or only `m=`'s. It fails on a missing Odoo test summary, a failure, an error, or zero tests. The receipt is `.l9/runtime/test-env/<db>.test-receipt.json`. Any other `run` (an import, `shell`) first upgrades the roster on the clone, once per addon source digest.
 
 The fixture is used only for the inputs it was admitted for: the Odoo image, the Postgres major, the module roster, the runtime configuration, and the Enterprise checkout. When one of those differs, or cannot be proved against its recorded inputs file, the fixture is refused and names what changed. It is not rebuilt; that is the operator's decision.
 

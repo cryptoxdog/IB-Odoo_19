@@ -43,6 +43,13 @@ That treats a `--test-enable` run as its test runner:
 | Verdict | Odoo's `N failed, N error(s) of N tests when loading database '<db>'` line. A missing line, any failure or error, a non-zero exit, or **zero tests** fails |
 | Receipt | `.l9/runtime/test-env/<db>.test-receipt.json` (tests, failed, errors, exit, scope, fixture) |
 
+Any other `scripts/test_env.sh run` (`make import-erp-test`, a guarded
+`make import-vanillasoft`, `shell`, `make runtime-gate-f1`) first upgrades the
+roster on the clone, once per addon source digest (stamped `src=` on the clone).
+That step reads no stdin. Every option that starts Odoo's tests (`--test*`, `-t`)
+goes to the runner, and prefixed redirect options (`--db_h=`, `--datab`, `-cFILE`)
+are refused.
+
 Without `-u`, Odoo runs at_install and post_install tests of every loaded module,
 core and Enterprise included, against the fixture's schema. That is why the
 runner always upgrades the roster.

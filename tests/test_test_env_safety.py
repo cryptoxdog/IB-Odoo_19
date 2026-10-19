@@ -232,6 +232,10 @@ if args[:1] == ["compose"]:
     if "run" in args and "--test-enable" in args:
         sys.stdout.write(os.environ.get("STUB_ODOO_LOG", ""))
         sys.exit(int(os.environ.get("STUB_ODOO_RC", "0")))
+    if "run" in args and os.environ.get("STUB_READ_STDIN"):
+        with open(os.environ["STUB_LOG"], "a") as log:
+            log.write(" stdin=" + repr(sys.stdin.read()) + " " + chr(10))
+        out()
     if "ps" in args:
         out("stubdb")
     if "config" in args:
@@ -269,7 +273,9 @@ out()
 """
 
 
-def _stateful(tmp_path: Path, databases: dict[str, str], *args: str, **env: str) -> subprocess.CompletedProcess:
+def _stateful(
+    tmp_path: Path, databases: dict[str, str], *args: str, input_text: str | None = None, **env: str
+) -> subprocess.CompletedProcess:
     stub = tmp_path / "sbin" / "docker"
     stub.parent.mkdir(exist_ok=True)
     stub.write_text(_STATEFUL_STUB)
@@ -289,7 +295,13 @@ def _stateful(tmp_path: Path, databases: dict[str, str], *args: str, **env: str)
         **env,
     }
     return subprocess.run(
-        ["bash", str(SCRIPT), *args], capture_output=True, text=True, env=environ, cwd=ROOT, check=False
+        ["bash", str(SCRIPT), *args],
+        capture_output=True,
+        text=True,
+        env=environ,
+        cwd=ROOT,
+        check=False,
+        input=input_text,
     )
 
 
@@ -297,6 +309,12 @@ def _fingerprint(tmp_path: Path, **env: str) -> str:
     status = _stateful(tmp_path, {}, "status", **env)
     assert status.returncode == 0, status.stderr
     return re.search(r"fingerprint:\s+([0-9a-f]{64})", status.stdout).group(1)
+
+
+def _source(tmp_path: Path, **env: str) -> str:
+    status = _stateful(tmp_path, {}, "status", **env)
+    assert status.returncode == 0, status.stderr
+    return re.search(r"source:\s+([0-9a-f]{64})", status.stdout).group(1)
 
 
 def _template(fp: str) -> tuple[str, str]:
@@ -720,6 +738,140 @@ def test_import_recipe_refuses_the_no_docker_fallback_for_a_verified_clone(tmp_p
     assert result.returncode != 0
     assert "the no-Docker harness is another server" in result.stderr
     assert not ran.exists(), ran.read_text()
+
+
+@pytest.mark.parametrize(
+    "form",
+    [
+        ["--test-en", "--stop-after-init"],
+        ["-t", "/plasticos_base", "--stop-after-init"],
+        ["-t/plasticos_base"],
+        ["--test-tags=/plasticos_base"],
+        ["--test-tags", "/plasticos_base"],
+        ["--test-file=x.py"],
+        ["--test-enable=1"],
+    ],
+)
+def test_every_form_that_starts_odoo_tests_belongs_to_the_runner(tmp_path, form):
+    """Odoo enables tests for test tags alone and accepts option prefixes; none of these skips the runner."""
+    result, calls = _run(tmp_path, "run", "odoo_test_a", "--", *form)
+    _assert_refused(result, calls, "not accepted in a test run")
+    assert calls == ""
+
+
+@pytest.mark.parametrize(
+    "arg",
+    [
+        "--db_h=other",
+        "--db_po=5433",
+        "--db_us=x",
+        "--db_pa=x",
+        "--datab=odoo",
+        "--pg_p=/x",
+        "--addons=/x",
+        "--conf=/x",
+        "-cFILE",
+        "-rodoo",
+        "-wsecret",
+        "-D/tmp/x",
+    ],
+)
+def test_abbreviated_options_that_redirect_the_run_are_refused(tmp_path, arg):
+    result, calls = _run(tmp_path, "run", "odoo_test_a", "--", "shell", arg)
+    _assert_refused(result, calls, "redirect the run away")
+    assert calls == ""
+
+
+def test_abbreviated_database_option_with_a_separate_value_is_refused(tmp_path):
+    result, calls = _run(tmp_path, "run", "odoo_test_a", "--", "shell", "--datab", "odoo")
+    _assert_refused(result, calls, "redirect the run away")
+
+
+def test_fixture_with_a_differing_line_that_has_no_simple_key_is_refused(tmp_path):
+    """The decision compares the whole text; naming the change is only for the message."""
+    env = _enterprise(tmp_path)
+    text = "\n".join([*_inputs(tmp_path, **env), "Odoo_Src-2=extra"]) + "\n"
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / f"{PINNED_FIXTURE}.inputs.txt").write_text(text)
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(_sha256(text))}, "template", **env)
+    assert result.returncode == 2, result.stderr
+    assert "is incompatible with the current inputs" in result.stderr
+    assert "COMMENT ON" not in (tmp_path / "stub.log").read_text()
+
+
+def _owned_clone_run(tmp_path: Path, *recipe: str, clone_extra: str = "", **env: str):
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp) + clone_extra}
+    return _stateful(tmp_path, databases, "run", "odoo_test_a", "--", *recipe, **base, **env)
+
+
+def _upgrade_calls(tmp_path: Path) -> list[str]:
+    return [
+        line
+        for line in (tmp_path / "stub.log").read_text().splitlines()
+        if " compose " in line and " run " in line and f" -u {ROSTER} " in line and "--test-enable" not in line
+    ]
+
+
+def test_guarded_import_runs_on_a_clone_upgraded_to_the_source_on_disk(tmp_path):
+    """An import loads current code; the clone's PlasticOS schema is upgraded first, once per source."""
+    base = _enterprise(tmp_path)
+    source = _source(tmp_path, **base)
+    result = _owned_clone_run(tmp_path, *VANILLASOFT)
+    assert result.returncode == 0, result.stderr
+    log = (tmp_path / "stub.log").read_text()
+    upgrades = _upgrade_calls(tmp_path)
+    assert len(upgrades) == 1, log
+    assert " -d odoo_test_a " in upgrades[0]
+    assert log.index(upgrades[0]) < log.index(" shell -d odoo_test_a ")
+    assert 'COMMENT ON DATABASE "odoo_test_a" IS ' in log
+    assert f" src={source}'" in log
+
+
+def test_clone_already_upgraded_for_this_source_is_not_upgraded_again(tmp_path):
+    base = _enterprise(tmp_path)
+    source = _source(tmp_path, **base)
+    result = _owned_clone_run(tmp_path, *VANILLASOFT, clone_extra=f" src={source}")
+    assert result.returncode == 0, result.stderr
+    assert _upgrade_calls(tmp_path) == []
+
+
+def test_failed_upgrade_stops_the_import(tmp_path):
+    stub = (
+        "#!/usr/bin/env bash\n"
+        'if [ "$1" = compose ] && [[ " $* " == *" -u "* ]] && [[ " $* " != *" --test-enable "* ]]; then exit 1; fi\n'
+        f'exec "{tmp_path / "sbin" / "docker"}" "$@"\n'
+    )
+    wrapper = tmp_path / "wrap"
+    wrapper.mkdir()
+    (wrapper / "docker").write_text(stub)
+    (wrapper / "docker").chmod(0o755)
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)}
+    result = _stateful(
+        tmp_path,
+        databases,
+        "run",
+        "odoo_test_a",
+        "--",
+        *VANILLASOFT,
+        **base,
+        PATH=f"{wrapper}{os.pathsep}{tmp_path / 'sbin'}{os.pathsep}{os.environ['PATH']}",
+    )
+    assert result.returncode != 0
+    assert "upgrading the PlasticOS roster on odoo_test_a failed" in result.stderr
+    assert " shell " not in (tmp_path / "stub.log").read_text()
+
+
+def test_upgrade_stage_does_not_consume_the_piped_shell_script(tmp_path):
+    """runtime-gate-f1 pipes its gate into `run <db> -- shell`; the upgrade must not read it."""
+    result = _owned_clone_run(tmp_path, "shell", input_text="print('gate')\n", STUB_READ_STDIN="1")
+    assert result.returncode == 0, result.stderr
+    stdins = [line.strip() for line in (tmp_path / "stub.log").read_text().splitlines() if line.startswith(" stdin=")]
+    assert stdins == ["stdin=''", "stdin=\"print('gate')\\n\""], stdins
 
 
 def test_current_owned_clone_of_the_admitted_template_is_accepted(tmp_path):

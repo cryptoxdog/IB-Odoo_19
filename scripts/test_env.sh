@@ -448,7 +448,9 @@ fixture_evidence() {
     fi
   done < <(
     echo "$EVIDENCE_DIR"
-    git -C "$ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree \(.*\)$/\1\/.l9\/runtime\/test-env/p'
+    if [ "$EVIDENCE_DIR" = "$ROOT/.l9/runtime/test-env" ]; then
+      git -C "$ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree \(.*\)$/\1\/.l9\/runtime\/test-env/p'
+    fi
   )
 }
 
@@ -458,7 +460,7 @@ fixture_evidence() {
 # and, apart from the old addons= line, equals the current inputs line for line.
 # Otherwise it is refused, naming what changed. It is never rebuilt here.
 certify_pinned_fixture() {
-  local comment stored evidence changed
+  local comment stored evidence changed current
   comment="$(db_comment "$TEMPLATE_DB")"
   is_ours "$comment" && [ "$(field "$comment" role)" = "template" ] && [ "$(field "$comment" state)" = "ready" ] &&
     [ "$(field "$comment" parity)" = "$PARITY" ] ||
@@ -467,12 +469,18 @@ certify_pinned_fixture() {
   evidence="$(fixture_evidence "$stored")"
   [ -n "$evidence" ] ||
     refuse "$TEMPLATE_DB is unproven for the current inputs: it was admitted for fp ${stored:0:16}, current inputs are ${FP:0:16}, and no recorded inputs file in a checkout of this repository hashes to its fp. The fixture is not rebuilt or replaced"
-  changed="$(diff <(grep -v '^addons=' "$evidence") <(fingerprint_inputs) | sed -n 's/^[<>] \([a-z]*\)=.*/\1/p' | sort -u | paste -sd, -)" || true
-  [ -z "$changed" ] ||
-    refuse "$TEMPLATE_DB is incompatible with the current inputs: $changed changed since it was admitted (recorded in ${evidence#"$ROOT"/}). The fixture is not rebuilt or replaced"
+  # One reading of the inputs decides, stamps, and is recorded; it must be the
+  # reading FP was computed from.
+  current="$(fingerprint_inputs)"
+  [ "$(printf '%s\n' "$current" | sha256)" = "$FP" ] ||
+    refuse "the runtime inputs changed while this run was checking $TEMPLATE_DB; run it again"
+  if [ "$(grep -v '^addons=' "$evidence")" != "$current" ]; then
+    changed="$(diff <(grep -v '^addons=' "$evidence") <(printf '%s\n' "$current") | sed -n 's/^[<>] \([^=]*\)=.*/\1/p' | sort -u | paste -sd, -)" || true
+    refuse "$TEMPLATE_DB is incompatible with the current inputs: ${changed:-the recorded inputs} changed since it was admitted (recorded in ${evidence#"$ROOT"/}). The fixture is not rebuilt or replaced"
+  fi
   set_comment "$TEMPLATE_DB" "$(printf '%s' "$comment" | sed "s| fp=[^ ]*| fp=$FP|")"
   mkdir -p "$EVIDENCE_DIR"
-  fingerprint_inputs >"$EVIDENCE_DIR/${TEMPLATE_DB}.inputs.txt"
+  printf '%s\n' "$current" >"$EVIDENCE_DIR/${TEMPLATE_DB}.inputs.txt"
   echo "✅ $TEMPLATE_DB matches the current inputs (proved by ${evidence#"$ROOT"/}); fp re-stamped ${stored:0:16} → ${FP:0:16}"
 }
 
@@ -896,7 +904,7 @@ RUN_MODE=""
 RUN_OPTS=()
 RUN_ARGS=()
 parse_run() {
-  local target="$1" arg name
+  local target="$1" arg name test_form=""
   shift
   RUN_MODE="odoo"
   RUN_OPTS=()
@@ -980,9 +988,18 @@ parse_run() {
         [ "${1#-d}" = "$target" ] || refuse "'$1' would redirect the run away from the verified clone $target"
         shift
         ;;
-      --db-filter* | --db_host* | --db_port* | --db_user* | --db_password* | -r | -w | --pg_path* | \
-        --addons-path* | -c | --config* | -D | --data-dir*)
+      # Odoo's option parser accepts any unambiguous prefix of a long option
+      # (--db_h is --db_host, --datab is --database) and glued short values
+      # (-cFILE), so whole prefixes are refused, not only the full spellings.
+      --db* | --dat* | --pg* | --ad* | --con* | -r* | -w* | -c* | -D*)
         refuse "'$1' would redirect the run away from the verified clone $target"
+        ;;
+      # Any of these starts Odoo's tests (test tags alone enable them), so the
+      # run belongs to the test runner, which accepts only its own spellings.
+      --test* | -t*)
+        test_form=1
+        RUN_ARGS+=("$1")
+        shift
         ;;
       *)
         RUN_ARGS+=("$1")
@@ -990,7 +1007,7 @@ parse_run() {
         ;;
     esac
   done
-  if [[ " ${RUN_ARGS[*]-} " == *" --test-enable "* ]]; then
+  if [ -n "$test_form" ]; then
     parse_test_args
   fi
 }
@@ -1025,13 +1042,13 @@ TEST_SCOPE=""
 TEST_TAGS=""
 # The scope is checked before Docker: declared PlasticOS modules, or the roster.
 test_scope() {
-  local m modules
+  local m modules=()
   TEST_SCOPE="$1"
   TEST_ROSTER="$(python3 scripts/get_odoo_module_order.py)"
   [ -n "$TEST_ROSTER" ] || refuse "scripts/get_odoo_module_order.py declared no PlasticOS modules"
-  modules="${TEST_SCOPE:-${TEST_ROSTER//,/ }}"
+  read -r -a modules <<<"${TEST_SCOPE:-${TEST_ROSTER//,/ }}"
   TEST_TAGS=""
-  for m in $modules; do
+  for m in ${modules[@]+"${modules[@]}"}; do
     [[ ",$TEST_ROSTER," == *",$m,"* ]] ||
       refuse "'$m' is not a declared PlasticOS module (config/odoo_module_order.yaml); the fixture does not install it"
     TEST_TAGS="${TEST_TAGS}${TEST_TAGS:+,}/$m"
@@ -1082,7 +1099,8 @@ run_tests() {
   rm -f "$receipt"
   echo "→ Upgrading $(tr ',' '\n' <<<"$TEST_ROSTER" | wc -l | tr -d ' ') PlasticOS modules on $target; tests: ${scope:-the PlasticOS roster}"
   compose run --rm --no-deps -T ${RUN_OPTS[@]+"${RUN_OPTS[@]}"} odoo odoo --test-enable --stop-after-init --log-level=test \
-    -u "$TEST_ROSTER" --test-tags "$TEST_TAGS" -d "$target" --addons-path="$(addons_path)" 2>&1 | tee "$log" || rc=$?
+    -u "$TEST_ROSTER" --test-tags "$TEST_TAGS" -d "$target" --addons-path="$(addons_path)" </dev/null 2>&1 |
+    tee "$log" || rc=$?
   summary="$(grep -E "odoo\.tests\.result: [0-9]+ failed, [0-9]+ error\(s\) of [0-9]+ tests when loading database '$target'" "$log" | tail -1 || true)"
   [ -n "$summary" ] ||
     die "no Odoo test summary for $target (exit $rc); the run is not evidence of anything (log: ${log#"$ROOT"/})"
@@ -1093,12 +1111,37 @@ run_tests() {
   [ "$total" -gt 0 ] || die "zero tests ran for ${scope:-the PlasticOS roster}; an empty run is a failure"
   [ "$failed" -eq 0 ] && [ "$errors" -eq 0 ] || die "$failed failed, $errors error(s) of $total tests"
   [ "$rc" -eq 0 ] || die "odoo exited with status $rc after $total passing tests (log: ${log#"$ROOT"/})"
+  stamp_upgraded "$target" "$TEST_SOURCE"
+}
+
+# A clone starts with the fixture's PlasticOS schema and data, not the source on
+# disk. Before an import or any other Odoo command runs on it, the declared
+# roster is upgraded, once per addon source digest; the digest is stamped on
+# the clone as src=. The upgrade reads no stdin: a piped shell script is for
+# the command that follows, not for this stage.
+TEST_SOURCE=""
+addon_source() { content_digest git "$ROOT" 'plasticos_*'; }
+stamp_upgraded() {
+  local comment
+  comment="$(db_comment "$1")"
+  set_comment "$1" "$(printf '%s' "$comment" | sed 's| src=[^ ]*||') src=$2"
+}
+ensure_clone_upgraded() {
+  local target="$1" roster
+  [ "$(field "$(db_comment "$target")" src)" = "$TEST_SOURCE" ] && return 0
+  roster="$(python3 scripts/get_odoo_module_order.py)"
+  echo "→ Upgrading $(tr ',' '\n' <<<"$roster" | wc -l | tr -d ' ') PlasticOS modules on $target to the source on disk"
+  compose run --rm --no-deps -T odoo odoo -u "$roster" --stop-after-init --workers=0 --max-cron-threads=0 --no-http \
+    -d "$target" --addons-path="$(addons_path)" </dev/null ||
+    die "upgrading the PlasticOS roster on $target failed; nothing else ran on it"
+  stamp_upgraded "$target" "$TEST_SOURCE"
 }
 
 status() {
   echo "owner:        $OWNER (default clone $DEFAULT_CLONE)"
   echo "parity:       $PARITY"
   echo "fingerprint:  $FP"
+  echo "source:       $(addon_source) (PlasticOS addons; upgraded on each clone, not part of the fingerprint)"
   echo "template:     $TEMPLATE_DB ($(template_ready && echo ready || { db_exists "$TEMPLATE_DB" && echo "not admitted for the current inputs"; } || echo absent))"
   if [ -n "$PINNED_TEMPLATE" ]; then
     echo "fixture:      canonical; a new template is refused unless this database is absent and TEST_ENV_ALLOW_NEW_TEMPLATE equals its name"
@@ -1150,6 +1193,10 @@ main() {
       # or other run of it can start in between.
       lease "db:$target" exclusive
       assert_clone "$target"
+      TEST_SOURCE="$(addon_source)"
+      if [ "$RUN_MODE" != "test" ]; then
+        ensure_clone_upgraded "$target"
+      fi
       if [ "$RUN_MODE" = "make" ]; then
         # The import's own `docker compose` is bound to this repository's
         # verified file and project. make reads MAKEFILES and MAKEFLAGS from the

@@ -1133,3 +1133,6 @@ import-vanillasoft:
 # for; it is not rebuilt. Under test_env.sh run, import-erp and
 # import-vanillasoft refuse a database other than the verified clone and their
 # no-Docker fallback; MAKEFILES and MAKEFLAGS are cleared before make starts.
+# Every other test_env.sh run (an import, shell, runtime-gate-f1) first
+# upgrades the PlasticOS roster on the clone, once per addon source digest
+# (stamped src= on the clone), reading no stdin.
