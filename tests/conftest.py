@@ -60,9 +60,7 @@ _CONTRACT_STATE = pytest.StashKey[dict[str, set[str]]]()
 
 
 def pytest_configure(config):
-    config.addinivalue_line(
-        "markers", "adversarial_contract: portable safety contract; skips and xfails are failures"
-    )
+    config.addinivalue_line("markers", "adversarial_contract: portable safety contract; skips and xfails are failures")
     config.stash[_CONTRACT_STATE] = {"collected": set(), "passed": set(), "deselected": set()}
     if os.environ.get("PLASTICOS_CONTRACT_CI") == "1":
         if os.environ.get("PLASTICOS_SMOKE_SOURCE"):

@@ -15,15 +15,23 @@ separate evidence.
 
 ## Ownership
 
+CI-owned (this runbook's scope):
+
 | File | Responsibility |
 | --- | --- |
-| `tests/test_make_pr_publication.py` | Publication, L4, secret-scan failure, origin, push and PR behavior |
-| `tests/test_install_smoke_db_guard.py` | Refusal of business/system/remote database targets |
-| `tests/test_install_smoke_evidence.py` | Real installer evidence equivalence, invalidation and shared locking |
 | `tests/test_ci_event_triggers.py` | Workflow event contract, failure masking, required-test reachability |
 | `tests/conftest.py` | Mandatory portable marker semantics; existing Odoo collection policy |
 | `ci/check_github_actions_kernel.sh` | Existing workflow structure and full test invocation enforcement |
 | `.github/workflows/ci.yml` | One execution, metadata and JUnit artifact upload |
+
+Publication-owned (implemented with the publisher and installer, PR #263; CI only
+runs them in the one pure-Python invocation):
+
+| File | Responsibility |
+| --- | --- |
+| `tests/test_make_pr_publication.py` | Publication, L4, pre-push hook enforcement, origin, push and PR behavior |
+| `tests/test_install_smoke_db_guard.py` | Refusal of business/system/remote database targets |
+| `tests/test_install_smoke_evidence.py` | Real installer evidence equivalence, invalidation and shared locking |
 
 ## Adding a contract
 
@@ -43,7 +51,8 @@ Fixtures control external inputs and observe effects; production code decides.
 Use event/barrier synchronization for concurrency, not a guessed startup sleep.
 Do not place failure-injection switches in production code.
 
-The installer safety guard additionally checks the active Docker context endpoint
+For reference (installer behavior owned by PR #263, not this CI change): the
+installer safety guard additionally checks the active Docker context endpoint
 (not only `DOCKER_HOST`) before destructive work and pins the effective
 `COMPOSE_FILE` to this repository's `docker-compose.yml` to prevent an
 implicit `docker-compose.override.yml` from changing the database identity.
@@ -76,9 +85,10 @@ every PR and do not copy old source into the production tree.
 
 PR #263 at `d208724ac4e74d1f0f36a9e02709309b68afa63f` is the initial donor. Its
 installer blob is `c224fba943344c692d6bb08d9c16ff23474e0709`. The acceptance cases
-cover the mounted Enterprise checkout, metadata-preserving byte edits,
-untracked bytes, actual image identity, effective configuration, exact module
-inventory, stale success after failure, and cross-worktree serialization.
+live in PR #263's installer suite and cover the mounted Enterprise checkout,
+metadata-preserving byte edits, untracked bytes, actual image identity, effective
+configuration, exact module inventory, stale success after failure,
+cross-worktree serialization, and the shared smoke database's instance identity.
 
 ## Diagnosing a failed PR
 
@@ -100,7 +110,7 @@ separate Secret Detection job remains mandatory.
 
 ## Runtime evidence and cost
 
-Installer evidence is local, disposable and versioned. It binds byte content,
+Installer evidence (PR #263) is local, disposable and versioned. It binds byte content,
 effective Compose service configuration, actual installed image identity, exact
 custom/Enterprise inventories and live installed states. Old, malformed,
 incomplete or changed evidence is not a cache hit. Do not publish this local

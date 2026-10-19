@@ -24,9 +24,7 @@ def _workflow() -> dict:
 
 
 def _child_env() -> dict[str, str]:
-    env = {
-        k: v for k, v in os.environ.items() if not k.startswith(("COV_CORE_", "COVERAGE_", "PYTEST_", "PLASTICOS_"))
-    }
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("COV_CORE_", "COVERAGE_", "PYTEST_", "PLASTICOS_"))}
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     # Avoid host site startup instrumentation in nested stdlib/pytest probes.
     env["PYTHONPATH"] = str(Path(pytest.__file__).resolve().parent.parent)
@@ -153,13 +151,13 @@ def test_aggregator_must_actually_fail_closed(tmp_path: Path, attack: str) -> No
     aggregator = doc["jobs"]["ci-gate-result"]["steps"][0]
     if attack == "comment_only":
         aggregator["run"] = (
-            "# " + " ".join(f"needs.{job}.result != success" for job in required)
+            "# "
+            + " ".join(f"needs.{job}.result != success" for job in required)
             + "\n# exit 1\necho weak gate\nexit 0\n"
         )
     elif attack == "inert_failure":
         aggregator["run"] = (
-            "echo '" + " ".join(f"needs.{job}.result != success" for job in required)
-            + " exit 1'\nexit 0\n"
+            "echo '" + " ".join(f"needs.{job}.result != success" for job in required) + " exit 1'\nexit 0\n"
         )
     else:
         aggregator["run"] = "exit 0\n" + aggregator["run"]
@@ -197,7 +195,9 @@ def test_a_required_contract_cannot_skip_or_xfail(tmp_path: Path, action: str) -
 
 
 def test_an_unexpected_pass_marked_xfail_is_not_contract_proof(tmp_path: Path) -> None:
-    body = "import pytest\n@pytest.mark.adversarial_contract\n@pytest.mark.xfail\ndef test_contract():\n    assert True\n"
+    body = (
+        "import pytest\n@pytest.mark.adversarial_contract\n@pytest.mark.xfail\ndef test_contract():\n    assert True\n"
+    )
     result = _probe_pytest(tmp_path, body, ci=True)
     assert result.returncode == 1, result.stdout + result.stderr
 
