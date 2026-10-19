@@ -8,13 +8,16 @@ not run unless the disposable database and endpoint are proven.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SMOKE = ROOT / "scripts" / "install_smoke.sh"
+pytestmark = pytest.mark.adversarial_contract
 DESTRUCTIVE_MARKERS = (
     " pg_terminate_backend",
     "DROP DATABASE",
@@ -35,8 +38,14 @@ import sys
 
 log = {str(log_path)!r}
 with open(log, "a", encoding="utf-8") as handle:
-    handle.write(" ".join(sys.argv[1:]) + "\\n")
+    handle.write(" ".join(sys.argv[1:]) + " [COMPOSE_FILE=" + os.environ.get("COMPOSE_FILE", "") + "]\\n")
 args = sys.argv[1:]
+if args[:2] == ["context", "inspect"]:
+    print(os.environ.get("TEST_CONTEXT_HOST", "unix:///var/run/docker.sock"))
+    sys.exit(0)
+if "info" in args:
+    print("guard-test-daemon")
+    sys.exit(0)
 if "inspect" in args:
     payload = {inspect_literal}
     if payload is None:
@@ -66,26 +75,60 @@ sys.exit(0)
 
 
 def _run(
-    tmp_path: Path, env_extra: dict[str, str], *, inspect_json: str | None = None, container_id: str = ""
+    tmp_path: Path,
+    env_extra: dict[str, str],
+    *,
+    inspect_json: str | None = None,
+    container_id: str = "",
+    implicit_override: bool = False,
 ) -> subprocess.CompletedProcess[str]:
+    # Even permitted-operation tests run against a disposable copy. Never remove
+    # a developer's real smoke receipt or touch their real Docker daemon.
+    repo = tmp_path / "fixture"
+    (repo / "scripts").mkdir(parents=True)
+    (repo / "ci").mkdir()
+    shutil.copyfile(SMOKE, repo / "scripts/install_smoke.sh")
+    (repo / "scripts/get_odoo_module_order.py").write_text(
+        "import sys\nprint('none' if '--section' in sys.argv else 'plasticos_base')\n", encoding="utf-8"
+    )
+    (repo / "ci/check_xml_module_ref_deps.py").write_text("raise SystemExit(0)\n", encoding="utf-8")
+    (repo / "docker-compose.yml").write_text(
+        "name: odoo19\nservices:\n  db:\n    image: postgres:15\n    environment:\n"
+        '      POSTGRES_DB: odoo\n    ports:\n      - "5433:5432"\n',
+        encoding="utf-8",
+    )
+    if implicit_override:
+        (repo / "docker-compose.override.yml").write_text(
+            "services:\n  db:\n    image: postgres:unexpected\n", encoding="utf-8"
+        )
+    if inspect_json is not None:
+        inspect_json = inspect_json.replace(str(ROOT), str(repo))
     log_path = tmp_path / "docker.log"
     bindir = tmp_path / "bin"
     bindir.mkdir()
     stub = bindir / "docker"
     stub.write_text(_docker_stub(log_path, inspect_json=inspect_json, container_id=container_id), encoding="utf-8")
     stub.chmod(0o755)
-    env = {k: v for k, v in os.environ.items() if not k.startswith(("COV_CORE_", "COVERAGE_"))}
+    python = bindir / "python3"
+    python.write_text(f'#!/bin/sh\nexec "{sys.executable}" -S "$@"\n', encoding="utf-8")
+    python.chmod(0o755)
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("COV_CORE_", "COVERAGE_", "ODOO_", "COMPOSE_", "DOCKER_", "POSTGRES_"))
+    }
     env["PATH"] = f"{bindir}{os.pathsep}{env.get('PATH', '')}"
+    env["HOME"] = str(tmp_path / "home")
     env["POSTGRES_PASSWORD"] = "stub-not-a-secret"
     env["ODOO_ENTERPRISE_MODULES"] = "none"
     env.update(env_extra)
     return subprocess.run(
-        ["bash", str(SMOKE)],
-        cwd=ROOT,
+        ["bash", "scripts/install_smoke.sh"],
+        cwd=repo,
         capture_output=True,
         text=True,
         check=False,
-        timeout=180,
+        timeout=30,
         env=env,
     )
 
@@ -124,6 +167,19 @@ def test_unrecognized_or_protected_database_never_calls_docker(tmp_path: Path, n
     assert proc.returncode == 2, output
     assert "install-smoke refused" in output
     assert _docker_log(tmp_path) == ""
+
+
+def test_implicit_compose_override_cannot_change_database_identity(tmp_path: Path) -> None:
+    proc = _run(tmp_path, {}, implicit_override=True)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "COMPOSE_FILE=" + str(tmp_path / "fixture/docker-compose.yml") in _docker_log(tmp_path)
+
+
+def test_remote_active_docker_context_never_mutates(tmp_path: Path) -> None:
+    proc = _run(tmp_path, {"DOCKER_CONTEXT": "unsafe-ssh", "TEST_CONTEXT_HOST": "ssh://ops@remote.example"})
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "Docker context endpoint" in proc.stdout + proc.stderr
+    _assert_no_destructive(_docker_log(tmp_path))
 
 
 def test_remote_docker_host_never_calls_docker(tmp_path: Path) -> None:
