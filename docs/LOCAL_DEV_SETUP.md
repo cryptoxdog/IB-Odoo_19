@@ -47,7 +47,7 @@ cd ~/dev/IB-Odoo_19   # adjust if your clone path differs
 make venv
 ```
 
-Installs the pinned Python developer toolchain from `requirements-dev.txt` (toolchain pin source, versions aligned with CI): **ruff 0.16.0**, **pytest** (+ timeout/cov plugins), **semgrep**, **mypy**, **pr-repair** (+ deps). It also installs the `constellation-node-sdk` pin from `requirements.txt` into the same `.venv`, because OdooLS uses `.venv/bin/python`. The SDK commit stays in `requirements.txt` only. The package is installed without its own dependency set. `requirements-dev.txt` pins FastAPI 0.141.1 so the SDK package can import without moving the semgrep OpenTelemetry pin. It does **not** install Odoo into `.venv`, and does **not** install system tools (`shellcheck` and `gitleaks`, also used by CI; `xmllint`, used by `make xml-check`) — install those separately (e.g. `brew install shellcheck gitleaks`); `make audit` fails closed if `shellcheck` is missing.
+Installs the pinned Python developer toolchain from `requirements-dev.txt` (single pin source, versions aligned with CI): **ruff 0.16.0**, **pytest** (+ timeout/cov plugins), **semgrep**, **mypy**, **pr-repair** (+ deps). Does **not** install Odoo into `.venv`, and does **not** install system tools (`shellcheck` and `gitleaks`, also used by CI; `xmllint`, used by `make xml-check`) — install those separately (e.g. `brew install shellcheck gitleaks`); `make audit` fails closed if `shellcheck` is missing.
 
 Activate automatically with direnv:
 
@@ -157,7 +157,7 @@ When switching MacBook ↔ MacMini, confirm:
 | Ruff, pytest, mypy, Pyright policy | `pyproject.toml` |
 | Odoo extraPaths, format-on-save | `.vscode/settings.json` |
 | Dev pip deps | `requirements-dev.txt` |
-| Odoo.sh runtime pip deps | `requirements.txt` (`make venv` also installs its Gate SDK pin into `.venv`) |
+| Odoo.sh runtime pip deps | `requirements.txt` |
 | Agent/editor rules | `.cursor/rules/88-plasticos-odoo-python-tooling.mdc` |
 
 **Retired:** `pyrightconfig.json` — do not reintroduce.

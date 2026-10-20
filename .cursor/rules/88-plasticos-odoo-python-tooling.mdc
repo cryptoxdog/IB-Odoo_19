@@ -16,7 +16,7 @@ alwaysApply: true
 | Mypy (advisory analysis) | `pyproject.toml` `[tool.mypy]` | Advisory everywhere: CI `run_advisory`, `make mypy-check`, pre-commit manual stage only — never a blocking merge gate; separate from editor Pyright |
 | Pyright mode/reporters | `pyproject.toml` `[tool.pyright]` | Editor-only; `typeCheckingMode = basic` |
 | Odoo import paths | `.vscode/settings.json` | `${env:HOME}/dev/odoo-19` extraPaths — same layout on every machine |
-| Dev venv | `make venv` + `.envrc` | pinned Python dev toolchain from `requirements-dev.txt` (ruff, pytest, semgrep, mypy), CI-aligned versions, plus the `constellation-node-sdk` pin read from `requirements.txt` so OdooLS uses the same Gate SDK. Odoo itself is not installed in `.venv`; system tools (shellcheck, gitleaks) installed separately |
+| Dev venv | `make venv` + `.envrc` | pinned Python dev toolchain from `requirements-dev.txt` (ruff, pytest, semgrep, mypy), CI-aligned versions — **no Odoo in venv**; system tools (shellcheck, gitleaks) installed separately |
 | Runtime pip deps | `requirements.txt` | Odoo.sh installs this |
 | Dev/CI pip deps | `requirements-dev.txt` | Not Odoo.sh |
 

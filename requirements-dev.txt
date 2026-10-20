@@ -32,13 +32,6 @@ mypy==1.14.0
 # Checker pins — match .github/workflows/ci.yml (lint + static-checks).
 ruff==0.16.0
 semgrep==1.164.0
-# The Gate SDK pin stays in requirements.txt. make venv installs that package
-# with --no-deps, because a full install pulls FastAPI 0.142+, whose
-# opentelemetry-api>=1.44 requirement breaks semgrep's ~=1.37.0 pin.
-# constellation_node_sdk/__init__.py imports FastAPI, and 0.141.1 is the last
-# release that satisfies the SDK floor (fastapi>=0.115) without that conflict
-# or a Starlette downgrade.
-fastapi==0.141.1
 
 # PR Repair engine — used by scripts/pr_repair_adapter.py for the
 # state-machine-governed CI repair loop (Issue→Finding conversion, approval
