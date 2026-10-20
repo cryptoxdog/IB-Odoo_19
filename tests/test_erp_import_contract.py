@@ -204,6 +204,32 @@ def test_change_detection_compares_the_values_odoo_normalizes_on_write(service_t
     assert "html2plaintext" in service_source
 
 
+def _comment_helper(service_tree, service_source):
+    namespace = {}
+    exec("from html import escape\nfrom html.parser import HTMLParser", namespace)  # noqa: S102
+    for node in service_tree.body:
+        names = [t.id for t in getattr(node, "targets", []) if isinstance(t, ast.Name)]
+        if (
+            getattr(node, "name", None) in {"_CommentBlocks", "_comment_with_erp_notes"}
+            or "_COMMENT_BLOCK_TAGS" in names
+        ):
+            exec(ast.get_source_segment(service_source, node), namespace)  # noqa: S102
+    return namespace["_comment_with_erp_notes"]
+
+
+def test_erp_replay_keeps_crm_notes_appended_to_the_partner_comment(service_tree, service_source):
+    """The CRM sync appends paragraphs to ``comment``; an ERP replay must neither drop nor repeat them."""
+    upsert = ast.get_source_segment(service_source, _function(service_tree, "_upsert"))
+    assert "_comment_with_erp_notes(record.comment" in upsert
+    merge = _comment_helper(service_tree, service_source)
+    stored = "<p>Ext 1187\next 1187</p><p>CRM history</p>"
+    assert merge(stored, "Ext 1187\next 1187") is None
+    assert merge("<p>Ext 1187</p><p>ext 1187</p><p>CRM history</p>", "Ext 1187\next 1187") is None
+    assert merge("<p>CRM history</p>", "ERP & note") == "<p>ERP &amp; note</p><p>CRM history</p>"
+    assert merge(False, "ERP note") == "ERP note"
+    assert merge("<p>ERP note</p>", "") is None
+
+
 def test_contact_role_tags_are_applied_as_a_set(service_tree):
     """Tag membership is set semantics, so replaying CRA_ID adds no duplicate."""
     apply_roles = ast.dump(_function(service_tree, "_apply_contact_roles"))

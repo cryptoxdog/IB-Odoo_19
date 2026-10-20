@@ -1,0 +1,30 @@
+command: make test-module m=plasticos_crm_sync,plasticos_partner_import   (fresh clone of odoo_test_tpl_ee_c9e8a81f52f23680 -> odoo_test_w2495f48767, parity ee)
+code: 750f9a0 (plasticos_crm_sync 19.0.1.8.10, plasticos_partner_import 19.0.2.10.25)
+date: 2026-10-18
+
+result:
+0 failed, 0 error(s) of 136 tests when loading database 'odoo_test_w2495f48767'
+
+new test:
+Starting TestCrmSyncOrchestrator.test_approved_contact_notes_append_to_the_erp_comment_and_replay
+
+test modules that ran:
+   8 odoo.addons.plasticos_commission.tests.test_commission_config_access
+   7 odoo.addons.plasticos_commission.tests.test_commission_uniqueness
+   2 odoo.addons.plasticos_commission.tests.test_sales_dashboard_payout_access
+   5 odoo.addons.plasticos_crm_sync.tests.test_lead_lifecycle
+  30 odoo.addons.plasticos_crm_sync.tests.test_orchestrator_upsert
+   6 odoo.addons.plasticos_crm_sync.tests.test_settings_import_action
+  10 odoo.addons.plasticos_crm_sync.tests.test_watermark_acknowledgement
+   4 odoo.addons.plasticos_logistics.tests.test_load_cardinality
+   2 odoo.addons.plasticos_partner_import.tests.test_import_path_access
+  11 odoo.addons.plasticos_partner_import.tests.test_validation_query_scope
+   4 odoo.addons.plasticos_security_base.tests.test_purchase_order_access
+  27 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import
+   3 odoo.addons.plasticos_transaction.tests.test_profile_form_coexistence
+   4 odoo.addons.plasticos_transaction.tests.test_relationship_batch
+   9 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui
+
+note: ERROR log lines in this run come from negative tests that expect them (validation of seeded NC-D contacts, unique-constraint and rollback checks). None is a test failure.
+
+pure-python tier (host): pytest tests/test_crm_approved_identity.py tests/test_erp_import_contract.py tests/test_repo_dependency_integrity.py -> 39 passed

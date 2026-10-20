@@ -1,0 +1,4015 @@
+{
+ "completion_time": "2026-10-18T02:56:16Z",
+ "duplicates": 0,
+ "errors": [
+  {
+   "message": "Address unresolved_counterparty: CpID=(OTHER) not in exported (active) counterparties",
+   "record_ref": "400094"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID={C} not in exported (active) counterparties",
+   "record_ref": "400096"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID={C} not in exported (active) counterparties",
+   "record_ref": "400097"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=134 not in exported (active) counterparties",
+   "record_ref": "401838"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=303 not in exported (active) counterparties",
+   "record_ref": "402007"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=312 not in exported (active) counterparties",
+   "record_ref": "402015"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=134 not in exported (active) counterparties",
+   "record_ref": "402163"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402427"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402430"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402431"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402461"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402506"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402518"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402523"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=303 not in exported (active) counterparties",
+   "record_ref": "402526"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "402527"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1102 not in exported (active) counterparties",
+   "record_ref": "402549"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1103 not in exported (active) counterparties",
+   "record_ref": "402550"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1105 not in exported (active) counterparties",
+   "record_ref": "402552"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1106 not in exported (active) counterparties",
+   "record_ref": "402553"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1107 not in exported (active) counterparties",
+   "record_ref": "402554"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1110 not in exported (active) counterparties",
+   "record_ref": "402557"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1112 not in exported (active) counterparties",
+   "record_ref": "402559"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1113 not in exported (active) counterparties",
+   "record_ref": "402560"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1116 not in exported (active) counterparties",
+   "record_ref": "402563"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1117 not in exported (active) counterparties",
+   "record_ref": "402564"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1119 not in exported (active) counterparties",
+   "record_ref": "402566"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1121 not in exported (active) counterparties",
+   "record_ref": "402568"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1127 not in exported (active) counterparties",
+   "record_ref": "402574"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1129 not in exported (active) counterparties",
+   "record_ref": "402576"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "402580"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1135 not in exported (active) counterparties",
+   "record_ref": "402582"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1141 not in exported (active) counterparties",
+   "record_ref": "402588"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1142 not in exported (active) counterparties",
+   "record_ref": "402589"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1143 not in exported (active) counterparties",
+   "record_ref": "402590"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1145 not in exported (active) counterparties",
+   "record_ref": "402592"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1146 not in exported (active) counterparties",
+   "record_ref": "402593"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1147 not in exported (active) counterparties",
+   "record_ref": "402594"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1148 not in exported (active) counterparties",
+   "record_ref": "402595"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1149 not in exported (active) counterparties",
+   "record_ref": "402596"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1150 not in exported (active) counterparties",
+   "record_ref": "402597"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1151 not in exported (active) counterparties",
+   "record_ref": "402598"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1152 not in exported (active) counterparties",
+   "record_ref": "402599"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1154 not in exported (active) counterparties",
+   "record_ref": "402601"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1156 not in exported (active) counterparties",
+   "record_ref": "402603"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1157 not in exported (active) counterparties",
+   "record_ref": "402604"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1158 not in exported (active) counterparties",
+   "record_ref": "402605"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1159 not in exported (active) counterparties",
+   "record_ref": "402606"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1160 not in exported (active) counterparties",
+   "record_ref": "402607"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1161 not in exported (active) counterparties",
+   "record_ref": "402608"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1162 not in exported (active) counterparties",
+   "record_ref": "402609"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1163 not in exported (active) counterparties",
+   "record_ref": "402610"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1164 not in exported (active) counterparties",
+   "record_ref": "402611"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1165 not in exported (active) counterparties",
+   "record_ref": "402612"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1167 not in exported (active) counterparties",
+   "record_ref": "402614"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1168 not in exported (active) counterparties",
+   "record_ref": "402615"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1171 not in exported (active) counterparties",
+   "record_ref": "402618"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1175 not in exported (active) counterparties",
+   "record_ref": "402622"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1176 not in exported (active) counterparties",
+   "record_ref": "402623"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1180 not in exported (active) counterparties",
+   "record_ref": "402627"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1182 not in exported (active) counterparties",
+   "record_ref": "402629"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1183 not in exported (active) counterparties",
+   "record_ref": "402630"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1187 not in exported (active) counterparties",
+   "record_ref": "402634"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1191 not in exported (active) counterparties",
+   "record_ref": "402638"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1197 not in exported (active) counterparties",
+   "record_ref": "402644"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1198 not in exported (active) counterparties",
+   "record_ref": "402645"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1203 not in exported (active) counterparties",
+   "record_ref": "402650"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1204 not in exported (active) counterparties",
+   "record_ref": "402651"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1207 not in exported (active) counterparties",
+   "record_ref": "402654"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1209 not in exported (active) counterparties",
+   "record_ref": "402656"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1210 not in exported (active) counterparties",
+   "record_ref": "402657"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1211 not in exported (active) counterparties",
+   "record_ref": "402658"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1213 not in exported (active) counterparties",
+   "record_ref": "402660"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1217 not in exported (active) counterparties",
+   "record_ref": "402664"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1218 not in exported (active) counterparties",
+   "record_ref": "402665"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1219 not in exported (active) counterparties",
+   "record_ref": "402666"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1224 not in exported (active) counterparties",
+   "record_ref": "402671"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1235 not in exported (active) counterparties",
+   "record_ref": "402682"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1237 not in exported (active) counterparties",
+   "record_ref": "402684"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1239 not in exported (active) counterparties",
+   "record_ref": "402686"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1240 not in exported (active) counterparties",
+   "record_ref": "402687"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1241 not in exported (active) counterparties",
+   "record_ref": "402688"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1242 not in exported (active) counterparties",
+   "record_ref": "402689"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1243 not in exported (active) counterparties",
+   "record_ref": "402690"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1244 not in exported (active) counterparties",
+   "record_ref": "402691"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1245 not in exported (active) counterparties",
+   "record_ref": "402692"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1249 not in exported (active) counterparties",
+   "record_ref": "402696"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1252 not in exported (active) counterparties",
+   "record_ref": "402699"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1255 not in exported (active) counterparties",
+   "record_ref": "402702"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1258 not in exported (active) counterparties",
+   "record_ref": "402705"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1260 not in exported (active) counterparties",
+   "record_ref": "402707"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1261 not in exported (active) counterparties",
+   "record_ref": "402708"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1264 not in exported (active) counterparties",
+   "record_ref": "402711"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1265 not in exported (active) counterparties",
+   "record_ref": "402712"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1266 not in exported (active) counterparties",
+   "record_ref": "402713"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1268 not in exported (active) counterparties",
+   "record_ref": "402715"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1269 not in exported (active) counterparties",
+   "record_ref": "402716"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1270 not in exported (active) counterparties",
+   "record_ref": "402717"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1271 not in exported (active) counterparties",
+   "record_ref": "402718"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1272 not in exported (active) counterparties",
+   "record_ref": "402719"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1273 not in exported (active) counterparties",
+   "record_ref": "402720"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1274 not in exported (active) counterparties",
+   "record_ref": "402721"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1276 not in exported (active) counterparties",
+   "record_ref": "402723"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1277 not in exported (active) counterparties",
+   "record_ref": "402724"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1279 not in exported (active) counterparties",
+   "record_ref": "402726"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1280 not in exported (active) counterparties",
+   "record_ref": "402727"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1281 not in exported (active) counterparties",
+   "record_ref": "402728"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1282 not in exported (active) counterparties",
+   "record_ref": "402729"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1283 not in exported (active) counterparties",
+   "record_ref": "402730"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1289 not in exported (active) counterparties",
+   "record_ref": "402736"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1295 not in exported (active) counterparties",
+   "record_ref": "402742"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1301 not in exported (active) counterparties",
+   "record_ref": "402748"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1302 not in exported (active) counterparties",
+   "record_ref": "402749"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1304 not in exported (active) counterparties",
+   "record_ref": "402751"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1305 not in exported (active) counterparties",
+   "record_ref": "402752"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1309 not in exported (active) counterparties",
+   "record_ref": "402756"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1314 not in exported (active) counterparties",
+   "record_ref": "402761"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1316 not in exported (active) counterparties",
+   "record_ref": "402763"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1317 not in exported (active) counterparties",
+   "record_ref": "402764"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1319 not in exported (active) counterparties",
+   "record_ref": "402766"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1320 not in exported (active) counterparties",
+   "record_ref": "402767"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1321 not in exported (active) counterparties",
+   "record_ref": "402768"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1322 not in exported (active) counterparties",
+   "record_ref": "402769"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1324 not in exported (active) counterparties",
+   "record_ref": "402771"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1325 not in exported (active) counterparties",
+   "record_ref": "402772"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1327 not in exported (active) counterparties",
+   "record_ref": "402774"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "402775"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1329 not in exported (active) counterparties",
+   "record_ref": "402776"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1330 not in exported (active) counterparties",
+   "record_ref": "402777"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1332 not in exported (active) counterparties",
+   "record_ref": "402779"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1334 not in exported (active) counterparties",
+   "record_ref": "402781"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1337 not in exported (active) counterparties",
+   "record_ref": "402784"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1340 not in exported (active) counterparties",
+   "record_ref": "402787"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1341 not in exported (active) counterparties",
+   "record_ref": "402788"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1344 not in exported (active) counterparties",
+   "record_ref": "402791"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1345 not in exported (active) counterparties",
+   "record_ref": "402792"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1346 not in exported (active) counterparties",
+   "record_ref": "402793"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1347 not in exported (active) counterparties",
+   "record_ref": "402794"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "402795"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1349 not in exported (active) counterparties",
+   "record_ref": "402796"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1350 not in exported (active) counterparties",
+   "record_ref": "402797"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1352 not in exported (active) counterparties",
+   "record_ref": "402799"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1353 not in exported (active) counterparties",
+   "record_ref": "402800"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1354 not in exported (active) counterparties",
+   "record_ref": "402801"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1355 not in exported (active) counterparties",
+   "record_ref": "402802"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1356 not in exported (active) counterparties",
+   "record_ref": "402803"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1358 not in exported (active) counterparties",
+   "record_ref": "402805"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1363 not in exported (active) counterparties",
+   "record_ref": "402810"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1365 not in exported (active) counterparties",
+   "record_ref": "402812"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1366 not in exported (active) counterparties",
+   "record_ref": "402813"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1368 not in exported (active) counterparties",
+   "record_ref": "402815"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1369 not in exported (active) counterparties",
+   "record_ref": "402816"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1370 not in exported (active) counterparties",
+   "record_ref": "402817"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1371 not in exported (active) counterparties",
+   "record_ref": "402818"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1372 not in exported (active) counterparties",
+   "record_ref": "402819"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1373 not in exported (active) counterparties",
+   "record_ref": "402820"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1374 not in exported (active) counterparties",
+   "record_ref": "402821"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1376 not in exported (active) counterparties",
+   "record_ref": "402823"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1379 not in exported (active) counterparties",
+   "record_ref": "402826"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1382 not in exported (active) counterparties",
+   "record_ref": "402829"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1388 not in exported (active) counterparties",
+   "record_ref": "402835"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1389 not in exported (active) counterparties",
+   "record_ref": "402836"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1390 not in exported (active) counterparties",
+   "record_ref": "402837"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1392 not in exported (active) counterparties",
+   "record_ref": "402839"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1394 not in exported (active) counterparties",
+   "record_ref": "402841"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1397 not in exported (active) counterparties",
+   "record_ref": "402844"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1399 not in exported (active) counterparties",
+   "record_ref": "402846"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1401 not in exported (active) counterparties",
+   "record_ref": "402848"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1402 not in exported (active) counterparties",
+   "record_ref": "402849"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1403 not in exported (active) counterparties",
+   "record_ref": "402850"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "402853"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1409 not in exported (active) counterparties",
+   "record_ref": "402856"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1411 not in exported (active) counterparties",
+   "record_ref": "402858"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1419 not in exported (active) counterparties",
+   "record_ref": "402866"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1421 not in exported (active) counterparties",
+   "record_ref": "402868"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1422 not in exported (active) counterparties",
+   "record_ref": "402869"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1423 not in exported (active) counterparties",
+   "record_ref": "402870"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1425 not in exported (active) counterparties",
+   "record_ref": "402872"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1426 not in exported (active) counterparties",
+   "record_ref": "402873"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1203 not in exported (active) counterparties",
+   "record_ref": "403077"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1146 not in exported (active) counterparties",
+   "record_ref": "403078"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1337 not in exported (active) counterparties",
+   "record_ref": "403101"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1317 not in exported (active) counterparties",
+   "record_ref": "403104"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1209 not in exported (active) counterparties",
+   "record_ref": "403105"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1341 not in exported (active) counterparties",
+   "record_ref": "403106"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1390 not in exported (active) counterparties",
+   "record_ref": "403108"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1213 not in exported (active) counterparties",
+   "record_ref": "403109"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1127 not in exported (active) counterparties",
+   "record_ref": "403115"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1127 not in exported (active) counterparties",
+   "record_ref": "403116"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1346 not in exported (active) counterparties",
+   "record_ref": "403119"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "403120"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "403121"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "403122"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1129 not in exported (active) counterparties",
+   "record_ref": "403129"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1397 not in exported (active) counterparties",
+   "record_ref": "403130"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1352 not in exported (active) counterparties",
+   "record_ref": "403135"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1352 not in exported (active) counterparties",
+   "record_ref": "403136"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1110 not in exported (active) counterparties",
+   "record_ref": "403139"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1399 not in exported (active) counterparties",
+   "record_ref": "403140"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1355 not in exported (active) counterparties",
+   "record_ref": "403143"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1401 not in exported (active) counterparties",
+   "record_ref": "403144"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1403 not in exported (active) counterparties",
+   "record_ref": "403146"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1403 not in exported (active) counterparties",
+   "record_ref": "403147"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1403 not in exported (active) counterparties",
+   "record_ref": "403148"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "403152"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "403153"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "403154"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1240 not in exported (active) counterparties",
+   "record_ref": "403156"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1409 not in exported (active) counterparties",
+   "record_ref": "403158"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1358 not in exported (active) counterparties",
+   "record_ref": "403159"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1358 not in exported (active) counterparties",
+   "record_ref": "403160"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1242 not in exported (active) counterparties",
+   "record_ref": "403161"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1411 not in exported (active) counterparties",
+   "record_ref": "403164"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1309 not in exported (active) counterparties",
+   "record_ref": "403166"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1309 not in exported (active) counterparties",
+   "record_ref": "403167"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1113 not in exported (active) counterparties",
+   "record_ref": "403169"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1249 not in exported (active) counterparties",
+   "record_ref": "403171"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1135 not in exported (active) counterparties",
+   "record_ref": "403175"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1252 not in exported (active) counterparties",
+   "record_ref": "403177"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1365 not in exported (active) counterparties",
+   "record_ref": "403179"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1258 not in exported (active) counterparties",
+   "record_ref": "403182"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1366 not in exported (active) counterparties",
+   "record_ref": "403188"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1368 not in exported (active) counterparties",
+   "record_ref": "403190"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1426 not in exported (active) counterparties",
+   "record_ref": "403195"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1265 not in exported (active) counterparties",
+   "record_ref": "403198"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1419 not in exported (active) counterparties",
+   "record_ref": "403199"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1372 not in exported (active) counterparties",
+   "record_ref": "403201"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "403202"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "403203"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1271 not in exported (active) counterparties",
+   "record_ref": "403204"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "403205"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "403206"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "403207"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "403208"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1421 not in exported (active) counterparties",
+   "record_ref": "403209"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1374 not in exported (active) counterparties",
+   "record_ref": "403210"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1422 not in exported (active) counterparties",
+   "record_ref": "403213"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1277 not in exported (active) counterparties",
+   "record_ref": "403215"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1117 not in exported (active) counterparties",
+   "record_ref": "403216"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1330 not in exported (active) counterparties",
+   "record_ref": "403217"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1376 not in exported (active) counterparties",
+   "record_ref": "403218"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1379 not in exported (active) counterparties",
+   "record_ref": "403240"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1191 not in exported (active) counterparties",
+   "record_ref": "403241"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1191 not in exported (active) counterparties",
+   "record_ref": "403242"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1332 not in exported (active) counterparties",
+   "record_ref": "403244"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1197 not in exported (active) counterparties",
+   "record_ref": "403249"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1198 not in exported (active) counterparties",
+   "record_ref": "403250"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1382 not in exported (active) counterparties",
+   "record_ref": "403252"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1430 not in exported (active) counterparties",
+   "record_ref": "403253"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1258 not in exported (active) counterparties",
+   "record_ref": "403256"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1432 not in exported (active) counterparties",
+   "record_ref": "403257"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "403263"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "403264"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1441 not in exported (active) counterparties",
+   "record_ref": "403270"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "403279"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1449 not in exported (active) counterparties",
+   "record_ref": "403282"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1456 not in exported (active) counterparties",
+   "record_ref": "403289"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1460 not in exported (active) counterparties",
+   "record_ref": "403296"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1463 not in exported (active) counterparties",
+   "record_ref": "403298"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1463 not in exported (active) counterparties",
+   "record_ref": "403299"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "403317"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "403320"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1479 not in exported (active) counterparties",
+   "record_ref": "403321"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1479 not in exported (active) counterparties",
+   "record_ref": "403322"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1487 not in exported (active) counterparties",
+   "record_ref": "403330"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "403338"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1506 not in exported (active) counterparties",
+   "record_ref": "403362"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1543 not in exported (active) counterparties",
+   "record_ref": "403415"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1543 not in exported (active) counterparties",
+   "record_ref": "403416"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "403421"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1547 not in exported (active) counterparties",
+   "record_ref": "403422"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403423"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403424"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403427"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403428"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403432"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403434"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1579 not in exported (active) counterparties",
+   "record_ref": "403473"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1579 not in exported (active) counterparties",
+   "record_ref": "403474"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403513"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "403515"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1618 not in exported (active) counterparties",
+   "record_ref": "403533"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "403534"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403560"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1647 not in exported (active) counterparties",
+   "record_ref": "403588"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1647 not in exported (active) counterparties",
+   "record_ref": "403589"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=303 not in exported (active) counterparties",
+   "record_ref": "403592"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1660 not in exported (active) counterparties",
+   "record_ref": "403600"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403601"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1676 not in exported (active) counterparties",
+   "record_ref": "403623"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1676 not in exported (active) counterparties",
+   "record_ref": "403624"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403626"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403627"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1704 not in exported (active) counterparties",
+   "record_ref": "403674"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403721"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403763"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403764"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403765"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1763 not in exported (active) counterparties",
+   "record_ref": "403767"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1763 not in exported (active) counterparties",
+   "record_ref": "403768"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1774 not in exported (active) counterparties",
+   "record_ref": "403790"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1774 not in exported (active) counterparties",
+   "record_ref": "403791"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1797 not in exported (active) counterparties",
+   "record_ref": "403821"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403838"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1813 not in exported (active) counterparties",
+   "record_ref": "403843"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "403844"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1822 not in exported (active) counterparties",
+   "record_ref": "403858"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1823 not in exported (active) counterparties",
+   "record_ref": "403859"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1841 not in exported (active) counterparties",
+   "record_ref": "403880"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "403954"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404001"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404041"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404055"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404086"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404119"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404122"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404132"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2018 not in exported (active) counterparties",
+   "record_ref": "404147"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2018 not in exported (active) counterparties",
+   "record_ref": "404148"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404153"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404164"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1797 not in exported (active) counterparties",
+   "record_ref": "404229"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "404265"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "404266"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404277"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404283"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "404290"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "404322"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "404332"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2150 not in exported (active) counterparties",
+   "record_ref": "404382"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2150 not in exported (active) counterparties",
+   "record_ref": "404383"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "404516"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2208 not in exported (active) counterparties",
+   "record_ref": "404522"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2237 not in exported (active) counterparties",
+   "record_ref": "404576"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2238 not in exported (active) counterparties",
+   "record_ref": "404577"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2239 not in exported (active) counterparties",
+   "record_ref": "404578"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "404601"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404608"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404685"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404812"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404830"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404935"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "404976"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405026"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "405076"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "405101"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405263"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "405297"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405335"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405339"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2590 not in exported (active) counterparties",
+   "record_ref": "405369"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405371"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405380"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=2590 not in exported (active) counterparties",
+   "record_ref": "405390"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405405"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405417"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405469"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405494"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405498"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405533"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405565"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405610"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405613"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405628"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405672"
+  },
+  {
+   "message": "Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties",
+   "record_ref": "405698"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1390 not in exported (active) counterparties",
+   "record_ref": "10100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "101500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1397 not in exported (active) counterparties",
+   "record_ref": "10250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1399 not in exported (active) counterparties",
+   "record_ref": "10400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2018 not in exported (active) counterparties",
+   "record_ref": "104600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1841 not in exported (active) counterparties",
+   "record_ref": "104650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1401 not in exported (active) counterparties",
+   "record_ref": "10500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "105250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "105300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "106500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "106550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "107100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "107550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "107600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "10800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "10850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "10900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1409 not in exported (active) counterparties",
+   "record_ref": "10950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1411 not in exported (active) counterparties",
+   "record_ref": "11000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1419 not in exported (active) counterparties",
+   "record_ref": "11300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1421 not in exported (active) counterparties",
+   "record_ref": "11350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "113650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1422 not in exported (active) counterparties",
+   "record_ref": "11400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1426 not in exported (active) counterparties",
+   "record_ref": "11500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1823 not in exported (active) counterparties",
+   "record_ref": "115750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2150 not in exported (active) counterparties",
+   "record_ref": "116000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1463 not in exported (active) counterparties",
+   "record_ref": "11850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1479 not in exported (active) counterparties",
+   "record_ref": "12150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "1250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "126550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1317 not in exported (active) counterparties",
+   "record_ref": "127200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2208 not in exported (active) counterparties",
+   "record_ref": "127550001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128600001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128650001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128700001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128750001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128800001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128850001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128900001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "128950001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "129950001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "130000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "1300001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "130050001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "130100001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "130150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2237 not in exported (active) counterparties",
+   "record_ref": "133150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2238 not in exported (active) counterparties",
+   "record_ref": "133200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2239 not in exported (active) counterparties",
+   "record_ref": "133250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "1350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "13700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "13750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "13800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "13850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "13900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "13950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "14000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "1400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1579 not in exported (active) counterparties",
+   "record_ref": "14500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "1450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "147100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "148550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "148950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "150350001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "151450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "151650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1102 not in exported (active) counterparties",
+   "record_ref": "16100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1103 not in exported (active) counterparties",
+   "record_ref": "16150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1105 not in exported (active) counterparties",
+   "record_ref": "16250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1106 not in exported (active) counterparties",
+   "record_ref": "16300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1107 not in exported (active) counterparties",
+   "record_ref": "16350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1110 not in exported (active) counterparties",
+   "record_ref": "16500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1112 not in exported (active) counterparties",
+   "record_ref": "16600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1113 not in exported (active) counterparties",
+   "record_ref": "16650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1116 not in exported (active) counterparties",
+   "record_ref": "16750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1117 not in exported (active) counterparties",
+   "record_ref": "16800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1119 not in exported (active) counterparties",
+   "record_ref": "16850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1121 not in exported (active) counterparties",
+   "record_ref": "16950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "170900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1127 not in exported (active) counterparties",
+   "record_ref": "17250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "173100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1129 not in exported (active) counterparties",
+   "record_ref": "17350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "17550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1135 not in exported (active) counterparties",
+   "record_ref": "17600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1141 not in exported (active) counterparties",
+   "record_ref": "17900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1142 not in exported (active) counterparties",
+   "record_ref": "17950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1143 not in exported (active) counterparties",
+   "record_ref": "18000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1145 not in exported (active) counterparties",
+   "record_ref": "18100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1147 not in exported (active) counterparties",
+   "record_ref": "18150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1148 not in exported (active) counterparties",
+   "record_ref": "18200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1149 not in exported (active) counterparties",
+   "record_ref": "18250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1151 not in exported (active) counterparties",
+   "record_ref": "18300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1152 not in exported (active) counterparties",
+   "record_ref": "18350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1154 not in exported (active) counterparties",
+   "record_ref": "18450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1146 not in exported (active) counterparties",
+   "record_ref": "1850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1156 not in exported (active) counterparties",
+   "record_ref": "18550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1157 not in exported (active) counterparties",
+   "record_ref": "18600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1158 not in exported (active) counterparties",
+   "record_ref": "18650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "186750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1159 not in exported (active) counterparties",
+   "record_ref": "18700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1160 not in exported (active) counterparties",
+   "record_ref": "18750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "187750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1161 not in exported (active) counterparties",
+   "record_ref": "18800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1162 not in exported (active) counterparties",
+   "record_ref": "18850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1163 not in exported (active) counterparties",
+   "record_ref": "18900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1164 not in exported (active) counterparties",
+   "record_ref": "18950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1165 not in exported (active) counterparties",
+   "record_ref": "19000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1191 not in exported (active) counterparties",
+   "record_ref": "1900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1167 not in exported (active) counterparties",
+   "record_ref": "19100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1168 not in exported (active) counterparties",
+   "record_ref": "19150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1171 not in exported (active) counterparties",
+   "record_ref": "19300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2590 not in exported (active) counterparties",
+   "record_ref": "193450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1175 not in exported (active) counterparties",
+   "record_ref": "19450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1191 not in exported (active) counterparties",
+   "record_ref": "1950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1182 not in exported (active) counterparties",
+   "record_ref": "19700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1183 not in exported (active) counterparties",
+   "record_ref": "19750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1187 not in exported (active) counterparties",
+   "record_ref": "19850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1191 not in exported (active) counterparties",
+   "record_ref": "20050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1197 not in exported (active) counterparties",
+   "record_ref": "20350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1198 not in exported (active) counterparties",
+   "record_ref": "20400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1203 not in exported (active) counterparties",
+   "record_ref": "20600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1204 not in exported (active) counterparties",
+   "record_ref": "20650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1207 not in exported (active) counterparties",
+   "record_ref": "20750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1209 not in exported (active) counterparties",
+   "record_ref": "20850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1210 not in exported (active) counterparties",
+   "record_ref": "20900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1213 not in exported (active) counterparties",
+   "record_ref": "21000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1197 not in exported (active) counterparties",
+   "record_ref": "2100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1217 not in exported (active) counterparties",
+   "record_ref": "21200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1218 not in exported (active) counterparties",
+   "record_ref": "21250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1219 not in exported (active) counterparties",
+   "record_ref": "21300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1198 not in exported (active) counterparties",
+   "record_ref": "2150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1224 not in exported (active) counterparties",
+   "record_ref": "21550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1235 not in exported (active) counterparties",
+   "record_ref": "22100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1237 not in exported (active) counterparties",
+   "record_ref": "22200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1239 not in exported (active) counterparties",
+   "record_ref": "22300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1240 not in exported (active) counterparties",
+   "record_ref": "22350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1241 not in exported (active) counterparties",
+   "record_ref": "22400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1242 not in exported (active) counterparties",
+   "record_ref": "22450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1243 not in exported (active) counterparties",
+   "record_ref": "22500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1245 not in exported (active) counterparties",
+   "record_ref": "22550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1249 not in exported (active) counterparties",
+   "record_ref": "22650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1252 not in exported (active) counterparties",
+   "record_ref": "22800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1255 not in exported (active) counterparties",
+   "record_ref": "22950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1258 not in exported (active) counterparties",
+   "record_ref": "23100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1260 not in exported (active) counterparties",
+   "record_ref": "23200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1261 not in exported (active) counterparties",
+   "record_ref": "23250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1264 not in exported (active) counterparties",
+   "record_ref": "23350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1265 not in exported (active) counterparties",
+   "record_ref": "23400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1266 not in exported (active) counterparties",
+   "record_ref": "23450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1268 not in exported (active) counterparties",
+   "record_ref": "23550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1269 not in exported (active) counterparties",
+   "record_ref": "23600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1270 not in exported (active) counterparties",
+   "record_ref": "23650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1271 not in exported (active) counterparties",
+   "record_ref": "23700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1272 not in exported (active) counterparties",
+   "record_ref": "23750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1274 not in exported (active) counterparties",
+   "record_ref": "23800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1276 not in exported (active) counterparties",
+   "record_ref": "23900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1277 not in exported (active) counterparties",
+   "record_ref": "23950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1279 not in exported (active) counterparties",
+   "record_ref": "24050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1280 not in exported (active) counterparties",
+   "record_ref": "24100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1281 not in exported (active) counterparties",
+   "record_ref": "24150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1283 not in exported (active) counterparties",
+   "record_ref": "24200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1289 not in exported (active) counterparties",
+   "record_ref": "24500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1295 not in exported (active) counterparties",
+   "record_ref": "24800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1301 not in exported (active) counterparties",
+   "record_ref": "25100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1302 not in exported (active) counterparties",
+   "record_ref": "25150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1304 not in exported (active) counterparties",
+   "record_ref": "25250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1305 not in exported (active) counterparties",
+   "record_ref": "25300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1309 not in exported (active) counterparties",
+   "record_ref": "25500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1314 not in exported (active) counterparties",
+   "record_ref": "25700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1316 not in exported (active) counterparties",
+   "record_ref": "25800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1317 not in exported (active) counterparties",
+   "record_ref": "25850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1319 not in exported (active) counterparties",
+   "record_ref": "25950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1320 not in exported (active) counterparties",
+   "record_ref": "26000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1203 not in exported (active) counterparties",
+   "record_ref": "2600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1321 not in exported (active) counterparties",
+   "record_ref": "26050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1322 not in exported (active) counterparties",
+   "record_ref": "26100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1324 not in exported (active) counterparties",
+   "record_ref": "26200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1325 not in exported (active) counterparties",
+   "record_ref": "26250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1327 not in exported (active) counterparties",
+   "record_ref": "26350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "26400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1329 not in exported (active) counterparties",
+   "record_ref": "26450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1330 not in exported (active) counterparties",
+   "record_ref": "26500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1332 not in exported (active) counterparties",
+   "record_ref": "26600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1334 not in exported (active) counterparties",
+   "record_ref": "26700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1337 not in exported (active) counterparties",
+   "record_ref": "26850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=134 not in exported (active) counterparties",
+   "record_ref": "27000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1209 not in exported (active) counterparties",
+   "record_ref": "2700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1340 not in exported (active) counterparties",
+   "record_ref": "27050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1341 not in exported (active) counterparties",
+   "record_ref": "27100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1345 not in exported (active) counterparties",
+   "record_ref": "27250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1346 not in exported (active) counterparties",
+   "record_ref": "27300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1347 not in exported (active) counterparties",
+   "record_ref": "27350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "27400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1349 not in exported (active) counterparties",
+   "record_ref": "27450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1350 not in exported (active) counterparties",
+   "record_ref": "27500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1352 not in exported (active) counterparties",
+   "record_ref": "27550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1353 not in exported (active) counterparties",
+   "record_ref": "27600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1354 not in exported (active) counterparties",
+   "record_ref": "27650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1355 not in exported (active) counterparties",
+   "record_ref": "27700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1356 not in exported (active) counterparties",
+   "record_ref": "27750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1358 not in exported (active) counterparties",
+   "record_ref": "27850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1213 not in exported (active) counterparties",
+   "record_ref": "2800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1363 not in exported (active) counterparties",
+   "record_ref": "28100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1365 not in exported (active) counterparties",
+   "record_ref": "28200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1366 not in exported (active) counterparties",
+   "record_ref": "28250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1368 not in exported (active) counterparties",
+   "record_ref": "28350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1369 not in exported (active) counterparties",
+   "record_ref": "28400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1370 not in exported (active) counterparties",
+   "record_ref": "28450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1371 not in exported (active) counterparties",
+   "record_ref": "28500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1372 not in exported (active) counterparties",
+   "record_ref": "28550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1373 not in exported (active) counterparties",
+   "record_ref": "28600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1374 not in exported (active) counterparties",
+   "record_ref": "28650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1376 not in exported (active) counterparties",
+   "record_ref": "28700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1379 not in exported (active) counterparties",
+   "record_ref": "28850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1382 not in exported (active) counterparties",
+   "record_ref": "29000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1388 not in exported (active) counterparties",
+   "record_ref": "29300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1389 not in exported (active) counterparties",
+   "record_ref": "29350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1390 not in exported (active) counterparties",
+   "record_ref": "29400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1392 not in exported (active) counterparties",
+   "record_ref": "29500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1394 not in exported (active) counterparties",
+   "record_ref": "29600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1397 not in exported (active) counterparties",
+   "record_ref": "29750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1399 not in exported (active) counterparties",
+   "record_ref": "29850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1401 not in exported (active) counterparties",
+   "record_ref": "29950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1402 not in exported (active) counterparties",
+   "record_ref": "30000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "30150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1409 not in exported (active) counterparties",
+   "record_ref": "30300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1411 not in exported (active) counterparties",
+   "record_ref": "30400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1419 not in exported (active) counterparties",
+   "record_ref": "30750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1421 not in exported (active) counterparties",
+   "record_ref": "30850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1422 not in exported (active) counterparties",
+   "record_ref": "30900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1423 not in exported (active) counterparties",
+   "record_ref": "30950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1425 not in exported (active) counterparties",
+   "record_ref": "31050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1426 not in exported (active) counterparties",
+   "record_ref": "31100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1430 not in exported (active) counterparties",
+   "record_ref": "31250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1432 not in exported (active) counterparties",
+   "record_ref": "31350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1441 not in exported (active) counterparties",
+   "record_ref": "31600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1449 not in exported (active) counterparties",
+   "record_ref": "31900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1456 not in exported (active) counterparties",
+   "record_ref": "32200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1460 not in exported (active) counterparties",
+   "record_ref": "32400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1463 not in exported (active) counterparties",
+   "record_ref": "32500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1479 not in exported (active) counterparties",
+   "record_ref": "33200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1487 not in exported (active) counterparties",
+   "record_ref": "33500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1506 not in exported (active) counterparties",
+   "record_ref": "34350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1543 not in exported (active) counterparties",
+   "record_ref": "35750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1547 not in exported (active) counterparties",
+   "record_ref": "35900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "35950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1240 not in exported (active) counterparties",
+   "record_ref": "3600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1242 not in exported (active) counterparties",
+   "record_ref": "3650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1579 not in exported (active) counterparties",
+   "record_ref": "37300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1249 not in exported (active) counterparties",
+   "record_ref": "3750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1252 not in exported (active) counterparties",
+   "record_ref": "3800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1258 not in exported (active) counterparties",
+   "record_ref": "3900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1258 not in exported (active) counterparties",
+   "record_ref": "3950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=303 not in exported (active) counterparties",
+   "record_ref": "39700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=312 not in exported (active) counterparties",
+   "record_ref": "39750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=303 not in exported (active) counterparties",
+   "record_ref": "40050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1121 not in exported (active) counterparties",
+   "record_ref": "40300001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1133 not in exported (active) counterparties",
+   "record_ref": "40450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1265 not in exported (active) counterparties",
+   "record_ref": "4050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1163 not in exported (active) counterparties",
+   "record_ref": "40750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1271 not in exported (active) counterparties",
+   "record_ref": "4150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1426 not in exported (active) counterparties",
+   "record_ref": "42400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1277 not in exported (active) counterparties",
+   "record_ref": "4250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1449 not in exported (active) counterparties",
+   "record_ref": "42650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1479 not in exported (active) counterparties",
+   "record_ref": "43200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1487 not in exported (active) counterparties",
+   "record_ref": "43450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1506 not in exported (active) counterparties",
+   "record_ref": "43850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1547 not in exported (active) counterparties",
+   "record_ref": "44900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "44950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1579 not in exported (active) counterparties",
+   "record_ref": "46000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=303 not in exported (active) counterparties",
+   "record_ref": "47700001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "47750001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "47800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1774 not in exported (active) counterparties",
+   "record_ref": "50250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1841 not in exported (active) counterparties",
+   "record_ref": "51100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1704 not in exported (active) counterparties",
+   "record_ref": "51350001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "51400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1647 not in exported (active) counterparties",
+   "record_ref": "54250001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1660 not in exported (active) counterparties",
+   "record_ref": "54750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1676 not in exported (active) counterparties",
+   "record_ref": "55700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1704 not in exported (active) counterparties",
+   "record_ref": "57500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1127 not in exported (active) counterparties",
+   "record_ref": "600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1763 not in exported (active) counterparties",
+   "record_ref": "60800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1774 not in exported (active) counterparties",
+   "record_ref": "61500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1774 not in exported (active) counterparties",
+   "record_ref": "61550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1797 not in exported (active) counterparties",
+   "record_ref": "62700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1813 not in exported (active) counterparties",
+   "record_ref": "63500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1822 not in exported (active) counterparties",
+   "record_ref": "64150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1823 not in exported (active) counterparties",
+   "record_ref": "64200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1309 not in exported (active) counterparties",
+   "record_ref": "6500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1127 not in exported (active) counterparties",
+   "record_ref": "650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1841 not in exported (active) counterparties",
+   "record_ref": "65050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1309 not in exported (active) counterparties",
+   "record_ref": "6550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1317 not in exported (active) counterparties",
+   "record_ref": "6700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "6800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "6850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "6900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "6950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1330 not in exported (active) counterparties",
+   "record_ref": "7000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1332 not in exported (active) counterparties",
+   "record_ref": "7050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1337 not in exported (active) counterparties",
+   "record_ref": "7500001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1129 not in exported (active) counterparties",
+   "record_ref": "750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=134 not in exported (active) counterparties",
+   "record_ref": "7550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1704 not in exported (active) counterparties",
+   "record_ref": "75850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1704 not in exported (active) counterparties",
+   "record_ref": "75900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1341 not in exported (active) counterparties",
+   "record_ref": "7600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "76050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "76100001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "76150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "76200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1346 not in exported (active) counterparties",
+   "record_ref": "7700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "7750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "7800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "7850001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1352 not in exported (active) counterparties",
+   "record_ref": "7900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1352 not in exported (active) counterparties",
+   "record_ref": "7950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1355 not in exported (active) counterparties",
+   "record_ref": "8000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1358 not in exported (active) counterparties",
+   "record_ref": "8150001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1358 not in exported (active) counterparties",
+   "record_ref": "8200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1365 not in exported (active) counterparties",
+   "record_ref": "8400001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "84350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1366 not in exported (active) counterparties",
+   "record_ref": "8450001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1822 not in exported (active) counterparties",
+   "record_ref": "85200001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1368 not in exported (active) counterparties",
+   "record_ref": "8550001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1264 not in exported (active) counterparties",
+   "record_ref": "86000001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1372 not in exported (active) counterparties",
+   "record_ref": "8600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1676 not in exported (active) counterparties",
+   "record_ref": "86050001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1374 not in exported (active) counterparties",
+   "record_ref": "8650001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1456 not in exported (active) counterparties",
+   "record_ref": "86800001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "86950001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1376 not in exported (active) counterparties",
+   "record_ref": "8700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1340 not in exported (active) counterparties",
+   "record_ref": "88350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2018 not in exported (active) counterparties",
+   "record_ref": "88600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "89350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "90650001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "95850001"
+  },
+  {
+   "message": "Contact missing_parent_key: blank CpID",
+   "record_ref": "95900001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1379 not in exported (active) counterparties",
+   "record_ref": "9600001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1548 not in exported (active) counterparties",
+   "record_ref": "97350001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1382 not in exported (active) counterparties",
+   "record_ref": "9750001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=1797 not in exported (active) counterparties",
+   "record_ref": "98700001"
+  },
+  {
+   "message": "Contact unresolved_counterparty: CpID=2018 not in exported (active) counterparties",
+   "record_ref": "99200001"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=1 not in exported contacts",
+   "record_ref": "1000"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=22850001 not in exported contacts",
+   "record_ref": "1140"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=41100001 not in exported contacts",
+   "record_ref": "1500"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=42700001 not in exported contacts",
+   "record_ref": "1532"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=42950001 not in exported contacts",
+   "record_ref": "1537"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=43550001 not in exported contacts",
+   "record_ref": "1549"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=37400001 not in exported contacts",
+   "record_ref": "1672"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=49600001 not in exported contacts",
+   "record_ref": "1690"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1129 not in exported (active) counterparties",
+   "record_ref": "1129/WC"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1135 not in exported (active) counterparties",
+   "record_ref": "1135/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1187 not in exported (active) counterparties",
+   "record_ref": "1187/WC"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1191 not in exported (active) counterparties",
+   "record_ref": "1191/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1197 not in exported (active) counterparties",
+   "record_ref": "1197/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1198 not in exported (active) counterparties",
+   "record_ref": "1198/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1203 not in exported (active) counterparties",
+   "record_ref": "1203/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1204 not in exported (active) counterparties",
+   "record_ref": "1204/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1207 not in exported (active) counterparties",
+   "record_ref": "1207/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1209 not in exported (active) counterparties",
+   "record_ref": "1209/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1210 not in exported (active) counterparties",
+   "record_ref": "1210/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1211 not in exported (active) counterparties",
+   "record_ref": "1211/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1213 not in exported (active) counterparties",
+   "record_ref": "1213/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1217 not in exported (active) counterparties",
+   "record_ref": "1217/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1218 not in exported (active) counterparties",
+   "record_ref": "1218/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1219 not in exported (active) counterparties",
+   "record_ref": "1219/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1224 not in exported (active) counterparties",
+   "record_ref": "1224/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1235 not in exported (active) counterparties",
+   "record_ref": "1235/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1237 not in exported (active) counterparties",
+   "record_ref": "1237/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1239 not in exported (active) counterparties",
+   "record_ref": "1239/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1240 not in exported (active) counterparties",
+   "record_ref": "1240/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1241 not in exported (active) counterparties",
+   "record_ref": "1241/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1242 not in exported (active) counterparties",
+   "record_ref": "1242/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1243 not in exported (active) counterparties",
+   "record_ref": "1243/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1244 not in exported (active) counterparties",
+   "record_ref": "1244/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1245 not in exported (active) counterparties",
+   "record_ref": "1245/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1249 not in exported (active) counterparties",
+   "record_ref": "1249/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1252 not in exported (active) counterparties",
+   "record_ref": "1252/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1255 not in exported (active) counterparties",
+   "record_ref": "1255/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1258 not in exported (active) counterparties",
+   "record_ref": "1258/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1260 not in exported (active) counterparties",
+   "record_ref": "1260/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1261 not in exported (active) counterparties",
+   "record_ref": "1261/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1264 not in exported (active) counterparties",
+   "record_ref": "1264/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1265 not in exported (active) counterparties",
+   "record_ref": "1265/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1266 not in exported (active) counterparties",
+   "record_ref": "1266/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1268 not in exported (active) counterparties",
+   "record_ref": "1268/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1269 not in exported (active) counterparties",
+   "record_ref": "1269/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1270 not in exported (active) counterparties",
+   "record_ref": "1270/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1271 not in exported (active) counterparties",
+   "record_ref": "1271/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1272 not in exported (active) counterparties",
+   "record_ref": "1272/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1273 not in exported (active) counterparties",
+   "record_ref": "1273/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1274 not in exported (active) counterparties",
+   "record_ref": "1274/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1276 not in exported (active) counterparties",
+   "record_ref": "1276/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1277 not in exported (active) counterparties",
+   "record_ref": "1277/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1279 not in exported (active) counterparties",
+   "record_ref": "1279/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1280 not in exported (active) counterparties",
+   "record_ref": "1280/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1281 not in exported (active) counterparties",
+   "record_ref": "1281/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1282 not in exported (active) counterparties",
+   "record_ref": "1282/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1283 not in exported (active) counterparties",
+   "record_ref": "1283/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1289 not in exported (active) counterparties",
+   "record_ref": "1289/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1295 not in exported (active) counterparties",
+   "record_ref": "1295/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1301 not in exported (active) counterparties",
+   "record_ref": "1301/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1302 not in exported (active) counterparties",
+   "record_ref": "1302/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1304 not in exported (active) counterparties",
+   "record_ref": "1304/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1305 not in exported (active) counterparties",
+   "record_ref": "1305/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1309 not in exported (active) counterparties",
+   "record_ref": "1309/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1314 not in exported (active) counterparties",
+   "record_ref": "1314/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1316 not in exported (active) counterparties",
+   "record_ref": "1316/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1317 not in exported (active) counterparties",
+   "record_ref": "1317/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1319 not in exported (active) counterparties",
+   "record_ref": "1319/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1320 not in exported (active) counterparties",
+   "record_ref": "1320/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1321 not in exported (active) counterparties",
+   "record_ref": "1321/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1322 not in exported (active) counterparties",
+   "record_ref": "1322/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1324 not in exported (active) counterparties",
+   "record_ref": "1324/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1325 not in exported (active) counterparties",
+   "record_ref": "1325/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1327 not in exported (active) counterparties",
+   "record_ref": "1327/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1328 not in exported (active) counterparties",
+   "record_ref": "1328/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1329 not in exported (active) counterparties",
+   "record_ref": "1329/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1330 not in exported (active) counterparties",
+   "record_ref": "1330/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1332 not in exported (active) counterparties",
+   "record_ref": "1332/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1334 not in exported (active) counterparties",
+   "record_ref": "1334/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1337 not in exported (active) counterparties",
+   "record_ref": "1337/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=134 not in exported (active) counterparties",
+   "record_ref": "134/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1340 not in exported (active) counterparties",
+   "record_ref": "1340/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1341 not in exported (active) counterparties",
+   "record_ref": "1341/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1344 not in exported (active) counterparties",
+   "record_ref": "1344/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1345 not in exported (active) counterparties",
+   "record_ref": "1345/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1346 not in exported (active) counterparties",
+   "record_ref": "1346/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1347 not in exported (active) counterparties",
+   "record_ref": "1347/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1348 not in exported (active) counterparties",
+   "record_ref": "1348/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1349 not in exported (active) counterparties",
+   "record_ref": "1349/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1350 not in exported (active) counterparties",
+   "record_ref": "1350/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1352 not in exported (active) counterparties",
+   "record_ref": "1352/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1353 not in exported (active) counterparties",
+   "record_ref": "1353/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1354 not in exported (active) counterparties",
+   "record_ref": "1354/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1355 not in exported (active) counterparties",
+   "record_ref": "1355/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1356 not in exported (active) counterparties",
+   "record_ref": "1356/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1358 not in exported (active) counterparties",
+   "record_ref": "1358/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1363 not in exported (active) counterparties",
+   "record_ref": "1363/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1365 not in exported (active) counterparties",
+   "record_ref": "1365/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1366 not in exported (active) counterparties",
+   "record_ref": "1366/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1368 not in exported (active) counterparties",
+   "record_ref": "1368/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1369 not in exported (active) counterparties",
+   "record_ref": "1369/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1370 not in exported (active) counterparties",
+   "record_ref": "1370/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1371 not in exported (active) counterparties",
+   "record_ref": "1371/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1372 not in exported (active) counterparties",
+   "record_ref": "1372/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1373 not in exported (active) counterparties",
+   "record_ref": "1373/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1374 not in exported (active) counterparties",
+   "record_ref": "1374/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1376 not in exported (active) counterparties",
+   "record_ref": "1376/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1379 not in exported (active) counterparties",
+   "record_ref": "1379/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1382 not in exported (active) counterparties",
+   "record_ref": "1382/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1388 not in exported (active) counterparties",
+   "record_ref": "1388/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1389 not in exported (active) counterparties",
+   "record_ref": "1389/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1390 not in exported (active) counterparties",
+   "record_ref": "1390/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1392 not in exported (active) counterparties",
+   "record_ref": "1392/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1394 not in exported (active) counterparties",
+   "record_ref": "1394/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1397 not in exported (active) counterparties",
+   "record_ref": "1397/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1399 not in exported (active) counterparties",
+   "record_ref": "1399/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1401 not in exported (active) counterparties",
+   "record_ref": "1401/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1402 not in exported (active) counterparties",
+   "record_ref": "1402/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1403 not in exported (active) counterparties",
+   "record_ref": "1403/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1406 not in exported (active) counterparties",
+   "record_ref": "1406/JB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1409 not in exported (active) counterparties",
+   "record_ref": "1409/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1411 not in exported (active) counterparties",
+   "record_ref": "1411/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1419 not in exported (active) counterparties",
+   "record_ref": "1419/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1421 not in exported (active) counterparties",
+   "record_ref": "1421/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1422 not in exported (active) counterparties",
+   "record_ref": "1422/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1423 not in exported (active) counterparties",
+   "record_ref": "1423/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1425 not in exported (active) counterparties",
+   "record_ref": "1425/YK"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1426 not in exported (active) counterparties",
+   "record_ref": "1426/WC"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1432 not in exported (active) counterparties",
+   "record_ref": "1432/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1441 not in exported (active) counterparties",
+   "record_ref": "1441/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1456 not in exported (active) counterparties",
+   "record_ref": "1456/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1463 not in exported (active) counterparties",
+   "record_ref": "1463/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1479 not in exported (active) counterparties",
+   "record_ref": "1479/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1579 not in exported (active) counterparties",
+   "record_ref": "1579/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1676 not in exported (active) counterparties",
+   "record_ref": "1676/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1704 not in exported (active) counterparties",
+   "record_ref": "1704/JB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1763 not in exported (active) counterparties",
+   "record_ref": "1763/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1797 not in exported (active) counterparties",
+   "record_ref": "1797/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1813 not in exported (active) counterparties",
+   "record_ref": "1813/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1822 not in exported (active) counterparties",
+   "record_ref": "1822/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1823 not in exported (active) counterparties",
+   "record_ref": "1823/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=1841 not in exported (active) counterparties",
+   "record_ref": "1841/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=2018 not in exported (active) counterparties",
+   "record_ref": "2018/RP"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=2081 not in exported (active) counterparties",
+   "record_ref": "2081/IB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=2150 not in exported (active) counterparties",
+   "record_ref": "2150/AB"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=2208 not in exported (active) counterparties",
+   "record_ref": "2208/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=2237 not in exported (active) counterparties",
+   "record_ref": "2237/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=2238 not in exported (active) counterparties",
+   "record_ref": "2238/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=2239 not in exported (active) counterparties",
+   "record_ref": "2239/AA"
+  },
+  {
+   "message": "SalesReps unresolved_counterparty: CpID=303 not in exported (active) counterparties",
+   "record_ref": "303/IB"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=104600001 has no imported person",
+   "record_ref": "3717"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=104650001 has no imported person",
+   "record_ref": "3718"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=105250001 has no imported person",
+   "record_ref": "4659"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=105300001 has no imported person",
+   "record_ref": "3734"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=113650001 has no imported person",
+   "record_ref": "4062"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=115750001 has no imported person",
+   "record_ref": "4040"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=116000001 has no imported person",
+   "record_ref": "4047"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=126550001 has no imported person",
+   "record_ref": "4670"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=127200001 has no imported person",
+   "record_ref": "4231"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=127550001 has no imported person",
+   "record_ref": "4234"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=127550001 has no imported person",
+   "record_ref": "4235"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=128600001 has no imported person",
+   "record_ref": "4257"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=128650001 has no imported person",
+   "record_ref": "4258"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=128750001 has no imported person",
+   "record_ref": "4259"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=128800001 has no imported person",
+   "record_ref": "4260"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=128950001 has no imported person",
+   "record_ref": "4261"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=130050001 has no imported person",
+   "record_ref": "4278"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=130100001 has no imported person",
+   "record_ref": "4279"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=133150001 has no imported person",
+   "record_ref": "4348"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=133150001 has no imported person",
+   "record_ref": "4349"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=133200001 has no imported person",
+   "record_ref": "4351"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=133200001 has no imported person",
+   "record_ref": "4352"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=133250001 has no imported person",
+   "record_ref": "4354"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=133250001 has no imported person",
+   "record_ref": "4355"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_rr: CT_ID=143350001 RR",
+   "record_ref": "4544"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=147100001 has no imported person",
+   "record_ref": "4709"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=148550001 has no imported person",
+   "record_ref": "4679"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=148950001 has no imported person",
+   "record_ref": "4652"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=151450001 has no imported person",
+   "record_ref": "4694"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=151650001 has no imported person",
+   "record_ref": "5382"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16100001 has no imported person",
+   "record_ref": "1005"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16100001 has no imported person",
+   "record_ref": "1837"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16150001 has no imported person",
+   "record_ref": "1006"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16150001 has no imported person",
+   "record_ref": "1838"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16250001 has no imported person",
+   "record_ref": "1008"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16250001 has no imported person",
+   "record_ref": "1840"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16300001 has no imported person",
+   "record_ref": "1009"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16300001 has no imported person",
+   "record_ref": "1841"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16350001 has no imported person",
+   "record_ref": "1010"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16350001 has no imported person",
+   "record_ref": "1842"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16500001 has no imported person",
+   "record_ref": "1013"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16500001 has no imported person",
+   "record_ref": "1845"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16600001 has no imported person",
+   "record_ref": "1015"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16600001 has no imported person",
+   "record_ref": "1847"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16650001 has no imported person",
+   "record_ref": "1016"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16650001 has no imported person",
+   "record_ref": "1848"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16750001 has no imported person",
+   "record_ref": "1018"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16750001 has no imported person",
+   "record_ref": "1849"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16800001 has no imported person",
+   "record_ref": "1019"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16800001 has no imported person",
+   "record_ref": "1850"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_rr: CT_ID=168350001 RR",
+   "record_ref": "5044"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16850001 has no imported person",
+   "record_ref": "1020"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16850001 has no imported person",
+   "record_ref": "1851"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16950001 has no imported person",
+   "record_ref": "1022"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=16950001 has no imported person",
+   "record_ref": "1853"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17250001 has no imported person",
+   "record_ref": "1028"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17250001 has no imported person",
+   "record_ref": "1859"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17350001 has no imported person",
+   "record_ref": "1030"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17350001 has no imported person",
+   "record_ref": "1861"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17550001 has no imported person",
+   "record_ref": "1034"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17550001 has no imported person",
+   "record_ref": "1865"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_rr: CT_ID=175800001 RR",
+   "record_ref": "5498"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17600001 has no imported person",
+   "record_ref": "1035"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17600001 has no imported person",
+   "record_ref": "1866"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17900001 has no imported person",
+   "record_ref": "1041"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17900001 has no imported person",
+   "record_ref": "1872"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17950001 has no imported person",
+   "record_ref": "1042"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=17950001 has no imported person",
+   "record_ref": "1873"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18000001 has no imported person",
+   "record_ref": "1043"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18000001 has no imported person",
+   "record_ref": "1874"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18100001 has no imported person",
+   "record_ref": "1045"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18100001 has no imported person",
+   "record_ref": "1876"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18150001 has no imported person",
+   "record_ref": "1046"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18150001 has no imported person",
+   "record_ref": "1877"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18200001 has no imported person",
+   "record_ref": "1047"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18200001 has no imported person",
+   "record_ref": "1878"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18250001 has no imported person",
+   "record_ref": "1048"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18250001 has no imported person",
+   "record_ref": "1879"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18300001 has no imported person",
+   "record_ref": "1049"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18300001 has no imported person",
+   "record_ref": "1880"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18350001 has no imported person",
+   "record_ref": "1050"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18350001 has no imported person",
+   "record_ref": "1881"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18450001 has no imported person",
+   "record_ref": "1052"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18450001 has no imported person",
+   "record_ref": "1883"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18550001 has no imported person",
+   "record_ref": "1054"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18550001 has no imported person",
+   "record_ref": "1885"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18600001 has no imported person",
+   "record_ref": "1055"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18600001 has no imported person",
+   "record_ref": "1886"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18650001 has no imported person",
+   "record_ref": "1056"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18650001 has no imported person",
+   "record_ref": "1887"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=186750001 has no imported person",
+   "record_ref": "5205"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18700001 has no imported person",
+   "record_ref": "1057"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18700001 has no imported person",
+   "record_ref": "1888"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18750001 has no imported person",
+   "record_ref": "1058"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18750001 has no imported person",
+   "record_ref": "1889"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18800001 has no imported person",
+   "record_ref": "1059"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18800001 has no imported person",
+   "record_ref": "1890"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18850001 has no imported person",
+   "record_ref": "1060"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18850001 has no imported person",
+   "record_ref": "1891"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18900001 has no imported person",
+   "record_ref": "1061"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18900001 has no imported person",
+   "record_ref": "1892"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18950001 has no imported person",
+   "record_ref": "1062"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=18950001 has no imported person",
+   "record_ref": "1893"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19000001 has no imported person",
+   "record_ref": "1063"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19000001 has no imported person",
+   "record_ref": "1894"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19100001 has no imported person",
+   "record_ref": "1677"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19100001 has no imported person",
+   "record_ref": "1896"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19150001 has no imported person",
+   "record_ref": "1066"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19150001 has no imported person",
+   "record_ref": "1897"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19300001 has no imported person",
+   "record_ref": "1069"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19300001 has no imported person",
+   "record_ref": "1900"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_rr: CT_ID=193100001 RR",
+   "record_ref": "5321"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=193450001 has no imported person",
+   "record_ref": "5325"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19450001 has no imported person",
+   "record_ref": "1072"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19450001 has no imported person",
+   "record_ref": "1903"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19700001 has no imported person",
+   "record_ref": "1077"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19700001 has no imported person",
+   "record_ref": "1907"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19750001 has no imported person",
+   "record_ref": "1078"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19750001 has no imported person",
+   "record_ref": "1908"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19850001 has no imported person",
+   "record_ref": "1080"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=19850001 has no imported person",
+   "record_ref": "1910"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20050001 has no imported person",
+   "record_ref": "1084"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20050001 has no imported person",
+   "record_ref": "1914"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20350001 has no imported person",
+   "record_ref": "1090"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20350001 has no imported person",
+   "record_ref": "1920"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20400001 has no imported person",
+   "record_ref": "1091"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20400001 has no imported person",
+   "record_ref": "1921"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20600001 has no imported person",
+   "record_ref": "1095"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20600001 has no imported person",
+   "record_ref": "1925"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20650001 has no imported person",
+   "record_ref": "1096"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20650001 has no imported person",
+   "record_ref": "1926"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_rr: CT_ID=206800001 RR",
+   "record_ref": "5496"
+  },
+  {
+   "message": "ContactRoleAssignment unresolved_contact: CT_ID=20750001 has no imported person",
+   "record_ref": "1098"
+  }
+ ],
+ "final_status": "partial",
+ "records_created": 7682,
+ "records_rejected": 1289,
+ "records_seen": 12518,
+ "records_unchanged": 1432,
+ "records_updated": 2115,
+ "records_valid": 11229,
+ "source": "erp",
+ "start_time": "2026-10-18T02:55:55Z"
+}

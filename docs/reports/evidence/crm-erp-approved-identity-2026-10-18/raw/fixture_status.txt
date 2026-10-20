@@ -1,0 +1,15 @@
+owner:        w2495f48767 (default clone odoo_test_w2495f48767)
+parity:       ee
+fingerprint:  c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30
+template:     odoo_test_tpl_ee_c9e8a81f52f23680 (ready)
+fixture:      canonical; a new template is refused unless this database is absent and TEST_ENV_ALLOW_NEW_TEMPLATE equals its name
+  input  schema=plasticos-test-env/2
+  input  recipe=us-company-before-accounting
+  input  parity=ee
+  input  image=content:aea60f938586e37745d83a5a65eddefb63c18ede38058272cfeef5f539ab73cb
+  input  postgres=15
+  input  modules=account_accountant,account_reports,account_fiscal_categories,account_followup,account_extract,account_invoice_extract,account_invoice_extract_purchase,account_online_synchronization,account_bank_statement_import,purchase_accountant,sale_account_accountant,stock_accountant,currency_rate_live,l10n_us,l10n_us_account,l10n_us_1099,l10n_us_check_printing,l10n_us_payment_nacha,l10n_us_reports,crm_enterprise,sale_enterprise,sale_pdf_quote_builder,contacts_enterprise,stock_enterprise,stock_barcode,documents,documents_account,documents_product,documents_spreadsheet,analytic_enterprise,mail_enterprise,attachment_indexation,spreadsheet,spreadsheet_account,spreadsheet_dashboard,spreadsheet_edition,spreadsheet_sale_management,digest_enterprise,web_enterprise,web_cohort,web_gantt,web_grid,web_map,plasticos_accounting,plasticos_base,plasticos_gate,plasticos_material_profile,plasticos_logistics,plasticos_facility_profile,plasticos_intake,plasticos_product,plasticos_order_lines,plasticos_transaction,plasticos_documents,plasticos_offer,plasticos_claims,plasticos_automation,plasticos_intake_normalizer,plasticos_matching,plasticos_enrichment,plasticos_geolocalize,plasticos_web_leads,plasticos_security_base,plasticos_commission,plasticos_crm_bridge,plasticos_partner_import,plasticos_crm_sync,plasticos_admin_dashboard
+  input  config=a8589265c8d992be334a7469625ef712cd1141376036830cc74a3ec413c1c7bb
+  input  enterprise=tree:408de1ed3345048ebc5e1b32b8c0e9bbe46cec6d8dcbe54d6f6231dcc6c292bf
+  db     odoo_test_tpl_ee_c9e8a81f52f23680        role=template owner=w2495f48767 parity=ee state=ready
+  db     odoo_test_w2495f48767                    role=clone owner=w2495f48767 parity=ee state=

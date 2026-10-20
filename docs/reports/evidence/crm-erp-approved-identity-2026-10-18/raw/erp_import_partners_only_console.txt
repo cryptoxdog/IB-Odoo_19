@@ -1,0 +1,14 @@
+# make import-erp ERP_PARTNERS_ONLY=1 on odoo_test_w2495f48767 (direct SQL read, erp_reader, restored ERP database from the 2026-10-03 backup, name supplied as ERP_SQL_DATABASE)
+res.partner before import: 13 (pre-existing business partners: 0)
+VALIDATOR PASSED (counterparties)
+VALIDATOR PASSED (addresses)
+VALIDATOR PASSED (contacts)
+<validator spot-check lines omitted: they name a contact and a company>
+VALIDATOR PASSED (roles)
+VALIDATOR PASSED (salesreps)
+
+=== ERP IMPORT SUMMARY ===
+status      : partial
+seen/valid  : 12518 / 11229 (rejected 1289)
+created     : 7682  updated: 2115  unchanged: 1432  duplicates: 0
+errors      : 1000 (first 10 below)

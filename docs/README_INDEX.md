@@ -102,7 +102,8 @@ These are **gitignored and cursorignored**. Do not reference, import from, or ad
 | `plasticos_enrichment_bridge` | Out of scope for launch |
 | `plasticos_website` | Out of scope for launch |
 | `plasticos_dev_tools` | Dev-only — never install in production |
-| `plasticos_documents_native` | Uninstallable — enterprise layer fallback |
+
+`plasticos_documents_native` is in this repo. It is `installable`, an application, and `auto_install: True`. Odoo installs it when Enterprise `documents`, `documents_account`, and its PlasticOS dependencies are installed. `plasticos_semantic_kernel` stays uninstalled, and no module depends on it.
 
 ---
 

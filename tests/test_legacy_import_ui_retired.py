@@ -70,10 +70,22 @@ def test_models_init_no_longer_imports_settings_glue():
     assert "res_config_settings" not in init
 
 
+def _version(text: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in text.split("."))
+
+
 def test_upgrade_migration_matches_manifest_version():
     version = _manifest()["version"]
-    script = MODULE / "migrations" / version / "post-migrate.py"
-    assert script.exists(), f"migrations/{version}/post-migrate.py must exist so the upgrade retires persisted records"
+    retiring = [
+        script
+        for script in (MODULE / "migrations").glob("*/post-migrate.py")
+        if all(f'"{xml_id}"' in script.read_text(encoding="utf-8") for xml_id in RETIRED_XML_IDS)
+    ]
+    assert retiring, "a post-migrate.py must retire the persisted legacy UI records"
+    script = max(retiring, key=lambda path: _version(path.parent.name))
+    assert _version(script.parent.name) <= _version(version), (
+        f"retirement migration {script.parent.name} is newer than manifest {version}, so the upgrade never runs it"
+    )
     source = script.read_text(encoding="utf-8")
     for xml_id in RETIRED_XML_IDS:
         assert f'"{xml_id}"' in source, xml_id

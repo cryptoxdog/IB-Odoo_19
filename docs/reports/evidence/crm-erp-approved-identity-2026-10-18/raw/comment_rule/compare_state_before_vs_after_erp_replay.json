@@ -1,0 +1,42 @@
+{
+ "counts_before": {
+  "call_events": 50494,
+  "erp_partner_markers": 7630,
+  "leads": 0,
+  "partners": 5196,
+  "person_refs": 735,
+  "phone_lines": 1855,
+  "table_rows": 0
+ },
+ "counts_after": {
+  "call_events": 50494,
+  "erp_partner_markers": 7630,
+  "leads": 0,
+  "partners": 5196,
+  "person_refs": 735,
+  "phone_lines": 1855,
+  "table_rows": 0
+ },
+ "counts_equal": true,
+ "persons": {
+  "checked": 689,
+  "identical": 689,
+  "crm_paragraphs": 360,
+  "crm_paragraphs_kept_once": 360,
+  "erp_paragraphs": 19,
+  "erp_paragraphs_kept_once": 19,
+  "phone_lines": 840,
+  "phone_lines_identical_people": 689
+ },
+ "contacts": {
+  "checked": 763,
+  "identical": 763,
+  "refs": 735,
+  "calls": 50494
+ },
+ "failure_count": 0,
+ "failures": [],
+ "state_sha256_before_erp_replay": "89888384957cdd1622a62d65ce008cb51244e3fdbefaf3d449582acfa96b254b",
+ "state_sha256_after_erp_replay": "89888384957cdd1622a62d65ce008cb51244e3fdbefaf3d449582acfa96b254b",
+ "state_files_kept_out": "the state files hold names, phone numbers and note text, so only their hashes are recorded"
+}

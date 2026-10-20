@@ -33,6 +33,9 @@ class CanonicalLead:
     modified_utc: str = ""
     deleted: bool = False
     custom_fields: dict[str, str] = field(default_factory=dict)
+    phone_numbers: tuple[str, ...] = ()
+    mobile_numbers: tuple[str, ...] = ()
+    contact_note: str = ""
 
 
 @dataclass(frozen=True)
