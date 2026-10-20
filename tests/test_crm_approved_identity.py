@@ -36,16 +36,28 @@ def _csv(rows: list[tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def test_pinned_digest_constant_is_the_operator_file():
+def test_pinned_crosswalk_constants():
+    """Pins the constants only. It does not prove the operator file."""
     assert PINNED_SHA256 == "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2"
     assert PINNED_VS_COUNT == 763
     assert PINNED_ERP_COUNT == 716
-    if PACK_CSV.is_file():
-        text = PACK_CSV.read_text(encoding="utf-8")
-        mapping = validate_crosswalk(text)
-        assert mapping["572648103"] == "2350001"
-        assert mapping["1082805107"] == "192650001"
-        assert "572648239" not in mapping
+
+
+def test_operator_crosswalk_file_matches_the_pinned_census():
+    # Legitimate exception (95-test-fix-policy): the operator file carries contact
+    # identities, is gitignored, and is never in CI. Without it the approved-file
+    # claim is UNVERIFIED and is reported as a skip, never as a pass.
+    # Removal trigger: a trusted, PII-free census input committed beside the receipt.
+    if not PACK_CSV.is_file():
+        pytest.skip(f"UNVERIFIED: operator crosswalk absent at {PACK_CSV.relative_to(ROOT)}")
+    raw = PACK_CSV.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == PINNED_SHA256
+    mapping = validate_crosswalk(raw.decode("utf-8"))
+    assert len(mapping) == PINNED_VS_COUNT
+    assert len(set(mapping.values())) == PINNED_ERP_COUNT
+    assert mapping["572648103"] == "2350001"
+    assert mapping["1082805107"] == "192650001"
+    assert "572648239" not in mapping
 
 
 def test_crosswalk_rejects_a_second_erp_target_for_one_contact():
