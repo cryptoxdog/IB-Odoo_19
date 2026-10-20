@@ -74,7 +74,7 @@ tests/runtime_gates/, docs/runbooks/, docs/adr/README.md, AGENTS.md.
    `make runtime-gate g=run_legacy_erp_import.py` and
    `make runtime-gate g=run_f1_f3_full_import.py` to convert UNKNOWNs to
    evidence.
-2. Publish the branch via `PR_STACK= PR_REMEDIATE=0 l9 pr` into Staging.
+2. Publish the branch via `make pr` into Staging. Merge is a separate human decision.
 
 ## Recent Sessions
 

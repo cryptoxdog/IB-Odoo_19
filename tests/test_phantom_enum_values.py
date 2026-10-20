@@ -783,6 +783,11 @@ GLOBAL_ALLOWLIST = frozenset(
         "jpg",
         "jpeg",
         # ─────────────────────────────────────────────────────────────────────
+        # HTML TAG NAMES — html.parser callbacks that split res.partner.comment
+        # into paragraphs (approved_identity.py, erp_import_service.py)
+        # ─────────────────────────────────────────────────────────────────────
+        "br",
+        # ─────────────────────────────────────────────────────────────────────
         # ERP IMPORT SOURCE VOCABULARY — erp_import_service.py
         # ISO country codes and ERP Address.Type words read from the bulk
         # grids, not Odoo selection values

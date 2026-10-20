@@ -1,5 +1,11 @@
 title = "PlasticOS gitleaks config"
 
+[[rules]]
+id = "github-pat"
+description = "GitHub personal access token"
+regex = '''ghp_[0-9a-zA-Z]{32,}'''
+keywords = ["ghp_"]
+
 [allowlist]
 description = "Known false positives — shell variables and non-secret identifiers"
 

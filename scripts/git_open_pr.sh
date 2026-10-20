@@ -78,6 +78,17 @@ print(f"{number}\t{url}")
 PY
 }
 
+ensure_protected_root_stamp() {
+  local number="$1"
+  local stamp="<!-- L9_PROTECTED_ROOT_PR -->"
+  local body
+  body="$(gh pr view "${number}" --json body --jq '.body // ""')"
+  if printf '%s' "${body}" | grep -qF "${stamp}"; then
+    return 0
+  fi
+  gh pr edit "${number}" --body "$(printf '%s\n\n%s\n' "${body}" "${stamp}")" >/dev/null
+}
+
 if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
   # GitHub updates an open PR's head asynchronously after the push; re-read
   # a few times before declaring the SHA wrong. Every other mismatch (base,
@@ -93,8 +104,9 @@ if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
   PR_URL="${PROOF#*$'\t'}"
   echo "✅ Open PR #${PR_NUM} → ${BASE}: ${PR_URL}"
   echo "   head ${LOCAL_SHA}"
+  ensure_protected_root_stamp "${PR_NUM}"
   bash scripts/apply_pr_kernel_metadata.sh "${PR_NUM}" || true
-  echo "   CI + auto-merge run on synchronize (.github/workflows/auto-merge.yml)"
+  echo "   Merge is a separate human decision. This command does not merge."
   exit 0
 fi
 
@@ -110,6 +122,10 @@ fi
 
 TITLE="$(git log -1 --pretty=%s)"
 BODY="$(python3 scripts/build_pr_body.py "${BASE}")"
+STAMP="<!-- L9_PROTECTED_ROOT_PR -->"
+if ! printf '%s' "${BODY}" | grep -qF "${STAMP}"; then
+  BODY="${BODY}"$'\n\n'"${STAMP}"
+fi
 
 if ! gh pr create --base "${BASE}" --head "${TARGET}" --title "${TITLE}" --body "${BODY}" >/dev/null; then
   echo "gh pr create failed for ${TARGET} → ${BASE}"
@@ -126,4 +142,4 @@ PR_URL="${PROOF#*$'\t'}"
 echo "✅ PR created → ${BASE}: ${PR_URL}"
 echo "   head ${LOCAL_SHA}"
 bash scripts/apply_pr_kernel_metadata.sh "${PR_NUM}" || true
-echo "   CI Gate runs on pull_request; auto-merge when checks pass"
+echo "   Merge is a separate human decision. This command does not merge."

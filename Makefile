@@ -756,16 +756,11 @@ commit:
 	echo "============================================"; \
 	git show --stat --oneline -1; \
 	echo ""; \
-	if [ -t 0 ]; then \
-		printf "Run make pr? [y/N] "; \
-		read -r ans; \
-		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) pr ;; *) echo "Skipped. Run: make pr"; ;; esac; \
-	else \
-		echo "Run: make pr   (publishes this committed feature branch into Staging)"; \
-	fi
+	echo "Run: make pr   (publishes this committed feature branch into Staging)"; \
 
 # Retired publication path. Staging and Production stay PR-only under the
-# GitHub ruleset "Protect Staging & Production" (required check: CI Gate Result).
+# GitHub ruleset "Protect Staging & Production" (required checks: Ruff Lint & Format,
+# Static Analysis, Pure Python Tests, and CI Gate Result).
 # `make push` and `make push pr=1` are no longer a ceremony.
 push:
 	@echo "⛔ make push is not a publication ceremony."
@@ -1041,6 +1036,7 @@ VANILLASOFT_REPORT_PATH ?= .l9/pr/import-vanillasoft-summary.json
 # Local: the venv has no odoo.conf, so the connection and addons arguments are
 # passed explicitly, exactly as `test-odoo-local` does.
 import-erp:
+	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ] && [ "$$TEST_ENV_VERIFIED_CLONE" != "$(ODOO_DB_NAME)" ]; then echo "❌ test-env refused: ODOO_DB_NAME=$(ODOO_DB_NAME) is not the verified clone $$TEST_ENV_VERIFIED_CLONE" >&2; exit 2; fi
 	@test -d plasticos_partner_import/erp_extracted_data || { echo "❌ Preflight failed: ERP projection scripts missing (plasticos_partner_import/erp_extracted_data)"; exit 1; }
 	@echo "→ ERP import on database $(ODOO_DB_NAME) $(if $(ERP_DRY),[DRY RUN],)$(if $(ERP_SQL_SERVER), [direct SQL read],)…"
 	@if docker info >/dev/null 2>&1; then \
@@ -1060,6 +1056,8 @@ import-erp:
 			-e ERP_SQL_PORT="$(ERP_SQL_PORT)" \
 			-e ERP_SQL_DRIVER="$(ERP_SQL_DRIVER)" \
 			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_partner_import/scripts/import_erp_shell.py; \
+	elif [ -n "$$TEST_ENV_VERIFIED_CLONE" ]; then \
+		echo "❌ test-env refused: $(ODOO_DB_NAME) was verified on the Docker stack and Docker is unreachable; the no-Docker harness is another server" >&2; exit 2; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
 		ERP_DRY="$(ERP_DRY)" ERP_LIMIT="$(ERP_LIMIT)" \
@@ -1094,6 +1092,7 @@ import-erp-test:
 # ir.config_parameter only; nothing secret is logged). Prefers docker, falls
 # back to the local harness, fails closed on material errors.
 import-vanillasoft:
+	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ] && [ "$$TEST_ENV_VERIFIED_CLONE" != "$(ODOO_DB_NAME)" ]; then echo "❌ test-env refused: ODOO_DB_NAME=$(ODOO_DB_NAME) is not the verified clone $$TEST_ENV_VERIFIED_CLONE" >&2; exit 2; fi
 	@echo "→ VanillaSoft full import on database $(ODOO_DB_NAME)…"
 	@if docker info >/dev/null 2>&1; then \
 		docker compose run --rm \
@@ -1101,6 +1100,8 @@ import-vanillasoft:
 			-e VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
 			-e VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
 			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
+	elif [ -n "$$TEST_ENV_VERIFIED_CLONE" ]; then \
+		echo "❌ test-env refused: $(ODOO_DB_NAME) was verified on the Docker stack and Docker is unreachable; the no-Docker harness is another server" >&2; exit 2; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
 		VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
@@ -1112,3 +1113,25 @@ import-vanillasoft:
 	else \
 		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
 	fi
+
+# 2026-10-17 — Enterprise Docker tests. The fingerprint-template comment above
+# is historical. make test-env, test-db, test-odoo, test-module, and
+# import-erp-test clone only the database named in config/test_env_fixture.conf.
+# TEST_ENV_PARITY=community is refused unless TEST_ENV_SAFETY_HARNESS=1.
+# A new template is refused unless that database is absent and
+# TEST_ENV_ALLOW_NEW_TEMPLATE equals its name. make test-odoo-local is the
+# no-Docker backend and is not this fixture.
+#
+# 2026-10-19 — the test-odoo and test-module recipes above are unchanged, but
+# test_env.sh run treats a --test-enable run as its test runner: it upgrades
+# every declared PlasticOS module on the clone (not -u all), limits the tests to
+# that roster or to m=, and fails on a missing Odoo summary, any failure or
+# error, or zero tests (receipt: .l9/runtime/test-env/<db>.test-receipt.json).
+# The fixture is refused when its image, Postgres major, module roster,
+# configuration, or Enterprise checkout differs from the inputs it was admitted
+# for; it is not rebuilt. Under test_env.sh run, import-erp and
+# import-vanillasoft refuse a database other than the verified clone and their
+# no-Docker fallback; MAKEFILES and MAKEFLAGS are cleared before make starts.
+# Every other test_env.sh run (an import, shell, runtime-gate-f1) first
+# upgrades the PlasticOS roster on the clone, once per addon source digest
+# (stamped src= on the clone), reading no stdin.

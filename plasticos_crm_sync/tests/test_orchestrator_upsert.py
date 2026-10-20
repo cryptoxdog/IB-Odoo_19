@@ -11,8 +11,7 @@ from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
 
-@tagged("post_install", "-at_install")
-class TestCrmSyncOrchestrator(TransactionCase):
+class CrmSyncOrchestratorCase(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -25,6 +24,25 @@ class TestCrmSyncOrchestrator(TransactionCase):
             }
         )
 
+    def _lead(self, external_id, **kwargs):
+        values = {
+            "provider": "vanillasoft",
+            "external_id": external_id,
+            "company": "Test Co",
+            "first_name": "Ada",
+            "last_name": "Lovelace",
+            "lead_status_raw": "New",
+        }
+        values.update(kwargs)
+        return CanonicalLead(**values)
+
+    def _facility(self, name):
+        parent = self.env["res.partner"].create({"name": f"{name} Parent", "is_company": True})
+        return self.env["res.partner"].create({"name": name, "is_company": True, "parent_id": parent.id})
+
+
+@tagged("post_install", "-at_install")
+class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
     def test_upsert_lead_idempotent(self):
         orch = SyncOrchestrator(self.env)
         dto = CanonicalLead(
@@ -87,18 +105,6 @@ class TestCrmSyncOrchestrator(TransactionCase):
         )
         self.assertTrue(event)
         self.assertEqual(event.lead_id.vanillasoft_id, "vs-2002")
-
-    def _lead(self, external_id, **kwargs):
-        values = {
-            "provider": "vanillasoft",
-            "external_id": external_id,
-            "company": "Test Co",
-            "first_name": "Ada",
-            "last_name": "Lovelace",
-            "lead_status_raw": "New",
-        }
-        values.update(kwargs)
-        return CanonicalLead(**values)
 
     def _assert_identity_absent(self, external_id):
         leads = self.env["crm.lead"].with_context(active_test=False).search([("vanillasoft_id", "=", external_id)])
@@ -237,10 +243,6 @@ class TestCrmSyncOrchestrator(TransactionCase):
             ),
             1,
         )
-
-    def _facility(self, name):
-        parent = self.env["res.partner"].create({"name": f"{name} Parent", "is_company": True})
-        return self.env["res.partner"].create({"name": name, "is_company": True, "parent_id": parent.id})
 
     def _profiles(self, facility):
         return self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
@@ -804,137 +806,6 @@ class TestCrmSyncOrchestrator(TransactionCase):
         self.assertEqual(orch.outcomes["failed"], 0)
         self.assertEqual(lead.partner_id, location)
 
-    def test_collision_keeps_cascade_dependents_and_image_attachments(self):
-        from odoo import fields
-
-        location = self._facility("Cascade Mill")
-        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
-        hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
-        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
-        existing = self.env["plasticos.material.profile"].create(
-            {
-                "partner_id": location.id,
-                "facility_profile_id": existing_facility.id,
-                "polymer_id": hdpe.id,
-                "form_id": drums.id,
-            }
-        )
-        orch = SyncOrchestrator(self.env)
-        dto = self._lead("vs-cascade", custom_fields={"Materials": "HDPE Drums"})
-        lead = orch._upsert_lead(self.connection, dto)
-        provisional = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
-        observation = self.env["plasticos.material.observation"].create(
-            {
-                "material_profile_id": provisional.id,
-                "feature_id": "moisture",
-                "value_state": "observed",
-                "method": "scale",
-                "observed_at": fields.Datetime.now(),
-                "source_system": "crm-sync-test",
-            }
-        )
-        specification = self.env["plasticos.material.specification"].create(
-            {
-                "name": "Cascade spec",
-                "polymer_id": hdpe.id,
-                "form_id": drums.id,
-                "legacy_material_profile_id": provisional.id,
-            }
-        )
-        supply = self.env["plasticos.supply.opportunity"].create(
-            {
-                "name": "Cascade supply",
-                "material_profile_id": provisional.id,
-                "supplier_partner_id": location.id,
-            }
-        )
-        image = self.env["ir.attachment"].create(
-            {
-                "name": "bale.png",
-                "res_model": "plasticos.material.profile",
-                "res_id": provisional.id,
-                "mimetype": "image/png",
-                "datas": base64.b64encode(b"bale-image"),
-            }
-        )
-        lead.partner_id = location
-        orch._upsert_lead(self.connection, dto)
-        self.assertFalse(provisional.exists())
-        self.assertTrue(observation.exists())
-        self.assertEqual(observation.material_profile_id, existing)
-        self.assertEqual(specification.legacy_material_profile_id, existing)
-        self.assertEqual(supply.material_profile_id, existing)
-        self.assertEqual(image.res_model, "plasticos.material.profile")
-        self.assertEqual(image.res_id, existing.id)
-        self.assertEqual(image.datas, base64.b64encode(b"bale-image"))
-
-    def test_computed_material_reference_blocks_deletion(self):
-        from odoo import fields
-
-        location = self._facility("Computed Mill")
-        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
-        hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
-        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
-        existing = self.env["plasticos.material.profile"].create(
-            {
-                "partner_id": location.id,
-                "facility_profile_id": existing_facility.id,
-                "polymer_id": hdpe.id,
-                "form_id": drums.id,
-            }
-        )
-        orch = SyncOrchestrator(self.env)
-        orch.outcomes = _new_outcomes()
-        dto = self._lead("vs-computed", custom_fields={"Materials": "HDPE Drums"})
-        lead = orch._upsert_lead(self.connection, dto)
-        provisional = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
-        observation = self.env["plasticos.material.observation"].create(
-            {
-                "material_profile_id": provisional.id,
-                "feature_id": "weight",
-                "value_state": "reported",
-                "method": "ticket",
-                "observed_at": fields.Datetime.now(),
-                "source_system": "crm-sync-test",
-            }
-        )
-        transaction = self.env["plasticos.transaction"].create({"name": "TX-COMPUTED"})
-        self.env.cr.execute(
-            "UPDATE plasticos_transaction SET supplier_profile_id = %s WHERE id = %s",
-            (provisional.id, transaction.id),
-        )
-        transaction.invalidate_recordset(["supplier_profile_id"])
-        comment = self.env.ref("mail.mt_comment")
-        survivor_partner = self.env["res.partner"].create({"name": "Computed Survivor Follower"})
-        provisional_partner = self.env["res.partner"].create({"name": "Computed Provisional Follower"})
-        survivor_follow = self.env["mail.followers"].create(
-            {
-                "res_model": "plasticos.material.profile",
-                "res_id": existing.id,
-                "partner_id": survivor_partner.id,
-                "subtype_ids": [fields.Command.link(comment.id)],
-            }
-        )
-        provisional_follow = self.env["mail.followers"].create(
-            {
-                "res_model": "plasticos.material.profile",
-                "res_id": provisional.id,
-                "partner_id": provisional_partner.id,
-                "subtype_ids": [fields.Command.link(comment.id)],
-            }
-        )
-        lead.partner_id = location
-        orch._upsert_lead(self.connection, dto)
-        self.assertTrue(provisional.exists())
-        self.assertEqual(observation.material_profile_id, provisional)
-        self.assertEqual(survivor_follow.res_id, existing.id)
-        self.assertEqual(survivor_follow.subtype_ids, comment)
-        self.assertEqual(provisional_follow.res_id, provisional.id)
-        self.assertTrue(any("cannot be moved" in row["message"] for row in orch.error_rows))
-        self.assertEqual(orch.outcomes["failed"], 0)
-        self.env.cr.execute("SELECT supplier_profile_id FROM plasticos_transaction WHERE id = %s", (transaction.id,))
-        self.assertEqual(self.env.cr.fetchone()[0], provisional.id)
-
     def test_collision_preserves_followers_without_duplicate_subscriptions(self):
         from odoo import fields
 
@@ -1108,3 +979,263 @@ class TestCrmSyncOrchestrator(TransactionCase):
         visible = self.env["plasticos.material.profile"].search(lead.action_view_material_profiles()["domain"])
         self.assertEqual(visible, profile)
         self.assertEqual(lead.material_profile_count, 1)
+
+    def test_approved_contact_notes_append_to_the_erp_comment_and_replay(self):
+        person = self.env["res.partner"].create(
+            {"name": "ERP Person", "phone": "555-0100", "comment": "negotiate prices\nrequest PO"}
+        )
+        self.env["ir.model.data"].create(
+            {
+                "module": "plasticos_transaction",
+                "name": "legacy_erp_contact_77",
+                "model": "res.partner",
+                "res_id": person.id,
+                "noupdate": True,
+            }
+        )
+        erp_comment = person.comment
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-n1": "77", "vs-n2": "77"}
+        orch._crosswalk_ready = True
+        first = self._lead("vs-n1", contact_note="CRM history & terms")
+        second = self._lead("vs-n2", contact_note="second contact\nnote")
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, first)
+        orch._upsert_lead(self.connection, second)
+        self.assertEqual(orch.outcomes["updated"], 2)
+        appended = person.comment
+        self.assertTrue(appended.startswith(erp_comment))
+        self.assertIn("<p>CRM history &amp; terms</p>", appended)
+        self.assertIn("second contact", appended)
+
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, first)
+        orch._upsert_lead(self.connection, second)
+        self.assertEqual(orch.outcomes["unchanged"], 2)
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(person.comment, appended)
+        self.assertEqual(person.phone, "555-0100")
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+
+    def _erp_marker(self, partner, ct_id):
+        self.env["ir.model.data"].create(
+            {
+                "module": "plasticos_transaction",
+                "name": f"legacy_erp_contact_{ct_id}",
+                "model": "res.partner",
+                "res_id": partner.id,
+                "noupdate": True,
+            }
+        )
+
+    def test_persisted_person_ref_is_kept_when_the_crosswalk_is_unset(self):
+        person = self.env["res.partner"].create({"name": "Archived ERP Person", "active": False})
+        self._erp_marker(person, "99")
+        dto = self._lead("vs-keep", contact_note="bound once")
+        Ref = self.env["plasticos.crm.external.ref"]
+        Lead = self.env["crm.lead"].with_context(active_test=False)
+
+        approved = SyncOrchestrator(self.env)
+        approved._crosswalk = {"vs-keep": "99"}
+        approved._crosswalk_ready = True
+        approved.outcomes = _new_outcomes()
+        approved._upsert_lead(self.connection, dto)
+        self.assertEqual(approved.outcomes["updated"], 1)
+        leads_before = Lead.search_count([])
+        comment = person.comment
+
+        unset = SyncOrchestrator(self.env)
+        unset._crosswalk = None
+        unset._crosswalk_ready = True
+        unset.outcomes = _new_outcomes()
+        unset._upsert_lead(self.connection, dto)
+        unset._upsert_lead(self.connection, dto)
+        self.assertEqual(unset.last_lead_outcome, "unchanged")
+        self.assertEqual(unset.outcomes["unchanged"], 2)
+        self.assertEqual(unset.outcomes["created"], 0)
+        self.assertEqual(Lead.search_count([]), leads_before)
+        self.assertFalse(Lead.search([("vanillasoft_id", "=", "vs-keep")]))
+        refs = Ref.search([("provider", "=", "vanillasoft"), ("external_id", "=", "vs-keep")])
+        self.assertEqual(len(refs), 1)
+        self.assertEqual((refs.res_model, refs.res_id), ("res.partner", person.id))
+        self.assertEqual(person.comment, comment)
+
+    def test_approved_material_failure_is_contained_and_the_page_continues(self):
+        facility = self._facility("Approved Mill")
+        self.env["plasticos.facility.profile"].create({"partner_id": facility.id})
+        person = self.env["res.partner"].create({"name": "Approved Buyer", "parent_id": facility.id})
+        self._erp_marker(person, "88")
+        lead_a = self.env["crm.lead"].create({"name": "A", "vanillasoft_id": "vs-am1", "partner_id": person.id})
+        lead_b = self.env["crm.lead"].create({"name": "B", "vanillasoft_id": "vs-am2", "partner_id": person.id})
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-am1": "88", "vs-am2": "88"}
+        orch._crosswalk_ready = True
+        orch.outcomes = _new_outcomes()
+        profiles = self.env["plasticos.material.profile"]
+        profiles_before = profiles.search_count([])
+        profile_model = type(profiles)
+        original = profile_model.create
+
+        def boom(records, vals_list):
+            created = original(records, vals_list)
+            records.env.cr.execute("SELECT 1 FROM plasticos_material_profile_missing_for_rollback")
+            return created
+
+        with patch.object(profile_model, "create", boom):
+            first = orch._upsert_lead(self.connection, self._lead("vs-am1", custom_fields={"Materials": "HDPE Drums"}))
+        self.assertEqual(first, lead_a)
+        self.assertEqual(orch.last_lead_outcome, "updated")
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertTrue(any("material normalization failed" in row["message"] for row in orch.error_rows))
+        self.assertEqual(profiles.search_count([]), profiles_before)
+        ref_a = self.env["plasticos.crm.external.ref"].search([("external_id", "=", "vs-am1")])
+        self.assertEqual((ref_a.res_model, ref_a.res_id), ("res.partner", person.id))
+
+        second = orch._upsert_lead(self.connection, self._lead("vs-am2", custom_fields={"Materials": "PP Supersacs"}))
+        self.assertEqual(second, lead_b)
+        self.assertEqual(orch.outcomes["updated"], 2)
+        stored = profiles.search([("partner_id", "=", facility.id)])
+        self.assertEqual(stored.mapped("polymer_id.code"), ["PP"])
+
+
+@tagged("post_install", "-at_install", "-standard", "crm_sync_semantic_kernel")
+class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
+    """Collision cases on plasticos_semantic_kernel models.
+
+    plasticos_crm_sync does not depend on that optional module, so the standard
+    run excludes these. Run them on a clone with it installed:
+    ``-i plasticos_semantic_kernel -u plasticos_crm_sync --test-tags crm_sync_semantic_kernel``.
+    """
+
+    def test_collision_keeps_cascade_dependents_and_image_attachments(self):
+        from odoo import fields
+
+        location = self._facility("Cascade Mill")
+        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
+        hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
+        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        existing = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": location.id,
+                "facility_profile_id": existing_facility.id,
+                "polymer_id": hdpe.id,
+                "form_id": drums.id,
+            }
+        )
+        orch = SyncOrchestrator(self.env)
+        dto = self._lead("vs-cascade", custom_fields={"Materials": "HDPE Drums"})
+        lead = orch._upsert_lead(self.connection, dto)
+        provisional = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
+        observation = self.env["plasticos.material.observation"].create(
+            {
+                "material_profile_id": provisional.id,
+                "feature_id": "moisture",
+                "value_state": "observed",
+                "method": "scale",
+                "observed_at": fields.Datetime.now(),
+                "source_system": "crm-sync-test",
+            }
+        )
+        specification = self.env["plasticos.material.specification"].create(
+            {
+                "name": "Cascade spec",
+                "polymer_id": hdpe.id,
+                "form_id": drums.id,
+                "legacy_material_profile_id": provisional.id,
+            }
+        )
+        supply = self.env["plasticos.supply.opportunity"].create(
+            {
+                "name": "Cascade supply",
+                "material_profile_id": provisional.id,
+                "supplier_partner_id": location.id,
+            }
+        )
+        image = self.env["ir.attachment"].create(
+            {
+                "name": "bale.png",
+                "res_model": "plasticos.material.profile",
+                "res_id": provisional.id,
+                "mimetype": "image/png",
+                "datas": base64.b64encode(b"bale-image"),
+            }
+        )
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        self.assertFalse(provisional.exists())
+        self.assertTrue(observation.exists())
+        self.assertEqual(observation.material_profile_id, existing)
+        self.assertEqual(specification.legacy_material_profile_id, existing)
+        self.assertEqual(supply.material_profile_id, existing)
+        self.assertEqual(image.res_model, "plasticos.material.profile")
+        self.assertEqual(image.res_id, existing.id)
+        self.assertEqual(image.datas, base64.b64encode(b"bale-image"))
+
+    def test_computed_material_reference_blocks_deletion(self):
+        from odoo import fields
+
+        location = self._facility("Computed Mill")
+        existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
+        hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
+        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        existing = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": location.id,
+                "facility_profile_id": existing_facility.id,
+                "polymer_id": hdpe.id,
+                "form_id": drums.id,
+            }
+        )
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        dto = self._lead("vs-computed", custom_fields={"Materials": "HDPE Drums"})
+        lead = orch._upsert_lead(self.connection, dto)
+        provisional = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
+        observation = self.env["plasticos.material.observation"].create(
+            {
+                "material_profile_id": provisional.id,
+                "feature_id": "weight",
+                "value_state": "reported",
+                "method": "ticket",
+                "observed_at": fields.Datetime.now(),
+                "source_system": "crm-sync-test",
+            }
+        )
+        transaction = self.env["plasticos.transaction"].create({"name": "TX-COMPUTED"})
+        self.env.cr.execute(
+            "UPDATE plasticos_transaction SET supplier_profile_id = %s WHERE id = %s",
+            (provisional.id, transaction.id),
+        )
+        transaction.invalidate_recordset(["supplier_profile_id"])
+        comment = self.env.ref("mail.mt_comment")
+        survivor_partner = self.env["res.partner"].create({"name": "Computed Survivor Follower"})
+        provisional_partner = self.env["res.partner"].create({"name": "Computed Provisional Follower"})
+        survivor_follow = self.env["mail.followers"].create(
+            {
+                "res_model": "plasticos.material.profile",
+                "res_id": existing.id,
+                "partner_id": survivor_partner.id,
+                "subtype_ids": [fields.Command.link(comment.id)],
+            }
+        )
+        provisional_follow = self.env["mail.followers"].create(
+            {
+                "res_model": "plasticos.material.profile",
+                "res_id": provisional.id,
+                "partner_id": provisional_partner.id,
+                "subtype_ids": [fields.Command.link(comment.id)],
+            }
+        )
+        lead.partner_id = location
+        orch._upsert_lead(self.connection, dto)
+        self.assertTrue(provisional.exists())
+        self.assertEqual(observation.material_profile_id, provisional)
+        self.assertEqual(survivor_follow.res_id, existing.id)
+        self.assertEqual(survivor_follow.subtype_ids, comment)
+        self.assertEqual(provisional_follow.res_id, provisional.id)
+        self.assertTrue(any("cannot be moved" in row["message"] for row in orch.error_rows))
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.env.cr.execute("SELECT supplier_profile_id FROM plasticos_transaction WHERE id = %s", (transaction.id,))
+        self.assertEqual(self.env.cr.fetchone()[0], provisional.id)
