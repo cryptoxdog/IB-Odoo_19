@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -231,20 +232,9 @@ def test_local_focused_test_selection_remains_supported(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-"""CI Gate runs once per relevant event.
-
-The pure-Python job has no PyYAML, so the workflow is read structurally from
-its own indentation: comments are stripped and only the effective keys under
-the top-level ``on:`` and ``jobs:`` mappings are inspected. A matching string
-anywhere else in the file (a comment, a run script) proves nothing.
-"""
-
-import re
-from pathlib import Path
-
-import pytest
-
-ROOT = Path(__file__).resolve().parents[1]
+# Structural trigger checks from #262. Comments are stripped and only the
+# effective keys under the top-level ``on:`` and ``jobs:`` mappings are
+# inspected, so a matching string in a comment or a run script proves nothing.
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 
 PUSH_BRANCHES = {"Staging", "Production"}
