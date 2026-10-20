@@ -595,3 +595,16 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `make push` and `make push pr=1` are retired and must not be used for publication.
 > The Commands block above that names those ceremonies is historical and is superseded by this correction.
 > A failed remote-feedback gate must be resolved before `make pr`.
+
+> **2026-10-17 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Enterprise Docker runtime tests (`make test-module`, `make test-odoo`, `scripts/test_env.sh`)
+> clone only the database named in `config/test_env_fixture.conf`
+> (`odoo_test_tpl_ee_c9e8a81f52f23680`). Another test database is not a substitute.
+> A new template is refused unless that database is absent and `TEST_ENV_ALLOW_NEW_TEMPLATE`
+> equals that name. `TEST_ENV_PARITY=community` is refused unless `TEST_ENV_SAFETY_HARNESS=1`.
+> Rule: `.cursor/rules/36-plasticos-docker-test-fixture.mdc`.
+
+> **2026-10-18 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr` remains the only publication command. `make commit` does not ask to launch it.
+> A feature-branch SHA is validated by the pull_request CI event. Pushes to `Staging` and
+> `Production` are validated by the push event. `workflow_dispatch` remains for the repo-index bot.
