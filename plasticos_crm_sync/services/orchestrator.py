@@ -1143,8 +1143,59 @@ class SyncOrchestrator:
             self._apply_approved_materials(lead, dto.custom_fields)
         return lead or Lead.browse()
 
+    def _keep_person_binding(self, dto: CanonicalLead, person_ref):
+        """Honor an earlier approved bind when the crosswalk is not loaded.
+
+        The persisted person ref is the approval record. Without the crosswalk
+        nothing is enriched, and the legacy path must not mint a second lead or
+        lead ref for the same source id. Conflicts are reported, never repaired.
+        """
+        outcomes = getattr(self, "outcomes", None)
+        Lead = self.env[CRM_LEAD]
+        partner = (
+            self.env["res.partner"].sudo().with_context(active_test=False).browse(person_ref.res_id).exists()
+        )  # archived ERP people keep their binding
+        if not partner:
+            self._record_outcome(outcomes, "failed", dto.external_id, "person external ref points at a missing partner")
+            self.last_lead_outcome = "failed"
+            return Lead.browse()
+        lead = self._find_lead(dto.provider, dto.external_id, self.env["plasticos.crm.external.ref"])
+        matches = Lead.with_context(active_test=False).search([("vanillasoft_id", "=", dto.external_id)])
+        if len(matches) > 1:
+            self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "multiple leads carry the source id")
+            self.last_lead_outcome = "duplicate_rejected"
+            return lead
+        if lead and lead.partner_id and lead.partner_id.id not in (False, partner.id):
+            self._record_outcome(
+                outcomes, "duplicate_rejected", dto.external_id, "lead partner_id is a different partner"
+            )
+            self.last_lead_outcome = "duplicate_rejected"
+            return lead
+        if outcomes is not None:
+            outcomes["unchanged"] += 1
+        self.last_lead_outcome = "unchanged"
+        return lead or Lead.browse()
+
     def _apply_approved_materials(self, lead, *field_maps) -> None:
-        """Attach material text only when one facility profile already exists."""
+        """Attach material text only when one facility profile already exists.
+
+        Same containment as ``_apply_contact_materials``: a material failure
+        rolls back its own writes and is reported. The admitted identity, the
+        page commit and the watermark are not affected.
+        """
+        try:
+            with self.env.cr.savepoint():
+                self._apply_resolved_approved_materials(lead, *field_maps)
+        except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
+            _logger.warning("Approved material normalization failed for lead %s: %s", lead.id, exc)
+            self.error_rows.append(
+                {
+                    "record_ref": lead.vanillasoft_id or str(lead.id or ""),
+                    "message": f"material normalization failed: {exc}",
+                }
+            )
+
+    def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
         phrases, hints, weak = _material_inputs(*field_maps)
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
             normalize_material,
@@ -1208,6 +1259,9 @@ class SyncOrchestrator:
         ct_id = self._approved_ct_id(dto.external_id)
         if ct_id:
             return self._bind_approved_contact(dto, ct_id)
+        person_ref = self._find_person_ref(dto.provider, dto.external_id)
+        if person_ref:
+            return self._keep_person_binding(dto, person_ref)
         Lead = self.env[CRM_LEAD]
         Ref = self.env["plasticos.crm.external.ref"]
         ref = Ref.search(
@@ -1525,7 +1579,7 @@ class SyncOrchestrator:
                     outcomes["table_rows"] += 1
             landed_fields.append(dto.fields)
         if lead and landed_fields:
-            if self._approved_ct_id(contact_external_id):
+            if person_ref or self._approved_ct_id(contact_external_id):
                 self._apply_approved_materials(lead, *landed_fields)
             else:
                 self._apply_contact_materials(lead, *landed_fields)
