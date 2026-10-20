@@ -15,6 +15,7 @@
 ./plasticos_commission/views/commission_rule_views.xml
 ./plasticos_commission/views/sales_dashboard_views.xml
 ./plasticos_commission/views/transaction_commission_views.xml
+./plasticos_crm_bridge/views/crm_facility_ownership_views.xml
 ./plasticos_crm_bridge/views/crm_lead_views.xml
 ./plasticos_crm_bridge/views/material_profile_views.xml
 ./plasticos_crm_sync/views/crm_call_event_views.xml
