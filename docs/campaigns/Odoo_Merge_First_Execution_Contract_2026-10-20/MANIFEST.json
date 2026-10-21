@@ -1,0 +1,24 @@
+{
+  "artifact": "Odoo Merge-First Execution Contract",
+  "created_date": "2026-10-20",
+  "origin": "ChatGPT",
+  "type": "operator_execution_handoff_not_canonical_pr_audit",
+  "validation": {
+    "work_state_schema_and_semantics": "PASS",
+    "zip_entries": "PENDING",
+    "github_mutations": "NONE"
+  },
+  "skill_sources": {
+    "routing": "l9-work-state-router (installed)",
+    "execution": "Quantum-L9/Cursor-Governance/skills/l9-pr-remediation/SKILL.md (current fetched version 5.10.0)",
+    "provider": "Claude Code, user-invoked"
+  },
+  "source_binding": "PR_BINDINGS.json; all PR heads must be reverified before execution",
+  "files": {
+    "00_READ_FIRST.md": "0fabb50894ac229f7e5a02f4044daedd9693a953ad7929e3f621391f1247671b",
+    "MERGE_EXECUTION_CONTRACT.md": "2ba38a2d407111b5b88b0069af59efb9f275fe993b20a13fea07f6bf77bc6a55",
+    "PR_BINDINGS.json": "4931742e636ed0d56ca65cf73d67b7214788369eb83024b39d6bd0cbb300c4dd",
+    "START_CLAUDE_CODE.md": "109c399aae3dad6378c9fa2ed1c720a560bd6f0d8db6b349a3d2b9fec2903ae1",
+    "WORK_STATE.yaml": "1f472327584355be6a3e68b9b1f91a1a17f923131e80b03356bf80f769b01199"
+  }
+}

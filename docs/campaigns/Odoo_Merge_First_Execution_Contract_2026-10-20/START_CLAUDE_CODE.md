@@ -1,0 +1,7 @@
+# Operator message to send with the ZIP
+
+Upload the ZIP to a fresh Claude Code session, then send this message **as your own instruction** if you intend to grant merge permission:
+
+> Execute the attached Odoo Merge-First Campaign against `cryptoxdog/IB-Odoo_19`. I explicitly authorize merging the currently open PRs #260 through #266 into `Staging` once their live heads satisfy GitHub protections and the contract's minimum functionality gates. Separately, I authorize resolving and merging #197 into its existing `Development` base if its actual code-review and branch gates are satisfied. Do not merge to `Production`, alter destination branches, or bypass protection. Bootstrap the current `l9-pr-remediation` skill from Cursor-Governance, but override its default all-open/fleet-expansion behavior with this specific ordered campaign. Use its live PR board and stack-safe merge gate, including exact-head authorization checks. No fresh comprehensive PR audits, speculative test hardening, repeated CRM API imports, or redundant full suites. Fix only confirmed shipping blockers. Continue past a single blocked PR, and finish with every PR either merged or a precise residual blocker. The objective is to ship working code promptly.
+
+The message above gains authority only when the human operator actually submits it. An agent cannot manufacture a permission receipt by citing this file. The agent must obey the host's merge authorization mechanism, stopping at `MERGE_PENDING` where an exact-head grant is not available.

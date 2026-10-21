@@ -1,0 +1,190 @@
+schema: l9.work-state/v1
+work_id: ib-odoo19-merge-first-2026-10-20
+sequence: 1
+previous_state_digest: null
+objective: 'Merge functioning Odoo 19 Staging PRs #260-#266 promptly and resolve older Development PR #197 separately
+  without broader audit campaigns.'
+requested_outcome: All in-scope PRs merged with current GitHub protections or individually reported precise blockers;
+  no Production merge or deployment.
+scope:
+  in_scope:
+  - 'cryptoxdog/IB-Odoo_19 PRs #260 through #266 targeting Staging'
+  - 'PR #197 targeting Development as independent lane'
+  - Existing governance merge machinery and minimum functionality verification
+  out_of_scope:
+  - Production branch merges or deployment
+  - Speculative CI/test hardening
+  - Fresh organization-wide audit campaign
+  - Replacement PRs or parallel governance systems
+  lock: locked
+decisions:
+  locked:
+  - decision_id: D-MERGE-FIRST
+    statement: Prioritize product shipping and actual merges; existing required CI and functioning code take precedence
+      over nonblocking exhaustive audit closure.
+    decision_class: campaign_control
+    source_type: user
+    source_ref: conversation:2026-10-20:merge-mission
+  - decision_id: D-263-OWN
+    statement: 'PR #263 owns publication ceremony repair including install-smoke evidence.'
+    decision_class: implementation_choice
+    source_type: user
+    source_ref: conversation:2026-10-20:263-publish
+  - decision_id: D-266-OWN
+    statement: 'PR #266 owns CI repair, separate from publication.'
+    decision_class: implementation_choice
+    source_type: user
+    source_ref: conversation:2026-10-20:266-ci
+  - decision_id: D-ODOO-PUBLISH
+    statement: Use Odoo existing make pr publishing plumbing and Staging as its primary base.
+    decision_class: campaign_control
+    source_type: user
+    source_ref: conversation:Odoo-publishing-exception
+  - decision_id: D-MERGE-PROMPT
+    statement: A generated ZIP does not itself create a host-recognized exact-head merge grant; actual operator instruction
+      or approved review remains necessary.
+    decision_class: campaign_control
+    source_type: other
+    source_ref: Cursor-Governance:skills/l9-pr-remediation/SKILL.md
+  superseded: []
+artifacts:
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/197
+  role: open_pr_starting_binding
+  revision: 7dcada49fd301d3b5dafb30405d0242667915fbe
+  sha256: null
+  currentness: current
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/260
+  role: open_pr_starting_binding
+  revision: adc2e35ac5bb27e6af340059e9aa70c5e9a5fa19
+  sha256: null
+  currentness: current
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/261
+  role: open_pr_starting_binding
+  revision: 063bcb34da30a2fc7b1e5458dfbf2b05e232b8a6
+  sha256: null
+  currentness: current
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/262
+  role: open_pr_starting_binding
+  revision: cdc9972645d80202637791c05491c6277cce6ef1
+  sha256: null
+  currentness: current
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/263
+  role: open_pr_starting_binding
+  revision: 5688884db41280d4cd5f3dab777f60e3f5893d5a
+  sha256: null
+  currentness: current
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/264
+  role: open_pr_starting_binding
+  revision: 6195a12261fa12ecd1b8e7ed6d3d26bcdcfead95
+  sha256: null
+  currentness: current
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/265
+  role: open_pr_starting_binding
+  revision: fca79680b8a6ac7d9ef237662571d57f1327f2da
+  sha256: null
+  currentness: current
+- locator: https://github.com/cryptoxdog/IB-Odoo_19/pull/266
+  role: open_pr_starting_binding
+  revision: 44e453e74b7c315d2c368dc053b1d7b2601e9ae4
+  sha256: null
+  currentness: current
+authority_basis: []
+evidence_basis: []
+architecture_basis: []
+current_state:
+  family: coordination
+  state: merge_contract_prepared_not_dispatched
+  basis: campaign_control
+  authority_resolution_digest: null
+  evidence_receipt_digest: null
+  architecture_receipt_digest: null
+  basis_refs:
+  - kind: campaign_control
+    source_ref: conversation:2026-10-20:merge-mission
+blockers:
+- blocker_id: B-265-RUNTIME
+  class: evidence_missing
+  description: 'PR265 Enterprise Odoo19 native Documents installation/view acceptance not yet proved; blocks #265 merge
+    only.'
+  material: false
+  recovery_capability: implementation.execute
+- blocker_id: B-260-APPROVAL
+  class: other
+  description: PR260 mergeable_state blocked, likely bot/unattributed approval; verify and satisfy actual GitHub cause.
+  material: false
+  recovery_capability: remediation.execute
+- blocker_id: B-197-REVIEWS
+  class: other
+  description: PR197 Development has two unresolved review threads and is a separate lane.
+  material: false
+  recovery_capability: remediation.execute
+unknowns:
+- item: Exact PR heads and mergeability when user executes pack
+  reason: Current GitHub snapshot is mutable; live rebind required for each operation
+  material: false
+- item: Host-recognized merge authorization on each final head
+  reason: Operator prompt must be genuinely submitted or current GitHub human approval must exist
+  material: false
+invalidations: []
+authorized_transitions:
+- capability: remediation.execute
+  objective: Run governed merge-first Odoo PR integration after actual user invocation
+  status: requires_user_decision
+  availability: available
+  reason: The contract can be submitted to an enabled Claude Code session; exact-head merge grant comes only from actual
+    operator prompt or GitHub record.
+  required_inputs:
+  - Operator submits START_CLAUDE_CODE.md as their own instruction
+  - Fresh live PR board, check runs, review threads, stack topology
+  - Existing governance host merge-gate helpers
+  preserve_receipts: []
+  scope_constraints:
+  - 'Only #260-#266 into Staging; #197 independently into Development'
+  - Merge gate and required CI remain in force
+  - Skip optional extra audits and redundant suites
+  forbidden_actions:
+  - Production merge or deployment
+  - Raw/admin/unauthorized merge
+  - Unverified Odoo enterprise auto-install claim
+forbidden_transitions:
+- capability: production.deploy
+  reason: Deployment explicitly excluded from merge mission
+  basis: operator campaign scope
+next_transition:
+  capability: remediation.execute
+  objective: Run governed merge-first Odoo PR integration after actual user invocation
+  status: requires_user_decision
+  availability: available
+  reason: The contract can be submitted to an enabled Claude Code session; exact-head merge grant comes only from actual
+    operator prompt or GitHub record.
+  required_inputs:
+  - Operator submits START_CLAUDE_CODE.md as their own instruction
+  - Fresh live PR board, check runs, review threads, stack topology
+  - Existing governance host merge-gate helpers
+  preserve_receipts: []
+  scope_constraints:
+  - 'Only #260-#266 into Staging; #197 independently into Development'
+  - Merge gate and required CI remain in force
+  - Skip optional extra audits and redundant suites
+  forbidden_actions:
+  - Production merge or deployment
+  - Raw/admin/unauthorized merge
+  - Unverified Odoo enterprise auto-install claim
+completion_gates:
+- gate_id: G-STAGING
+  description: Seven identified Staging PRs have merged, or each residual is explicitly blocked
+  status: unknown
+  evidence_ref: null
+- gate_id: G-DEVELOPMENT
+  description: PR197 in Development is merged or a specific residual is recorded
+  status: unknown
+  evidence_ref: null
+- gate_id: G-PROTECTION
+  description: No required checks or merge authorization controls bypassed
+  status: unknown
+  evidence_ref: null
+- gate_id: G-ENTERPRISE
+  description: PR265 Enterprise auto-install and view load tested before PR265 merge
+  status: unknown
+  evidence_ref: null
+state_status: partial
