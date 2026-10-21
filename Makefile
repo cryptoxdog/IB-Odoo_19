@@ -4,7 +4,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help ban-check \
         install-extensions \
-        lint format format-fix check \
+        lint format format-fix check odools-diagnostics \
         audit audit-quick audit-baseline advisory-checks \
         xml-check wiring deps-check xml-ref-deps cron-check odoo19-check odoo19-hooks odoo-patterns \
         name-check manifest-check shellcheck-check no-local-intelligence \
@@ -77,6 +77,7 @@ help:
 	@echo "    make format           ruff format --check (check only)"
 	@echo "    make format-fix       ruff format (auto-fix)"
 	@echo "    make check            lint + format check"
+	@echo "    make odools-diagnostics  OdooLS diagnostic dump (file, span, OLS code); not part of pr-check"
 	@echo ""
 	@echo "  Audit (run before PRs — local blocking gates; GitHub CI remains authoritative)"
 	@echo "    make audit-quick      fast: lint + format + wiring + odoo19 + xml + deps + cron"
@@ -207,6 +208,9 @@ format-fix:
 
 check: lint format
 	@echo "✅ lint + format check passed"
+
+odools-diagnostics:
+	@python3 scripts/odools_diagnostics.py
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AUDIT

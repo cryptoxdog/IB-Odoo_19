@@ -58,6 +58,7 @@ AUDIT_REPORT.md
 # l9-analysis.yml CI-run artifacts (finding-bundle.json, agent-review-payload.json).
 # .l9/baselines/ is NOT ignored — those ledgers are committed + CODEOWNERS-protected.
 .l9/runtime/
+.l9/odools/
 
 # ═══════════════════════════════════════════════════════════
 # GMP reports (local artifacts, kept out of git by convention)

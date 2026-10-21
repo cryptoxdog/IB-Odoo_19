@@ -69,6 +69,18 @@ def _test_files() -> list[Path]:
     return sorted(p for p in TESTS_DIR.rglob("test_*.py") if "__pycache__" not in p.parts)
 
 
+def _line_names_odoo_module(line: str) -> bool:
+    """Same token rule as tests/conftest.py: ``odoo`` only, not ``odools_...``."""
+    stripped = line.lstrip()
+    for keyword in ("import ", "from "):
+        if not stripped.startswith(keyword):
+            continue
+        rest = stripped[len(keyword) :].lstrip()
+        token = rest.split(" ", 1)[0].split(".", 1)[0].rstrip(",")
+        return token == "odoo"
+    return False
+
+
 def _imports_odoo_at_module_level(source: str) -> bool:
     """True when the module imports odoo outside a try/except guard.
 
@@ -144,9 +156,7 @@ class TestSuiteStructure:
         for py_file in _test_files():
             source = py_file.read_text()
             imports_odoo = _imports_odoo_at_module_level(source)
-            conftest_would_ignore = any(
-                line.lstrip().startswith(("import odoo", "from odoo")) for line in source.splitlines()
-            )
+            conftest_would_ignore = any(_line_names_odoo_module(line) for line in source.splitlines())
             if imports_odoo != conftest_would_ignore:
                 violations.append(
                     f"{py_file.relative_to(TESTS_DIR)}: AST says odoo-import={imports_odoo} "

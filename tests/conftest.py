@@ -15,12 +15,23 @@ import os
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+def _line_names_odoo_module(line: str) -> bool:
+    """True for ``import odoo`` / ``from odoo``, not ``import odools_...``."""
+    stripped = line.lstrip()
+    for keyword in ("import ", "from "):
+        if not stripped.startswith(keyword):
+            continue
+        rest = stripped[len(keyword) :].lstrip()
+        token = rest.split(" ", 1)[0].split(".", 1)[0].rstrip(",")
+        return token == "odoo"
+    return False
+
+
 def _imports_odoo(path: str) -> bool:
     try:
         with open(path, encoding="utf-8") as fh:
             for line in fh:
-                stripped = line.lstrip()
-                if stripped.startswith(("import odoo", "from odoo")):
+                if _line_names_odoo_module(line):
                     return True
     except OSError:
         return False

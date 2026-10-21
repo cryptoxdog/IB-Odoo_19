@@ -91,7 +91,7 @@ Editor semantics for Odoo models, XML, and JavaScript come from the official `Od
 | Source | Path | Indexed | OdooLS diagnostics |
 |--------|------|---------|--------------------|
 | Community | `${userHome}/dev/odoo-19` | yes | suppressed |
-| Enterprise | `${userHome}/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise` | diagnostic filter is set; gitignored `odoo-enterprise/` is not auto-detected into `addons_paths` | suppressed |
+| Enterprise | `${userHome}/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise` on `addons_paths`. `$autoDetectAddons` still skips the gitignored `odoo-enterprise` symlink | yes | suppressed |
 | PlasticOS | this workspace | yes | published |
 
 `diagnostic_filters` uses `path_type = "in"` on those two upstream trees and does not name diagnostic codes. Do not globally disable OLS codes. Do not set `disable_javascript` or an empty `tsserver_command`. JavaScript semantics need TypeScript 6 `tsserver` on `PATH` (`npm install -g typescript@6`).
@@ -608,6 +608,13 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `make pr` remains the only publication command. `make commit` does not ask to launch it.
 > A feature-branch SHA is validated by the pull_request CI event. Pushes to `Staging` and
 > `Production` are validated by the push event. `workflow_dispatch` remains for the repo-index bot.
+
+> **2026-10-18 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> The Project Structure line for `plasticos_documents_native` names it only as the Layer 4 Enterprise Documents bridge.
+> That bridge is `installable: True`, `application: True`, and `auto_install: True`. Odoo installs it when Enterprise
+> `documents`, `documents_account`, and its PlasticOS dependencies are installed.
+> `plasticos_semantic_kernel` is optional (`auto_install: False`) and stays uninstalled. No module depends on it.
+> Do not add `plasticos_semantic_kernel` to any `depends` list.
 
 > **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > the `l9-gmp-protocol` row in the Agent Skills table above is retired. Cursor-Governance removed
