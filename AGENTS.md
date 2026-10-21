@@ -615,3 +615,11 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `documents`, `documents_account`, and its PlasticOS dependencies are installed.
 > `plasticos_semantic_kernel` is optional (`auto_install: False`) and stays uninstalled. No module depends on it.
 > Do not add `plasticos_semantic_kernel` to any `depends` list.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the `l9-gmp-protocol` row in the Agent Skills table above is retired. Cursor-Governance removed
+> `skills/l9-gmp-protocol` (PR #744, merged 2026-10-21); the tracked projection `.claude/skills/l9-gmp-protocol`,
+> its `.l9-managed-skills.json` entry and its `.claude/README.md` row were removed with it. Deterministic phased
+> GMP execution is the `/gmp` slash command, which runs the governance executor against this clone:
+> `"$GOV_PY" "$GOV/workflows/gmp_executor.py" --workspace "$(git rev-parse --show-toplevel)" …`
+> (`commands/gmp.md` in Cursor-Governance). Do not re-add the skill symlink.

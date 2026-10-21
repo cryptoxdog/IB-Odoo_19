@@ -53,6 +53,7 @@
 ./plasticos_commission/tests/test_sales_dashboard_payout_access.py:14:class TestSalesDashboardPayoutAccess(TransactionCase):
 ./plasticos_crm_bridge/models/crm_lead.py:7:class CrmLeadPlastOS(models.Model):
 ./plasticos_crm_bridge/models/crm_lead_vanillasoft.py:4:class CrmLeadVanillaSoft(models.Model):
+./plasticos_crm_bridge/models/facility_profile.py:22:class FacilityProfileCrmOwnership(models.Model):
 ./plasticos_crm_bridge/models/material_profile.py:5:class MaterialProfileCRMBridge(models.Model):
 ./plasticos_crm_bridge/models/web_lead.py:4:class PlasticosWebLeadCRM(models.Model):
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:9:class TestCrm4ProfileReuse(TransactionCase):
@@ -74,9 +75,10 @@
 ./plasticos_crm_sync/models/res_config_settings.py:7:class ResConfigSettings(models.TransientModel):
 ./plasticos_crm_sync/services/orchestrator.py:32:class CrmSyncLockedError(CrmAdapterError):
 ./plasticos_crm_sync/services/orchestrator.py:36:class CrmFullImportArgumentError(CrmAdapterError):
-./plasticos_crm_sync/services/orchestrator.py:189:class SyncOrchestrator:
+./plasticos_crm_sync/services/orchestrator.py:254:class SyncOrchestrator:
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:32:class TestVanillaSoftLeadLifecycle(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:13:class TestCrmSyncOrchestrator(TransactionCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:15:class TestCrmSyncOrchestrator(TransactionCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:380:        class Adapter:
 ./plasticos_crm_sync/tests/test_settings_import_action.py:14:class TestCrmSyncSettingsImportAction(TransactionCase):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:43:class _StubAdapter:
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:73:class TestWatermarkAcknowledgement(TransactionCase):
@@ -178,12 +180,14 @@
 ./plasticos_material_profile/models/material_attribute.py:5:class PlasticosMaterialAttribute(models.Model):
 ./plasticos_material_profile/models/material_color.py:5:class PlasticosMaterialColor(models.Model):
 ./plasticos_material_profile/models/material_form.py:5:class PlasticosMaterialForm(models.Model):
+./plasticos_material_profile/models/material_normalizer.py:40:class MaterialNormalization:
 ./plasticos_material_profile/models/material_profile.py:12:class PlasticosMaterialProfile(models.Model):
 ./plasticos_material_profile/models/packaging_type.py:5:class PlasticosPackagingType(models.Model):
 ./plasticos_material_profile/models/polymer.py:5:class PlasticosPolymer(models.Model):
 ./plasticos_material_profile/models/process_type.py:5:class PlasticosProcessType(models.Model):
 ./plasticos_material_profile/models/res_partner.py:5:class ResPartner(models.Model):
 ./plasticos_material_profile/models/source_type.py:5:class PlasticosSourceType(models.Model):
+./plasticos_material_profile/tests/test_material_normalizer.py:8:class TestMaterialNormalizer(TransactionCase):
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:14:class TestNullableFormUniqueness(TransactionCase):
 ./plasticos_offer/models/intake_offers_bridge.py:4:class PlasticosIntakeOffersBridge(models.Model):
 ./plasticos_offer/models/offer.py:9:class PlasticosOffer(models.Model):
@@ -235,7 +239,7 @@
 ./plasticos_transaction/models/transaction_import_service.py:41:class PlasticosTransactionImportService(models.AbstractModel):
 ./plasticos_transaction/models/transaction_line.py:11:class PlasticosTransactionLine(models.Model):
 ./plasticos_transaction/services/status_cascade.py:32:class StatusCascadeService:
-./plasticos_transaction/tests/test_erp_worksheet_import.py:110:class TestErpWorksheetImport(TransactionCase):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:111:class TestErpWorksheetImport(TransactionCase):
 ./plasticos_transaction/tests/test_profile_form_coexistence.py:9:class TestProfileFormCoexistence(TransactionCase):
 ./plasticos_transaction/tests/test_relationship_batch.py:7:class TestRelationshipBatch(TransactionCase):
 ./plasticos_transaction/tests/test_transaction_form_ui.py:24:class TestTransactionFormUi(TransactionCase):
@@ -525,17 +529,17 @@
 ./tests/test_performance.py:20:class TestBulkImportPerformance(PlasticosTestCase):
 ./tests/test_performance.py:90:class TestCronPerformance(PlasticosTestCase):
 ./tests/test_performance.py:111:class TestSearchPerformance(PlasticosTestCase):
-./tests/test_phantom_enum_values.py:877:class EnumSource(NamedTuple):
-./tests/test_phantom_enum_values.py:885:class EnumUsage(NamedTuple):
-./tests/test_phantom_enum_values.py:1008:class _EnumUsageVisitor(ast.NodeVisitor):
-./tests/test_phantom_enum_values.py:1319:class TestRegistrySanity:
-./tests/test_phantom_enum_values.py:1407:class TestSelectionComparisons:
-./tests/test_phantom_enum_values.py:1438:class TestPhantomEnumValues:
-./tests/test_phantom_enum_values.py:1498:class TestPerModulePhantomAudit:
-./tests/test_phantom_enum_values.py:1519:class TestSelectionFieldConsistency:
-./tests/test_phantom_enum_values.py:1567:class TestXmlSelectionAlignment:
-./tests/test_phantom_enum_values.py:1688:class TestEquipmentCodeAlignment:
-./tests/test_phantom_enum_values.py:1744:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:902:class EnumSource(NamedTuple):
+./tests/test_phantom_enum_values.py:910:class EnumUsage(NamedTuple):
+./tests/test_phantom_enum_values.py:1033:class _EnumUsageVisitor(ast.NodeVisitor):
+./tests/test_phantom_enum_values.py:1344:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1432:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1463:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1523:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1544:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1592:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1713:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1769:class TestPhantomAuditReport:
 ./tests/test_process_enum_alignment.py:64:class TestProcessEnumAlignment:
 ./tests/test_sal_resolver_service.py:24:    class Datetime:
 ./tests/test_sal_resolver_service.py:54:class _LoadSearch:
