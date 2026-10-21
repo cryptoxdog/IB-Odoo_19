@@ -38,19 +38,20 @@
 ./plasticos_crm_sync/models/crm_external_table_row.py:5:    _name = "plasticos.crm.external.table.row"
 ./plasticos_crm_sync/models/crm_sync_orphan.py:5:    _name = "plasticos.crm.sync.orphan"
 ./plasticos_crm_sync/models/crm_sync_run.py:5:    _name = "plasticos.crm.sync.run"
-./plasticos_crm_sync/services/orchestrator.py:1055:        contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
+./plasticos_crm_sync/services/orchestrator.py:1122:        contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:24:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:25:        last_name="Lovelace",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:32:            first_name="Ada",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:33:            last_name="Lovelace",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:58:            user_name="Rep",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:76:            first_name="Bob",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:77:            last_name="Builder",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:178:        spaced = orch._lead_vals_from_dto(self._lead("vs-name", first_name="  Ada   ", last_name=" \n Lovelace  "))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:180:        blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:192:        exact = orch._lead_vals_from_dto(self._lead("vs-owner", owner_name="  CRM3 Exact Owner  "))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:194:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-missing", owner_name="No Such CRM3 Owner"))["user_id"])
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:195:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-twin", owner_name="CRM3 Twin Owner"))["user_id"])
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:34:            first_name="Ada",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:35:            last_name="Lovelace",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:60:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:78:            first_name="Bob",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:79:            last_name="Builder",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:180:        spaced = orch._lead_vals_from_dto(self._lead("vs-name", first_name="  Ada   ", last_name=" \n Lovelace  "))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:182:        blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:194:        exact = orch._lead_vals_from_dto(self._lead("vs-owner", owner_name="  CRM3 Exact Owner  "))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:196:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-missing", owner_name="No Such CRM3 Owner"))["user_id"])
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:197:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-twin", owner_name="CRM3 Twin Owner"))["user_id"])
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:386:                    table_name="Materials",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:27:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:28:        last_name="Lovelace",
 ./plasticos_dev_tools/tools/test_kb_integration.py:133:            WHERE table_name = 'plastic_ai_kb_config'

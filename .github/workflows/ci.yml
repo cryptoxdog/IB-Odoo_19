@@ -22,6 +22,7 @@ name: CI Gate
 
 on:
   push:
+    branches: [Staging, Production]
   pull_request:
   # The repo-index workflow publishes its bot branch with GITHUB_TOKEN, whose
   # pushes/PRs never trigger workflows; it dispatches this gate explicitly.
