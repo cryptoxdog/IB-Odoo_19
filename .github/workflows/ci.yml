@@ -237,6 +237,10 @@ jobs:
     name: Pure Python Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      PLASTICOS_CONTRACT_CI: "1"
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
 
@@ -244,9 +248,26 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install --only-binary ":all:" pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0 requests>=2.28.0 defusedxml==0.7.1
+      - run: pip install --only-binary ":all:" pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0 "requests>=2.28.0" defusedxml==0.7.1 pyyaml==6.0.3
+
+      - name: Record the tested source and integration revision
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_HEAD: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          mkdir -p artifacts/pytest
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          observed = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          record = {"source_head_sha": os.environ["SOURCE_HEAD"],
+                    "base_sha": os.environ["BASE_HEAD"], "tested_checkout_sha": observed,
+                    "event": os.environ["GITHUB_EVENT_NAME"], "run_id": os.environ["GITHUB_RUN_ID"],
+                    "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"]}
+          pathlib.Path("artifacts/pytest/revision.json").write_text(json.dumps(record, indent=2) + "\n")
+          PY
 
       - name: Run all pure-Python tests (Odoo-free; conftest auto-skips Odoo tests)
+        id: pure-tests
         run: |
           # Odoo is intentionally NOT installed here. tests/conftest.py detects this
           # and collect-ignores every Odoo-importing test module, so `pytest tests/`
@@ -259,7 +280,17 @@ jobs:
           # come from pyproject.toml [tool.pytest.ini_options]; only job-specific flags here.
           python3 -m pytest tests/ \
             -v \
-            --cov=. --cov-report=term-missing:skip-covered
+            --cov=. --cov-report=term-missing:skip-covered \
+            --junitxml=artifacts/pytest/pure-python.xml
+
+      - name: Upload test evidence for this run and attempt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: pure-python-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/pytest/
+          retention-days: 7
+          if-no-files-found: error
 
   # ── PHASE 1 (parallel — no needs:): Gate SDK bridge tests ────────────────
   # The pure-Python tier deliberately has no constellation-node-sdk, so
