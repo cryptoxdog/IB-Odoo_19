@@ -1,7 +1,7 @@
 {
   "schema": "plasticos.evidence_receipt/v1",
   "subject": "erp-contacts-then-vanillasoft-crosswalk-763",
-  "contract_revision": "daytime-v1",
+  "contract_revision": "daytime-v2",
   "recorded_at": null,
   "verdict": "NOT_RUN",
   "repo": {
@@ -120,7 +120,10 @@
     "call_event_count": null,
     "custom_table_row_count": null,
     "contact_id_duplicates": null,
-    "provider_api_limitations": []
+    "provider_api_limitations": [],
+    "checkpoint_rows_missing_signals": null,
+    "ids_with_signals": null,
+    "imported_ids_that_also_warned": null
   },
   "historical_baseline": {
     "prior_approved_bound": 735,
@@ -131,6 +134,11 @@
   "source_artifacts_excluded_from_publication": null,
   "observed_exit_codes": [],
   "open_exceptions": [],
+  "signal_policy": {
+    "authority": "https://github.com/Quantum-L9/.github/blob/main/docs/ADVISORY.md",
+    "unknown_outcome": "https://github.com/Quantum-L9/.github/blob/main/semantics/error_taxonomy.yaml",
+    "rule": "A finding without its reason is absent. UNKNOWN is not collapsed into imported or into an explained failure. Each open_exceptions item is {level, reason, count}."
+  },
   "limitations": [
     "18 rejected links and 4095 pending VanillaSoft IDs are not part of this run.",
     "Commercial documents are not part of this run."

@@ -1,7 +1,7 @@
 # Cursor execution contract: ERP contacts, then VanillaSoft crosswalk
 
 **Contract ID:** `PLASTICOS-ERP-CONTACTS-THEN-VS-CROSSWALK-DAYTIME-2026-10-21`  
-**Revision:** `daytime-v1`  
+**Revision:** `daytime-v2`  
 **Target:** https://github.com/cryptoxdog/IB-Odoo_19  
 **Runner:** Cursor, existing Odoo 19 Enterprise Docker fixture, restored ERP SQL database (read-only), authorized VanillaSoft API access.  
 **Does not replace:** `PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21` revision `v2.1`. That pack remains the overnight end-to-end test: partners, commercial documents, then all 4,876 VanillaSoft IDs. Run this pack on a different clone.
@@ -34,7 +34,7 @@ Call history for the 763 is still fetched. `upsert_contact_external_id` does tha
 - Approved binds write `plasticos.crm.external.ref` on `res.partner` and do not create a `crm.lead`. A missing ERP person is importer `failed` and receipt `held`. Do not activate an excluded person. Do not attach the ID to someone else.
 - Do not fetch the 18 NO IDs or the 4,095 PENDING IDs. Do not create leads for them in this pack.
 - No new fields, models, stages, users, or material masters. No owner-email map.
-- Never place a call. No secrets or customer notes in logs, receipts, or git.
+- Never place a call. No secrets or customer notes in logs, receipts, or git. A failure or a warning still keeps its operational reason. See Signal retention.
 - The shell script in this directory is the runner. Private inputs stay in the overnight pack and stay out of git.
 
 ## 0. Verify the crosswalk before any database write
@@ -106,7 +106,7 @@ The script calls `upsert_contact_external_id` once per crosswalk ID, commits tha
 4. If the person was excluded as inactive or the marker is missing, the importer outcome is `failed` and the receipt class is `held`. No lead for that ID.
 5. `crm.lead` stays at the Gate A count. A lead created by this pass fails the gate.
 
-**Gate C passes when** each of the 763 IDs has one class: imported (`created`, `updated`, or `unchanged`, plus one `res.partner` provider ref) or `held` or `genuine_failed`. Those three sum to 763. Held and failed are not imported. `crm.lead` did not grow. No provider ref points at `crm.lead`.
+**Gate C passes when** each of the 763 IDs has one class: imported (`created`, `updated`, or `unchanged`, plus one `res.partner` provider ref) or `held` or `genuine_failed`. Those three sum to 763. Held and failed are not imported. `crm.lead` did not grow. No provider ref points at `crm.lead`. Every held row, every genuine failure, and every warning names its reason on that ID. A class with an empty reason is not a pass.
 
 ## 4. Gate D: reconciliation
 
@@ -124,7 +124,7 @@ Sanitized pack at `docs/reports/evidence/erp-contacts-then-vanillasoft-crosswalk
 - `README.md` from `REPORT_TEMPLATE.md`
 - `receipt.json` from `RECEIPT_TEMPLATE.json` with `PASS` / `PARTIAL` / `BLOCKED` / `FAIL` / `NOT_RUN` only
 - `erp_contact_census.csv` — eligibility and skip partitions, no names, emails, phones, or notes
-- `crosswalk_763_disposition.csv` — ContactID, `CT_ID`, class, importer outcome, no names, emails, phones, or notes
+- `crosswalk_763_disposition.csv` — ContactID, `CT_ID`, class, importer outcome, and the `signals` array from the checkpoint. No names, emails, phones, notes, or secrets. A held or failed ID with an empty `signals` array is UNKNOWN, not a closed disposition.
 - `run_manifest.json` — SHA, fixture, clone, commands, exit codes, checksums
 
 No raw API payloads, source CSV, crosswalk, or workbooks in that evidence directory. If the active-contact code changed, commit that change with the sanitized evidence only when the operator asked for a commit. No push, no merge, no deploy. If a required input or the API path is missing, finish `BLOCKED`.
@@ -138,6 +138,7 @@ No raw API payloads, source CSV, crosswalk, or workbooks in that evidence direct
 5. Imported + held + genuine_failed = 763, each ID once. Only imported rows have a persisted `res.partner` provider ref. `crm.lead` did not grow.
 6. 763 YES stay on the operator `CT_ID` or are held. Shared approved targets are not duplicated.
 7. No writes outside the clone. No customer PII in git.
+8. Every held row, genuine failure, and warning keeps its reason. A warning on an imported bind stays on that ID. UNKNOWN is not counted as imported and is not counted as an explained failure.
 
 **Agent final message:** ERP contact counts and the skip split, crosswalk 763 outcomes, whether the clone started empty of CRM and commercial documents, blockers, and the report path. Do not claim execution before it happens.
 
@@ -147,4 +148,21 @@ No raw API payloads, source CSV, crosswalk, or workbooks in that evidence direct
 - `plasticos_partner_import/erp/mapping.py` (`explicitly_active_contact`, `is_person_name`, `person_key`)
 - `plasticos_partner_import/models/erp_import_service.py` (`_import_addresses`, `_import_contacts`, `_alias_xmlid`, `_apply_billing_address`)
 - `plasticos_crm_sync/services/approved_identity.py`, `plasticos_crm_sync/services/orchestrator.py` (`upsert_contact_external_id`, `_bind_approved_contact`)
+- `plasticos_crm_sync/adapters/vanillasoft/adapter.py` (`iter_table_rows`). From module `19.0.1.9.1` a custom-table warning includes the exception text. A warning line that names the project and omits the cause is an incomplete signal and stays UNKNOWN.
 - Overnight contract `../PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/CURSOR_EXECUTION_CONTRACT.md` for the stages this pack deliberately omits
+
+## Signal retention
+
+Authority: [Quantum-L9/.github `docs/ADVISORY.md`](https://github.com/Quantum-L9/.github/blob/main/docs/ADVISORY.md) and [`semantics/error_taxonomy.yaml`](https://github.com/Quantum-L9/.github/blob/main/semantics/error_taxonomy.yaml). The weekly governance report keeps superseded and retired entries and lists them. It does not drop them.
+
+A finding nobody sees is not advisory. It is absent. `unknown_outcome` is not collapsed into success or failure without an authoritative reconciliation. This pack uses that rule on the import itself.
+
+`import_crosswalk.py` writes a `signals` array on every checkpoint row. Each item is `level` plus `reason`. The sources are the `plasticos_crm_sync` WARNING and ERROR log lines for that contact, the importer `error_rows` messages, and the exception text. An imported bind keeps its warnings. Those warnings do not flip the class, and they are not discarded because the bind succeeded. A held or failed row with no reason is stored as level `UNKNOWN` and reason `outcome <raw> produced no reason`.
+
+The live log prints each signal as `signal level=... contact=... reason=...`. The finish line prints each distinct reason with its count, and `checkpoint_rows_missing_signals` for rows written by a runner that did not keep reasons. Those older rows are not treated as clean.
+
+Credential-shaped text and email addresses are redacted. The HTTP status, the timeout, the missing ERP marker, and the adapter exception stay. Customer note bodies are not copied into the checkpoint.
+
+The receipt `open_exceptions` lists each distinct reason with its level and count. A receipt that records `genuine_failed`, `held`, or a warning count and leaves `open_exceptions` empty does not pass. A reason the adapter never emitted cannot be reconstructed later. Record that absence as UNKNOWN. Do not fill it with a guess.
+
+`import_crosswalk.py` exits 1 when a held or failed ID has no source reason, or when a checkpoint row has no `signals` key. A finished process with only `outcome=failed` is not a usable result. The single-contact importer keeps that reason in `error_rows` and on the warning line, including when no outcome counter is open. A missing ERP person says which marker missed, for example `ERP marker plasticos_transaction.legacy_erp_contact_<CT_ID> resolved 0 rows`.

@@ -1,6 +1,8 @@
 # Post-run evidence: ERP contacts, then VanillaSoft crosswalk
 
-Contract revision `daytime-v1`. This pack does not include commercial documents or the 4,113 VanillaSoft IDs outside the crosswalk. Those belong to the overnight pack.
+Contract revision `daytime-v2`. This pack does not include commercial documents or the 4,113 VanillaSoft IDs outside the crosswalk. Those belong to the overnight pack.
+
+A class name without its reason is not evidence. Copy each distinct `signals` reason into section H. An imported ID that also warned stays imported and stays in section H.
 
 Importer outcomes `created` / `updated` / `unchanged` with a persisted `res.partner` provider ref are imported. An approved miss because the ERP person was excluded or is missing is `held`. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`.
 
@@ -98,4 +100,17 @@ Cite the partners-only summary path, the crosswalk checkpoint path, the clone na
 **Commercial documents stayed absent:** NOT_RUN / PASS / FAIL.  
 **Crosswalk 763 acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
 **`crm.lead` stayed empty:** NOT_RUN / PASS / FAIL.  
+**Signals retained:** NOT_RUN / PASS / FAIL.  
 **Next one necessary action:** UNKNOWN.
+
+## H. Signals kept
+
+Authority: Quantum-L9/.github `docs/ADVISORY.md`. A finding nobody sees is absent. `unknown_outcome` is not collapsed into imported or into an explained failure.
+
+| Level | Reason | IDs | What it changes |
+| --- | --- | ---: | --- |
+| WARNING | UNKNOWN | UNKNOWN | Stays on the ID. Does not flip an imported bind to failed |
+| ERROR | UNKNOWN | UNKNOWN | Held or genuine_failed, and the reason is the evidence |
+| UNKNOWN | outcome produced no reason | UNKNOWN | Not a pass. The runner or the adapter dropped the cause |
+
+Checkpoint rows with no `signals` key (written before `daytime-v2`): UNKNOWN. Those rows are not clean. Distinct reasons must also appear in `receipt.json` `open_exceptions`. An empty `open_exceptions` next to a non-zero held, failed, or warning count fails this section.
