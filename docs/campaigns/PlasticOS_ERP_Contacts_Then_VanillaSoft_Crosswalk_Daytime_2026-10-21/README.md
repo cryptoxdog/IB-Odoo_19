@@ -1,7 +1,7 @@
 # Cursor delegation: ERP contacts, then VanillaSoft crosswalk only
 
 **Status:** Daytime contact slice. Not a substitute for the overnight pack.  
-**Revision:** `daytime-v1` in `CURSOR_EXECUTION_CONTRACT.md`. That contract is the task. This page does not override it.  
+**Revision:** `daytime-v2` in `CURSOR_EXECUTION_CONTRACT.md`. That contract is the task. This page does not override it. `daytime-v1` stored a class name and dropped the reason. `daytime-v2` keeps the reason.  
 **Overnight pack, unchanged:** `../PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/` (partners, then commercial documents, then all 4,876 VanillaSoft IDs).
 
 **Why this pack exists:** On 2026-10-21 the partners-only ERP import of the full active contact set finished in one shell. The commercial worksheet pass (`sale.order`, `purchase.order`, `account.move`, `plasticos.transaction`) is the long ERP stage. Fetching all 4,876 VanillaSoft IDs, including call history, is the long CRM stage. This pack drops both. It imports every eligible active ERP contact, then only the 763 crosswalk IDs.
@@ -24,4 +24,4 @@
 - The 18 rejected links and the 4,095 pending VanillaSoft IDs. Those stay in the overnight pack.
 - Owner, stage, or polymer maps. This cohort does not create leads, so those lead-field oracles are out of scope here.
 
-**Outcome requested:** one disposable Enterprise clone, the full active ERP contact set, the 763 crosswalk binds, and an honest disposition. Held and failed rows are reported and are not counted as imported.
+**Outcome requested:** one disposable Enterprise clone, the full active ERP contact set, the 763 crosswalk binds, and an honest disposition. Held and failed rows are reported and are not counted as imported. A warning or a failure without its reason is an absent signal. The checkpoint `signals` array, the live `signal level=` lines, and the receipt `open_exceptions` are how this pack keeps them. An imported bind that also logged a warning keeps both facts.

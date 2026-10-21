@@ -1,0 +1,368 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+## File 1: `plasticos_crm_bridge/views/crm_lead_views.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CRM Lead Form — PlastOS Pipeline Overhaul
+         Inherits: crm.crm_lead_view_form (Odoo core)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="crm_lead_plastos_bridge_form" model="ir.ui.view">
+        <field name="name">crm.lead.plastos.bridge.form</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Convert to Intake — header button (green, between CTO and Enrich) ═══ -->
+            <xpath expr="//header/button[@name='%(crm.action_crm_lead2opportunity_partner)d']" position="attributes">
+                <attribute name="title">Standard Odoo CRM action. Converts this lead into a sales opportunity and creates/links a contact. Use for general CRM pipeline tracking.</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='%(crm.action_crm_lead2opportunity_partner)d']" position="after">
+                <button name="action_convert_to_intake"
+                        type="object"
+                        string="Convert to Intake"
+                        class="btn btn-success"
+                        data-hotkey="i"
+                        title="PlasticOS: Creates a material intake record from this lead, starting the plastics brokerage pipeline (Intake &#8594; Matching &#8594; Offer &#8594; Transaction)."
+                        invisible="type == 'opportunity' or not active"/>
+            </xpath>
+
+            <!-- ═══ Smart Buttons ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+
+                <button name="action_view_web_leads"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-globe"
+                        invisible="web_lead_count == 0">
+                    <field name="web_lead_count"
+                           string="Web Leads"
+                           widget="statinfo"/>
+                </button>
+
+                <button name="action_view_material_profiles"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-cubes"
+                        invisible="material_profile_count == 0">
+                    <field name="material_profile_count"
+                           string="Profiles"
+                           widget="statinfo"/>
+                </button>
+
+                <button name="action_view_match_results"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-handshake-o"
+                        invisible="total_match_count == 0">
+                    <field name="total_match_count"
+                           string="Matches"
+                           widget="statinfo"/>
+                </button>
+
+                <button name="action_view_transactions"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exchange"
+                        invisible="total_transaction_count == 0">
+                    <field name="total_transaction_count"
+                           string="Transactions"
+                           widget="statinfo"/>
+                </button>
+
+                <button name="action_view_intakes"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-clipboard"
+                        invisible="intake_count == 0">
+                    <field name="intake_count"
+                           string="Intakes"
+                           widget="statinfo"/>
+                </button>
+
+            </xpath>
+
+            <!-- ═══ LEAD VIEW: Add mobile, function, source below phone ═══ -->
+            <xpath expr="//group[@name='lead_info']//field[@name='phone']/.." position="after">
+                <field name="mobile" widget="phone"/>
+                <field name="function"/>
+                <field name="source_id"/>
+            </xpath>
+
+            <!-- ═══ OPPORTUNITY VIEW: Add mobile below phone ═══ -->
+            <xpath expr="//group[@name='opportunity_partner']//field[@name='phone']/.." position="after">
+                <field name="mobile" widget="phone"/>
+            </xpath>
+
+            <!-- ═══ Probability widget — hide from top, show at bottom ═══ -->
+            <xpath expr="//div[@id='probability']/.." position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- ═══ Notes — promote to main form, hide Notes tab ═══ -->
+            <xpath expr="//notebook" position="before">
+                <group string="Notes" class="mt-3">
+                    <field name="description"
+                           placeholder="Add notes about this lead..."
+                           nolabel="1" colspan="2"
+                           widget="html"/>
+                </group>
+            </xpath>
+            <xpath expr="//page[@name='internal_notes']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- ═══ Probability — add at bottom after notebook ═══ -->
+            <xpath expr="//notebook" position="after">
+                <group string="Scoring" class="mt-3"
+                       invisible="type == 'lead'">
+                    <group>
+                        <field name="probability" widget="float" string="Win Probability (%)"/>
+                        <field name="automated_probability" string="AI Probability (%)" readonly="1"/>
+                    </group>
+                </group>
+            </xpath>
+
+            <!-- ═══ PlastOS Pipeline Tab ═══ -->
+            <xpath expr="//notebook" position="inside">
+                <page string="PlastOS Pipeline" name="plastos_pipeline_tab">
+
+                    <div class="alert alert-info" role="alert"
+                         invisible="total_transaction_count == 0">
+                        <div class="d-flex justify-content-between">
+                            <span>
+                                <strong>Revenue:</strong>
+                                $<field name="partner_total_revenue"
+                                       nolabel="1"/>
+                            </span>
+                            <span>
+                                <strong>Last Load Shipped:</strong>
+                                <field name="partner_last_pickup" nolabel="1"/>
+                            </span>
+                        </div>
+                    </div>
+
+                    <group string="Web Lead Origins"
+                           invisible="web_lead_count == 0">
+                        <field name="web_lead_ids" nolabel="1" readonly="1">
+                            <list>
+                                <field name="lead_id"/>
+                                <field name="company_name"/>
+                                <field name="decision" widget="badge"
+                                       decoration-success="decision == 'hot'"
+                                       decoration-muted="decision == 'cold'"/>
+                                <field name="state" widget="badge"
+                                       decoration-info="state == 'received'"
+                                       decoration-success="state == 'intake_created'"
+                                       decoration-muted="state == 'skipped'"
+                                       decoration-danger="state == 'error'"/>
+                                <field name="material_description"/>
+                                <field name="estimated_lbs_per_load"/>
+                                <field name="create_date"/>
+                            </list>
+                        </field>
+                    </group>
+
+                    <group string="Delivery Preferences">
+                        <field name="delivery_term"/>
+                    </group>
+
+                    <group string="Pipeline Summary">
+                        <group>
+                            <field name="material_profile_count"
+                                   string="Material Profiles"/>
+                            <field name="total_match_count"
+                                   string="Total Matches"/>
+                        </group>
+                        <group>
+                            <field name="total_transaction_count"
+                                   string="Transactions"/>
+                            <field name="partner_total_revenue"
+                                   string="Total Revenue"/>
+                            <field name="partner_last_pickup"
+                                   string="Last Load Shipped"/>
+                        </group>
+                    </group>
+
+                </page>
+
+                <page string="Personal Intel"
+                      name="personal_intel_tab"
+                      invisible="not partner_id or partner_id.is_company">
+                    <group>
+                        <field name="partner_personal_intel"
+                               nolabel="1" colspan="2"
+                               readonly="1"
+                               placeholder="No Personal Intel recorded yet. Open the Contact to add notes."/>
+                    </group>
+                </page>
+
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CRM Lead List — Dense view with toggleable columns
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="crm_lead_plastos_bridge_list" model="ir.ui.view">
+        <field name="name">crm.lead.plastos.bridge.list</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_leads"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <!-- Contact info -->
+                <field name="phone" string="Phone" optional="show"/>
+                <field name="mobile" string="Mobile" optional="show"/>
+                <field name="function" string="Job Position" optional="hide"/>
+                <field name="city" string="City" optional="show"/>
+                <field name="state_id" string="State" optional="show"/>
+                <field name="country_id" string="Country" optional="hide"/>
+                <field name="source_id" string="Source" optional="show"/>
+                <field name="vanillasoft_id" string="VS ID" optional="hide"/>
+                <!-- Pipeline stats -->
+                <field name="material_profile_count" string="Profiles" optional="show"/>
+                <field name="total_match_count" string="Matches" optional="show"/>
+                <field name="total_transaction_count" string="Txns" optional="show"/>
+                <field name="partner_total_revenue" string="Revenue" optional="hide" sum="Total Revenue"/>
+                <field name="partner_last_pickup" string="Last Shipped" optional="show"/>
+                <field name="intake_count" string="Intakes" optional="show"/>
+                <field name="web_lead_count" string="Web Leads" optional="hide"/>
+                <field name="delivery_term" string="Delivery" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CRM Lead Pivot View — Leads by Source x Stage
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="crm_lead_plastos_pivot" model="ir.ui.view">
+        <field name="name">crm.lead.plastos.pivot</field>
+        <field name="model">crm.lead</field>
+        <field name="arch" type="xml">
+            <pivot string="CRM Leads Analysis">
+                <field name="source_id" type="row"/>
+                <field name="stage_id" type="col"/>
+                <field name="expected_revenue" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CRM Lead Calendar View — Leads by Create Date
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="crm_lead_plastos_calendar" model="ir.ui.view">
+        <field name="name">crm.lead.plastos.calendar</field>
+        <field name="model">crm.lead</field>
+        <field name="arch" type="xml">
+            <calendar string="CRM Leads" date_start="create_date"
+                      color="stage_id" event_open_popup="1" quick_create="0">
+                <field name="partner_name"/>
+                <field name="contact_name"/>
+                <field name="stage_id" filters="1"/>
+                <field name="user_id" filters="1" invisible="1"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         NOTE: crm.crm_lead_all_pipeline override REMOVED.
+         That XML ID was deleted in Odoo 19. The replacement action is
+         crm.crm_lead_action_pipeline, which already includes
+         pivot + calendar in its view_mode. No override needed.
+         DO NOT RE-ADD this record — it will crash the registry.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Web Lead Form — Inject crm_lead_id field
+         Inherits: plasticos_web_leads.view_web_lead_form
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="web_lead_crm_bridge_form" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.crm.bridge.form</field>
+        <field name="model">plasticos.web.lead</field>
+        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='links']" position="inside">
+                <field name="crm_lead_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Web Lead List — Add crm_lead_id column
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="web_lead_crm_bridge_list" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.crm.bridge.list</field>
+        <field name="model">plasticos.web.lead</field>
+        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='intake_id']" position="after">
+                <field name="crm_lead_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
+```
+
+
+***
+
+## File 2: `plasticos_crm_bridge/__manifest__.py`
+
+```python
+{
+    "name": "PlastOS CRM Bridge",
+    "version": "19.0.3.2.1",
+    "author": "Igor Beylin",
+    "summary": "CRM integration for plastics brokerage workflow",
+    "depends": [
+        "crm",
+        "utm",
+        "plasticos_security_base",
+        "plasticos_web_leads",
+        # "plasticos_matching",  # Disabled - external microservice
+        "plasticos_material_profile",
+        "plasticos_facility_profile",
+        "plasticos_transaction",
+        "plasticos_logistics",
+        "plasticos_intake",
+    ],
+    "data": [
+        "security/crm_group_imply.xml",
+        "security/ir.model.access.csv",
+        "data/crm_stage_data.xml",
+        "data/partner_category_data.xml",
+        "data/lead_source_data.xml",
+        "data/utm_source_deactivate.xml",
+        "views/crm_lead_views.xml",
+        "views/material_profile_views.xml",
+    ],
+    "category": "PlastOS",
+    "license": "LGPL-3",
+    "installable": True,
+    "auto_install": True,
+}
+```
+
+
+***
+
+**Only two changes from current Staging:**
+
+1. The `crm.crm_lead_all_pipeline` record block (~lines 272–278) is gone — replaced with the `DO NOT RE-ADD` comment
+2. Version `19.0.3.2.0` → `19.0.3.2.1`
+
+Everything else is identical to what's in the repo now. Once you push, Odoo.sh will trigger `-u plasticos_crm_bridge` automatically on the next build. Paste the `tail -200 ~/logs/update.log` output here when it completes and I'll read the result.
+
