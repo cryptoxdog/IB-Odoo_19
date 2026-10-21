@@ -65,16 +65,38 @@
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:73:    def test_manually_archived_odoo_lead_is_not_reactivated_without_sync_provenance(self):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:82:    def test_a_sync_archived_lead_is_matched_rather_than_duplicated(self):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:96:    def test_calls_attach_to_a_sync_archived_lead_instead_of_buffering_as_orphans(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:13:class TestCrmSyncOrchestrator(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:26:    def test_upsert_lead_idempotent(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:50:    def test_orphan_call_resolves_after_contact(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:109:    def test_failure_after_lead_insert_rolls_back_both_identity_rows(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:135:    def test_external_ref_create_failure_rolls_back_the_lead(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:153:    def test_usa_does_not_select_minor_outlying_islands(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:171:    def test_dead_lead_uses_the_existing_stage(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:176:    def test_contact_name_collapses_whitespace(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:183:    def test_unmapped_source_and_owner_are_left_empty(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:197:    def test_observed_aliases_land_on_native_lead_fields(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:15:class TestCrmSyncOrchestrator(TransactionCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:28:    def test_upsert_lead_idempotent(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:52:    def test_orphan_call_resolves_after_contact(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:111:    def test_failure_after_lead_insert_rolls_back_both_identity_rows(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:137:    def test_external_ref_create_failure_rolls_back_the_lead(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:155:    def test_usa_does_not_select_minor_outlying_islands(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:173:    def test_dead_lead_uses_the_existing_stage(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:178:    def test_contact_name_collapses_whitespace(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:185:    def test_unmapped_source_and_owner_are_left_empty(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:199:    def test_observed_aliases_land_on_native_lead_fields(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:248:    def test_admitted_contact_normalizes_each_material_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:329:    def test_unresolved_material_is_reported_without_a_profile(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:346:    def test_ambiguous_facility_is_not_invented(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:359:    def test_grade_c_profile_has_neither_clean_nor_dry(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:372:    def test_table_row_uses_the_shared_normalizer_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:411:    def test_manual_and_scheduled_entry_points_share_the_normalizer_path(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:422:    def test_three_source_materials_become_three_profiles_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:456:    def test_unknown_form_creates_one_profile_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:493:    def test_new_lead_without_partner_owns_one_facility_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:557:    def test_approved_aliases_create_one_facility_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:582:    def test_material_database_failure_rolls_back_and_the_batch_continues(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:627:    def test_existing_facility_profiles_are_reconciled_without_duplicates(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:668:    def test_standalone_company_facility_is_reused_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:691:    def test_two_leads_keep_provenance_on_one_verified_facility(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:731:    def test_material_collision_merges_evidence_and_keeps_downstream_refs(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:774:    def test_conflicting_grade_keeps_both_material_profiles(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:807:    def test_collision_keeps_cascade_dependents_and_image_attachments(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:871:    def test_computed_material_reference_blocks_deletion(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:938:    def test_collision_preserves_followers_without_duplicate_subscriptions(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1018:    def test_scheduled_message_blocks_material_deletion(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1055:    def test_verified_partner_without_facility_profile_attaches_canonical_materials(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1101:    def test_lead_owned_materials_are_visible_from_the_crm_action(self):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:14:class TestCrmSyncSettingsImportAction(TransactionCase):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:21:    def test_action_test_connection_live_adapter_succeeds(self):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:37:    def test_action_test_connection_adapter_rejection_fails_closed(self):
@@ -151,6 +173,9 @@
 ./plasticos_matching/tests/test_match_run_receipts.py:397:    def test_receipt_create_requires_the_server_door(self):
 ./plasticos_matching/tests/test_match_run_receipts.py:406:    def test_copy_never_carries_receipt_evidence(self):
 ./plasticos_matching/tests/test_match_run_receipts.py:422:    def test_human_review_disposition_stays_mutable_while_the_receipt_does_not(self):
+./plasticos_material_profile/tests/test_material_normalizer.py:8:class TestMaterialNormalizer(TransactionCase):
+./plasticos_material_profile/tests/test_material_normalizer.py:17:    def test_approved_phrases_resolve_and_unknown_fabricates_nothing(self):
+./plasticos_material_profile/tests/test_material_normalizer.py:82:    def test_new_polymer_masters_project_onto_the_stored_code(self):
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:14:class TestNullableFormUniqueness(TransactionCase):
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:28:    def test_repeated_specified_triple_raises(self):
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:38:    def test_repeated_empty_form_raises_and_replay_returns_the_same_row(self):
@@ -175,32 +200,34 @@
 ./plasticos_security_base/tests/test_purchase_order_access.py:59:    def test_sales_rep_sees_own_purchase_orders_only(self):
 ./plasticos_security_base/tests/test_purchase_order_access.py:67:    def test_all_leads_group_does_not_widen_purchase_order_access(self):
 ./plasticos_security_base/tests/test_purchase_order_access.py:74:    def test_accounting_reads_every_purchase_order_without_write(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:110:class TestErpWorksheetImport(TransactionCase):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:224:    def test_import_leaves_tax_configuration_alone_and_imports_without_taxes(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:251:    def test_historical_documents_stay_draft_with_no_settlement_entries(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:268:    def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:410:    def test_unbilled_freight_row_is_not_folded_beside_freight_bills(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:444:    def test_no_link_worksheet_quarantines_every_source_payable(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:486:    def test_purchase_only_worksheet_carries_no_handling_or_equipment_cost(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:525:    def test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:567:    def test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:620:    def test_diagnostic_limit_counts_the_payables_it_leaves_out(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:669:    def test_empty_order_graph_quarantines_every_payable_and_still_reconciles(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:705:    def test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:769:    def test_dry_run_excludes_every_payable_by_name_and_writes_nothing(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:791:    def test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:855:    def test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:909:    def test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:942:    def test_sub_cent_unit_price_keeps_the_source_amount_and_is_only_rounded_for_display(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:981:    def test_source_amount_drift_is_reported_when_a_quantity_cannot_be_stored_exactly(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1017:    def test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1086:    def test_worksheet_53797_nets_to_zero_revenue_and_negative_margin(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1113:    def test_two_worksheets_on_one_sale_order_compile_two_transactions_and_replay_adds_nothing(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1153:    def test_two_worksheets_on_one_order_across_commit_batches(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1179:    def test_worksheet_with_two_sale_orders_compiles_one_transaction(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1213:    def test_worksheet_whose_sale_orders_have_different_customers_is_rejected(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1234:    def test_rejected_worksheet_does_not_poison_the_product_cache(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1286:    def test_commission_recipient_amount_and_cutoff_per_slot(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:111:class TestErpWorksheetImport(TransactionCase):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:225:    def test_import_leaves_tax_configuration_alone_and_imports_without_taxes(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:252:    def test_historical_documents_stay_draft_with_no_settlement_entries(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:269:    def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:411:    def test_unbilled_freight_row_is_not_folded_beside_freight_bills(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:445:    def test_no_link_worksheet_quarantines_every_source_payable(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:487:    def test_purchase_only_worksheet_carries_no_handling_or_equipment_cost(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:526:    def test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:568:    def test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:621:    def test_diagnostic_limit_counts_the_payables_it_leaves_out(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:670:    def test_empty_order_graph_quarantines_every_payable_and_still_reconciles(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:706:    def test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:770:    def test_dry_run_excludes_every_payable_by_name_and_writes_nothing(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:792:    def test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:856:    def test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:910:    def test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:943:    def test_sub_cent_unit_price_keeps_the_source_amount_and_is_only_rounded_for_display(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:982:    def test_source_amount_drift_is_reported_when_a_quantity_cannot_be_stored_exactly(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1018:    def test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1087:    def test_worksheet_53797_nets_to_zero_revenue_and_negative_margin(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1114:    def test_two_worksheets_on_one_sale_order_compile_two_transactions_and_replay_adds_nothing(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1154:    def test_two_worksheets_on_one_order_across_commit_batches(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1180:    def test_worksheet_with_two_sale_orders_compiles_one_transaction(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1214:    def test_worksheet_whose_sale_orders_have_different_customers_is_rejected(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1235:    def test_rejected_worksheet_does_not_poison_the_product_cache(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1287:    def test_commission_recipient_amount_and_cutoff_per_slot(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1350:    def test_native_import_normalizes_materials_and_replays(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1436:    def test_grade_id_does_not_classify_or_contaminate_a_shared_product(self):
 ./plasticos_transaction/tests/test_profile_form_coexistence.py:9:class TestProfileFormCoexistence(TransactionCase):
 ./plasticos_transaction/tests/test_profile_form_coexistence.py:34:    def test_specified_profile_wins_over_an_earlier_unspecified_profile(self):
 ./plasticos_transaction/tests/test_profile_form_coexistence.py:53:    def test_unspecified_profile_is_selected_when_it_is_the_only_row(self):
@@ -1757,32 +1784,32 @@
 ./tests/test_performance.py:111:class TestSearchPerformance(PlasticosTestCase):
 ./tests/test_performance.py:119:    def test_partner_search_under_1s(self):
 ./tests/test_performance.py:131:    def test_intake_complex_domain_under_2s(self):
-./tests/test_phantom_enum_values.py:1319:class TestRegistrySanity:
-./tests/test_phantom_enum_values.py:1322:    def test_selection_fields_found(self):
-./tests/test_phantom_enum_values.py:1325:    def test_xml_names_found(self):
-./tests/test_phantom_enum_values.py:1328:    def test_known_polymers_in_registry(self):
-./tests/test_phantom_enum_values.py:1333:    def test_known_forms_in_registry(self):
-./tests/test_phantom_enum_values.py:1337:    def test_known_selection_keys_in_registry(self):
-./tests/test_phantom_enum_values.py:1348:    def test_application_class_options(self):
-./tests/test_phantom_enum_values.py:1353:    def test_process_type_options(self):
-./tests/test_phantom_enum_values.py:1396:    def test_feedstock_type_options(self):
-./tests/test_phantom_enum_values.py:1407:class TestSelectionComparisons:
-./tests/test_phantom_enum_values.py:1412:    def test_domain_values_match_selection_options(self):
-./tests/test_phantom_enum_values.py:1438:class TestPhantomEnumValues:
-./tests/test_phantom_enum_values.py:1442:    def test_no_phantom_comparison_values(self):
-./tests/test_phantom_enum_values.py:1459:    def test_no_phantom_domain_values(self):
-./tests/test_phantom_enum_values.py:1476:    def test_no_phantom_in_list_values(self):
-./tests/test_phantom_enum_values.py:1498:class TestPerModulePhantomAudit:
-./tests/test_phantom_enum_values.py:1502:    def test_module_has_no_phantom_enums(self, module_name):
-./tests/test_phantom_enum_values.py:1519:class TestSelectionFieldConsistency:
-./tests/test_phantom_enum_values.py:1539:    def test_shared_selection_fields_are_compatible(self):
-./tests/test_phantom_enum_values.py:1567:class TestXmlSelectionAlignment:
-./tests/test_phantom_enum_values.py:1571:    def test_xml_colors_are_canonical(self):
-./tests/test_phantom_enum_values.py:1581:    def test_xml_polymer_names_are_uppercase(self):
-./tests/test_phantom_enum_values.py:1688:class TestEquipmentCodeAlignment:
-./tests/test_phantom_enum_values.py:1692:    def test_equipment_codes_in_compute_match_seed_data(self):
-./tests/test_phantom_enum_values.py:1744:class TestPhantomAuditReport:
-./tests/test_phantom_enum_values.py:1748:    def test_print_phantom_summary(self, capsys):
+./tests/test_phantom_enum_values.py:1344:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1347:    def test_selection_fields_found(self):
+./tests/test_phantom_enum_values.py:1350:    def test_xml_names_found(self):
+./tests/test_phantom_enum_values.py:1353:    def test_known_polymers_in_registry(self):
+./tests/test_phantom_enum_values.py:1358:    def test_known_forms_in_registry(self):
+./tests/test_phantom_enum_values.py:1362:    def test_known_selection_keys_in_registry(self):
+./tests/test_phantom_enum_values.py:1373:    def test_application_class_options(self):
+./tests/test_phantom_enum_values.py:1378:    def test_process_type_options(self):
+./tests/test_phantom_enum_values.py:1421:    def test_feedstock_type_options(self):
+./tests/test_phantom_enum_values.py:1432:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1437:    def test_domain_values_match_selection_options(self):
+./tests/test_phantom_enum_values.py:1463:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1467:    def test_no_phantom_comparison_values(self):
+./tests/test_phantom_enum_values.py:1484:    def test_no_phantom_domain_values(self):
+./tests/test_phantom_enum_values.py:1501:    def test_no_phantom_in_list_values(self):
+./tests/test_phantom_enum_values.py:1523:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1527:    def test_module_has_no_phantom_enums(self, module_name):
+./tests/test_phantom_enum_values.py:1544:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1564:    def test_shared_selection_fields_are_compatible(self):
+./tests/test_phantom_enum_values.py:1592:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1596:    def test_xml_colors_are_canonical(self):
+./tests/test_phantom_enum_values.py:1606:    def test_xml_polymer_names_are_uppercase(self):
+./tests/test_phantom_enum_values.py:1713:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1717:    def test_equipment_codes_in_compute_match_seed_data(self):
+./tests/test_phantom_enum_values.py:1769:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:1773:    def test_print_phantom_summary(self, capsys):
 ./tests/test_pristine_runtime_seams.py:56:def test_entrypoint_makes_caller_state_durable_before_its_owned_cursor(entrypoint):
 ./tests/test_pristine_runtime_seams.py:76:def test_the_durability_boundary_actually_commits():
 ./tests/test_pristine_runtime_seams.py:83:def test_flush_is_not_used_as_a_cross_transaction_boundary(scope):
@@ -1960,25 +1987,54 @@
 ./tests/test_suite_structure.py:210:    def test_non_test_files_are_not_test_named(self):
 ./tests/test_suite_structure.py:216:class TestTestContent:
 ./tests/test_suite_structure.py:219:    def test_test_methods_contain_assertions(self):
-./tests/test_test_env_safety.py:71:def test_unsafe_target_is_refused_before_docker(tmp_path, command, target, reason):
-./tests/test_test_env_safety.py:78:def test_run_refuses_arguments_that_redirect_away_from_the_clone(tmp_path, arg):
-./tests/test_test_env_safety.py:84:def test_business_database_name_from_env_is_refused(tmp_path):
-./tests/test_test_env_safety.py:89:def test_remote_docker_endpoint_is_refused(tmp_path):
-./tests/test_test_env_safety.py:94:def test_foreign_compose_project_is_refused(tmp_path):
-./tests/test_test_env_safety.py:99:def test_foreign_compose_file_is_refused(tmp_path):
-./tests/test_test_env_safety.py:106:def test_unknown_parity_is_refused(tmp_path):
-./tests/test_test_env_safety.py:111:def test_default_clone_name_is_per_worktree_and_needs_no_docker(tmp_path):
-./tests/test_test_env_safety.py:120:def test_invalid_owner_is_refused(tmp_path):
-./tests/test_test_env_safety.py:125:def test_makefile_test_targets_run_inside_the_protected_wrapper():
-./tests/test_test_env_safety.py:160:def test_run_refuses_recipe_forms_that_leave_the_verified_clone(tmp_path, args, reason):
-./tests/test_test_env_safety.py:175:def test_run_accepts_the_makefile_forms_bound_to_the_clone(tmp_path, args):
-./tests/test_test_env_safety.py:272:def test_current_owned_clone_of_the_admitted_template_is_accepted(tmp_path):
-./tests/test_test_env_safety.py:280:def test_clone_is_refused_after_the_runtime_image_changes(tmp_path):
-./tests/test_test_env_safety.py:290:def test_stale_clone_of_a_still_admitted_old_template_is_refused(tmp_path):
-./tests/test_test_env_safety.py:302:def test_clone_naming_a_template_that_is_not_admitted_is_refused(tmp_path):
-./tests/test_test_env_safety.py:315:def test_another_owners_current_clone_is_still_refused(tmp_path):
-./tests/test_test_env_safety.py:325:def test_clone_stage_is_retained_until_marker_is_written():
-./tests/test_test_env_safety.py:340:def test_retirement_protects_detached_build_stages():
+./tests/test_test_env_safety.py:72:def test_unsafe_target_is_refused_before_docker(tmp_path, command, target, reason):
+./tests/test_test_env_safety.py:79:def test_run_refuses_arguments_that_redirect_away_from_the_clone(tmp_path, arg):
+./tests/test_test_env_safety.py:85:def test_business_database_name_from_env_is_refused(tmp_path):
+./tests/test_test_env_safety.py:90:def test_remote_docker_endpoint_is_refused(tmp_path):
+./tests/test_test_env_safety.py:95:def test_foreign_compose_project_is_refused(tmp_path):
+./tests/test_test_env_safety.py:100:def test_foreign_compose_file_is_refused(tmp_path):
+./tests/test_test_env_safety.py:107:def test_unknown_parity_is_refused(tmp_path):
+./tests/test_test_env_safety.py:112:def test_community_parity_is_refused_outside_the_safety_harness(tmp_path):
+./tests/test_test_env_safety.py:118:def test_default_clone_name_is_per_worktree_and_needs_no_docker(tmp_path):
+./tests/test_test_env_safety.py:127:def test_invalid_owner_is_refused(tmp_path):
+./tests/test_test_env_safety.py:132:def test_makefile_test_targets_run_inside_the_protected_wrapper():
+./tests/test_test_env_safety.py:173:def test_run_refuses_recipe_forms_that_leave_the_verified_clone(tmp_path, args, reason):
+./tests/test_test_env_safety.py:207:def test_run_accepts_the_makefile_forms_bound_to_the_clone(tmp_path, args):
+./tests/test_test_env_safety.py:381:def test_enterprise_status_names_only_the_pinned_fixture(tmp_path):
+./tests/test_test_env_safety.py:392:def test_enterprise_status_does_not_call_a_fixture_admitted_for_other_inputs_ready(tmp_path):
+./tests/test_test_env_safety.py:399:def test_clone_of_a_fixture_admitted_for_other_inputs_is_refused(tmp_path):
+./tests/test_test_env_safety.py:409:def test_unproven_fixture_is_refused_and_not_rebuilt(tmp_path):
+./tests/test_test_env_safety.py:421:def test_inputs_file_that_does_not_hash_to_the_fixture_fp_is_not_proof(tmp_path):
+./tests/test_test_env_safety.py:433:def test_fixture_admitted_for_other_inputs_is_refused_by_name(tmp_path, key):
+./tests/test_test_env_safety.py:451:def test_fixture_recorded_with_addon_source_is_certified_without_a_rebuild(tmp_path):
+./tests/test_test_env_safety.py:473:def test_enterprise_clone_of_another_template_is_refused(tmp_path):
+./tests/test_test_env_safety.py:492:def test_new_enterprise_template_is_refused_in_the_script():
+./tests/test_test_env_safety.py:533:def test_full_suite_upgrades_the_roster_and_reports_the_count(tmp_path):
+./tests/test_test_env_safety.py:554:def test_module_test_upgrades_the_roster_and_runs_only_that_module(tmp_path):
+./tests/test_test_env_safety.py:622:def test_receipt_binds_the_tested_source_to_a_clean_head(tmp_path):
+./tests/test_test_env_safety.py:639:def test_receipt_of_a_worktree_that_differs_from_its_head_is_dirty(tmp_path, path, addon):
+./tests/test_test_env_safety.py:654:def test_addon_source_changed_during_the_run_leaves_no_receipt(tmp_path):
+./tests/test_test_env_safety.py:682:def test_test_run_without_passing_tests_fails(tmp_path, log, rc, reason):
+./tests/test_test_env_safety.py:702:def test_test_run_scope_is_refused_before_docker(tmp_path, extra, reason):
+./tests/test_test_env_safety.py:720:def test_guarded_import_cannot_be_redirected_by_an_injected_makefile(tmp_path):
+./tests/test_test_env_safety.py:755:def test_guarded_make_starts_with_the_clone_marker_and_without_make_environment(tmp_path):
+./tests/test_test_env_safety.py:830:def test_import_recipe_refuses_a_database_other_than_the_verified_clone(tmp_path, target, args):
+./tests/test_test_env_safety.py:845:def test_import_recipe_refuses_the_no_docker_fallback_for_a_verified_clone(tmp_path, target, args):
+./tests/test_test_env_safety.py:864:def test_every_form_that_starts_odoo_tests_belongs_to_the_runner(tmp_path, form):
+./tests/test_test_env_safety.py:888:def test_abbreviated_options_that_redirect_the_run_are_refused(tmp_path, arg):
+./tests/test_test_env_safety.py:894:def test_abbreviated_database_option_with_a_separate_value_is_refused(tmp_path):
+./tests/test_test_env_safety.py:899:def test_fixture_with_a_differing_line_that_has_no_simple_key_is_refused(tmp_path):
+./tests/test_test_env_safety.py:927:def test_guarded_import_runs_on_a_clone_upgraded_to_the_source_on_disk(tmp_path):
+./tests/test_test_env_safety.py:942:def test_clone_already_upgraded_for_this_source_is_not_upgraded_again(tmp_path):
+./tests/test_test_env_safety.py:950:def test_failed_upgrade_stops_the_import(tmp_path):
+./tests/test_test_env_safety.py:978:def test_upgrade_stage_does_not_consume_the_piped_shell_script(tmp_path):
+./tests/test_test_env_safety.py:986:def test_current_owned_clone_of_the_admitted_template_is_accepted(tmp_path):
+./tests/test_test_env_safety.py:994:def test_clone_is_refused_after_the_runtime_image_changes(tmp_path):
+./tests/test_test_env_safety.py:1004:def test_stale_clone_of_a_still_admitted_old_template_is_refused(tmp_path):
+./tests/test_test_env_safety.py:1016:def test_clone_naming_a_template_that_is_not_admitted_is_refused(tmp_path):
+./tests/test_test_env_safety.py:1029:def test_another_owners_current_clone_is_still_refused(tmp_path):
+./tests/test_test_env_safety.py:1039:def test_clone_stage_is_retained_until_marker_is_written():
+./tests/test_test_env_safety.py:1054:def test_retirement_protects_detached_build_stages():
 ./tests/test_transaction_bill_open.py:11:def test_bill_tags_use_open_widget():
 ./tests/test_transaction_bill_open.py:18:def test_open_widget_uses_formview_action():
 ./tests/test_transaction_bill_open.py:24:def test_open_widget_is_in_backend_assets():
