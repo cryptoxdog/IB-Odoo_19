@@ -65,38 +65,42 @@
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:73:    def test_manually_archived_odoo_lead_is_not_reactivated_without_sync_provenance(self):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:82:    def test_a_sync_archived_lead_is_matched_rather_than_duplicated(self):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:96:    def test_calls_attach_to_a_sync_archived_lead_instead_of_buffering_as_orphans(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:15:class TestCrmSyncOrchestrator(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:28:    def test_upsert_lead_idempotent(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:52:    def test_orphan_call_resolves_after_contact(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:111:    def test_failure_after_lead_insert_rolls_back_both_identity_rows(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:137:    def test_external_ref_create_failure_rolls_back_the_lead(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:155:    def test_usa_does_not_select_minor_outlying_islands(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:173:    def test_dead_lead_uses_the_existing_stage(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:178:    def test_contact_name_collapses_whitespace(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:185:    def test_unmapped_source_and_owner_are_left_empty(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:199:    def test_observed_aliases_land_on_native_lead_fields(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:248:    def test_admitted_contact_normalizes_each_material_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:329:    def test_unresolved_material_is_reported_without_a_profile(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:346:    def test_ambiguous_facility_is_not_invented(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:359:    def test_grade_c_profile_has_neither_clean_nor_dry(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:372:    def test_table_row_uses_the_shared_normalizer_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:411:    def test_manual_and_scheduled_entry_points_share_the_normalizer_path(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:422:    def test_three_source_materials_become_three_profiles_and_replay(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:456:    def test_unknown_form_creates_one_profile_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:493:    def test_new_lead_without_partner_owns_one_facility_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:557:    def test_approved_aliases_create_one_facility_and_replay(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:582:    def test_material_database_failure_rolls_back_and_the_batch_continues(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:627:    def test_existing_facility_profiles_are_reconciled_without_duplicates(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:668:    def test_standalone_company_facility_is_reused_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:691:    def test_two_leads_keep_provenance_on_one_verified_facility(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:731:    def test_material_collision_merges_evidence_and_keeps_downstream_refs(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:774:    def test_conflicting_grade_keeps_both_material_profiles(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:807:    def test_collision_keeps_cascade_dependents_and_image_attachments(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:871:    def test_computed_material_reference_blocks_deletion(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:938:    def test_collision_preserves_followers_without_duplicate_subscriptions(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1018:    def test_scheduled_message_blocks_material_deletion(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1055:    def test_verified_partner_without_facility_profile_attaches_canonical_materials(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1101:    def test_lead_owned_materials_are_visible_from_the_crm_action(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:45:class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:46:    def test_upsert_lead_idempotent(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:70:    def test_orphan_call_resolves_after_contact(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:117:    def test_failure_after_lead_insert_rolls_back_both_identity_rows(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:143:    def test_external_ref_create_failure_rolls_back_the_lead(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:161:    def test_usa_does_not_select_minor_outlying_islands(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:179:    def test_dead_lead_uses_the_existing_stage(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:184:    def test_contact_name_collapses_whitespace(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:191:    def test_unmapped_source_and_owner_are_left_empty(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:205:    def test_observed_aliases_land_on_native_lead_fields(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:250:    def test_admitted_contact_normalizes_each_material_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:331:    def test_unresolved_material_is_reported_without_a_profile(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:348:    def test_ambiguous_facility_is_not_invented(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:361:    def test_grade_c_profile_has_neither_clean_nor_dry(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:374:    def test_table_row_uses_the_shared_normalizer_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:413:    def test_manual_and_scheduled_entry_points_share_the_normalizer_path(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:424:    def test_three_source_materials_become_three_profiles_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:458:    def test_unknown_form_creates_one_profile_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:495:    def test_new_lead_without_partner_owns_one_facility_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:559:    def test_approved_aliases_create_one_facility_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:584:    def test_material_database_failure_rolls_back_and_the_batch_continues(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:629:    def test_existing_facility_profiles_are_reconciled_without_duplicates(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:670:    def test_standalone_company_facility_is_reused_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:693:    def test_two_leads_keep_provenance_on_one_verified_facility(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:733:    def test_material_collision_merges_evidence_and_keeps_downstream_refs(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:776:    def test_conflicting_grade_keeps_both_material_profiles(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:809:    def test_collision_preserves_followers_without_duplicate_subscriptions(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:889:    def test_scheduled_message_blocks_material_deletion(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:926:    def test_verified_partner_without_facility_profile_attaches_canonical_materials(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:972:    def test_lead_owned_materials_are_visible_from_the_crm_action(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:983:    def test_approved_contact_notes_append_to_the_erp_comment_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1033:    def test_persisted_person_ref_is_kept_when_the_crosswalk_is_unset(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1065:    def test_approved_material_failure_is_contained_and_the_page_continues(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1104:class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1112:    def test_collision_keeps_cascade_dependents_and_image_attachments(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1176:    def test_computed_material_reference_blocks_deletion(self):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:14:class TestCrmSyncSettingsImportAction(TransactionCase):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:21:    def test_action_test_connection_live_adapter_succeeds(self):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:37:    def test_action_test_connection_adapter_rejection_fails_closed(self):
@@ -876,6 +880,18 @@
 ./tests/test_ci_check_odoo19_xml.py:471:    def test_nonexistent_file(self):
 ./tests/test_ci_check_odoo19_xml.py:476:    def test_line_numbers_are_1_indexed(self):
 ./tests/test_ci_check_odoo19_xml.py:487:    def test_tree_word_boundary(self):
+./tests/test_ci_event_triggers.py:63:def test_current_workflow_is_accepted_by_the_real_kernel(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:78:def test_wrong_ci_event_selection_fails_even_if_correct_words_exist(tmp_path: Path, event_change: dict) -> None:
+./tests/test_ci_event_triggers.py:108:def test_weakened_ci_contract_is_rejected(tmp_path: Path, mutation: str) -> None:
+./tests/test_ci_event_triggers.py:149:def test_aggregator_must_actually_fail_closed(tmp_path: Path, attack: str) -> None:
+./tests/test_ci_event_triggers.py:191:def test_a_required_contract_cannot_skip_or_xfail(tmp_path: Path, action: str) -> None:
+./tests/test_ci_event_triggers.py:198:def test_an_unexpected_pass_marked_xfail_is_not_contract_proof(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:206:def test_zero_collected_contracts_does_not_make_ci_green(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:212:def test_required_contracts_run_once_and_optional_skips_stay_optional(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:222:def test_ci_cannot_filter_out_the_contract_tier(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:229:def test_local_focused_test_selection_remains_supported(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:345:def test_feature_branch_pushes_do_not_start_a_second_ci_gate() -> None:
+./tests/test_ci_event_triggers.py:372:def test_trigger_check_rejects_broken_event_routing(mutant: str) -> None:
 ./tests/test_committed_sync_metrics.py:145:def test_failure_before_any_committed_page_reports_zero():
 ./tests/test_committed_sync_metrics.py:155:def test_committed_page_survives_a_later_page_failure():
 ./tests/test_committed_sync_metrics.py:167:def test_rows_from_the_failed_page_are_not_counted():
@@ -933,6 +949,17 @@
 ./tests/test_constraints_onchanges.py:212:    def test_discrepancy_within_threshold(self):
 ./tests/test_constraints_onchanges.py:216:    def test_light_weight_deduction_below_min(self):
 ./tests/test_constraints_onchanges.py:221:    def test_light_weight_deduction_above_min(self):
+./tests/test_crm_approved_identity.py:40:def test_pinned_crosswalk_constants():
+./tests/test_crm_approved_identity.py:47:def test_operator_crosswalk_file_matches_the_pinned_census():
+./tests/test_crm_approved_identity.py:64:def test_crosswalk_rejects_a_second_erp_target_for_one_contact():
+./tests/test_crm_approved_identity.py:71:def test_contact_note_is_the_notes_custom_field_not_a_call_comment():
+./tests/test_crm_approved_identity.py:85:def test_crm_note_is_appended_after_the_erp_notes_and_replays():
+./tests/test_crm_approved_identity.py:98:def test_note_presence_is_a_whole_paragraph_not_a_substring():
+./tests/test_crm_approved_identity.py:103:def test_phone_token_match_is_the_whole_number():
+./tests/test_crm_approved_identity.py:146:def test_persisted_person_ref_blocks_the_legacy_lead_when_the_crosswalk_is_unset():
+./tests/test_crm_approved_identity.py:158:def test_person_ref_to_a_missing_partner_is_failed_not_recreated():
+./tests/test_crm_approved_identity.py:169:def test_person_ref_with_a_lead_on_another_partner_is_rejected():
+./tests/test_crm_approved_identity.py:180:def test_approved_material_failure_rolls_back_and_is_recorded():
 ./tests/test_crm_sync_classification.py:185:def test_first_upsert_is_created():
 ./tests/test_crm_sync_classification.py:202:def test_identical_repeat_is_unchanged_and_not_written():
 ./tests/test_crm_sync_classification.py:214:def test_changed_value_is_updated():
@@ -1111,19 +1138,20 @@
 ./tests/test_erp_import_contract.py:172:def test_every_persisted_entity_goes_through_the_deterministic_upsert(service_tree):
 ./tests/test_erp_import_contract.py:192:def test_upsert_writes_only_what_actually_changed(service_tree):
 ./tests/test_erp_import_contract.py:199:def test_change_detection_compares_the_values_odoo_normalizes_on_write(service_tree, service_source):
-./tests/test_erp_import_contract.py:207:def test_contact_role_tags_are_applied_as_a_set(service_tree):
-./tests/test_erp_import_contract.py:216:def test_no_new_field_is_declared_by_the_import(service_source):
-./tests/test_erp_import_contract.py:220:def test_optional_targets_are_capability_checked(service_source):
-./tests/test_erp_import_contract.py:228:def test_trade_date_has_no_custom_transaction_field_or_misplaced_target(deal_tree):
-./tests/test_erp_import_contract.py:244:def test_related_records_are_looked_up_never_created(service_tree):
-./tests/test_erp_import_contract.py:268:def test_full_run_executes_every_partner_stage_before_transactions(service_tree):
-./tests/test_erp_import_contract.py:288:def test_every_partner_stage_is_followed_by_the_after_stage_hook(service_tree):
-./tests/test_erp_import_contract.py:306:def test_partner_writes_always_carry_the_import_context(service_source):
-./tests/test_erp_import_contract.py:330:def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_tree):
-./tests/test_erp_import_contract.py:346:def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):
-./tests/test_erp_import_contract.py:361:def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
-./tests/test_erp_import_contract.py:367:def test_partner_import_runtime_does_not_name_layer5_models():
-./tests/test_erp_import_contract.py:378:def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
+./tests/test_erp_import_contract.py:220:def test_erp_replay_keeps_crm_notes_appended_to_the_partner_comment(service_tree, service_source):
+./tests/test_erp_import_contract.py:233:def test_contact_role_tags_are_applied_as_a_set(service_tree):
+./tests/test_erp_import_contract.py:242:def test_no_new_field_is_declared_by_the_import(service_source):
+./tests/test_erp_import_contract.py:246:def test_optional_targets_are_capability_checked(service_source):
+./tests/test_erp_import_contract.py:254:def test_trade_date_has_no_custom_transaction_field_or_misplaced_target(deal_tree):
+./tests/test_erp_import_contract.py:270:def test_related_records_are_looked_up_never_created(service_tree):
+./tests/test_erp_import_contract.py:294:def test_full_run_executes_every_partner_stage_before_transactions(service_tree):
+./tests/test_erp_import_contract.py:314:def test_every_partner_stage_is_followed_by_the_after_stage_hook(service_tree):
+./tests/test_erp_import_contract.py:332:def test_partner_writes_always_carry_the_import_context(service_source):
+./tests/test_erp_import_contract.py:356:def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_tree):
+./tests/test_erp_import_contract.py:372:def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):
+./tests/test_erp_import_contract.py:387:def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
+./tests/test_erp_import_contract.py:393:def test_partner_import_runtime_does_not_name_layer5_models():
+./tests/test_erp_import_contract.py:404:def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
 ./tests/test_erp_import_limit.py:20:def test_count_limit_is_an_integer():
 ./tests/test_erp_import_limit.py:25:def test_percent_limit_is_a_fraction_resolved_against_the_source_size():
 ./tests/test_erp_import_limit.py:33:def test_full_percent_is_every_worksheet_and_unset_is_no_limit():
@@ -1563,16 +1591,42 @@
 ./tests/test_import_summary_schema.py:103:def test_partial_status_allowed():
 ./tests/test_import_summary_schema.py:108:def test_cli_roundtrip(tmp_path):
 ./tests/test_import_summary_schema.py:130:def test_secret_markers_registered():
-./tests/test_install_smoke_db_guard.py:121:def test_unrecognized_or_protected_database_never_calls_docker(tmp_path: Path, name: str) -> None:
-./tests/test_install_smoke_db_guard.py:129:def test_remote_docker_host_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:137:def test_foreign_compose_project_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:145:def test_compose_mode_rejects_a_remote_database_host(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:153:def test_foreign_compose_file_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:163:def test_host_mode_without_a_proven_container_does_not_mutate(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:177:def test_host_mode_rejects_a_non_loopback_port_binding(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:200:def test_default_compose_identity_reaches_the_scratch_install(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:216:def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:240:def test_cache_hit_is_not_described_as_install_proof() -> None:
+./tests/test_install_smoke_db_guard.py:164:def test_unrecognized_or_protected_database_never_calls_docker(tmp_path: Path, name: str) -> None:
+./tests/test_install_smoke_db_guard.py:172:def test_implicit_compose_override_cannot_change_database_identity(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:178:def test_remote_active_docker_context_never_mutates(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:185:def test_remote_docker_host_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:193:def test_foreign_compose_project_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:201:def test_compose_mode_rejects_a_remote_database_host(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:209:def test_foreign_compose_file_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:219:def test_host_mode_without_a_proven_container_does_not_mutate(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:233:def test_host_mode_rejects_a_non_loopback_port_binding(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:256:def test_default_compose_identity_reaches_the_scratch_install(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:272:def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:296:def test_recheck_is_the_smoke_evidence_gate() -> None:
+./tests/test_install_smoke_evidence.py:260:def test_remote_active_docker_context_cannot_touch_the_database(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:268:def test_unchanged_complete_evidence_is_reused_without_install(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:277:def test_effective_enterprise_mount_not_repository_symlink_is_bound(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:286:def test_same_length_bytes_with_preserved_mtime_invalidate(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:297:def test_untracked_git_file_content_not_just_status_is_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:318:def test_effective_container_environment_is_bound(site: Site, env: dict[str, str]) -> None:
+./tests/test_install_smoke_evidence.py:323:def test_mounted_configuration_file_is_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:329:def test_image_override_cannot_attest_to_an_unexecuted_image(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:335:def test_actual_container_image_must_match_validated_image(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:342:def test_legitimate_build_image_change_is_accepted(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:352:def test_live_image_and_database_change_invalidates(site: Site, change: dict) -> None:
+./tests/test_install_smoke_evidence.py:359:def test_missing_enterprise_or_custom_module_never_passes(site: Site, module: str) -> None:
+./tests/test_install_smoke_evidence.py:368:def test_truncated_record_cannot_reduce_required_inventory(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:376:def test_malformed_or_old_hash_evidence_is_not_reusable(site: Site, value: str) -> None:
+./tests/test_install_smoke_evidence.py:391:def test_shortened_lists_refuse_from_shell_and_dotenv(site: Site, key: str, value: str) -> None:
+./tests/test_install_smoke_evidence.py:399:def test_unreadable_enterprise_fails_resolve(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:406:def test_source_change_during_install_never_writes_evidence(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:413:def test_failed_install_invalidates_old_success(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:421:def test_manual_reduced_install_cannot_refresh_publication_evidence(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:429:def test_receipt_contains_no_configuration_secret_values(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:435:def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:475:def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:490:def test_enterprise_checkout_with_unavailable_gitdir_is_still_byte_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:499:def test_receipt_without_database_binding_is_not_reusable(site: Site, mutation: str) -> None:
 ./tests/test_integration_flows.py:23:class TestLeadToIntakeToTransaction(PlasticosTestCase):
 ./tests/test_integration_flows.py:32:    def test_full_lead_to_transaction_flow(self):
 ./tests/test_integration_flows.py:53:    def test_lead_creates_partner_when_missing(self):
@@ -1631,31 +1685,41 @@
 ./tests/test_launch_invariants_crm_enrichment.py:512:def test_non_http_scheme_is_rejected():
 ./tests/test_legacy_import_ui_retired.py:60:def test_retired_data_files_are_neither_declared_nor_present():
 ./tests/test_legacy_import_ui_retired.py:68:def test_models_init_no_longer_imports_settings_glue():
-./tests/test_legacy_import_ui_retired.py:73:def test_upgrade_migration_matches_manifest_version():
-./tests/test_legacy_import_ui_retired.py:91:def test_no_xml_entry_point_targets_the_legacy_import():
-./tests/test_legacy_import_ui_retired.py:116:def test_wizard_acl_is_system_only():
-./tests/test_legacy_import_ui_retired.py:128:def test_wizard_execution_actions_are_closed_behind_the_retirement_guard():
-./tests/test_legacy_import_ui_retired.py:151:def test_service_import_entry_points_are_guarded_against_rpc_callers():
-./tests/test_legacy_import_ui_retired.py:171:def test_importer_logic_is_preserved_for_shell_reuse():
+./tests/test_legacy_import_ui_retired.py:77:def test_upgrade_migration_matches_manifest_version():
+./tests/test_legacy_import_ui_retired.py:103:def test_no_xml_entry_point_targets_the_legacy_import():
+./tests/test_legacy_import_ui_retired.py:128:def test_wizard_acl_is_system_only():
+./tests/test_legacy_import_ui_retired.py:140:def test_wizard_execution_actions_are_closed_behind_the_retirement_guard():
+./tests/test_legacy_import_ui_retired.py:163:def test_service_import_entry_points_are_guarded_against_rpc_callers():
+./tests/test_legacy_import_ui_retired.py:183:def test_importer_logic_is_preserved_for_shell_reuse():
 ./tests/test_linda_local_ownership.py:15:def test_linda_manifest_has_no_external_intelligence_module_dependency():
 ./tests/test_linda_local_ownership.py:22:def test_linda_has_no_direct_external_intelligence_import_or_action_call():
 ./tests/test_linda_local_ownership.py:30:def test_local_estimator_and_ranking_are_explicitly_versioned_services():
 ./tests/test_linda_local_ownership.py:37:def test_canonical_freight_context_uses_only_declared_structured_location_facts():
 ./tests/test_linda_local_ownership.py:43:def test_immutable_freight_evidence_is_not_directly_creatable_by_internal_users():
-./tests/test_make_pr_publication.py:184:def test_feature_to_staging_publishes_only_after_l4_and_forced_smoke(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:200:def test_production_base_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:209:def test_staging_to_production_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:217:def test_protected_sources_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:227:def test_self_pr_and_detached_head_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:241:def test_dirty_tree_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:250:def test_l4_denial_and_second_check_failure_do_not_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:265:def test_disable_and_breakglass_switches_do_not_invoke_l4_or_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:282:def test_missing_provider_blocks_without_a_dropbox_fallback(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:297:def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:330:def test_remote_sha_mismatch_fails_the_push_proof(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:348:def test_direct_push_to_a_protected_branch_refuses(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:364:def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:380:def test_api_push_and_autopilot_do_not_publish() -> None:
+./tests/test_make_pr_publication.py:240:def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:259:def test_production_base_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:268:def test_staging_to_production_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:276:def test_protected_sources_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:286:def test_self_pr_and_detached_head_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:300:def test_dirty_tree_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:309:def test_l4_denial_and_second_check_failure_do_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:324:def test_disable_and_breakglass_switches_do_not_invoke_l4_or_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:341:def test_missing_provider_blocks_without_a_dropbox_fallback(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:356:def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:389:def test_remote_sha_mismatch_fails_the_push_proof(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:407:def test_direct_push_to_a_protected_branch_refuses(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:423:def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:439:def test_pr_check_reuses_live_evidence_not_a_source_hash() -> None:
+./tests/test_make_pr_publication.py:446:def test_api_push_and_autopilot_do_not_publish() -> None:
+./tests/test_make_pr_publication.py:470:def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:479:def test_failed_or_missing_gitleaks_does_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:530:def test_rejecting_pre_push_hook_stops_publication(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:547:def test_accepting_pre_push_hook_runs_once_and_publishes_validated_head(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:566:def test_missing_or_disabled_pre_push_enforcement_refuses_before_validation(tmp_path: Path, disable: str) -> None:
+./tests/test_make_pr_publication.py:591:def test_bad_origin_and_skip_switches_refuse(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:626:def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:634:def test_reused_pr_keeps_its_body_and_gains_the_stamp(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:693:def test_real_gitleaks_rejects_a_seeded_secret(tmp_path: Path) -> None:
 ./tests/test_makefile_failure_propagation.py:54:def test_failing_checker_fails_the_make_target(tmp_path, target, checker):
 ./tests/test_makefile_failure_propagation.py:62:def test_passing_checker_passes_the_make_target(tmp_path, target, checker):
 ./tests/test_makefile_failure_propagation.py:144:def test_runtime_gates_does_not_count_f1_as_passed(tmp_path):
@@ -1735,6 +1799,7 @@
 ./tests/test_odoo_outcome_replay_input.py:77:def test_exporter_source_has_no_gate_client_import() -> None:
 ./tests/test_odoo_outcome_replay_input.py:86:def test_adr_documents_schema() -> None:
 ./tests/test_odoo_test_setup_validity.py:234:def test_odoo_test_setup_validity():
+./tests/test_odools_diagnostics.py:53:def test_normalizer_spans_code_and_drops_community():
 ./tests/test_offer_price_bridge_wiring.py:31:class TestOfferPriceBridge:
 ./tests/test_offer_price_bridge_wiring.py:38:    def test_inherit_plasticos_offer(self):
 ./tests/test_offer_price_bridge_wiring.py:41:    def test_create_multi_override(self):
@@ -1784,32 +1849,32 @@
 ./tests/test_performance.py:111:class TestSearchPerformance(PlasticosTestCase):
 ./tests/test_performance.py:119:    def test_partner_search_under_1s(self):
 ./tests/test_performance.py:131:    def test_intake_complex_domain_under_2s(self):
-./tests/test_phantom_enum_values.py:1344:class TestRegistrySanity:
-./tests/test_phantom_enum_values.py:1347:    def test_selection_fields_found(self):
-./tests/test_phantom_enum_values.py:1350:    def test_xml_names_found(self):
-./tests/test_phantom_enum_values.py:1353:    def test_known_polymers_in_registry(self):
-./tests/test_phantom_enum_values.py:1358:    def test_known_forms_in_registry(self):
-./tests/test_phantom_enum_values.py:1362:    def test_known_selection_keys_in_registry(self):
-./tests/test_phantom_enum_values.py:1373:    def test_application_class_options(self):
-./tests/test_phantom_enum_values.py:1378:    def test_process_type_options(self):
-./tests/test_phantom_enum_values.py:1421:    def test_feedstock_type_options(self):
-./tests/test_phantom_enum_values.py:1432:class TestSelectionComparisons:
-./tests/test_phantom_enum_values.py:1437:    def test_domain_values_match_selection_options(self):
-./tests/test_phantom_enum_values.py:1463:class TestPhantomEnumValues:
-./tests/test_phantom_enum_values.py:1467:    def test_no_phantom_comparison_values(self):
-./tests/test_phantom_enum_values.py:1484:    def test_no_phantom_domain_values(self):
-./tests/test_phantom_enum_values.py:1501:    def test_no_phantom_in_list_values(self):
-./tests/test_phantom_enum_values.py:1523:class TestPerModulePhantomAudit:
-./tests/test_phantom_enum_values.py:1527:    def test_module_has_no_phantom_enums(self, module_name):
-./tests/test_phantom_enum_values.py:1544:class TestSelectionFieldConsistency:
-./tests/test_phantom_enum_values.py:1564:    def test_shared_selection_fields_are_compatible(self):
-./tests/test_phantom_enum_values.py:1592:class TestXmlSelectionAlignment:
-./tests/test_phantom_enum_values.py:1596:    def test_xml_colors_are_canonical(self):
-./tests/test_phantom_enum_values.py:1606:    def test_xml_polymer_names_are_uppercase(self):
-./tests/test_phantom_enum_values.py:1713:class TestEquipmentCodeAlignment:
-./tests/test_phantom_enum_values.py:1717:    def test_equipment_codes_in_compute_match_seed_data(self):
-./tests/test_phantom_enum_values.py:1769:class TestPhantomAuditReport:
-./tests/test_phantom_enum_values.py:1773:    def test_print_phantom_summary(self, capsys):
+./tests/test_phantom_enum_values.py:1349:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1352:    def test_selection_fields_found(self):
+./tests/test_phantom_enum_values.py:1355:    def test_xml_names_found(self):
+./tests/test_phantom_enum_values.py:1358:    def test_known_polymers_in_registry(self):
+./tests/test_phantom_enum_values.py:1363:    def test_known_forms_in_registry(self):
+./tests/test_phantom_enum_values.py:1367:    def test_known_selection_keys_in_registry(self):
+./tests/test_phantom_enum_values.py:1378:    def test_application_class_options(self):
+./tests/test_phantom_enum_values.py:1383:    def test_process_type_options(self):
+./tests/test_phantom_enum_values.py:1426:    def test_feedstock_type_options(self):
+./tests/test_phantom_enum_values.py:1437:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1442:    def test_domain_values_match_selection_options(self):
+./tests/test_phantom_enum_values.py:1468:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1472:    def test_no_phantom_comparison_values(self):
+./tests/test_phantom_enum_values.py:1489:    def test_no_phantom_domain_values(self):
+./tests/test_phantom_enum_values.py:1506:    def test_no_phantom_in_list_values(self):
+./tests/test_phantom_enum_values.py:1528:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1532:    def test_module_has_no_phantom_enums(self, module_name):
+./tests/test_phantom_enum_values.py:1549:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1569:    def test_shared_selection_fields_are_compatible(self):
+./tests/test_phantom_enum_values.py:1597:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1601:    def test_xml_colors_are_canonical(self):
+./tests/test_phantom_enum_values.py:1611:    def test_xml_polymer_names_are_uppercase(self):
+./tests/test_phantom_enum_values.py:1718:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1722:    def test_equipment_codes_in_compute_match_seed_data(self):
+./tests/test_phantom_enum_values.py:1774:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:1778:    def test_print_phantom_summary(self, capsys):
 ./tests/test_pristine_runtime_seams.py:56:def test_entrypoint_makes_caller_state_durable_before_its_owned_cursor(entrypoint):
 ./tests/test_pristine_runtime_seams.py:76:def test_the_durability_boundary_actually_commits():
 ./tests/test_pristine_runtime_seams.py:83:def test_flush_is_not_used_as_a_cross_transaction_boundary(scope):
@@ -1976,17 +2041,17 @@
 ./tests/test_state_machines.py:517:    def test_cancel_accepted_raises(self):
 ./tests/test_state_machines.py:524:    def test_reject_accepted_raises(self):
 ./tests/test_state_machines.py:531:    def test_accept_records_metadata(self):
-./tests/test_suite_structure.py:93:class TestSuiteStructure:
-./tests/test_suite_structure.py:96:    def test_all_test_files_parse(self):
-./tests/test_suite_structure.py:107:    def test_every_test_module_is_collectable_by_pytest(self):
-./tests/test_suite_structure.py:136:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
-./tests/test_suite_structure.py:161:    def test_odoo_tests_declare_a_recognised_base(self):
-./tests/test_suite_structure.py:175:    def test_no_duplicate_test_class_names(self):
-./tests/test_suite_structure.py:196:class TestTestFileNaming:
-./tests/test_suite_structure.py:199:    def test_test_files_start_with_test(self):
-./tests/test_suite_structure.py:210:    def test_non_test_files_are_not_test_named(self):
-./tests/test_suite_structure.py:216:class TestTestContent:
-./tests/test_suite_structure.py:219:    def test_test_methods_contain_assertions(self):
+./tests/test_suite_structure.py:105:class TestSuiteStructure:
+./tests/test_suite_structure.py:108:    def test_all_test_files_parse(self):
+./tests/test_suite_structure.py:119:    def test_every_test_module_is_collectable_by_pytest(self):
+./tests/test_suite_structure.py:148:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
+./tests/test_suite_structure.py:171:    def test_odoo_tests_declare_a_recognised_base(self):
+./tests/test_suite_structure.py:185:    def test_no_duplicate_test_class_names(self):
+./tests/test_suite_structure.py:206:class TestTestFileNaming:
+./tests/test_suite_structure.py:209:    def test_test_files_start_with_test(self):
+./tests/test_suite_structure.py:220:    def test_non_test_files_are_not_test_named(self):
+./tests/test_suite_structure.py:226:class TestTestContent:
+./tests/test_suite_structure.py:229:    def test_test_methods_contain_assertions(self):
 ./tests/test_test_env_safety.py:72:def test_unsafe_target_is_refused_before_docker(tmp_path, command, target, reason):
 ./tests/test_test_env_safety.py:79:def test_run_refuses_arguments_that_redirect_away_from_the_clone(tmp_path, arg):
 ./tests/test_test_env_safety.py:85:def test_business_database_name_from_env_is_refused(tmp_path):

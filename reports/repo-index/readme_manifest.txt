@@ -13,6 +13,9 @@
 ./docs/README_backup_github_actions.md:165:# Or restore to Odoo.sh via the Odoo.sh platform backup restore UI
 ./docs/adr/README.md:1:# Architecture Decision Records (ADRs)
 ./docs/adr/gate-integration/README.md:1:# Gate Integration ADR Pack
+./docs/reports/evidence/crm-erp-approved-identity-2026-10-18/README.md:1:# Evidence: CRM to ERP approved identity, Docker run 2026-10-18
+./docs/reports/evidence/crm-erp-approved-identity-2026-10-18/README.md:191:# set plasticos_crm_sync.approved_contact_crosswalk and plasticos_crm_sync.vanillasoft_api_key on the clone
+./docs/reports/evidence/crm-erp-approved-identity-2026-10-18/README.md:200:# strip the SNAPSHOT / STATE prefixes, then:
 ./docs/roadmap/README.md:1:# Roadmap tooling
 ./docs/roadmap/README.md:18:# Sync all roadmap docs + validate IDs (no item added)
 ./docs/roadmap/README.md:21:# Add item → auto ID (ROAD-GATE-NNN) → sync → validate — one command
