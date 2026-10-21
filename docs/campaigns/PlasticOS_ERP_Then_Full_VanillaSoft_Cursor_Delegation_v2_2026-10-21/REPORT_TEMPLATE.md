@@ -1,4 +1,6 @@
-# Post-run evidence: ERP active-partners import followed by full VanillaSoft CRM bootstrap
+# Post-run evidence: ERP partners, ERP commercial documents, then full VanillaSoft CRM
+
+Contract revision `v2.1`. Importer outcomes `created` / `updated` / `unchanged` with a persisted provider ref are imported. Approved misses caused by the active-only rule are `held`. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. Do not invent importer states.
 
 > Fill only from actual execution receipts. All `NOT_RUN` values must become observed data or explicit BLOCKED/UNKNOWN. Commit only sanitized facts, no customer PII.
 
@@ -10,7 +12,7 @@
 
 ## Bottom line
 
-Did the CRM start empty? UNKNOWN. Were eligible active ERP people imported? UNKNOWN. Were all 4,876 frozen source IDs actually fetched and migrated (or explicitly held)? UNKNOWN. How many real `crm.lead` records and approved-person bindings now exist in the clone? UNKNOWN. Which material exceptions remain? UNKNOWN.
+Did the CRM start empty? UNKNOWN. Were eligible active ERP people imported with inactive aliases excluded? UNKNOWN. Did the commercial pass write native sale orders, purchase orders, invoices, and only compiled transactions? UNKNOWN. Were all 4,876 frozen source IDs fetched and classified? UNKNOWN. How many real `crm.lead` records and approved-person bindings exist? UNKNOWN. Which material exceptions remain? UNKNOWN.
 
 ## A. Source and policy checks
 
@@ -29,11 +31,12 @@ Explain the source flag spellings and mutually exclusive eligibility/exclusion p
 
 ## B. Exactly one clone and ordered stage proof
 
-| Checkpoint | Business partners | ERP person XMLIDs | `crm.lead` | CRM provider refs to lead | CRM provider refs to person | Calls | Evidence |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Before imports (fresh clone) | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | |
-| AFTER ERP, BEFORE VanillaSoft | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | |
-| AFTER VanillaSoft full bootstrap | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | |
+| Checkpoint | Business partners | ERP person XMLIDs | `sale.order` | `purchase.order` | `account.move` | `plasticos.transaction` | `crm.lead` | Person refs | Lead refs | Calls | Evidence |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Before imports (fresh clone) | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | |
+| After partners-only, before commercial | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | |
+| After commercial, before VanillaSoft | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | |
+| After VanillaSoft 4,876 pass | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | |
 
 Record fixture admission, clone-ownership proof, code and Enterprise checkout digests, read-only ERP SQL proof, private provider API scope, actual commands/exit codes and no hosted writes. Odoo system/seed partner rows are not imported business counterparties.
 
@@ -47,7 +50,17 @@ Record fixture admission, clone-ownership proof, code and Enterprise checkout di
 | Roles | | | | | | | |
 | Sales reps | | | | | | | |
 
-No inactive source person, person alias, phone line or note enrichment, and no transaction import. Show the exact changed code if a source selector needed repair.
+No inactive source person, inactive alias, phone line, or note from an ineligible row. This pass writes no `sale.order`, `purchase.order`, `account.move`, or `plasticos.transaction`. Record the active-contact selection change (`parse_bool(IsActive) is True` only; blank is excluded; ineligible CT_IDs are not aliases).
+
+## C2. Commercial document import (second ERP write)
+
+| Document | Source worksheets in scope | Created | Updated | Unchanged | Rejected | Compiled `plasticos.transaction` | Evidence |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `sale.order` | | | | | | | |
+| `purchase.order` | | | | | | | |
+| `account.move` | | | | | | | |
+
+Partner census versus section C must be unchanged except idempotent `unchanged` rows. `plasticos.transaction` rows exist only as the sale-order confirm/compile result of `native_document_import.realize`. Status: NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.
 
 ## D. VanillaSoft full source ID reconciliation (MUST SUM TO 4,876)
 
@@ -58,7 +71,7 @@ No inactive source person, person alias, phone line or note enrichment, and no t
 | PENDING, not approved for ERP person matching | 4,095 | UNKNOWN | UNKNOWN | UNKNOWN | |
 | **TOTAL** | **4,876** | **UNKNOWN** | **UNKNOWN** | **UNKNOWN** | |
 
-Check `imported/bound + held + failed = 4,876`, no source ID counted twice. For imported/bound, break down exact person links, created leads, updated leads and unchanged existing records. Distinct `crm.lead` count does not have to equal 4,876 because matched people need not receive new leads.
+Check `imported + held + genuine_failed = 4,876`, no source ID twice. Imported means orchestrator `created`, `updated`, or `unchanged` plus one persisted provider ref. Approved `failed` from a missing excluded ERP person is `held` and has no lead. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. `crm.lead` need not equal 4,876.
 
 ## E. Approved identity and previous 28 exceptions
 
@@ -80,7 +93,7 @@ Check `imported/bound + held + failed = 4,876`, no source ID counted twice. For 
 | Ambiguous/unmapped material and form cases | | | | |
 | Real provider call events and custom tables | | | | |
 
-Explain that `STAGE REVIEW` workbook proposals remain unapproved, and source Field Census/Polymer workbook is not permission to create new stages/material masters. Record any provider time-window limits separately for contacts and call history.
+Owner, stage, and polymer workbooks are audit oracles. Record the importer's name-match `user_id`, `STAGE_MAPPING` stage, and `normalize_material` result against those oracles. Do not describe a gap as a new map that was installed. Record provider limits separately for the per-ID fetch and for call history. `make import-vanillasoft` was not the cohort path.
 
 ## G. Cohort completeness is not live history completeness
 
@@ -95,7 +108,8 @@ Explain that `STAGE REVIEW` workbook proposals remain unapproved, and source Fie
 
 Cite actual command paths and output files, code SHA and fixture SHA, file hashes, source-query digests, logs redacted of personal fields and secrets, the database identity under test, an exception ledger, and any PR URL.
 
-**ERP acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
+**ERP partner acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
+**ERP commercial-document acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
 **CRM source-cohort import acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
 **Operator-approved links acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
 **Full historical provider census:** NOT_PROVEN until explicitly evidenced.  

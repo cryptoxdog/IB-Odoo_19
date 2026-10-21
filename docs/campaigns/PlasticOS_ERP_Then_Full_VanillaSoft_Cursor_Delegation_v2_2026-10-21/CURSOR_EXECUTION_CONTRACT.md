@@ -1,130 +1,167 @@
-# Cursor execution contract: ERP first, full VanillaSoft CRM second
+# Cursor execution contract: ERP import, then full VanillaSoft CRM
 
 **Contract ID:** `PLASTICOS-ERP-THEN-VS-FULL-CRM-2026-10-21-v2`  
+**Revision:** `v2.1` — corrections against remote `Staging` `e78af874604890f8adb6b049694f93c48311eab4`. Rebind before execution and record the actual SHA. If it is not that commit, stop and reconcile this contract to the new SHA before any write.  
 **Target:** https://github.com/cryptoxdog/IB-Odoo_19  
-**Runner:** Cursor on the operator's existing workstation, with the existing Odoo 19 Enterprise Docker fixture, restored ERP SQL database (read-only), and authorized VanillaSoft API access.  
-**Starting reference only:** `Staging` at `e78af874604890f8adb6b049694f93c48311eab4`. Rebind to current `origin/Staging`; record the actual SHA under test.  
-**Supersedes:** the prior active-only delegation that stopped after a 763-ID mapping pass.
+**Runner:** Cursor, existing Odoo 19 Enterprise Docker fixture, restored ERP SQL database (read-only), authorized VanillaSoft API access.  
+**Supersedes:** the prior active-only delegation that stopped after a 763-ID mapping pass, and the v2 sentences that excluded commercial documents or told the agent to apply mappings this commit does not implement.
+
+## What changed in v2.1
+
+Checked against the commit above. These replace conflicting sentences later in older copies of this file.
+
+1. **ERP is two ordered writes on one clone, not partners alone.** `ERP_PARTNERS_ONLY=1` is the first write: the five partner layers, with inactive contacts kept out. It must leave `sale.order`, `purchase.order`, `account.move`, and `plasticos.transaction` unchanged. The second write is the same `make import-erp` **without** `ERP_PARTNERS_ONLY` and **without** `ERP_LIMIT`. On this commit that path runs partner stages again, then `plasticos_transaction.models.legacy_erp_import_service._extend_historical_import` → `native_document_import.realize`, which writes `sale.order`, `purchase.order`, and `account.move` and confirms sale orders. Confirmation is what compiles `plasticos.transaction`. Do not hand-build those records and do not add another writer. An unset `ERP_LIMIT` is the full worksheet set (`parse_limit` of empty is `None`). `make import-erp-test` stays forbidden: its default is `LIMIT=25%`.
+2. **Inactive contacts are still imported today.** `12_contact.sql` selects every contact. `mapping.parse_bool` returns true for `Y`/`1`/`TRUE`, false for `N`/`0`/`FALSE`, and `None` for blank or any other spelling. `_row_active` treats `None` as active. `_import_person` sets the person active if **any** alias is active and writes `plasticos_transaction.legacy_erp_contact_<CT_ID>` for **every** alias, including inactive ones. An all-inactive person is still upserted with `active=False`. Before the first import, change that selection so a row is eligible only when `parse_bool(IsActive) is True`. Blank or unknown is an exclusion, not an active row. Ineligible `CT_ID`s are not people and not aliases. Mixed groups import from eligible rows only. Company scope stays `ActiveStatus='A'` in `10_counterparty.sql`, including its placeholder exclusions. Read the real `IsActive` spellings from the read-only source before coding, so an unexpected true spelling is not dropped as unknown. Bump `plasticos_partner_import` with the change. `scripts/test_env.sh run` upgrades the PlasticOS roster on the clone before the command; that upgrade is what loads the bump. Do not `make update-all`.
+3. **The 4,876 CRM pass is not `make import-vanillasoft`.** That target calls `SyncOrchestrator.run_full_import` with a modified-after floor. `scripts/test_env.sh run` accepts it only when both `VANILLASOFT_CALL_FLOOR` and `VANILLASOFT_CONTACT_FLOOR` are set. A floor older than about 30 days returns HTTP 400. Do not run it, and do not call a 30-day run full. The cohort pass is `scripts/test_env.sh run <owned-clone> -- shell --no-http` with stdin, one `upsert_contact_external_id` per frozen ContactID. The October 18 script `docs/reports/evidence/crm-erp-approved-identity-2026-10-18/scripts/vs_identity_run.py` is the pattern; extend it from the 763 approved IDs to all 4,876. `run` upgrades the roster with stdin discarded, then the shell inherits the pipe.
+4. **Report outcomes are a translation, not new importer states.** `upsert_contact_external_id` / `_upsert_lead` classify `created`, `updated`, `unchanged`, `duplicate_rejected`, or `failed`. An approved ID whose ERP person is missing is `failed`, not a native `held`. In the receipt, `created`/`updated`/`unchanged` with one persisted provider ref count as imported. Approved `failed` because the active-only import excluded that person counts as `held`, not imported. `duplicate_rejected`, exceptions, and provider fetch errors count as `genuine_failed`, not imported.
+5. **Do not add owner, stage, or polymer mappers.** Owner assignment on this commit is `_lead_vals_from_dto`: `user_id` is set only when exactly one active-search `res.users` name equals `dto.owner_name` case-insensitively; otherwise it stays empty. Stage comes from `plasticos_crm_bridge` `STAGE_MAPPING`, otherwise `plasticos_crm_bridge.stage_new`. Materials go through the existing normalizer and only attach when one facility profile already exists. The owner, stage, and polymer workbooks are audit oracles. Score what the importer wrote. Mismatches are field gaps. Do not create users, stages, polymer masters, or an email crosswalk in this run.
+6. **The crosswalk file must be on the compose mount.** `load_crosswalk_map` reads a host path inside the container. The repo is mounted at `/mnt/extra-addons`. A path outside the repo is invisible there. Copy the byte-exact crosswalk and a no-PII ID census into gitignored `Current Work - IGNORE/erp-then-vs-full-crm/`. Set `plasticos_crm_sync.approved_contact_crosswalk` to the in-container path `/mnt/extra-addons/Current Work - IGNORE/erp-then-vs-full-crm/03_APPROVED_CONTACT_CROSSWALK.csv`. This campaign directory is untracked and is not gitignored. Do not `git add` it or `PRIVATE_INPUTS/`.
 
 ## Outcome
 
-On **one fresh, verified Enterprise Docker clone**, execute the real **two-source bootstrap in order**:
+On **one fresh clone of the pinned Enterprise fixture**, in this order:
 
-1. **ERP:** import all eligible, explicitly active companies/contacts via the existing direct-SQL, partners-only importer. Do not import inactive people, inactive companies, transactions, or fabricated identities.
-2. **VanillaSoft:** with that ERP population now available, ingest the **entire frozen 4,876-ContactID, Flagged=True CRM cohort** through the existing VanillaSoft integration, applying the operator-confirmed identity matrix and the approved field mappings. This is a real CRM write/import into the previously empty CRM, not a read-only analysis and not just a 763-ID crosswalk experiment.
-3. **Reconcile:** account for all 4,876 source ContactIDs, exact identity outcomes, CRM lead records, calls, approved field mappings, blocked decisions, exclusions and true defects. Deliver a detailed evidence report plus a machine-readable receipt.
+1. **Partners.** Eligible explicitly active companies and contacts through `make import-erp` with `ERP_PARTNERS_ONLY=1`. No inactive people, inactive companies, or inactive aliases. No commercial documents yet.
+2. **Commercial documents.** The existing full ERP import on that same clone. Native `sale.order`, `purchase.order`, `account.move`, and `plasticos.transaction` rows only as the sale-order confirm/compile result of that extension.
+3. **VanillaSoft.** All 4,876 frozen `Flagged=True` ContactIDs through `upsert_contact_external_id`, with the operator identity matrix. This writes CRM. It is not a spreadsheet reconciliation and not a 763-ID pass.
+4. **Reconcile.** Every source ID once, plus partner, document, and CRM counts.
 
-**Meaning of "full":** all 4,876 source IDs in the supplied verified October 13 historical snapshot, plus an explicitly reported assessment of whether the current live provider population contains additions/deletions after that snapshot. An historical source cohort is not, by itself, proof of full current provider history.
+**Meaning of "full" for CRM:** all 4,876 IDs in the verified October 13 snapshot, plus a reported check of whether the live provider has additions or deletions after that snapshot. The snapshot is not proof of current provider history.
 
 ## Nonnegotiable boundaries
 
-- **No use of the retired vendor application, UI, proprietary data-export workflow or tooling.** The ERP source is the existing restored read-only SQL database accessed only by the repo's canonical `make import-erp` / projection reader. Never create a second ERP ETL path, use the frozen ERP grid as runtime authority, or mutate the source database.
-- **ERP active only.** Existing `10_counterparty.sql` requires `ActiveStatus='A'`; preserve that and its placeholder ID exclusions. `12_contact.sql` presently has no `IsActive` filter. Prove true/false spellings from read-only raw source before adding the smallest source-owned eligibility filter. A blank/unknown flag is not proof of active. Do not materialize inactive CT_IDs, marker aliases, notes or phone enrichment on the fresh clone.
-- **CRM cohort eligibility differs.** All 4,876 `Flagged=True` source IDs are in scope **regardless of native Lead Status, ClosedFlag, Unqualified, Do Not Call or Prison classification** under the existing operator decision. Do not confuse a CRM call restriction or lead stage with `ERP Contact.IsActive`. Preserve Do Not Call restrictions, never trigger outbound calls. Do not filter CRM down to only 763 approved people.
-- **One disposable test clone.** No hosted Staging/Production/Odoo.sh DB, no production source writes, no SQL changes, no test template replacements, no new private Enterprise mirror.
-- **No invoice/order/accounting/document/transaction imports.** Always explicitly set `ERP_PARTNERS_ONLY=1`, with no `LIMIT`; do not run unrestricted `make import-erp` or default `make import-erp-test` (its usual run is sampled).
-- **No fuzzy ERP person linking.** Do not promote 4,095 unreviewed CRM source IDs into approved ERP links. The 18 operator rejected suggested links are hard negatives. For all source IDs, preserve provider ContactID as primary identity. Never create or relink an `res.partner` to force a success percentage.
-- **No new Odoo fields/models/stages/material masters as a shortcut.** Use current Odoo-native fields, existing provider refs, existing module ownership and approved mapping decisions. Do not treat pending stage mappings or proposed polymer codes as approved. Equipment omitted.
-- **Do not run redundant full API replays or broad suite cycles.** One actual full two-stage load, cheap local correctness checks, and targeted replay verification only if needed by a changed invariant.
-- Code changes may be made **only where essential** to make the authorized two-stage flow work correctly. One narrow PR to Staging using the repo's `make pr` only if changes occur. No merge or deploy.
+- ERP source is the restored read-only SQL database through `make import-erp` / the projection reader. No second ETL, no frozen grid as runtime authority, no source writes, no retired vendor UI.
+- One disposable clone from `config/test_env_fixture.conf` (`TEMPLATE=odoo_test_tpl_ee_c9e8a81f52f23680`) via `scripts/test_env.sh`. Do not build or rename another template. No hosted Staging, Production, or Odoo.sh writes.
+- Every Odoo write goes through `scripts/test_env.sh run <owned-clone> -- ...` after `assert-clone`. Bare `docker compose` against the business database `odoo` is a failure.
+- CRM cohort is all 4,876 `Flagged=True` IDs, including Unqualified, Do Not Call, Prison, and `ClosedFlag`. Do Not Call is a contact restriction, not an ERP `IsActive` filter and not a reason to drop the ID. Never place a call.
+- No fuzzy ERP person linking. Do not promote the 4,095 pending IDs. The 18 rejected links never attach. Preserve provider ContactID. Never create or relink a `res.partner` to raise a match rate.
+- No new Odoo fields, models, stages, or material masters. No new owner-email map.
+- One full two-stage ERP load and one 4,876 CRM pass. No second full provider replay. A targeted read proves uniqueness.
+- Code changes only where this revision says they are required (the active-contact selection, and a checkpoint shell script under `Current Work - IGNORE/`). One `make pr` to `Staging` only if addon code changes. No merge and no deploy. The shell script and private inputs stay out of Git.
 
-## 0. Supplied private input authority: verify before executing
-
-The ZIP includes these exact files in `PRIVATE_INPUTS/`. They are PRIVATE operator inputs and **must not be checked into GitHub**. Keep them outside the repo, or in a verified ignored private runtime folder. Only sanitized counts, proofs and scripts may be committed.
+## 0. Verify private inputs before any database write
 
 | Input | Purpose | Decision status |
 | --- | --- | --- |
-| `CRM Leads - VanillaSoft - Scrap-Management(1).csv` | Immutable 4,876-row, 96-field historical CRM snapshot, identity census and ID enumeration | Source evidence, not permission to replace the API importer |
-| `PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx` | Operator-confirmed CRM/ERP identity decision matrix and complete 4,876-ID classifications | Authoritative for 763 YES, 18 NO, 4,095 PENDING |
-| `03_APPROVED_CONTACT_CROSSWALK.csv` | Existing approved-ID file for `plasticos_crm_sync.approved_contact_crosswalk`; generated byte-exact from the matrix | Its SHA256 **must equal** `f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2`, the hash pinned in code |
-| `VanillaSoft_4876_Field_Mapping_Resolved_Owners_Stage_Review.xlsx` | Exact source-field to Odoo field handling, locked owner email aliases, stage proposals and unresolved gates | Apply LOCKED rules only; STAGE REVIEW proposals are not approved |
-| `VanillaSoft_to_Odoo_Polymer_Mapping_Decisions_2026-10-14.xlsx` | Approved/reserved material aliases and polymer decisions, source evidence, unapproved proposals | Apply approved exact/resolved codes only; defer ambiguous or absent masters |
+| `CRM Leads - VanillaSoft - Scrap-Management(1).csv` | Immutable 4,876-row historical snapshot and ContactID census | ID list only. Not a CSV importer |
+| `PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx` | Operator identity matrix | Authoritative for 763 YES, 18 NO, 4,095 PENDING |
+| `03_APPROVED_CONTACT_CROSSWALK.csv` | Allowlist for `plasticos_crm_sync.approved_contact_crosswalk` | SHA256 must equal `f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2` |
+| `VanillaSoft_4876_Field_Mapping_Resolved_Owners_Stage_Review.xlsx` | Field, owner, and stage audit oracle | Score the importer. Do not install STAGE REVIEW or a new owner map |
+| `VanillaSoft_to_Odoo_Polymer_Mapping_Decisions_2026-10-14.xlsx` | Material audit oracle | Score `normalize_material` output. Do not create masters |
 
-Read `INPUT_MANIFEST.json`; check SHA256 for all five files, exact 4,876 distinct source IDs, all `Flagged=True`, exact operator-decision partition `763 + 18 + 4,095 = 4,876`, and exact crosswalk `763 VS IDs / 716 distinct ERP CT_IDs`. The workbook has 45 ERP people intentionally shared among 92 approved CRM source IDs. Preserve these aliases, never duplicate the person.
+Check `INPUT_MANIFEST.json` hashes, 4,876 distinct ContactIDs, all `Flagged=True`, partition `763 + 18 + 4,095 = 4,876`, and crosswalk `763` VanillaSoft IDs / `716` ERP `CT_ID`s. Forty-five ERP people are shared by 92 approved source IDs. Keep those aliases. Do not duplicate the person.
 
-Historical CRM snapshot SHA256: `40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9`. Treat it as a benchmark for full 4,876-ID coverage, not as a current live API census or as a new direct-CSV importer.
+Historical snapshot SHA256: `40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9`.
 
-## 1. Gate A: bind Enterprise environment; establish empty CRM baseline
+Build `Current Work - IGNORE/erp-then-vs-full-crm/crm_id_census.csv` with columns `vanillasoft_contact_id,decision` only (`YES`/`NO`/`PENDING`). No names, emails, phones, or notes. The shell reads that file. Host-side scoring may read the workbooks.
 
-- Rebind repo and inspect current code/manifest/recent merges. Record commit SHA, actual installed modules, current ERP/CRM code revisions and code digests.
-- Check the *existing* pinned Enterprise fixture from `config/test_env_fixture.conf` through `scripts/test_env.sh status`. The reference fixture name is `odoo_test_tpl_ee_c9e8a81f52f23680`; require its proved image/Postgres/Enterprise checkout/module fingerprint. Do not replace or build an alternate template to clear drift.
-- Create ONE new owned disposable clone via the documented `scripts/test_env.sh clone`/`run` workflow. Record clone identifier and ownership. Do not reuse the earlier October 18 imported clone.
-- **Before either import, prove the CRM is empty**: record `crm.lead` row count, source-specific `plasticos.crm.external.ref` count, VanillaSoft sync run rows, CRM call/event and custom-provider-row counts, plus ERP business partner/source-XMLID baseline. An Enterprise fixture may have Odoo seed partners; that is not a CRM import. If the clone has prior CRM source records, replace only your own newly created disposable clone using the guarded workflow; never silently reuse imported state.
-- Check the restored ERP SQL database is read-only to the importing principal. Bind the existing VanillaSoft API credentials privately through approved secret management; neither credentials nor full source notes/emails may enter logs, PRs, or receipts.
+## 1. Gate A: pinned Enterprise clone, CRM empty
 
-**Gate A passes when:** one verified Enterprise clone is identified and the *before* inventory explicitly shows no preimported CRM source contacts.
+- Record commit SHA, installed modules, and fixture fingerprint from `scripts/test_env.sh status`. The template name must be `odoo_test_tpl_ee_c9e8a81f52f23680`. If that database is absent, stop. Do not set `TEST_ENV_ALLOW_NEW_TEMPLATE`.
+- `scripts/test_env.sh clone <new-owned-name>`. Do not reuse the October 18 clone `odoo_test_w2495f48767`.
+- Before either import, record `crm.lead`, `plasticos.crm.external.ref`, VanillaSoft sync runs, `plasticos.crm.call.event`, `plasticos.crm.external.table.row`, and business-partner / ERP XMLID baselines. Odoo seed partners are not a CRM import. If this clone already has CRM source rows, drop only this owned clone and clone again.
+- ERP SQL login is read-only. VanillaSoft credentials go to the clone's `ir.config_parameter` through the existing secret path. No secrets or customer notes in logs, PRs, or receipts.
 
-## 2. Gate B: active-only ERP import (first real write stage)
+**Gate A passes when** the clone is the pinned fixture's and the before-counts show no CRM source contacts.
 
-- On read-only ERP SQL, census raw Contact `IsActive` flag spellings, company `ActiveStatus` spellings, parent CpIDs, rejected placeholders, known missing parents and source identities. Determine the explicit true set from observed values; do not assume blank/unknown means active. The active-only policy applies to the ERP partner source, not a CRM lead-stage value.
-- Verify `plasticos_partner_import/erp_extracted_data/12_contact.sql` currently selects all rows; minimally correct the canonical projection/reader semantics to select **only explicitly active source contacts** if needed. Keep eligible active company scope exactly as installed. Prevent inactive-only names/aliases, roles, phones and notes from being installed on the clone. Add only the targeted tests necessary for the changed selection, including active and inactive aliases of one person.
-- Import the entire eligible, active partner population (five partner tables) from the original read-only SQL source through the repo's existing guarded `make import-erp` path within `scripts/test_env.sh run <owned-clone> -- ...`, explicitly `ERP_PARTNERS_ONLY=1`, `ERP_LIMIT` empty, `ERP_REQUIRE_EMPTY` fail-closed on first load, and `ODOO_DB_NAME` exactly the verified clone. Do not use the sampled `make import-erp-test` or import any deals.
-- Capture the five layer validators, source and target counts, contact XMLID/alias census, created/updated/unchanged, policy exclusions separated from genuine invalid references, and before/after target DB identity. Independently reconcile all explicitly eligible active source CT_IDs, accounting for established nonperson/site-mailbox routing rather than counting them as lost people.
-- The previous 28 approved links failing `no_erp_person` (27 distinct CT_IDs) were parents missing from the active-company export. Classify **each** using the real read-only parent status and placeholder/missing-parent predicates; do not assume all 28 are inactive or make the parent active just to increase matches.
+## 2. Gate B: active-only partners (first ERP write)
 
-**Gate B passes when:** the ERP eligible active population is reconciled and persisted to this clone, no intentionally inactive partner/contact or alias was imported, and the mapped ERP people are available for the CRM stage.
+- Census `IsActive` and `ActiveStatus` spellings, placeholder IDs, and missing parents on the read-only source. Apply the selection change in "What changed" item 2. Add a focused test: one person with an active row and an inactive alias imports the active row only; the inactive `CT_ID` has no XMLID; a blank flag is excluded.
+- Run, with `ERP_LIMIT` unset and `ERP_REQUIRE_EMPTY` left at its default fail-closed value:
 
-## 3. Gate C: the missing step - FULL VanillaSoft CRM import (second real write stage)
+```bash
+scripts/test_env.sh run <owned-clone> -- \
+  make import-erp ODOO_DB_NAME=<owned-clone> \
+  ERP_PARTNERS_ONLY=1 \
+  ERP_REPORT_PATH=.l9/pr/erp-partners-summary.json
+```
 
-**This stage is mandatory and follows the ERP import on the SAME clone. The prior handoff omitted it.**
+- Reconcile the five layers. Policy exclusions are separate from invalid references. Classify each of the previous 28 `no_erp_person` IDs (27 `CT_ID`s) from real parent status. Do not activate a parent to increase matches.
 
-1. Bind the 763-ID approved crosswalk **before the first CRM contact is written**, using the existing config parameter and the shipped byte-exact CSV. Verify the strict SHA256 and 763/716 population, without editing the matrix. In the same read-only preflight, load the 18 NO decisions and all 4,095 PENDING IDs from the confirmed workbook.
-2. The **goal is to ingest all 4,876 `Flagged=True` ContactIDs as actual CRM source records/outcomes**, not merely reconcile IDs in Excel or run the 763 approved matcher. Use the existing VanillaSoft adapter, DTO mapper, orchestrator and provider-identity upsert. Prefer an existing API-supported complete enumeration if proven; otherwise use the **existing ID-based `SyncOrchestrator.upsert_contact_external_id`** for the whole verified 4,876-ID cohort, with one bounded, checkpointed pass. The shipped historical CSV provides the enumerated ContactIDs and audit snapshot, **not** a parallel manual CSV writer to Odoo.
-3. Historical full `/Contacts` list queries were observed to fail at more than a 30-day modification floor (HTTP 400). Do NOT run a known-bad 2019 list import repeatedly, secretly clamp the date, or call a 30-day import "full." Single-ID fetch worked on the earlier approved cohort. Before the long pass, verify that the current API can still resolve older source IDs and that real per-ID calls/custom fields are available. If it cannot, stop that path and report the exact blocked cohort; do not fabricate from the CSV.
-4. Run **one** full ID-census import with bounded provider request pacing, durable per-ID checkpoints, and resumption only for IDs not yet durably processed. Do not call the provider twice per source ID just to collect a second receipt. Avoid a duplicate entire source import for idempotence; the existing repo already has prior crosswalk replay proof. A targeted read-only database query establishes uniqueness and source coverage.
-5. **763 operator-approved YES:** Resolve `plasticos_transaction.legacy_erp_contact_<CT_ID>` to exactly one imported eligible ERP person before an approved link writes. Attach source ID through existing `plasticos.crm.external.ref` as `res.partner`; enrich only by the approved precedence rules (ERP names/relationships/primary contact data win, CRM only supplements approved phones/notes/events). Do not create a duplicate person or unnecessary CRM lead. If an approved target is excluded under active-only ERP policy, do not activate/import it or reassign the ID elsewhere; record the provider ContactID as processed-but-held for identity, with the actual reason. Any decision to create a standalone CRM lead for such an approved-but-unresolvable source is **not** implicit authorization to bypass the locked identity rule.
-6. **18 operator NO:** Never link to the rejected ERP CT_ID. Process through the current source-identity-based normal CRM lead path only if it does not guess an ERP partner; report results separately.
-7. **4,095 PENDING:** These are NOT approved ERP matches and are NOT pre-certified new real-world people. Their VanillaSoft provider IDs may be represented as Odoo `crm.lead` source records in the existing normal CRM path, but must not be auto-consolidated into an existing `res.partner` or promoted into an approved ERP link by name/email/phone/company. Preserve review status and provenance.
-8. CRM cohort is **all 4,876 Flagged=True**, not a status-sliced sample. Include the 1,000 historically Unqualified, 139 Do Not Call and other ordinary source statuses; preserve DNC restrictions and the raw status. Never reclassify "Currently Working With" as Won without its own evidence. Apply Odoo native `crm.stage` only when the exact stage mapping is approved and installed; the supplied `STAGE REVIEW` is a proposal, not authorization. Use existing safe stage handling while retaining the source status. Do not add new stage values/configuration to force coverage.
-9. Apply **locked** Contact Owner email-to-existing-active-`res.users` mappings from `OWNER CROSSWALK`, including verified aliases/blank-owner disposition. Verify current user records and do not infer from prospect email or fuzzy name matches. Preserve distinct direct/mobile and extra phone channels. Append CRM notes without erasing ERP notes. Equipment excluded. For materials, use one `plasticos.material.profile.polymer_id` from the approved mappings and current existing masters; no invented polymer/form combinations, no guessed attributes or `OTHER` fallback. Preserve ambiguous material strings for review without creating invalid profiles.
-10. Calls, source custom tables, phone lines, notes and provenance must use existing provider-aware behavior. Do not synthesize historical call events from the frozen export's "Last Call Date/Result" summary. Record the actual API coverage for call history and any server/API limit separately from the contact-import census. Current live additions/deletions compared with the frozen 4,876 snapshot are explicit deltas, not silent changes to the target cohort.
+**Gate B passes when** eligible active partners are on this clone, no ineligible contact or alias was written, and `sale.order`, `purchase.order`, `account.move`, and `plasticos.transaction` counts are unchanged from the fresh clone.
 
-**Gate C passes when:** for **every one of the 4,876** frozen Flagged ContactIDs, the persisted clone contains exactly one valid provider-ID target (approved person ref or normal unapproved CRM lead) **or** a named, source-supported held/rejected outcome. Total `bound + created_lead + updated_lead + unchanged + held + genuine_failed` reconciles to 4,876 with each source ID once. `held` and `genuine_failed` are NOT counted as imported. The CRM was initially blank; demonstrate actual new CRM writes.
+## 3. Gate B2: commercial documents (second ERP write, same clone)
 
-## 4. Gate D: acceptance and reconciliation
+Partner rows now exist, so the empty-database guard must be opened explicitly. Still no `ERP_LIMIT` and no `ERP_PARTNERS_ONLY`:
 
-Perform independent **read-only** final inventories, joining the frozen source ContactID set, matrix decisions and Odoo's own source refs, leads, people and call events. Compare preimport vs post-ERP vs post-CRM values. Record separately:
+```bash
+scripts/test_env.sh run <owned-clone> -- \
+  make import-erp ODOO_DB_NAME=<owned-clone> \
+  ERP_REQUIRE_EMPTY=0 \
+  ERP_REPORT_PATH=.l9/pr/erp-commercial-summary.json
+```
 
-- **ERP coverage:** eligible active companies, active contacts, grouped real people, special nonperson/site routing, aliases, excluded inactive and invalid parents. No leaked inactive CTID record or enrichment.
-- **Full CRM coverage:** `4876 = approved(763) + NO(18) + pending(4095)` and separately `4876 = successfully imported/bound + intentionally held + failed`, no duplicate or lost ContactIDs. Report real `crm.lead` count instead of assuming it must equal 4,876: approved existing-person links intentionally do not need lead records.
-- **Approved identity:** 763 decisions, 716 distinct CTID targets, 45 intentionally shared ERP people / 92 source IDs; exact bound/held/error counts, no wrong partner or inadvertent new person. Compare previous 735 bound/28 failed baseline but do not force a better percentage by importing inactive records.
-- **CRM field completeness:** Contact Owner resolution, native stage/source meaning and review holds, emails and phone/mobile precedence, ERP + CRM note preservation, call events and per-contact source payload outcome, DNC flags, approved polymer/form mapping and 451 multi-material/form records requiring careful disposition. Do not call unknown attributes mapped.
-- **History:** clearly separate (a) frozen-source ID census coverage, (b) IDs fetched successfully from current API, (c) any live-provider full-census proof, (d) historical call completeness, (e) Odoo writes. API restrictions and old records unavailable by ID must remain explicitly `PARTIAL` or `BLOCKED`.
-- **Integrity:** unique provider ContactID and partner references; no fuzzy crosswalk and no unintended duplicate `res.partner` or duplicate `crm.lead`; only the one disposable DB changed. If a field/owner/stage mapping is pending, retain original value and flag the unmapped field, not whole-contact loss where the existing safe importer supports partial records.
+Partner replay must not create inactive people or aliases the first pass excluded. New commercial rows must be `sale.order`, `purchase.order`, `account.move`, and `plasticos.transaction` only when sale-order confirmation compiled them. Reconcile worksheet identity, created/updated/unchanged/rejected, and the payables check this importer already fail-closes on. A validator failure rolls back that stage; do not continue by writing documents another way.
 
-Use actual targeted import/identity checks, no extra full provider replay. Full history acceptance requires source-level coverage evidence; a green CI job or the existence of a sync method is not proof the database is populated.
+**Gate B2 passes when** the commercial summary accounts for the source worksheets and the partner census from Gate B is unchanged except for idempotent `unchanged` rows. If the extension fails closed, mark commercial `BLOCKED` and do not start CRM until the partner census is shown still equal to the Gate B result.
 
-## 5. Deliverables and publication
+## 4. Gate C: full VanillaSoft cohort (same clone)
 
-Save a sanitized report pack to **`docs/reports/evidence/erp-then-vanillasoft-full-crm-<actual-run-date>/`**:
+1. Copy the verified crosswalk into `Current Work - IGNORE/erp-then-vs-full-crm/` and set `plasticos_crm_sync.approved_contact_crosswalk` to the container path in "What changed" item 6 **before the first CRM write**. A wrong digest aborts via `CrosswalkError`. Load the 18 NO and 4,095 PENDING IDs from `crm_id_census.csv` in the same preflight.
+2. Probe that one ContactID older than 30 days still resolves, including calls and custom fields. If it does not, stop and report the blocked cohort. Do not fill rows from the CSV.
+3. One checkpointed pass over all 4,876 IDs:
 
-- `README.md`: complete report using `REPORT_TEMPLATE.md`, actual code SHA, fixture and clone receipts, execution ordering, before/after database counts, source and mapping SHA256s, scope, exact import results, known limitations and verdict.
-- `receipt.json`: machine-readable actual run results in the supplied format, with explicit statuses `PASS/PARTIAL/BLOCKED/FAIL/NOT_RUN`; no invented values.
-- `erp_active_census.csv`: aggregate disjoint source eligibility and importer dispositions (no customer PII).
-- `crm_4876_disposition.csv`: source ContactID, operator decision (YES/NO/PENDING), actual Odoo destination type/ID or hold/error class, provider fetch result, no names/emails/notes.
-- `approved_763_link_results.csv`: approved source ContactID and CTID, target status, exact link receipt/error, no names/emails/notes.
-- `crm_field_coverage.csv`: mapped/unmapped/held counts by source field, CRM stage and material classification.
-- `run_manifest.json`: code + input digests, sanitized command names, execution stage timestamps, exit codes, evidence file checksums and module/fixture identity. Keep raw API payloads/source CSV/operator workbook out of GitHub.
+```bash
+scripts/test_env.sh run <owned-clone> -- shell --no-http \
+  < "Current Work - IGNORE/erp-then-vs-full-crm/import_4876.py"
+```
 
-Minimal necessary source fix only: if changed, use repository `make pr` to create **one scoped PR to Staging** containing code and SANITIZED evidence. Do not merge/deploy. If no source change is necessary, produce the local report + receipt without a pointless PR. If any required input/permission/API path is genuinely unavailable, finish a **BLOCKED** report rather than falsely closing the migration.
+The script calls `SyncOrchestrator.upsert_contact_external_id` once per ID, commits in bounded batches, and records processed IDs so a resume skips IDs already durable. It does not call the provider twice per ID. It does not import the CSV into `crm.lead` by hand.
 
-## Acceptance rules (hard)
+4. **763 YES.** The crosswalk resolves `plasticos_transaction.legacy_erp_contact_<CT_ID>`. `_bind_approved_contact` writes `plasticos.crm.external.ref` on `res.partner` and does not create a lead for that bind. ERP name and primary data stay. CRM may append the `Notes` custom field to `res.partner.comment` and add missing phone lines. If the person was excluded as inactive, the outcome is `failed` in the importer and `held` in the receipt. Do not activate the person or attach the ID to someone else. Do not create a lead for that held ID.
+5. **18 NO.** Not in the crosswalk, so `_upsert_lead` creates or updates a normal `crm.lead` keyed by `vanillasoft_id`. The lead's provider ref must be `crm.lead`, not `res.partner`. The rejected `CT_ID` must not be the partner.
+6. **4,095 PENDING.** Same normal lead path. No `res.partner` provider ref and no match by name, email, phone, or company.
+7. All 4,876 statuses stay in the cohort. Keep Do Not Call and the raw lead status. Do not reclassify "Currently Working With" as Won. Do not add stages.
+8. Score owner, stage, phones, notes, DNC, and materials against the workbooks after the write. Gaps stay gaps.
+9. Calls and custom tables come only from `upsert_contact_external_id` (it calls `iter_calls_for_contact` and `_sync_tables_for_lead` after an admitted outcome). Do not synthesize calls from the CSV "Last Call Date/Result" columns. Live additions or deletions versus the frozen 4,876 are a separate delta.
 
-1. One verified Enterprise Docker clone used for both **ordered** imports. CRM initial baseline absent/empty is proven before either stage.
-2. Applied ERP **partners-only** import covers all eligible active rows; **zero inactive people/companies imported** and **zero financial transactions imported**.
-3. Applied full VanillaSoft CRM import attempts all **4,876 Flagged=True source ContactIDs** through the existing provider identity path. It is NOT satisfied by binding 763 IDs only, importing just 30 days, or producing a dry-run mapping matrix.
-4. All 4,876 have exactly one classified, evidence-backed outcome; only bound/created/updated/unchanged with valid persisted references count as imported. Held/failed are visible and subtract from the accepted import coverage.
-5. 763 approved existing-ERP links remain operator-confirmed; the 18 rejected candidate links never attach; 4,095 pending contacts do not receive guessed ERP identities; approved shared targets never mint duplicates.
-6. ERP wins overlap, contact emails/phones and notes preserved by accepted rules, existing Odoo-native stages only, no polymer/master invention; report field-level gaps truthfully.
-7. No writes outside the owned clone and no customer PII/source exports in GitHub. One detailed report, one receipt, source-backed exception classification, optional narrowly scoped PR only when essential.
+**Gate C passes when** each of the 4,876 IDs has one class: imported (`created`/`updated`/`unchanged` plus one valid provider ref) or `held` or `genuine_failed`. Those three sum to 4,876. Held and failed are not imported. The CRM baseline was empty and this pass created the CRM rows.
 
-**Agent final message:** a concise table of observed ERP source/import counts; observed CRM 4,876 cohort outcomes; approved/NO/pending breakdown; whether the CRM really started empty and ended populated; genuine blockers and PR URL (if any); location of the report and receipt. Do not claim execution before it happens.
+## 5. Gate D: reconciliation
 
-## Repository coordinates to inspect, not blindly invoke
+Read-only counts at before, after Gate B, after Gate B2, and after Gate C.
 
-- `scripts/test_env.sh`, `config/test_env_fixture.conf`, `Makefile`
-- `plasticos_partner_import/erp_extracted_data/10_counterparty.sql`, `12_contact.sql`, `plasticos_partner_import/erp/source_index.py`, `plasticos_partner_import/models/erp_import_service.py`
-- `plasticos_crm_sync/services/approved_identity.py`, `plasticos_crm_sync/services/orchestrator.py`, `plasticos_crm_sync/adapters/vanillasoft/adapter.py`, `plasticos_crm_sync/scripts/import_vanillasoft_shell.py`
-- `docs/reports/evidence/crm-erp-approved-identity-2026-10-18/README.md` and `receipt.json`
+- **Partners:** eligible active companies and contacts, nonperson/site routing, aliases, excluded inactive and invalid parents. No inactive `CT_ID` XMLID.
+- **Commercial:** `sale.order`, `purchase.order`, `account.move`, and compiled `plasticos.transaction` versus the importer summary. Partner counts flat versus Gate B except idempotent unchanged.
+- **CRM:** `4876 = 763 + 18 + 4095` and `4876 = imported + held + genuine_failed`. `crm.lead` count need not equal 4,876: approved binds do not create leads. Held approved IDs also do not get leads.
+- **Approved identity:** 763 decisions, 716 `CT_ID`s, 45 shared people / 92 source IDs. Compare with the previous 735 bound / 28 `no_erp_person` without importing inactive parents to improve it.
+- **Fields:** owner name-match versus the locked email oracle, stage actually written versus raw status, phones and notes, DNC, material normalizer results. Unknown is not mapped.
+- **History:** separate frozen-ID coverage, IDs fetched from the current API, live census, call completeness, and Odoo writes. API limits stay `PARTIAL` or `BLOCKED`.
 
-All code references must be verified at the **current checkout SHA** before implementation or execution. The reference commit above is an observation, not a frozen override.
+## 6. Deliverables
+
+Sanitized pack at `docs/reports/evidence/erp-then-vanillasoft-full-crm-<actual-run-date>/`:
+
+- `README.md` from `REPORT_TEMPLATE.md`
+- `receipt.json` from `RECEIPT_TEMPLATE.json` with `PASS`/`PARTIAL`/`BLOCKED`/`FAIL`/`NOT_RUN` only
+- `erp_active_census.csv` — eligibility partitions, no PII
+- `erp_commercial_census.csv` — document and transaction counts, no party names
+- `crm_4876_disposition.csv` — ContactID, YES/NO/PENDING, destination type/ID or hold/error class, fetch result, no names/emails/notes
+- `approved_763_link_results.csv` — ContactID, CT_ID, link result, no names/emails/notes
+- `crm_field_coverage.csv` — mapped/unmapped/held by field, stage, and material
+- `run_manifest.json` — SHA, fixture, clone, commands, exit codes, checksums
+
+No raw API payloads, source CSV, or workbooks in Git. If the active-contact code changed, one `make pr` to `Staging` with that change and the sanitized evidence. If a required input or API path is missing, finish `BLOCKED`. Do not claim the run before it happens.
+
+## Acceptance
+
+1. One pinned Enterprise clone. CRM empty before any import. Both ERP writes and the CRM pass use `scripts/test_env.sh run` on that clone.
+2. Partners-only pass: every explicitly active eligible row, zero inactive people or aliases, zero commercial documents written by that pass.
+3. Commercial pass: the existing extension, unlimited worksheets, partner census preserved, documents reconciled or explicitly `BLOCKED`.
+4. All 4,876 Flagged IDs go through `upsert_contact_external_id`. A 763-ID pass, a 30-day list import, or a CSV load does not pass.
+5. Imported + held + genuine_failed = 4,876, each ID once. Only imported rows have a persisted provider ref.
+6. 763 YES stay on the operator `CT_ID` or are held. 18 NO never attach to the rejected `CT_ID`. 4,095 PENDING get no guessed ERP partner. Shared approved targets are not duplicated.
+7. Owner, stage, and polymer gaps are reported from the current importer. No new masters or maps.
+8. No writes outside the clone. No customer PII in Git.
+
+**Agent final message:** ERP partner counts, commercial document counts, CRM 4,876 outcomes, approved/NO/pending, whether CRM started empty, blockers, PR URL if any, and the report path. Do not claim execution before it happens.
+
+## Coordinates to read at the checkout SHA
+
+- `scripts/test_env.sh`, `config/test_env_fixture.conf`, `Makefile` (`import-erp`, `import-erp-test`, `import-vanillasoft`)
+- `plasticos_partner_import/erp_extracted_data/10_counterparty.sql`, `12_contact.sql`
+- `plasticos_partner_import/erp/mapping.py` (`parse_bool`), `plasticos_partner_import/models/erp_import_service.py` (`_row_active`, `_import_person`, `_extend_historical_import`)
+- `plasticos_transaction/models/legacy_erp_import_service.py`, `plasticos_transaction/models/native_document_import.py`
+- `plasticos_crm_sync/services/approved_identity.py`, `plasticos_crm_sync/services/orchestrator.py` (`upsert_contact_external_id`, `_bind_approved_contact`, `_upsert_lead`, `_lead_vals_from_dto`)
+- `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` — the path this run must not use for the cohort
+- `docs/reports/evidence/crm-erp-approved-identity-2026-10-18/README.md` and `scripts/vs_identity_run.py`
