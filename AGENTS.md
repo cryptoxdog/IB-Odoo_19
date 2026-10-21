@@ -608,6 +608,11 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > equals that name. `TEST_ENV_PARITY=community` is refused unless `TEST_ENV_SAFETY_HARNESS=1`.
 > Rule: `.cursor/rules/36-plasticos-docker-test-fixture.mdc`.
 
+> **2026-10-18 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr` remains the only publication command. `make commit` does not ask to launch it.
+> A feature-branch SHA is validated by the pull_request CI event. Pushes to `Staging` and
+> `Production` are validated by the push event. `workflow_dispatch` remains for the repo-index bot.
+
 > **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > the `l9-gmp-protocol` row in the Agent Skills table above is retired. Cursor-Governance removed
 > `skills/l9-gmp-protocol` (PR #744, merged 2026-10-21); the tracked projection `.claude/skills/l9-gmp-protocol`,
