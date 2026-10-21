@@ -8,6 +8,14 @@ from typing import Any
 
 from ..adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError
 from ..adapters.registry import get_adapter
+from .approved_identity import (
+    XMLID_MODULE,
+    CrosswalkError,
+    comment_with_note,
+    load_crosswalk_map,
+    phone_match_key,
+    xmlid_name,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -779,11 +787,12 @@ class SyncOrchestrator:
 
     def upsert_contact_external_id(self, connection, external_id: str) -> Any:
         """Single-contact path: contact + call history + custom tables."""
+        self._load_approved_crosswalk()
         adapter = self._build_adapter(connection)
         lead_dto = adapter.get_contact(str(external_id))
         if not lead_dto:
             raise CrmAdapterError(f"Contact {external_id} not found")
-        lead = self._upsert_lead(connection, lead_dto)
+        lead = self._upsert_lead(connection, lead_dto, adapter)
         calls_n = 0
         if self.last_lead_outcome in ADMITTED_OUTCOMES:
             if hasattr(adapter, "iter_calls_for_contact"):
@@ -802,7 +811,7 @@ class SyncOrchestrator:
         _logger.info(
             "Single-contact sync done external_id=%s lead_id=%s calls=%s",
             external_id,
-            lead.id,
+            lead.id if lead else False,
             calls_n,
         )
         return lead
@@ -841,6 +850,7 @@ class SyncOrchestrator:
         else:
             modified_after, _clamped_from = self._incremental_contact_scope(connection)
         self.oldest_contact_modified_seen = None
+        self._load_approved_crosswalk()
 
         # `committed` counts rows this method has durably landed; `pending`
         # counts rows written into the still-open transaction. The sync-run
@@ -860,7 +870,7 @@ class SyncOrchestrator:
             page_n = 0
             self.outcomes = _new_outcomes()
             for dto in leads:
-                lead = self._upsert_lead(connection, dto)
+                lead = self._upsert_lead(connection, dto, adapter)
                 # Dependent table rows only after unambiguous admission: a
                 # duplicate_rejected or failed contact gets no child writes.
                 if self.last_lead_outcome in ADMITTED_OUTCOMES and not dto.deleted:
@@ -969,7 +979,258 @@ class SyncOrchestrator:
         self._call_outcomes = totals
         return committed
 
-    def _upsert_lead(self, connection, dto: CanonicalLead):
+    def _load_approved_crosswalk(self) -> None:
+        """Read the pinned CSV before any approved identity write.
+
+        An unset parameter leaves the existing importer in place. A set
+        parameter that fails the pinned digest aborts before those writes.
+        """
+        if getattr(self, "_crosswalk_ready", False):
+            return
+        try:
+            self._crosswalk = load_crosswalk_map(self.env)
+        except CrosswalkError as exc:
+            self._crosswalk = None
+            self._crosswalk_ready = False
+            raise CrmAdapterError(str(exc)) from exc
+        self._crosswalk_ready = True
+
+    def _approved_ct_id(self, external_id: str) -> str | None:
+        mapping = getattr(self, "_crosswalk", None) or {}
+        return mapping.get(str(external_id))
+
+    def _find_person_ref(self, provider: str, external_id: str):
+        ref = self.env["plasticos.crm.external.ref"].search(
+            [
+                ("provider", "=", provider),
+                ("external_id", "=", external_id),
+                ("res_model", "=", "res.partner"),
+            ],
+            limit=1,
+        )
+        if not ref or not getattr(ref, "id", False):
+            return self.env["plasticos.crm.external.ref"].browse()
+        return ref
+
+    def _erp_person_for_ct(self, ct_id: str):
+        marker = f"{XMLID_MODULE}.{xmlid_name(ct_id)}"
+        imd = self.env["ir.model.data"].sudo()  # XMLID rows are system data the sync user must read
+        rows = imd.search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "=", xmlid_name(ct_id)),
+                ("model", "=", "res.partner"),
+            ]
+        )
+        if len(rows) != 1:
+            return None, f"ERP marker {marker} resolved {len(rows)} rows"
+        partner = (
+            self.env["res.partner"].sudo().with_context(active_test=False).browse(rows.res_id).exists()
+        )  # archived ERP people are hidden by the default active test
+        if len(partner) != 1:
+            return None, f"ERP marker {marker} does not point at one partner"
+        if partner.is_company:
+            return None, f"ERP marker {marker} points at a company"
+        return partner, ""
+
+    def _add_approved_phones(self, partner, dto: CanonicalLead) -> bool:
+        """Add missing CRM numbers as phone lines. Never assign phone or mobile.
+
+        ERP and CRM values are normalized to the same key before the comparison.
+        """
+        Phone = self.env["plasticos.partner.phone"].sudo()  # cron user has no facility-phone ACL; lines are additive
+        present = {phone_match_key(partner.phone or "")}
+        has_mobile = False
+        for line in partner.phone_line_ids:
+            present.add(phone_match_key(line.number or ""))
+            if line.label == "mobile":
+                has_mobile = True
+        present.discard("")
+        numbers = list(dto.phone_numbers or ())
+        mobiles = {phone_match_key(number) for number in (dto.mobile_numbers or ())}
+        for extra, kind in ((dto.phone, "other"), (dto.mobile, "mobile")):
+            token = phone_match_key(extra)
+            if token and token not in {phone_match_key(number) for number in numbers}:
+                numbers.append(extra)
+                if kind == "mobile":
+                    mobiles.add(token)
+        wrote = False
+        for number in numbers:
+            token = phone_match_key(number)
+            if not token or token in present:
+                continue
+            label = "mobile" if token in mobiles and not has_mobile else "other"
+            Phone.create({"partner_id": partner.id, "label": label, "number": number})
+            if label == "mobile":
+                has_mobile = True
+            present.add(token)
+            wrote = True
+        return wrote
+
+    def _bind_approved_contact(self, dto: CanonicalLead, ct_id: str):
+        """Bind one approved ContactID onto the existing ERP person. No new lead.
+
+        The CRM note is appended to the person's ``comment`` after the ERP notes.
+        """
+        outcomes = getattr(self, "outcomes", None)
+        Lead = self.env[CRM_LEAD]
+        partner, reason = self._erp_person_for_ct(ct_id)
+        if partner is None:
+            self._record_outcome(outcomes, "failed", dto.external_id, reason)
+            self.last_lead_outcome = "failed"
+            return Lead.browse()
+        Ref = self.env["plasticos.crm.external.ref"]
+        lead = self._find_lead(dto.provider, dto.external_id, Ref)
+        matches = Lead.with_context(active_test=False).search([("vanillasoft_id", "=", dto.external_id)])
+        if len(matches) > 1:
+            self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "multiple leads carry the source id")
+            self.last_lead_outcome = "duplicate_rejected"
+            return lead
+        if lead and lead.partner_id and lead.partner_id.id not in (False, partner.id):
+            self._record_outcome(
+                outcomes, "duplicate_rejected", dto.external_id, "lead partner_id is a different partner"
+            )
+            self.last_lead_outcome = "duplicate_rejected"
+            return lead
+        person_ref = self._find_person_ref(dto.provider, dto.external_id)
+        if person_ref and person_ref.res_id not in (False, partner.id):
+            self._record_outcome(
+                outcomes, "duplicate_rejected", dto.external_id, "person external ref points at a different partner"
+            )
+            self.last_lead_outcome = "duplicate_rejected"
+            return lead
+        wrote = False
+        try:
+            with self.env.cr.savepoint():
+                if not person_ref:
+                    Ref.create(
+                        {
+                            "provider": dto.provider,
+                            "external_id": dto.external_id,
+                            "res_model": "res.partner",
+                            "res_id": partner.id,
+                            "lead_id": False,
+                        }
+                    )
+                    wrote = True
+                elif person_ref.lead_id:
+                    person_ref.write({"lead_id": False})
+                    wrote = True
+                if lead and not lead.partner_id:
+                    lead.write({"partner_id": partner.id})
+                    wrote = True
+                if lead and dto.deleted:
+                    lead.write({"active": False, "vanillasoft_sync_archived": True})
+                    wrote = True
+                elif lead and getattr(lead, "vanillasoft_sync_archived", False) and not dto.deleted:
+                    lead.write({"active": True, "vanillasoft_sync_archived": False})
+                    wrote = True
+                comment = comment_with_note(partner.comment, dto.contact_note)
+                if comment is not None:
+                    partner.write({"comment": comment})
+                    wrote = True
+                if not dto.deleted and self._add_approved_phones(partner, dto):
+                    wrote = True
+        except Exception as exc:  # noqa: BLE001 - per-record failure is recorded, never silent loss
+            self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
+            self.last_lead_outcome = "failed"
+            return Lead.browse() if not lead else lead
+        outcome = "updated" if wrote else "unchanged"
+        if outcomes is not None:
+            outcomes[outcome] += 1
+        self.last_lead_outcome = outcome
+        if lead and outcome in ADMITTED_OUTCOMES and not dto.deleted:
+            self._apply_approved_materials(lead, dto.custom_fields)
+        return lead or Lead.browse()
+
+    def _keep_person_binding(self, dto: CanonicalLead, person_ref):
+        """Honor an earlier approved bind when the crosswalk is not loaded.
+
+        The persisted person ref is the approval record. Without the crosswalk
+        nothing is enriched, and the legacy path must not mint a second lead or
+        lead ref for the same source id. Conflicts are reported, never repaired.
+        """
+        outcomes = getattr(self, "outcomes", None)
+        Lead = self.env[CRM_LEAD]
+        partner = (
+            self.env["res.partner"].sudo().with_context(active_test=False).browse(person_ref.res_id).exists()
+        )  # archived ERP people keep their binding
+        if not partner:
+            self._record_outcome(outcomes, "failed", dto.external_id, "person external ref points at a missing partner")
+            self.last_lead_outcome = "failed"
+            return Lead.browse()
+        lead = self._find_lead(dto.provider, dto.external_id, self.env["plasticos.crm.external.ref"])
+        matches = Lead.with_context(active_test=False).search([("vanillasoft_id", "=", dto.external_id)])
+        if len(matches) > 1:
+            self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "multiple leads carry the source id")
+            self.last_lead_outcome = "duplicate_rejected"
+            return lead
+        if lead and lead.partner_id and lead.partner_id.id not in (False, partner.id):
+            self._record_outcome(
+                outcomes, "duplicate_rejected", dto.external_id, "lead partner_id is a different partner"
+            )
+            self.last_lead_outcome = "duplicate_rejected"
+            return lead
+        if outcomes is not None:
+            outcomes["unchanged"] += 1
+        self.last_lead_outcome = "unchanged"
+        return lead or Lead.browse()
+
+    def _apply_approved_materials(self, lead, *field_maps) -> None:
+        """Attach material text only when one facility profile already exists.
+
+        Same containment as ``_apply_contact_materials``: a material failure
+        rolls back its own writes and is reported. The admitted identity, the
+        page commit and the watermark are not affected.
+        """
+        try:
+            with self.env.cr.savepoint():
+                self._apply_resolved_approved_materials(lead, *field_maps)
+        except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
+            _logger.warning("Approved material normalization failed for lead %s: %s", lead.id, exc)
+            self.error_rows.append(
+                {
+                    "record_ref": lead.vanillasoft_id or str(lead.id or ""),
+                    "message": f"material normalization failed: {exc}",
+                }
+            )
+
+    def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
+        phrases, hints, weak = _material_inputs(*field_maps)
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+            normalize_material,
+        )
+
+        candidates = list(phrases)
+        plain_hints = {}
+        for label, value in hints.items():
+            if normalize_material(self.env, value).polymer:
+                candidates.append(value)
+            else:
+                plain_hints[label] = value
+        texts = _dedupe_phrases(candidates) or list(weak)
+        if not texts or not lead.partner_id:
+            return
+        partner, reason = _facility_for_material(lead)
+        if partner is None:
+            for text in texts:
+                self.error_rows.append(
+                    {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
+                )
+            return
+        profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
+        if len(profiles) != 1:
+            for text in texts:
+                self.error_rows.append(
+                    {
+                        "record_ref": lead.vanillasoft_id or str(lead.id),
+                        "message": f"facility unresolved: {len(profiles)} profiles: {text}",
+                    }
+                )
+            return
+        self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
+
+    def _upsert_lead(self, connection, dto: CanonicalLead, adapter=None):
         """Identity-resolved lead upsert with deterministic classification.
 
         Returns the lead recordset (pinned contract for direct callers). When
@@ -995,6 +1256,12 @@ class SyncOrchestrator:
         """
         outcomes = getattr(self, "outcomes", None)
         self.last_lead_outcome = None
+        ct_id = self._approved_ct_id(dto.external_id)
+        if ct_id:
+            return self._bind_approved_contact(dto, ct_id)
+        person_ref = self._find_person_ref(dto.provider, dto.external_id)
+        if person_ref:
+            return self._keep_person_binding(dto, person_ref)
         Lead = self.env[CRM_LEAD]
         Ref = self.env["plasticos.crm.external.ref"]
         ref = Ref.search(
@@ -1194,6 +1461,7 @@ class SyncOrchestrator:
                 limit=1,
             )
             lead = self._find_lead(dto.provider, dto.contact_external_id, Ref)
+            person_ref = self._find_person_ref(dto.provider, dto.contact_external_id)
             vals = {
                 "provider": dto.provider,
                 "external_id": dto.external_id,
@@ -1203,7 +1471,7 @@ class SyncOrchestrator:
                 "user_name": dto.user_name or False,
                 "result_code": dto.result_code or False,
                 "comment": dto.comment or False,
-                "lead_id": lead.id if lead else False,
+                "lead_id": False if person_ref else (lead.id if lead else False),
             }
             try:
                 if existing:
@@ -1215,7 +1483,7 @@ class SyncOrchestrator:
                             outcomes["updated"] += 1
                     elif outcomes is not None:
                         outcomes["unchanged"] += 1
-                elif not lead:
+                elif not lead and not person_ref:
                     Orphan.create(
                         {
                             "connection_id": connection.id,
@@ -1260,9 +1528,10 @@ class SyncOrchestrator:
         outcomes = getattr(self, "outcomes", None)
         if lead is None:
             lead = self._find_lead(connection.provider, contact_external_id, Ref)
+        person_ref = self._find_person_ref(connection.provider, contact_external_id)
         landed_fields = []
         for dto in adapter.iter_table_rows(contact_external_id):
-            if not lead:
+            if not lead and not person_ref:
                 Orphan.create(
                     {
                         "connection_id": connection.id,
@@ -1291,7 +1560,7 @@ class SyncOrchestrator:
             )
             vals = {
                 "provider": dto.provider,
-                "lead_id": lead.id,
+                "lead_id": False if person_ref else lead.id,
                 "contact_external_id": dto.contact_external_id,
                 "table_id": dto.table_id,
                 "table_name": dto.table_name or False,
@@ -1310,7 +1579,10 @@ class SyncOrchestrator:
                     outcomes["table_rows"] += 1
             landed_fields.append(dto.fields)
         if lead and landed_fields:
-            self._apply_contact_materials(lead, *landed_fields)
+            if person_ref or self._approved_ct_id(contact_external_id):
+                self._apply_approved_materials(lead, *landed_fields)
+            else:
+                self._apply_contact_materials(lead, *landed_fields)
 
     def _apply_contact_materials(self, lead, *field_maps) -> None:
         """Normalize each distinct material onto the lead's facility profile.
@@ -1447,9 +1719,11 @@ class SyncOrchestrator:
         resolved = 0
         for orphan in orphans:
             lead = self._find_lead(orphan.provider, orphan.contact_external_id, Ref)
-            if not lead:
+            person_ref = self._find_person_ref(orphan.provider, orphan.contact_external_id)
+            if not lead and not person_ref:
                 continue
             payload = orphan.payload_json or {}
+            lead_id = False if person_ref else lead.id
             if orphan.kind == "call":
                 existing = Call.search(
                     [
@@ -1467,7 +1741,7 @@ class SyncOrchestrator:
                     "user_name": payload.get("user_name") or False,
                     "result_code": payload.get("result_code") or False,
                     "comment": payload.get("comment") or False,
-                    "lead_id": lead.id,
+                    "lead_id": lead_id,
                 }
                 if existing:
                     existing.write(vals)
@@ -1484,7 +1758,7 @@ class SyncOrchestrator:
                 )
                 vals = {
                     "provider": payload.get("provider"),
-                    "lead_id": lead.id,
+                    "lead_id": lead_id,
                     "contact_external_id": payload.get("contact_external_id"),
                     "table_id": payload.get("table_id"),
                     "table_name": payload.get("table_name") or False,

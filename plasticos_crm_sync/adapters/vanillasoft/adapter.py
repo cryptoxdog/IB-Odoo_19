@@ -128,6 +128,10 @@ def _phone_from_list(phones: Any, preferred: tuple[str, ...]) -> str:
 
 
 def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
+    # Imported here: services/__init__ loads the orchestrator, which imports the
+    # adapter registry. A module-level import from this adapter cycles that load.
+    from ...services.approved_identity import contact_note_text, phone_kinds
+
     custom = _cf_map(raw.get("custom_fields"))
     phones = raw.get("phone_numbers")
     contact_id = raw.get("contact_id") or raw.get("ContactID") or raw.get("id")
@@ -153,6 +157,7 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
     modified = str(
         raw.get("modified_date_time_utc") or raw.get("modified_datetime_utc") or raw.get("ModifiedDateTimeUTC") or ""
     )
+    kinds = phone_kinds(phones)
 
     return CanonicalLead(
         provider=PROVIDER,
@@ -177,6 +182,9 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         modified_utc=modified,
         deleted=deleted,
         custom_fields=custom,
+        phone_numbers=tuple(number for _kind, number in kinds),
+        mobile_numbers=tuple(number for kind, number in kinds if kind == "mobile"),
+        contact_note=contact_note_text(custom),
     )
 
 
