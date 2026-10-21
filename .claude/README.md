@@ -28,7 +28,6 @@ Personal skills — available in all repos via `~/.cursor/skills/`.
 | **l9-skill-compiler** | `@.cursor-commands/skills/l9-skill-compiler/` | Compile kernels/SOPs into zero-stub skill packs |
 | **l9-wire-skill-into-repo** | `@.cursor-commands/skills/l9-wire-skill-into-repo/` | Register skills in repo agent config after create/compile |
 | **l9-update-agent-docs** | `@.cursor-commands/skills/l9-update-agent-docs/` | Refresh AGENTS.md, ARCHITECTURE.md, INVARIANTS.md, CLAUDE.md |
-| **l9-gmp-protocol** | `@.cursor-commands/skills/l9-gmp-protocol/` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report |
 | **l9-context7-docs** | `@.cursor-commands/skills/l9-context7-docs/` | Fetch current library/framework/SDK/API docs before coding |
 | **l9-plan** | `@.cursor-commands/skills/l9-plan/` | Create an execution plan/spec when scope is unclear |
 | **l9-code-analysis** | `@.cursor-commands/skills/l9-code-analysis/` | Explore unfamiliar code, map flows, identify hotspots |
