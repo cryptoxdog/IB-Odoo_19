@@ -141,7 +141,7 @@ class _Id:
 
 class _Model:
     # Fields the orchestrator dereferences as `<field>.id`.
-    M2O = frozenset({"lead_id", "connection_id"})
+    M2O = frozenset({"lead_id", "partner_id", "connection_id"})
 
     def __init__(self, name: str, defaults: dict | None = None):
         self.name = name
@@ -901,3 +901,53 @@ def test_a_run_without_orphans_still_reports_success():
     summary = build_run_summary(run)
     assert summary["final_status"] == "success"
     assert summary["records_rejected"] == 0
+
+
+def test_a_person_binding_keeps_call_history_on_that_partner():
+    """Approved contacts are partners. Their calls and custom rows follow the person."""
+    orch, connection, env = _harness(_Adapter())
+    env["plasticos.crm.external.ref"].create(
+        {
+            "provider": "vanillasoft",
+            "external_id": "p1",
+            "res_model": "res.partner",
+            "res_id": 42,
+            "lead_id": False,
+        }
+    )
+    call = CanonicalCall(
+        provider="vanillasoft",
+        external_id="call-1",
+        contact_external_id="p1",
+        call_datetime_utc=RECENT_Z,
+        duration_seconds=90,
+        user_name="Ada",
+        result_code="Spoke",
+        comment="asked for a PO",
+    )
+    assert orch._upsert_calls(connection, [call], None) == 1
+    event = env["plasticos.crm.call.event"].search([("external_id", "=", "call-1")], limit=1)
+    assert event.partner_id.id == 42
+    assert not event.lead_id
+    assert event.comment == "asked for a PO"
+    assert orch._upsert_calls(connection, [call], None) == 0
+    assert len(env["plasticos.crm.call.event"].search([])) == 1
+
+    row = CanonicalTableRow(
+        provider="vanillasoft",
+        contact_external_id="p1",
+        table_id="t1",
+        table_name="Materials",
+        external_row_id="r1",
+        fields={"Notes": "film"},
+    )
+    orch._sync_tables_for_lead(connection, type("A", (), {"iter_table_rows": lambda _self, _cid: [row]})(), "p1")
+    stored = env["plasticos.crm.external.table.row"].search([("external_row_id", "=", "r1")], limit=1)
+    assert stored.partner_id.id == 42
+    assert not stored.lead_id
+
+    orch._upsert_lead(connection, _lead("c1"))
+    assert orch._upsert_calls(connection, [_call("k-lead", "c1")], None) == 1
+    lead_event = env["plasticos.crm.call.event"].search([("external_id", "=", "k-lead")], limit=1)
+    assert lead_event.lead_id.id
+    assert not lead_event.partner_id

@@ -6,10 +6,12 @@
         <field name="arch" type="xml">
             <list>
                 <field name="call_datetime_utc"/>
+                <field name="partner_id"/>
                 <field name="lead_id"/>
                 <field name="user_name"/>
                 <field name="result_code"/>
                 <field name="duration_seconds"/>
+                <field name="comment"/>
                 <field name="provider"/>
                 <field name="external_id"/>
             </list>
