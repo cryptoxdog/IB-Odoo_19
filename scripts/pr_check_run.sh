@@ -44,9 +44,20 @@ run_wave() {
   "${MAKE}" -j"${JOBS}" --no-print-directory "${targets[@]}"
 }
 
+# Remember the skip, then drop it before pytest. Publication tests copy the
+# environment and refuse a publish when either switch is still set.
+SMOKE_SKIP=0
+_bypass="${PR_SMOKE_BYPASS:-}"
+_bypass="${_bypass// /}"
+if [ "${PR_CHECK_SKIP_SMOKE:-0}" = "1" ] || [ -n "${_bypass}" ]; then
+  SMOKE_SKIP=1
+fi
+unset _bypass
+unset PR_CHECK_SKIP_SMOKE PR_SMOKE_BYPASS
+
 maybe_install_smoke() {
-  if [ "${PR_CHECK_SKIP_SMOKE:-0}" = "1" ]; then
-    log "→ install-smoke skipped (PR_CHECK_SKIP_SMOKE=1)"
+  if [ "${SMOKE_SKIP}" = "1" ]; then
+    log "→ install-smoke skipped"
     return 0
   fi
 

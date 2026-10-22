@@ -134,7 +134,6 @@ PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
 if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
   SMOKE_BYPASS=1
   echo "⚠️  install-smoke BYPASSED by operator: ${PR_SMOKE_BYPASS}" >&2
-  export PR_CHECK_SKIP_SMOKE=1
 else
   case "${PR_CHECK_SKIP_SMOKE:-0}" in
     1|true|True|yes) refuse "PR_CHECK_SKIP_SMOKE is set (use make pr-nosmoke reason=...)" ;;
@@ -153,11 +152,22 @@ if ! gitleaks detect --config .gitleaks.toml --redact --exit-code 2; then
   refuse "gitleaks detect failed"
 fi
 
-if ! bash scripts/install_smoke.sh --resolve; then
+if [[ "${SMOKE_BYPASS}" != "1" ]] && ! bash scripts/install_smoke.sh --resolve; then
   refuse "install-smoke --resolve rejected the effective module lists"
 fi
 
-if ! make pr-check; then
+# Publication tests copy this environment. A skip switch that reaches them
+# makes the suite refuse the publish, so the bypass never enters the test wave.
+if [[ "${SMOKE_BYPASS}" == "1" ]]; then
+  if ! env -u PR_SMOKE_BYPASS -u PR_CHECK_SKIP_SMOKE \
+    make -j"${PR_CHECK_JOBS:-4}" --no-print-directory audit audit-baseline test; then
+    refuse "make pr-check failed"
+  fi
+  if ! env -u PR_SMOKE_BYPASS -u PR_CHECK_SKIP_SMOKE \
+    make --no-print-directory pr-remote-feedback; then
+    refuse "make pr-check failed"
+  fi
+elif ! make pr-check; then
   refuse "make pr-check failed"
 fi
 
