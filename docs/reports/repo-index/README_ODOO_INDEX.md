@@ -26,16 +26,16 @@ Machine-built inventory for model names, XML external IDs, seed records, views/s
 
 ```bash
 # Find model
-grep "plasticos.transaction" reports/repo-index/odoo_model_index.txt
+grep "plasticos.transaction" docs/reports/repo-index/odoo_model_index.txt
 
 # Check external ID collisions
-grep "seq_plasticos" reports/repo-index/odoo_external_id_registry.txt
+grep "seq_plasticos" docs/reports/repo-index/odoo_external_id_registry.txt
 
 # Module load order
-cat reports/repo-index/odoo_dependency_order.txt
+cat docs/reports/repo-index/odoo_dependency_order.txt
 
 # Compliance issues
-cat reports/repo-index/odoo_compliance_scan.json
+cat docs/reports/repo-index/odoo_compliance_scan.json
 ```
 
 ---
