@@ -119,22 +119,23 @@
 ./plasticos_crm_sync/models/crm_sync_orphan.py:5:    _name = "plasticos.crm.sync.orphan"
 ./plasticos_crm_sync/models/crm_sync_run.py:5:    _name = "plasticos.crm.sync.run"
 ./plasticos_crm_sync/models/res_config_settings.py:8:    _inherit = "res.config.settings"
-./plasticos_crm_sync/services/orchestrator.py:1389:        contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
-./plasticos_crm_sync/services/orchestrator.py:1405:            utm_name = LEAD_SOURCE_MAPPING[raw_source]
-./plasticos_crm_sync/services/orchestrator.py:1420:        owner_name = _collapse_ws(dto.owner_name)
+./plasticos_crm_sync/services/orchestrator.py:1418:        contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
+./plasticos_crm_sync/services/orchestrator.py:1434:            utm_name = LEAD_SOURCE_MAPPING[raw_source]
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:24:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:25:        last_name="Lovelace",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:52:            first_name="Ada",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:53:            last_name="Lovelace",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:78:            user_name="Rep",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:96:            first_name="Bob",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:97:            last_name="Builder",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:186:        spaced = orch._lead_vals_from_dto(self._lead("vs-name", first_name="  Ada   ", last_name=" \n Lovelace  "))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:188:        blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:200:        exact = orch._lead_vals_from_dto(self._lead("vs-owner", owner_name="  CRM3 Exact Owner  "))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:202:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-missing", owner_name="No Such CRM3 Owner"))["user_id"])
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:203:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-twin", owner_name="CRM3 Twin Owner"))["user_id"])
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:388:                    table_name="Materials",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:80:            first_name="Ada",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:81:            last_name="Lovelace",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:106:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:124:            first_name="Bob",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:125:            last_name="Builder",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:214:        spaced = orch._lead_vals_from_dto(self._lead("vs-name", first_name="  Ada   ", last_name=" \n Lovelace  "))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:216:        blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:234:            dto = self._lead(external_id, owner_name=f"  {source.upper()}  ")
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:248:            lead = orch._upsert_lead(self.connection, self._lead(external_id, owner_name=owner_name))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:255:        dto = self._lead("vs-owner-keep", owner_name="lm@ucsincny.com")
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:258:        kept = orch._upsert_lead(self.connection, self._lead("vs-owner-keep", owner_name="CRM3 Exact Owner"))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:264:            orch._upsert_lead(self.connection, self._lead("vs-owner-new-bad", owner_name="No Such CRM3 Owner"))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:450:                    table_name="Materials",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:27:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:28:        last_name="Lovelace",
 ./plasticos_dev_tools/tools/index_export.py:78:        model_name = cron.model_id.model if cron.model_id else ""
@@ -304,10 +305,9 @@
 ./plasticos_partner_import/models/erp_import_service.py:279:        industry_name = _text(row, "IndustryNm")
 ./plasticos_partner_import/models/erp_import_service.py:324:            parent_name = parent.name if parent else ""
 ./plasticos_partner_import/models/erp_import_service.py:347:                            child_name=_location_title(row, parent_name),
-./plasticos_partner_import/models/erp_import_service.py:807:        user_by_name = self._user_ids_by_name({name for _cp_id, _rows, name, _company in chosen})
-./plasticos_partner_import/models/erp_import_service.py:1016:        if model._name == RES_PARTNER:
-./plasticos_partner_import/models/erp_import_service.py:1028:                if model._name == RES_PARTNER and "comment" in values:
-./plasticos_partner_import/models/erp_import_service.py:1163:    if field_name == "website" and isinstance(current, str) and isinstance(target, str):
+./plasticos_partner_import/models/erp_import_service.py:1034:        if model._name == RES_PARTNER:
+./plasticos_partner_import/models/erp_import_service.py:1046:                if model._name == RES_PARTNER and "comment" in values:
+./plasticos_partner_import/models/erp_import_service.py:1181:    if field_name == "website" and isinstance(current, str) and isinstance(target, str):
 ./plasticos_partner_import/models/partner_import_service.py:32:    _name = "plasticos.partner.import.service"
 ./plasticos_partner_import/models/partner_import_service.py:422:        partner_name = row.get("partner_id", "").strip()
 ./plasticos_partner_import/models/partner_import_service.py:437:        facility_name = alias if alias and alias != "INVOICE" else f"{partner_name} - {facility_type}"
@@ -475,8 +475,8 @@
 ./tests/test_crm_sync_vanillasoft_client.py:319:    assert observed.owner_name == "Observed Owner"
 ./tests/test_depends_transaction_claims_bridge.py:7:and ``transaction_claims_bridge.py``, both ``_inherit = "plasticos.transaction"``).
 ./tests/test_erp_import_contract.py:58:    assert '_name = "plasticos.erp.import"' in service_source
-./tests/test_erp_import_contract.py:408:    assert '_inherit = "plasticos.erp.import"' in deal_source
-./tests/test_erp_import_contract.py:409:    assert '_name = "plasticos.' not in deal_source
+./tests/test_erp_import_contract.py:399:    assert '_inherit = "plasticos.erp.import"' in deal_source
+./tests/test_erp_import_contract.py:400:    assert '_name = "plasticos.' not in deal_source
 ./tests/test_gap_fixes.py:305:        view_name = "plasticos_rep_performance"
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
