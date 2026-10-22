@@ -2,7 +2,7 @@
   "gate": "B",
   "database": "odoo_test_erpvs1021",
   "mode": "ERP_PARTNERS_ONLY=1",
-  "source": "host.docker.internal:14330/cieTrade_SM",
+  "source": "host.docker.internal:14330/ERP_SM",
   "reader": "erp_reader",
   "require_empty": 1,
   "limit": null,
