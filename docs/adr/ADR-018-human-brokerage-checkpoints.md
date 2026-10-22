@@ -6,7 +6,7 @@
 **Scope:** Phase-1 human-in-the-loop gates that automation must not skip
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
-[GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md),
+[GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md),
 [ADR-016-web-lead-triage-boundary.md](ADR-016-web-lead-triage-boundary.md)
 
 ## Context
@@ -59,5 +59,5 @@ Successful Gate `match` or `converge` never implies permission to bind the compa
 ## References
 
 - ADR-002 §3 phased autonomy
-- `docs/GATE_AUTONOMY_ROADMAP.md`
+- `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`
 - Intake match / offer module actions

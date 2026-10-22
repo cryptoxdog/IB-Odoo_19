@@ -144,7 +144,8 @@ def _render_readme_architecture(domains: dict) -> str:
             lines.append(f"| [{Path(adr).name}]({Path(adr).name}) | {adr_summary} |")
         if roadmap:
             name = Path(roadmap).name
-            lines.append(f"| [{name}]({name}) | {idx_summary} |")
+            href = Path(roadmap).relative_to("docs").as_posix() if roadmap.startswith("docs/") else roadmap
+            lines.append(f"| [{name}]({href}) | {idx_summary} |")
     return "\n".join(lines) + "\n"
 
 

@@ -16,8 +16,11 @@ def test_repo_index_is_generated_under_docs_reports() -> None:
     assert 'INDEX_SUBDIR = ("docs", "reports", "repo-index")' in generator
     assert "docs/reports/repo-index" in workflow
     assert "reports/repo-index" not in workflow.replace("docs/reports/repo-index", "")
+    assert 'Path("docs") / "reports" / "gmp-reports"' in gmp_writer
     assert 'Path("reports")' not in gmp_writer
+    assert 'repo_root / "docs" / "reports" / "gmp-reports"' in xml_audit
     assert 'repo_root / "reports"' not in xml_audit
+    assert (ROOT / "docs/reports/gmp-reports/README.md").is_file()
     assert (ROOT / "docs/reports/repo-index/class_definitions.txt").is_file()
     assert not (ROOT / "reports").exists()
     assert list(ROOT.glob("reports/**")) == []

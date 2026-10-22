@@ -23,7 +23,7 @@ When docs conflict, prefer in this order:
 1. **ADR-003-single** — intelligence authority
 2. **ADR-009 … ADR-018** — ownership, topology, writeback, fail-closed, DomainSpec, shells, leads, feedback, humans
 3. **ADR-002** — hub topology + phased autonomy (**§2 fallback-as-authority superseded**; see banner)
-4. `docs/GATE_AUTONOMY_ROADMAP.md` — phase criteria
+4. `docs/roadmap/GATE_AUTONOMY_ROADMAP.md` — phase criteria
 5. `ARCHITECTURE.md`, `AGENTS.md`, `CLAUDE.md` — narrative indexes (must be updated to match ADRs)
 
 `docs/track_b/` and `docs/handoffs/` were removed. Consumer and worker rules stay in ADR-003-single, ADR-009 through ADR-018, and `plasticos_gate`.

@@ -61,11 +61,11 @@ AUDIT_REPORT.md
 .l9/odools/
 
 # ═══════════════════════════════════════════════════════════
-# Root reports/ is retired. Indexes and evidence live under docs/reports/.
-# Do not recreate the root directory. Local GMP scratch stays out of git.
+# Root reports/ is retired. Indexes live under docs/reports/repo-index/.
+# GMP execution reports are committed under docs/reports/gmp-reports/.
+# Do not recreate the root directory.
 # ═══════════════════════════════════════════════════════════
 /reports/
-docs/reports/GMP-Report-*.md
 
 # Explicit override: memory-bank/ is excluded by this machine's global
 # gitignore (~/.gitignore_global) but must be tracked in THIS repo so a fresh

@@ -155,11 +155,12 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **System State** → `.claude/rules/system-state.md`
 - **Agent Skills & Subagents** → `.claude/README.md` + `skills/` (SSOT) + `skills/PLASTICOS_CANONICAL_LAW.md`
 - **Repo Index (check before grepping)** → `docs/reports/repo-index/` — classes, functions, methods, Odoo models/views/crons/security groups, tests; regenerate with `python3 scripts/repo_generators/export_repo_indexes.py`
+- **GMP reports** → `docs/reports/gmp-reports/`. When executing a GMP, write the report there as `GMP-Report-<id>-<slug>.md` and commit it. Do not write a root `reports/` directory, do not scatter the report elsewhere in the repo, and do not finish the GMP without saving the report.
 - **Skill invocation tiers** → `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` (which L9 skills auto-invoke vs explicit-only)
 - **Structured Reasoning** → `@.cursor-commands/skills/l9-structured-reasoning/SKILL.md`
 - **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)
 - **System Invariants** → `INVARIANTS.md` (18 invariants with CI enforcement map)
-- **ADRs (canonical)** → `docs/adr/README.md` (index); Gate hub → `docs/adr/ADR-002-gate-hub-phased-autonomy.md` + `docs/adr/ADR-003-single-external-intelligence-authority.md`; convergence → ADR-009–019; phases → `docs/GATE_AUTONOMY_ROADMAP.md`
+- **ADRs (canonical)** → `docs/adr/README.md` (index); Gate hub → `docs/adr/ADR-002-gate-hub-phased-autonomy.md` + `docs/adr/ADR-003-single-external-intelligence-authority.md`; convergence → ADR-009–019; phases → `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`
 - **Intake vs material profile** → `docs/adr/ADR-004-intake-vs-material-profile-domain-split.md`, `docs/adr/ADR-005-intake-material-profile-delta-bridge.md`
 
 <!-- BEGIN L9 FORMATTER OWNERSHIP (generated — do not edit) -->

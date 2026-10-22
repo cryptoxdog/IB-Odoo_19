@@ -6,7 +6,7 @@
 **Scope:** Separation of web-lead HOT/COLD triage from Gate match/enrichment
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
-[GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md),
+[GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md),
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),
 [ADR-018-human-brokerage-checkpoints.md](ADR-018-human-brokerage-checkpoints.md)
 

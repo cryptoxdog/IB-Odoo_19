@@ -140,7 +140,7 @@ def main():
     )
 
     # Determine output path
-    reports_dir = Path("docs") / "reports"
+    reports_dir = Path("docs") / "reports" / "gmp-reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
     # Create filename from task
@@ -149,9 +149,9 @@ def main():
     filename = f"GMP-Report-{gmp_id.replace('GMP-', '')}-{task_slug}.md"
 
     output_path = (reports_dir / filename).resolve()
-    # Containment guard: CLI-derived slug must not escape docs/reports/ (SonarCloud S8707)
+    # Containment guard: CLI-derived slug must not escape docs/reports/gmp-reports/ (SonarCloud S8707)
     if not output_path.is_relative_to(reports_dir.resolve()):
-        raise ValueError(f"Refusing to write outside docs/reports/: {output_path}")
+        raise ValueError(f"Refusing to write outside docs/reports/gmp-reports/: {output_path}")
     output_path.write_text(report)
 
     print(f"Report saved: {output_path}")

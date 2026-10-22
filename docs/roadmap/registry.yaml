@@ -3,7 +3,7 @@ domains:
   gate-autonomy:
     title: Gate Integration & Autonomy
     adr: docs/adr/ADR-002-gate-hub-phased-autonomy.md
-    roadmap: docs/GATE_AUTONOMY_ROADMAP.md
+    roadmap: docs/roadmap/GATE_AUTONOMY_ROADMAP.md
     adr_number: '002'
     index_summary: Gate → CEG matching, human-in-loop phases, autonomy graduation,
       implementation scope
