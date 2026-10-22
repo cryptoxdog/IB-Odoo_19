@@ -62,7 +62,7 @@ Result accounting must reconcile every source row into created, updated, unchang
 
 ## Mapping law
 
-`erp/mapping_status.py` is the column-disposition registry. `erp/mapping.py` holds the identity and salesperson rules. ADR-021 is the source contract: SQL is the runtime, and the frozen grids are fixtures.
+`erp/mapping_status.py` is the machine-readable disposition registry for source columns. `docs/erp_import_mapping.md` is the narrative mapping and identity contract.
 
 Do not create fields to mirror the legacy ERP. Map into native Odoo fields wherever the business meaning already exists. Any proposed new field requires a proven semantic gap and explicit operator approval.
 

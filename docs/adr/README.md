@@ -60,7 +60,6 @@ above always mean `docs/adr/ADR-0NN-*.md`.
 
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) — system structure and module layers
 - [INVARIANTS.md](../../INVARIANTS.md) — CI-enforced rules
-- [docs/roadmap/README.md](../roadmap/README.md) — hand-authored strategic roadmap
 
 ## Notes
 

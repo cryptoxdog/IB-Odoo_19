@@ -645,3 +645,23 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `docs/roadmap/` is hand-authored strategic planning; no script may write it.
 > Phase criteria are ADR-002 §3, ADR-016, and ADR-018. Web-lead triage stays in
 > Odoo until an ADR amendment.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `docs/runbooks/ERP_IMPORT.md` does not exist. The ERP import contract is
+> ADR-021 and `plasticos_partner_import` (`erp/mapping.py`, `erp/mapping_status.py`,
+> `erp/reader.py`). The unadopted `docs/runbooks/erp_sync_mapping_matrix/` proposal
+> was removed. Do not restore it.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `memory-bank/` is retired. Do not recreate it. Session resume is Graphiti
+> (`https://github.com/Quantum-L9/l9-graphiti-memory`). Current operational
+> state is `workflow_state.md`. Code debt stays in `docs/campaigns/odoo_tech_debt`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the sentence above that says `docs/GATE_AUTONOMY_ROADMAP.md` moved to
+> `docs/roadmap/GATE_AUTONOMY_ROADMAP.md` is superseded. That generated file
+> was deleted. `docs/roadmap/` was emptied on purpose, including `README.md`.
+> `docs/erp_extract_research.md` is removed with the retired `data/erp_sm_export/`
+> probe. SQL authority is `plasticos_partner_import/erp_extracted_data/` and
+> `erp/reader.py`. `docs/runbooks/` is removed. The CI contract note lives at
+> `docs/reports/CI_CONTRACT_ASSURANCE.md`.

@@ -68,13 +68,13 @@ def test_agents_forbid_local_engines_as_authority():
     assert "remove local matcher fallback in Phase 1" not in text
 
 
-def test_gate_roadmap_generator_is_retired_and_folder_is_hand_authored():
+def test_gate_roadmap_generator_is_retired_and_folder_is_empty():
     assert not (ROOT / "scripts/roadmap.py").is_file()
     assert not (ROOT / "docs/roadmap/registry.yaml").is_file()
     assert not (ROOT / "docs/roadmap/GATE_AUTONOMY_ROADMAP.md").is_file()
-    charter = (ROOT / "docs/roadmap/README.md").read_text(encoding="utf-8")
-    assert "Hand-authored" in charter
-    assert "make roadmap" not in charter
+    roadmap = ROOT / "docs/roadmap"
+    assert not (roadmap / "README.md").is_file()
+    assert list(roadmap.glob("*")) == [] if roadmap.is_dir() else True
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     assert "scripts/roadmap.py" not in makefile
 

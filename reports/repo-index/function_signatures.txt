@@ -2410,6 +2410,25 @@
 ./scripts/repo_generators/export_repo_indexes.py:128:def is_odoo_repo(root: Path) -> bool:
 ./scripts/repo_generators/export_repo_indexes.py:132:def write_index(root: Path, name: str, lines: list[str]) -> int:
 ./scripts/repo_generators/export_repo_indexes.py:140:def main() -> int:
+./scripts/roadmap.py:37:def _load_registry() -> dict:
+./scripts/roadmap.py:51:def _items_for(reg: dict, domain: str, phase: int | None = None, kind: str | None = None) -> list[dict]:
+./scripts/roadmap.py:64:def _next_id(reg: dict, domain: str) -> str:
+./scripts/roadmap.py:79:def _render_backlog(items: list[dict]) -> str:
+./scripts/roadmap.py:87:def _render_scope_column(items: list[dict]) -> str:
+./scripts/roadmap.py:92:def _render_scope_table(in_items: list[dict], out_items: list[dict]) -> str:
+./scripts/roadmap.py:109:def _render_observability(items: list[dict]) -> str:
+./scripts/roadmap.py:114:def _render_capabilities(items: list[dict], notes_header: str = "Human gate remaining / Notes") -> str:
+./scripts/roadmap.py:123:def _render_domain_index(domains: dict) -> str:
+./scripts/roadmap.py:136:def _render_readme_architecture(domains: dict) -> str:
+./scripts/roadmap.py:151:def _replace_marker(content: str, key: str, section: str, body: str) -> str:
+./scripts/roadmap.py:161:def _update_last_updated(content: str) -> str:
+./scripts/roadmap.py:171:def _extract_marker_body(content: str, key: str, section: str) -> str | None:
+./scripts/roadmap.py:179:def cmd_sync() -> int:
+./scripts/roadmap.py:260:def cmd_check() -> int:
+./scripts/roadmap.py:329:def cmd_list(args: argparse.Namespace) -> int:
+./scripts/roadmap.py:344:def cmd_add(args: argparse.Namespace) -> int:
+./scripts/roadmap.py:370:def cmd_update(args: argparse.Namespace) -> int:
+./scripts/roadmap.py:389:def main() -> int:
 ./scripts/semantic_kernel_backfill.py:32:def build_parser() -> argparse.ArgumentParser:
 ./scripts/semantic_kernel_backfill.py:57:def load_fixture_rows(path: Path | None) -> list[SourceRow]:
 ./scripts/semantic_kernel_backfill.py:74:def main(argv: list[str] | None = None) -> int:
@@ -2484,7 +2503,7 @@
 ./tests/contracts/test_external_intelligence_authority.py:49:def test_invariants_declare_external_intelligence_authority():
 ./tests/contracts/test_external_intelligence_authority.py:56:def test_architecture_points_at_successor_adr_not_fallback_authority():
 ./tests/contracts/test_external_intelligence_authority.py:64:def test_agents_forbid_local_engines_as_authority():
-./tests/contracts/test_external_intelligence_authority.py:71:def test_gate_roadmap_generator_is_retired_and_folder_is_hand_authored():
+./tests/contracts/test_external_intelligence_authority.py:71:def test_roadmap_and_track_b_cite_successor_authority():
 ./tests/contracts/test_external_intelligence_authority.py:82:def test_acceptance_local_engines_no_longer_architectural_authority():
 ./tests/contracts/test_external_intelligence_contract_parity.py:28:    def __init__(self, params: dict[str, str]):
 ./tests/contracts/test_external_intelligence_contract_parity.py:31:    def get_param(self, key: str, default=None):

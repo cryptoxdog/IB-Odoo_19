@@ -44,4 +44,4 @@ For cross-module locked plans, run `code_graph_gmp_baseline.sh` (CLI only) befor
 
 ## Not episodic memory
 
-Decisions and session resume → Graphiti + `memory-bank/`. Code-graph = code structure only.
+Decisions and session resume → Graphiti. Code-graph = code structure only.

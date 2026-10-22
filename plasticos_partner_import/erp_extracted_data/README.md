@@ -27,7 +27,7 @@ These SQL files define the restored ERP database projections consumed by the det
 | — | `meta/` | Column types, census, and row-count evidence |
 | — | `diagnostics/` | Full column inventory and distribution evidence |
 
-Playbook: `docs/erp_extract_research.md`
+Source contract: `docs/adr/ADR-021-erp-sql-crm-api-import.md` and `plasticos_partner_import/erp/reader.py`. The 2026-08 `SM_EXPORT` research note was removed with `data/erp_sm_export/`.
 
 ## Direct database read
 

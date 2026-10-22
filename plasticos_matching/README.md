@@ -54,3 +54,4 @@ views/
 ## Related Documentation
 
 - `ARCHITECTURE.md` — External Intelligence Boundary (Gate)
+- `docs/track_b/02_cognitive_engine_graphs.md` — CEG worker contract

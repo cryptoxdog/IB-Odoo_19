@@ -59,7 +59,7 @@ Before writing any code or making any change, identify your task and consult the
 
 ### Gate / CEG / autonomy integration
 - **`docs/adr/ADR-002-gate-hub-phased-autonomy.md`** — Gate mandatory hub and phased human checkpoints. §2 local fallback is not authority.
-- **ADR-016 and ADR-018** — phase criteria. `docs/roadmap/` is hand-authored strategic planning; no script writes it.
+- **ADR-016 and ADR-018** — phase criteria. `docs/roadmap/` is empty; no script writes it.
 
 ### Editing `.github/workflows/ci.yml`
 - **`86-ci-github-actions`** — SHA-pin third-party actions. Verify test files exist on the branch. Never re-enable disabled workflows.

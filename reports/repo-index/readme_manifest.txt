@@ -13,7 +13,9 @@
 ./docs/README_backup_github_actions.md:165:# Or restore to Odoo.sh via the Odoo.sh platform backup restore UI
 ./docs/adr/README.md:1:# Architecture Decision Records (ADRs)
 ./docs/adr/gate-integration/README.md:1:# Gate Integration ADR Pack
-./docs/roadmap/README.md:1:# Roadmap
+./docs/roadmap/README.md:1:# Roadmap tooling
+./docs/roadmap/README.md:18:# Sync all roadmap docs + validate IDs (no item added)
+./docs/roadmap/README.md:21:# Add item → auto ID (ROAD-GATE-NNN) → sync → validate — one command
 ./plasticos_accounting/README.md:13:# Plasticos Accounting
 ./plasticos_automation/README.md:13:# Plasticos Automation
 ./plasticos_base/README.md:13:# Plasticos Base
@@ -41,11 +43,11 @@
 ./plasticos_semantic_kernel/README.md:1:# plasticos_semantic_kernel
 ./plasticos_transaction/README.md:1:# plasticos_transaction
 ./plasticos_web_leads/README.md:13:# PlasticOS Web Leads
-./docs/reports/repo-index/README_ODOO_INDEX.md:1:# Odoo 19 Repo Index
-./docs/reports/repo-index/README_ODOO_INDEX.md:28:# Find model
-./docs/reports/repo-index/README_ODOO_INDEX.md:31:# Check external ID collisions
-./docs/reports/repo-index/README_ODOO_INDEX.md:34:# Module load order
-./docs/reports/repo-index/README_ODOO_INDEX.md:37:# Compliance issues
+./reports/repo-index/README_ODOO_INDEX.md:1:# Odoo 19 Repo Index
+./reports/repo-index/README_ODOO_INDEX.md:28:# Find model
+./reports/repo-index/README_ODOO_INDEX.md:31:# Check external ID collisions
+./reports/repo-index/README_ODOO_INDEX.md:34:# Module load order
+./reports/repo-index/README_ODOO_INDEX.md:37:# Compliance issues
 ./skills/README.md:1:# PlasticOS agent skills (repo SSOT)
 ./tests/README.md:1:# PlastOS Test Pack — Odoo 19.0
 ./tests/README.md:63:# Partner/Polymer/Form creation (with deduplication)
