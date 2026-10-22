@@ -61,16 +61,14 @@ AUDIT_REPORT.md
 .l9/odools/
 
 # ═══════════════════════════════════════════════════════════
-# GMP reports (local artifacts, kept out of git by convention)
+# Root reports/ is retired. Indexes live under docs/reports/repo-index/.
+# GMP execution reports are committed under docs/reports/gmp-reports/.
+# Do not recreate the root directory.
 # ═══════════════════════════════════════════════════════════
-/reports/GMP-Report-*.md
+/reports/
 
-# Explicit override: memory-bank/ is excluded by this machine's global
-# gitignore (~/.gitignore_global) but must be tracked in THIS repo so a fresh
-# clone gets T0 session-resume context. Negation must come after any blanket
-# ignore in this file (none currently exists here for memory-bank).
-!/memory-bank/
-!/memory-bank/**
+# memory-bank/ is retired. Session resume is Graphiti. Do not track this folder.
+/memory-bank/
 
 # Local PR-check / tool caches
 .cache/

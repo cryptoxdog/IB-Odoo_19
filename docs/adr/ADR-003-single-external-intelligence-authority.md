@@ -5,7 +5,7 @@
 **Deciders:** Igor Beylin (operator PROMOTION_APPROVED — TASK-045 / M1)
 **Scope:** Matching and enrichment intelligence authority for PlasticOS Odoo
 **Contract:** PLASTICOS-MOTHBALL-M1-v2.2.0 · TASK-045 · Wave W7
-**Related:** [ADR-002](ADR-002-gate-hub-phased-autonomy.md), [GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
+**Related:** [ADR-002](ADR-002-gate-hub-phased-autonomy.md), [ADR-013](ADR-013-fail-closed-gate-transport.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
 
 > **Filename collision notice (RO-P5):** This file shares the `ADR-003` numeric prefix with
 > [`ADR-003-contact-import-configuration.md`](ADR-003-contact-import-configuration.md), which remains
@@ -139,7 +139,7 @@ Until those observations are recorded for a given environment, mothball status i
 ## References
 
 - Prerequisite proof: TASK-046 control evidence (Wave-7 ledger)
-- Consumer wiring: [`docs/track_b/04_odoo_gate_consumer_wiring.md`](../track_b/04_odoo_gate_consumer_wiring.md)
-- Readiness (M0): [`docs/track_b/05_external_authority_readiness.md`](../track_b/05_external_authority_readiness.md)
+- Consumer wiring: [`ADR-010-odoo-consumer-trigger-ownership.md`](ADR-010-odoo-consumer-trigger-ownership.md) and `plasticos_gate`
+- Readiness (M0): `scripts/check_external_intelligence_readiness.py` and `tests/contracts/test_external_intelligence_contract_parity.py`
 - External repos: Constellation.Gate, Cognitive.Engine.Graphs, Enrichment.Inference.Engine, Gate_SDK
 - Enrichment selection/ranking not in Odoo: [`ADR-009-enrichment-selection-ranking-not-in-odoo.md`](ADR-009-enrichment-selection-ranking-not-in-odoo.md)

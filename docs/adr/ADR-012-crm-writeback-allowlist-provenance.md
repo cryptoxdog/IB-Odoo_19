@@ -7,8 +7,7 @@
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md) (amendment 2026-07-19 elevated here),
 [ADR-010-odoo-consumer-trigger-ownership.md](ADR-010-odoo-consumer-trigger-ownership.md),
-[ADR-011-intelligence-action-topology.md](ADR-011-intelligence-action-topology.md),
-[`docs/track_b/04_odoo_gate_consumer_wiring.md`](../track_b/04_odoo_gate_consumer_wiring.md)
+[ADR-011-intelligence-action-topology.md](ADR-011-intelligence-action-topology.md)
 
 ## Context
 
