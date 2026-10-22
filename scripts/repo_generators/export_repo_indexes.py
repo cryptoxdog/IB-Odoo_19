@@ -43,7 +43,7 @@ EXCLUDE_DIR_NAMES = {
     "Current Work - IGNORE",
 }
 INDEX_SUBDIR = ("docs", "reports", "repo-index")
-RETIRED_ROOT_REPORTS = "reports"
+RETIRED_INDEX_SUBDIR = ("reports", "repo-index")
 
 CLASS_RE = re.compile(r"^\s*class\s+\w+")
 FUNCTION_RE = re.compile(r"^\s*(async\s+)?def\s+\w+")
@@ -178,10 +178,10 @@ def main() -> int:
     if not root.is_dir():
         print(f"ERROR: repo root not found: {root}", file=sys.stderr)
         return 1
-    retired = root / RETIRED_ROOT_REPORTS
+    retired = root.joinpath(*RETIRED_INDEX_SUBDIR)
     if retired.exists():
         print(
-            "ERROR: root reports/ is retired. Delete it. Indexes are written to docs/reports/repo-index.",
+            "ERROR: reports/repo-index is retired. Delete it. Indexes are written to docs/reports/repo-index.",
             file=sys.stderr,
         )
         return 1
