@@ -14,7 +14,7 @@ Those rows have to be readable on the ERP person after sync. Storing them withou
 
 ## Progress
 
-Module version `19.0.1.9.0` is the code for that link. It is not loaded on the database that is still running the crosswalk import.
+Module version `19.0.1.9.2` is the code for that link. `19.0.1.9.0` added the person link. `19.0.1.9.1` keeps the exception text on a custom-table warning. `19.0.1.9.2` does not import a second VanillaSoft id for a person the crosswalk already approves, and a crosswalk id whose ERP person was not imported becomes a `crm.lead` with no ERP partner.
 
 In this version:
 
@@ -23,6 +23,8 @@ In this version:
 - **CRM → CRM Sync → Call Events** lists the contact and the comment.
 - `migrations/19.0.1.9.0/post-migrate.py` sets `partner_id` on rows already imported, from the external ref. It does not create partners or leads.
 - `tests/test_crm_sync_full_import.py` covers a person-bound call and custom-table row, and a lead-only call that stays on the lead.
+- A custom-table list or fetch failure logs the `CrmAdapterError` text. The warning is not a substitute for the rows, and the text is not dropped.
+- A single-contact bind that does not admit the person keeps the reason on the warning, even when no outcome counter is open. A missing ERP person names the marker, `plasticos_transaction.legacy_erp_contact_<CT_ID>`, and is imported as a `crm.lead` instead of being attached to that missing partner. Four VanillaSoft ids that repeat an already approved active person are dropped before fetch: `1045036935`, `1179868294`, `584402429`, and `585278462`.
 
 The running import is still on the previous code, so the rows it writes have no `partner_id` until this module is upgraded. After that import releases the database:
 

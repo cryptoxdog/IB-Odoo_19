@@ -18,10 +18,29 @@ from pathlib import Path
 
 CROSSWALK_PARAM = "plasticos_crm_sync.approved_contact_crosswalk"
 CROSSWALK_HEADER = ("erp_ct_id", "vanillasoft_contact_id")
-PINNED_SHA256 = "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2"
-PINNED_VS_COUNT = 763
-PINNED_ERP_COUNT = 716
+PINNED_SHA256 = "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9"
+PINNED_VS_COUNT = 759
+PINNED_ERP_COUNT = 702
 XMLID_MODULE = "plasticos_transaction"
+# Second VanillaSoft ids for a person the crosswalk already approves on an
+# active ERP contact. The inactive CT_ID is the wrong target. These ids are
+# not imported again.
+# The inactive contact is the wrong target. The active company is already
+# imported, and this person is not one of its active contacts. The VanillaSoft
+# contact is placed on that company. It is not a second lead.
+ACTIVE_COMPANY_CP_BY_VS = {
+    "572647290": "399",  # WESTBURY PAPERSTOCK WAREHOUSE
+    "573474286": "1405",  # MIDWEST FIBER INC, including Normal, IL
+    "579156006": "1484",  # ASHEBORO RECYCLING
+}
+OMITTED_DUPLICATE_VS_IDS = frozenset(
+    {
+        "1045036935",  # inactive CT 127550001; active person is approved as CT 179700001
+        "1179868294",  # inactive CT 127200001; active person is approved as CT 126500001
+        "584402429",  # inactive CT 64200001; active person is approved as CT 126850001
+        "585278462",  # same inactive person as 584402429
+    }
+)
 CONTACT_NOTE_KEY = "Notes"
 MOBILE_PHONE_NAMES = frozenset({"mobile", "mobile 1", "mobile 2", "cell"})
 
@@ -79,19 +98,27 @@ def validate_crosswalk(
     for line_no, row in enumerate(reader, start=2):
         if not row or (len(row) == 1 and row[0] == ""):
             continue
-        if len(row) != 2 or not row[0].isdigit() or not row[1].isdigit():
+        if len(row) != 2 or not row[1].isdigit() or (row[0] and not row[0].isdigit()):
             raise CrosswalkError(f"approved crosswalk row {line_no} is not two numeric source IDs")
         ct_id, vs_id = row
         if vs_id in mapping and mapping[vs_id] != ct_id:
             raise CrosswalkError(f"VanillaSoft {vs_id} maps to more than one ERP CT_ID")
         mapping[vs_id] = ct_id
-        erp_ids.add(ct_id)
+        if ct_id:
+            erp_ids.add(ct_id)
     if len(mapping) != expected_vs or len(erp_ids) != expected_erp:
         raise CrosswalkError(
             f"approved crosswalk census {len(mapping)} VanillaSoft / {len(erp_ids)} ERP "
             f"!= {expected_vs} / {expected_erp}"
         )
     return mapping
+
+
+def without_duplicate_contacts(mapping: dict[str, str] | None) -> dict[str, str] | None:
+    """Drop VanillaSoft ids that repeat a person already approved on an active contact."""
+    if mapping is None:
+        return None
+    return {vs_id: ct_id for vs_id, ct_id in mapping.items() if vs_id not in OMITTED_DUPLICATE_VS_IDS}
 
 
 def load_crosswalk_map(env) -> dict[str, str] | None:

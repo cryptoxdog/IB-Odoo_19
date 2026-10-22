@@ -1,6 +1,6 @@
 # Post-run evidence: ERP partners, ERP commercial documents, then full VanillaSoft CRM
 
-Contract revision `v2.1`. Importer outcomes `created` / `updated` / `unchanged` with a persisted provider ref are imported. Approved misses caused by the active-only rule are `held`. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. Do not invent importer states.
+Contract revision `v2.2`. Importer outcomes `created` / `updated` / `unchanged` with a persisted provider ref are imported. Approved misses caused by the active-only rule are `held`. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. A second VanillaSoft id for an already approved active person is `duplicate_skipped`. Do not invent importer states. Copy each distinct checkpoint reason into section H. A class with no reason is UNKNOWN, not a result.
 
 > Fill only from actual execution receipts. All `NOT_RUN` values must become observed data or explicit BLOCKED/UNKNOWN. Commit only sanitized facts, no customer PII.
 
@@ -75,7 +75,7 @@ Check `imported + held + genuine_failed = 4,876`, no source ID twice. Imported m
 
 ## E. Approved identity and previous 28 exceptions
 
-- Pinned crosswalk digest verified? UNKNOWN. Approved YES: 763 across 716 ERP CT_IDs. Actual exact links: UNKNOWN. Shared alias groups: 45 ERP people / 92 VS IDs baseline, independently verify outcome.
+- Pinned crosswalk digest verified? UNKNOWN. Operator YES: 763. Loaded crosswalk: 759 VanillaSoft ids across 702 ERP CT_IDs. Duplicate YES ids not fetched: 4. Actual exact links: UNKNOWN. Independently verify shared aliases from the loaded file.
 - Previous run: 735 bound and 28 `no_erp_person` (27 CT_IDs). New bound count: UNKNOWN. Each historical failure classified by raw company status, placeholder key, missing parent or genuine eligible missing person: UNKNOWN.
 - Wrong approved person links: UNKNOWN; approved link creating duplicate `res.partner`: UNKNOWN; NO candidate bound to rejected CTID: UNKNOWN; pending source IDs falsely matched to ERP: UNKNOWN.
 
@@ -107,6 +107,8 @@ Owner, stage, and polymer workbooks are audit oracles. Record the importer's nam
 ## H. Evidence manifest, code delta, residuals
 
 Cite actual command paths and output files, code SHA and fixture SHA, file hashes, source-query digests, logs redacted of personal fields and secrets, the database identity under test, an exception ledger, and any PR URL.
+
+The exception ledger is `open_exceptions`: one row per distinct signal, with `level`, `reason`, and `count`. Copy the finish line `signals {...}` from `import_4876.py`. Include warnings that rode along on imported rows. A held, failed, or skipped count with an empty ledger means the run did not pass, even when the 4,876 equation closed. `checkpoint_rows_missing_signals` and `dispositions_without_a_source_reason` are both 0 on a pass. Do not summarize a reason as its class name.
 
 **ERP partner acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
 **ERP commercial-document acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  

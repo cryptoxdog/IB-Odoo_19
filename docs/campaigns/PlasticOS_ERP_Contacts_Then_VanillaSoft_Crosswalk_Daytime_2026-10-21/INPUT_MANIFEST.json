@@ -8,10 +8,11 @@
     "03_APPROVED_CONTACT_CROSSWALK.csv": {
       "commit_to_git": false,
       "relative_path": "../PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/PRIVATE_INPUTS/03_APPROVED_CONTACT_CROSSWALK.csv",
-      "sha256": "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2",
+      "sha256": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
       "header": ["erp_ct_id", "vanillasoft_contact_id"],
-      "vs_ids": 763,
-      "unique_erp_ct_ids": 716
+      "vs_ids": 759,
+      "unique_erp_ct_ids": 702,
+      "blank_erp_ct_id_is": "crm lead, not an ERP bind"
     }
   },
   "explicitly_not_loaded_by_this_pack": {

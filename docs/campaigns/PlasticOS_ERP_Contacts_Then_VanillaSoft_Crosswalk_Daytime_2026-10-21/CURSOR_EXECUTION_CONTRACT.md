@@ -43,7 +43,7 @@ Required file, already stored with the overnight pack:
 
 | Input | Path | Decision |
 | --- | --- | --- |
-| `03_APPROVED_CONTACT_CROSSWALK.csv` | `../PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/PRIVATE_INPUTS/03_APPROVED_CONTACT_CROSSWALK.csv` | SHA256 must equal `f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2`. 763 VanillaSoft IDs, 716 ERP `CT_ID`s |
+| `03_APPROVED_CONTACT_CROSSWALK.csv` | `../PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/PRIVATE_INPUTS/03_APPROVED_CONTACT_CROSSWALK.csv` | SHA256 must equal `3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9`. 759 VanillaSoft IDs, 702 ERP `CT_ID`s. A blank `erp_ct_id` is a CRM lead and is not an ERP bind. |
 
 Copy that file, byte-exact, to `Current Work - IGNORE/erp-contacts-vs-crosswalk/03_APPROVED_CONTACT_CROSSWALK.csv`. Copy `import_crosswalk.py` to `Current Work - IGNORE/erp-contacts-vs-crosswalk/import_crosswalk.py`. Do not copy the 4,876-row CSV or the workbooks into the shell directory. A wrong digest aborts in `load_crosswalk_map` before CRM writes.
 

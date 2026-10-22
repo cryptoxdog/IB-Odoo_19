@@ -421,19 +421,24 @@ class VanillaSoftAdapter:
     def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]:
         try:
             tables_payload = self.client.get_custom_tables_list(self.project_id)
-        except CrmAdapterError:
+        except CrmAdapterError as exc:
             if CUSTOM_TABLES_REQUIRED:
                 raise
-            _logger.warning("Custom tables list failed for project %s", self.project_id)
+            _logger.warning("Custom tables list failed for project %s: %s", self.project_id, exc)
             return
         tables = _extract_list(tables_payload, "custom_tables", "CustomTables", "tables", "data")
         if not tables:
             # Attempt catch-all fetch without table id
             try:
                 data = self.client.get_custom_table_data(contact_external_id)
-            except CrmAdapterError:
+            except CrmAdapterError as exc:
                 if CUSTOM_TABLES_REQUIRED:
                     raise
+                _logger.warning(
+                    "Custom table fetch failed contact=%s table=default: %s",
+                    contact_external_id,
+                    exc,
+                )
                 return
             yield from self._rows_from_payload(contact_external_id, "0", "default", data)
             return
@@ -446,13 +451,14 @@ class VanillaSoftAdapter:
                 continue
             try:
                 data = self.client.get_custom_table_data(contact_external_id, table_id=tid)
-            except CrmAdapterError:
+            except CrmAdapterError as exc:
                 if CUSTOM_TABLES_REQUIRED:
                     raise
                 _logger.warning(
-                    "Custom table fetch failed contact=%s table=%s",
+                    "Custom table fetch failed contact=%s table=%s: %s",
                     contact_external_id,
                     tid,
+                    exc,
                 )
                 continue
             yield from self._rows_from_payload(contact_external_id, str(tid), tname, data)

@@ -166,6 +166,19 @@ def parse_bool(value: str | None) -> bool | None:
     return None
 
 
+def explicitly_active_contact(value: str | None) -> bool:
+    """A contact row is eligible only when ``IsActive`` is an explicit true spelling.
+
+    Blank and unknown spellings parse as ``None``. ``None`` is not active.
+    """
+    return parse_bool(value) is True
+
+
+def eligible_contact_rows(members: list[tuple[str, dict]]) -> list[tuple[str, dict]]:
+    """Keep rows whose ``IsActive`` is explicitly true. Inactive aliases are dropped."""
+    return [(contact_id, row) for contact_id, row in members if explicitly_active_contact(row.get("IsActive"))]
+
+
 def parse_date(value: str | None) -> datetime | None:
     """Parse an exported SQL Server datetime; unknown shapes yield ``None``."""
     raw = _clean(value)

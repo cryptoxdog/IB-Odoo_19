@@ -1,7 +1,7 @@
 {
   "schema": "plasticos.evidence_receipt/v1",
   "subject": "erp-partners-then-commercial-then-vanillasoft-4876",
-  "contract_revision": "v2.1",
+  "contract_revision": "v2.2",
   "recorded_at": null,
   "verdict": "NOT_RUN",
   "repo": {
@@ -31,11 +31,13 @@
   },
   "inputs": {
     "source_csv_sha256_expected": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
-    "approved_crosswalk_sha256_expected": "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2",
+    "approved_crosswalk_sha256_expected": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
     "operator_approved_yes": 763,
     "operator_rejected_suggested_links": 18,
     "operator_unreviewed": 4095,
-    "distinct_approved_erp_ct_ids": 716,
+    "loaded_crosswalk_vs_ids": 759,
+    "distinct_approved_erp_ct_ids": 702,
+    "duplicate_yes_ids_not_fetched": 4,
     "sha256_verified_on_runtime_host": null,
     "source_contact_id_census_verified_on_runtime_host": null
   },
@@ -129,6 +131,10 @@
     "total_successfully_persisted_source_ids": null,
     "total_held_source_ids": null,
     "total_failed_source_ids": null,
+    "total_duplicate_skipped_source_ids": null,
+    "checkpoint_rows_missing_signals": null,
+    "dispositions_without_a_source_reason": null,
+    "imported_ids_that_also_warned": null,
     "post_import_crm_lead_count": null,
     "post_import_provider_person_ref_count": null,
     "post_import_provider_lead_ref_count": null,
@@ -159,6 +165,12 @@
   "source_artifacts_excluded_from_publication": null,
   "observed_exit_codes": [],
   "open_exceptions": [],
+  "signal_policy": {
+    "authority": "https://github.com/Quantum-L9/.github/blob/main/docs/ADVISORY.md",
+    "unknown_outcome": "https://github.com/Quantum-L9/.github/blob/main/semantics/error_taxonomy.yaml",
+    "runner": "import_4876.py",
+    "rule": "A finding without its reason is absent. UNKNOWN is not collapsed into imported or into an explained failure. Each open_exceptions item is {level, reason, count}. A non-zero held, genuine_failed, duplicate_skipped, or warning count with an empty open_exceptions array does not pass. The runner exits 1 when a checkpoint row has no signals key or a non-imported row has no source reason."
+  },
   "limitations": [],
   "operator_acceptance": "NOT_RUN"
 }

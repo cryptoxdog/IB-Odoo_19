@@ -9,11 +9,13 @@ from typing import Any
 from ..adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError
 from ..adapters.registry import get_adapter
 from .approved_identity import (
+    ACTIVE_COMPANY_CP_BY_VS,
     XMLID_MODULE,
     CrosswalkError,
     comment_with_note,
     load_crosswalk_map,
     phone_match_key,
+    without_duplicate_contacts,
     xmlid_name,
 )
 
@@ -792,6 +794,7 @@ class SyncOrchestrator:
         lead_dto = adapter.get_contact(str(external_id))
         if not lead_dto:
             raise CrmAdapterError(f"Contact {external_id} not found")
+        reason_at = len(self.error_rows)
         lead = self._upsert_lead(connection, lead_dto, adapter)
         calls_n = 0
         if self.last_lead_outcome in ADMITTED_OUTCOMES:
@@ -802,10 +805,12 @@ class SyncOrchestrator:
         else:
             # Identity conflict or write failure: no dependent writes may hang
             # off an unadmitted lead (they would attach to an arbitrary match).
+            reasons = [str(row.get("message") or "") for row in self.error_rows[reason_at:] if row.get("message")]
             _logger.warning(
-                "Single-contact sync skipped dependent writes external_id=%s outcome=%s",
+                "Single-contact sync skipped dependent writes external_id=%s outcome=%s reason=%s",
                 external_id,
                 self.last_lead_outcome,
+                "; ".join(reasons) or "no reason recorded",
             )
         self._resolve_orphans(connection, adapter, None)
         _logger.info(
@@ -988,7 +993,7 @@ class SyncOrchestrator:
         if getattr(self, "_crosswalk_ready", False):
             return
         try:
-            self._crosswalk = load_crosswalk_map(self.env)
+            self._crosswalk = without_duplicate_contacts(load_crosswalk_map(self.env))
         except CrosswalkError as exc:
             self._crosswalk = None
             self._crosswalk_ready = False
@@ -1067,6 +1072,47 @@ class SyncOrchestrator:
             wrote = True
         return wrote
 
+    def _erp_company_for_cp(self, cp_id: str):
+        marker = f"{XMLID_MODULE}.legacy_erp_cp_{cp_id}"
+        imd = self.env["ir.model.data"].sudo()  # XMLID rows are system data the sync user must read
+        rows = imd.search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "=", f"legacy_erp_cp_{cp_id}"),
+                ("model", "=", "res.partner"),
+            ]
+        )
+        if len(rows) != 1:
+            return None, f"ERP marker {marker} resolved {len(rows)} rows"
+        company = self.env["res.partner"].sudo().with_context(active_test=False).browse(rows.res_id).exists()
+        if len(company) != 1 or not company.is_company:
+            return None, f"ERP marker {marker} does not point at one company"
+        return company, ""
+
+    def _person_on_active_company(self, company, dto: CanonicalLead):
+        """The VanillaSoft person on the active company. A same-named child is reused."""
+        Partner = self.env["res.partner"].sudo().with_context(active_test=False)  # sync user cannot create partners
+        name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
+        children = Partner.search([("parent_id", "=", company.id), ("is_company", "=", False)])
+        same = [
+            child
+            for child in children
+            if name and _collapse_ws(getattr(child, "name", "")).casefold() == name.casefold()
+        ]
+        if len(same) == 1:
+            return same[0]
+        if len(same) > 1:
+            return None
+        return Partner.create(
+            {
+                "name": name or "Unknown",
+                "parent_id": company.id,
+                "is_company": False,
+                "type": "contact",
+                "email": (dto.email or "").strip() or False,
+            }
+        )
+
     def _bind_approved_contact(self, dto: CanonicalLead, ct_id: str):
         """Bind one approved ContactID onto the existing ERP person. No new lead.
 
@@ -1079,6 +1125,12 @@ class SyncOrchestrator:
             self._record_outcome(outcomes, "failed", dto.external_id, reason)
             self.last_lead_outcome = "failed"
             return Lead.browse()
+        return self._bind_known_person(dto, partner)
+
+    def _bind_known_person(self, dto: CanonicalLead, partner):
+        """Bind one VanillaSoft contact onto a person already chosen. No new lead."""
+        outcomes = getattr(self, "outcomes", None)
+        Lead = self.env[CRM_LEAD]
         Ref = self.env["plasticos.crm.external.ref"]
         lead = self._find_lead(dto.provider, dto.external_id, Ref)
         matches = Lead.with_context(active_test=False).search([("vanillasoft_id", "=", dto.external_id)])
@@ -1256,9 +1308,50 @@ class SyncOrchestrator:
         """
         outcomes = getattr(self, "outcomes", None)
         self.last_lead_outcome = None
-        ct_id = self._approved_ct_id(dto.external_id)
-        if ct_id:
-            return self._bind_approved_contact(dto, ct_id)
+        approved = getattr(self, "_crosswalk", None) or {}
+        if str(dto.external_id) in approved:
+            ct_id = approved[str(dto.external_id)]
+            if not ct_id:
+                company_cp = ACTIVE_COMPANY_CP_BY_VS.get(str(dto.external_id))
+                if company_cp:
+                    company, reason = self._erp_company_for_cp(company_cp)
+                    partner = self._person_on_active_company(company, dto) if company is not None else None
+                    if partner is not None:
+                        _logger.warning(
+                            "Approved contact placed on active company external_id=%s cp_id=%s reason=%s",
+                            dto.external_id,
+                            company_cp,
+                            "inactive contact is not the target",
+                        )
+                        return self._bind_known_person(dto, partner)
+                    _logger.warning(
+                        "Approved contact has no ERP person external_id=%s cp_id=%s reason=%s; importing as crm lead",
+                        dto.external_id,
+                        company_cp,
+                        reason or "active company has more than one person with that name",
+                    )
+                else:
+                    # The crosswalk keeps the VanillaSoft id and names no ERP contact.
+                    # That contact is a lead. It is not attached to an inactive company.
+                    _logger.warning(
+                        "Approved contact has no ERP person external_id=%s reason=%s; importing as crm lead",
+                        dto.external_id,
+                        "crosswalk names no ERP contact",
+                    )
+            else:
+                partner, reason = self._erp_person_for_ct(ct_id)
+                if partner is not None:
+                    return self._bind_approved_contact(dto, ct_id)
+                # The approved CT_ID was not imported. It belongs only to an inactive
+                # ERP contact or company. Do not bind that company. Keep the reason
+                # and bring the VanillaSoft contact in as a lead.
+                _logger.warning(
+                    "Approved contact has no ERP person external_id=%s ct_id=%s reason=%s; importing as crm lead",
+                    dto.external_id,
+                    ct_id,
+                    reason,
+                )
+                approved.pop(str(dto.external_id), None)
         person_ref = self._find_person_ref(dto.provider, dto.external_id)
         if person_ref:
             return self._keep_person_binding(dto, person_ref)
@@ -1354,11 +1447,10 @@ class SyncOrchestrator:
         return lead
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
-        """Record a classified outcome + error detail (duplicate/failed rows)."""
-        if outcomes is None:
-            return
-        outcomes[outcome] += 1
+        """Keep the reason on every path. A counter is optional; the reason is not."""
         self.error_rows.append({"record_ref": record_ref, "message": message})
+        if outcomes is not None:
+            outcomes[outcome] += 1
 
     def _resolve_country_id(self, raw: str | None) -> int | bool:
         """Resolve a country by exact alias, ISO code, or exact name.

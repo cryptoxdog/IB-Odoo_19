@@ -541,6 +541,14 @@ class PlasticosErpImport(models.AbstractModel):
             }
             for contact_id in index.contacts_by_cp[cp_id]:
                 row = index.contacts[contact_id]
+                if not mapping.explicitly_active_contact(row.get("IsActive")):
+                    report.unresolved_ref(
+                        "Contact",
+                        "inactive_contact",
+                        contact_id,
+                        "IsActive is not an explicit true value",
+                    )
+                    continue
                 name = _text(row, "ContactNm")
                 if not name:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
@@ -584,10 +592,12 @@ class PlasticosErpImport(models.AbstractModel):
     def _import_person(
         self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping
     ) -> None:
-        """One person per company plus first and last name. Every CT_ID aliases that person."""
-        members = sorted(members, key=_contact_sort_key)
+        """One person per company plus first and last name. Only eligible CT_IDs alias that person."""
+        members = mapping.eligible_contact_rows(sorted(members, key=_contact_sort_key))
+        if not members:
+            return
         name = _text(members[0][1], "ContactNm")
-        active = any(_row_active(row, mapping) for _contact_id, row in members)
+        active = all(_row_active(row, mapping) for _contact_id, row in members)
         parent = partner_model.browse(company_partner_id) if company_partner_id else partner_model.browse()
         values = {
             "name": name,
@@ -1301,8 +1311,7 @@ def _person_key(name: str) -> str:
 
 
 def _row_active(row, mapping) -> bool:
-    flag = mapping.parse_bool(row.get("IsActive"))
-    return True if flag is None else flag
+    return mapping.explicitly_active_contact(row.get("IsActive"))
 
 
 def _keep_first(values: dict, field_name: str, value: str, report, contact_id: str) -> None:

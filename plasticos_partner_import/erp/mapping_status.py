@@ -403,9 +403,9 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "active",
-            "transformation": "parse_bool (Y/N); never compared to int",
+            "transformation": "explicitly_active_contact; blank and unknown are excluded, not imported",
             "required": False,
-            "null_behavior": "blank -> treated active",
+            "null_behavior": "blank or unknown -> excluded; only explicit true is eligible",
             "identity_role": "none",
         },
         "Notes": {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from pathlib import Path
 
 import pytest
@@ -19,15 +20,17 @@ from plasticos_crm_sync.services.approved_identity import (
     phone_kinds,
     phone_match_key,
     validate_crosswalk,
+    without_duplicate_contacts,
 )
 from tests.test_crm_sync_classification import _harness, _lead, _Model, _outcomes
 
 ROOT = Path(__file__).resolve().parents[1]
 PACK_CSV = (
     ROOT
-    / "Current Work - IGNORE"
-    / "10-17-26"
-    / "PlasticOS_CRM_ERP_Identity_GMP_STAGING_2"
+    / "docs"
+    / "campaigns"
+    / "PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21"
+    / "PRIVATE_INPUTS"
     / "03_APPROVED_CONTACT_CROSSWALK.csv"
 )
 
@@ -39,9 +42,9 @@ def _csv(rows: list[tuple[str, str]]) -> str:
 
 def test_pinned_crosswalk_constants():
     """Pins the constants only. It does not prove the operator file."""
-    assert PINNED_SHA256 == "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2"
-    assert PINNED_VS_COUNT == 763
-    assert PINNED_ERP_COUNT == 716
+    assert PINNED_SHA256 == "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9"
+    assert PINNED_VS_COUNT == 759
+    assert PINNED_ERP_COUNT == 702
 
 
 def test_operator_crosswalk_file_matches_the_pinned_census():
@@ -55,10 +58,16 @@ def test_operator_crosswalk_file_matches_the_pinned_census():
     assert hashlib.sha256(raw).hexdigest() == PINNED_SHA256
     mapping = validate_crosswalk(raw.decode("utf-8"))
     assert len(mapping) == PINNED_VS_COUNT
-    assert len(set(mapping.values())) == PINNED_ERP_COUNT
+    assert len({ct_id for ct_id in mapping.values() if ct_id}) == PINNED_ERP_COUNT
     assert mapping["572648103"] == "2350001"
     assert mapping["1082805107"] == "192650001"
+    assert mapping["573474327"] == "39150001"
+    assert mapping["572648242"] == "8750001"
+    assert mapping["1085161977"] == ""
+    assert mapping["572647290"] == ""
     assert "572648239" not in mapping
+    assert "1045036935" not in mapping
+    assert "1179868294" not in mapping
 
 
 def test_crosswalk_rejects_a_second_erp_target_for_one_contact():
@@ -153,6 +162,81 @@ def test_persisted_person_ref_blocks_the_legacy_lead_when_the_crosswalk_is_unset
     assert orch.last_lead_outcome == "unchanged"
     assert leads.rows == {}, "an archived ERP person's binding must not fall back to a new lead"
     assert [(r.res_model, r.res_id) for r in refs.rows.values()] == [("res.partner", person.id)]
+
+
+def test_duplicate_vanillasoft_ids_are_removed_before_import():
+    """A second id for a person already approved on an active contact is not imported."""
+    mapping = without_duplicate_contacts(
+        {
+            "1045036935": "127550001",
+            "1179868294": "127200001",
+            "584402429": "64200001",
+            "585278462": "64200001",
+            "1085161977": "12150001",
+        }
+    )
+    assert mapping == {"1085161977": "12150001"}
+    assert without_duplicate_contacts(None) is None
+
+
+def test_inactive_contact_is_placed_on_the_active_company_not_a_lead():
+    """A blank crosswalk row with a known active company does not open a lead."""
+    orch, connection, leads, _refs = _harness()
+    orch._crosswalk = {"572647290": ""}
+    company = type("Company", (), {"id": 399})()
+    person = type("Person", (), {"id": 77})()
+    orch._erp_company_for_cp = lambda cp_id: (company, "")
+    orch._person_on_active_company = lambda _company, _dto: person
+    bound = {}
+
+    def bind(dto, partner):
+        bound["id"] = partner.id
+        bound["external_id"] = dto.external_id
+        orch.last_lead_outcome = "updated"
+        return leads.browse()
+
+    orch._bind_known_person = bind
+    orch._upsert_lead(connection, _lead("572647290"))
+    assert bound == {"id": 77, "external_id": "572647290"}
+    assert leads.rows == {}
+    assert orch.last_lead_outcome == "updated"
+
+
+def test_missing_erp_person_is_imported_as_a_crm_lead(caplog):
+    """An approved id with no ERP person becomes a lead and is not bound to a partner."""
+    orch, connection, leads, refs = _harness()
+    orch._crosswalk = {"1085161977": "12150001"}
+    orch._load_approved_crosswalk = lambda: None
+    orch._resolve_orphans = lambda *_args, **_kwargs: 0
+    orch._erp_person_for_ct = lambda ct_id: (
+        None,
+        f"ERP marker plasticos_transaction.legacy_erp_contact_{ct_id} resolved 0 rows",
+    )
+
+    class _Adapter:
+        def get_contact(self, external_id):
+            return _lead(external_id)
+
+        def iter_calls_for_contact(self, _external_id):
+            return []
+
+        def iter_table_rows(self, _external_id):
+            return []
+
+    orch._build_adapter = lambda _connection: _Adapter()
+    orch._apply_contact_materials = lambda *_args, **_kwargs: None
+    orch._sync_tables_for_lead = lambda *_args, **_kwargs: None
+    with caplog.at_level(logging.WARNING):
+        lead = orch.upsert_contact_external_id(connection, "1085161977")
+    assert orch.last_lead_outcome == "created"
+    assert lead.id
+    assert not getattr(lead, "partner_id", False)
+    assert refs.rows
+    assert all(row.res_model == "crm.lead" for row in refs.rows.values())
+    assert orch.error_rows == []
+    assert "1085161977" not in orch._crosswalk
+    assert "importing as crm lead" in caplog.text
+    assert "legacy_erp_contact_12150001 resolved 0 rows" in caplog.text
 
 
 def test_person_ref_to_a_missing_partner_is_failed_not_recreated():
