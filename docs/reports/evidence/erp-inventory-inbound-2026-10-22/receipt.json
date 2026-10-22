@@ -102,6 +102,7 @@
       "database": "odoo_test_w39da19266a",
       "template": "odoo_test_tpl_ee_c9e8a81f52f23680",
       "result": "49 run, 0 failed, 0 error(s)",
+      "retested_after_gate_fix_at": "2026-10-22T22:38:05Z",
       "finished_at": "2026-10-22T22:26:52Z",
       "cases": [
         "60403 draft PO quantity 38580 lb subtotal 3472.20 location 404812",
@@ -119,7 +120,7 @@
     "plasticos_partner_import/erp/source_index.py": "1863c9b7e5449ac5c400ad46d9b314e996a8ee02d5ae893d8011f9c07bd829f6",
     "plasticos_partner_import/erp/native_orders.py": "a3ed9644172a482b692c1b18a0aa728b77fd2a856fd5131ee3a5558691e91bc1",
     "plasticos_partner_import/erp_extracted_data/24_buysell.sql": "38715e3a570b2a4b0a3c03c5d225fd9a6d8a012c20b8afbacd7fe7d8e6533579",
-    "plasticos_transaction/models/native_document_import.py": "4a52965c52fc61febc4f8f0ffe0de1475432a08d275d6bedec04ec8f012410f8"
+    "plasticos_transaction/models/native_document_import.py": "4d77ea5257d2b0be99f614670d2016aebf8ad8f68407a48fcb6ca6e11ede354d"
   },
   "outbound_regression": "PASS",
   "ordinary_sale_regression": "PASS",

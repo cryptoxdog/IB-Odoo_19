@@ -200,11 +200,11 @@ def _census(index, context) -> dict:
         by_outcome.setdefault(entry["outcome"], []).append(entry["worksheet"])
         if entry.get("address_id"):
             destinations[entry["worksheet"]] = entry["address_id"]
-    census["inventory_inbound"] = {
-        "worksheets": len(entries),
-        "by_outcome": {key: sorted(values) for key, values in sorted(by_outcome.items())},
-        "destinations": dict(sorted(destinations.items())),
-    }
+    inbound: dict = {}
+    inbound["worksheets"] = len(entries)
+    inbound["by_outcome"] = {key: sorted(values) for key, values in sorted(by_outcome.items())}
+    inbound["destinations"] = dict(sorted(destinations.items()))
+    census["inventory_inbound"] = inbound
     return census
 
 
@@ -300,11 +300,14 @@ def _realize_inventory_inbound(
     """
     destination, site_reason = index.inventory_destination(buysell.get("CustID"), buysell.get("ShipToID"))
     status = (buysell.get("status") or "").strip().upper()
-    if status == "X":
+    cancelled = status == "X"
+    missing_purchase = not cancelled and not purchase_groups
+    missing_destination = not cancelled and not missing_purchase and destination is None
+    if cancelled:
         outcome = "cancelled"
-    elif not purchase_groups:
+    elif missing_purchase:
         outcome = "held_missing_purchase"
-    elif destination is None:
+    elif missing_destination:
         outcome = "held_missing_destination"
     else:
         outcome = "recognized"
@@ -317,7 +320,7 @@ def _realize_inventory_inbound(
             "site_reason": site_reason,
         }
     )
-    if outcome == "cancelled":
+    if cancelled:
         report.reject("transactions")
         report.reject("transaction_lines", len(line_outcomes) or len(index.detail_ids(number)))
         _quarantine_worksheet_payables(
@@ -329,9 +332,9 @@ def _realize_inventory_inbound(
             "inventory_inbound_cancelled",
         )
         return [], []
-    if destination is not None and outcome != "held_missing_destination":
+    if destination is not None and not missing_destination:
         _bind_inventory_destination(importer, number, destination)
-    if outcome == "held_missing_purchase":
+    if missing_purchase:
         report.reject("transactions")
         report.reject("transaction_lines", len(line_outcomes) or len(index.detail_ids(number)))
         _quarantine_worksheet_payables(
@@ -362,11 +365,11 @@ def _realize_inventory_inbound(
                 new_lines.add(detail_id)
             _upsert_purchase_line(importer, context, report, order, detail_id, line)
     _vendor_bills(importer, index, report, context, partner_by_cp, number, documents)
-    if outcome == "recognized":
-        report.skip("transactions")
-    else:
+    if missing_destination:
         report.reject("transactions")
         report.anomaly("BuySell", number, "inventory inbound destination was not a single warehouse")
+    else:
+        report.skip("transactions")
     for line_outcome in line_outcomes:
         if line_outcome == "rejected":
             report.bump("transaction_lines", "rejected")
@@ -386,7 +389,9 @@ def _bind_inventory_destination(importer, number, destination):
     location_xml = f"legacy_erp_inv_addr_{_token(address_id)}"
     location = _existing(importer, "stock.location", location_xml)
     if location is None:
-        parent = importer.env.ref("stock.stock_location_stock")
+        parent = importer.env.ref("stock.stock_location_stock", raise_if_not_found=False)
+        if parent is None:
+            raise ValueError("stock.stock_location_stock is not installed")
         location = (
             importer.env["stock.location"]
             .with_context(**_import_context())
