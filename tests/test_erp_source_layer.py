@@ -570,19 +570,22 @@ def test_sales_reps_link_to_loaded_counterparties(index, payload):
     assert index.counts()["sales_reps"] == len(payload.rows("SalesReps")) == linked + len(orphans) == 977
 
 
-def test_every_default_sales_rep_has_a_name(index):
+def test_every_assigned_sales_rep_has_a_name(index):
     defaults = {}
     for rows in index.sales_reps_by_cp.values():
         code, anomaly = mapping.default_sales_rep(rows)
         assert anomaly is None
         if code:
             defaults[code] = defaults.get(code, 0) + 1
-            assert mapping.sales_rep_name(code), code
-    assert defaults == {"AA": 107, "AB": 91, "DAVE": 1, "IB": 234, "LR": 59, "MM": 27, "RP": 127, "TF": 92}
+            assert mapping.sales_rep_login(code), code
+    # Includes the sole IsDefault=0 assignment on each company that has no default row.
+    assert defaults == {"AA": 113, "AB": 111, "DAVE": 1, "IB": 269, "LR": 60, "MM": 52, "RP": 133, "TF": 94}
+    code, anomaly = mapping.default_sales_rep(index.sales_reps_by_cp["2354"])
+    assert (code, anomaly) == ("AB", None)
 
 
-def test_default_sales_rep_reads_only_the_default_row():
-    assert mapping.default_sales_rep([{"ReferrerNo": "IB  ", "IsDefault": "0"}]) == (None, None)
+def test_default_sales_rep_uses_the_sole_assignment_when_none_is_default():
+    assert mapping.default_sales_rep([{"ReferrerNo": "AB        ", "IsDefault": "0"}]) == ("AB", None)
     assert mapping.default_sales_rep(
         [{"ReferrerNo": "IB", "IsDefault": "1"}, {"ReferrerNo": "AA", "IsDefault": "0"}]
     ) == (
@@ -594,18 +597,29 @@ def test_default_sales_rep_reads_only_the_default_row():
     )
     assert code is None
     assert anomaly == "more than one default rep: AA, IB"
+    code, anomaly = mapping.default_sales_rep(
+        [{"ReferrerNo": "IB", "IsDefault": "0"}, {"ReferrerNo": "AA", "IsDefault": "0"}]
+    )
+    assert code is None
+    assert anomaly == "more than one rep and no default: AA, IB"
 
 
-def test_sales_rep_name_matches_seeded_user_names():
-    assert mapping.sales_rep_name("mm ") == "Mack McMurray"
-    assert mapping.sales_rep_name("XX") is None
-    assert mapping.sales_rep_name(None) is None
+def test_sales_rep_login_matches_seeded_user_logins():
+    assert mapping.sales_rep_login("ab ") == "ab@scrapmanagement.com"
+    assert mapping.sales_rep_login("TF") == "sa@scrapmanagement.com"
+    assert mapping.sales_rep_login("MM") == "sales2@scrapmanagement.com"
+    assert mapping.sales_rep_login("DAVE") == "sales2@scrapmanagement.com"
+    assert mapping.sales_rep_login("LR") == "lm@scrapmanagement.com"
+    assert mapping.sales_rep_login("XX") is None
+    assert mapping.sales_rep_login(None) is None
+    assert mapping.sales_rep_name("TF") == "Tiffany White"
 
 
 def test_former_rep_initials_are_reassigned_in_the_mapping_not_the_source():
     """docs/erp_import_mapping.md §3a: former reps' accounts belong to MM. A live row still saying JB maps."""
     for former in mapping.SALES_REP_REASSIGNED:
         assert mapping.sales_rep_code(f"{former}   ") == "MM"
+        assert mapping.sales_rep_login(former) == "sales2@scrapmanagement.com"
         assert mapping.sales_rep_name(former) == "Mack McMurray"
     assert mapping.sales_rep_code("ib") == "IB"
     # Two default rows that both resolve to MM are one rep, not a conflict.

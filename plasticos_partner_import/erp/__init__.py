@@ -11,6 +11,15 @@ payload. Odoo-side mapping lives in
 ``plasticos_partner_import/models/erp_import_service.py``.
 """
 
-from . import header_forensics, mapping, mapping_status, reader, report, source_index, summary
+from . import comment_notes, header_forensics, mapping, mapping_status, reader, report, source_index, summary
 
-__all__ = ["header_forensics", "mapping", "mapping_status", "reader", "report", "source_index", "summary"]
+__all__ = [
+    "comment_notes",
+    "header_forensics",
+    "mapping",
+    "mapping_status",
+    "reader",
+    "report",
+    "source_index",
+    "summary",
+]
