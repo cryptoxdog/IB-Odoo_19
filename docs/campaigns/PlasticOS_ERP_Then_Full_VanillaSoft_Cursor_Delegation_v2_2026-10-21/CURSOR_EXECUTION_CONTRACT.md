@@ -65,7 +65,7 @@ On **one fresh clone of the pinned Enterprise fixture**, in this order:
 
 Check `INPUT_MANIFEST.json` hashes, 4,876 distinct ContactIDs, all `Flagged=True`, and partition `763 + 18 + 4,095 = 4,876`. The loaded crosswalk is `759` VanillaSoft IDs / `702` ERP `CT_ID`s at the pinned digest. The other four operator YES ids are the duplicate skip set. Keep shared aliases that remain in the file. Do not duplicate the person.
 
-Historical snapshot SHA256: `40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9`.
+Historical snapshot SHA256: `082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8`. Thirty `Lead Source` cells that named the legacy vendor are stored as `Legacy ERP`. Invariant 20 forbids that vendor spelling. The rest of each row is unchanged.
 
 Build `Current Work - IGNORE/erp-then-vs-full-crm/crm_id_census.csv` with columns `vanillasoft_contact_id,decision` only (`YES`/`NO`/`PENDING`). No names, emails, phones, or notes. The shell reads that file. Host-side scoring may read the workbooks.
 

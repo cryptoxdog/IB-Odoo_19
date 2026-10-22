@@ -73,11 +73,11 @@ scripts/test_env.sh run <owned-clone> -- \
   ERP_SQL_SERVER=host.docker.internal \
   ERP_SQL_PORT=14330 \
   ERP_SQL_USER=erp_reader \
-  ERP_SQL_DATABASE=cieTrade_SM \
+  ERP_SQL_DATABASE=<restored-reader-database> \
   ERP_REPORT_PATH=.l9/pr/erp-contacts-summary.json
 ```
 
-Pass `ERP_SQL_PASSWORD` through the environment. Do not put it on the command line. Leave `ERP_LIMIT` unset. Leave `ERP_REQUIRE_EMPTY` at its default. Do not set `ERP_PARTNERS_ONLY` empty. Do not run `make import-erp-test`.
+Pass `ERP_SQL_PASSWORD` through the environment. Do not put it on the command line. `<restored-reader-database>` is the read-only database the local reader already uses. Invariant 20 forbids spelling that vendor name in the repository. Leave `ERP_LIMIT` unset. Leave `ERP_REQUIRE_EMPTY` at its default. Do not set `ERP_PARTNERS_ONLY` empty. Do not run `make import-erp-test`.
 
 Reconcile the five layers. `skipped` is a no-new-partner outcome, and the report must split it:
 
