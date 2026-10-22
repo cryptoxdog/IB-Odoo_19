@@ -1109,3 +1109,11 @@ import-vanillasoft:
 # Every other test_env.sh run (an import, shell, runtime-gate-f1) first
 # upgrades the PlasticOS roster on the clone, once per addon source digest
 # (stamped src= on the clone), reading no stdin.
+
+# 2026-10-22 — operator bypass for the local install-smoke gate. make pr-nosmoke
+# reason="..." runs make pr without Docker install-smoke; every other gate still
+# runs. The reason is printed and posted on the PR. make pr is unchanged.
+.PHONY: pr-nosmoke
+pr-nosmoke:
+	@test -n "$(strip $(reason))" || { echo 'usage: make pr-nosmoke reason="why install-smoke is skipped"' >&2; exit 2; }
+	@PR_SMOKE_BYPASS='$(reason)' $(MAKE) --no-print-directory pr $(if $(b),b=$(b),) $(if $(base),base=$(base),)

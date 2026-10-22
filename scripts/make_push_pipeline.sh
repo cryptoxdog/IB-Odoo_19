@@ -104,3 +104,10 @@ echo ""
 
 echo "→ Open/verify PR → ${BASE}..."
 bash scripts/git_open_pr.sh "${TARGET}" "${BASE}"
+
+PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
+if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
+  gh pr comment "${TARGET}" --repo cryptoxdog/IB-Odoo_19 \
+    --body "Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by the operator: ${PR_SMOKE_BYPASS}" \
+    || echo "warning: could not post the install-smoke bypass note on the PR" >&2
+fi

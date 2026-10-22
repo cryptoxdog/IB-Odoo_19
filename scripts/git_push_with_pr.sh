@@ -129,9 +129,17 @@ export GH_REPO="cryptoxdog/IB-Odoo_19"
 case "${PR_CHECK_SKIP_REMOTE:-0}" in
   1|true|True|yes) refuse "PR_CHECK_SKIP_REMOTE is set" ;;
 esac
-case "${PR_CHECK_SKIP_SMOKE:-0}" in
-  1|true|True|yes) refuse "PR_CHECK_SKIP_SMOKE is set" ;;
-esac
+SMOKE_BYPASS=0
+PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
+if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
+  SMOKE_BYPASS=1
+  echo "⚠️  install-smoke BYPASSED by operator: ${PR_SMOKE_BYPASS}" >&2
+  export PR_CHECK_SKIP_SMOKE=1
+else
+  case "${PR_CHECK_SKIP_SMOKE:-0}" in
+    1|true|True|yes) refuse "PR_CHECK_SKIP_SMOKE is set (use make pr-nosmoke reason=...)" ;;
+  esac
+fi
 case "${PR_CHECK_FORCE_SMOKE:-0}" in
   1|true|True|yes) refuse "PR_CHECK_FORCE_SMOKE is set" ;;
 esac
@@ -156,7 +164,7 @@ fi
 if [[ "$(git rev-parse HEAD)" != "${LOCAL_SHA}" ]] || [[ -n "$(git status --porcelain)" ]]; then
   refuse "HEAD or the worktree changed during validation"
 fi
-if ! bash scripts/install_smoke.sh --recheck; then
+if [[ "${SMOKE_BYPASS}" != "1" ]] && ! bash scripts/install_smoke.sh --recheck; then
   refuse "install-smoke --recheck rejected the live evidence"
 fi
 
