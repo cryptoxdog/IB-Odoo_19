@@ -479,7 +479,7 @@ def check_roles(env, failures: list[str]) -> None:
 
 
 def check_sales_reps(env, failures: list[str]) -> None:
-    """Each imported company carries the user named by its ``IsDefault=1`` row, or no Salesperson."""
+    """Each imported company carries the user whose login its assigned rep maps to."""
     mapping, _reader = _erp()
 
     rows_by_cp = defaultdict(list)
@@ -494,17 +494,17 @@ def check_sales_reps(env, failures: list[str]) -> None:
         if not company:
             continue
         code, _anomaly = mapping.default_sales_rep(rows_by_cp.get(cp_id, []))
-        name = mapping.sales_rep_name(code)
-        users = env["res.users"].search([("name", "=", name)], limit=2) if name else env["res.users"]
-        if name and len(users) != 1:
-            # No single Odoo user carries that name: the import reports the row
+        login = mapping.sales_rep_login(code)
+        users = env["res.users"].search([("login", "=ilike", login)], limit=2) if login else env["res.users"]
+        if login and len(users) != 1:
+            # No single Odoo user carries that login: the import reports the row
             # and leaves the Salesperson untouched. Not a validator failure.
             continue
         expected = users if len(users) == 1 else env["res.users"]
         if company.user_id != expected:
             _fail(
                 failures,
-                f"CpID {cp_id} Salesperson is {company.user_id.name or 'empty'}, expected {expected.name or 'empty'}",
+                f"CpID {cp_id} Salesperson is {company.user_id.login or 'empty'}, expected {expected.login or 'empty'}",
             )
             return
 
