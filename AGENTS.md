@@ -638,3 +638,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > Do not write them to a root `reports/` directory, do not scatter them, and do not
 > finish a GMP without saving the report. `docs/GATE_AUTONOMY_ROADMAP.md` moved to
 > `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the `make roadmap` and `make roadmap-list` commands above, and the generated Gate
+> autonomy document they named, are retired. Do not restore that generator.
+> `docs/roadmap/` is hand-authored strategic planning; no script may write it.
+> Phase criteria are ADR-002 §3, ADR-016, and ADR-018. Web-lead triage stays in
+> Odoo until an ADR amendment.

@@ -6,14 +6,12 @@
 
 ## OPEN TODO (session load)
 
-**Track B is not fully executed.** Next agent: read the pack and continue toward live Gate→CEG/EIE.
+**Live Gate → CEG/EIE proof is still open.** `docs/track_b/` and `docs/handoffs/` were removed. Read the ADRs, not those briefs.
 
-1. [`docs/track_b/00_AGENT_HANDOFF.md`](../docs/track_b/00_AGENT_HANDOFF.md) — start here
-2. [`docs/track_b/01_constellation_gate_node.md`](../docs/track_b/01_constellation_gate_node.md)
-3. [`docs/track_b/02_cognitive_engine_graphs.md`](../docs/track_b/02_cognitive_engine_graphs.md)
-4. [`docs/track_b/03_enrichment_inference_engine.md`](../docs/track_b/03_enrichment_inference_engine.md)
-5. [`docs/track_b/04_odoo_gate_consumer_wiring.md`](../docs/track_b/04_odoo_gate_consumer_wiring.md)
-6. [`docs/track_b/05_external_authority_readiness.md`](../docs/track_b/05_external_authority_readiness.md)
+1. [`docs/adr/ADR-003-single-external-intelligence-authority.md`](../docs/adr/ADR-003-single-external-intelligence-authority.md)
+2. [`docs/adr/ADR-011-intelligence-action-topology.md`](../docs/adr/ADR-011-intelligence-action-topology.md)
+3. [`docs/adr/ADR-013-fail-closed-gate-transport.md`](../docs/adr/ADR-013-fail-closed-gate-transport.md)
+4. [`docs/adr/ADR-016-web-lead-triage-boundary.md`](../docs/adr/ADR-016-web-lead-triage-boundary.md)
 
 Checklist + status: [`memory-bank/tasks.md`](tasks.md) § "OPEN — Track B".
 

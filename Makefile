@@ -18,8 +18,7 @@
         pr pr-check pr-check-% commit push api-push-check sonar changelog \
         governance-backup \
         github-actions-kernel-check \
-        pr-autopilot pr-fix \
-        roadmap roadmap-sync roadmap-list
+        pr-autopilot pr-fix
 # Imperative targets that produce no same-named file — phony so a stray file or
 # directory of that name can never short-circuit them.
 .PHONY: venv bash-syntax check-plasticos-skills pr-remote-feedback \
@@ -156,12 +155,6 @@ help:
 	@echo "    make pr-fix           apply safe local fixes; publication remains make pr"
 	@echo "    make sonar            show SonarCloud quality gate status"
 	@echo "    make changelog        generate CHANGELOG.md from conventional commits"
-	@echo ""
-	@echo "  Roadmap (registry: docs/roadmap/registry.yaml)"
-	@echo "    make roadmap          sync + validate (add item: pass domain phase kind title)"
-	@echo "    make roadmap-list     list all registry items"
-	@echo "    make roadmap-sync     sync only (make roadmap preferred)"
-	@echo "    Example: make roadmap domain=gate-autonomy phase=1 kind=backlog title=\"...\""
 	@echo ""
 	@echo "  Agent review kernels (skills/ — playbooks, not extra targets)"
 	@echo "    FINAL_TOUCHES_MODE     plasticos-final-touches  → make audit + make pr-check"
@@ -810,25 +803,6 @@ changelog:
 	@cz changelog --unreleased-version "HEAD" --incremental || \
 		(echo "❌ commitizen not installed — run: pip install commitizen"; exit 1)
 	@echo "✅ CHANGELOG.md updated"
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ROADMAP (docs/roadmap/registry.yaml → synced planning docs)
-# ─────────────────────────────────────────────────────────────────────────────
-
-roadmap:
-	@python3 scripts/roadmap.py update \
-		$(if $(domain),--domain "$(domain)",) \
-		$(if $(phase),--phase $(phase),) \
-		$(if $(kind),--kind "$(kind)",) \
-		$(if $(title),--title "$(title)",) \
-		$(if $(notes),--notes "$(notes)",) \
-		$(if $(status),--status "$(status)",)
-
-roadmap-sync:
-	@python3 scripts/roadmap.py sync
-
-roadmap-list:
-	@python3 scripts/roadmap.py list
 
 # ---------------------------------------------------------------------------
 # Local (no-Docker) Odoo runtime + real-runtime launch gates

@@ -7,24 +7,22 @@
 Local matcher/enrichment engines retired (M7); Gate path must be live or
 match/enrich fail closed.
 
-**Load these files first (execution pack):**
+**Load these files first.** `docs/track_b/` and `docs/handoffs/` were removed.
 
 | Order | File | Role |
 |------:|------|------|
-| 0 | [`docs/track_b/00_AGENT_HANDOFF.md`](../docs/track_b/00_AGENT_HANDOFF.md) | Master brief + wire contract + DoD |
-| 1 | [`docs/track_b/01_constellation_gate_node.md`](../docs/track_b/01_constellation_gate_node.md) | Build Gate hub first |
-| 2 | [`docs/track_b/02_cognitive_engine_graphs.md`](../docs/track_b/02_cognitive_engine_graphs.md) | CEG `action=match` |
-| 3 | [`docs/track_b/03_enrichment_inference_engine.md`](../docs/track_b/03_enrichment_inference_engine.md) | EIE `action=converge` |
-| 4 | [`docs/track_b/04_odoo_gate_consumer_wiring.md`](../docs/track_b/04_odoo_gate_consumer_wiring.md) | Odoo consumer adapts to Gate_SDK |
-| 5 | [`docs/track_b/05_external_authority_readiness.md`](../docs/track_b/05_external_authority_readiness.md) | Readiness / live e2e proof |
+| 0 | [`docs/adr/ADR-003-single-external-intelligence-authority.md`](../docs/adr/ADR-003-single-external-intelligence-authority.md) | Intelligence authority |
+| 1 | [`docs/adr/ADR-011-intelligence-action-topology.md`](../docs/adr/ADR-011-intelligence-action-topology.md) | `match` → CEG, `converge` → EIE |
+| 2 | [`docs/adr/ADR-013-fail-closed-gate-transport.md`](../docs/adr/ADR-013-fail-closed-gate-transport.md) | No local fallback |
+| 3 | [`docs/adr/ADR-016-web-lead-triage-boundary.md`](../docs/adr/ADR-016-web-lead-triage-boundary.md) | Phase criteria |
 
 **Authority:** [`docs/adr/ADR-002-gate-hub-phased-autonomy.md`](../docs/adr/ADR-002-gate-hub-phased-autonomy.md),
 [`docs/adr/ADR-003-single-external-intelligence-authority.md`](../docs/adr/ADR-003-single-external-intelligence-authority.md),
-[`docs/GATE_AUTONOMY_ROADMAP.md`](../docs/GATE_AUTONOMY_ROADMAP.md).
+[`docs/adr/ADR-018-human-brokerage-checkpoints.md`](../docs/adr/ADR-018-human-brokerage-checkpoints.md).
 
-- [ ] Execute Track B pack to DoD in `00_AGENT_HANDOFF.md` §5 (Gate → CEG match → EIE converge)
-- [ ] Prove live five-service stack via `docs/track_b/05_external_authority_readiness.md` (`LIVE_INTEGRATION_PASS`)
-- [ ] Set staging `plasticos.gate.url` and verify `match_source` / `engine_used` == `gate`
+- [ ] Prove live Gate → CEG match → EIE converge (`LIVE_INTEGRATION_PASS`)
+- [ ] Prove the live five-service stack with `scripts/check_external_intelligence_readiness.py` and `tests/integration/test_gate_external_authority_e2e.py`
+- [ ] Set staging `GATE_URL` and verify `match_source` / `engine_used` == `gate`
 
 ---
 ## Session 2026-07-22T04:23:40Z

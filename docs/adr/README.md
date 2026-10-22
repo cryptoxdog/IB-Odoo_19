@@ -47,7 +47,7 @@ above always mean `docs/adr/ADR-0NN-*.md`.
 
 - Cross-module contract that agents and humans must not violate
 - Irreversible or expensive-to-change schema or integration choice
-- Phase-gated external system behavior (see also `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`)
+- Phase-gated external system behavior (ADR-002 §3, ADR-016, ADR-018)
 
 ## How to add an ADR
 
@@ -55,13 +55,12 @@ above always mean `docs/adr/ADR-0NN-*.md`.
 2. Copy structure from ADR-001: Context → Decision → Consequences → Compliance/References.
 3. Add a row to this README and to [ARCHITECTURE.md](../../ARCHITECTURE.md) ADR table.
 4. Link from [AGENTS.md](../../AGENTS.md) if agents must load it for a task class.
-5. Optional: register in `docs/roadmap/registry.yaml` when the ADR gates phased delivery.
 
 ## Related docs
 
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) — system structure and module layers
 - [INVARIANTS.md](../../INVARIANTS.md) — CI-enforced rules
-- [docs/roadmap/GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md) — Gate phases (companion to ADR-002)
+- [docs/roadmap/README.md](../roadmap/README.md) — hand-authored strategic roadmap
 
 ## Notes
 

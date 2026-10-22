@@ -16,8 +16,8 @@ ADR_002 = ROOT / "docs/adr/ADR-002-gate-hub-phased-autonomy.md"
 INVARIANTS = ROOT / "INVARIANTS.md"
 ARCHITECTURE = ROOT / "ARCHITECTURE.md"
 AGENTS = ROOT / "AGENTS.md"
-ROADMAP = ROOT / "docs/roadmap/GATE_AUTONOMY_ROADMAP.md"
 ADR_013 = ROOT / "docs/adr/ADR-013-fail-closed-gate-transport.md"
+ADR_016 = ROOT / "docs/adr/ADR-016-web-lead-triage-boundary.md"
 
 
 def test_mothball_adr_exists_and_declares_single_authority():
@@ -68,21 +68,28 @@ def test_agents_forbid_local_engines_as_authority():
     assert "remove local matcher fallback in Phase 1" not in text
 
 
-def test_roadmap_and_adr_013_cite_successor_authority():
-    roadmap = ROADMAP.read_text(encoding="utf-8")
-    assert "ADR-003-single-external-intelligence-authority" in roadmap
-    assert "Mothball authority" in roadmap or "non-authority" in roadmap.lower()
+def test_gate_roadmap_generator_is_retired_and_folder_is_hand_authored():
+    assert not (ROOT / "scripts/roadmap.py").is_file()
+    assert not (ROOT / "docs/roadmap/registry.yaml").is_file()
+    assert not (ROOT / "docs/roadmap/GATE_AUTONOMY_ROADMAP.md").is_file()
+    charter = (ROOT / "docs/roadmap/README.md").read_text(encoding="utf-8")
+    assert "Hand-authored" in charter
+    assert "make roadmap" not in charter
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "scripts/roadmap.py" not in makefile
 
     fail_closed = ADR_013.read_text(encoding="utf-8")
     assert "Fail closed" in fail_closed or "fail closed" in fail_closed.lower()
     assert "local" in fail_closed.lower()
     assert "Preserve **try-Gate → local-fallback**" not in fail_closed
+    triage = ADR_016.read_text(encoding="utf-8")
+    assert "Phase 1" in triage
 
 
 def test_acceptance_local_engines_no_longer_architectural_authority():
     """Registry acceptance: local algorithmic fallback is no longer architectural authority."""
     corpus = "\n".join(
-        p.read_text(encoding="utf-8") for p in (ADR_SINGLE, INVARIANTS, ARCHITECTURE, AGENTS, ROADMAP, ADR_013)
+        p.read_text(encoding="utf-8") for p in (ADR_SINGLE, INVARIANTS, ARCHITECTURE, AGENTS, ADR_002, ADR_013)
     )
     assert "architectural authority" in corpus.lower()
     assert "ADR-003-single-external-intelligence-authority" in corpus
