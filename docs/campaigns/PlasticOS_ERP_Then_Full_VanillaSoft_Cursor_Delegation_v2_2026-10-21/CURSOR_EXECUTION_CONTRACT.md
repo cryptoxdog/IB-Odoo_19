@@ -29,7 +29,7 @@ A class name without the reason that produced it is not a result. The October 21
 6. **A blank `erp_ct_id` in the loaded crosswalk is a CRM lead** unless `ACTIVE_COMPANY_CP_BY_VS` places that person on the named active company. A non-blank `erp_ct_id` whose marker resolves 0 rows stays `held`, and the signal is the marker text (`ERP marker plasticos_transaction.legacy_erp_contact_<CT_ID> resolved 0 rows`). Do not replace that text with the word `held`.
 7. **Redaction keeps the cause.** Credential-shaped text and email addresses are removed. HTTP status, timeout, missing ERP marker, and exception text stay. Customer note bodies are not copied into the checkpoint.
 
-The operator matrix is still 763 YES + 18 NO + 4,095 PENDING = 4,876. The executable crosswalk file pinned by this pack is 759 VanillaSoft ids and 691 ERP CT_IDs (`9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1`). The four omitted YES ids account for 763 − 759.
+The operator matrix is still 763 YES + 18 NO + 4,095 PENDING = 4,876. The executable crosswalk file pinned by this pack is 759 VanillaSoft ids and 702 ERP CT_IDs (`3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9`). The four omitted YES ids account for 763 − 759.
 
 ## Outcome
 
@@ -59,13 +59,13 @@ On **one fresh clone of the pinned Enterprise fixture**, in this order:
 | --- | --- | --- |
 | `CRM Leads - VanillaSoft - Scrap-Management(1).csv` | Immutable 4,876-row historical snapshot and ContactID census | ID list only. Not a CSV importer |
 | `PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx` | Operator identity matrix | Authoritative for 763 YES, 18 NO, 4,095 PENDING |
-| `03_APPROVED_CONTACT_CROSSWALK.csv` | Allowlist for `plasticos_crm_sync.approved_contact_crosswalk` | SHA256 must equal `9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1`. 759 VanillaSoft IDs, 691 ERP `CT_ID`s. A blank `erp_ct_id` is a CRM lead and is not an ERP bind. |
+| `03_APPROVED_CONTACT_CROSSWALK.csv` | Allowlist for `plasticos_crm_sync.approved_contact_crosswalk` | SHA256 must equal `3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9`. 759 VanillaSoft IDs, 702 ERP `CT_ID`s. A blank `erp_ct_id` is a CRM lead and is not an ERP bind. |
 | `VanillaSoft_4876_Field_Mapping_Resolved_Owners_Stage_Review.xlsx` | Field, owner, and stage audit oracle | Score the importer. Do not install STAGE REVIEW or a new owner map |
 | `VanillaSoft_to_Odoo_Polymer_Mapping_Decisions_2026-10-14.xlsx` | Material audit oracle | Score `normalize_material` output. Do not create masters |
 
 Check `INPUT_MANIFEST.json` hashes, 4,876 distinct ContactIDs, all `Flagged=True`, and partition `763 + 18 + 4,095 = 4,876`. The loaded crosswalk is `759` VanillaSoft IDs / `702` ERP `CT_ID`s at the pinned digest. The other four operator YES ids are the duplicate skip set. Keep shared aliases that remain in the file. Do not duplicate the person.
 
-Historical snapshot SHA256: `082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8`.
+Historical snapshot SHA256: `082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8`. Thirty `Lead Source` cells that named the legacy vendor are stored as `Legacy ERP`. Invariant 20 forbids that vendor spelling. The rest of each row is unchanged.
 
 Build `Current Work - IGNORE/erp-then-vs-full-crm/crm_id_census.csv` with columns `vanillasoft_contact_id,decision` only (`YES`/`NO`/`PENDING`). No names, emails, phones, or notes. The shell reads that file. Host-side scoring may read the workbooks.
 
@@ -138,7 +138,7 @@ Read-only counts at before, after Gate B, after Gate B2, and after Gate C.
 - **Partners:** eligible active companies and contacts, nonperson/site routing, aliases, excluded inactive and invalid parents. No inactive `CT_ID` XMLID.
 - **Commercial:** `sale.order`, `purchase.order`, `account.move`, and compiled `plasticos.transaction` versus the importer summary. Partner counts flat versus Gate B except idempotent unchanged.
 - **CRM:** `4876 = 763 + 18 + 4095` and `4876 = imported + held + genuine_failed + duplicate_skipped`. `crm.lead` count need not equal 4,876: approved binds do not create leads. Held approved IDs and duplicate-skipped IDs also do not get leads. Blank `erp_ct_id` rows do.
-- **Approved identity:** 763 operator YES decisions. The loaded crosswalk is 759 VanillaSoft ids and 691 `CT_ID`s. Four YES ids are `duplicate_skipped`. Compare with the previous 735 bound / 28 `no_erp_person` without importing inactive parents to improve it. Copy every distinct signal reason into the report. Do not replace a reason with its class.
+- **Approved identity:** 763 operator YES decisions. The loaded crosswalk is 759 VanillaSoft ids and 702 `CT_ID`s. Four YES ids are `duplicate_skipped`. Compare with the previous 735 bound / 28 `no_erp_person` without importing inactive parents to improve it. Copy every distinct signal reason into the report. Do not replace a reason with its class.
 - **Fields:** owner name-match versus the locked email oracle, stage actually written versus raw status, phones and notes, DNC, material normalizer results. Unknown is not mapped.
 - **History:** separate frozen-ID coverage, IDs fetched from the current API, live census, call completeness, and Odoo writes. API limits stay `PARTIAL` or `BLOCKED`.
 

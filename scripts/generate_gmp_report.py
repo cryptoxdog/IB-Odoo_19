@@ -124,7 +124,11 @@ def main():
     parser.add_argument("--validation", action="append", default=[], help="Validation (gate|result)")
     parser.add_argument("--summary", default="", help="Summary text")
     parser.add_argument("--gmp-id", default=None, help="GMP ID (auto-generated if not provided)")
-    parser.add_argument("--update-workflow", action="store_true", help="Update workflow_state.md")
+    parser.add_argument(
+        "--update-workflow",
+        action="store_true",
+        help="Accepted for existing callers. This script does not write workflow_state.md.",
+    )
     parser.add_argument("--skip-verify", action="store_true", help="Skip verification")
 
     args = parser.parse_args()

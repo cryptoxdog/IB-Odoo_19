@@ -236,14 +236,6 @@
 ./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d06_pagination_harness.py:11:def check(name, ok, detail=""):
 ./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d06_pagination_harness.py:26:def sync(doc, failing):
 ./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d06_pagination_harness.py:38:def batch_sync(failing):
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:29:def _rows(name: str) -> list[dict]:
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:34:def _num(value: str | None) -> Decimal:
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:39:def _text(value: str | None) -> str:
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:44:def _money(value: Decimal) -> str:
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:48:def link_proxy(lines: list[dict], ledger: list[dict], receipts: list[dict], payables: list[dict]) -> None:
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:86:def price_precision(lines: list[dict]) -> None:
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:136:def payables_census(payables: list[dict], counterparties: dict[str, dict], batches: list[dict]) -> None:
-./docs/reports/evidence/erp-import-2026-10-09/grid_census.py:172:def main() -> int:
 ./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:18:def check(path: Path) -> None:
 ./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:22:    def require(condition, desc):
 ./plasticos_accounting/__init__.py:6:def pre_init_hook(env):
@@ -472,11 +464,11 @@
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:41:    def test_zero_or_many_forms_collapse_to_one_empty_form_profile(self):
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:51:    def test_note_appends_once_and_replay_returns_the_same_profile(self):
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:59:    def test_lead_salesperson_is_untouched(self):
-./plasticos_crm_sync/adapters/base.py:64:    def healthcheck(self) -> dict[str, Any]: ...
-./plasticos_crm_sync/adapters/base.py:66:    def iter_contacts(
-./plasticos_crm_sync/adapters/base.py:73:    def get_contact(self, external_id: str) -> CanonicalLead | None: ...
-./plasticos_crm_sync/adapters/base.py:75:    def iter_calls(
-./plasticos_crm_sync/adapters/base.py:83:    def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]: ...
+./plasticos_crm_sync/adapters/base.py:67:    def healthcheck(self) -> dict[str, Any]: ...
+./plasticos_crm_sync/adapters/base.py:69:    def iter_contacts(
+./plasticos_crm_sync/adapters/base.py:76:    def get_contact(self, external_id: str) -> CanonicalLead | None: ...
+./plasticos_crm_sync/adapters/base.py:78:    def iter_calls(
+./plasticos_crm_sync/adapters/base.py:86:    def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]: ...
 ./plasticos_crm_sync/adapters/registry.py:24:def get_adapter(provider: str, *, api_key: str = "", root_endpoint: str = "", project_id: int = 0) -> Any:
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:40:def vs_bool(value: Any, *, field: str) -> bool:
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:65:def _first_present(raw: dict[str, Any], *keys: str) -> Any:
@@ -484,17 +476,17 @@
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:88:def _cf_map(raw: Any) -> dict[str, str]:
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:110:def _phone_from_list(phones: Any, preferred: tuple[str, ...]) -> str:
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:130:def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:183:def call_to_canonical(raw: dict[str, Any]) -> CanonicalCall:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:208:def _extract_list(payload: Any, *keys: str) -> list:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:220:def _require_rows(payload: Any, endpoint: str, *keys: str) -> list:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:248:    def __init__(self, client: VanillaSoftClient, project_id: int):
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:252:    def healthcheck(self) -> dict[str, Any]:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:267:    def iter_contacts(
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:325:    def get_contact(self, external_id: str) -> CanonicalLead | None:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:338:    def iter_calls(
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:399:    def iter_calls_for_contact(self, contact_external_id: str) -> Iterator[list[CanonicalCall]]:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:413:    def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:452:    def _rows_from_payload(
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:191:def call_to_canonical(raw: dict[str, Any]) -> CanonicalCall:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:216:def _extract_list(payload: Any, *keys: str) -> list:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:228:def _require_rows(payload: Any, endpoint: str, *keys: str) -> list:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:256:    def __init__(self, client: VanillaSoftClient, project_id: int):
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:260:    def healthcheck(self) -> dict[str, Any]:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:275:    def iter_contacts(
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:333:    def get_contact(self, external_id: str) -> CanonicalLead | None:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:346:    def iter_calls(
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:407:    def iter_calls_for_contact(self, contact_external_id: str) -> Iterator[list[CanonicalCall]]:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:421:    def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:460:    def _rows_from_payload(
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:29:def require_secure_endpoint(url: str) -> None:
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:44:def normalize_api_base(root_endpoint: str) -> str:
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:61:    def __init__(
@@ -524,59 +516,84 @@
 ./plasticos_crm_sync/scripts/import_vanillasoft_shell.py:29:def _env_flag(name: str) -> str:
 ./plasticos_crm_sync/scripts/import_vanillasoft_shell.py:33:def _odoo_env():
 ./plasticos_crm_sync/scripts/import_vanillasoft_shell.py:40:def main() -> int:
+./plasticos_crm_sync/services/approved_identity.py:33:def xmlid_name(ct_id: str) -> str:
+./plasticos_crm_sync/services/approved_identity.py:40:def digits_only(number: str) -> str:
+./plasticos_crm_sync/services/approved_identity.py:44:def phone_match_key(number: str) -> str:
+./plasticos_crm_sync/services/approved_identity.py:59:def validate_crosswalk(
+./plasticos_crm_sync/services/approved_identity.py:97:def load_crosswalk_map(env) -> dict[str, str] | None:
+./plasticos_crm_sync/services/approved_identity.py:117:def contact_note_text(custom_fields: dict[str, str] | None) -> str:
+./plasticos_crm_sync/services/approved_identity.py:128:    def __init__(self) -> None:
+./plasticos_crm_sync/services/approved_identity.py:133:    def flush(self) -> None:
+./plasticos_crm_sync/services/approved_identity.py:139:    def handle_starttag(self, tag, attrs):
+./plasticos_crm_sync/services/approved_identity.py:145:    def handle_endtag(self, tag):
+./plasticos_crm_sync/services/approved_identity.py:149:    def handle_data(self, data):
+./plasticos_crm_sync/services/approved_identity.py:153:def _squash(text: str) -> str:
+./plasticos_crm_sync/services/approved_identity.py:157:def comment_blocks(comment: str | None) -> tuple[str, ...]:
+./plasticos_crm_sync/services/approved_identity.py:166:def comment_holds(comment: str | None, note: str) -> bool:
+./plasticos_crm_sync/services/approved_identity.py:183:def comment_with_note(comment: str | None, note: str) -> str | None:
+./plasticos_crm_sync/services/approved_identity.py:195:def phone_kinds(phones: object) -> tuple[tuple[str, str], ...]:
 ./plasticos_crm_sync/services/import_summary.py:40:def utc_now() -> str:
 ./plasticos_crm_sync/services/import_summary.py:44:def build_run_summary(
-./plasticos_crm_sync/services/orchestrator.py:40:def advisory_lock_key(connection_id: int) -> str:
-./plasticos_crm_sync/services/orchestrator.py:45:def _parse_utc(value: str | None) -> datetime | None:
-./plasticos_crm_sync/services/orchestrator.py:58:def _dt_naive_utc(value: str | None) -> datetime | None:
-./plasticos_crm_sync/services/orchestrator.py:63:def _iso_z(dt: datetime) -> str:
-./plasticos_crm_sync/services/orchestrator.py:69:def completion_notice(run) -> tuple[str, str]:
-./plasticos_crm_sync/services/orchestrator.py:86:def _forward_only(current: str | None, candidate: str) -> str | None:
-./plasticos_crm_sync/services/orchestrator.py:128:def _collapse_ws(value: str | None) -> str:
-./plasticos_crm_sync/services/orchestrator.py:132:def _split_material_values(value) -> list[str]:
-./plasticos_crm_sync/services/orchestrator.py:137:def _material_field_kind(label: str) -> str:
-./plasticos_crm_sync/services/orchestrator.py:145:def _material_inputs(*field_maps):
-./plasticos_crm_sync/services/orchestrator.py:163:def _dedupe_phrases(phrases) -> list[str]:
-./plasticos_crm_sync/services/orchestrator.py:175:def _facility_for_material(lead):
-./plasticos_crm_sync/services/orchestrator.py:197:def _country_token(value: str) -> str:
-./plasticos_crm_sync/services/orchestrator.py:201:def _new_outcomes() -> dict[str, int]:
-./plasticos_crm_sync/services/orchestrator.py:205:def _merge_outcomes(target: dict[str, int], source: dict[str, int] | None) -> dict[str, int]:
-./plasticos_crm_sync/services/orchestrator.py:214:def _write_contact_counters(run, seen: int, outcomes: dict[str, int], base: dict[str, int] | None = None) -> None:
-./plasticos_crm_sync/services/orchestrator.py:228:def _write_call_counters(run, seen: int, outcomes: dict[str, int], base: dict[str, int] | None = None) -> None:
-./plasticos_crm_sync/services/orchestrator.py:236:def _differs(record, field_name: str, value) -> bool:
-./plasticos_crm_sync/services/orchestrator.py:255:    def __init__(self, env):
-./plasticos_crm_sync/services/orchestrator.py:271:    def run_connection(self, connection) -> Any:
-./plasticos_crm_sync/services/orchestrator.py:357:    def run_full_import(
-./plasticos_crm_sync/services/orchestrator.py:506:    def _require_utc_bound(value: Any, name: str) -> datetime:
-./plasticos_crm_sync/services/orchestrator.py:531:    def _contact_enumeration_gap(self, contact_floor: datetime, boundary: datetime) -> str | None:
-./plasticos_crm_sync/services/orchestrator.py:566:    def _incremental_contact_scope(self, connection) -> tuple[str, str | None]:
-./plasticos_crm_sync/services/orchestrator.py:585:    def _incremental_call_start(connection, now: datetime) -> datetime:
-./plasticos_crm_sync/services/orchestrator.py:596:    def _lookback_clamp_note(clamped_from: str, requested: str) -> str:
-./plasticos_crm_sync/services/orchestrator.py:605:    def _completion(self, run, notes: list[str]) -> tuple[str, str | bool]:
-./plasticos_crm_sync/services/orchestrator.py:615:        def count(name: str) -> int:
-./plasticos_crm_sync/services/orchestrator.py:643:    def _try_advisory_lock(self, lock_key: str) -> bool:
-./plasticos_crm_sync/services/orchestrator.py:648:    def _advisory_unlock(self, lock_key: str) -> None:
-./plasticos_crm_sync/services/orchestrator.py:651:    def _ensure_caller_state_durable(self) -> None:
-./plasticos_crm_sync/services/orchestrator.py:675:    def _create_sync_run_durable(self, connection_id: int, vals: dict[str, Any] | None = None) -> int:
-./plasticos_crm_sync/services/orchestrator.py:705:    def _close_interrupted_runs(env, connection_id: int) -> int:
-./plasticos_crm_sync/services/orchestrator.py:747:    def _persist_sync_failure_durable(self, connection_id: int, run_id: int | None, excerpt: str) -> None:
-./plasticos_crm_sync/services/orchestrator.py:780:    def upsert_contact_external_id(self, connection, external_id: str) -> Any:
-./plasticos_crm_sync/services/orchestrator.py:810:    def _build_adapter(self, connection):
-./plasticos_crm_sync/services/orchestrator.py:824:    def _sync_contacts(
-./plasticos_crm_sync/services/orchestrator.py:900:    def _observe_contact_modified(self, dto: CanonicalLead) -> None:
-./plasticos_crm_sync/services/orchestrator.py:914:    def _sync_calls(
-./plasticos_crm_sync/services/orchestrator.py:972:    def _upsert_lead(self, connection, dto: CanonicalLead):
-./plasticos_crm_sync/services/orchestrator.py:1089:    def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
-./plasticos_crm_sync/services/orchestrator.py:1096:    def _resolve_country_id(self, raw: str | None) -> int | bool:
-./plasticos_crm_sync/services/orchestrator.py:1117:    def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
-./plasticos_crm_sync/services/orchestrator.py:1178:    def _upsert_calls(self, connection, batch: list[CanonicalCall], run) -> int:
-./plasticos_crm_sync/services/orchestrator.py:1256:    def _sync_tables_for_lead(self, connection, adapter, contact_external_id: str, lead=None):
-./plasticos_crm_sync/services/orchestrator.py:1315:    def _apply_contact_materials(self, lead, *field_maps) -> None:
-./plasticos_crm_sync/services/orchestrator.py:1334:    def _apply_resolved_materials(self, lead, *field_maps) -> None:
-./plasticos_crm_sync/services/orchestrator.py:1376:    def _store_normalized_materials(self, lead, texts, plain_hints, partner=None, facility_profile=None) -> None:
-./plasticos_crm_sync/services/orchestrator.py:1409:    def _write_profile_classification(self, profile, normalized) -> None:
-./plasticos_crm_sync/services/orchestrator.py:1436:    def _resolve_orphans(self, connection, adapter, run) -> int:
-./plasticos_crm_sync/services/orchestrator.py:1504:    def _find_lead(self, provider: str, contact_external_id: str, Ref):
+./plasticos_crm_sync/services/orchestrator.py:48:def advisory_lock_key(connection_id: int) -> str:
+./plasticos_crm_sync/services/orchestrator.py:53:def _parse_utc(value: str | None) -> datetime | None:
+./plasticos_crm_sync/services/orchestrator.py:66:def _dt_naive_utc(value: str | None) -> datetime | None:
+./plasticos_crm_sync/services/orchestrator.py:71:def _iso_z(dt: datetime) -> str:
+./plasticos_crm_sync/services/orchestrator.py:77:def completion_notice(run) -> tuple[str, str]:
+./plasticos_crm_sync/services/orchestrator.py:94:def _forward_only(current: str | None, candidate: str) -> str | None:
+./plasticos_crm_sync/services/orchestrator.py:136:def _collapse_ws(value: str | None) -> str:
+./plasticos_crm_sync/services/orchestrator.py:140:def _split_material_values(value) -> list[str]:
+./plasticos_crm_sync/services/orchestrator.py:145:def _material_field_kind(label: str) -> str:
+./plasticos_crm_sync/services/orchestrator.py:153:def _material_inputs(*field_maps):
+./plasticos_crm_sync/services/orchestrator.py:171:def _dedupe_phrases(phrases) -> list[str]:
+./plasticos_crm_sync/services/orchestrator.py:183:def _facility_for_material(lead):
+./plasticos_crm_sync/services/orchestrator.py:205:def _country_token(value: str) -> str:
+./plasticos_crm_sync/services/orchestrator.py:209:def _new_outcomes() -> dict[str, int]:
+./plasticos_crm_sync/services/orchestrator.py:213:def _merge_outcomes(target: dict[str, int], source: dict[str, int] | None) -> dict[str, int]:
+./plasticos_crm_sync/services/orchestrator.py:222:def _write_contact_counters(run, seen: int, outcomes: dict[str, int], base: dict[str, int] | None = None) -> None:
+./plasticos_crm_sync/services/orchestrator.py:236:def _write_call_counters(run, seen: int, outcomes: dict[str, int], base: dict[str, int] | None = None) -> None:
+./plasticos_crm_sync/services/orchestrator.py:244:def _differs(record, field_name: str, value) -> bool:
+./plasticos_crm_sync/services/orchestrator.py:263:    def __init__(self, env):
+./plasticos_crm_sync/services/orchestrator.py:279:    def run_connection(self, connection) -> Any:
+./plasticos_crm_sync/services/orchestrator.py:365:    def run_full_import(
+./plasticos_crm_sync/services/orchestrator.py:514:    def _require_utc_bound(value: Any, name: str) -> datetime:
+./plasticos_crm_sync/services/orchestrator.py:539:    def _contact_enumeration_gap(self, contact_floor: datetime, boundary: datetime) -> str | None:
+./plasticos_crm_sync/services/orchestrator.py:574:    def _incremental_contact_scope(self, connection) -> tuple[str, str | None]:
+./plasticos_crm_sync/services/orchestrator.py:593:    def _incremental_call_start(connection, now: datetime) -> datetime:
+./plasticos_crm_sync/services/orchestrator.py:604:    def _lookback_clamp_note(clamped_from: str, requested: str) -> str:
+./plasticos_crm_sync/services/orchestrator.py:613:    def _completion(self, run, notes: list[str]) -> tuple[str, str | bool]:
+./plasticos_crm_sync/services/orchestrator.py:623:        def count(name: str) -> int:
+./plasticos_crm_sync/services/orchestrator.py:651:    def _try_advisory_lock(self, lock_key: str) -> bool:
+./plasticos_crm_sync/services/orchestrator.py:656:    def _advisory_unlock(self, lock_key: str) -> None:
+./plasticos_crm_sync/services/orchestrator.py:659:    def _ensure_caller_state_durable(self) -> None:
+./plasticos_crm_sync/services/orchestrator.py:683:    def _create_sync_run_durable(self, connection_id: int, vals: dict[str, Any] | None = None) -> int:
+./plasticos_crm_sync/services/orchestrator.py:713:    def _close_interrupted_runs(env, connection_id: int) -> int:
+./plasticos_crm_sync/services/orchestrator.py:755:    def _persist_sync_failure_durable(self, connection_id: int, run_id: int | None, excerpt: str) -> None:
+./plasticos_crm_sync/services/orchestrator.py:788:    def upsert_contact_external_id(self, connection, external_id: str) -> Any:
+./plasticos_crm_sync/services/orchestrator.py:819:    def _build_adapter(self, connection):
+./plasticos_crm_sync/services/orchestrator.py:833:    def _sync_contacts(
+./plasticos_crm_sync/services/orchestrator.py:910:    def _observe_contact_modified(self, dto: CanonicalLead) -> None:
+./plasticos_crm_sync/services/orchestrator.py:924:    def _sync_calls(
+./plasticos_crm_sync/services/orchestrator.py:982:    def _load_approved_crosswalk(self) -> None:
+./plasticos_crm_sync/services/orchestrator.py:998:    def _approved_ct_id(self, external_id: str) -> str | None:
+./plasticos_crm_sync/services/orchestrator.py:1002:    def _find_person_ref(self, provider: str, external_id: str):
+./plasticos_crm_sync/services/orchestrator.py:1015:    def _erp_person_for_ct(self, ct_id: str):
+./plasticos_crm_sync/services/orchestrator.py:1036:    def _add_approved_phones(self, partner, dto: CanonicalLead) -> bool:
+./plasticos_crm_sync/services/orchestrator.py:1070:    def _bind_approved_contact(self, dto: CanonicalLead, ct_id: str):
+./plasticos_crm_sync/services/orchestrator.py:1146:    def _keep_person_binding(self, dto: CanonicalLead, person_ref):
+./plasticos_crm_sync/services/orchestrator.py:1179:    def _apply_approved_materials(self, lead, *field_maps) -> None:
+./plasticos_crm_sync/services/orchestrator.py:1198:    def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
+./plasticos_crm_sync/services/orchestrator.py:1233:    def _upsert_lead(self, connection, dto: CanonicalLead, adapter=None):
+./plasticos_crm_sync/services/orchestrator.py:1356:    def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
+./plasticos_crm_sync/services/orchestrator.py:1363:    def _resolve_country_id(self, raw: str | None) -> int | bool:
+./plasticos_crm_sync/services/orchestrator.py:1384:    def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
+./plasticos_crm_sync/services/orchestrator.py:1445:    def _upsert_calls(self, connection, batch: list[CanonicalCall], run) -> int:
+./plasticos_crm_sync/services/orchestrator.py:1524:    def _sync_tables_for_lead(self, connection, adapter, contact_external_id: str, lead=None):
+./plasticos_crm_sync/services/orchestrator.py:1587:    def _apply_contact_materials(self, lead, *field_maps) -> None:
+./plasticos_crm_sync/services/orchestrator.py:1606:    def _apply_resolved_materials(self, lead, *field_maps) -> None:
+./plasticos_crm_sync/services/orchestrator.py:1648:    def _store_normalized_materials(self, lead, texts, plain_hints, partner=None, facility_profile=None) -> None:
+./plasticos_crm_sync/services/orchestrator.py:1681:    def _write_profile_classification(self, profile, normalized) -> None:
+./plasticos_crm_sync/services/orchestrator.py:1708:    def _resolve_orphans(self, connection, adapter, run) -> int:
+./plasticos_crm_sync/services/orchestrator.py:1778:    def _find_lead(self, provider: str, contact_external_id: str, Ref):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:19:def _lead(external_id, deleted=False):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:34:    def setUpClass(cls):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:45:    def setUp(self):
@@ -586,48 +603,53 @@
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:73:    def test_manually_archived_odoo_lead_is_not_reactivated_without_sync_provenance(self):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:82:    def test_a_sync_archived_lead_is_matched_rather_than_duplicated(self):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:96:    def test_calls_attach_to_a_sync_archived_lead_instead_of_buffering_as_orphans(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:17:    def setUpClass(cls):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:28:    def test_upsert_lead_idempotent(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:52:    def test_orphan_call_resolves_after_contact(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:91:    def _lead(self, external_id, **kwargs):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:103:    def _assert_identity_absent(self, external_id):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:111:    def test_failure_after_lead_insert_rolls_back_both_identity_rows(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:118:        def boom(records, vals_list):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:137:    def test_external_ref_create_failure_rolls_back_the_lead(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:143:        def boom(records, vals_list):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:155:    def test_usa_does_not_select_minor_outlying_islands(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:173:    def test_dead_lead_uses_the_existing_stage(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:178:    def test_contact_name_collapses_whitespace(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:185:    def test_unmapped_source_and_owner_are_left_empty(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:199:    def test_observed_aliases_land_on_native_lead_fields(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:241:    def _facility(self, name):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:245:    def _profiles(self, facility):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:248:    def test_admitted_contact_normalizes_each_material_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:267:        def wrapped(env, description, grade_evidence=None, structured=None):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:329:    def test_unresolved_material_is_reported_without_a_profile(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:346:    def test_ambiguous_facility_is_not_invented(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:359:    def test_grade_c_profile_has_neither_clean_nor_dry(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:372:    def test_table_row_uses_the_shared_normalizer_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:381:            def iter_table_rows(self, contact_id):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:394:        def wrapped(env, description, grade_evidence=None, structured=None):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:411:    def test_manual_and_scheduled_entry_points_share_the_normalizer_path(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:422:    def test_three_source_materials_become_three_profiles_and_replay(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:456:    def test_unknown_form_creates_one_profile_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:493:    def test_new_lead_without_partner_owns_one_facility_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:557:    def test_approved_aliases_create_one_facility_and_replay(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:582:    def test_material_database_failure_rolls_back_and_the_batch_continues(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:590:        def boom(records, vals_list):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:627:    def test_existing_facility_profiles_are_reconciled_without_duplicates(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:668:    def test_standalone_company_facility_is_reused_and_replays(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:691:    def test_two_leads_keep_provenance_on_one_verified_facility(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:731:    def test_material_collision_merges_evidence_and_keeps_downstream_refs(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:774:    def test_conflicting_grade_keeps_both_material_profiles(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:807:    def test_collision_keeps_cascade_dependents_and_image_attachments(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:871:    def test_computed_material_reference_blocks_deletion(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:938:    def test_collision_preserves_followers_without_duplicate_subscriptions(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1018:    def test_scheduled_message_blocks_material_deletion(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1055:    def test_verified_partner_without_facility_profile_attaches_canonical_materials(self):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1101:    def test_lead_owned_materials_are_visible_from_the_crm_action(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:16:    def setUpClass(cls):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:27:    def _lead(self, external_id, **kwargs):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:39:    def _facility(self, name):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:46:    def test_upsert_lead_idempotent(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:70:    def test_orphan_call_resolves_after_contact(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:109:    def _assert_identity_absent(self, external_id):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:117:    def test_failure_after_lead_insert_rolls_back_both_identity_rows(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:124:        def boom(records, vals_list):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:143:    def test_external_ref_create_failure_rolls_back_the_lead(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:149:        def boom(records, vals_list):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:161:    def test_usa_does_not_select_minor_outlying_islands(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:179:    def test_dead_lead_uses_the_existing_stage(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:184:    def test_contact_name_collapses_whitespace(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:191:    def test_unmapped_source_and_owner_are_left_empty(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:205:    def test_observed_aliases_land_on_native_lead_fields(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:247:    def _profiles(self, facility):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:250:    def test_admitted_contact_normalizes_each_material_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:269:        def wrapped(env, description, grade_evidence=None, structured=None):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:331:    def test_unresolved_material_is_reported_without_a_profile(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:348:    def test_ambiguous_facility_is_not_invented(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:361:    def test_grade_c_profile_has_neither_clean_nor_dry(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:374:    def test_table_row_uses_the_shared_normalizer_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:383:            def iter_table_rows(self, contact_id):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:396:        def wrapped(env, description, grade_evidence=None, structured=None):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:413:    def test_manual_and_scheduled_entry_points_share_the_normalizer_path(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:424:    def test_three_source_materials_become_three_profiles_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:458:    def test_unknown_form_creates_one_profile_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:495:    def test_new_lead_without_partner_owns_one_facility_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:559:    def test_approved_aliases_create_one_facility_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:584:    def test_material_database_failure_rolls_back_and_the_batch_continues(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:592:        def boom(records, vals_list):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:629:    def test_existing_facility_profiles_are_reconciled_without_duplicates(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:670:    def test_standalone_company_facility_is_reused_and_replays(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:693:    def test_two_leads_keep_provenance_on_one_verified_facility(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:733:    def test_material_collision_merges_evidence_and_keeps_downstream_refs(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:776:    def test_conflicting_grade_keeps_both_material_profiles(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:809:    def test_collision_preserves_followers_without_duplicate_subscriptions(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:889:    def test_scheduled_message_blocks_material_deletion(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:926:    def test_verified_partner_without_facility_profile_attaches_canonical_materials(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:972:    def test_lead_owned_materials_are_visible_from_the_crm_action(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:983:    def test_approved_contact_notes_append_to_the_erp_comment_and_replay(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1022:    def _erp_marker(self, partner, ct_id):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1033:    def test_persisted_person_ref_is_kept_when_the_crosswalk_is_unset(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1065:    def test_approved_material_failure_is_contained_and_the_page_continues(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1081:        def boom(records, vals_list):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1112:    def test_collision_keeps_cascade_dependents_and_image_attachments(self):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1176:    def test_computed_material_reference_blocks_deletion(self):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:15:    def _make_connection(self):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:21:    def test_action_test_connection_live_adapter_succeeds(self):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:37:    def test_action_test_connection_adapter_rejection_fails_closed(self):
@@ -649,7 +671,7 @@
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:109:    def test_malformed_contact_page_leaves_watermark_untouched(self):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:115:    def test_failure_after_a_committed_page_preserves_that_page_watermark(self):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:128:    def test_persist_failure_during_a_page_leaves_watermark_untouched(self):
-./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:132:        def _boom(self_, connection, dto):
+./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:132:        def _boom(self_, connection, dto, adapter=None):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:141:    def test_successful_page_advances_the_watermark(self):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:146:    def test_replayed_page_creates_no_duplicate_lead(self):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:161:    def test_malformed_call_leaves_the_window_watermark_untouched(self):
@@ -1442,69 +1464,75 @@
 ./plasticos_partner_import/migrations/19.0.2.7.1/post-migrate.py:13:def migrate(cr, version):
 ./plasticos_partner_import/migrations/19.0.2.7.3/post-migrate.py:13:def migrate(cr, version):
 ./plasticos_partner_import/migrations/19.0.2.8.0/post-migrate.py:19:def migrate(cr, version):
-./plasticos_partner_import/models/erp_import_service.py:85:    def run(
-./plasticos_partner_import/models/erp_import_service.py:155:        def stage_done(name: str) -> None:
-./plasticos_partner_import/models/erp_import_service.py:190:    def _extend_historical_import(self, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:194:    def _run_layer(self, layer: str, index, report, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:214:    def _import_counterparties(self, index, report, dry_run: bool) -> dict:
-./plasticos_partner_import/models/erp_import_service.py:264:    def _resolve_payment_term(self, values: dict, row, cp_id: str, report) -> None:
-./plasticos_partner_import/models/erp_import_service.py:275:    def _resolve_industry(self, values: dict, row, cp_id: str, report) -> None:
-./plasticos_partner_import/models/erp_import_service.py:289:    def _import_addresses(self, index, report, partner_by_cp: dict, dry_run: bool) -> dict:
-./plasticos_partner_import/models/erp_import_service.py:362:    def _create_location(
-./plasticos_partner_import/models/erp_import_service.py:396:    def _apply_billing_address(self, partner, row) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:404:        def fill(field_name: str, value: str) -> None:
-./plasticos_partner_import/models/erp_import_service.py:426:    def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
-./plasticos_partner_import/models/erp_import_service.py:459:    def _address_values(self, values: dict, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:469:    def _resolve_country_state(self, values: dict, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:505:    def _import_contacts(self, index, report, partner_by_cp: dict, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:582:    def _import_person(
-./plasticos_partner_import/models/erp_import_service.py:620:    def _merge_person_channels(self, values: dict, members, report) -> list:
-./plasticos_partner_import/models/erp_import_service.py:651:    def _apply_non_person(self, company, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:676:    def _retire_stale_contact(self, partner_model, contact_id: str) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:699:    def _import_roles(self, index, report, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:749:    def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
-./plasticos_partner_import/models/erp_import_service.py:759:    def _import_sales_reps(self, index, report, dry_run: bool) -> None:
-./plasticos_partner_import/models/erp_import_service.py:824:    def _address_catalog(self) -> list[tuple[str, str, str, int]]:
-./plasticos_partner_import/models/erp_import_service.py:847:    def _partners_by_prefix(self, prefix: str) -> dict[str, int]:
-./plasticos_partner_import/models/erp_import_service.py:863:    def _stamp_partner_count(self) -> None:
-./plasticos_partner_import/models/erp_import_service.py:870:    def _sync_address_phones(self, partner, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:881:    def _sync_phone_lines(self, partner, lines: list) -> None:
-./plasticos_partner_import/models/erp_import_service.py:895:    def _anchor_contact_id(self, partner_model, members) -> str:
-./plasticos_partner_import/models/erp_import_service.py:902:    def _partner_by_xmlid(self, model, xml_id: str):
-./plasticos_partner_import/models/erp_import_service.py:911:    def _alias_xmlid(self, model, xml_id: str, record, report, bucket: str) -> None:
-./plasticos_partner_import/models/erp_import_service.py:935:    def _retire_superseded_partner(self, superseded, record) -> None:
-./plasticos_partner_import/models/erp_import_service.py:944:    def _contact_roles(self, index, contact_id: str) -> list:
-./plasticos_partner_import/models/erp_import_service.py:955:    def _apply_contact_roles(self, partner, rows: list, tag_cache: dict, report) -> list:
-./plasticos_partner_import/models/erp_import_service.py:990:    def _role_tag_id(self, role: str, tag_cache: dict, report) -> int | None:
-./plasticos_partner_import/models/erp_import_service.py:1008:    def _upsert(self, model, xml_id: str, values: dict, report, bucket: str | None):
-./plasticos_partner_import/models/erp_import_service.py:1042:    def _ensure_identity_marker(self, model, xml_id: str, record) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1059:    def _write_identity_marker(self, model, xml_id: str, record) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1071:    def _copied_role(self, parent) -> dict:
-./plasticos_partner_import/models/erp_import_service.py:1083:    def _apply_site_mailbox(self, partner_by_address: dict, address_id: str, row) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1093:    def _erp_lead_source_id(self) -> int | bool:
-./plasticos_partner_import/models/erp_import_service.py:1102:def _text(row, column: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1106:def _email(row, *columns: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1117:def _sales_rep_row_key(cp_id: str, row) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1121:def _joined(row, columns) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1125:def _set_if(values: dict, key: str, value) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1130:def _differs(record, field_name: str, value) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:1161:def _plain_text(value) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1168:def _bare_url(value: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1177:def _same_party_name(left: str, right: str) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:1180:    def norm(value: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1187:def _mailbox_companies_from(index, catalog) -> list[tuple[list[str], list[str]]]:
-./plasticos_partner_import/models/erp_import_service.py:1206:def _location_title(row, parent_name: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1218:def _real_phone(value) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1224:def _contact_sort_key(item) -> tuple:
-./plasticos_partner_import/models/erp_import_service.py:1232:def _person_key(name: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1239:def _row_active(row, mapping) -> bool:
-./plasticos_partner_import/models/erp_import_service.py:1244:def _keep_first(values: dict, field_name: str, value: str, report, contact_id: str) -> None:
-./plasticos_partner_import/models/erp_import_service.py:1254:def _canonical_billing_id(pairs: list) -> str | None:
-./plasticos_partner_import/models/erp_import_service.py:1261:    def rank(row) -> tuple:
-./plasticos_partner_import/models/erp_import_service.py:1270:def _address_name(row, parent_name: str, address_id: str) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1286:def _partner_mobile_field(partner_model) -> str | None:
-./plasticos_partner_import/models/erp_import_service.py:1296:def _contact_comment(row, keep_mobile: bool = False) -> str:
-./plasticos_partner_import/models/erp_import_service.py:1317:def _slug(value: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:87:    def run(
+./plasticos_partner_import/models/erp_import_service.py:157:        def stage_done(name: str) -> None:
+./plasticos_partner_import/models/erp_import_service.py:192:    def _extend_historical_import(self, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:196:    def _run_layer(self, layer: str, index, report, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:216:    def _import_counterparties(self, index, report, dry_run: bool) -> dict:
+./plasticos_partner_import/models/erp_import_service.py:266:    def _resolve_payment_term(self, values: dict, row, cp_id: str, report) -> None:
+./plasticos_partner_import/models/erp_import_service.py:277:    def _resolve_industry(self, values: dict, row, cp_id: str, report) -> None:
+./plasticos_partner_import/models/erp_import_service.py:291:    def _import_addresses(self, index, report, partner_by_cp: dict, dry_run: bool) -> dict:
+./plasticos_partner_import/models/erp_import_service.py:364:    def _create_location(
+./plasticos_partner_import/models/erp_import_service.py:398:    def _apply_billing_address(self, partner, row) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:406:        def fill(field_name: str, value: str) -> None:
+./plasticos_partner_import/models/erp_import_service.py:428:    def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
+./plasticos_partner_import/models/erp_import_service.py:461:    def _address_values(self, values: dict, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:471:    def _resolve_country_state(self, values: dict, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:507:    def _import_contacts(self, index, report, partner_by_cp: dict, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:584:    def _import_person(
+./plasticos_partner_import/models/erp_import_service.py:622:    def _merge_person_channels(self, values: dict, members, report) -> list:
+./plasticos_partner_import/models/erp_import_service.py:653:    def _apply_non_person(self, company, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:678:    def _retire_stale_contact(self, partner_model, contact_id: str) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:701:    def _import_roles(self, index, report, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:751:    def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
+./plasticos_partner_import/models/erp_import_service.py:761:    def _import_sales_reps(self, index, report, dry_run: bool) -> None:
+./plasticos_partner_import/models/erp_import_service.py:826:    def _address_catalog(self) -> list[tuple[str, str, str, int]]:
+./plasticos_partner_import/models/erp_import_service.py:849:    def _partners_by_prefix(self, prefix: str) -> dict[str, int]:
+./plasticos_partner_import/models/erp_import_service.py:865:    def _stamp_partner_count(self) -> None:
+./plasticos_partner_import/models/erp_import_service.py:872:    def _sync_address_phones(self, partner, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:883:    def _sync_phone_lines(self, partner, lines: list) -> None:
+./plasticos_partner_import/models/erp_import_service.py:897:    def _anchor_contact_id(self, partner_model, members) -> str:
+./plasticos_partner_import/models/erp_import_service.py:904:    def _partner_by_xmlid(self, model, xml_id: str):
+./plasticos_partner_import/models/erp_import_service.py:913:    def _alias_xmlid(self, model, xml_id: str, record, report, bucket: str) -> None:
+./plasticos_partner_import/models/erp_import_service.py:937:    def _retire_superseded_partner(self, superseded, record) -> None:
+./plasticos_partner_import/models/erp_import_service.py:946:    def _contact_roles(self, index, contact_id: str) -> list:
+./plasticos_partner_import/models/erp_import_service.py:957:    def _apply_contact_roles(self, partner, rows: list, tag_cache: dict, report) -> list:
+./plasticos_partner_import/models/erp_import_service.py:992:    def _role_tag_id(self, role: str, tag_cache: dict, report) -> int | None:
+./plasticos_partner_import/models/erp_import_service.py:1010:    def _upsert(self, model, xml_id: str, values: dict, report, bucket: str | None):
+./plasticos_partner_import/models/erp_import_service.py:1049:    def _ensure_identity_marker(self, model, xml_id: str, record) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1066:    def _write_identity_marker(self, model, xml_id: str, record) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1078:    def _copied_role(self, parent) -> dict:
+./plasticos_partner_import/models/erp_import_service.py:1090:    def _apply_site_mailbox(self, partner_by_address: dict, address_id: str, row) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1100:    def _erp_lead_source_id(self) -> int | bool:
+./plasticos_partner_import/models/erp_import_service.py:1109:def _text(row, column: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1113:def _email(row, *columns: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1124:def _sales_rep_row_key(cp_id: str, row) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1128:def _joined(row, columns) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1132:def _set_if(values: dict, key: str, value) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1137:def _differs(record, field_name: str, value) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:1172:    def __init__(self) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1177:    def flush(self) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1183:    def handle_starttag(self, tag, attrs):
+./plasticos_partner_import/models/erp_import_service.py:1189:    def handle_endtag(self, tag):
+./plasticos_partner_import/models/erp_import_service.py:1193:    def handle_data(self, data):
+./plasticos_partner_import/models/erp_import_service.py:1197:def _comment_with_erp_notes(comment, notes: str):
+./plasticos_partner_import/models/erp_import_service.py:1225:def _plain_text(value) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1232:def _bare_url(value: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1241:def _same_party_name(left: str, right: str) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:1244:    def norm(value: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1251:def _mailbox_companies_from(index, catalog) -> list[tuple[list[str], list[str]]]:
+./plasticos_partner_import/models/erp_import_service.py:1270:def _location_title(row, parent_name: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1282:def _real_phone(value) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1288:def _contact_sort_key(item) -> tuple:
+./plasticos_partner_import/models/erp_import_service.py:1296:def _person_key(name: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1303:def _row_active(row, mapping) -> bool:
+./plasticos_partner_import/models/erp_import_service.py:1308:def _keep_first(values: dict, field_name: str, value: str, report, contact_id: str) -> None:
+./plasticos_partner_import/models/erp_import_service.py:1318:def _canonical_billing_id(pairs: list) -> str | None:
+./plasticos_partner_import/models/erp_import_service.py:1325:    def rank(row) -> tuple:
+./plasticos_partner_import/models/erp_import_service.py:1334:def _address_name(row, parent_name: str, address_id: str) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1350:def _partner_mobile_field(partner_model) -> str | None:
+./plasticos_partner_import/models/erp_import_service.py:1360:def _contact_comment(row, keep_mobile: bool = False) -> str:
+./plasticos_partner_import/models/erp_import_service.py:1381:def _slug(value: str) -> str:
 ./plasticos_partner_import/models/partner_import_service.py:35:    def _check_import_operator(self):
 ./plasticos_partner_import/models/partner_import_service.py:49:    def get_module_path(self) -> str:
 ./plasticos_partner_import/models/partner_import_service.py:58:    def resolve_default_csv_path(self, which: str) -> str:
@@ -2306,6 +2334,20 @@
 ./scripts/migrations/mothball_local_intelligence.py:84:def uninstall_preflight(
 ./scripts/migrations/mothball_local_intelligence.py:116:def dry_run_migrate() -> dict[str, Any]:
 ./scripts/migrations/mothball_local_intelligence.py:135:def main(argv: list[str] | None = None) -> int:
+./scripts/odools_diagnostics.py:30:def find_server() -> Path:
+./scripts/odools_diagnostics.py:44:def _server_version(path: Path) -> tuple[int, ...]:
+./scripts/odools_diagnostics.py:53:def run_parse(server: Path) -> None:
+./scripts/odools_diagnostics.py:95:def rows_from_payload(payload: dict, repo: Path, *, include_all: bool) -> list[dict]:
+./scripts/odools_diagnostics.py:112:def format_row(row: dict) -> str:
+./scripts/odools_diagnostics.py:123:def _row(display: str, diagnostic: dict) -> dict:
+./scripts/odools_diagnostics.py:135:def _code(code: object) -> str | None:
+./scripts/odools_diagnostics.py:146:def _one_based(position: dict) -> dict:
+./scripts/odools_diagnostics.py:153:def _matches_plasticos(row: dict) -> bool:
+./scripts/odools_diagnostics.py:160:def _uri_to_path(uri: str) -> Path | None:
+./scripts/odools_diagnostics.py:169:def _is_upstream(path: Path) -> bool:
+./scripts/odools_diagnostics.py:180:def _display_path(path: Path, repo: Path) -> str:
+./scripts/odools_diagnostics.py:188:def write_reports(rows: list[dict]) -> None:
+./scripts/odools_diagnostics.py:194:def main(argv: list[str] | None = None) -> int:
 ./scripts/opportunity_protocol.py:59:def _as_number(value: Any, *, field: str) -> float | None:
 ./scripts/opportunity_protocol.py:69:def validate_quantity_range(quantity: dict[str, Any] | None, *, required: bool = True) -> None:
 ./scripts/opportunity_protocol.py:88:def _parse_instant(value: Any, *, field: str) -> datetime | date | None:
@@ -2400,16 +2442,38 @@
 ./scripts/projection_outcome_schemas.py:309:    def __init__(self) -> None:
 ./scripts/projection_outcome_schemas.py:312:    def apply(self, payload: dict[str, Any]) -> OutcomeApplyResult:
 ./scripts/projection_outcome_schemas.py:324:    def get(self, key: str) -> dict[str, Any] | None:
-./scripts/repo_generators/export_repo_indexes.py:52:def iter_files(root: Path, suffix: str):
-./scripts/repo_generators/export_repo_indexes.py:65:def rel(root: Path, path: Path) -> str:
-./scripts/repo_generators/export_repo_indexes.py:69:def grep_lines(root: Path, suffix: str, pattern: re.Pattern) -> list[str]:
-./scripts/repo_generators/export_repo_indexes.py:82:def readme_manifest(root: Path) -> list[str]:
-./scripts/repo_generators/export_repo_indexes.py:98:def xml_matching(root: Path, needle: str) -> list[str]:
-./scripts/repo_generators/export_repo_indexes.py:111:def xml_paths_under(root: Path, dir_name: str) -> list[str]:
-./scripts/repo_generators/export_repo_indexes.py:115:def odoo_module_dependencies(root: Path) -> list[str]:
-./scripts/repo_generators/export_repo_indexes.py:128:def is_odoo_repo(root: Path) -> bool:
-./scripts/repo_generators/export_repo_indexes.py:132:def write_index(root: Path, name: str, lines: list[str]) -> int:
-./scripts/repo_generators/export_repo_indexes.py:140:def main() -> int:
+./scripts/repo_generators/export_repo_indexes.py:60:def tracked_files(root: Path) -> list[Path] | None:
+./scripts/repo_generators/export_repo_indexes.py:84:def iter_files(files: list[Path], suffix: str):
+./scripts/repo_generators/export_repo_indexes.py:91:def rel(root: Path, path: Path) -> str:
+./scripts/repo_generators/export_repo_indexes.py:95:def grep_lines(root: Path, files: list[Path], suffix: str, pattern: re.Pattern) -> list[str]:
+./scripts/repo_generators/export_repo_indexes.py:108:def heading_source(path: Path) -> bool:
+./scripts/repo_generators/export_repo_indexes.py:114:def readme_manifest(root: Path, files: list[Path]) -> list[str]:
+./scripts/repo_generators/export_repo_indexes.py:129:def xml_matching(root: Path, files: list[Path], needle: str) -> list[str]:
+./scripts/repo_generators/export_repo_indexes.py:142:def xml_paths_under(root: Path, files: list[Path], dir_name: str) -> list[str]:
+./scripts/repo_generators/export_repo_indexes.py:146:def module_manifests(root: Path, files: list[Path]) -> list[Path]:
+./scripts/repo_generators/export_repo_indexes.py:151:def odoo_module_dependencies(root: Path, files: list[Path]) -> list[str]:
+./scripts/repo_generators/export_repo_indexes.py:164:def is_odoo_repo(root: Path, files: list[Path]) -> bool:
+./scripts/repo_generators/export_repo_indexes.py:168:def write_index(root: Path, name: str, lines: list[str]) -> int:
+./scripts/repo_generators/export_repo_indexes.py:176:def main() -> int:
+./scripts/roadmap.py:37:def _load_registry() -> dict:
+./scripts/roadmap.py:51:def _items_for(reg: dict, domain: str, phase: int | None = None, kind: str | None = None) -> list[dict]:
+./scripts/roadmap.py:64:def _next_id(reg: dict, domain: str) -> str:
+./scripts/roadmap.py:79:def _render_backlog(items: list[dict]) -> str:
+./scripts/roadmap.py:87:def _render_scope_column(items: list[dict]) -> str:
+./scripts/roadmap.py:92:def _render_scope_table(in_items: list[dict], out_items: list[dict]) -> str:
+./scripts/roadmap.py:109:def _render_observability(items: list[dict]) -> str:
+./scripts/roadmap.py:114:def _render_capabilities(items: list[dict], notes_header: str = "Human gate remaining / Notes") -> str:
+./scripts/roadmap.py:123:def _render_domain_index(domains: dict) -> str:
+./scripts/roadmap.py:136:def _render_readme_architecture(domains: dict) -> str:
+./scripts/roadmap.py:151:def _replace_marker(content: str, key: str, section: str, body: str) -> str:
+./scripts/roadmap.py:161:def _update_last_updated(content: str) -> str:
+./scripts/roadmap.py:171:def _extract_marker_body(content: str, key: str, section: str) -> str | None:
+./scripts/roadmap.py:179:def cmd_sync() -> int:
+./scripts/roadmap.py:260:def cmd_check() -> int:
+./scripts/roadmap.py:329:def cmd_list(args: argparse.Namespace) -> int:
+./scripts/roadmap.py:344:def cmd_add(args: argparse.Namespace) -> int:
+./scripts/roadmap.py:370:def cmd_update(args: argparse.Namespace) -> int:
+./scripts/roadmap.py:389:def main() -> int:
 ./scripts/semantic_kernel_backfill.py:32:def build_parser() -> argparse.ArgumentParser:
 ./scripts/semantic_kernel_backfill.py:57:def load_fixture_rows(path: Path | None) -> list[SourceRow]:
 ./scripts/semantic_kernel_backfill.py:74:def main(argv: list[str] | None = None) -> int:
@@ -2439,9 +2503,15 @@
 ./tests/common.py:8:def assert_action_result(test_case, result, expected_model=None, expected_type="ir.actions.act_window"):
 ./tests/common.py:23:def assert_state_transition(test_case, record, action_name, expected_state, msg=None):
 ./tests/common.py:44:def assert_message_posted(test_case, record, keyword=None):
-./tests/conftest.py:18:def _imports_odoo(path: str) -> bool:
-./tests/conftest.py:30:def _collect_odoo_test_files() -> list[str]:
-./tests/conftest.py:42:def _odoo_available() -> bool:
+./tests/conftest.py:20:def _line_names_odoo_module(line: str) -> bool:
+./tests/conftest.py:32:def _imports_odoo(path: str) -> bool:
+./tests/conftest.py:43:def _collect_odoo_test_files() -> list[str]:
+./tests/conftest.py:55:def _odoo_available() -> bool:
+./tests/conftest.py:73:def pytest_configure(config):
+./tests/conftest.py:85:def pytest_collection_modifyitems(config, items):
+./tests/conftest.py:91:def pytest_deselected(items):
+./tests/conftest.py:98:def pytest_runtest_makereport(item, call):
+./tests/conftest.py:117:def pytest_sessionfinish(session, exitstatus):
 ./tests/contracts/__init__.py:18:def _try_import(name: str) -> None:
 ./tests/contracts/test_api_signature_contracts.py:23:def test_m7_retired_local_intelligence_modules_absent():
 ./tests/contracts/test_api_signature_contracts.py:29:def test_m7_superseded_fallback_tests_absent():
@@ -2484,7 +2554,7 @@
 ./tests/contracts/test_external_intelligence_authority.py:49:def test_invariants_declare_external_intelligence_authority():
 ./tests/contracts/test_external_intelligence_authority.py:56:def test_architecture_points_at_successor_adr_not_fallback_authority():
 ./tests/contracts/test_external_intelligence_authority.py:64:def test_agents_forbid_local_engines_as_authority():
-./tests/contracts/test_external_intelligence_authority.py:71:def test_gate_roadmap_generator_is_retired_and_folder_is_hand_authored():
+./tests/contracts/test_external_intelligence_authority.py:71:def test_roadmap_and_track_b_cite_successor_authority():
 ./tests/contracts/test_external_intelligence_authority.py:82:def test_acceptance_local_engines_no_longer_architectural_authority():
 ./tests/contracts/test_external_intelligence_contract_parity.py:28:    def __init__(self, params: dict[str, str]):
 ./tests/contracts/test_external_intelligence_contract_parity.py:31:    def get_param(self, key: str, default=None):
@@ -3285,6 +3355,28 @@
 ./tests/test_ci_check_odoo19_xml.py:471:    def test_nonexistent_file(self):
 ./tests/test_ci_check_odoo19_xml.py:476:    def test_line_numbers_are_1_indexed(self):
 ./tests/test_ci_check_odoo19_xml.py:487:    def test_tree_word_boundary(self):
+./tests/test_ci_event_triggers.py:19:def _workflow() -> dict:
+./tests/test_ci_event_triggers.py:27:def _child_env() -> dict[str, str]:
+./tests/test_ci_event_triggers.py:35:def _kernel(tmp_path: Path, document: dict) -> subprocess.CompletedProcess[str]:
+./tests/test_ci_event_triggers.py:59:def _test_step(doc: dict) -> dict:
+./tests/test_ci_event_triggers.py:63:def test_current_workflow_is_accepted_by_the_real_kernel(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:78:def test_wrong_ci_event_selection_fails_even_if_correct_words_exist(tmp_path: Path, event_change: dict) -> None:
+./tests/test_ci_event_triggers.py:108:def test_weakened_ci_contract_is_rejected(tmp_path: Path, mutation: str) -> None:
+./tests/test_ci_event_triggers.py:149:def test_aggregator_must_actually_fail_closed(tmp_path: Path, attack: str) -> None:
+./tests/test_ci_event_triggers.py:169:def _probe_pytest(
+./tests/test_ci_event_triggers.py:191:def test_a_required_contract_cannot_skip_or_xfail(tmp_path: Path, action: str) -> None:
+./tests/test_ci_event_triggers.py:198:def test_an_unexpected_pass_marked_xfail_is_not_contract_proof(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:206:def test_zero_collected_contracts_does_not_make_ci_green(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:212:def test_required_contracts_run_once_and_optional_skips_stay_optional(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:222:def test_ci_cannot_filter_out_the_contract_tier(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:229:def test_local_focused_test_selection_remains_supported(tmp_path: Path) -> None:
+./tests/test_ci_event_triggers.py:248:def _lines(text: str) -> list[str]:
+./tests/test_ci_event_triggers.py:252:def _mapping(lines: list[str], indent: int) -> dict[str, tuple[str | None, list[str]]]:
+./tests/test_ci_event_triggers.py:272:def _list(value: str | None, children: list[str]) -> list[str] | None:
+./tests/test_ci_event_triggers.py:285:def _trigger_violations(text: str) -> list[str]:
+./tests/test_ci_event_triggers.py:322:def _job_violations(text: str) -> list[str]:
+./tests/test_ci_event_triggers.py:345:def test_feature_branch_pushes_do_not_start_a_second_ci_gate() -> None:
+./tests/test_ci_event_triggers.py:372:def test_trigger_check_rejects_broken_event_routing(mutant: str) -> None:
 ./tests/test_committed_sync_metrics.py:39:def _lead(external_id: str) -> CanonicalLead:
 ./tests/test_committed_sync_metrics.py:53:    def __init__(self) -> None:
 ./tests/test_committed_sync_metrics.py:62:    def __init__(self, run: _FakeRun) -> None:
@@ -3296,7 +3388,7 @@
 ./tests/test_committed_sync_metrics.py:100:    def __init__(self, contact_pages=(), call_batches=()) -> None:
 ./tests/test_committed_sync_metrics.py:104:    def iter_contacts(self, *, modified_after, limit=200):
 ./tests/test_committed_sync_metrics.py:110:    def iter_calls(self, *, start, end, limit=500):
-./tests/test_committed_sync_metrics.py:125:    def _upsert_lead(self, connection, dto):
+./tests/test_committed_sync_metrics.py:125:    def _upsert_lead(self, connection, dto, adapter=None):
 ./tests/test_committed_sync_metrics.py:128:    def _sync_tables_for_lead(self, connection, adapter, contact_external_id, lead=None):
 ./tests/test_committed_sync_metrics.py:131:    def _upsert_calls(self, connection, batch, run):
 ./tests/test_committed_sync_metrics.py:135:def _harness(adapter):
@@ -3367,6 +3459,22 @@
 ./tests/test_constraints_onchanges.py:212:    def test_discrepancy_within_threshold(self):
 ./tests/test_constraints_onchanges.py:216:    def test_light_weight_deduction_below_min(self):
 ./tests/test_constraints_onchanges.py:221:    def test_light_weight_deduction_above_min(self):
+./tests/test_crm_approved_identity.py:35:def _csv(rows: list[tuple[str, str]]) -> str:
+./tests/test_crm_approved_identity.py:40:def test_pinned_crosswalk_constants():
+./tests/test_crm_approved_identity.py:47:def test_operator_crosswalk_file_matches_the_pinned_census():
+./tests/test_crm_approved_identity.py:64:def test_crosswalk_rejects_a_second_erp_target_for_one_contact():
+./tests/test_crm_approved_identity.py:71:def test_contact_note_is_the_notes_custom_field_not_a_call_comment():
+./tests/test_crm_approved_identity.py:85:def test_crm_note_is_appended_after_the_erp_notes_and_replays():
+./tests/test_crm_approved_identity.py:98:def test_note_presence_is_a_whole_paragraph_not_a_substring():
+./tests/test_crm_approved_identity.py:103:def test_phone_token_match_is_the_whole_number():
+./tests/test_crm_approved_identity.py:120:    def sudo(self):
+./tests/test_crm_approved_identity.py:123:    def browse(self, rec_id=None):
+./tests/test_crm_approved_identity.py:128:def _person_bound_harness():
+./tests/test_crm_approved_identity.py:146:def test_persisted_person_ref_blocks_the_legacy_lead_when_the_crosswalk_is_unset():
+./tests/test_crm_approved_identity.py:158:def test_person_ref_to_a_missing_partner_is_failed_not_recreated():
+./tests/test_crm_approved_identity.py:169:def test_person_ref_with_a_lead_on_another_partner_is_rejected():
+./tests/test_crm_approved_identity.py:180:def test_approved_material_failure_rolls_back_and_is_recorded():
+./tests/test_crm_approved_identity.py:184:    def boom(_lead, *_maps):
 ./tests/test_crm_sync_classification.py:26:    def __bool__(self):
 ./tests/test_crm_sync_classification.py:34:    def __init__(self, rec_id: int, vals: dict):
 ./tests/test_crm_sync_classification.py:39:    def write(self, vals):
@@ -3656,20 +3764,22 @@
 ./tests/test_erp_import_contract.py:172:def test_every_persisted_entity_goes_through_the_deterministic_upsert(service_tree):
 ./tests/test_erp_import_contract.py:192:def test_upsert_writes_only_what_actually_changed(service_tree):
 ./tests/test_erp_import_contract.py:199:def test_change_detection_compares_the_values_odoo_normalizes_on_write(service_tree, service_source):
-./tests/test_erp_import_contract.py:207:def test_contact_role_tags_are_applied_as_a_set(service_tree):
-./tests/test_erp_import_contract.py:216:def test_no_new_field_is_declared_by_the_import(service_source):
-./tests/test_erp_import_contract.py:220:def test_optional_targets_are_capability_checked(service_source):
-./tests/test_erp_import_contract.py:228:def test_trade_date_has_no_custom_transaction_field_or_misplaced_target(deal_tree):
-./tests/test_erp_import_contract.py:244:def test_related_records_are_looked_up_never_created(service_tree):
-./tests/test_erp_import_contract.py:260:def _calls_in_order(function: ast.FunctionDef, names: tuple[str, ...]) -> list[str]:
-./tests/test_erp_import_contract.py:268:def test_full_run_executes_every_partner_stage_before_transactions(service_tree):
-./tests/test_erp_import_contract.py:288:def test_every_partner_stage_is_followed_by_the_after_stage_hook(service_tree):
-./tests/test_erp_import_contract.py:306:def test_partner_writes_always_carry_the_import_context(service_source):
-./tests/test_erp_import_contract.py:330:def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_tree):
-./tests/test_erp_import_contract.py:346:def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):
-./tests/test_erp_import_contract.py:361:def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
-./tests/test_erp_import_contract.py:367:def test_partner_import_runtime_does_not_name_layer5_models():
-./tests/test_erp_import_contract.py:378:def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
+./tests/test_erp_import_contract.py:207:def _comment_helper(service_tree, service_source):
+./tests/test_erp_import_contract.py:220:def test_erp_replay_keeps_crm_notes_appended_to_the_partner_comment(service_tree, service_source):
+./tests/test_erp_import_contract.py:233:def test_contact_role_tags_are_applied_as_a_set(service_tree):
+./tests/test_erp_import_contract.py:242:def test_no_new_field_is_declared_by_the_import(service_source):
+./tests/test_erp_import_contract.py:246:def test_optional_targets_are_capability_checked(service_source):
+./tests/test_erp_import_contract.py:254:def test_trade_date_has_no_custom_transaction_field_or_misplaced_target(deal_tree):
+./tests/test_erp_import_contract.py:270:def test_related_records_are_looked_up_never_created(service_tree):
+./tests/test_erp_import_contract.py:286:def _calls_in_order(function: ast.FunctionDef, names: tuple[str, ...]) -> list[str]:
+./tests/test_erp_import_contract.py:294:def test_full_run_executes_every_partner_stage_before_transactions(service_tree):
+./tests/test_erp_import_contract.py:314:def test_every_partner_stage_is_followed_by_the_after_stage_hook(service_tree):
+./tests/test_erp_import_contract.py:332:def test_partner_writes_always_carry_the_import_context(service_source):
+./tests/test_erp_import_contract.py:356:def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_tree):
+./tests/test_erp_import_contract.py:372:def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):
+./tests/test_erp_import_contract.py:387:def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
+./tests/test_erp_import_contract.py:393:def test_partner_import_runtime_does_not_name_layer5_models():
+./tests/test_erp_import_contract.py:404:def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
 ./tests/test_erp_import_limit.py:20:def test_count_limit_is_an_integer():
 ./tests/test_erp_import_limit.py:25:def test_percent_limit_is_a_fraction_resolved_against_the_source_size():
 ./tests/test_erp_import_limit.py:33:def test_full_percent_is_every_worksheet_and_unset_is_no_limit():
@@ -4240,20 +4350,57 @@
 ./tests/test_import_summary_schema.py:103:def test_partial_status_allowed():
 ./tests/test_import_summary_schema.py:108:def test_cli_roundtrip(tmp_path):
 ./tests/test_import_summary_schema.py:130:def test_secret_markers_registered():
-./tests/test_install_smoke_db_guard.py:30:def _docker_stub(log_path: Path, *, inspect_json: str | None, container_id: str) -> str:
-./tests/test_install_smoke_db_guard.py:68:def _run(
-./tests/test_install_smoke_db_guard.py:93:def _docker_log(tmp_path: Path) -> str:
-./tests/test_install_smoke_db_guard.py:100:def _assert_no_destructive(log: str) -> None:
-./tests/test_install_smoke_db_guard.py:121:def test_unrecognized_or_protected_database_never_calls_docker(tmp_path: Path, name: str) -> None:
-./tests/test_install_smoke_db_guard.py:129:def test_remote_docker_host_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:137:def test_foreign_compose_project_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:145:def test_compose_mode_rejects_a_remote_database_host(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:153:def test_foreign_compose_file_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:163:def test_host_mode_without_a_proven_container_does_not_mutate(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:177:def test_host_mode_rejects_a_non_loopback_port_binding(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:200:def test_default_compose_identity_reaches_the_scratch_install(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:216:def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:240:def test_cache_hit_is_not_described_as_install_proof() -> None:
+./tests/test_install_smoke_db_guard.py:33:def _docker_stub(log_path: Path, *, inspect_json: str | None, container_id: str) -> str:
+./tests/test_install_smoke_db_guard.py:77:def _run(
+./tests/test_install_smoke_db_guard.py:136:def _docker_log(tmp_path: Path) -> str:
+./tests/test_install_smoke_db_guard.py:143:def _assert_no_destructive(log: str) -> None:
+./tests/test_install_smoke_db_guard.py:164:def test_unrecognized_or_protected_database_never_calls_docker(tmp_path: Path, name: str) -> None:
+./tests/test_install_smoke_db_guard.py:172:def test_implicit_compose_override_cannot_change_database_identity(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:178:def test_remote_active_docker_context_never_mutates(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:185:def test_remote_docker_host_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:193:def test_foreign_compose_project_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:201:def test_compose_mode_rejects_a_remote_database_host(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:209:def test_foreign_compose_file_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:219:def test_host_mode_without_a_proven_container_does_not_mutate(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:233:def test_host_mode_rejects_a_non_loopback_port_binding(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:256:def test_default_compose_identity_reaches_the_scratch_install(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:272:def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:296:def test_recheck_is_the_smoke_evidence_gate() -> None:
+./tests/test_install_smoke_evidence.py:42:def state():
+./tests/test_install_smoke_evidence.py:44:def save(value):
+./tests/test_install_smoke_evidence.py:47:def image(ref):
+./tests/test_install_smoke_evidence.py:140:    def receipt(self) -> Path:
+./tests/test_install_smoke_evidence.py:143:    def run(self, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
+./tests/test_install_smoke_evidence.py:154:    def configure(self, **values: object) -> None:
+./tests/test_install_smoke_evidence.py:159:    def calls(self) -> list[dict]:
+./tests/test_install_smoke_evidence.py:163:    def establish(self, **env: str) -> dict:
+./tests/test_install_smoke_evidence.py:172:def _git(path: Path, *args: str) -> None:
+./tests/test_install_smoke_evidence.py:181:def _checkout(path: Path, *, git: bool = False) -> Path:
+./tests/test_install_smoke_evidence.py:194:def site(tmp_path: Path) -> Site:
+./tests/test_install_smoke_evidence.py:260:def test_remote_active_docker_context_cannot_touch_the_database(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:268:def test_unchanged_complete_evidence_is_reused_without_install(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:277:def test_effective_enterprise_mount_not_repository_symlink_is_bound(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:286:def test_same_length_bytes_with_preserved_mtime_invalidate(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:297:def test_untracked_git_file_content_not_just_status_is_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:318:def test_effective_container_environment_is_bound(site: Site, env: dict[str, str]) -> None:
+./tests/test_install_smoke_evidence.py:323:def test_mounted_configuration_file_is_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:329:def test_image_override_cannot_attest_to_an_unexecuted_image(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:335:def test_actual_container_image_must_match_validated_image(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:342:def test_legitimate_build_image_change_is_accepted(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:352:def test_live_image_and_database_change_invalidates(site: Site, change: dict) -> None:
+./tests/test_install_smoke_evidence.py:359:def test_missing_enterprise_or_custom_module_never_passes(site: Site, module: str) -> None:
+./tests/test_install_smoke_evidence.py:368:def test_truncated_record_cannot_reduce_required_inventory(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:376:def test_malformed_or_old_hash_evidence_is_not_reusable(site: Site, value: str) -> None:
+./tests/test_install_smoke_evidence.py:391:def test_shortened_lists_refuse_from_shell_and_dotenv(site: Site, key: str, value: str) -> None:
+./tests/test_install_smoke_evidence.py:399:def test_unreadable_enterprise_fails_resolve(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:406:def test_source_change_during_install_never_writes_evidence(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:413:def test_failed_install_invalidates_old_success(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:421:def test_manual_reduced_install_cannot_refresh_publication_evidence(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:429:def test_receipt_contains_no_configuration_secret_values(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:435:def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:475:def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:490:def test_enterprise_checkout_with_unavailable_gitdir_is_still_byte_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:499:def test_receipt_without_database_binding_is_not_reusable(site: Site, mutation: str) -> None:
 ./tests/test_integration_flows.py:27:    def setUpClass(cls):
 ./tests/test_integration_flows.py:32:    def test_full_lead_to_transaction_flow(self):
 ./tests/test_integration_flows.py:53:    def test_lead_creates_partner_when_missing(self):
@@ -4327,42 +4474,59 @@
 ./tests/test_legacy_import_ui_retired.py:50:def _method(cls: ast.ClassDef, name: str) -> ast.FunctionDef:
 ./tests/test_legacy_import_ui_retired.py:60:def test_retired_data_files_are_neither_declared_nor_present():
 ./tests/test_legacy_import_ui_retired.py:68:def test_models_init_no_longer_imports_settings_glue():
-./tests/test_legacy_import_ui_retired.py:73:def test_upgrade_migration_matches_manifest_version():
-./tests/test_legacy_import_ui_retired.py:91:def test_no_xml_entry_point_targets_the_legacy_import():
-./tests/test_legacy_import_ui_retired.py:116:def test_wizard_acl_is_system_only():
-./tests/test_legacy_import_ui_retired.py:128:def test_wizard_execution_actions_are_closed_behind_the_retirement_guard():
-./tests/test_legacy_import_ui_retired.py:144:def _first_statement(func: ast.FunctionDef) -> ast.stmt:
-./tests/test_legacy_import_ui_retired.py:151:def test_service_import_entry_points_are_guarded_against_rpc_callers():
-./tests/test_legacy_import_ui_retired.py:171:def test_importer_logic_is_preserved_for_shell_reuse():
+./tests/test_legacy_import_ui_retired.py:73:def _version(text: str) -> tuple[int, ...]:
+./tests/test_legacy_import_ui_retired.py:77:def test_upgrade_migration_matches_manifest_version():
+./tests/test_legacy_import_ui_retired.py:103:def test_no_xml_entry_point_targets_the_legacy_import():
+./tests/test_legacy_import_ui_retired.py:128:def test_wizard_acl_is_system_only():
+./tests/test_legacy_import_ui_retired.py:140:def test_wizard_execution_actions_are_closed_behind_the_retirement_guard():
+./tests/test_legacy_import_ui_retired.py:156:def _first_statement(func: ast.FunctionDef) -> ast.stmt:
+./tests/test_legacy_import_ui_retired.py:163:def test_service_import_entry_points_are_guarded_against_rpc_callers():
+./tests/test_legacy_import_ui_retired.py:183:def test_importer_logic_is_preserved_for_shell_reuse():
 ./tests/test_linda_local_ownership.py:11:def _sources():
 ./tests/test_linda_local_ownership.py:15:def test_linda_manifest_has_no_external_intelligence_module_dependency():
 ./tests/test_linda_local_ownership.py:22:def test_linda_has_no_direct_external_intelligence_import_or_action_call():
 ./tests/test_linda_local_ownership.py:30:def test_local_estimator_and_ranking_are_explicitly_versioned_services():
 ./tests/test_linda_local_ownership.py:37:def test_canonical_freight_context_uses_only_declared_structured_location_facts():
 ./tests/test_linda_local_ownership.py:43:def test_immutable_freight_evidence_is_not_directly_creatable_by_internal_users():
-./tests/test_make_pr_publication.py:20:def _real(name: str) -> str:
-./tests/test_make_pr_publication.py:30:def _write(path: Path, text: str) -> None:
-./tests/test_make_pr_publication.py:35:def _plant_l4_provider(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:50:def _init_repo(tmp_path: Path, branch: str = "fix/example") -> tuple[Path, Path]:
-./tests/test_make_pr_publication.py:137:def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
-./tests/test_make_pr_publication.py:150:def _run(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
-./tests/test_make_pr_publication.py:162:def _seq(seq: Path) -> str:
-./tests/test_make_pr_publication.py:166:def _assert_no_push(seq: Path) -> None:
-./tests/test_make_pr_publication.py:170:def _pr_json(repo: Path, branch: str) -> str:
-./tests/test_make_pr_publication.py:184:def test_feature_to_staging_publishes_only_after_l4_and_forced_smoke(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:200:def test_production_base_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:209:def test_staging_to_production_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:217:def test_protected_sources_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:227:def test_self_pr_and_detached_head_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:241:def test_dirty_tree_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:250:def test_l4_denial_and_second_check_failure_do_not_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:265:def test_disable_and_breakglass_switches_do_not_invoke_l4_or_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:282:def test_missing_provider_blocks_without_a_dropbox_fallback(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:297:def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:330:def test_remote_sha_mismatch_fails_the_push_proof(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:348:def test_direct_push_to_a_protected_branch_refuses(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:364:def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:380:def test_api_push_and_autopilot_do_not_publish() -> None:
+./tests/test_make_pr_publication.py:23:def _real(name: str) -> str:
+./tests/test_make_pr_publication.py:33:def _write(path: Path, text: str) -> None:
+./tests/test_make_pr_publication.py:38:def _plant_l4_provider(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:53:def _pre_push_hook(seq: Path, *, args_line: str = PRE_COMMIT_ARGS) -> str:
+./tests/test_make_pr_publication.py:66:def _init_repo(tmp_path: Path, branch: str = "fix/example") -> tuple[Path, Path]:
+./tests/test_make_pr_publication.py:192:def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
+./tests/test_make_pr_publication.py:206:def _run(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
+./tests/test_make_pr_publication.py:218:def _seq(seq: Path) -> str:
+./tests/test_make_pr_publication.py:222:def _assert_no_push(seq: Path) -> None:
+./tests/test_make_pr_publication.py:226:def _pr_json(repo: Path, branch: str) -> str:
+./tests/test_make_pr_publication.py:240:def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:259:def test_production_base_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:268:def test_staging_to_production_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:276:def test_protected_sources_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:286:def test_self_pr_and_detached_head_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:300:def test_dirty_tree_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:309:def test_l4_denial_and_second_check_failure_do_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:324:def test_disable_and_breakglass_switches_do_not_invoke_l4_or_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:341:def test_missing_provider_blocks_without_a_dropbox_fallback(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:356:def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:389:def test_remote_sha_mismatch_fails_the_push_proof(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:407:def test_direct_push_to_a_protected_branch_refuses(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:423:def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:439:def test_pr_check_reuses_live_evidence_not_a_source_hash() -> None:
+./tests/test_make_pr_publication.py:446:def test_api_push_and_autopilot_do_not_publish() -> None:
+./tests/test_make_pr_publication.py:458:def _push(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
+./tests/test_make_pr_publication.py:470:def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:479:def test_failed_or_missing_gitleaks_does_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:494:def _bare_remote(tmp_path: Path, repo: Path, branch: str = "fix/example") -> tuple[Path, str]:
+./tests/test_make_pr_publication.py:515:def _remote_sha(bare: Path, branch: str = "fix/example") -> str:
+./tests/test_make_pr_publication.py:521:def _head(repo: Path) -> str:
+./tests/test_make_pr_publication.py:525:def _hook_runs(seq: Path) -> int:
+./tests/test_make_pr_publication.py:530:def test_rejecting_pre_push_hook_stops_publication(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:547:def test_accepting_pre_push_hook_runs_once_and_publishes_validated_head(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:566:def test_missing_or_disabled_pre_push_enforcement_refuses_before_validation(tmp_path: Path, disable: str) -> None:
+./tests/test_make_pr_publication.py:591:def test_bad_origin_and_skip_switches_refuse(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:626:def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:634:def test_reused_pr_keeps_its_body_and_gains_the_stamp(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:693:def test_real_gitleaks_rejects_a_seeded_secret(tmp_path: Path) -> None:
 ./tests/test_makefile_failure_propagation.py:32:def _run_target_with_stub(tmp_path: Path, target: str, checker: str, exit_code: int) -> subprocess.CompletedProcess:
 ./tests/test_makefile_failure_propagation.py:54:def test_failing_checker_fails_the_make_target(tmp_path, target, checker):
 ./tests/test_makefile_failure_propagation.py:62:def test_passing_checker_passes_the_make_target(tmp_path, target, checker):
@@ -4460,6 +4624,9 @@
 ./tests/test_odoo_test_setup_validity.py:159:def check_required_fields_in_create(file: Path, tree: ast.AST) -> list[SetupViolation]:
 ./tests/test_odoo_test_setup_validity.py:216:def run_all_checks() -> list[SetupViolation]:
 ./tests/test_odoo_test_setup_validity.py:234:def test_odoo_test_setup_validity():
+./tests/test_odools_diagnostics.py:16:def _diagnostic(start, end, severity, message, code="OLS03011"):
+./tests/test_odools_diagnostics.py:28:def _payload():
+./tests/test_odools_diagnostics.py:53:def test_normalizer_spans_code_and_drops_community():
 ./tests/test_offer_price_bridge_wiring.py:34:    def _src(self):
 ./tests/test_offer_price_bridge_wiring.py:38:    def test_inherit_plasticos_offer(self):
 ./tests/test_offer_price_bridge_wiring.py:41:    def test_create_multi_override(self):
@@ -4510,41 +4677,41 @@
 ./tests/test_performance.py:115:    def setUpClass(cls):
 ./tests/test_performance.py:119:    def test_partner_search_under_1s(self):
 ./tests/test_performance.py:131:    def test_intake_complex_domain_under_2s(self):
-./tests/test_phantom_enum_values.py:885:def _find_repo_root():
-./tests/test_phantom_enum_values.py:924:def _extract_selection_options_from_source(src: str, filepath: str):
-./tests/test_phantom_enum_values.py:987:def _extract_xml_enum_values(xml_path: str):
-./tests/test_phantom_enum_values.py:1041:    def __init__(self, filepath):
-./tests/test_phantom_enum_values.py:1046:    def _record(self, value, lineno, context):
-./tests/test_phantom_enum_values.py:1075:    def visit_Compare(self, node):
-./tests/test_phantom_enum_values.py:1094:    def visit_Tuple(self, node):
-./tests/test_phantom_enum_values.py:1118:    def visit_Subscript(self, node):
-./tests/test_phantom_enum_values.py:1122:    def visit_Dict(self, node):
-./tests/test_phantom_enum_values.py:1167:def _scan_python_for_enum_usage(src: str, filepath: str) -> list[EnumUsage]:
-./tests/test_phantom_enum_values.py:1183:def _discover_plasticos_modules():
-./tests/test_phantom_enum_values.py:1202:def _iter_python_files(module_dir: Path):
-./tests/test_phantom_enum_values.py:1218:def _iter_xml_data_files(module_dir: Path):
-./tests/test_phantom_enum_values.py:1234:def _build_registries():
-./tests/test_phantom_enum_values.py:1302:def _build_all_usages():
-./tests/test_phantom_enum_values.py:1323:def _is_phantom(value: str) -> bool:
-./tests/test_phantom_enum_values.py:1347:    def test_selection_fields_found(self):
-./tests/test_phantom_enum_values.py:1350:    def test_xml_names_found(self):
-./tests/test_phantom_enum_values.py:1353:    def test_known_polymers_in_registry(self):
-./tests/test_phantom_enum_values.py:1358:    def test_known_forms_in_registry(self):
-./tests/test_phantom_enum_values.py:1362:    def test_known_selection_keys_in_registry(self):
-./tests/test_phantom_enum_values.py:1373:    def test_application_class_options(self):
-./tests/test_phantom_enum_values.py:1378:    def test_process_type_options(self):
-./tests/test_phantom_enum_values.py:1421:    def test_feedstock_type_options(self):
-./tests/test_phantom_enum_values.py:1437:    def test_domain_values_match_selection_options(self):
-./tests/test_phantom_enum_values.py:1467:    def test_no_phantom_comparison_values(self):
-./tests/test_phantom_enum_values.py:1484:    def test_no_phantom_domain_values(self):
-./tests/test_phantom_enum_values.py:1501:    def test_no_phantom_in_list_values(self):
-./tests/test_phantom_enum_values.py:1527:    def test_module_has_no_phantom_enums(self, module_name):
-./tests/test_phantom_enum_values.py:1549:    def _find_selection_collisions(self):
-./tests/test_phantom_enum_values.py:1564:    def test_shared_selection_fields_are_compatible(self):
-./tests/test_phantom_enum_values.py:1596:    def test_xml_colors_are_canonical(self):
-./tests/test_phantom_enum_values.py:1606:    def test_xml_polymer_names_are_uppercase(self):
-./tests/test_phantom_enum_values.py:1717:    def test_equipment_codes_in_compute_match_seed_data(self):
-./tests/test_phantom_enum_values.py:1773:    def test_print_phantom_summary(self, capsys):
+./tests/test_phantom_enum_values.py:890:def _find_repo_root():
+./tests/test_phantom_enum_values.py:929:def _extract_selection_options_from_source(src: str, filepath: str):
+./tests/test_phantom_enum_values.py:992:def _extract_xml_enum_values(xml_path: str):
+./tests/test_phantom_enum_values.py:1046:    def __init__(self, filepath):
+./tests/test_phantom_enum_values.py:1051:    def _record(self, value, lineno, context):
+./tests/test_phantom_enum_values.py:1080:    def visit_Compare(self, node):
+./tests/test_phantom_enum_values.py:1099:    def visit_Tuple(self, node):
+./tests/test_phantom_enum_values.py:1123:    def visit_Subscript(self, node):
+./tests/test_phantom_enum_values.py:1127:    def visit_Dict(self, node):
+./tests/test_phantom_enum_values.py:1172:def _scan_python_for_enum_usage(src: str, filepath: str) -> list[EnumUsage]:
+./tests/test_phantom_enum_values.py:1188:def _discover_plasticos_modules():
+./tests/test_phantom_enum_values.py:1207:def _iter_python_files(module_dir: Path):
+./tests/test_phantom_enum_values.py:1223:def _iter_xml_data_files(module_dir: Path):
+./tests/test_phantom_enum_values.py:1239:def _build_registries():
+./tests/test_phantom_enum_values.py:1307:def _build_all_usages():
+./tests/test_phantom_enum_values.py:1328:def _is_phantom(value: str) -> bool:
+./tests/test_phantom_enum_values.py:1352:    def test_selection_fields_found(self):
+./tests/test_phantom_enum_values.py:1355:    def test_xml_names_found(self):
+./tests/test_phantom_enum_values.py:1358:    def test_known_polymers_in_registry(self):
+./tests/test_phantom_enum_values.py:1363:    def test_known_forms_in_registry(self):
+./tests/test_phantom_enum_values.py:1367:    def test_known_selection_keys_in_registry(self):
+./tests/test_phantom_enum_values.py:1378:    def test_application_class_options(self):
+./tests/test_phantom_enum_values.py:1383:    def test_process_type_options(self):
+./tests/test_phantom_enum_values.py:1426:    def test_feedstock_type_options(self):
+./tests/test_phantom_enum_values.py:1442:    def test_domain_values_match_selection_options(self):
+./tests/test_phantom_enum_values.py:1472:    def test_no_phantom_comparison_values(self):
+./tests/test_phantom_enum_values.py:1489:    def test_no_phantom_domain_values(self):
+./tests/test_phantom_enum_values.py:1506:    def test_no_phantom_in_list_values(self):
+./tests/test_phantom_enum_values.py:1532:    def test_module_has_no_phantom_enums(self, module_name):
+./tests/test_phantom_enum_values.py:1554:    def _find_selection_collisions(self):
+./tests/test_phantom_enum_values.py:1569:    def test_shared_selection_fields_are_compatible(self):
+./tests/test_phantom_enum_values.py:1601:    def test_xml_colors_are_canonical(self):
+./tests/test_phantom_enum_values.py:1611:    def test_xml_polymer_names_are_uppercase(self):
+./tests/test_phantom_enum_values.py:1722:    def test_equipment_codes_in_compute_match_seed_data(self):
+./tests/test_phantom_enum_values.py:1778:    def test_print_phantom_summary(self, capsys):
 ./tests/test_pristine_runtime_seams.py:28:def _tree(path: Path) -> ast.Module:
 ./tests/test_pristine_runtime_seams.py:32:def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 ./tests/test_pristine_runtime_seams.py:42:def _call_lines(tree: ast.AST, attr: str) -> list[int]:
@@ -4602,6 +4769,12 @@
 ./tests/test_repo_dependency_integrity.py:117:def test_no_phantom_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:132:def test_no_unknown_non_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:150:def test_retired_modules_absent_from_every_depends():
+./tests/test_repo_index_location.py:17:def _git(repo: Path, *args: str) -> None:
+./tests/test_repo_index_location.py:21:def test_generator_indexes_tracked_modules_and_skills_only(tmp_path: Path) -> None:
+./tests/test_repo_index_location.py:79:def _run_generator(repo: Path) -> subprocess.CompletedProcess[str]:
+./tests/test_repo_index_location.py:88:def test_unrelated_root_report_output_does_not_block_generation(tmp_path: Path) -> None:
+./tests/test_repo_index_location.py:102:def test_retired_root_index_blocks_generation(tmp_path: Path) -> None:
+./tests/test_repo_index_location.py:114:def test_repo_index_is_generated_under_docs_reports() -> None:
 ./tests/test_sal_resolver_service.py:15:def _install_odoo_stub() -> None:
 ./tests/test_sal_resolver_service.py:26:        def now():
 ./tests/test_sal_resolver_service.py:35:def _load_service(module_name: str, filename: str):
@@ -4760,15 +4933,16 @@
 ./tests/test_state_machines.py:524:    def test_reject_accepted_raises(self):
 ./tests/test_state_machines.py:531:    def test_accept_records_metadata(self):
 ./tests/test_suite_structure.py:67:def _test_files() -> list[Path]:
-./tests/test_suite_structure.py:72:def _imports_odoo_at_module_level(source: str) -> bool:
-./tests/test_suite_structure.py:96:    def test_all_test_files_parse(self):
-./tests/test_suite_structure.py:107:    def test_every_test_module_is_collectable_by_pytest(self):
-./tests/test_suite_structure.py:136:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
-./tests/test_suite_structure.py:161:    def test_odoo_tests_declare_a_recognised_base(self):
-./tests/test_suite_structure.py:175:    def test_no_duplicate_test_class_names(self):
-./tests/test_suite_structure.py:199:    def test_test_files_start_with_test(self):
-./tests/test_suite_structure.py:210:    def test_non_test_files_are_not_test_named(self):
-./tests/test_suite_structure.py:219:    def test_test_methods_contain_assertions(self):
+./tests/test_suite_structure.py:72:def _line_names_odoo_module(line: str) -> bool:
+./tests/test_suite_structure.py:84:def _imports_odoo_at_module_level(source: str) -> bool:
+./tests/test_suite_structure.py:108:    def test_all_test_files_parse(self):
+./tests/test_suite_structure.py:119:    def test_every_test_module_is_collectable_by_pytest(self):
+./tests/test_suite_structure.py:148:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
+./tests/test_suite_structure.py:171:    def test_odoo_tests_declare_a_recognised_base(self):
+./tests/test_suite_structure.py:185:    def test_no_duplicate_test_class_names(self):
+./tests/test_suite_structure.py:209:    def test_test_files_start_with_test(self):
+./tests/test_suite_structure.py:220:    def test_non_test_files_are_not_test_named(self):
+./tests/test_suite_structure.py:229:    def test_test_methods_contain_assertions(self):
 ./tests/test_test_env_safety.py:26:def _run(tmp_path: Path, *args: str, **env: str) -> tuple[subprocess.CompletedProcess, str]:
 ./tests/test_test_env_safety.py:48:def _assert_refused(result: subprocess.CompletedProcess, calls: str, reason: str) -> None:
 ./tests/test_test_env_safety.py:72:def test_unsafe_target_is_refused_before_docker(tmp_path, command, target, reason):

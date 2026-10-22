@@ -13,7 +13,9 @@
 ./docs/README_backup_github_actions.md:165:# Or restore to Odoo.sh via the Odoo.sh platform backup restore UI
 ./docs/adr/README.md:1:# Architecture Decision Records (ADRs)
 ./docs/adr/gate-integration/README.md:1:# Gate Integration ADR Pack
-./docs/roadmap/README.md:1:# Roadmap
+./docs/roadmap/README.md:1:# Roadmap tooling
+./docs/roadmap/README.md:18:# Sync all roadmap docs + validate IDs (no item added)
+./docs/roadmap/README.md:21:# Add item → auto ID (ROAD-GATE-NNN) → sync → validate — one command
 ./plasticos_accounting/README.md:13:# Plasticos Accounting
 ./plasticos_automation/README.md:13:# Plasticos Automation
 ./plasticos_base/README.md:13:# Plasticos Base
@@ -41,12 +43,20 @@
 ./plasticos_semantic_kernel/README.md:1:# plasticos_semantic_kernel
 ./plasticos_transaction/README.md:1:# plasticos_transaction
 ./plasticos_web_leads/README.md:13:# PlasticOS Web Leads
-./docs/reports/repo-index/README_ODOO_INDEX.md:1:# Odoo 19 Repo Index
-./docs/reports/repo-index/README_ODOO_INDEX.md:28:# Find model
-./docs/reports/repo-index/README_ODOO_INDEX.md:31:# Check external ID collisions
-./docs/reports/repo-index/README_ODOO_INDEX.md:34:# Module load order
-./docs/reports/repo-index/README_ODOO_INDEX.md:37:# Compliance issues
 ./skills/README.md:1:# PlasticOS agent skills (repo SSOT)
+./skills/plasticos-final-touches/SKILL.md:15:# PlasticOS Final Touches Kernel
+./skills/plasticos-new-model-field/SKILL.md:15:# New Model / Field
+./skills/plasticos-new-odoo-module/SKILL.md:15:# New Odoo Module
+./skills/plasticos-odoo-docker-testing/SKILL.md:15:# PlasticOS Odoo Docker Testing
+./skills/plasticos-odoo-sh-deploy/SKILL.md:15:# Odoo.sh Deploy & Debug
+./skills/plasticos-odoo-sh-deploy/SKILL.md:47:# Staging
+./skills/plasticos-odoo-sh-deploy/SKILL.md:49:# Production
+./skills/plasticos-odoo-version-bump/SKILL.md:20:# PlasticOS Odoo Version Bump (Mandatory)
+./skills/plasticos-pr-review-kernel/SKILL.md:15:# PlasticOS PR Review Kernel
+./skills/plasticos-prompt-pack/SKILL.md:15:# PlasticOS Prompt Pack Router
+./skills/plasticos-repo-review-kernel/SKILL.md:15:# Repo Review Kernel
+./skills/plasticos-static-audit-kernel/SKILL.md:15:# Static Audit Kernel
+./skills/plasticos-xml-view/SKILL.md:15:# XML View Development
 ./tests/README.md:1:# PlastOS Test Pack — Odoo 19.0
 ./tests/README.md:63:# Partner/Polymer/Form creation (with deduplication)
 ./tests/README.md:68:# Model-specific factories

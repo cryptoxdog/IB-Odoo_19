@@ -30,9 +30,9 @@
     "crm_leads_expected_created": 0
   },
   "inputs": {
-    "approved_crosswalk_sha256_expected": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
+    "approved_crosswalk_sha256_expected": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
     "operator_approved_yes": 763,
-    "distinct_approved_erp_ct_ids": 691,
+    "distinct_approved_erp_ct_ids": 716,
     "shared_erp_people": 45,
     "shared_source_ids": 92,
     "operator_rejected_not_in_this_run": 18,
