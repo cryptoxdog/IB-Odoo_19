@@ -1147,6 +1147,11 @@ class _EnumUsageVisitor(ast.NodeVisitor):
             self.generic_visit(node)
             return
 
+        # Record ids (VanillaSoft ContactID, ERP CpID) are lookup keys.
+        if all(k.isdigit() for k in str_keys):
+            self.generic_visit(node)
+            return
+
         # HEURISTIC: Skip if keys look like field names (contain underscore)
         # Field name dicts: {'partner_id': x, 'company_id': y, ...}
         underscore_keys = sum(1 for k in str_keys if "_" in k)
