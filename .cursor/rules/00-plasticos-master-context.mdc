@@ -86,6 +86,7 @@ Before writing any code or making any change, identify your task and consult the
 ### Code navigation / cross-module wiring / MCP code-graph
 - **`87-plasticos-code-graph-rag`** — grep first; graph for importers, impact, unknown cross-module location only.
 - Load **`l9-code-graph-rag-mcp`** (`@.cursor-commands/skills/l9-code-graph-rag-mcp/`) for tool gate and CLI indexing.
+- Repo index lives at `docs/reports/repo-index/`. Regenerate with `python3 scripts/repo_generators/export_repo_indexes.py`. Do not create a root `reports/` directory. The global `l9-repo-index` default path does not apply in this repo.
 
 ---
 

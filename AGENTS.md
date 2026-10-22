@@ -623,3 +623,12 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > GMP execution is the `/gmp` slash command, which runs the governance executor against this clone:
 > `"$GOV_PY" "$GOV/workflows/gmp_executor.py" --workspace "$(git rev-parse --show-toplevel)" …`
 > (`commands/gmp.md` in Cursor-Governance). Do not re-add the skill symlink.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Repo Index block above that names `reports/repo-index/` is superseded.
+> Lookup indexes live at `docs/reports/repo-index/`. Regenerate them with
+> `python3 scripts/repo_generators/export_repo_indexes.py`.
+> Do not create a root `reports/` directory. The global `l9-repo-index` skill's
+> default output path does not apply in this repo. The line that says no
+> repo-local generator exists is also superseded: the generator is
+> `scripts/repo_generators/export_repo_indexes.py`.

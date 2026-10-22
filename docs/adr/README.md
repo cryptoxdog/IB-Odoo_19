@@ -2,7 +2,7 @@
 
 **Canonical location:** `docs/adr/` — the only directory for binding PlasticOS architecture decisions.
 
-Former copies under `reports/adr/` were consolidated here (2026-06-04). Do not add new ADRs under `reports/`.
+Former copies under `reports/adr/` were consolidated here (2026-06-04). The root `reports/` directory is retired. Do not recreate it. Indexes live at `docs/reports/repo-index/`.
 
 ## Index
 

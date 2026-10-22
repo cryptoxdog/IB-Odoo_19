@@ -58,6 +58,9 @@
 │   │   └── ADR-008-odoo-action-methods.md
 │   ├── Files To Harvest/
 │   ├── New AI Use Cases/
+│   ├── reports/                # evidence plus generated repo-index (not a root reports/)
+│   │   ├── repo-index/
+│   │   └── evidence/
 │   ├── TEST_WRITING_GUIDE.md
 │   └── TODO.md
 ├── plasticos_accounting
@@ -781,15 +784,6 @@
 │   │   └── website_templates.xml
 │   ├── __init__.py
 │   └── __manifest__.py
-├── reports
-│   ├── repo-index/
-│   │   └── repo-index-json/
-│   ├── BUG_FIXES_SUMMARY.md
-│   ├── GAP_ANALYSIS_AND_CONSOLIDATION.md
-│   ├── GMP-Report-*.md
-│   ├── cron_hardening_report.md
-│   ├── csv_schema_index.json
-│   └── repo_spec.md
 ├── scripts
 │   ├── audit/
 │   │   ├── api_regression.py

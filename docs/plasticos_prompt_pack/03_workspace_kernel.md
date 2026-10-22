@@ -19,7 +19,7 @@
 Priority order:
 1. MCP `get_file_contents`, `search_code` on `cryptoxdog/IB-Odoo_19`
 2. `git ls-tree -r`, `git grep`, `git show`, `git diff`
-3. `reports/repo-index/*` inventory fallback
+3. `docs/reports/repo-index/*` inventory fallback
 
 If repo visibility limited:
 ```

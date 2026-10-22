@@ -2,7 +2,7 @@
 """
 Repo Index Exporter (l9-repo-index skill — repo-local generator)
 
-Regenerates the fast-lookup index files under reports/repo-index/*.txt:
+Regenerates the fast-lookup index files under docs/reports/repo-index/*.txt:
   class_definitions, function_signatures, method_catalog, imports,
   inheritance_graph, test_catalog, route_handlers, pydantic_models,
   readme_manifest, and (when the repo contains Odoo modules)
@@ -35,7 +35,8 @@ EXCLUDE_DIR_NAMES = {
     "odoo-enterprise",
     ".semgrep",
 }
-INDEX_SUBDIR = ("reports", "repo-index")
+INDEX_SUBDIR = ("docs", "reports", "repo-index")
+RETIRED_ROOT_REPORTS = "reports"
 
 CLASS_RE = re.compile(r"^\s*class\s+\w+")
 FUNCTION_RE = re.compile(r"^\s*(async\s+)?def\s+\w+")
@@ -84,6 +85,8 @@ def readme_manifest(root: Path) -> list[str]:
     for path in sorted(root.rglob("README*.md")):
         rel_parts = path.relative_to(root).parts
         if any(part in EXCLUDE_DIR_NAMES for part in rel_parts):
+            continue
+        if rel_parts[: len(INDEX_SUBDIR)] == INDEX_SUBDIR:
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
@@ -141,6 +144,13 @@ def main() -> int:
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
     if not root.is_dir():
         print(f"ERROR: repo root not found: {root}", file=sys.stderr)
+        return 1
+    retired = root / RETIRED_ROOT_REPORTS
+    if retired.exists():
+        print(
+            "ERROR: root reports/ is retired. Delete it. Indexes are written to docs/reports/repo-index.",
+            file=sys.stderr,
+        )
         return 1
 
     counts: dict[str, int] = {}
