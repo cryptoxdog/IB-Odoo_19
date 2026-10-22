@@ -17,7 +17,7 @@
   },
   "explicitly_not_loaded_by_this_pack": {
     "CRM Leads - VanillaSoft - Scrap-Management(1).csv": {
-      "sha256": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
+      "sha256": "082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8",
       "why": "4,876-ID census for the overnight pack. This run's ID list is the crosswalk."
     },
     "PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx": {

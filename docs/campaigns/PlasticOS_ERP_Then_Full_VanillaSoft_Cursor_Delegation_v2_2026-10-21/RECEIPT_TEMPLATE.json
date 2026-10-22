@@ -30,7 +30,7 @@
     "crm_flagged_source_cohort_includes_all_lead_stages": true
   },
   "inputs": {
-    "source_csv_sha256_expected": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
+    "source_csv_sha256_expected": "082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8",
     "approved_crosswalk_sha256_expected": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
     "operator_approved_yes": 763,
     "operator_rejected_suggested_links": 18,

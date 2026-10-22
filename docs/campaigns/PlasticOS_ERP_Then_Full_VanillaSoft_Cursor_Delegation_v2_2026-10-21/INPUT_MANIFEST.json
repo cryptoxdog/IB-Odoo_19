@@ -17,8 +17,8 @@
     "CRM Leads - VanillaSoft - Scrap-Management(1).csv": {
       "commit_to_git": false,
       "relative_path": "PRIVATE_INPUTS/CRM Leads - VanillaSoft - Scrap-Management(1).csv",
-      "sha256": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
-      "size_bytes": 2923496
+      "sha256": "082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8",
+      "size_bytes": 2923556
     },
     "PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx": {
       "commit_to_git": false,
@@ -56,6 +56,6 @@
     "rows": 4876,
     "unique_contact_ids": 4876
   },
-  "source_csv_snapshot_sha256": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
+  "source_csv_snapshot_sha256": "082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8",
   "source_identity": "original historical CSV snapshot; cohort enumeration/evidence only, not independent Odoo import path"
 }
