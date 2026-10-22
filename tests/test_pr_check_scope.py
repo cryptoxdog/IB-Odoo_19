@@ -140,6 +140,9 @@ def repo(tmp_path: Path) -> Repo:
         'def test_pinned():\n    assert (ROOT / "scripts" / "other.py")\n'
     )
     (tests / "test_other.py").write_text("def test_other():\n    assert True\n")
+    (tests / "test_uses_other.py").write_text(
+        "from tests.test_other import test_other\n\ndef test_uses():\n    test_other()\n"
+    )
     _git(root, "add", "-A")
     _git(root, "-c", "user.name=T", "-c", "user.email=t@example.test", "commit", "-q", "-m", "base")
     _git(root, "remote", "add", "origin", str(origin))
@@ -210,12 +213,20 @@ def test_script_change_reaches_tests_naming_it_or_reading_the_scripts_tree_only(
     assert scope["tests"] == "tests/test_scripts_tree.py", "a test pinned to another script file is not a reader"
 
 
-def test_changed_test_module_selects_itself_and_a_config_change_its_reader(repo: Repo) -> None:
+def test_changed_test_module_selects_itself_its_importers_and_a_config_change_its_reader(repo: Repo) -> None:
     repo.commit(
         "tests",
         **{"tests/test_other.py": "def test_other():\n    assert 1\n", "config/odoo.conf": "[options]\nx = 1\n"},
     )
-    assert repo.scope()["tests"] == "tests/test_conf.py tests/test_other.py"
+    assert repo.scope()["tests"] == "tests/test_conf.py tests/test_other.py tests/test_uses_other.py"
+
+
+def test_dependency_manifests_are_not_documentation(repo: Repo) -> None:
+    repo.commit("deps", **{"requirements-dev.txt": "pytest==8.3.5\n"})
+    scope = repo.scope()
+    assert scope["audit"] == "1" and scope["tests"] == "all" and scope["smoke"] == "1"
+    repo.commit("notes", **{"docs/notes.txt": "plain text\n"})
+    assert repo.scope()["audit"] == "1", "a committed range keeps the dependency change"
 
 
 def test_uncommitted_and_untracked_changes_count(repo: Repo) -> None:
@@ -281,7 +292,11 @@ def test_test_only_change_runs_only_that_module_and_the_audits(repo: Repo) -> No
     repo.commit("tests", **{"tests/test_other.py": "def test_other():\n    assert 1\n"})
     result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
-    assert repo.calls() == ["make audit", "make audit-baseline", "make test-scoped [tests/test_other.py]"]
+    assert repo.calls() == [
+        "make audit",
+        "make audit-baseline",
+        "make test-scoped [tests/test_other.py tests/test_uses_other.py]",
+    ]
 
 
 def test_harness_change_runs_the_whole_suite(repo: Repo) -> None:

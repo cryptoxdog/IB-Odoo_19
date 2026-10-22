@@ -24,10 +24,12 @@ The change set is the committed range from the merge-base with
 no base, no merge-base, no change, a selector error, ``PR_CHECK_SCOPE=full`` —
 keeps the whole gate (``audit=1 smoke=1 tests=all``).
 
-Test selection: a changed test module selects itself; any other changed path
-selects every test module that names it as a whole word (its path, its stem of
-three characters or more, its addon, its dotted module path) or that reads its
-top directory as a tree (``ROOT / "scripts"`` without a pinned file). A path
+Test selection: a changed test module selects itself and, like any other
+changed path, every test module that names it as a whole word (its path, its
+stem of three characters or more, its addon, its dotted module path) — so a
+test that imports helpers from it runs too. A path outside ``tests/`` also
+selects the modules that read its top directory as a tree
+(``ROOT / "scripts"`` without a pinned file). A path
 under an addon also selects the modules that walk the addon tree
 (``plasticos_*`` globs). A harness change (``tests/conftest.py``,
 ``tests/common.py``, ``pyproject.toml``, requirements) selects everything.
@@ -44,7 +46,9 @@ import sys
 from pathlib import Path
 
 ADDON_PREFIX = "plasticos_"
-DOCS_RE = re.compile(r"^docs/|\.(md|rst|txt)$")
+# Documentation: nothing a collector reads. requirements*.txt and constraints.txt
+# are dependency inputs, not documentation, so .txt is deliberately not here.
+DOCS_RE = re.compile(r"^docs/|\.(md|rst)$")
 INSTALLER_RE = re.compile(
     r"^(Dockerfile[^/]*|docker-compose[^/]*\.ya?ml|config/.*|requirements[^/]*\.txt|constraints\.txt"
     r"|scripts/install_smoke\.sh|scripts/get_odoo_module_order\.py)$"
@@ -114,10 +118,8 @@ def select_tests(root: Path, changed: list[str]) -> list[str] | str:
     addon_changed = False
     for rel in changed:
         parts = Path(rel).parts
-        if parts[0] == "tests" and parts[-1].startswith("test_") and rel.endswith(".py"):
-            if (root / rel).is_file():
-                selected.add(rel)
-            continue
+        if parts[0] == "tests" and parts[-1].startswith("test_") and rel.endswith(".py") and (root / rel).is_file():
+            selected.add(rel)
         if parts[0].startswith(ADDON_PREFIX):
             addon_changed = True
         elif len(parts) > 1 and parts[0] != "tests":
