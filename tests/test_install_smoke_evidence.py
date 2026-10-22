@@ -441,7 +441,7 @@ def test_missing_enterprise_or_custom_module_never_passes(site: Site, module: st
     site.establish()
     db = site.control.with_name("database.json")
     data = json.loads(db.read_text())
-    data["modules"].pop(module)
+    data["databases"]["odoo_install_smoke"]["modules"].pop(module)
     db.write_text(json.dumps(data))
     assert site.run("--recheck").returncode != 0
 
@@ -537,15 +537,20 @@ def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) 
             assert first.poll() is None, first.communicate()
             assert time.monotonic() < end, "first installer never acquired its lock and started"
             time.sleep(0.02)
+
+        def drops() -> list[str]:
+            return [" ".join(c["args"]) for c in site.calls() if "DROP DATABASE IF EXISTS" in " ".join(c["args"])]
+
+        # The first worktree is blocked inside its (base-template) install; it has
+        # already issued its drops and will issue no more until released.
+        before = drops()
+        assert before, "first installer never reached its destructive step"
         result = second.run()
         assert result.returncode == 2, (
             "LOCK_DOMAIN: second worktree entered the shared destructive operation: " + result.stdout + result.stderr
         )
         assert "lock busy" in result.stdout + result.stderr
-        drops = [
-            call for call in site.calls() if 'DROP DATABASE IF EXISTS "odoo_install_smoke"' in " ".join(call["args"])
-        ]
-        assert len(drops) == 1, "LOCK_DOMAIN: two worktrees dropped the same database"
+        assert drops() == before, "LOCK_DOMAIN: the second worktree dropped a shared database"
     finally:
         site.control.with_name("release").touch()
         try:
