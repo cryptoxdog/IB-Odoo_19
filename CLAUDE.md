@@ -154,7 +154,7 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **Neo4j Boundary** → `.claude/rules/neo4j.md`
 - **System State** → `.claude/rules/system-state.md`
 - **Agent Skills & Subagents** → `.claude/README.md` + `skills/` (SSOT) + `skills/PLASTICOS_CANONICAL_LAW.md`
-- **Repo Index (check before grepping)** → `reports/repo-index/` — classes, functions, methods, Odoo models/views/crons/security groups, tests; regenerate via `l9-repo-index` skill
+- **Repo Index (check before grepping)** → `docs/reports/repo-index/` — classes, functions, methods, Odoo models/views/crons/security groups, tests; regenerate with `python3 scripts/repo_generators/export_repo_indexes.py`
 - **Skill invocation tiers** → `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` (which L9 skills auto-invoke vs explicit-only)
 - **Structured Reasoning** → `@.cursor-commands/skills/l9-structured-reasoning/SKILL.md`
 - **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)

@@ -36,8 +36,8 @@ The canonical operator entrypoint is `make import-erp`. Partner-only execution i
 See:
 
 - `docs/adr/ADR-021-erp-sql-crm-api-import.md` — source architecture decision
-- `docs/erp_import_mapping.md` — source-to-Odoo mapping authority
-- `plasticos_partner_import/erp/mapping_status.py` — machine-readable column disposition
+- `plasticos_partner_import/erp/mapping.py` — identity and salesperson rules
+- `plasticos_partner_import/erp/mapping_status.py` — column disposition registry
 
 ## ERP date ownership
 
@@ -57,7 +57,7 @@ A green CI run does not substitute for that live seam proof.
 
 - `AGENTS.md` — tool and repository operating rules
 - `docs/LOCAL_DEV_SETUP.md` — local environment
-- `reports/repo-index/` — generated codebase indexes; regenerate after behavior-changing work stabilizes
+- `docs/reports/repo-index/` — generated codebase indexes; regenerate after behavior-changing work stabilizes
 - `tests/runtime_gates/` — real-runtime proof scripts
 - `skills/` — PlasticOS project skills
 

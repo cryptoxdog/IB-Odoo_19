@@ -8,7 +8,7 @@
 
 ## Repo Index — Check Before Grepping
 
-`reports/repo-index/` holds pre-generated, grep-friendly indexes (classes, functions, methods, imports, Odoo models/views/crons/security groups/automations/email templates, routes, tests, READMEs). Search there first — `grep "plasticos.transaction" reports/repo-index/odoo_model_registry.txt` — before a broad repo-wide `grep`/`rg`. Regenerate via the `l9-repo-index` skill when stale.
+`docs/reports/repo-index/` holds pre-generated, grep-friendly indexes (classes, functions, methods, imports, Odoo models/views/crons/security groups/automations/email templates, routes, tests, READMEs). Search there first — `grep "plasticos.transaction" docs/reports/repo-index/odoo_model_registry.txt` — before a broad repo-wide `grep`/`rg`. Regenerate with `python3 scripts/repo_generators/export_repo_indexes.py` when stale. Do not recreate a root `reports/` directory.
 
 ## Architecture & Roadmap
 
@@ -35,8 +35,7 @@ Each module README now lives beside its module code — check there first, or re
 | `plasticos_facility_profile` — Facility capability profiles | [`../plasticos_facility_profile/README.md`](../plasticos_facility_profile/README.md) | `-u plasticos_facility_profile` |
 | `plasticos_material_profile` — Material master + registries | [`../plasticos_material_profile/README.md`](../plasticos_material_profile/README.md) | `-u plasticos_material_profile` |
 | `plasticos_commission` — Broker commission + payout + dashboard | [`../plasticos_commission/README.md`](../plasticos_commission/README.md) | `-u plasticos_commission` |
-| `plasticos_partner_import` — Bulk CSV import tooling | [`../plasticos_partner_import/README.md`](../plasticos_partner_import/README.md) | `-u plasticos_partner_import` |
-| GitHub Actions S3 disaster recovery | [`README_backup_github_actions.md`](README_backup_github_actions.md) | N/A — infra |
+| `plasticos_partner_import` — Deterministic SQL import | [`../plasticos_partner_import/README.md`](../plasticos_partner_import/README.md) | `-u plasticos_partner_import` |
 
 ---
 

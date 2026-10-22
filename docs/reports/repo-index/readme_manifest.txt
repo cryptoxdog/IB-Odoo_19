@@ -43,11 +43,11 @@
 ./plasticos_semantic_kernel/README.md:1:# plasticos_semantic_kernel
 ./plasticos_transaction/README.md:1:# plasticos_transaction
 ./plasticos_web_leads/README.md:13:# PlasticOS Web Leads
-./reports/repo-index/README_ODOO_INDEX.md:1:# Odoo 19 Repo Index
-./reports/repo-index/README_ODOO_INDEX.md:28:# Find model
-./reports/repo-index/README_ODOO_INDEX.md:31:# Check external ID collisions
-./reports/repo-index/README_ODOO_INDEX.md:34:# Module load order
-./reports/repo-index/README_ODOO_INDEX.md:37:# Compliance issues
+./docs/reports/repo-index/README_ODOO_INDEX.md:1:# Odoo 19 Repo Index
+./docs/reports/repo-index/README_ODOO_INDEX.md:28:# Find model
+./docs/reports/repo-index/README_ODOO_INDEX.md:31:# Check external ID collisions
+./docs/reports/repo-index/README_ODOO_INDEX.md:34:# Module load order
+./docs/reports/repo-index/README_ODOO_INDEX.md:37:# Compliance issues
 ./skills/README.md:1:# PlasticOS agent skills (repo SSOT)
 ./tests/README.md:1:# PlastOS Test Pack — Odoo 19.0
 ./tests/README.md:63:# Partner/Polymer/Form creation (with deduplication)
