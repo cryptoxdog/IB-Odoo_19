@@ -37,7 +37,9 @@ Known False Positive Patterns (for code review agents)
    - A `<field>` that holds a subview (`<list>`, `<form>`, `<kanban>`, ...) or an
      `<xpath>` that targets one switches the context to the field's comodel.
      When the comodel cannot be resolved the subtree is reported as
-     UNRESOLVED_VIEW_CONTEXT (MODERATE) instead of being charged to the parent.
+     UNRESOLVED_VIEW_CONTEXT (HIGH, so the baseline gate fails closed on the
+     coverage gap) instead of being charged to the parent. An unreadable view
+     file is VIEW_PARSE_ERROR (HIGH) for the same reason.
    - A model's fields are the fields of every class that defines or extends it
      (`_name`, `_inherit` string or list) in the view's module and its manifest
      `depends` closure, plus prototype parents resolved the same way. Only the
@@ -386,21 +388,29 @@ class OdooAudit:
     def _xpath_context(self, expr, model, module):
         """``(model, target_field)`` an ``<xpath>`` body is evaluated against.
 
-        A targeted subview switches to its comodel. ``target_field`` is the field
-        the expression ends on, if any: a subview inserted directly into it is
-        evaluated on that field's comodel.
+        A subview step (``/list``, ``/form``, ...) after a field step switches to
+        that field's comodel. A subview word that is not a location step (an axis
+        such as ``ancestor::form``, or text such as ``hasclass('form-group')``)
+        does not. ``target_field`` is set only when the expression ends on a field
+        step: a subview inserted directly into it is evaluated on that field's
+        comodel.
         """
         context = model
         pending_field = None
-        for match in re.finditer(r"field\[@name=['\"]([\w.]+)['\"]\]|\b(" + "|".join(self.SUBVIEW_TAGS) + r")\b", expr):
+        field_end = None
+        steps = r"field\[@name=['\"]([\w.]+)['\"]\]|(?:(?<=/)|^)(" + "|".join(self.SUBVIEW_TAGS) + r")(?![\w:\-])"
+        for match in re.finditer(steps, expr):
             if match.group(1):
                 pending_field = match.group(1)
+                field_end = match.end()
             elif pending_field:
                 context = self._comodel(context, pending_field, module)
                 pending_field = None
                 if context is None:
                     return None, None
-        return context, pending_field
+        if pending_field and expr[field_end:].strip() == "":
+            return context, pending_field
+        return context, None
 
     def _comodel(self, model, field, module):
         if model is None:
@@ -518,7 +528,7 @@ class OdooAudit:
         return [
             {
                 "type": "UNRESOLVED_VIEW_CONTEXT",
-                "severity": "MODERATE",
+                "severity": "HIGH",
                 "model": item["model"],
                 "field": item["field"],
                 "file": item["file"],
@@ -530,7 +540,7 @@ class OdooAudit:
         ] + [
             {
                 "type": "VIEW_PARSE_ERROR",
-                "severity": "MODERATE",
+                "severity": "HIGH",
                 "file": item["file"],
                 "message": f"View file not parsed; its fields are not checked: {item['error']}",
             }

@@ -244,7 +244,7 @@ def test_unresolvable_comodel_is_reported_not_charged_to_the_parent(tmp_path: Pa
     # other_id's comodel is an imported constant: reported, its subview unchecked, nothing charged to the parent.
     # partner_id's comodel resolves to res.partner, a core model the check does not judge.
     assert [(e["type"], e["severity"], e["model"], e["field"]) for e in findings] == [
-        ("UNRESOLVED_VIEW_CONTEXT", "MODERATE", "sample.order", "other_id")
+        ("UNRESOLVED_VIEW_CONTEXT", "HIGH", "sample.order", "other_id")
     ]
 
 
@@ -276,7 +276,7 @@ def test_an_unparseable_view_file_is_reported_not_skipped(tmp_path: Path):
     root = _tree(tmp_path)
     _write(root, "sample_ui/views/broken.xml", "<odoo><record id='x' model='ir.ui.view'></odoo>")
     findings = _findings(root)
-    assert [(e["type"], e["severity"]) for e in findings] == [("VIEW_PARSE_ERROR", "MODERATE")]
+    assert [(e["type"], e["severity"]) for e in findings] == [("VIEW_PARSE_ERROR", "HIGH")]
     assert findings[0]["file"].endswith("sample_ui/views/broken.xml")
 
 
@@ -332,3 +332,33 @@ def test_relative_root_resolves_manifest_depends(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert _missing(Path("checkout")) == {("sample.order", "ext_score")}
     assert {e["file"] for e in _findings(Path("checkout"))} == {"checkout/sample_unrelated/views/views.xml"}
+
+
+def test_xpath_axes_and_class_text_are_not_subview_steps(tmp_path: Path):
+    root = _tree(tmp_path)
+    _views(
+        root,
+        "sample_ui",
+        _view("order_form", "sample.order", '<form><field name="partner_id"/><field name="amount"/></form>'),
+        _view(
+            "order_form_ext",
+            None,
+            """<data>
+            <xpath expr="//field[@name='partner_id']/following-sibling::div[hasclass('form-group')]" position="inside">
+                <field name="bogus_class_text"/></xpath>
+            <xpath expr="//field[@name='partner_id']/ancestor::form" position="inside">
+                <field name="bogus_ancestor"/></xpath>
+            <xpath expr="//field[@name='amount']/parent::form" position="inside">
+                <field name="bogus_parent"/></xpath>
+            <xpath expr="//field[@name='line_ids']/.." position="inside">
+                <list><field name="bogus_not_inside_the_field"/></list></xpath>
+            </data>""",
+            inherit="sample_ui.order_form",
+        ),
+    )
+    assert _missing(root) == {
+        ("sample.order", "bogus_class_text"),
+        ("sample.order", "bogus_ancestor"),
+        ("sample.order", "bogus_parent"),
+        ("sample.order", "bogus_not_inside_the_field"),
+    }

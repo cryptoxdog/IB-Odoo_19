@@ -9,19 +9,24 @@ Counts bare ``assert``, unittest ``assert*``, ``pytest.raises`` /
 as evidence. A ``check_``, ``_check_``, ``validate_``, ``_run_``, or ``_safe_``
 call is not evidence.
 
-Only reachable statements count: anything after an unconditional ``return`` /
-``raise`` / ``continue`` / ``break`` in the same block, a constant-false branch,
-and the bodies of nested ``def`` / ``lambda`` / ``class`` are not executed by the
-test and are ignored.
+Only reachable statements count: anything after a statement that always leaves
+the block (``return`` / ``raise`` / ``continue`` / ``break``, an ``if`` whose
+taken or both branches do, a ``try`` whose ``finally`` or body-and-handlers do),
+a constant-false branch (``False``, ``not True``), and the bodies of nested
+``def`` / ``lambda`` / ``class`` are not executed by the test and are ignored.
 
 A call to a helper defined in the same file is resolved one hop instead of
 judged by its name: ``self.<name>()`` / ``cls.<name>()`` against the test's own
 class and that class's bases defined in the file, and a bare ``<name>()``
-against the file's module-level functions. The call is evidence only when the
-helper's own reachable body carries direct evidence. A helper that is never
-called, is called on an unreachable path, does not assert, or belongs to
-another class is not evidence. A call the file does not define is judged by
-its name as above.
+against the file's module-level functions unless the test binds that name
+itself (a parameter, fixture, assignment or nested def). Methods follow
+Python's C3 order over the in-file bases. The call is evidence only when the
+helper's own reachable body carries direct evidence and actually runs: an
+``async`` helper must be awaited, and a generator helper never counts. Inside
+the helper, a call to another local definition is a second hop and is neither
+followed nor judged by its name. A helper that is never called, is called on
+an unreachable path, does not assert, or belongs to another class is not
+evidence. A call the file does not define is judged by its name as above.
 
 Exit status is 1 when any test is assertion-free; CI ``static-checks`` runs this
 command as a blocking check.
@@ -89,6 +94,9 @@ def _is_raise_assertion_error(node: ast.AST) -> bool:
 def _constant_truth(test: ast.expr) -> bool | None:
     if isinstance(test, ast.Constant):
         return bool(test.value)
+    if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
+        inner = _constant_truth(test.operand)
+        return None if inner is None else not inner
     return None
 
 
@@ -114,6 +122,28 @@ def _child_blocks(stmt: ast.stmt) -> list[list[ast.stmt]]:
     return blocks
 
 
+def _block_terminates(body: list[ast.stmt]) -> bool:
+    return any(_terminates(stmt) for stmt in body)
+
+
+def _terminates(stmt: ast.stmt) -> bool:
+    """True when control never reaches the statement after ``stmt``."""
+    if isinstance(stmt, _TERMINATORS):
+        return True
+    if isinstance(stmt, ast.If):
+        truth = _constant_truth(stmt.test)
+        if truth is True:
+            return _block_terminates(stmt.body)
+        if truth is False:
+            return _block_terminates(stmt.orelse)
+        return bool(stmt.orelse) and _block_terminates(stmt.body) and _block_terminates(stmt.orelse)
+    if isinstance(stmt, (ast.Try, getattr(ast, "TryStar", ast.Try))):
+        if stmt.finalbody and _block_terminates(stmt.finalbody):
+            return True
+        return _block_terminates(stmt.body) and all(_block_terminates(handler.body) for handler in stmt.handlers)
+    return False
+
+
 def _expression_nodes(node: ast.AST):
     """Yield the expression nodes of one statement, without entering nested scopes or blocks."""
     stack = [child for child in ast.iter_child_nodes(node) if not isinstance(child, (ast.stmt, *_SCOPE_NODES))]
@@ -136,7 +166,7 @@ def _reachable_nodes(body: list[ast.stmt]):
         yield from _expression_nodes(stmt)
         for block in _child_blocks(stmt):
             yield from _reachable_nodes(block)
-        if isinstance(stmt, _TERMINATORS):
+        if _terminates(stmt):
             return
 
 
@@ -148,21 +178,41 @@ def _is_direct_evidence_call(name: str) -> bool:
     return name in ("fail", "raises", "xfail")
 
 
-def _has_assertion_evidence(func_node: ast.AST, resolve_helper=None) -> bool:
+def _is_generator(func_node: ast.AST) -> bool:
+    """A generator's body does not run when it is called, only when it is iterated."""
+    return any(isinstance(node, (ast.Yield, ast.YieldFrom)) for node in _reachable_nodes(func_node.body))
+
+
+def _helper_body_runs(helper: ast.AST, call: ast.Call, awaited: set[int]) -> bool:
+    if isinstance(helper, ast.AsyncFunctionDef) and id(call) not in awaited:
+        return False
+    return not _is_generator(helper)
+
+
+def _has_assertion_evidence(func_node: ast.AST, resolve_helper=None, *, in_helper: bool = False) -> bool:
     """True when a reachable statement of ``func_node`` asserts.
 
     ``resolve_helper(call)`` returns the local helper definition a call targets,
     or ``None``. A resolved call is evidence only through the helper's own
-    reachable body, judged without further helper resolution (one hop).
+    reachable body, and only when that body actually runs (an un-awaited
+    coroutine or an un-iterated generator does not). Inside the helper a call
+    to another local definition is a second hop: it is neither followed nor
+    judged by its name.
     """
-    for node in _reachable_nodes(getattr(func_node, "body", [])):
+    nodes = list(_reachable_nodes(getattr(func_node, "body", [])))
+    awaited = {id(node.value) for node in nodes if isinstance(node, ast.Await)}
+    for node in nodes:
         if isinstance(node, ast.Assert) or _is_raise_assertion_error(node):
             return True
         if not isinstance(node, ast.Call):
             continue
         helper = resolve_helper(node) if resolve_helper else None
         if helper is not None:
-            if _has_assertion_evidence(helper):
+            if (
+                not in_helper
+                and _helper_body_runs(helper, node, awaited)
+                and _has_assertion_evidence(helper, resolve_helper, in_helper=True)
+            ):
                 return True
             continue
         name = _call_name(node.func)
@@ -180,6 +230,23 @@ def _is_soft_warning_only(func_node: ast.AST, resolve_helper=None) -> bool:
     return False
 
 
+def _local_names(func_node: ast.AST) -> set[str]:
+    """Names a function binds itself (parameters, assignments, nested defs, imports)."""
+    args = func_node.args
+    names = {arg.arg for arg in (*args.posonlyargs, *args.args, *args.kwonlyargs)}
+    names.update(arg.arg for arg in (args.vararg, args.kwarg) if arg is not None)
+    for node in ast.walk(func_node):
+        if node is func_node:
+            continue
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            names.add(node.id)
+        elif isinstance(node, (*_FUNCTION_NODES, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names.update((alias.asname or alias.name).split(".")[0] for alias in node.names)
+    return names
+
+
 class _LocalHelpers:
     """One-hop resolution of helper calls to definitions in the same file."""
 
@@ -187,29 +254,46 @@ class _LocalHelpers:
         self.functions = {node.name: node for node in tree.body if isinstance(node, _FUNCTION_NODES)}
         self.classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
 
-    def _method(self, class_node: ast.ClassDef, name: str, seen: set[str]):
+    def _mro(self, class_node: ast.ClassDef, seen: tuple[str, ...] = ()) -> list[ast.ClassDef]:
+        """C3 linearization over the bases defined in this file (Python's method order for them)."""
         if class_node.name in seen:
-            return None
-        seen.add(class_node.name)
-        for item in class_node.body:
-            if isinstance(item, _FUNCTION_NODES) and item.name == name:
-                return item
-        for base in class_node.bases:
-            base_node = self.classes.get(base.id) if isinstance(base, ast.Name) else None
-            if base_node is not None:
-                found = self._method(base_node, name, seen)
-                if found is not None:
-                    return found
+            return [class_node]
+        bases = [
+            self.classes[base.id] for base in class_node.bases if isinstance(base, ast.Name) and base.id in self.classes
+        ]
+        sequences = [self._mro(base, (*seen, class_node.name)) for base in bases] + [bases]
+        result = [class_node]
+        while True:
+            sequences = [sequence for sequence in sequences if sequence]
+            if not sequences:
+                return result
+            for sequence in sequences:
+                head = sequence[0]
+                if not any(head in other[1:] for other in sequences):
+                    break
+            else:
+                # Inconsistent hierarchy (Python itself would refuse it): keep declaration order.
+                return result + [cls for sequence in sequences for cls in sequence if cls not in result]
+            result.append(head)
+            sequences = [sequence[1:] if sequence[0] is head else sequence for sequence in sequences]
+
+    def _method(self, class_node: ast.ClassDef, name: str):
+        for cls in self._mro(class_node):
+            for item in cls.body:
+                if isinstance(item, _FUNCTION_NODES) and item.name == name:
+                    return item
         return None
 
-    def resolver(self, owner: ast.ClassDef | None):
+    def resolver(self, owner: ast.ClassDef | None, scope: ast.AST):
+        shadowed = _local_names(scope)
+
         def resolve(call: ast.Call):
             func = call.func
             if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
                 if owner is not None and func.value.id in ("self", "cls"):
-                    return self._method(owner, func.attr, set())
+                    return self._method(owner, func.attr)
                 return None
-            if isinstance(func, ast.Name):
+            if isinstance(func, ast.Name) and func.id not in shadowed:
                 return self.functions.get(func.id)
             return None
 
@@ -252,7 +336,7 @@ class WeakTestFixer:
                 continue
             if any(_decorator_is_skip(d) for d in node.decorator_list):
                 continue
-            resolve = helpers.resolver(owner)
+            resolve = helpers.resolver(owner, node)
             if _has_assertion_evidence(node, resolve):
                 continue
             if _is_soft_warning_only(node, resolve):

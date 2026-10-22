@@ -461,3 +461,136 @@ def test_ci_static_checks_consume_the_exit_code():
 
 def test_repository_has_no_assertion_free_tests():
     assert _run_cli(ROOT).returncode == 0
+
+
+def test_review_holes_stay_flagged(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_holes.py",
+        """
+        def helper(value):
+            assert value
+
+        def _gen_check():
+            assert True
+            yield
+
+        async def _async_check():
+            assert True
+
+        class Base:
+            def _probe(self):
+                self.assertTrue(True)
+
+        class Left(Base):
+            pass
+
+        class Right(Base):
+            def _probe(self):
+                return None
+
+        class TestDiamond(Left, Right):
+            def test_mro_follows_python(self):
+                self._probe()
+
+        class TestHops:
+            def assert_valid(self):
+                return None
+
+            def _verify(self):
+                self.assert_valid()
+
+            def test_second_hop_is_not_judged_by_name(self):
+                self._verify()
+
+        async def test_unawaited_coroutine():
+            _async_check()
+
+        def test_generator_helper_never_iterated():
+            _gen_check()
+
+        def test_local_def_shadows_module_helper():
+            def helper(value):
+                return value
+            helper(1)
+
+        def test_parameter_shadows_module_helper(helper):
+            helper(1)
+
+        def test_after_try_return():
+            try:
+                return None
+            finally:
+                pass
+            assert True
+
+        def test_after_if_true_return():
+            if True:
+                return None
+            assert True
+
+        def test_not_true_branch():
+            if not True:
+                assert True
+
+        def test_both_branches_return(flag):
+            if flag:
+                return None
+            else:
+                return None
+            assert True
+        """,
+    )
+    relative = "tests/test_holes.py"
+    assert _flagged(tmp_path) == {
+        (relative, name)
+        for name in (
+            "test_mro_follows_python",
+            "test_second_hop_is_not_judged_by_name",
+            "test_unawaited_coroutine",
+            "test_generator_helper_never_iterated",
+            "test_local_def_shadows_module_helper",
+            "test_parameter_shadows_module_helper",
+            "test_after_try_return",
+            "test_after_if_true_return",
+            "test_not_true_branch",
+            "test_both_branches_return",
+        )
+    }
+
+
+def test_awaited_coroutine_and_python_mro_helpers_count(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_good_holes.py",
+        """
+        async def _async_check():
+            assert True
+
+        class Base:
+            def _probe(self):
+                return None
+
+        class Left(Base):
+            pass
+
+        class Right(Base):
+            def _probe(self):
+                self.assertTrue(True)
+
+        class TestDiamond(Left, Right):
+            def test_mro_follows_python(self):
+                self._probe()
+
+        async def test_awaited_coroutine():
+            await _async_check()
+
+        def test_try_body_caught_keeps_later_assert():
+            try:
+                raise ValueError("x")
+            except ValueError:
+                pass
+            assert True
+        """,
+    )
+    assert _flagged(tmp_path) == set()
