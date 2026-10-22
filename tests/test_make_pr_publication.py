@@ -169,24 +169,50 @@ echo "gitleaks $*" >> "{seq}"
 exit "${{GITLEAKS_RC:-0}}"
 """,
     )
-    _write(
-        bindir / "gh",
-        f"""#!/bin/bash
-echo "gh $1 ${{2:-}}" >> "{seq}"
-if [[ "$1" == "auth" ]]; then
-  exit "${{GH_AUTH_RC:-0}}"
+    _write(bindir / "gh", _fake_gh(seq))
+    return repo, seq
+
+
+def _fake_gh(seq: Path, body_file: Path | None = None) -> str:
+    """A REST-only `gh` stub: logs `gh api <METHOD> <endpoint>` and answers the
+    publication scripts' calls (user probe, pull lookup/create, body read/patch,
+    labels). GH_AUTH_RC / GH_LIST_RC / GH_PR_JSON steer it; `body_file`, when
+    given, backs the PR body for GET/PATCH `pulls/<n>`."""
+    body_path = str(body_file) if body_file else ""
+    return f"""#!/bin/bash
+if [[ "$1" != "api" ]]; then echo "gh $*" >> "{seq}"; exit 0; fi
+shift
+method="GET"; endpoint=""; body=""; jq=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --method) method="$2"; shift 2 ;;
+    -f|-F) if [[ "$2" == body=* ]]; then body="${{2#body=}}"; fi; shift 2 ;;
+    --jq) jq="$2"; shift 2 ;;
+    -*) shift ;;
+    *) if [[ -z "$endpoint" ]]; then endpoint="$1"; fi; shift ;;
+  esac
+done
+echo "gh api $method $endpoint" >> "{seq}"
+if [[ "$endpoint" == "user" ]]; then exit "${{GH_AUTH_RC:-0}}"; fi
+if [[ "$method" == "GET" && "$endpoint" == repos/*/pulls ]]; then
+  if [[ "${{GH_LIST_RC:-0}}" != "0" ]]; then exit "$GH_LIST_RC"; fi
+  if [[ -n "${{GH_PR_JSON:-}}" ]]; then printf '[%s]\\n' "$GH_PR_JSON"; else echo '[]'; fi
+  exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" ]]; then
-  if [[ "${{GH_LIST_RC:-0}}" != "0" ]]; then
-    exit "$GH_LIST_RC"
-  fi
+if [[ "$method" == "POST" && "$endpoint" == repos/*/pulls ]]; then
   printf '%s\\n' "${{GH_PR_JSON:-}}"
   exit 0
 fi
+if [[ "$method" == "GET" && "$endpoint" == repos/*/pulls/* ]]; then
+  if [[ -n "{body_path}" ]]; then cat "{body_path}"; elif [[ -n "$jq" ]]; then echo ""; else echo '{{"body": ""}}'; fi
+  exit 0
+fi
+if [[ "$method" == "PATCH" && "$endpoint" == repos/*/pulls/* ]]; then
+  if [[ -n "{body_path}" ]]; then printf '%s' "$body" > "{body_path}"; fi
+  exit 0
+fi
 exit 0
-""",
-    )
-    return repo, seq
+"""
 
 
 def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
@@ -225,14 +251,14 @@ def _assert_no_push(seq: Path) -> None:
 
 def _pr_json(repo: Path, branch: str) -> str:
     sha = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    # REST shape (`gh api repos/{owner}/{repo}/pulls`), not the GraphQL `gh pr list --json` one.
     return json.dumps(
         {
             "number": 222,
-            "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/222",
-            "state": "OPEN",
-            "baseRefName": "Staging",
-            "headRefName": branch,
-            "headRefOid": sha,
+            "html_url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/222",
+            "state": "open",
+            "base": {"ref": "Staging"},
+            "head": {"ref": branch, "sha": sha},
         }
     )
 
@@ -401,7 +427,7 @@ def test_remote_sha_mismatch_fails_the_push_proof(tmp_path: Path) -> None:
     output = proc.stdout + proc.stderr
     assert proc.returncode == 1, output
     assert "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" in output
-    assert "gh pr create" not in _seq(seq)
+    assert "gh api POST" not in _seq(seq)
 
 
 def test_direct_push_to_a_protected_branch_refuses(tmp_path: Path) -> None:
@@ -540,7 +566,7 @@ def test_rejecting_pre_push_hook_stops_publication(tmp_path: Path, entry: str) -
     assert _hook_runs(seq) == 1, "the real pre-push hook must run on the push"
     assert _remote_sha(bare) == seeded, "a rejecting pre-push hook let the remote ref advance"
     assert "Open PR" not in output
-    assert "gh pr" not in _seq(seq).split("pre-push ", 1)[1]
+    assert "gh api" not in _seq(seq).split("pre-push ", 1)[1]
 
 
 @pytest.mark.parametrize("entry", ["make_pr", "direct"])
@@ -635,42 +661,24 @@ def test_reused_pr_keeps_its_body_and_gains_the_stamp(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     body_file = tmp_path / "body.txt"
     body_file.write_text("Human notes stay.\n", encoding="utf-8")
-    _write(
-        tmp_path / "bin" / "gh",
-        f"""#!/bin/bash
-echo "gh $*" >> "{seq}"
-if [[ "$1" == "auth" ]]; then exit 0; fi
-if [[ "$1" == "pr" && "$2" == "view" ]]; then
-  cat "{body_file}"
-  exit 0
-fi
-if [[ "$1" == "pr" && "$2" == "edit" ]]; then
-  next=""
-  prev=""
-  for arg in "$@"; do
-    if [[ "$prev" == "--body" ]]; then next="$arg"; fi
-    prev="$arg"
-  done
-  printf '%s' "$next" > "{body_file}"
-  exit 0
-fi
-if [[ "$1" == "pr" && "$2" == "list" ]]; then
-  printf '%s\\n' '{json.dumps({"number": 7, "url": "https://example.test/7", "state": "OPEN", "baseRefName": "Staging", "headRefName": "fix/example", "headRefOid": "HEADSHA"})}'
-  exit 0
-fi
-exit 0
-""",
-    )
+    _write(tmp_path / "bin" / "gh", _fake_gh(seq, body_file))
     sha = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
-    gh = (tmp_path / "bin" / "gh").read_text(encoding="utf-8").replace("HEADSHA", sha)
-    (tmp_path / "bin" / "gh").write_text(gh, encoding="utf-8")
+    pr_json = json.dumps(
+        {
+            "number": 7,
+            "html_url": "https://example.test/7",
+            "state": "open",
+            "base": {"ref": "Staging"},
+            "head": {"ref": "fix/example", "sha": sha},
+        }
+    )
     proc = subprocess.run(
         ["bash", "scripts/git_open_pr.sh", "fix/example", "Staging"],
         cwd=repo,
         capture_output=True,
         text=True,
         check=False,
-        env=_env(tmp_path),
+        env=_env(tmp_path, GH_PR_JSON=pr_json),
         timeout=30,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -683,7 +691,7 @@ exit 0
         capture_output=True,
         text=True,
         check=False,
-        env=_env(tmp_path),
+        env=_env(tmp_path, GH_PR_JSON=pr_json),
         timeout=30,
     )
     assert again.returncode == 0, again.stdout + again.stderr

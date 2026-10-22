@@ -65,10 +65,14 @@ fi
 if ! command -v gh >/dev/null 2>&1; then
   refuse "gh CLI is not available; publication cannot create or verify the pull request"
 fi
-if ! gh auth status >/dev/null 2>&1; then
-  refuse "gh is not authenticated"
+# REST only: `gh auth status` is a false negative and `gh pr list` is
+# GraphQL-backed on a model-controlled surface whose egress proxy injects the
+# credential (Cursor-Governance rule 62). Probe the capability actually used.
+if ! gh api user >/dev/null 2>&1; then
+  refuse "gh is not authenticated (gh api user failed)"
 fi
-if ! gh pr list --head "${TARGET}" --base "${BASE}" --state open --json number >/dev/null 2>&1; then
+PR_REPO="${GH_REPO:-cryptoxdog/IB-Odoo_19}"
+if ! gh api --method GET "repos/${PR_REPO}/pulls" -f state=open -f base="${BASE}" -f head="${PR_REPO%%/*}:${TARGET}" >/dev/null 2>&1; then
   refuse "cannot look up pull requests for ${TARGET} → ${BASE}"
 fi
 

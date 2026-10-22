@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Create or reuse the GitHub PR and prove it points at local HEAD.
+#
+# GitHub is reached over REST only (`gh api repos/{owner}/{repo}/...`). The
+# `gh pr list/view/edit/create` forms are GraphQL-backed and are refused on a
+# model-controlled surface whose egress proxy injects the credential; there
+# `gh auth status` also reports a false negative while `gh api user` works
+# (Cursor-Governance rule 62, docs/DEGRADED_MODE_CONTRACT.md).
 set -euo pipefail
 
 TARGET="${1:?head branch}"
@@ -16,8 +22,8 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! gh auth status >/dev/null 2>&1; then
-  echo "gh is not authenticated; run: gh auth login"
+if ! gh api user >/dev/null 2>&1; then
+  echo "gh is not authenticated (gh api user failed); run: gh auth login"
   exit 1
 fi
 
@@ -33,10 +39,29 @@ if [[ "${TARGET}" == "${BASE}" ]]; then
   exit 1
 fi
 
-PR_FIELDS="number,url,state,baseRefName,headRefName,headRefOid"
+# owner/name of the publication repository: GH_REPO (exported by the push
+# pipeline) or the origin remote URL.
+REPO="${GH_REPO:-}"
+if [[ -z "${REPO}" ]]; then
+  REPO="$(git remote get-url origin 2>/dev/null | sed -E 's#^(https://|git://|ssh://)?(git@)?github\.com[:/]##; s#\.git$##')"
+fi
+if [[ "${REPO}" != */* ]]; then
+  echo "cannot determine the GitHub repository (GH_REPO unset and origin is not a github.com URL)"
+  exit 1
+fi
+OWNER="${REPO%%/*}"
 
-if ! EXISTING="$(gh pr list --head "${TARGET}" --base "${BASE}" --state open --json "${PR_FIELDS}" --jq '.[0]')"; then
-  echo "gh pr list failed for ${TARGET} → ${BASE}"
+# One open PR for TARGET → BASE as a JSON object, or "null".
+list_open_pr() {
+  local raw
+  if ! raw="$(gh api --method GET "repos/${REPO}/pulls" -f state=open -f base="${BASE}" -f head="${OWNER}:${TARGET}")"; then
+    return 1
+  fi
+  python3 -c 'import json,sys; items=json.loads(sys.argv[1] or "[]"); print(json.dumps(items[0]) if items else "null")' "${raw}"
+}
+
+if ! EXISTING="$(list_open_pr)"; then
+  echo "pull request lookup failed for ${TARGET} → ${BASE} (gh api repos/${REPO}/pulls)"
   exit 1
 fi
 
@@ -51,18 +76,18 @@ if not raw or raw == "null":
     sys.exit(1)
 pr = json.loads(raw)
 number = pr.get("number")
-url = pr.get("url") or ""
+url = pr.get("html_url") or ""
 state = pr.get("state") or ""
-base_name = pr.get("baseRefName") or ""
-head_name = pr.get("headRefName") or ""
-head_sha = pr.get("headRefOid") or ""
+base_name = (pr.get("base") or {}).get("ref") or ""
+head_name = (pr.get("head") or {}).get("ref") or ""
+head_sha = (pr.get("head") or {}).get("sha") or ""
 problems = []
 if not number:
     problems.append("missing PR number")
 if not url:
     problems.append("missing PR url")
-if state != "OPEN":
-    problems.append(f"state is {state or 'missing'}, expected OPEN")
+if state != "open":
+    problems.append(f"state is {state or 'missing'}, expected open")
 if base_name != base:
     problems.append(f"base is {base_name or 'missing'}, expected {base}")
 if head_name != target:
@@ -82,11 +107,12 @@ ensure_protected_root_stamp() {
   local number="$1"
   local stamp="<!-- L9_PROTECTED_ROOT_PR -->"
   local body
-  body="$(gh pr view "${number}" --json body --jq '.body // ""')"
+  body="$(gh api "repos/${REPO}/pulls/${number}" --jq '.body // ""')"
   if printf '%s' "${body}" | grep -qF "${stamp}"; then
     return 0
   fi
-  gh pr edit "${number}" --body "$(printf '%s\n\n%s\n' "${body}" "${stamp}")" >/dev/null
+  # REST PATCH: `gh pr edit --body` is GraphQL-backed and unavailable here.
+  gh api --method PATCH "repos/${REPO}/pulls/${number}" -f body="$(printf '%s\n\n%s\n' "${body}" "${stamp}")" >/dev/null
 }
 
 if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
@@ -94,10 +120,10 @@ if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
   # a few times before declaring the SHA wrong. Every other mismatch (base,
   # branch, state) is final on the first read.
   for _attempt in 1 2 3 4 5 6; do
-    SEEN_SHA="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("headRefOid") or "")' "${EXISTING}")"
+    SEEN_SHA="$(python3 -c 'import json,sys; print((json.loads(sys.argv[1]).get("head") or {}).get("sha") or "")' "${EXISTING}")"
     [[ "${SEEN_SHA}" == "${LOCAL_SHA}" ]] && break
     sleep 5
-    EXISTING="$(gh pr list --head "${TARGET}" --base "${BASE}" --state open --json "${PR_FIELDS}" --jq '.[0]')"
+    EXISTING="$(list_open_pr)"
   done
   PROOF="$(prove_pr "${EXISTING}")"
   PR_NUM="${PROOF%%$'\t'*}"
@@ -127,13 +153,9 @@ if ! printf '%s' "${BODY}" | grep -qF "${STAMP}"; then
   BODY="${BODY}"$'\n\n'"${STAMP}"
 fi
 
-if ! gh pr create --base "${BASE}" --head "${TARGET}" --title "${TITLE}" --body "${BODY}" >/dev/null; then
-  echo "gh pr create failed for ${TARGET} → ${BASE}"
-  exit 1
-fi
-
-if ! CREATED="$(gh pr list --head "${TARGET}" --base "${BASE}" --state open --json "${PR_FIELDS}" --jq '.[0]')"; then
-  echo "gh pr list failed after create for ${TARGET} → ${BASE}"
+# REST POST returns the created PR; it is the proof input, no second lookup.
+if ! CREATED="$(gh api --method POST "repos/${REPO}/pulls" -f base="${BASE}" -f head="${TARGET}" -f title="${TITLE}" -f body="${BODY}")"; then
+  echo "pull request creation failed for ${TARGET} → ${BASE} (gh api repos/${REPO}/pulls)"
   exit 1
 fi
 PROOF="$(prove_pr "${CREATED}")"
