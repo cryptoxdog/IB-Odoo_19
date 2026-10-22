@@ -91,6 +91,15 @@ class BuilderTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Wrong origin"):
             builder.ensure_target(self.root)
 
+    def test_lookalike_host_is_rejected(self):
+        git(self.root, "remote", "set-url", "origin", "https://evilgithub.com/cryptoxdog/IB-Odoo_19.git")
+        with self.assertRaisesRegex(RuntimeError, "Wrong origin"):
+            builder.ensure_target(self.root)
+
+    def test_https_origin_is_accepted(self):
+        git(self.root, "remote", "set-url", "origin", "https://github.com/cryptoxdog/IB-Odoo_19.git")
+        builder.ensure_target(self.root)
+
     def test_stale_head_is_rejected(self):
         (self.root / "README.md").write_text("new commit\n")
         git(self.root, "add", "README.md")

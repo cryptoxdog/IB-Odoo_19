@@ -134,7 +134,9 @@ def ensure_target(root: Path) -> None:
     if head != HEAD:
         raise RuntimeError(f"Stale PR source: HEAD {head}; expected {HEAD}")
     url = call(root, "git", "remote", "get-url", "origin")
-    if not re.search(r"(?:github\.com[:/])cryptoxdog/IB-Odoo_19(?:\.git)?$", url):
+    if not re.fullmatch(
+        r"(?:git@github\.com:|https://github\.com/|ssh://git@github\.com/)cryptoxdog/IB-Odoo_19(?:\.git)?", url
+    ):
         raise RuntimeError(f"Wrong origin; expected {REPO}: {url}")
     status = call(root, "git", "status", "--porcelain")
     if status:
