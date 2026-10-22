@@ -36,11 +36,11 @@ stages.
 from __future__ import annotations
 
 import logging
-from html import escape
-from html.parser import HTMLParser
 
 from odoo import Command, api, models
 from odoo.tools import html2plaintext
+
+from ..erp.comment_notes import comment_with_erp_notes as _comment_with_erp_notes
 
 _logger = logging.getLogger(__name__)
 
@@ -749,7 +749,11 @@ class PlasticosErpImport(models.AbstractModel):
                 partner.write({"function": job})
 
     def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
-        """One query for the named users. A name with two users maps to None."""
+        """One query for the named users. A name with two users maps to None.
+
+        Worksheet commission history still matches the stored recipient by
+        display name. Partner Salesperson uses :meth:`_user_ids_by_login`.
+        """
         if not names:
             return {}
         users = self.env["res.users"].search([("name", "in", sorted(names))])
@@ -758,12 +762,31 @@ class PlasticosErpImport(models.AbstractModel):
             found.setdefault(user.name, []).append(user.id)
         return {name: ids[0] if len(ids) == 1 else None for name, ids in found.items()}
 
-    def _import_sales_reps(self, index, report, dry_run: bool) -> None:
-        """Set each company's Salesperson from its ``IsDefault=1`` row. Create no user.
+    def _user_ids_by_login(self, logins: set[str]) -> dict[str, int | None]:
+        """One query for the logins. A login that is not exactly one user maps to None."""
+        wanted = sorted({login.casefold() for login in logins if login})
+        if not wanted:
+            return {}
+        domain: list = [("login", "=ilike", wanted[0])]
+        if len(wanted) > 1:
+            domain = ["|"] * (len(wanted) - 1) + [("login", "=ilike", login) for login in wanted]
+        users = self.env["res.users"].search(domain)
+        found: dict[str, list[int]] = {}
+        allowed = set(wanted)
+        for user in users:
+            key = (user.login or "").casefold()
+            if key in allowed:
+                found.setdefault(key, []).append(user.id)
+        return {login: ids[0] if len(ids) == 1 else None for login, ids in found.items()}
 
-        The rep is matched to an existing ``res.users`` record by name. A
-        company whose source has no default row carries no Salesperson, so a
-        stale ``user_id`` is cleared. Every SalesReps row receives one outcome:
+    def _import_sales_reps(self, index, report, dry_run: bool) -> None:
+        """Set each company's Salesperson from its assigned rep. Create no user.
+
+        A unique ``IsDefault=1`` row wins. When none is marked default, the
+        sole assigned rep is written, including an ``IsDefault=0`` row. The
+        rep is matched to an existing ``res.users`` record by login. A company
+        whose rows do not resolve to one rep is left unchanged: this pass
+        does not clear ``user_id``. Every SalesReps row receives one outcome:
         the row that decides the Salesperson carries the write outcome, the
         other rows of that company are skipped, and a company whose rows
         cannot be resolved rejects or leaves unresolved each of its rows.
@@ -790,30 +813,25 @@ class PlasticosErpImport(models.AbstractModel):
                 report.reject("salespersons", len(rows))
                 continue
             if not code:
-                # The source names no current default representative.
-                if dry_run or not company.user_id:
-                    report.skip("salespersons", len(rows))
-                    continue
-                company.write({"user_id": False})
-                report.bump("salespersons", "updated")
-                report.skip("salespersons", len(rows) - 1)
+                # Rows exist, but none names a representative. Leave user_id.
+                report.skip("salespersons", len(rows))
                 continue
-            name = mapping.sales_rep_name(code)
-            if not name:
+            login = mapping.sales_rep_login(code)
+            if not login:
                 report.anomaly("SalesReps", cp_id, f"unknown rep initials {code!r}")
                 report.reject("salespersons", len(rows))
                 continue
-            chosen.append((cp_id, rows, name, company))
-        user_by_name = self._user_ids_by_name({name for _cp_id, _rows, name, _company in chosen})
-        for cp_id, rows, name, company in chosen:
-            user_id = user_by_name.get(name)
+            chosen.append((cp_id, rows, login, company))
+        user_by_login = self._user_ids_by_login({login for _cp_id, _rows, login, _company in chosen})
+        for cp_id, rows, login, company in chosen:
+            user_id = user_by_login.get(login.casefold())
             if not user_id:
                 for row in rows:
                     report.unresolved_ref(
                         "SalesReps",
                         "unresolved_user",
                         _sales_rep_row_key(cp_id, row),
-                        f"no single Odoo user named {name!r}",
+                        f"no single Odoo user with login {login!r}",
                     )
                 continue
             if dry_run or company.user_id.id == user_id:
@@ -1163,63 +1181,6 @@ def _differs(record, field_name: str, value) -> bool:
     if field_name == "website" and isinstance(current, str) and isinstance(target, str):
         return _bare_url(current) != _bare_url(target)
     return current != target
-
-
-_COMMENT_BLOCK_TAGS = frozenset({"p", "div", "li", "blockquote", "pre", "tr", "h1", "h2", "h3", "h4", "h5", "h6"})
-
-
-class _CommentBlocks(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.blocks: list[str] = []
-        self._parts: list[str] = []
-
-    def flush(self) -> None:
-        text = " ".join("".join(self._parts).split())
-        if text:
-            self.blocks.append(text)
-        self._parts = []
-
-    def handle_starttag(self, tag, attrs):
-        if tag in _COMMENT_BLOCK_TAGS:
-            self.flush()
-        elif tag == "br":
-            self._parts.append("\n")
-
-    def handle_endtag(self, tag):
-        if tag in _COMMENT_BLOCK_TAGS:
-            self.flush()
-
-    def handle_data(self, data):
-        self._parts.append(data)
-
-
-def _comment_with_erp_notes(comment, notes: str):
-    """``comment`` holding the ERP notes and every other paragraph. ``None`` means no write.
-
-    The CRM sync appends its notes to the same partner comment. When the ERP
-    notes are already there as one paragraph, or a run of adjacent paragraphs,
-    nothing is written. Otherwise they go first and the existing paragraphs stay.
-    """
-    text = " ".join((notes or "").split())
-    if not text:
-        return None
-    parser = _CommentBlocks()
-    parser.feed(str(comment or ""))
-    parser.close()
-    parser.flush()
-    blocks = parser.blocks
-    for start in range(len(blocks)):
-        joined = ""
-        for block in blocks[start:]:
-            joined = f"{joined} {block}" if joined else block
-            if joined == text:
-                return None
-            if len(joined) >= len(text):
-                break
-    if not blocks:
-        return notes
-    return f"<p>{escape(notes.strip(), quote=False)}</p>{comment}"
 
 
 def _plain_text(value) -> str:

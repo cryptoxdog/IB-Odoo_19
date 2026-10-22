@@ -4,9 +4,11 @@ import base64
 import inspect
 from unittest.mock import MagicMock, patch
 
+from odoo import Command
 from odoo.addons.plasticos_crm_sync.adapters.base import CanonicalCall, CanonicalLead, CanonicalTableRow
 from odoo.addons.plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator, _new_outcomes
+from odoo.addons.plasticos_crm_sync.services.owner_crosswalk import BLANK_OWNER_LOGIN, OWNER_LOGIN_BY_SOURCE
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
@@ -24,6 +26,10 @@ class CrmSyncOrchestratorCase(TransactionCase):
             }
         )
 
+    def setUp(self):
+        super().setUp()
+        self._ensure_mapped_salespeople()
+
     def _lead(self, external_id, **kwargs):
         values = {
             "provider": "vanillasoft",
@@ -39,6 +45,28 @@ class CrmSyncOrchestratorCase(TransactionCase):
     def _facility(self, name):
         parent = self.env["res.partner"].create({"name": f"{name} Parent", "is_company": True})
         return self.env["res.partner"].create({"name": name, "is_company": True, "parent_id": parent.id})
+
+    def _ensure_salesperson(self, login):
+        users = self.env["res.users"].with_context(no_reset_password=True)
+        user = users.search([("login", "=ilike", login)], limit=1)
+        internal = self.env.ref("base.group_user")
+        salesman = self.env.ref("sales_team.group_sale_salesman")
+        if not user:
+            user = users.create(
+                {
+                    "name": login,
+                    "login": login,
+                    "email": login,
+                    "group_ids": [Command.set([internal.id, salesman.id])],
+                }
+            )
+        elif user.share or not user.has_group("sales_team.group_sale_salesman"):
+            user.write({"group_ids": [Command.link(internal.id), Command.link(salesman.id)]})
+        return user
+
+    def _ensure_mapped_salespeople(self):
+        for login in set(OWNER_LOGIN_BY_SOURCE.values()):
+            self._ensure_salesperson(login)
 
 
 @tagged("post_install", "-at_install")
@@ -188,22 +216,56 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
         self.assertFalse(blank["contact_name"])
 
-    def test_unmapped_source_and_owner_are_left_empty(self):
-        self.env["res.users"].create({"name": "CRM3 Exact Owner", "login": "crm3-exact-owner"})
-        self.env["res.users"].create({"name": "CRM3 Twin Owner", "login": "crm3-twin-a"})
-        self.env["res.users"].create({"name": "CRM3 Twin Owner", "login": "crm3-twin-b"})
+    def test_unmapped_source_is_left_empty(self):
+        self._ensure_mapped_salespeople()
         orch = SyncOrchestrator(self.env)
         missing_source = orch._lead_vals_from_dto(self._lead("vs-source", lead_source_raw="Not A Mapped Source"))
         self.assertFalse(missing_source["source_id"])
         mapped = orch._lead_vals_from_dto(self._lead("vs-google", lead_source_raw="Google"))
         self.assertEqual(mapped["source_id"], self.env.ref("plasticos_crm_bridge.utm_source_google").id)
-        exact = orch._lead_vals_from_dto(self._lead("vs-owner", owner_name="  CRM3 Exact Owner  "))
-        self.assertEqual(self.env["res.users"].browse(exact["user_id"]).name, "CRM3 Exact Owner")
-        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-missing", owner_name="No Such CRM3 Owner"))["user_id"])
-        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-twin", owner_name="CRM3 Twin Owner"))["user_id"])
+        self.assertEqual(self.env["res.users"].browse(mapped["user_id"]).login, BLANK_OWNER_LOGIN)
+
+    def test_locked_owner_emails_persist_on_the_lead_and_replay(self):
+        self._ensure_mapped_salespeople()
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        for source, login in OWNER_LOGIN_BY_SOURCE.items():
+            external_id = "vs-owner-" + source.split("@", 1)[0]
+            dto = self._lead(external_id, owner_name=f"  {source.upper()}  ")
+            lead = orch._upsert_lead(self.connection, dto)
+            self.assertEqual(orch.last_lead_outcome, "created", source)
+            self.assertEqual(lead.user_id.login, login, source)
+            again = orch._upsert_lead(self.connection, dto)
+            self.assertEqual(again, lead)
+            self.assertEqual(orch.last_lead_outcome, "unchanged", source)
+            self.assertEqual(again.user_id.login, login, source)
+
+    def test_blank_owner_falls_back_to_mack(self):
+        self._ensure_salesperson(BLANK_OWNER_LOGIN)
+        orch = SyncOrchestrator(self.env)
+        for owner_name in ("", "   ", "False", "[blank / no owner]"):
+            external_id = "vs-blank-" + (owner_name.strip() or "empty")
+            lead = orch._upsert_lead(self.connection, self._lead(external_id, owner_name=owner_name))
+            self.assertEqual(lead.user_id.login, BLANK_OWNER_LOGIN, owner_name)
+
+    def test_unresolved_owner_does_not_clear_an_existing_salesperson(self):
+        self._ensure_salesperson("lm@scrapmanagement.com")
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        dto = self._lead("vs-owner-keep", owner_name="lm@ucsincny.com")
+        lead = orch._upsert_lead(self.connection, dto)
+        self.assertEqual(lead.user_id.login, "lm@scrapmanagement.com")
+        kept = orch._upsert_lead(self.connection, self._lead("vs-owner-keep", owner_name="CRM3 Exact Owner"))
+        self.assertEqual(kept, lead)
+        self.assertEqual(orch.last_lead_outcome, "failed")
+        self.assertEqual(orch.outcomes["failed"], 1)
+        self.assertEqual(lead.user_id.login, "lm@scrapmanagement.com")
+        self.assertFalse(
+            orch._upsert_lead(self.connection, self._lead("vs-owner-new-bad", owner_name="No Such CRM3 Owner"))
+        )
 
     def test_observed_aliases_land_on_native_lead_fields(self):
-        self.env["res.users"].create({"name": "CRM3 Alias Owner", "login": "crm3-alias-owner"})
+        self._ensure_salesperson("ib@scrapmanagement.com")
         dto = contact_to_canonical(
             {
                 "contact_id": "vs-alias-land",
@@ -217,7 +279,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
                 "country": "USA",
                 "lead_status": "5=Dead Lead",
                 "lead_source_name": "Google",
-                "contact_owner": "CRM3 Alias Owner",
+                "contact_owner": "ibeylin@ucsincny.com",
                 "phone_numbers": [
                     {"name": "business", "number": "555-100-0003"},
                     {"name": "direct", "number": "555-100-0001"},
@@ -234,7 +296,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(lead.state_id.code, "GA")
         self.assertEqual(lead.stage_id, self.env.ref("plasticos_crm_bridge.stage_dead_lead"))
         self.assertEqual(lead.source_id, self.env.ref("plasticos_crm_bridge.utm_source_google"))
-        self.assertEqual(lead.user_id.name, "CRM3 Alias Owner")
+        self.assertEqual(lead.user_id.login, "ib@scrapmanagement.com")
         self.assertEqual(
             len(
                 self.env["plasticos.crm.external.ref"].search(
