@@ -1090,10 +1090,14 @@ class SyncOrchestrator:
         return company, ""
 
     def _person_on_active_company(self, company, dto: CanonicalLead):
-        """The VanillaSoft person on the active company. A same-named child is reused."""
+        """The VanillaSoft person on the active company. A same-named active child is reused.
+
+        An archived child is never returned: the ERP import archives inactive people, and the
+        binding must land on a contact that is visible on the company.
+        """
         Partner = self.env["res.partner"].sudo().with_context(active_test=False)  # sync user cannot create partners
         name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
-        children = Partner.search([("parent_id", "=", company.id), ("is_company", "=", False)])
+        children = Partner.search([("parent_id", "=", company.id), ("is_company", "=", False), ("active", "=", True)])
         same = [
             child
             for child in children

@@ -212,6 +212,30 @@ def test_inactive_contact_is_placed_on_the_active_company_not_a_lead():
     assert orch.last_lead_outcome == "updated"
 
 
+def _company_with_child(child_active: bool):
+    orch, _connection, _leads, _refs = _harness()
+    partners = _Partners()
+    orch.env["res.partner"] = partners
+    company = partners.create({"name": "Acme", "is_company": True, "active": True})
+    child = partners.create({"name": "Pat Lee", "parent_id": company.id, "is_company": False, "active": child_active})
+    dto = type("Dto", (), {"first_name": "Pat", "last_name": "Lee", "email": ""})()
+    return orch, partners, company, child, dto
+
+
+def test_an_archived_same_named_child_is_not_reused_for_the_active_company():
+    orch, partners, company, archived, dto = _company_with_child(child_active=False)
+    person = orch._person_on_active_company(company, dto)
+    assert person.id != archived.id
+    assert person.parent_id == company.id
+    assert len(partners.rows) == 3
+
+
+def test_an_active_same_named_child_is_reused_for_the_active_company():
+    orch, partners, company, child, dto = _company_with_child(child_active=True)
+    assert orch._person_on_active_company(company, dto).id == child.id
+    assert len(partners.rows) == 2
+
+
 def test_missing_erp_person_is_imported_as_a_crm_lead(caplog):
     """An approved id with no ERP person becomes a lead and is not bound to a partner."""
     orch, connection, leads, refs = _harness()
