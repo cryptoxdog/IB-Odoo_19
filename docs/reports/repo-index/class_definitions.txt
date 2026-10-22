@@ -82,14 +82,15 @@
 ./plasticos_crm_sync/models/res_config_settings.py:7:class ResConfigSettings(models.TransientModel):
 ./plasticos_crm_sync/services/approved_identity.py:29:class CrosswalkError(ValueError):
 ./plasticos_crm_sync/services/approved_identity.py:127:class _CommentBlocks(HTMLParser):
-./plasticos_crm_sync/services/orchestrator.py:40:class CrmSyncLockedError(CrmAdapterError):
-./plasticos_crm_sync/services/orchestrator.py:44:class CrmFullImportArgumentError(CrmAdapterError):
-./plasticos_crm_sync/services/orchestrator.py:262:class SyncOrchestrator:
+./plasticos_crm_sync/services/orchestrator.py:41:class CrmSyncLockedError(CrmAdapterError):
+./plasticos_crm_sync/services/orchestrator.py:45:class CrmFullImportArgumentError(CrmAdapterError):
+./plasticos_crm_sync/services/orchestrator.py:263:class SyncOrchestrator:
+./plasticos_crm_sync/services/owner_crosswalk.py:36:class OwnerResolutionError(Exception):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:32:class TestVanillaSoftLeadLifecycle(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:14:class CrmSyncOrchestratorCase(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:45:class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:382:        class Adapter:
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1104:class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:16:class CrmSyncOrchestratorCase(TransactionCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:73:class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:444:        class Adapter:
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1166:class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:14:class TestCrmSyncSettingsImportAction(TransactionCase):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:43:class _StubAdapter:
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:73:class TestWatermarkAcknowledgement(TransactionCase):
@@ -206,6 +207,7 @@
 ./plasticos_offer/wizards/offer_bulk_action_wizard.py:10:class OfferBulkActionWizard(models.TransientModel):
 ./plasticos_order_lines/models/purchase_order_line.py:6:class PurchaseOrderLine(models.Model):
 ./plasticos_order_lines/models/sale_order_line.py:6:class SaleOrderLine(models.Model):
+./plasticos_partner_import/erp/comment_notes.py:11:class _CommentBlocks(HTMLParser):
 ./plasticos_partner_import/erp/header_forensics.py:77:class TransactionHeader:
 ./plasticos_partner_import/erp/mapping_status.py:1035:class MappingStatusRow:
 ./plasticos_partner_import/erp/mapping_status.py:1052:class MappingStatus:
@@ -217,7 +219,6 @@
 ./plasticos_partner_import/erp/source_index.py:48:class IdentityViolation:
 ./plasticos_partner_import/erp/source_index.py:66:class SourceIndex:
 ./plasticos_partner_import/models/erp_import_service.py:77:class PlasticosErpImport(models.AbstractModel):
-./plasticos_partner_import/models/erp_import_service.py:1171:class _CommentBlocks(HTMLParser):
 ./plasticos_partner_import/models/partner_import_service.py:31:class PlasticosPartnerImportService(models.AbstractModel):
 ./plasticos_partner_import/models/validation.py:9:class PlasticosPartnerImportValidation(models.AbstractModel):
 ./plasticos_partner_import/scripts/validate_partner_layer.py:53:class LayerRejected(RuntimeError):
@@ -480,8 +481,8 @@
 ./tests/test_erp_layer_gate.py:340:class _Modules:
 ./tests/test_erp_layer_gate.py:351:class _DatabaseEnv:
 ./tests/test_erp_scratch_db_guard.py:53:class _SqlImportForbidden:
-./tests/test_erp_source_layer.py:655:class _FakeCursor:
-./tests/test_erp_source_layer.py:676:class _FakeConnection:
+./tests/test_erp_source_layer.py:669:class _FakeCursor:
+./tests/test_erp_source_layer.py:690:class _FakeConnection:
 ./tests/test_error_handling.py:35:class TestAPIFailures(PlasticosTestCase):
 ./tests/test_error_handling.py:96:class TestInvalidData(PlasticosTestCase):
 ./tests/test_error_handling.py:176:class TestPermissionDenied(PlasticosTestCase):
