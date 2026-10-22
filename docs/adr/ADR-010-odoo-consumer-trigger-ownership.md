@@ -7,8 +7,7 @@
 **Related:**
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),
-[ADR-011-intelligence-action-topology.md](ADR-011-intelligence-action-topology.md),
-[`docs/track_b/04_odoo_gate_consumer_wiring.md`](../track_b/04_odoo_gate_consumer_wiring.md)
+[ADR-011-intelligence-action-topology.md](ADR-011-intelligence-action-topology.md)
 
 ## Context
 

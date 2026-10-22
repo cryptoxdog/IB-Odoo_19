@@ -1,0 +1,37 @@
+{
+  "contract_id": "PLASTICOS-ERP-CONTACTS-THEN-VS-CROSSWALK-DAYTIME-2026-10-21",
+  "created_date": "2026-10-21",
+  "manifest_type": "daytime-contact-slice",
+  "private_inputs_live_in": "../PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/PRIVATE_INPUTS",
+  "do_not_copy_private_inputs_into_this_pack": true,
+  "required_for_this_run": {
+    "03_APPROVED_CONTACT_CROSSWALK.csv": {
+      "commit_to_git": false,
+      "relative_path": "../PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/PRIVATE_INPUTS/03_APPROVED_CONTACT_CROSSWALK.csv",
+      "sha256": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
+      "header": ["erp_ct_id", "vanillasoft_contact_id"],
+      "vs_ids": 759,
+      "unique_erp_ct_ids": 702,
+      "blank_erp_ct_id_is": "crm lead, not an ERP bind"
+    }
+  },
+  "explicitly_not_loaded_by_this_pack": {
+    "CRM Leads - VanillaSoft - Scrap-Management(1).csv": {
+      "sha256": "082fcd1eb8d7de1866943812b0b3065dd1e6028c48905f7ef1b868e0a2d9d6b8",
+      "why": "4,876-ID census for the overnight pack. This run's ID list is the crosswalk."
+    },
+    "PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx": {
+      "sha256": "9d3e364e51d508b72351682631ce9a3faadeca3aab6c4fa39b7db61d6d93f2f1",
+      "why": "YES/NO/PENDING matrix. This run executes YES only, and the pinned CSV is that YES allowlist."
+    },
+    "VanillaSoft_4876_Field_Mapping_Resolved_Owners_Stage_Review.xlsx": {
+      "sha256": "cd5a1cf8422609faa6785cb60897c577bbba27163f0c5534430981971d8a56ad",
+      "why": "Lead owner and stage oracle. This run does not create crm.lead rows."
+    },
+    "VanillaSoft_to_Odoo_Polymer_Mapping_Decisions_2026-10-14.xlsx": {
+      "sha256": "1b1acc0357d86441496578a0dcd7abafc8c4a0c642476f4125c9ca01f60ed5f8",
+      "why": "Material oracle for lead enrichment. Out of scope for the crosswalk bind."
+    }
+  },
+  "runtime_host_must_reverify_crosswalk_sha256": true
+}

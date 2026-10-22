@@ -2,7 +2,7 @@
 """
 Repo Index Exporter (l9-repo-index skill — repo-local generator)
 
-Regenerates the fast-lookup index files under reports/repo-index/*.txt:
+Regenerates the fast-lookup index files under docs/reports/repo-index/*.txt:
   class_definitions, function_signatures, method_catalog, imports,
   inheritance_graph, test_catalog, route_handlers, pydantic_models,
   readme_manifest, and (when the repo contains Odoo modules)
@@ -10,16 +10,22 @@ Regenerates the fast-lookup index files under reports/repo-index/*.txt:
   odoo_views, odoo_security_groups, odoo_email_templates, odoo_cron_jobs,
   odoo_automations.
 
+The file set is `git ls-files`. A new tracked module or folder is included on
+the next run. Ignored scratch, local runtime, and untracked files are not.
+`docs/reports/` is not indexed: it holds generated indexes, GMP reports, and
+evidence. `readme_manifest` records headings from README*.md and SKILL.md.
+
 Run: python3 scripts/repo_generators/export_repo_indexes.py [repo_root]
      (defaults to the current working directory)
 
 Exit codes:
   0 = indexes written successfully
-  1 = repo root invalid
+  1 = repo root invalid, or git ls-files failed
 """
 
 import ast
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -34,8 +40,10 @@ EXCLUDE_DIR_NAMES = {
     ".ruff_cache",
     "odoo-enterprise",
     ".semgrep",
+    "Current Work - IGNORE",
 }
-INDEX_SUBDIR = ("reports", "repo-index")
+INDEX_SUBDIR = ("docs", "reports", "repo-index")
+RETIRED_INDEX_SUBDIR = ("reports", "repo-index")
 
 CLASS_RE = re.compile(r"^\s*class\s+\w+")
 FUNCTION_RE = re.compile(r"^\s*(async\s+)?def\s+\w+")
@@ -49,26 +57,44 @@ ODOO_MODEL_RE = re.compile(r"_name\s*=\s*['\"]")
 HEADING_RE = re.compile(r"^#\s+")
 
 
-def iter_files(root: Path, suffix: str):
-    """Yield files under root matching suffix, skipping excluded dirs and the index output dir."""
-    for path in root.rglob(f"*{suffix}"):
-        if not path.is_file():
+def tracked_files(root: Path) -> list[Path] | None:
+    """Tracked paths only. New modules appear once they are in git, not from ignored trees."""
+    completed = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z"],
+        check=False,
+        capture_output=True,
+    )
+    if completed.returncode != 0:
+        print("ERROR: git ls-files failed. The index covers the tracked tree only.", file=sys.stderr)
+        return None
+    files: list[Path] = []
+    for raw in completed.stdout.split(b"\0"):
+        if not raw:
             continue
-        rel_parts = path.relative_to(root).parts
+        relative = raw.decode("utf-8", "surrogateescape")
+        rel_parts = Path(relative).parts
         if any(part in EXCLUDE_DIR_NAMES for part in rel_parts):
             continue
-        if rel_parts[: len(INDEX_SUBDIR)] == INDEX_SUBDIR:
+        if rel_parts[:2] == ("docs", "reports"):
             continue
-        yield path
+        files.append(root / relative)
+    return files
+
+
+def iter_files(files: list[Path], suffix: str):
+    """Yield tracked files whose suffix matches."""
+    for path in files:
+        if path.suffix == suffix and path.is_file():
+            yield path
 
 
 def rel(root: Path, path: Path) -> str:
     return f"./{path.relative_to(root).as_posix()}"
 
 
-def grep_lines(root: Path, suffix: str, pattern: re.Pattern) -> list[str]:
+def grep_lines(root: Path, files: list[Path], suffix: str, pattern: re.Pattern) -> list[str]:
     out: list[str] = []
-    for path in sorted(iter_files(root, suffix)):
+    for path in sorted(iter_files(files, suffix)):
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
@@ -79,11 +105,16 @@ def grep_lines(root: Path, suffix: str, pattern: re.Pattern) -> list[str]:
     return out
 
 
-def readme_manifest(root: Path) -> list[str]:
+def heading_source(path: Path) -> bool:
+    """README files, plus SKILL.md from the skills tree."""
+    name = path.name
+    return (name.startswith("README") and name.endswith(".md")) or name == "SKILL.md"
+
+
+def readme_manifest(root: Path, files: list[Path]) -> list[str]:
     out: list[str] = []
-    for path in sorted(root.rglob("README*.md")):
-        rel_parts = path.relative_to(root).parts
-        if any(part in EXCLUDE_DIR_NAMES for part in rel_parts):
+    for path in sorted(files):
+        if not heading_source(path) or not path.is_file():
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
@@ -95,9 +126,9 @@ def readme_manifest(root: Path) -> list[str]:
     return out
 
 
-def xml_matching(root: Path, needle: str) -> list[str]:
+def xml_matching(root: Path, files: list[Path], needle: str) -> list[str]:
     out: list[str] = []
-    for path in sorted(iter_files(root, ".xml")):
+    for path in sorted(iter_files(files, ".xml")):
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
@@ -108,13 +139,18 @@ def xml_matching(root: Path, needle: str) -> list[str]:
     return out
 
 
-def xml_paths_under(root: Path, dir_name: str) -> list[str]:
-    return sorted(rel(root, path) for path in iter_files(root, ".xml") if dir_name in path.relative_to(root).parts)
+def xml_paths_under(root: Path, files: list[Path], dir_name: str) -> list[str]:
+    return sorted(rel(root, path) for path in iter_files(files, ".xml") if dir_name in path.relative_to(root).parts)
 
 
-def odoo_module_dependencies(root: Path) -> list[str]:
+def module_manifests(root: Path, files: list[Path]) -> list[Path]:
+    """Top-level addon manifests. A new plasticos_* module is picked up when it is tracked."""
+    return sorted(path for path in files if path.name == "__manifest__.py" and path.parent.parent == root)
+
+
+def odoo_module_dependencies(root: Path, files: list[Path]) -> list[str]:
     out: list[str] = []
-    for path in sorted(root.glob("*/__manifest__.py")):
+    for path in module_manifests(root, files):
         try:
             manifest = ast.literal_eval(path.read_text(encoding="utf-8", errors="ignore"))
         except (SyntaxError, ValueError):
@@ -125,8 +161,8 @@ def odoo_module_dependencies(root: Path) -> list[str]:
     return out
 
 
-def is_odoo_repo(root: Path) -> bool:
-    return any(root.glob("*/__manifest__.py"))
+def is_odoo_repo(root: Path, files: list[Path]) -> bool:
+    return bool(module_manifests(root, files))
 
 
 def write_index(root: Path, name: str, lines: list[str]) -> int:
@@ -142,38 +178,53 @@ def main() -> int:
     if not root.is_dir():
         print(f"ERROR: repo root not found: {root}", file=sys.stderr)
         return 1
+    retired = root.joinpath(*RETIRED_INDEX_SUBDIR)
+    if retired.exists():
+        print(
+            "ERROR: reports/repo-index is retired. Delete it. Indexes are written to docs/reports/repo-index.",
+            file=sys.stderr,
+        )
+        return 1
+
+    files = tracked_files(root)
+    if files is None:
+        return 1
 
     counts: dict[str, int] = {}
-    counts["class_definitions"] = write_index(root, "class_definitions", grep_lines(root, ".py", CLASS_RE))
-    counts["function_signatures"] = write_index(root, "function_signatures", grep_lines(root, ".py", FUNCTION_RE))
-    counts["method_catalog"] = write_index(root, "method_catalog", grep_lines(root, ".py", METHOD_RE))
-    counts["imports"] = write_index(root, "imports", grep_lines(root, ".py", IMPORT_RE))
-    counts["route_handlers"] = write_index(root, "route_handlers", grep_lines(root, ".py", ROUTE_RE))
-    counts["test_catalog"] = write_index(root, "test_catalog", grep_lines(root, ".py", TEST_RE))
-    counts["inheritance_graph"] = write_index(root, "inheritance_graph", grep_lines(root, ".py", INHERIT_RE))
-    counts["pydantic_models"] = write_index(root, "pydantic_models", grep_lines(root, ".py", PYDANTIC_RE))
-    counts["readme_manifest"] = write_index(root, "readme_manifest", readme_manifest(root))
+    counts["class_definitions"] = write_index(root, "class_definitions", grep_lines(root, files, ".py", CLASS_RE))
+    counts["function_signatures"] = write_index(
+        root, "function_signatures", grep_lines(root, files, ".py", FUNCTION_RE)
+    )
+    counts["method_catalog"] = write_index(root, "method_catalog", grep_lines(root, files, ".py", METHOD_RE))
+    counts["imports"] = write_index(root, "imports", grep_lines(root, files, ".py", IMPORT_RE))
+    counts["route_handlers"] = write_index(root, "route_handlers", grep_lines(root, files, ".py", ROUTE_RE))
+    counts["test_catalog"] = write_index(root, "test_catalog", grep_lines(root, files, ".py", TEST_RE))
+    counts["inheritance_graph"] = write_index(root, "inheritance_graph", grep_lines(root, files, ".py", INHERIT_RE))
+    counts["pydantic_models"] = write_index(root, "pydantic_models", grep_lines(root, files, ".py", PYDANTIC_RE))
+    counts["readme_manifest"] = write_index(root, "readme_manifest", readme_manifest(root, files))
 
-    if is_odoo_repo(root):
-        counts["odoo_model_registry"] = write_index(root, "odoo_model_registry", grep_lines(root, ".py", ODOO_MODEL_RE))
+    if is_odoo_repo(root, files):
+        counts["odoo_model_registry"] = write_index(
+            root, "odoo_model_registry", grep_lines(root, files, ".py", ODOO_MODEL_RE)
+        )
         counts["odoo_module_dependencies"] = write_index(
-            root, "odoo_module_dependencies", odoo_module_dependencies(root)
+            root, "odoo_module_dependencies", odoo_module_dependencies(root, files)
         )
         counts["odoo_xml_data_files"] = write_index(
             root,
             "odoo_xml_data_files",
-            sorted(set(xml_paths_under(root, "data") + xml_paths_under(root, "security"))),
+            sorted(set(xml_paths_under(root, files, "data") + xml_paths_under(root, files, "security"))),
         )
-        counts["odoo_views"] = write_index(root, "odoo_views", xml_paths_under(root, "views"))
+        counts["odoo_views"] = write_index(root, "odoo_views", xml_paths_under(root, files, "views"))
         counts["odoo_security_groups"] = write_index(
-            root, "odoo_security_groups", xml_matching(root, 'model="res.groups"')
+            root, "odoo_security_groups", xml_matching(root, files, 'model="res.groups"')
         )
         counts["odoo_email_templates"] = write_index(
-            root, "odoo_email_templates", xml_matching(root, 'model="mail.template"')
+            root, "odoo_email_templates", xml_matching(root, files, 'model="mail.template"')
         )
-        counts["odoo_cron_jobs"] = write_index(root, "odoo_cron_jobs", xml_matching(root, 'model="ir.cron"'))
+        counts["odoo_cron_jobs"] = write_index(root, "odoo_cron_jobs", xml_matching(root, files, 'model="ir.cron"'))
         counts["odoo_automations"] = write_index(
-            root, "odoo_automations", xml_matching(root, 'model="base.automation"')
+            root, "odoo_automations", xml_matching(root, files, 'model="base.automation"')
         )
 
     print("## INDEX UPDATED\n")
