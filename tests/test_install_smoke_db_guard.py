@@ -294,8 +294,13 @@ def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> Non
     assert "--stop-after-init" in log
 
 
-def test_recheck_is_the_smoke_evidence_gate() -> None:
+def test_local_gate_holds_no_smoke_evidence_logic() -> None:
+    # The Odoo load is proven by the "Odoo Install Smoke" workflow on the PR.
+    # The local gate neither rechecks installer evidence nor reinvents a
+    # source-hash cache in its place; `--recheck` stays an installer-only mode.
     text = (ROOT / "scripts" / "pr_check_run.sh").read_text(encoding="utf-8")
-    assert "--recheck" in text
+    assert "--recheck" not in text
     assert "smoke_fingerprint" not in text
     assert "cache hit is not environment-specific install proof" not in text
+    installer = (ROOT / "scripts" / "install_smoke.sh").read_text(encoding="utf-8")
+    assert "--recheck" in installer
