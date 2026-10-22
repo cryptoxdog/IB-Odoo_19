@@ -10,6 +10,7 @@ import pytest
 
 from plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
 from plasticos_crm_sync.services.approved_identity import (
+    ACTIVE_COMPANY_CP_BY_VS,
     PINNED_ERP_COUNT,
     PINNED_SHA256,
     PINNED_VS_COUNT,
@@ -42,9 +43,9 @@ def _csv(rows: list[tuple[str, str]]) -> str:
 
 def test_pinned_crosswalk_constants():
     """Pins the constants only. It does not prove the operator file."""
-    assert PINNED_SHA256 == "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9"
+    assert PINNED_SHA256 == "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1"
     assert PINNED_VS_COUNT == 759
-    assert PINNED_ERP_COUNT == 702
+    assert PINNED_ERP_COUNT == 691
 
 
 def test_operator_crosswalk_file_matches_the_pinned_census():
@@ -63,8 +64,17 @@ def test_operator_crosswalk_file_matches_the_pinned_census():
     assert mapping["1082805107"] == "192650001"
     assert mapping["573474327"] == "39150001"
     assert mapping["572648242"] == "8750001"
+    assert mapping["619579299"] == "148650001"
+    assert mapping["625031140"] == "9500001"
     assert mapping["1085161977"] == ""
     assert mapping["572647290"] == ""
+    assert mapping["700174793"] == ""
+    assert mapping["683417624"] == ""
+    assert mapping["609608749"] == ""
+    assert mapping["715993397"] == ""
+    assert ACTIVE_COMPANY_CP_BY_VS["683417624"] == "1380"
+    assert ACTIVE_COMPANY_CP_BY_VS["609608749"] == "2461"
+    assert ACTIVE_COMPANY_CP_BY_VS["715993397"] == "2076"
     assert "572648239" not in mapping
     assert "1045036935" not in mapping
     assert "1179868294" not in mapping

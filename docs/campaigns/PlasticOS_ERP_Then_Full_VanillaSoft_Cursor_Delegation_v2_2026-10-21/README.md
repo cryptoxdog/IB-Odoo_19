@@ -13,7 +13,7 @@
 
 1. Read `CURSOR_EXECUTION_CONTRACT.md`. Run it only on one owned disposable clone of `config/test_env_fixture.conf` (`odoo_test_tpl_ee_c9e8a81f52f23680`).
 2. This directory is untracked and is not gitignored. Do not `git add` it. Copy the crosswalk and a no-PII ID census into gitignored `Current Work - IGNORE/erp-then-vs-full-crm/` so the container can read them at `/mnt/extra-addons/Current Work - IGNORE/erp-then-vs-full-crm/`. Do not copy raw inputs to `docs/reports/`.
-3. Verify the SHA256 values and row counts in `INPUT_MANIFEST.json` before any database write. The crosswalk must equal `3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9`.
+3. Verify the SHA256 values and row counts in `INPUT_MANIFEST.json` before any database write. The crosswalk must equal `9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1`.
 4. Order: empty-CRM proof, active-only partners, commercial documents, 4,876-ID VanillaSoft import, reconciliation. The historical CSV is an ID census, not an importer.
 5. Fill `REPORT_TEMPLATE.md` and `RECEIPT_TEMPLATE.json` from the run. Save sanitized copies under `docs/reports/evidence/erp-then-vanillasoft-full-crm-<date>/`. One `make pr` only if addon code changed.
 
@@ -21,7 +21,7 @@
 
 - 4,876 distinct historical VanillaSoft ContactIDs, all `Flagged=True`.
 - Operator decisions: **763 approved existing-ERP-person links**, **18 denied ERP candidate links**, **4,095 pending existing-person identity review**.
-- The operator matrix still has 763 approved source IDs. The loaded crosswalk is 759 VanillaSoft ids and 702 ERP CT_IDs. Four YES ids are duplicates of a person already approved on an active contact and are not fetched.
+- The operator matrix still has 763 approved source IDs. The loaded crosswalk is 759 VanillaSoft ids and 691 ERP CT_IDs. Four YES ids are duplicates of a person already approved on an active contact and are not fetched.
 - CRM-stage states do NOT define ERP activity. Do Not Call, Unqualified, Prison and `ClosedFlag` do not exclude the locked CRM cohort. Do Not Call remains a real contact restriction.
 - Previous active-only ERP contact import returned missing-person outcomes for 28 approved source IDs; their excluded-parent reasons must be diagnosed, not silently overcome by importing inactive parents.
 - The provider's historical bulk Contacts lookback is known to fail for dates older than ~30 days; a 30-day run is not full import. The existing single-contact-ID API path successfully served the approved IDs in the earlier evidence. Use the known existing adapter/orchestrator over the full cohort with the historical CSV as an ID census, never a parallel direct-CSV importer.

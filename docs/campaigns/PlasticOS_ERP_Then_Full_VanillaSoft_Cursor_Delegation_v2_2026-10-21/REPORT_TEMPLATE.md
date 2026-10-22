@@ -75,7 +75,7 @@ Check `imported + held + genuine_failed = 4,876`, no source ID twice. Imported m
 
 ## E. Approved identity and previous 28 exceptions
 
-- Pinned crosswalk digest verified? UNKNOWN. Operator YES: 763. Loaded crosswalk: 759 VanillaSoft ids across 702 ERP CT_IDs. Duplicate YES ids not fetched: 4. Actual exact links: UNKNOWN. Independently verify shared aliases from the loaded file.
+- Pinned crosswalk digest verified? UNKNOWN. Operator YES: 763. Loaded crosswalk: 759 VanillaSoft ids across 691 ERP CT_IDs. Duplicate YES ids not fetched: 4. Actual exact links: UNKNOWN. Independently verify shared aliases from the loaded file.
 - Previous run: 735 bound and 28 `no_erp_person` (27 CT_IDs). New bound count: UNKNOWN. Each historical failure classified by raw company status, placeholder key, missing parent or genuine eligible missing person: UNKNOWN.
 - Wrong approved person links: UNKNOWN; approved link creating duplicate `res.partner`: UNKNOWN; NO candidate bound to rejected CTID: UNKNOWN; pending source IDs falsely matched to ERP: UNKNOWN.
 

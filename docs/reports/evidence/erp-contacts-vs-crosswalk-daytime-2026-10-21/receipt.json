@@ -1,0 +1,35 @@
+{
+  "schema": "plasticos.evidence_receipt/v1",
+  "subject": "erp-contacts-then-vanillasoft-crosswalk-daytime",
+  "recorded_at": "2026-10-22T01:27:06Z",
+  "verdict": "PARTIAL",
+  "clone": "odoo_test_day1021",
+  "fixture": "odoo_test_tpl_ee_c9e8a81f52f23680",
+  "exit_code": 0,
+  "loaded_at_start": {
+    "vanillasoft_ids": 763,
+    "note": "The process loaded the crosswalk that was on disk when it started. Later file edits did not apply to this run."
+  },
+  "result": {
+    "imported": 733,
+    "held": 30,
+    "checkpoint_rows_missing_signals": 0,
+    "dispositions_without_a_source_reason": 0
+  },
+  "post_run_crosswalk": {
+    "sha256": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
+    "vanillasoft_ids": 759,
+    "erp_ct_ids": 691,
+    "blank_erp_ct_id_rows": 22
+  },
+  "resolved_after_the_run": [
+    {"vanillasoft_contact_id": "619579299", "action": "retarget", "erp_ct_id": "148650001", "reason": "Justin Dalton, same email, active CERTIFIED ENTERPRISES, Anaheim CA"},
+    {"vanillasoft_contact_id": "625031140", "action": "retarget", "erp_ct_id": "9500001", "reason": "Rich Steele, same email, active WM RECYCLE AMERICA"},
+    {"vanillasoft_contact_id": "700174793", "action": "active_company", "cp_id": "1257", "reason": "Jay Wallace is inactive on active PRATT INDUSTRIES"},
+    {"vanillasoft_contact_id": "683417624", "action": "active_company", "cp_id": "1380", "reason": "Jay Saxton, regional manager, placed on active BALCONES RECYCLING. Little Rock address already carries his email."},
+    {"vanillasoft_contact_id": "609608749", "action": "active_company", "cp_id": "2461", "reason": "Wanda McGee, owner, placed on active FOUR SEASONS PRODUCE. Randy is the plant manager there."},
+    {"vanillasoft_contact_id": "715993397", "action": "active_company", "cp_id": "2076", "reason": "Jessica Klein placed on active KAMPS INC. The Le Mars address and the other Tritz people are on that company."}
+  ],
+  "still_unmapped": "unmapped_for_judgment.csv",
+  "still_unmapped_count": 7
+}

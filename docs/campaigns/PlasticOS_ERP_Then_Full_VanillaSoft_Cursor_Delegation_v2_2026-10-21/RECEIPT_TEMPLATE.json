@@ -31,12 +31,12 @@
   },
   "inputs": {
     "source_csv_sha256_expected": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
-    "approved_crosswalk_sha256_expected": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
+    "approved_crosswalk_sha256_expected": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
     "operator_approved_yes": 763,
     "operator_rejected_suggested_links": 18,
     "operator_unreviewed": 4095,
     "loaded_crosswalk_vs_ids": 759,
-    "distinct_approved_erp_ct_ids": 702,
+    "distinct_approved_erp_ct_ids": 691,
     "duplicate_yes_ids_not_fetched": 4,
     "sha256_verified_on_runtime_host": null,
     "source_contact_id_census_verified_on_runtime_host": null

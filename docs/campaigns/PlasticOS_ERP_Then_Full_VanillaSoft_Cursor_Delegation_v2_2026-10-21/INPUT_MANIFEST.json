@@ -1,8 +1,8 @@
 {
   "approved_identity_crosswalk_verified_locally": {
-    "pinned_sha256": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
+    "pinned_sha256": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
     "sha256_matches_current_repository_pin": true,
-    "unique_erp_ct_ids": 702,
+    "unique_erp_ct_ids": 691,
     "vs_ids": 759
   },
   "contract_id": "PLASTICOS-ERP-THEN-VS-FULL-CRM-2026-10-21-v2",
@@ -11,8 +11,8 @@
     "03_APPROVED_CONTACT_CROSSWALK.csv": {
       "commit_to_git": false,
       "relative_path": "PRIVATE_INPUTS/03_APPROVED_CONTACT_CROSSWALK.csv",
-      "sha256": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
-      "size_bytes": 14855
+      "sha256": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
+      "size_bytes": 14767
     },
     "CRM Leads - VanillaSoft - Scrap-Management(1).csv": {
       "commit_to_git": false,

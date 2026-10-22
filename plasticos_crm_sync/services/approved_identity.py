@@ -18,9 +18,9 @@ from pathlib import Path
 
 CROSSWALK_PARAM = "plasticos_crm_sync.approved_contact_crosswalk"
 CROSSWALK_HEADER = ("erp_ct_id", "vanillasoft_contact_id")
-PINNED_SHA256 = "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9"
+PINNED_SHA256 = "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1"
 PINNED_VS_COUNT = 759
-PINNED_ERP_COUNT = 702
+PINNED_ERP_COUNT = 691
 XMLID_MODULE = "plasticos_transaction"
 # Second VanillaSoft ids for a person the crosswalk already approves on an
 # active ERP contact. The inactive CT_ID is the wrong target. These ids are
@@ -32,6 +32,10 @@ ACTIVE_COMPANY_CP_BY_VS = {
     "572647290": "399",  # WESTBURY PAPERSTOCK WAREHOUSE
     "573474286": "1405",  # MIDWEST FIBER INC, including Normal, IL
     "579156006": "1484",  # ASHEBORO RECYCLING
+    "700174793": "1257",  # PRATT INDUSTRIES; Jay Wallace is inactive on this active company
+    "683417624": "1380",  # Jay Saxton, regional manager on active BALCONES RECYCLING
+    "609608749": "2461",  # Wanda McGee, owner; Randy is the plant manager on FOUR SEASONS PRODUCE
+    "715993397": "2076",  # Jessica Klein; the Le Mars address belongs to active KAMPS INC
 }
 OMITTED_DUPLICATE_VS_IDS = frozenset(
     {

@@ -14,7 +14,7 @@ Those rows have to be readable on the ERP person after sync. Storing them withou
 
 ## Progress
 
-Module version `19.0.1.9.2` is the code for that link. `19.0.1.9.0` added the person link. `19.0.1.9.1` keeps the exception text on a custom-table warning. `19.0.1.9.2` does not import a second VanillaSoft id for a person the crosswalk already approves, and a crosswalk id whose ERP person was not imported becomes a `crm.lead` with no ERP partner.
+Module version `19.0.1.9.3` is the code for that link. `19.0.1.9.0` added the person link. `19.0.1.9.1` keeps the exception text on a custom-table warning. `19.0.1.9.2` does not import a second VanillaSoft id for a person the crosswalk already approves, and a crosswalk id whose ERP person was not imported becomes a `crm.lead` with no ERP partner. `19.0.1.9.3` retargets Justin Dalton and Rich Steele onto their active ERP contacts. It places Jay Wallace on active PRATT INDUSTRIES, Jay Saxton on active BALCONES RECYCLING, Wanda McGee on active FOUR SEASONS PRODUCE, and Jessica Klein on active KAMPS INC.
 
 In this version:
 
