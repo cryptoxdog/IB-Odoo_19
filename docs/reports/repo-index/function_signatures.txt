@@ -230,14 +230,74 @@
 ./ci/weak_test_fixer.py:140:    def _suggest_assertions(self, operations):
 ./ci/weak_test_fixer.py:153:    def iter_test_files(self):
 ./ci/weak_test_fixer.py:181:def main() -> int:
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/census.py:10:def main() -> int:
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d05_singleton_proof.py:12:def check(name, ok, detail=""):
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d05_singleton_proof.py:16:def rows():
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d06_pagination_harness.py:11:def check(name, ok, detail=""):
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d06_pagination_harness.py:26:def sync(doc, failing):
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d06_pagination_harness.py:38:def batch_sync(failing):
-./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:18:def check(path: Path) -> None:
-./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:22:    def require(condition, desc):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:68:def bind_config(config) -> None:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:116:def call(root: Path, *argv: str) -> str:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:124:def ensure_target(root: Path) -> None:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:152:def replacements(model: str, test: str) -> tuple[str, str]:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:162:def patch_file(path: str, old: str, new: str) -> str:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:170:def make_patch(root: Path) -> str:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:186:def main() -> int:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:16:    def _check_request_shape(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:23:    def test_identical_retry_returns_prior_receipt_without_second_activity(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:28:def git(root, *argv, check=True):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:36:    def setUp(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:59:    def test_exact_fixture_generates_applyable_patch(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:79:    def test_wrong_branch_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:84:    def test_dirty_worktree_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:89:    def test_changed_remote_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:94:    def test_lookalike_host_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:99:    def test_https_origin_is_accepted(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:103:    def test_stale_head_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:110:    def test_missing_model_anchor_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:114:    def test_duplicate_test_anchor_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:118:    def test_existing_helper_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:131:    def setUp(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:142:    def _run_binding(self, *, db="odoo_test_mack_fixture", host="/tmp", marker="role=clone owner=mack", expect=None):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:151:            def __enter__(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:154:            def __exit__(self, *_args):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:157:            def execute(self, statement):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:160:            def fetchone(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:164:            def cursor(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:167:            def close(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:170:        def connect(**kwargs):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:191:    def test_owned_disposable_allows_binding(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:194:    def test_refuses_non_disposable_db_before_any_connection(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:197:    def test_refuses_remote_host_before_any_connection(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:200:    def test_refuses_database_without_ownership_marker(self):
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:30:def redact(text: str) -> str:
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:37:def classify(raw: str, messages: list[str]) -> str:
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:47:def remember(signals: list[dict], seen: set[tuple[str, str]], level: str, reason: str) -> None:
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:62:    def __init__(self) -> None:
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:66:    def emit(self, record: logging.LogRecord) -> None:
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:74:def _signals_for_contact(raw: str, messages: list[str], exc_text: str, logged: list[tuple[str, str]]) -> list[dict]:
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:88:def main(env) -> None:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:33:def redact(text: str) -> str:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:40:def classify(raw: str, messages: list[str]) -> str:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:50:def remember(signals: list[dict], seen: set[tuple[str, str]], level: str, reason: str) -> None:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:65:    def __init__(self) -> None:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:69:    def emit(self, record: logging.LogRecord) -> None:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:77:def _signals_for_contact(raw: str, messages: list[str], exc_text: str, logged: list[tuple[str, str]]) -> list[dict]:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:91:def _load_census() -> dict[str, str]:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:112:def _append(record: dict) -> None:
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:119:def main(env) -> None:
+./docs/campaigns/odoo_tech_debt/_build_register.py:27:def git(*args: str) -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:32:def export_origin_staging(dest: Path) -> Path:
+./docs/campaigns/odoo_tech_debt/_build_register.py:39:def sha() -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:43:def tracked() -> set[str]:
+./docs/campaigns/odoo_tech_debt/_build_register.py:47:def function_at(source: str, line: int) -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:62:def source_of(rel: str) -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:69:def line_in_symbol(rel: str, symbol: str, code: str) -> int:
+./docs/campaigns/odoo_tech_debt/_build_register.py:80:def line_text(rel: str, line: int) -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:87:def enclosing_relation(rel: str, line: int) -> str | None:
+./docs/campaigns/odoo_tech_debt/_build_register.py:111:def item(**kwargs) -> dict:
+./docs/campaigns/odoo_tech_debt/_build_register.py:128:def field_scanner_cause(code: str, enclosing: str | None) -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:153:def call_window(rel: str, line: int, span: int = 8) -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:158:def unbounded_disposition(rel: str, line: int, code: str, bound: str) -> tuple[str, str, str, bool]:
+./docs/campaigns/odoo_tech_debt/_build_register.py:206:def main() -> None:
+./docs/campaigns/odoo_tech_debt/_build_register.py:218:def build() -> None:
+./docs/campaigns/odoo_tech_debt/_build_register.py:250:    def add(row: dict) -> None:
+./docs/campaigns/odoo_tech_debt/_build_register.py:1052:def md_cell(value) -> str:
+./docs/campaigns/odoo_tech_debt/_build_register.py:1057:def write_markdown(document: dict, path: Path) -> None:
 ./plasticos_accounting/__init__.py:6:def pre_init_hook(env):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:189:    def _compute_kpis(self):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:441:    def _compute_ai_config(self):
@@ -2455,25 +2515,6 @@
 ./scripts/repo_generators/export_repo_indexes.py:164:def is_odoo_repo(root: Path, files: list[Path]) -> bool:
 ./scripts/repo_generators/export_repo_indexes.py:168:def write_index(root: Path, name: str, lines: list[str]) -> int:
 ./scripts/repo_generators/export_repo_indexes.py:176:def main() -> int:
-./scripts/roadmap.py:37:def _load_registry() -> dict:
-./scripts/roadmap.py:51:def _items_for(reg: dict, domain: str, phase: int | None = None, kind: str | None = None) -> list[dict]:
-./scripts/roadmap.py:64:def _next_id(reg: dict, domain: str) -> str:
-./scripts/roadmap.py:79:def _render_backlog(items: list[dict]) -> str:
-./scripts/roadmap.py:87:def _render_scope_column(items: list[dict]) -> str:
-./scripts/roadmap.py:92:def _render_scope_table(in_items: list[dict], out_items: list[dict]) -> str:
-./scripts/roadmap.py:109:def _render_observability(items: list[dict]) -> str:
-./scripts/roadmap.py:114:def _render_capabilities(items: list[dict], notes_header: str = "Human gate remaining / Notes") -> str:
-./scripts/roadmap.py:123:def _render_domain_index(domains: dict) -> str:
-./scripts/roadmap.py:136:def _render_readme_architecture(domains: dict) -> str:
-./scripts/roadmap.py:151:def _replace_marker(content: str, key: str, section: str, body: str) -> str:
-./scripts/roadmap.py:161:def _update_last_updated(content: str) -> str:
-./scripts/roadmap.py:171:def _extract_marker_body(content: str, key: str, section: str) -> str | None:
-./scripts/roadmap.py:179:def cmd_sync() -> int:
-./scripts/roadmap.py:260:def cmd_check() -> int:
-./scripts/roadmap.py:329:def cmd_list(args: argparse.Namespace) -> int:
-./scripts/roadmap.py:344:def cmd_add(args: argparse.Namespace) -> int:
-./scripts/roadmap.py:370:def cmd_update(args: argparse.Namespace) -> int:
-./scripts/roadmap.py:389:def main() -> int:
 ./scripts/semantic_kernel_backfill.py:32:def build_parser() -> argparse.ArgumentParser:
 ./scripts/semantic_kernel_backfill.py:57:def load_fixture_rows(path: Path | None) -> list[SourceRow]:
 ./scripts/semantic_kernel_backfill.py:74:def main(argv: list[str] | None = None) -> int:
@@ -2554,8 +2595,8 @@
 ./tests/contracts/test_external_intelligence_authority.py:49:def test_invariants_declare_external_intelligence_authority():
 ./tests/contracts/test_external_intelligence_authority.py:56:def test_architecture_points_at_successor_adr_not_fallback_authority():
 ./tests/contracts/test_external_intelligence_authority.py:64:def test_agents_forbid_local_engines_as_authority():
-./tests/contracts/test_external_intelligence_authority.py:71:def test_roadmap_and_track_b_cite_successor_authority():
-./tests/contracts/test_external_intelligence_authority.py:82:def test_acceptance_local_engines_no_longer_architectural_authority():
+./tests/contracts/test_external_intelligence_authority.py:71:def test_gate_roadmap_generator_is_retired_and_folder_is_empty():
+./tests/contracts/test_external_intelligence_authority.py:89:def test_acceptance_local_engines_no_longer_architectural_authority():
 ./tests/contracts/test_external_intelligence_contract_parity.py:28:    def __init__(self, params: dict[str, str]):
 ./tests/contracts/test_external_intelligence_contract_parity.py:31:    def get_param(self, key: str, default=None):
 ./tests/contracts/test_external_intelligence_contract_parity.py:36:    def __init__(self, params: dict[str, str] | None = None):
