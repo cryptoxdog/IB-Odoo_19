@@ -39,13 +39,11 @@ Wave 1 (max concurrent, fail-open collectors — start together, never
 
 - **CI Gate** Phase 1: `lint` \| `static-checks` \| `pure-python-tests` \|
   `secret-scan` \| `audit-baseline`
-- **Baseline Ratchet** collectors (reusable workflow jobs)
 - **L9 Analysis** `analyze` (this pack; advisory findings)
 
 Wave 2 (strictest last — aggregators / publish):
 
 - **CI Gate Result** (`needs:` all Phase 1, `if: always()`)
-- **Baseline Ratchet / Ratchet Verdict**
 - **L9** `publish` (depends on `analyze` only; not a merge blocker while
   advisory-first)
 
@@ -61,17 +59,13 @@ GG does not cancel GHA jobs.
 
 ## `l9-ci-sdk` is never referenced directly here — by design
 
-Neither `l9-analysis.yml` nor `baseline-ratchet.yml` has a `uses: Quantum-L9/l9-ci-sdk@...`
-line anywhere in this repo, and that's expected, not a gap. `Quantum-L9/l9-ci-sdk` is an
-implementation detail of `l9-ci-core`'s own composite actions (`provision-sdk`,
-`invoke-sdk`, `validate-bundle`, `route-artifacts`, `build-artifact-manifest`) — those
-actions resolve/download/pin the SDK internally. `baseline-ratchet.yml` passes
-`sdk-revision: 0c487747b0fcd172edaefe9e843dac818de8fc12` as a caller *input* to
-`l9-ci-core`'s reusable workflow (a pass-through parameter Core forwards to its own
-`provision-sdk` step); `l9-analysis.yml` provisions via Core's default, then forwards
+`l9-analysis.yml` has no `uses: Quantum-L9/l9-ci-sdk@...` line, and that's expected, not
+a gap. `Quantum-L9/l9-ci-sdk` is an implementation detail of `l9-ci-core`'s own composite
+actions (`provision-sdk`, `invoke-sdk`, `validate-bundle`, `route-artifacts`,
+`build-artifact-manifest`) — those actions resolve/download/pin the SDK internally.
+`l9-analysis.yml` provisions via Core's default, then forwards
 `steps.sdk.outputs.sdk-revision` into `publish-analysis` so analyze and publish use the
-same allowlisted revision. In both cases, `l9-ci-sdk` is consumed *through* Core's
-action surface, never instantiated in this repo's own workflow graph — consumer repos
+same allowlisted revision. `l9-ci-sdk` is consumed *through* Core's action surface, never instantiated in this repo's own workflow graph — consumer repos
 are not meant to pin or invoke it directly. If a future Core version changes that
 contract, that's a breaking change to review against `l9-ci-core`'s own changelog, not
 something to route around locally.
@@ -79,10 +73,7 @@ something to route around locally.
 ## Pin
 
 `.github/workflows/l9-analysis.yml` pins `Quantum-L9/l9-ci-core` to
-`3a085894895f754a4eab19a88d8449804ba805c3` — the same commit
-`.github/workflows/baseline-ratchet.yml` already trusts (GATE-01 adoption).
-Bump both pins together; don't let them drift to different Core revisions.
-That Core SHA's `publish-analysis.yml` provisions via `provision-sdk@2989db3d…`,
+`3a085894895f754a4eab19a88d8449804ba805c3`. That Core SHA's `publish-analysis.yml` provisions via `provision-sdk@2989db3d…`,
 whose `.l9/sdk-compatibility.yaml` allowlists the SDK revision above (fixes the
 prior d81a06ed publish path that still called `provision-sdk@d2c2cd7f` and
 rejected `0779fca…`).

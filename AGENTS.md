@@ -665,3 +665,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > probe. SQL authority is `plasticos_partner_import/erp_extracted_data/` and
 > `erp/reader.py`. `docs/runbooks/` is removed. The CI contract note lives at
 > `docs/reports/CI_CONTRACT_ASSURANCE.md`.
+
+> **2026-10-22 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the GATE-01 Baseline Ratchet is retired. `.github/workflows/baseline-ratchet.yml` and its two
+> ledgers under `.l9/baselines/` were removed. Every sentence above that names `baseline-ratchet.yml`,
+> "Baseline Ratchet", or `Ratchet Verdict` as a CI gate is superseded. On each PR push, **CI Gate** and
+> **L9 Analysis** start together; `CI Gate Result` is the merge aggregator. The `audit-baseline` job in
+> `ci.yml` (`ci/baselines/*.json`) is separate and unchanged. Do not re-add the ratchet caller.

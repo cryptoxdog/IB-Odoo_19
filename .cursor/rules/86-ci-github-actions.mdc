@@ -70,7 +70,7 @@ Phase 2 (always last):
 
 **Never** reintroduce `needs: lint` / `needs: static-checks` on Phase 1 jobs — that restores fail-fast and hides sibling failures. `ci/check_github_actions_kernel.sh` `merge_gate_logic` enforces Phase 1 parallelism + aggregator presence.
 
-**Cross-workflow:** `ci.yml`, `baseline-ratchet.yml`, and `l9-analysis.yml` start concurrently on PRs. Do **not** chain them with `workflow_run` (serializes and kills max-concurrent feedback). Prefer required status checks on aggregators (`CI Gate Result`, `Baseline Ratchet / Ratchet Verdict`) plus external GitGuardian. L9 Analysis stays advisory-first until governance promotes rules.
+**Cross-workflow:** `ci.yml` and `l9-analysis.yml` start concurrently on PRs. Do **not** chain them with `workflow_run` (serializes and kills max-concurrent feedback). Prefer required status checks on the aggregator (`CI Gate Result`) plus external GitGuardian. The GATE-01 `baseline-ratchet.yml` caller was retired on 2026-10-22; do not re-add it. L9 Analysis stays advisory-first until governance promotes rules.
 
 **Concurrency:** each workflow uses its own `concurrency` group with `cancel-in-progress: true` (cost). Rapid re-pushes cancel in-flight runs — treat only the **latest settled (non-cancelled) HEAD run** as signal. GitGuardian is an external app check; it does **not** cancel GitHub Actions jobs.
 
@@ -91,7 +91,7 @@ timeout_method = "thread"
 
 ## Deleted / Do-Not-Revive Workflows
 
-The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-check.yml`, `pr-gate.yml`) were **deleted** during GATE-01 adoption. Do not re-add them — `ci.yml` is the single blocking check workflow (plus `baseline-ratchet.yml`). Unique checks from those files were restored into `ci.yml` (see inline `restored 2026-07` comments).
+The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-check.yml`, `pr-gate.yml`) were **deleted** during GATE-01 adoption. Do not re-add them — `ci.yml` is the single blocking check workflow. `baseline-ratchet.yml` was retired on 2026-10-22. Unique checks from those files were restored into `ci.yml` (see inline `restored 2026-07` comments).
 
 ## External Odoo.sh Status Checks (NOT GitHub Actions)
 
