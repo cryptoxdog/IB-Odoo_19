@@ -47,7 +47,7 @@ above always mean `docs/adr/ADR-0NN-*.md`.
 
 - Cross-module contract that agents and humans must not violate
 - Irreversible or expensive-to-change schema or integration choice
-- Phase-gated external system behavior (see also `docs/GATE_AUTONOMY_ROADMAP.md`)
+- Phase-gated external system behavior (see also `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`)
 
 ## How to add an ADR
 
@@ -61,7 +61,7 @@ above always mean `docs/adr/ADR-0NN-*.md`.
 
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) — system structure and module layers
 - [INVARIANTS.md](../../INVARIANTS.md) — CI-enforced rules
-- [docs/GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md) — Gate phases (companion to ADR-002)
+- [docs/roadmap/GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md) — Gate phases (companion to ADR-002)
 
 ## Notes
 

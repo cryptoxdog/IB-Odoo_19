@@ -632,3 +632,9 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > default output path does not apply in this repo. The line that says no
 > repo-local generator exists is also superseded: the generator is
 > `scripts/repo_generators/export_repo_indexes.py`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> GMP execution reports are saved in `docs/reports/gmp-reports/` and committed.
+> Do not write them to a root `reports/` directory, do not scatter them, and do not
+> finish a GMP without saving the report. `docs/GATE_AUTONOMY_ROADMAP.md` moved to
+> `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`.

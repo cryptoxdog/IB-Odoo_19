@@ -16,8 +16,8 @@ ADR_002 = ROOT / "docs/adr/ADR-002-gate-hub-phased-autonomy.md"
 INVARIANTS = ROOT / "INVARIANTS.md"
 ARCHITECTURE = ROOT / "ARCHITECTURE.md"
 AGENTS = ROOT / "AGENTS.md"
-ROADMAP = ROOT / "docs/GATE_AUTONOMY_ROADMAP.md"
-TRACK_B_04 = ROOT / "docs/track_b/04_odoo_gate_consumer_wiring.md"
+ROADMAP = ROOT / "docs/roadmap/GATE_AUTONOMY_ROADMAP.md"
+ADR_013 = ROOT / "docs/adr/ADR-013-fail-closed-gate-transport.md"
 
 
 def test_mothball_adr_exists_and_declares_single_authority():
@@ -68,21 +68,21 @@ def test_agents_forbid_local_engines_as_authority():
     assert "remove local matcher fallback in Phase 1" not in text
 
 
-def test_roadmap_and_track_b_cite_successor_authority():
+def test_roadmap_and_adr_013_cite_successor_authority():
     roadmap = ROADMAP.read_text(encoding="utf-8")
     assert "ADR-003-single-external-intelligence-authority" in roadmap
     assert "Mothball authority" in roadmap or "non-authority" in roadmap.lower()
 
-    track = TRACK_B_04.read_text(encoding="utf-8")
-    assert "ADR-003-single" in track or "ADR-003-single-external-intelligence-authority" in track
-    assert "NON-AUTHORITY" in track or "non-authority" in track.lower()
-    assert "Preserve **try-Gate → local-fallback**" not in track
+    fail_closed = ADR_013.read_text(encoding="utf-8")
+    assert "Fail closed" in fail_closed or "fail closed" in fail_closed.lower()
+    assert "local" in fail_closed.lower()
+    assert "Preserve **try-Gate → local-fallback**" not in fail_closed
 
 
 def test_acceptance_local_engines_no_longer_architectural_authority():
     """Registry acceptance: local algorithmic fallback is no longer architectural authority."""
     corpus = "\n".join(
-        p.read_text(encoding="utf-8") for p in (ADR_SINGLE, INVARIANTS, ARCHITECTURE, AGENTS, ROADMAP, TRACK_B_04)
+        p.read_text(encoding="utf-8") for p in (ADR_SINGLE, INVARIANTS, ARCHITECTURE, AGENTS, ROADMAP, ADR_013)
     )
     assert "architectural authority" in corpus.lower()
     assert "ADR-003-single-external-intelligence-authority" in corpus

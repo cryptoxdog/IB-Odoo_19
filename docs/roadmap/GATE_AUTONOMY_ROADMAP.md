@@ -2,10 +2,10 @@
 
 **Status:** Active  
 **Last updated:** 2026-08-02  
-**Authority (intelligence):** [ADR-003: Single External Intelligence Authority](adr/ADR-003-single-external-intelligence-authority.md)  
-**Topology / phased human gates:** [ADR-002: Gate Hub, CEG Routing, and Phased Autonomy](adr/ADR-002-gate-hub-phased-autonomy.md)  
-**Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) § External Intelligence Boundary  
-**Registry:** [docs/roadmap/registry.yaml](roadmap/registry.yaml) — `make roadmap` (add + sync + validate)
+**Authority (intelligence):** [ADR-003: Single External Intelligence Authority](../adr/ADR-003-single-external-intelligence-authority.md)  
+**Topology / phased human gates:** [ADR-002: Gate Hub, CEG Routing, and Phased Autonomy](../adr/ADR-002-gate-hub-phased-autonomy.md)  
+**Architecture:** [ARCHITECTURE.md](../../ARCHITECTURE.md) § External Intelligence Boundary  
+**Registry:** [docs/roadmap/registry.yaml](registry.yaml) — `make roadmap` (add + sync + validate)
 
 ## Objective
 
@@ -165,8 +165,8 @@ Before moving Phase N → N+1:
 
 ## Related documents
 
-- [ADR-003-single-external-intelligence-authority](adr/ADR-003-single-external-intelligence-authority.md) — intelligence authority (mothball M1)
-- [ADR-002](adr/ADR-002-gate-hub-phased-autonomy.md) — Gate hub topology + phased human checkpoints
-- [ARCHITECTURE.md](../ARCHITECTURE.md) — system structure
-- [plasticos_intake/README.md](../plasticos_intake/README.md) — intake pipeline
+- [ADR-003-single-external-intelligence-authority](../adr/ADR-003-single-external-intelligence-authority.md) — intelligence authority (mothball M1)
+- [ADR-002](../adr/ADR-002-gate-hub-phased-autonomy.md) — Gate hub topology + phased human checkpoints
+- [ARCHITECTURE.md](../../ARCHITECTURE.md) — system structure
+- [plasticos_intake/README.md](../../plasticos_intake/README.md) — intake pipeline
 - [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs) — external match engine
