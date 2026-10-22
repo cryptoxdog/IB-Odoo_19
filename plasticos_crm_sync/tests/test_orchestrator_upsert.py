@@ -7,7 +7,11 @@ from unittest.mock import MagicMock, patch
 from odoo import Command
 from odoo.addons.plasticos_crm_sync.adapters.base import CanonicalCall, CanonicalLead, CanonicalTableRow
 from odoo.addons.plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
-from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator, _new_outcomes
+from odoo.addons.plasticos_crm_sync.services.orchestrator import (
+    SyncOrchestrator,
+    _material_inputs,
+    _new_outcomes,
+)
 from odoo.addons.plasticos_crm_sync.services.owner_crosswalk import BLANK_OWNER_LOGIN, OWNER_LOGIN_BY_SOURCE
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
@@ -406,6 +410,72 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertTrue(any("not a polymer" in row["message"] for row in orch.error_rows))
         self.assertEqual(orch.outcomes["failed"], 0)
         self.assertEqual(lead.vanillasoft_id, "vs-mat-unknown")
+
+    def _land_materials(self, external_id, facility, materials, **extra):
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, self._lead(external_id))
+        lead.partner_id = facility
+        fields = {"Materials": materials, **extra}
+        orch._upsert_lead(self.connection, self._lead(external_id, custom_fields=fields))
+        return orch, lead
+
+    def test_comma_separated_materials_store_separate_profiles(self):
+        phrases, hints, _weak = _material_inputs({"Materials": "LDPE, HDPE Drums", "Material Form": "Roll, Film"})
+        self.assertEqual(phrases, ["LDPE", "HDPE Drums"])
+        self.assertEqual(hints["material form"], "Roll, Film")
+
+        facility = self._facility("Comma Materials")
+        _orch, _lead = self._land_materials("vs-comma", facility, "LDPE, HDPE Drums")
+        profiles = {profile.polymer_id.code: profile for profile in self._profiles(facility)}
+        self.assertEqual(set(profiles), {"LDPE", "HDPE"})
+        self.assertEqual(profiles["LDPE"].form_id.code, "FILM")
+        self.assertFalse(profiles["LDPE"].sub_grade)
+        self.assertFalse(profiles["LDPE"].material_attribute_ids)
+        self.assertEqual(profiles["HDPE"].form_id.code, "DRUMS")
+
+        reuse = self._facility("Reuse LDPE")
+        self._land_materials("vs-ldpe-reuse", reuse, "LDPE, LDPE Film")
+        stored = self._profiles(reuse)
+        self.assertEqual(len(stored), 1)
+        self.assertEqual(stored.polymer_id.code, "LDPE")
+        self.assertEqual(stored.form_id.code, "FILM")
+
+        both = self._facility("PE And LDPE")
+        self._land_materials("vs-pe-ldpe", both, "PE, LDPE")
+        by_code = {profile.polymer_id.code: profile for profile in self._profiles(both)}
+        self.assertEqual(set(by_code), {"HDPE", "LDPE"})
+        self.assertFalse(by_code["HDPE"].form_id)
+        self.assertEqual(by_code["LDPE"].form_id.code, "FILM")
+
+    def test_form_hint_with_a_comma_stays_one_hint(self):
+        facility = self._facility("Unsplit Hint")
+        self._land_materials("vs-hint", facility, "HDPE Drums", **{"Material Form": "Roll, Film"})
+        profiles = self._profiles(facility)
+        self.assertEqual(len(profiles), 1)
+        self.assertEqual(profiles.polymer_id.code, "HDPE")
+        self.assertEqual(profiles.form_id.code, "DRUMS")
+
+    def test_bare_ldpe_keeps_the_graded_film_profile(self):
+        facility = self._facility("Graded Then Bare")
+        orch, _lead = self._land_materials("vs-graded-ldpe", facility, "99 Clear LDPE Film")
+        film = self._profiles(facility)
+        self.assertEqual(film.sub_grade, "A")
+        self.assertEqual(set(film.material_attribute_ids.mapped("code")), {"clean", "dry"})
+        orch._upsert_lead(self.connection, self._lead("vs-graded-ldpe", custom_fields={"Materials": "LDPE"}))
+        film = self._profiles(facility)
+        self.assertEqual(len(film), 1)
+        self.assertEqual(film.form_id.code, "FILM")
+        self.assertEqual(film.sub_grade, "A")
+        self.assertEqual(set(film.material_attribute_ids.mapped("code")), {"clean", "dry"})
+
+    def test_mystery_fluff_is_reported_and_the_lead_stays(self):
+        facility = self._facility("Mystery Fluff")
+        orch, lead = self._land_materials("vs-fluff", facility, "mystery fluff")
+        self.assertFalse(self._profiles(facility))
+        self.assertTrue(any("mystery fluff" in row["message"] for row in orch.error_rows))
+        self.assertEqual(orch.outcomes["failed"], 0)
+        self.assertEqual(lead.vanillasoft_id, "vs-fluff")
 
     def test_ambiguous_facility_is_not_invented(self):
         parent = self.env["res.partner"].create({"name": "Ambiguous Parent", "is_company": True})

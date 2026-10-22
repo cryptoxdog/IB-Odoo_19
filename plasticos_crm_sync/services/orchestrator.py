@@ -163,12 +163,23 @@ def _material_inputs(*field_maps):
             parts = _split_material_values(value)
             kind = _material_field_kind(label)
             if kind == "phrase":
-                phrases.extend(parts)
+                phrases.extend(_split_commas(parts))
             elif kind == "hint":
                 if parts:
                     hints[label] = parts[0]
                 weak.extend(parts)
     return _dedupe_phrases(phrases), hints, _dedupe_phrases(weak)
+
+
+def _split_commas(parts) -> list[str]:
+    """Split phrase pieces on ASCII commas. Hint values never reach this."""
+    pieces = []
+    for part in parts:
+        for piece in part.split(","):
+            collapsed = _collapse_ws(piece)
+            if collapsed:
+                pieces.append(collapsed)
+    return pieces
 
 
 def _dedupe_phrases(phrases) -> list[str]:
@@ -1768,12 +1779,12 @@ class SyncOrchestrator:
 
     def _store_normalized_materials(self, lead, texts, plain_hints, partner=None, facility_profile=None) -> None:
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
-            normalize_material,
+            normalize_crm_material,
         )
 
         profiles = self.env["plasticos.material.profile"]
         for text in texts:
-            normalized = normalize_material(self.env, text, structured=plain_hints)
+            normalized = normalize_crm_material(self.env, text, structured=plain_hints)
             if normalized.unresolved or not normalized.polymer:
                 detail = ", ".join(normalized.unresolved) or "unresolved material"
                 self.error_rows.append(
