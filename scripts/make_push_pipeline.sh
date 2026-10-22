@@ -62,14 +62,59 @@ if [[ -n "${status}" ]]; then
   exit 1
 fi
 
+# Publication repository: the one authorized origin push URL (same allowlist
+# as git_push_with_pr.sh). git_push_with_pr.sh runs as a child, so its export
+# never reaches this process; bind GH_REPO here, before the first API call, so
+# git_open_pr.sh and apply_pr_kernel_metadata.sh inherit it. An inherited
+# GH_REPO naming another repository is refused, never used.
+push_urls="$(git remote get-url --push --all origin 2>/dev/null || true)"
+if [[ -z "${push_urls}" || "${push_urls}" == *$'\n'* ]]; then
+  refuse "origin must have exactly one push URL"
+fi
+case "${push_urls%.git}" in
+  https://github.com/cryptoxdog/IB-Odoo_19 | git://github.com/cryptoxdog/IB-Odoo_19 | \
+    git@github.com:cryptoxdog/IB-Odoo_19 | ssh://git@github.com/cryptoxdog/IB-Odoo_19) ;;
+  *) refuse "origin push URL is not cryptoxdog/IB-Odoo_19 (${push_urls})" ;;
+esac
+if [[ -n "${GH_REPO:-}" && "${GH_REPO}" != "cryptoxdog/IB-Odoo_19" ]]; then
+  refuse "GH_REPO=${GH_REPO} is not the origin repository cryptoxdog/IB-Odoo_19"
+fi
+export GH_REPO="cryptoxdog/IB-Odoo_19"
+
+# REST only. `gh auth status` reports a false negative and `gh pr`/`gh label`
+# are GraphQL-backed (HTTP 403) on a surface whose egress proxy injects the
+# credential; probe the capability actually used.
 if ! command -v gh >/dev/null 2>&1; then
   refuse "gh CLI is not available; publication cannot create or verify the pull request"
 fi
-if ! gh auth status >/dev/null 2>&1; then
-  refuse "gh is not authenticated"
+if ! gh api user >/dev/null 2>&1; then
+  refuse "gh is not authenticated (gh api user failed)"
 fi
-if ! gh pr list --head "${TARGET}" --base "${BASE}" --state open --json number >/dev/null 2>&1; then
-  refuse "cannot look up pull requests for ${TARGET} → ${BASE}"
+# Open PR(s) for TARGET → BASE; prints the first PR number, or nothing.
+open_pr_number() {
+  local raw
+  raw="$(gh api --method GET "repos/${GH_REPO}/pulls" -f state=open -f base="${BASE}" -f head="${GH_REPO%%/*}:${TARGET}")" \
+    || return 1
+  python3 - "${raw}" "${GH_REPO}" <<'PY'
+import json
+import sys
+
+raw, repo = sys.argv[1:]
+try:
+    items = json.loads(raw)
+except ValueError:
+    sys.exit("pull request lookup returned malformed JSON")
+if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+    sys.exit("pull request lookup did not return a list of pull requests")
+for item in items:
+    if ((item.get("base") or {}).get("repo") or {}).get("full_name") != repo:
+        sys.exit(f"pull request lookup returned a pull request outside {repo}")
+if items:
+    print(items[0].get("number") or "")
+PY
+}
+if ! open_pr_number >/dev/null; then
+  refuse "cannot look up pull requests for ${TARGET} → ${BASE} (gh api repos/${GH_REPO}/pulls)"
 fi
 
 echo "══════════════════════════════════════════════════════"
@@ -103,11 +148,17 @@ bash scripts/git_push_with_pr.sh "${TARGET}"
 echo ""
 
 echo "→ Open/verify PR → ${BASE}..."
-bash scripts/git_open_pr.sh "${TARGET}" "${BASE}"
+if ! bash scripts/git_open_pr.sh "${TARGET}" "${BASE}"; then
+  echo "partial publication: origin/${TARGET} was pushed at $(git rev-parse HEAD)," >&2
+  echo "but the pull request into ${BASE} was not created or proven. Re-run make pr to create/verify it." >&2
+  exit 1
+fi
 
 PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
 if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
-  gh pr comment "${TARGET}" --repo cryptoxdog/IB-Odoo_19 \
-    --body "Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by the operator: ${PR_SMOKE_BYPASS}" \
-    || echo "warning: could not post the install-smoke bypass note on the PR" >&2
+  bypass_note="Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by the operator: ${PR_SMOKE_BYPASS}"
+  if ! pr_number="$(open_pr_number)" || [[ -z "${pr_number}" ]] \
+    || ! gh api --method POST "repos/${GH_REPO}/issues/${pr_number}/comments" -f body="${bypass_note}" >/dev/null; then
+    echo "warning: could not post the install-smoke bypass note on the PR" >&2
+  fi
 fi
