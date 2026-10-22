@@ -25,3 +25,5 @@ Review periodically and promote stable learnings to CLAUDE.md or relevant rule f
 - **[2026-03-27] Odoo 19 removed from `ir.cron`**: `doall`, `numbercall` fields. Remove from XML data files.
 
 - **[2026-03-27] `documents.folder` still exists in Odoo 19 Enterprise** — KeyError occurs only when Enterprise `documents` module is not installed on the instance. Verify Enterprise modules are present before installing `plasticos_documents_native`.
+
+- **[2026-10-22] Publication: `make pr-check` is scoped to the changed files** — `scripts/pr_check_scope.py` is the one owner: audits run when a non-documentation path changed, pytest runs only the test modules touched by or reading the changed paths (`make test-scoped`), install-smoke only when an addon load input or installer input changed. A docs-only branch publishes with no collector and no Docker. `PR_CHECK_SCOPE=full` runs everything; `make test` and `ci.yml` are unchanged.

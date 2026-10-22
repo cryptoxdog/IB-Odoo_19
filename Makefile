@@ -1117,3 +1117,14 @@ import-vanillasoft:
 pr-nosmoke:
 	@test -n "$(strip $(reason))" || { echo 'usage: make pr-nosmoke reason="why install-smoke is skipped"' >&2; exit 2; }
 	@PR_SMOKE_BYPASS='$(reason)' $(MAKE) --no-print-directory pr $(if $(b),b=$(b),) $(if $(base),base=$(base),)
+
+# 2026-10-22 — make pr-check runs only what the branch changed can reach
+# (scripts/pr_check_scope.py): the pytest wave gets the selected test modules
+# in TEST_PATHS through this target, install-smoke runs only when an addon or
+# installer input changed, and a documentation-only branch publishes with no
+# collector and no Docker. PR_CHECK_SCOPE=full runs the whole gate. make test
+# and GitHub ci.yml still run the whole suite.
+.PHONY: test-scoped
+test-scoped:
+	@echo "→ Pure-Python tests reached by the changed files: $(TEST_PATHS)"
+	python3 -m pytest $(TEST_PATHS) -q

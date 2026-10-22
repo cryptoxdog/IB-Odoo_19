@@ -174,7 +174,21 @@ fi
 if [[ "$(git rev-parse HEAD)" != "${LOCAL_SHA}" ]] || [[ -n "$(git status --porcelain)" ]]; then
   refuse "HEAD or the worktree changed during validation"
 fi
-if [[ "${SMOKE_BYPASS}" != "1" ]] && ! bash scripts/install_smoke.sh --recheck; then
+# make pr-check scoped the gate to the changed files and left its receipt; a
+# change that reaches no addon or installer input needs no smoke recheck. No
+# receipt (the bypass branch above, or a failed scope) means recheck.
+smoke_needed() {
+  python3 - .cache/pr-check/scope.json <<'PY'
+import json
+import sys
+try:
+    needed = json.load(open(sys.argv[1])).get("smoke", 1)
+except (OSError, ValueError, AttributeError):
+    needed = 1
+sys.exit(0 if needed else 1)
+PY
+}
+if [[ "${SMOKE_BYPASS}" != "1" ]] && smoke_needed && ! bash scripts/install_smoke.sh --recheck; then
   refuse "install-smoke --recheck rejected the live evidence"
 fi
 
