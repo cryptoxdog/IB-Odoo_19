@@ -29,7 +29,17 @@ from dataclasses import dataclass, field
 
 from .reader import SourcePayload, SourcePayloadError
 
-__all__ = ["IdentityViolation", "SourceIndex", "build_source_index"]
+__all__ = [
+    "INVENTORY_COUNTERPARTY",
+    "IdentityViolation",
+    "SourceIndex",
+    "account_inventory_destinations",
+    "build_source_index",
+]
+
+# BuySell.CustID / Address.CpID for an internal inventory receipt. The address
+# Type is the site selector (BuySell.ShipToID). It is not a commercial partner.
+INVENTORY_COUNTERPARTY = "(INV)"
 
 # Source key column per indexed table.
 PRIMARY_KEYS: dict[str, str] = {
@@ -74,6 +84,10 @@ class SourceIndex:
 
     # Grouped relationships
     addresses_by_cp: dict[str, list[str]] = field(default_factory=dict)
+    # (INV) sites, keyed by AddressID. Not commercial children and not partners.
+    inventory_destinations: dict[str, dict[str, str | None]] = field(default_factory=dict)
+    # (CpID, Type) -> AddressIDs. A worksheet resolves only an exact one-row match.
+    inventory_by_selector: dict[tuple[str, str], list[str]] = field(default_factory=dict)
     contacts_by_cp: dict[str, list[str]] = field(default_factory=dict)
     roles_by_contact: dict[str, list[str]] = field(default_factory=dict)
     sales_reps_by_cp: dict[str, list[dict[str, str | None]]] = field(default_factory=dict)
@@ -118,6 +132,15 @@ class SourceIndex:
 
     def detail_ids(self, buysell_no: str) -> list[str]:
         return sorted(self.lines_by_buysell.get(buysell_no, []))
+
+    def inventory_destination_ids(self, cust_id: str, ship_to_id: str) -> list[str]:
+        """AddressIDs where ``(CpID, Type)`` equals ``(cust_id, ship_to_id)``.
+
+        Blank and multi-row matches are returned as they are. The caller holds
+        a worksheet unless the list has exactly one id.
+        """
+        key = ((cust_id or "").strip(), (ship_to_id or "").strip())
+        return list(self.inventory_by_selector.get(key, []))
 
     # -- unresolved foreign keys -------------------------------------------
     def unresolved(self, kind: str) -> list[IdentityViolation]:
@@ -227,18 +250,37 @@ def _index_by_pk(payload: SourcePayload, table: str) -> dict[str, dict[str, str 
     return indexed
 
 
+def account_inventory_destinations(index: SourceIndex, report) -> None:
+    """Count each ``(INV)`` address once, without creating a partner for it.
+
+    The row stays in the address population. ``skipped`` is the unchanged
+    outcome: no ``res.partner`` is written on the first run or on replay.
+    """
+    for _address_id in sorted(index.inventory_destinations):
+        report.skip("locations")
+
+
 def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_loaded: bool) -> None:
     """Attach addresses and contacts to their counterparty by CpID only.
 
     A layer that does not include the parent file still groups the child rows.
     The importer resolves that parent from the database. A parent file that is
-    present and does not contain the id stays unresolved.
+    present and does not contain the id stays unresolved. ``(INV)`` is the
+    inventory-site counterparty: those rows are destinations, not partners,
+    and they are not unresolved. Every other placeholder CpID stays unresolved
+    when the counterparty file is present and does not contain it.
     """
     addresses: dict[str, list[str]] = defaultdict(list)
+    inventory: dict[tuple[str, str], list[str]] = defaultdict(list)
     for address_id in sorted(index.addresses):
-        cp_id = _key(index.addresses[address_id], "CpID")
+        row = index.addresses[address_id]
+        cp_id = _key(row, "CpID")
         if not cp_id:
             index.violations.append(IdentityViolation("Address", "missing_parent_key", address_id, "blank CpID"))
+            continue
+        if cp_id == INVENTORY_COUNTERPARTY:
+            index.inventory_destinations[address_id] = row
+            inventory[(cp_id, _key(row, "Type"))].append(address_id)
             continue
         if counterparties_loaded and cp_id not in index.counterparties:
             index.violations.append(
@@ -252,6 +294,7 @@ def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_
             continue
         addresses[cp_id].append(address_id)
     index.addresses_by_cp = dict(addresses)
+    index.inventory_by_selector = dict(inventory)
 
     contacts: dict[str, list[str]] = defaultdict(list)
     for contact_id in sorted(index.contacts):

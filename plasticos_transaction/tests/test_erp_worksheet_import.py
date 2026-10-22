@@ -8,10 +8,13 @@ test from the shapes the SQL projections return; no source database is read.
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 from unittest.mock import patch
 
 from odoo import Command
+from odoo.addons.plasticos_partner_import.erp import source_index as erp_source_index
 from odoo.addons.plasticos_partner_import.erp import summary
+from odoo.addons.plasticos_partner_import.erp.reader import PayloadKind, SourcePayload
 from odoo.addons.plasticos_partner_import.erp.report import ImportReport
 from odoo.addons.plasticos_partner_import.erp.source_index import SourceIndex
 from odoo.tests import TransactionCase, tagged
@@ -1490,6 +1493,172 @@ class TestErpWorksheetImport(TransactionCase):
             product_ids,
         )
         self.assertEqual(len(self._marked("product.product", "legacy_erp_grade_PE")), 2)
+
+    def test_inventory_inbound_keeps_the_purchase_and_the_selected_site_without_a_sale(self):
+        """(INV) is a draft receipt at the ShipToID site. Outbound and ordinary sales stay on the sale path."""
+        partner = self.env["res.partner"]
+        jei = partner.create({"name": "JEI INC", "is_company": True, "supplier_rank": 1})
+        vendor_1292 = partner.create({"name": "Vendor 1292", "is_company": True, "supplier_rank": 1})
+        self.partner_by_cp["2106"] = jei.id
+        self.partner_by_cp["1292"] = vendor_1292.id
+        purchase = self.env["purchase.order"].with_context(tracking_disable=True, mail_create_nolog=True)
+        existing_po = purchase.create({"partner_id": self.vendor.id, "name": "99901", "origin": "preexisting"})
+        self.importer._write_identity_marker(purchase, "legacy_erp_po_99901", existing_po)
+        index = erp_source_index.build_source_index(
+            SourcePayload(
+                kind=PayloadKind.GRID,
+                root=Path("."),
+                tables={
+                    "Address": [
+                        {
+                            "AddressID": "404812",
+                            "CpID": "(INV)",
+                            "Type": "GREENVIEW WASHINGTON WAREHOUSE",
+                        },
+                        {"AddressID": "405026", "CpID": "(INV)", "Type": "JEI DALLAS WAREHOUSE"},
+                        {"AddressID": "404999", "CpID": "(INV)", "Type": "CANCELLED ONLY"},
+                    ],
+                },
+            )
+        )
+        self._add_order(index, "15168", "33498", "PO", "2106", "2026-01-15 00:00:00")
+        self._add_line(index, "19339", "33498", _line("13303", "60403", "", "19339", "38580", "0", "38580", "1000"))
+        index.buysells["60403"] = _buysell(
+            "60403",
+            "2026-01-15 00:00:00",
+            cust="(INV)",
+            vendor="2106",
+            ShipToID="GREENVIEW WASHINGTON WAREHOUSE",
+        )
+        index.payables_by_buysell["60403"] = [_payable("80060403", "60403", "2106", "1000", "50100", "33498")]
+        self._add_order(index, "16600", "10442", "PO", "1292", "2025-11-01 00:00:00")
+        self._add_line(index, "16639", "10442", _line("12001", "58868", "", "16639", "1000", "0", "1000", "400"))
+        index.buysells["58868"] = _buysell(
+            "58868", "2025-11-01 00:00:00", cust="(INV)", vendor="1292", ShipToID="JEI DALLAS WAREHOUSE"
+        )
+        index.lines["12002"] = _line("12002", "58975", "", "", "500", "0", "500", "0")
+        index.lines_by_buysell["58975"] = ["12002"]
+        index.buysells["58975"] = _buysell(
+            "58975", "2025-12-01 00:00:00", cust="(INV)", vendor="1292", ShipToID="JEI DALLAS WAREHOUSE"
+        )
+        index.payables_by_buysell["58975"] = [_payable("80058975", "58975", "1292", "10", "50100", "")]
+        self._add_order(index, "18000", "99901", "PO", "2106", "2024-01-01 00:00:00")
+        self._add_line(index, "18001", "99901", _line("13001", "59100", "", "18001", "10", "0", "10", "5"))
+        index.buysells["59100"] = _buysell(
+            "59100", "2024-01-01 00:00:00", cust="(INV)", vendor="2106", status="X", ShipToID="CANCELLED ONLY"
+        )
+        self._add_order(index, "19000", "33500", "PO", "2106", "2026-02-01 00:00:00")
+        self._add_line(index, "19001", "33500", _line("13002", "60499", "", "19001", "20", "0", "20", "8"))
+        index.buysells["60499"] = _buysell("60499", "2026-02-01 00:00:00", cust="(INV)", vendor="2106", ShipToID="")
+        self._add_order(index, "20001", "17001", "SO", CUSTOMER, "2026-03-01 00:00:00")
+        self._add_order(index, "20000", "9001", "PO", VENDOR, "2026-03-01 00:00:00")
+        self._add_line(index, "20011", "17001", _line("14001", "61000", "20011", "20010", "100", "50", "100", "40"))
+        index.order_lines["20010"] = {"PONumber": "9001"}
+        index.buysells["61000"] = _buysell("61000", "2026-03-01 00:00:00", cust=CUSTOMER, vendor="(INV)")
+        self._add_order(index, "21001", "17002", "SO", CUSTOMER, "2026-03-02 00:00:00")
+        self._add_order(index, "21000", "9002", "PO", VENDOR, "2026-03-02 00:00:00")
+        self._add_line(index, "21011", "17002", _line("14002", "61001", "21011", "21010", "80", "40", "80", "30"))
+        index.order_lines["21010"] = {"PONumber": "9002"}
+        index.buysells["61001"] = _buysell("61001", "2026-03-02 00:00:00")
+
+        on_hand = self._on_hand()
+        report = self._run(index)
+
+        inbound = report.census["inventory_inbound"]
+        recognized = {row["number"]: row for row in inbound["recognized"]}
+        self.assertEqual(set(recognized), {"58868", "60403"})
+        self.assertEqual(recognized["60403"]["address_id"], "404812")
+        self.assertEqual(recognized["60403"]["location_xmlid"], "legacy_erp_inv_addr_404812")
+        self.assertEqual(recognized["58868"]["address_id"], "405026")
+        self.assertEqual(recognized["58868"]["location_xmlid"], "legacy_erp_inv_addr_405026")
+        held_purchase = inbound["held_missing_purchase"]
+        self.assertEqual([row["number"] for row in held_purchase], ["58975"])
+        self.assertEqual(held_purchase[0]["address_id"], "405026")
+        self.assertEqual([row["number"] for row in inbound["held_missing_destination"]], ["60499"])
+        self.assertEqual(inbound["held_missing_destination"][0]["location_xmlid"], "")
+        self.assertEqual([row["number"] for row in inbound["cancelled"]], ["59100"])
+        self.assertEqual(inbound["cancelled"][0]["address_id"], "")
+        greenview = self._order("stock.location", "legacy_erp_inv_addr_404812")
+        dallas = self._order("stock.location", "legacy_erp_inv_addr_405026")
+        self.assertEqual(greenview.name, "GREENVIEW WASHINGTON WAREHOUSE")
+        self.assertEqual(greenview.usage, "internal")
+        self.assertEqual(dallas.name, "JEI DALLAS WAREHOUSE")
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_wks_60403"), greenview)
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_wks_58868"), dallas)
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_wks_58975"), dallas)
+        self.assertFalse(self._marked("stock.location", "legacy_erp_inv_addr_404999"))
+        self.assertFalse(self._marked("stock.location", "legacy_erp_inv_wks_59100"))
+        self.assertFalse(self._marked("stock.location", "legacy_erp_inv_wks_60499"))
+        receipt = self._order("purchase.order", "legacy_erp_po_33498")
+        self.assertEqual(receipt.name, "33498")
+        self.assertEqual(receipt.partner_id, jei)
+        self.assertEqual(receipt.state, "draft")
+        self.assertFalse(receipt.picking_ids)
+        self.assertAlmostEqual(receipt.order_line.product_qty, 38580.0)
+        dallas_po = self._order("purchase.order", "legacy_erp_po_10442")
+        held_po = self._order("purchase.order", "legacy_erp_po_33500")
+        inbound_lines = receipt.order_line | dallas_po.order_line | held_po.order_line
+        self.assertFalse(self.env["stock.move"].search([("purchase_line_id", "in", inbound_lines.ids)]))
+        self.assertFalse(receipt.picking_ids | dallas_po.picking_ids | held_po.picking_ids)
+        self.assertEqual(dallas_po.partner_id, vendor_1292)
+        self.assertNotEqual(dallas_po.id, receipt.id)
+        self.assertFalse(self._marked("purchase.order", "legacy_erp_po_58975"))
+        self.assertEqual(existing_po.order_line.ids, [])
+        self.assertEqual(existing_po.origin, "preexisting")
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_33498"))
+        self.assertFalse(self._marked("account.move", "legacy_erp_outinv_60403"))
+        self.assertFalse(self.Transaction.search([("name", "in", ["60403", "58868", "58975", "59100", "60499"])]))
+        bill = self._marked("account.move", "legacy_erp_ininv_80060403")
+        self.assertEqual(bill.move_type, "in_invoice")
+        self.assertEqual(bill.state, "draft")
+        self.assertEqual(report.counts["transactions"], {"created": 2, "updated": 0, "skipped": 2, "rejected": 3})
+        details = {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
+        for number in ("60403", "58868", "58975", "59100", "60499"):
+            self.assertNotIn(
+                ("BuySell", number, "no sale order link: purchase documents realized, no transaction compiled"),
+                details,
+            )
+        self.assertIn(("BuySell", "58975", "inventory inbound held: missing purchase"), details)
+        self.assertIn(("BuySell", "60499", "inventory inbound held: missing destination"), details)
+        self.assertIn(("BuySell", "59100", "inventory inbound cancelled"), details)
+        self.assertEqual(report.census["worksheets"]["without_sale_link"]["worksheets"], 0)
+        outbound = self.Transaction.search([("name", "=", "61000")])
+        ordinary = self.Transaction.search([("name", "=", "61001")])
+        self.assertEqual(len(outbound), 1)
+        self.assertEqual(len(ordinary), 1)
+        self.assertTrue(outbound.sale_order_id)
+        self.assertTrue(ordinary.sale_order_id)
+        self.assertEqual(self._on_hand(), on_hand)
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
+        erp_source_index.account_inventory_destinations(index, report)
+        report.source_counts = index.counts()
+        projected = summary.import_run_summary(report.as_dict())
+        accounted = (
+            projected["records_created"]
+            + projected["records_updated"]
+            + projected["records_unchanged"]
+            + projected["records_rejected"]
+        )
+        self.assertEqual(projected["records_seen"], accounted)
+        self.assertEqual(projected["final_status"], "partial")
+
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(self._on_hand(), on_hand)
+        self.assertEqual(replay.counts["transactions"]["created"], 0)
+        self.assertEqual(replay.counts["transaction_lines"]["created"], 0)
+        self.assertEqual(len(self._marked("stock.location", "legacy_erp_inv_addr_")), 2)
+        self.assertEqual(len(self._marked("purchase.order.line", "legacy_erp_pol_13303")), 1)
+        self.assertEqual(len(self._marked("sale.order", "legacy_erp_so_")), 2)
+        self.assertFalse(self.Transaction.search([("name", "=", "60403")]))
+
+    def _on_hand(self):
+        quant = self.env["stock.quant"].search([])
+        layers = 0
+        if "stock.valuation.layer" in self.env:
+            layers = self.env["stock.valuation.layer"].search_count([])
+        return (sum(quant.mapped("quantity")), layers)
 
     def _order(self, model_name, xml_id):
         data = self.Data.search(

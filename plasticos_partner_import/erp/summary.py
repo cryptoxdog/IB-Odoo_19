@@ -16,7 +16,11 @@ Counter semantics (documented, honest accounting):
   confirmed, or a compile that failed); its purchase documents and vendor
   bills may still have been realized on their own identity (the run census
   names it), but it is never counted as a created transaction. ``created``
-  is counted only once the transaction exists. Every unresolved entry is exactly one source row (the importer records a
+  is counted only once the transaction exists. A worksheet whose customer is
+  the inventory counterparty ``(INV)`` is not an external sale: a recognized
+  inbound receipt is ``skipped`` because no ``plasticos.transaction`` is the
+  correct document, and a held or cancelled inbound receipt is ``rejected``
+  with its inventory census reason. Every unresolved entry is exactly one source row (the importer records a
   parent failure once per suppressed child row, never once per parent), so
   ``len(unresolved)`` is a row count and the reconciliation below holds.
 * ``records_unchanged`` — identity-resolved rows that needed no write on replay
