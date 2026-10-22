@@ -666,6 +666,12 @@ test-odoo:
 
 # Fail-closed module install gate (xmlsec + enterprise + -i --stop-after-init).
 # Required before publication so unloadable modules never reach GitHub.
+# The Odoo-supplied base (CE + Enterprise list) is installed once into the
+# disposable odoo_install_smoke_base template, stamped with its fingerprint
+# (image content, Enterprise tree, enterprise list, PostgreSQL major); each
+# smoke install clones it and installs only the plasticos_* list.
+# ODOO_INSTALL_SMOKE_BASE=0 restores the legacy full install. Evidence (v4) is
+# keyed to the Odoo load surface owned by scripts/odoo_load_surface.py.
 install-smoke:
 	bash scripts/install_smoke.sh
 
@@ -697,11 +703,25 @@ pr:
 # The local pre-push gate — not the full GitHub CI job graph (gate-sdk-tests runs
 # only in CI; secrets are scanned by the gitleaks-push hook and CI secret-scan). Scheduled in parallel waves via
 # scripts/pr_check_run.sh (audit + audit-baseline + test in parallel, then smoke, then remote).
+# 2026-10-22 (additive): the line above describes scope=full; the runner now
+# scripts/pr_check_run.sh selects the gates by the change class of the branch
+# against origin/$(PR_BASE) (default Staging) and prints per-phase timings:
+#   scope=full       any Odoo load-surface / installer / repo-tooling path changed
+#                    (or any classification failure): audit + audit-baseline + test
+#                    with install-smoke beside them, then remote feedback
+#   scope=docs_only  nothing the Odoo install or the tooling reads changed:
+#                    audit-quick + ban-check, the install-smoke evidence recheck,
+#                    then remote feedback
+# Receipt: .cache/pr-check/scope.json. PR_CHECK_SCOPE=full forces the full scope;
+# PR_CHECK_SMOKE_PARALLEL=0 runs smoke after wave 1. GitHub CI stays the verdict.
 # secret-scan is intentionally NOT listed here: pre-commit's gitleaks-push
 # hook already runs at `git push` time regardless of make, so listing it here
 # would just run gitleaks twice.
 # install-smoke is the local Odoo load gate (GHA cannot run odoo-bin install);
 # content-cached when plasticos/load inputs are unchanged (PR_CHECK_FORCE_SMOKE=1).
+# 2026-10-22 (additive): "plasticos/load inputs" means the load surface owned by
+# scripts/odoo_load_surface.py; evidence is reused when it, the image, the
+# Enterprise tree and the database are unchanged (PR_CHECK_FORCE_SMOKE=1 installs again).
 pr-check:
 	@bash scripts/pr_check_run.sh full
 

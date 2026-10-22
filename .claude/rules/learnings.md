@@ -25,3 +25,5 @@ Review periodically and promote stable learnings to CLAUDE.md or relevant rule f
 - **[2026-03-27] Odoo 19 removed from `ir.cron`**: `doall`, `numbercall` fields. Remove from XML data files.
 
 - **[2026-03-27] `documents.folder` still exists in Odoo 19 Enterprise** — KeyError occurs only when Enterprise `documents` module is not installed on the instance. Verify Enterprise modules are present before installing `plasticos_documents_native`.
+
+- **[2026-10-22] Publication: `make pr-check` is change-class scoped** — `scripts/odoo_load_surface.py` is the only definition of what `odoo-bin -i` reads; install-smoke evidence (v4) and pr-check scope selection both consume it. A README, fixture CSV or test under an addon is not a load input. The Enterprise base lives in the `odoo_install_smoke_base` template; a smoke install clones it and installs only `plasticos_*`. Force the old behaviour with `PR_CHECK_SCOPE=full`, `ODOO_INSTALL_SMOKE_BASE=0`, `PR_CHECK_SMOKE_PARALLEL=0`.

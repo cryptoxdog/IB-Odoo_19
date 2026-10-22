@@ -623,3 +623,21 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > GMP execution is the `/gmp` slash command, which runs the governance executor against this clone:
 > `"$GOV_PY" "$GOV/workflows/gmp_executor.py" --workspace "$(git rev-parse --show-toplevel)" …`
 > (`commands/gmp.md` in Cursor-Governance). Do not re-add the skill symlink.
+
+> **2026-10-22 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr-check` now selects its local gates by the change class of the branch against the publication base
+> (`scripts/pr_check_run.sh`, receipt `.cache/pr-check/scope.json`, per-phase `⏱` timing lines). `scope=full`
+> (any Odoo load-surface, installer or repository-tooling path changed, or any classification failure) runs
+> `audit` + `audit-baseline` + `test` with install-smoke beside them; `scope=docs_only` runs `audit-quick` +
+> `ban-check` and the install-smoke evidence recheck. GitHub `ci.yml` is unchanged and remains the full-suite
+> merge verdict. The Odoo load surface has one owner, `scripts/odoo_load_surface.py` (manifests, non-test
+> Python, manifest-declared data, `i18n/`, `static/`, plus the installer inputs); install-smoke evidence v4 is
+> keyed to it, so documentation, fixture grids and tests under an addon no longer invalidate evidence, while an
+> untracked `.py` under an addon still does. The Odoo-supplied base (CE + Enterprise list) is installed once
+> into the disposable `odoo_install_smoke_base` template, stamped with its fingerprint (image content, Enterprise
+> tree, enterprise list, PostgreSQL major) and cloned for every smoke install, which then installs only the
+> PlasticOS list; `ODOO_INSTALL_SMOKE_BASE=0` restores the legacy full install. The pre-push stage hooks carry
+> `files:` filters and are skipped by pre-commit when no file they read is in the push range; `gitleaks-push`
+> stays unfiltered. The "pr-check = local (ruff, XML, wiring, semgrep, pytest)" line in the Commands block above
+> is historical: those collectors run locally only in `scope=full`. The first publish after this change
+> rebuilds evidence once per machine.

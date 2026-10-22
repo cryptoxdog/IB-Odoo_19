@@ -88,6 +88,7 @@ def _run(
     (repo / "scripts").mkdir(parents=True)
     (repo / "ci").mkdir()
     shutil.copyfile(SMOKE, repo / "scripts/install_smoke.sh")
+    shutil.copyfile(ROOT / "scripts" / "odoo_load_surface.py", repo / "scripts/odoo_load_surface.py")
     (repo / "scripts/get_odoo_module_order.py").write_text(
         "import sys\nprint('none' if '--section' in sys.argv else 'plasticos_base')\n", encoding="utf-8"
     )

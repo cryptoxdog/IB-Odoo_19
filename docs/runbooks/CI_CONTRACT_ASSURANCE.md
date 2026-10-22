@@ -13,6 +13,15 @@ an explicit command-boundary fake. These tests do not establish that Enterprise
 modules actually install. The normal authorized Enterprise smoke supplies that
 separate evidence.
 
+`scripts/odoo_load_surface.py` is the single owner of the Odoo install load
+surface (manifests, non-test Python, manifest-declared data, `i18n/`, `static/`,
+plus the installer inputs). Install-smoke evidence (v4) is keyed to it, and
+`scripts/pr_check_run.sh` uses the same owner to select the local gates by change
+class (`scope=full` / `scope=docs_only`, receipt `.cache/pr-check/scope.json`).
+The Odoo-supplied base is installed once into the `odoo_install_smoke_base`
+template and cloned for every smoke install, which then installs only the
+PlasticOS list. The fake Docker models several databases for that contract.
+
 ## Ownership
 
 CI-owned (this runbook's scope):

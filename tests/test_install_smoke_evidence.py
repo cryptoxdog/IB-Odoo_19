@@ -88,21 +88,51 @@ if args[:1] == ["build"]:
         c["image_id"] = c["built_image_id"]
         control.write_text(json.dumps(c))
     sys.exit(0)
+def quoted(text, after):
+    return text.split(after, 1)[1].split('"', 2)[1]
+def databases(st):
+    return st.setdefault("databases", {})
 if args[:1] == ["exec"]:
     query = args[-1]
+    target = args[args.index("-d") + 1] if "-d" in args else "postgres"
     if "pg_isready" in args: sys.exit(0)
     if "pg_terminate_backend" in query: sys.exit(0)
+    if "server_version_num" in query:
+        print(c.get("postgres_major", "15")); sys.exit(0)
     if "DROP DATABASE" in query:
-        old = state(); old["modules"] = {}; old.pop("oid", None); save(old); sys.exit(0)
+        st = state(); databases(st).pop(quoted(query, "DROP DATABASE IF EXISTS "), None); save(st); sys.exit(0)
+    if "CREATE DATABASE" in query:
+        st = state(); name = quoted(query, "CREATE DATABASE "); template = quoted(query, "TEMPLATE ")
+        if template not in databases(st) or name in databases(st): sys.exit(1)
+        st["next_oid"] = st.get("next_oid", 16384) + 1
+        databases(st)[name] = {"oid": str(st["next_oid"]), "modules": dict(databases(st)[template]["modules"]), "comment": ""}
+        save(st); sys.exit(0)
+    if "COMMENT ON DATABASE" in query:
+        st = state(); name = quoted(query, "COMMENT ON DATABASE ")
+        if name not in databases(st): sys.exit(1)
+        databases(st)[name]["comment"] = query.split(" IS '", 1)[1].rsplit("'", 1)[0]; save(st); sys.exit(0)
+    if "RENAME TO" in query:
+        st = state(); old = quoted(query, "ALTER DATABASE "); new = quoted(query, "RENAME TO ")
+        if old not in databases(st) or new in databases(st): sys.exit(1)
+        databases(st)[new] = databases(st).pop(old); save(st); sys.exit(0)
     if "FROM pg_database" in query:
-        print(state().get("oid", "")); sys.exit(0)
+        name = query.split("datname = '", 1)[1].split("'", 1)[0]
+        entry = databases(state()).get(name)
+        if "shobj_description" in query:
+            print(entry["comment"] if entry else "")
+        else:
+            print(entry["oid"] if entry else "")
+        sys.exit(0)
     if "SELECT name || '=' || state" in query:
         if c.get("database_missing"): sys.exit(1)
-        for name, value in state().get("modules", {}).items(): print(name + "=" + value)
+        entry = databases(state()).get(target)
+        if entry is None: sys.exit(1)
+        for name, value in entry["modules"].items(): print(name + "=" + value)
         sys.exit(0)
     if "SELECT state FROM ir_module_module" in query:
         name = query.split("name = '", 1)[1].split("'", 1)[0]
-        print(state().get("modules", {}).get(name, "")); sys.exit(0)
+        entry = databases(state()).get(target) or {"modules": {}}
+        print(entry["modules"].get(name, "")); sys.exit(0)
 if args[:1] == ["run"]:
     if "xmlsec" in " ".join(args): print("xmlsec fixture"); sys.exit(0)
     if "-i" not in args: raise SystemExit("unexpected non-install compose run")
@@ -120,14 +150,37 @@ if args[:1] == ["run"]:
         Path(c["mutate_file"]).write_text("changed during install\n")
     if c.get("install_failure"): sys.exit(7)
     current = state()
-    if "oid" not in current:  # odoo -i -d creates the dropped database: a new OID
+    target = args[args.index("-d") + 1]
+    entry = databases(current).get(target)
+    if entry is None:  # odoo -i -d creates a missing database: a new OID
         current["next_oid"] = current.get("next_oid", 16384) + 1
-        current["oid"] = str(current["next_oid"])
-    current["modules"] = {name: "installed" for name in args[args.index("-i") + 1].split(",")}
-    for name in c.get("missing_modules", []): current["modules"].pop(name, None)
+        entry = databases(current)[target] = {"oid": str(current["next_oid"]), "modules": {}, "comment": ""}
+    entry["modules"].update({name: "installed" for name in args[args.index("-i") + 1].split(",")})
+    for name in c.get("missing_modules", []): entry["modules"].pop(name, None)
     save(current); print("registry initialized (fixture only)"); sys.exit(0)
 raise SystemExit("unexpected Docker call: " + repr(args))
 """
+
+
+def _smoke_installs(site: Site) -> list[dict]:
+    """Odoo installs into the disposable smoke database (base builds target another database)."""
+    return [
+        call
+        for call in site.calls()
+        if "-i" in call["args"]
+        and "-d" in call["args"]
+        and call["args"][call["args"].index("-d") + 1] == "odoo_install_smoke"
+    ]
+
+
+def _base_builds(site: Site) -> list[dict]:
+    return [
+        call
+        for call in site.calls()
+        if "-i" in call["args"]
+        and "-d" in call["args"]
+        and call["args"][call["args"].index("-d") + 1].startswith("odoo_install_smoke_base")
+    ]
 
 
 @dataclass
@@ -178,6 +231,30 @@ def _git(path: Path, *args: str) -> None:
     )
 
 
+def _addons(root: Path) -> None:
+    """Synthetic PlasticOS addons with every file class the load surface distinguishes."""
+    for name in CUSTOM.split(","):
+        addon = root / name
+        for sub in ("models", "data", "security", "tests", "i18n", "static/src", "erp_extracted_data"):
+            (addon / sub).mkdir(parents=True)
+        (addon / "__manifest__.py").write_text(
+            "{'name': 'fixture', 'installable': True, 'depends': ['base'],\n"
+            " 'data': ['security/ir.model.access.csv', 'data/seed.xml'], 'demo': ['data/demo.xml']}\n"
+        )
+        (addon / "__init__.py").write_text("from . import models\n")
+        (addon / "models/__init__.py").write_text("from . import model\n")
+        (addon / "models/model.py").write_text("VALUE = 'A'\n")
+        (addon / "data/seed.xml").write_text("<odoo noupdate='1'><data/></odoo>\n")
+        (addon / "data/demo.xml").write_text("<odoo><data/></odoo>\n")
+        (addon / "security/ir.model.access.csv").write_text("id,name\n")
+        (addon / "tests/__init__.py").write_text("")
+        (addon / "tests/test_model.py").write_text("def test_model():\n    assert True\n")
+        (addon / "i18n/fr.po").write_text('msgid "A"\nmsgstr "A"\n')
+        (addon / "static/src/widget.js").write_text("export const value = 'A';\n")
+        (addon / "README.md").write_text("# fixture\n")
+        (addon / "erp_extracted_data/grid.csv").write_text("id,value\n1,A\n")
+
+
 def _checkout(path: Path, *, git: bool = False) -> Path:
     for name in ENTERPRISE.split(","):
         (path / name).mkdir(parents=True)
@@ -198,6 +275,9 @@ def site(tmp_path: Path) -> Site:
     (root / "config").mkdir()
     source = Path(os.environ.get("PLASTICOS_SMOKE_SOURCE", ROOT / "scripts/install_smoke.sh"))
     shutil.copyfile(source, root / "scripts/install_smoke.sh")
+    # The load-surface owner is part of the installer under test, never a stub.
+    shutil.copyfile(ROOT / "scripts/odoo_load_surface.py", root / "scripts/odoo_load_surface.py")
+    _addons(root)
     (root / "scripts/get_odoo_module_order.py").write_text(
         f"import sys\nprint({ENTERPRISE!r} if '--section' in sys.argv else "
         f"({CUSTOM!r} if '--all-installable' in sys.argv else 'plasticos_base'))\n"
@@ -267,11 +347,12 @@ def test_remote_active_docker_context_cannot_touch_the_database(site: Site) -> N
 
 def test_unchanged_complete_evidence_is_reused_without_install(site: Site) -> None:
     site.establish()
-    before = len([call for call in site.calls() if "-i" in call["args"]])
+    before = len(_smoke_installs(site))
     for _ in range(2):
         result = site.run("--recheck")
         assert result.returncode == 0, result.stderr
-    assert len([call for call in site.calls() if "-i" in call["args"]]) == before == 1
+    assert len(_smoke_installs(site)) == before == 1
+    assert len(_base_builds(site)) == 1
 
 
 def test_effective_enterprise_mount_not_repository_symlink_is_bound(site: Site, tmp_path: Path) -> None:
@@ -461,7 +542,9 @@ def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) 
             "LOCK_DOMAIN: second worktree entered the shared destructive operation: " + result.stdout + result.stderr
         )
         assert "lock busy" in result.stdout + result.stderr
-        drops = [call for call in site.calls() if "DROP DATABASE" in " ".join(call["args"])]
+        drops = [
+            call for call in site.calls() if 'DROP DATABASE IF EXISTS "odoo_install_smoke"' in " ".join(call["args"])
+        ]
         assert len(drops) == 1, "LOCK_DOMAIN: two worktrees dropped the same database"
     finally:
         site.control.with_name("release").touch()
@@ -478,8 +561,7 @@ def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path
     site.establish()
     other_root = tmp_path / "worktree-b"
     shutil.copytree(site.root, other_root, symlinks=True, ignore=shutil.ignore_patterns(".cache"))
-    (other_root / "plasticos_base").mkdir()
-    (other_root / "plasticos_base" / "models.py").write_text("VALUE = 'B'\n")
+    (other_root / "plasticos_base" / "models" / "model.py").write_text("VALUE = 'B'\n")
     other = Site(other_root, site.control, site.env)
     other.establish()
     result = site.run("--recheck")
@@ -495,12 +577,172 @@ def test_enterprise_checkout_with_unavailable_gitdir_is_still_byte_bound(site: S
     assert site.run("--recheck").returncode != 0, "EE_GITDIR: unreadable gitdir hid a source change"
 
 
-@pytest.mark.parametrize("mutation", ["version_2", "no_database_oid"])
+@pytest.mark.parametrize("mutation", ["version_2", "version_3", "no_database_oid"])
 def test_receipt_without_database_binding_is_not_reusable(site: Site, mutation: str) -> None:
     record = site.establish()
     if mutation == "version_2":
         record["evidence_version"] = 2
+    elif mutation == "version_3":
+        # v3 hashed every byte under plasticos_*/; a v3 receipt never proves the v4 load surface.
+        record["evidence_version"] = 3
     else:
         record.pop("database_oid")
     site.receipt.write_text(json.dumps(record))
     assert site.run("--recheck").returncode != 0
+
+
+# --- Load surface (evidence v4): only what odoo-bin reads at install invalidates evidence ---
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "plasticos_base/README.md",
+        "plasticos_base/erp_extracted_data/grid.csv",
+        "plasticos_base/tests/test_model.py",
+        "plasticos_base/data/demo.xml",
+    ],
+)
+def test_non_load_file_change_under_addon_keeps_evidence(site: Site, rel: str) -> None:
+    site.establish()
+    before = len(_smoke_installs(site))
+    (site.root / rel).write_text("changed\n")
+    result = site.run("--recheck")
+    assert result.returncode == 0, (
+        "LOAD_SURFACE: a non-load file invalidated evidence: " + result.stdout + result.stderr
+    )
+    assert len(_smoke_installs(site)) == before == 1
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "plasticos_base/__manifest__.py",
+        "plasticos_base/models/model.py",
+        "plasticos_base/data/seed.xml",
+        "plasticos_base/security/ir.model.access.csv",
+        "plasticos_base/i18n/fr.po",
+        "plasticos_base/static/src/widget.js",
+        "config/odoo.conf",
+        "docker-compose.yml",
+        "scripts/get_odoo_module_order.py",
+    ],
+)
+def test_load_surface_change_invalidates(site: Site, rel: str) -> None:
+    site.establish()
+    path = site.root / rel
+    path.write_text(path.read_text() + "\n# changed\n")
+    result = site.run("--recheck")
+    assert result.returncode != 0, "LOAD_SURFACE: a load input change was accepted: " + rel
+
+
+def test_untracked_python_under_addon_invalidates(site: Site) -> None:
+    site.establish()
+    (site.root / "plasticos_base/models/untracked.py").write_text("VALUE = 'B'\n")
+    assert site.run("--recheck").returncode != 0, "LOAD_SURFACE: a new untracked .py under an addon was accepted"
+
+
+def test_manifest_declared_file_missing_refuses_resolve_and_recheck(site: Site) -> None:
+    site.establish()
+    (site.root / "plasticos_base/data/seed.xml").unlink()
+    assert site.run("--resolve").returncode != 0, "LOAD_SURFACE: a missing declared data file passed --resolve"
+    assert site.run("--recheck").returncode != 0, "LOAD_SURFACE: a missing declared data file kept evidence"
+
+
+def test_receipt_declares_evidence_version_4(site: Site) -> None:
+    record = site.establish()
+    assert record["evidence_version"] == 4
+
+
+# --- Enterprise base template: installed once per (image, Enterprise tree, list, PostgreSQL major) ---
+
+
+def test_first_install_builds_the_base_then_installs_only_custom_modules(site: Site) -> None:
+    record = site.establish()
+    builds = _base_builds(site)
+    assert len(builds) == 1
+    assert builds[0]["args"][builds[0]["args"].index("-i") + 1] == ENTERPRISE
+    smoke = _smoke_installs(site)
+    assert len(smoke) == 1
+    assert smoke[0]["args"][smoke[0]["args"].index("-i") + 1] == CUSTOM, "BASE: the smoke install re-installed the base"
+    clones = [c for c in site.calls() if 'TEMPLATE "odoo_install_smoke_base"' in " ".join(c["args"])]
+    assert len(clones) == 1, "BASE: the smoke database was not cloned from the base"
+    assert record["base_fp"] and record["base_oid"], "BASE: the receipt does not bind the base template"
+    assert record["states"] == {name: "installed" for name in (ENTERPRISE + "," + CUSTOM).split(",")}
+
+
+def test_base_is_reused_when_only_custom_inputs_change(site: Site) -> None:
+    site.establish()
+    (site.root / "plasticos_base/models/model.py").write_text("VALUE = 'B'\n")
+    assert site.run("--recheck").returncode != 0
+    result = site.run()
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert len(_base_builds(site)) == 1, "BASE: a custom change rebuilt the Enterprise base"
+    assert len(_smoke_installs(site)) == 2
+    assert "reusing it" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        ("image", {"image_id": "sha256:other-build"}),
+        ("postgres", {"postgres_major": "16"}),
+        ("enterprise", None),
+    ],
+)
+def test_base_is_rebuilt_when_its_inputs_change(site: Site, change: tuple[str, dict | None]) -> None:
+    first = site.establish()
+    kind, values = change
+    if values is None:
+        (site.root / "odoo-enterprise/payload.py").write_text("VALUE = 'B'\n")
+    else:
+        site.configure(**values)
+    result = site.run()
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert len(_base_builds(site)) == 2, "BASE: changed base inputs did not rebuild the Enterprise base: " + kind
+    second = json.loads(site.receipt.read_text())
+    assert second["base_fp"] != first["base_fp"]
+
+
+def test_receipt_bound_to_a_base_that_disappears_is_not_reusable(site: Site) -> None:
+    site.establish()
+    state_path = site.control.with_name("database.json")
+    state = json.loads(state_path.read_text())
+    state["databases"].pop("odoo_install_smoke_base")
+    state_path.write_text(json.dumps(state))
+    result = site.run("--recheck")
+    assert result.returncode != 0, "BASE: evidence survived the loss of its base template"
+    assert "base template changed" in result.stdout + result.stderr
+
+
+def test_base_with_a_foreign_or_missing_stamp_is_rebuilt_not_trusted(site: Site) -> None:
+    site.establish()
+    state_path = site.control.with_name("database.json")
+    state = json.loads(state_path.read_text())
+    state["databases"]["odoo_install_smoke_base"]["comment"] = "plasticos-smoke-base fp=deadbeef state=ready"
+    state_path.write_text(json.dumps(state))
+    (site.root / "plasticos_base/models/model.py").write_text("VALUE = 'B'\n")
+    result = site.run()
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert len(_base_builds(site)) == 2, "BASE: a base with a foreign stamp was reused"
+
+
+def test_legacy_full_install_switch_installs_everything_in_one_run(site: Site) -> None:
+    record = site.establish(ODOO_INSTALL_SMOKE_BASE="0")
+    assert _base_builds(site) == []
+    smoke = _smoke_installs(site)
+    assert len(smoke) == 1
+    assert smoke[0]["args"][smoke[0]["args"].index("-i") + 1] == ENTERPRISE + "," + CUSTOM
+    assert record["base_fp"] == "" and record["base_oid"] == ""
+    assert site.run("--recheck", ODOO_INSTALL_SMOKE_BASE="0").returncode == 0
+    assert site.run("--recheck").returncode != 0, "BASE: a legacy receipt satisfied a base-mode recheck"
+
+
+def test_failed_base_build_writes_no_evidence_and_no_base(site: Site) -> None:
+    site.configure(install_failure=True)
+    result = site.run()
+    assert result.returncode != 0
+    assert not site.receipt.exists()
+    state_path = site.control.with_name("database.json")
+    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    assert "odoo_install_smoke_base" not in state.get("databases", {}), "BASE: a failed build was published as ready"

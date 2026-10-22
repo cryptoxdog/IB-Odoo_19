@@ -109,9 +109,17 @@ print(hashlib.sha256(json.dumps(service, sort_keys=True, separators=(",", ":")).
 }
 
 input_snapshot() {
-  local binding
+  # The Odoo load surface has one owner: scripts/odoo_load_surface.py. It
+  # enumerates every file odoo-bin reads at install (manifests, non-test Python,
+  # manifest-declared data, i18n, static) plus the installer inputs, walking the
+  # filesystem so untracked and ignored files stay bound. Documentation, fixture
+  # grids and tests under an addon are not load inputs and do not invalidate
+  # evidence. The Enterprise tree is byte-hashed here as before.
+  local binding surface
   binding="$(runtime_binding)" || return 2
-  python3 - "$ROOT" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" "$ENTERPRISE_REALPATH" \
+  surface="$(python3 "$ROOT/scripts/odoo_load_surface.py" --root "$ROOT" --list)" || return 2
+  # The heredoc is the snippet's stdin, so the surface travels in the environment.
+  ODOO_LOAD_SURFACE="$surface" python3 - "$ROOT" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" "$ENTERPRISE_REALPATH" \
     "$binding" "$SMOKE_NETWORK_MODE" "$ODOO_DB_HOST" "$ODOO_DB_PORT" <<'PY'
 import hashlib
 import os
@@ -122,8 +130,6 @@ root = Path(sys.argv[1])
 digest = hashlib.sha256()
 for value in sys.argv[2:]:
     digest.update(value.encode() + b"\0")
-# These are metadata/output directories, not addon inputs. Every other file,
-# including untracked or ignored source files and binary assets, is byte-hashed.
 excluded = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
 def add_file(path, label):
     digest.update(label.encode() + b"\0")
@@ -148,18 +154,14 @@ def add_tree(directory, label, ancestors=()):
             raise ValueError("unreadable or unsupported source entry: " + child)
 
 try:
-    for mod in sorted(root.glob("plasticos_*")):
-        if mod.is_dir():
-            add_tree(mod, mod.name)
-    if (root / "config").is_dir():
-        add_tree(root / "config", "config")
-    for rel in (".env", "requirements.txt", "constraints.txt", "docker-compose.yml",
-                "docker-compose.yaml", "Dockerfile", "scripts/install_smoke.sh",
-                "scripts/get_odoo_module_order.py"):
+    surface = [line for line in os.environ.get("ODOO_LOAD_SURFACE", "").split("\n") if line]
+    if not surface:
+        raise ValueError("load surface is empty")
+    for rel in surface:
         path = root / rel
-        digest.update((rel + (":present" if path.exists() else ":absent")).encode() + b"\0")
-        if path.exists():
-            add_file(path, rel)
+        if not path.is_file():
+            raise ValueError("load-surface entry is not a file: " + rel)
+        add_file(path, rel)
     if sys.argv[4]:
         add_tree(Path(sys.argv[4]), "enterprise")
 except (OSError, ValueError) as exc:
@@ -251,6 +253,10 @@ if [ "$SMOKE_MODE" = "resolve" ]; then
   fi
   if [ ! -d "$ENTERPRISE_REALPATH" ]; then
     echo "❌ enterprise checkout is not readable" >&2
+    exit 1
+  fi
+  if ! python3 "$ROOT/scripts/odoo_load_surface.py" --root "$ROOT" --list >/dev/null; then
+    echo "❌ scripts/odoo_load_surface.py cannot enumerate the Odoo load surface" >&2
     exit 1
   fi
   echo "custom=${CUSTOM_MODULES}"
@@ -447,6 +453,151 @@ smoke_db_oid() {
     "SELECT oid FROM pg_database WHERE datname = 'odoo_install_smoke';" 2>/dev/null | tr -d '\r'
 }
 
+# --- Enterprise base template ------------------------------------------------
+# The Odoo-supplied base (CE + Enterprise list) depends only on the installer
+# image, the Enterprise tree, the enterprise list and the PostgreSQL major. It
+# is installed once into odoo_install_smoke_base, stamped with that fingerprint,
+# and every smoke install clones it and installs only the PlasticOS list. A
+# changed fingerprint rebuilds the base; ODOO_INSTALL_SMOKE_BASE=0 keeps the
+# legacy full install. Both database names are disposable and owned here.
+BASE_DB="odoo_install_smoke_base"
+BASE_BUILD_DB="odoo_install_smoke_base_bld"
+BASE_ENABLED=0
+BASE_FP=""
+BASE_OID=""
+
+psql_admin() {
+  docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -X -v ON_ERROR_STOP=1 \
+    -U "$POSTGRES_USER" -d postgres -t -A -c "$1" 2>/dev/null | tr -d '\r'
+}
+
+sha256_stdin() {
+  python3 -c 'import hashlib, sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())'
+}
+
+# Byte digest of the mounted Enterprise checkout (tracked, untracked and
+# ignored files alike); the same walk input_snapshot uses.
+enterprise_digest() {
+  [ -n "$ENTERPRISE_REALPATH" ] || { echo "none"; return 0; }
+  python3 - "$ENTERPRISE_REALPATH" <<'PY'
+import hashlib
+import sys
+from pathlib import Path
+
+digest = hashlib.sha256()
+excluded = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
+def add_tree(directory, label, ancestors=()):
+    real = directory.resolve(strict=True)
+    if real in ancestors:
+        raise ValueError("cyclic source-directory symlink")
+    for path in sorted(directory.iterdir()):
+        if path.name in excluded:
+            continue
+        child = label + "/" + path.name
+        if path.is_dir():
+            add_tree(path, child, (*ancestors, real))
+        elif path.is_file():
+            digest.update(child.encode() + b"\0")
+            with path.open("rb") as handle:
+                for block in iter(lambda: handle.read(1048576), b""):
+                    digest.update(block)
+            digest.update(b"\0")
+        else:
+            raise ValueError("unreadable or unsupported source entry: " + child)
+try:
+    add_tree(Path(sys.argv[1]), "enterprise")
+except (OSError, ValueError) as exc:
+    raise SystemExit("cannot digest the Enterprise checkout: " + str(exc))
+print(digest.hexdigest())
+PY
+}
+
+base_fingerprint() {
+  local image_content pg_major enterprise
+  image_content="$(docker image inspect --format '{{json .RootFS.Layers}}{{json .Config}}' "$SMOKE_IMAGE" | sha256_stdin)" || return 1
+  pg_major="$(psql_admin "SELECT current_setting('server_version_num')::int / 10000;")" || return 1
+  enterprise="$(enterprise_digest)" || return 1
+  [ -n "$image_content" ] && [ -n "$pg_major" ] && [ -n "$enterprise" ] || return 1
+  printf 'image=%s\nenterprise=%s\nmodules=%s\npostgres=%s\n' "$image_content" "$enterprise" "$ENTERPRISE_MODULES" "$pg_major" | sha256_stdin
+}
+
+base_db_oid() {
+  psql_admin "SELECT oid FROM pg_database WHERE datname = '$BASE_DB';"
+}
+
+base_db_comment() {
+  psql_admin "SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname = '$BASE_DB';"
+}
+
+base_ready() {
+  [ -n "$BASE_FP" ] && [ -n "$(base_db_oid)" ] \
+    && [ "$(base_db_comment)" = "plasticos-smoke-base fp=${BASE_FP} state=ready" ]
+}
+
+drop_database() {
+  docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
+    -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$1' AND pid <> pg_backend_pid();" \
+    >/dev/null 2>&1 || true
+  docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
+    -c "DROP DATABASE IF EXISTS \"$1\";" >/dev/null
+}
+
+# odoo_install_run <database> <modules> <log> <container-name>
+# Passing CLI arguments to `docker compose run odoo-test` replaces the service
+# `command`, so its --addons-path is lost and the image's odoo.conf
+# (/mnt/extra-addons only) applies: Enterprise modules then install as
+# "missing". The addons path is therefore always passed explicitly here.
+odoo_install_run() {
+  local database="$1" modules="$2" logfile="$3" container="$4" addons_path
+  addons_path="/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons"
+  if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
+    addons_path="/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons"
+  fi
+  set +e
+  if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
+    # The official Odoo image entrypoint appends DB arguments after CLI input.
+    # Set its HOST/PORT/USER/PASSWORD contract so it preserves host-network values.
+    local -a run_args=(
+      docker run --name "$container" --network host
+      -e "HOST=$ODOO_DB_HOST"
+      -e "PORT=$ODOO_DB_PORT"
+      -e "USER=$POSTGRES_USER"
+      -e "PASSWORD=$POSTGRES_PASSWORD"
+      -v "$ROOT:/mnt/extra-addons"
+    )
+    if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
+      run_args+=(-v "$ENTERPRISE_REALPATH:/mnt/enterprise:ro")
+    fi
+    "${run_args[@]}" "$SMOKE_IMAGE" \
+      --addons-path="$addons_path" \
+      -d "$database" \
+      --db_host="$ODOO_DB_HOST" \
+      --db_port="$ODOO_DB_PORT" \
+      --db_user="$POSTGRES_USER" \
+      --db_password="$POSTGRES_PASSWORD" \
+      -i "$modules" \
+      --without-demo=all \
+      --log-level=info \
+      --stop-after-init 2>&1 | tee "$logfile"
+  else
+    docker compose -p "$ODOO_COMPOSE_PROJECT" run --no-deps --name "$container" \
+      odoo-test \
+      --addons-path="$addons_path" \
+      -d "$database" \
+      --db_host="$ODOO_DB_HOST" \
+      --db_port="$ODOO_DB_PORT" \
+      --db_user="$POSTGRES_USER" \
+      --db_password="$POSTGRES_PASSWORD" \
+      -i "$modules" \
+      --without-demo=all \
+      --log-level=info \
+      --stop-after-init 2>&1 | tee "$logfile"
+  fi
+  local rc=${PIPESTATUS[0]}
+  set -e
+  return "$rc"
+}
+
 recheck_evidence() {
   local live binding image_id pg_cid pg_image states expected db_oid
   lists_are_canonical || refuse_smoke "recheck requires the full canonical module lists"
@@ -465,11 +616,17 @@ recheck_evidence() {
     "SELECT name || '=' || state FROM ir_module_module ORDER BY name;" 2>/dev/null)" || return 1
   db_oid="$(smoke_db_oid)" || return 1
   expected="${ENTERPRISE_MODULES},${CUSTOM_MODULES}"
-  python3 - "$EVIDENCE_FILE" "$live" "$image_id" "$pg_image" "$SMOKE_DB" "$db_oid" "$states" "$expected" <<'PY'
+  if [ "${ODOO_INSTALL_SMOKE_BASE:-1}" = "1" ]; then
+    SMOKE_IMAGE="${binding%%$'\n'*}"
+    BASE_FP="$(base_fingerprint)" || return 1
+    BASE_OID="$(base_db_oid)" || return 1
+  fi
+  python3 - "$EVIDENCE_FILE" "$live" "$image_id" "$pg_image" "$SMOKE_DB" "$db_oid" "$states" "$expected" \
+    "$BASE_FP" "$BASE_OID" <<'PY'
 import json
 import sys
 from pathlib import Path
-path, live, image_id, pg_image, database, db_oid, states_raw, inventory = sys.argv[1:]
+path, live, image_id, pg_image, database, db_oid, states_raw, inventory, base_fp, base_oid = sys.argv[1:]
 try:
     record = json.loads(Path(path).read_text(encoding="utf-8"))
 except (OSError, ValueError):
@@ -482,8 +639,10 @@ for key, value in (("snapshot", live), ("image_id", image_id),
                    ("database_oid", db_oid)):
     if not value or record.get(key) != value:
         problems.append(key + " changed")
-if record.get("evidence_version") != 3:
+if record.get("evidence_version") != 4:
     problems.append("unqualified evidence version")
+if record.get("base_fp", "") != base_fp or record.get("base_oid", "") != base_oid:
+    problems.append("base template changed")
 expected = {name: "installed" for name in inventory.split(",") if name}
 if record.get("states") != expected:
     problems.append("incomplete canonical installed-state evidence")
@@ -557,73 +716,77 @@ if lists_are_canonical; then
   [ -n "$INSTALL_IMAGE_ID" ] || refuse_smoke "installer image identity is empty"
 fi
 
+FATAL_PATTERNS_BASE='Failed to initialize database|ParseError|odoo\.registry: Failed to load registry|Invalid field'
+
 if [ "$SMOKE_DB" != "odoo_install_smoke" ]; then
   echo "❌ install-smoke refused: smoke database identity was not proven" >&2
   exit 2
 fi
-echo "→ Dropping smoke DB 'odoo_install_smoke'..."
-docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
-  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'odoo_install_smoke' AND pid <> pg_backend_pid();" \
-  >/dev/null 2>&1 || true
-docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
-  -c "DROP DATABASE IF EXISTS \"odoo_install_smoke\";" >/dev/null
+
+INSTALL_MODULES="$ALL_MODULES"
+if [ "${ODOO_INSTALL_SMOKE_BASE:-1}" = "1" ] && lists_are_canonical; then
+  BASE_ENABLED=1
+  BASE_FP="$(base_fingerprint)" || refuse_smoke "cannot fingerprint the Enterprise base inputs"
+fi
 
 SMOKE_CONTAINER="${ODOO_COMPOSE_PROJECT}-install-smoke-$$-${RANDOM}"
+BASE_CONTAINER="${SMOKE_CONTAINER}-base"
 cleanup_smoke_container() {
   docker rm -f "$SMOKE_CONTAINER" >/dev/null 2>&1 || true
+  docker rm -f "$BASE_CONTAINER" >/dev/null 2>&1 || true
 }
-# Unique name owned only by this invocation; cleanup never targets the DB service.
+# Unique names owned only by this invocation; cleanup never targets the DB service.
 trap cleanup_smoke_container EXIT
-echo "→ Installing modules (--stop-after-init)..."
-set +e
-# Passing CLI arguments to `docker compose run odoo-test` replaces the service
-# `command`, so its --addons-path is lost and the image's odoo.conf
-# (/mnt/extra-addons only) applies: Enterprise modules then install as
-# "missing". The addons path is therefore always passed explicitly here.
-ADDONS_PATH="/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons"
-if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
-  ADDONS_PATH="/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons"
-fi
-if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
-  # The official Odoo image entrypoint appends DB arguments after CLI input.
-  # Set its HOST/PORT/USER/PASSWORD contract so it preserves host-network values.
-  RUN_ARGS=(
-    docker run --name "$SMOKE_CONTAINER" --network host
-    -e "HOST=$ODOO_DB_HOST"
-    -e "PORT=$ODOO_DB_PORT"
-    -e "USER=$POSTGRES_USER"
-    -e "PASSWORD=$POSTGRES_PASSWORD"
-    -v "$ROOT:/mnt/extra-addons"
-  )
-  if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
-    RUN_ARGS+=(-v "$ENTERPRISE_REALPATH:/mnt/enterprise:ro")
+
+if [ "$BASE_ENABLED" -eq 1 ]; then
+  if base_ready; then
+    echo "→ Enterprise base '$BASE_DB' matches fp ${BASE_FP:0:12}; reusing it"
+  else
+    echo "→ Building Enterprise base '$BASE_DB' (fp ${BASE_FP:0:12}): -i ${ENTERPRISE_MODULES}"
+    drop_database "$BASE_BUILD_DB"
+    drop_database "$BASE_DB"
+    if ! odoo_install_run "$BASE_BUILD_DB" "$ENTERPRISE_MODULES" "${LOG_FILE}.base" "$BASE_CONTAINER"; then
+      echo "❌ install-smoke FAILED: Enterprise base install failed (log: ${LOG_FILE}.base)" >&2
+      exit 1
+    fi
+    if grep -E "$FATAL_PATTERNS_BASE" "${LOG_FILE}.base" | grep -vE "test_|Undefined substitution|Unexpected indentation" | head -40; then
+      echo "❌ install-smoke FAILED: fatal error while building the Enterprise base" >&2
+      exit 1
+    fi
+    IFS=',' read -r -a _base_modules <<< "${ENTERPRISE_MODULES}"
+    for mod in "${_base_modules[@]}"; do
+      mod="$(echo "$mod" | xargs)"
+      [ -z "$mod" ] && continue
+      STATE="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d "$BASE_BUILD_DB" -t -A -c \
+        "SELECT state FROM ir_module_module WHERE name = '$mod';" 2>/dev/null | tr -d '\r' || true)"
+      if [ "$STATE" != "installed" ]; then
+        echo "❌ install-smoke FAILED: Enterprise base module $mod → '${STATE:-missing}'" >&2
+        exit 1
+      fi
+    done
+    psql_admin "COMMENT ON DATABASE \"$BASE_BUILD_DB\" IS 'plasticos-smoke-base fp=${BASE_FP} state=ready';" >/dev/null \
+      || refuse_smoke "cannot stamp the Enterprise base"
+    psql_admin "ALTER DATABASE \"$BASE_BUILD_DB\" RENAME TO \"$BASE_DB\";" >/dev/null \
+      || refuse_smoke "cannot publish the Enterprise base"
+    base_ready || refuse_smoke "Enterprise base is not ready after build"
   fi
-  "${RUN_ARGS[@]}" "$SMOKE_IMAGE" \
-    --addons-path="$ADDONS_PATH" \
-    -d "$SMOKE_DB" \
-    --db_host="$ODOO_DB_HOST" \
-    --db_port="$ODOO_DB_PORT" \
-    --db_user="$POSTGRES_USER" \
-    --db_password="$POSTGRES_PASSWORD" \
-    -i "$ALL_MODULES" \
-    --without-demo=all \
-    --log-level=info \
-    --stop-after-init 2>&1 | tee "$LOG_FILE"
-else
-  docker compose -p "$ODOO_COMPOSE_PROJECT" run --no-deps --name "$SMOKE_CONTAINER" \
-    odoo-test \
-    --addons-path="$ADDONS_PATH" \
-    -d "$SMOKE_DB" \
-    --db_host="$ODOO_DB_HOST" \
-    --db_port="$ODOO_DB_PORT" \
-    --db_user="$POSTGRES_USER" \
-    --db_password="$POSTGRES_PASSWORD" \
-    -i "$ALL_MODULES" \
-    --without-demo=all \
-    --log-level=info \
-    --stop-after-init 2>&1 | tee "$LOG_FILE"
+  BASE_OID="$(base_db_oid)"
+  [ -n "$BASE_OID" ] || refuse_smoke "Enterprise base has no database OID"
+  INSTALL_MODULES="$CUSTOM_MODULES"
 fi
-EXIT_CODE=${PIPESTATUS[0]}
+
+echo "→ Dropping smoke DB 'odoo_install_smoke'..."
+drop_database "odoo_install_smoke"
+if [ "$BASE_ENABLED" -eq 1 ]; then
+  echo "→ Cloning '$BASE_DB' → 'odoo_install_smoke'..."
+  psql_admin "CREATE DATABASE \"odoo_install_smoke\" TEMPLATE \"$BASE_DB\";" >/dev/null \
+    || refuse_smoke "cannot clone the Enterprise base"
+fi
+
+echo "→ Installing modules (--stop-after-init): -i ${INSTALL_MODULES}"
+set +e
+odoo_install_run "$SMOKE_DB" "$INSTALL_MODULES" "$LOG_FILE" "$SMOKE_CONTAINER"
+EXIT_CODE=$?
 set -e
 
 if [ "$EXIT_CODE" -ne 0 ]; then
@@ -637,7 +800,7 @@ fi
 # post_init hooks (e.g. partner_import graph validation that does not abort load).
 # Registry fatals only. Exclude convert.py <delete> misses (logged as WARNING +
 # Traceback ValueError on fresh DBs) — those do not abort module load.
-FATAL_PATTERNS='Failed to initialize database|ParseError|odoo\.registry: Failed to load registry|Invalid field'
+FATAL_PATTERNS="$FATAL_PATTERNS_BASE"
 # External ID not found is fatal only outside convert delete-skip / cache lookup noise.
 if grep -E "$FATAL_PATTERNS" "$LOG_FILE" | grep -vE "test_|Undefined substitution|Unexpected indentation" | head -40; then
   echo "" >&2
@@ -715,21 +878,21 @@ if lists_are_canonical; then
   pg_image="$(docker inspect --format '{{.Image}}' "$pg_cid")"
   db_oid="$(smoke_db_oid)"
   python3 - "$EVIDENCE_FILE" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" "$ENTERPRISE_REALPATH" "$POST_SNAPSHOT" \
-    "$INSTALL_IMAGE_ID" "$pg_image" "$SMOKE_DB" "$db_oid" "$STATE_PAIRS" <<'PY'
+    "$INSTALL_IMAGE_ID" "$pg_image" "$SMOKE_DB" "$db_oid" "$STATE_PAIRS" "$BASE_FP" "$BASE_OID" <<'PY'
 import json
 import os
 import pathlib
 import sys
 import tempfile
-path, custom, enterprise, realpath, snapshot, image_id, pg_image, database, db_oid, pairs = sys.argv[1:]
+path, custom, enterprise, realpath, snapshot, image_id, pg_image, database, db_oid, pairs, base_fp, base_oid = sys.argv[1:]
 states = dict(line.split("=", 1) for line in pairs.splitlines() if "=" in line)
 expected = {name: "installed" for name in (enterprise + "," + custom).split(",") if name}
 if states != expected or not image_id or not pg_image or not db_oid.isdigit():
     raise SystemExit("cannot publish incomplete installation evidence")
-record = {"evidence_version": 3, "custom": custom, "enterprise": enterprise,
+record = {"evidence_version": 4, "custom": custom, "enterprise": enterprise,
           "enterprise_realpath": realpath, "snapshot": snapshot, "image_id": image_id,
           "postgres_image_id": pg_image, "database": database, "database_oid": db_oid,
-          "states": states}
+          "base_fp": base_fp, "base_oid": base_oid, "states": states}
 target = pathlib.Path(path)
 target.parent.mkdir(parents=True, exist_ok=True)
 fd, temporary = tempfile.mkstemp(prefix=".install-smoke-", dir=target.parent)

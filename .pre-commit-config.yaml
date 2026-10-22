@@ -74,6 +74,8 @@ repos:
         language: script
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: no-local-intelligence
         name: No local-intelligence authority drift (M8 — blocking)
@@ -81,6 +83,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: module-wiring
         name: Module dependency wiring check
@@ -88,6 +92,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: cron-invariants
         name: Cron invariant check
@@ -95,6 +101,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: banned-identifier
         name: BAN001 legacy vendor identifier prohibition
@@ -109,6 +117,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: orphan-model-refs
         name: Orphan model reference check
@@ -116,6 +126,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: package-init
         name: Package __init__.py check
@@ -123,6 +135,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: xpath-stability
         name: XPath anchor stability check
@@ -130,6 +144,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: odoo19-hooks
         name: Odoo 19 hook pattern check
@@ -137,6 +153,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: odoo19-xml
         name: Odoo 19 XML pattern check
@@ -144,6 +162,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: field-integrity
         name: Field integrity check
@@ -151,6 +171,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: model-inheritance
         name: Model inheritance pattern check
@@ -158,6 +180,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: orm-integrity
         name: ORM integrity check
@@ -165,6 +189,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: constraint-patterns
         name: Constraint pattern check
@@ -172,6 +198,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: disabled-actions
         name: Disabled action reference check
@@ -179,6 +207,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: odoo-antipatterns
         name: Odoo anti-pattern check (Python idioms)
@@ -186,6 +216,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: automation-field-refs
         name: Automation field reference check
@@ -193,6 +225,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: state-guard-bypass
         name: State guard bypass check
@@ -200,6 +234,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: acl-completeness
         name: ACL completeness check
@@ -207,6 +243,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: phantom-enum-values
         name: Phantom enum value check
@@ -214,6 +252,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|tests/test_phantom_enum_values\.py|tests/conftest\.py)$'
 
       - id: manifest-contract
         name: Manifest contract check (version, depends order)
@@ -221,6 +261,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/__manifest__\.py|config/.*|tests/test_repo_dependency_integrity\.py|tests/conftest\.py)$'
 
       - id: pipeline-v2-guard
         name: pipeline_v2.py import fence
@@ -228,6 +270,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: dev-tools-fence
         name: plasticos_dev_tools production fence
@@ -235,6 +279,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: critical-manifest
         name: Critical manifest check
@@ -242,6 +288,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
       - id: enhanced-audit
         name: Enhanced XML ID and dependency audit
@@ -249,6 +297,8 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+        # Runs only when a file it reads is in the commit/push range (pre-commit `files`).
+        files: '^(plasticos_[^/]+/.*|ci/.*|scripts/.*|tools/.*|config/.*)$'
 
   # Secret detection — uses locally installed gitleaks (brew install gitleaks)
   # bypasses pre-commit managed download due to macOS SSL cert issues
