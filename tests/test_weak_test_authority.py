@@ -269,3 +269,195 @@ def test_extended_audit_uses_the_owner_and_drops_coverage_claims(tmp_path: Path)
         ("WEAK_TEST", "plasticos_sample/tests/test_addon.py", "test_addon_empty")
     ]
     assert all(item["type"] != "NO_TEST_COVERAGE" for item in findings)
+
+
+def test_local_helpers_that_assert_are_resolved_one_hop(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_helpers.py",
+        """
+        def _module_check(value):
+            assert value == 1
+
+        class Base:
+            def _inherited_check(self):
+                self.assertTrue(True)
+
+        class TestCron(Base):
+            def _run_twice(self, name):
+                ok = run(name)
+                if ok is None:
+                    self.skipTest(name)
+                self.assertTrue(ok)
+
+            def _run_cron_safely(self, name):
+                try:
+                    run(name)
+                except Exception as exc:
+                    self.fail(str(exc))
+
+            def test_twice(self):
+                self._run_twice("cron")
+
+            def test_safely(self):
+                self._run_cron_safely("cron")
+
+            def test_inherited(self):
+                self._inherited_check()
+
+            def test_module_function(self):
+                _module_check(1)
+        """,
+    )
+    assert _flagged(tmp_path) == set()
+
+
+def test_unproven_local_helpers_stay_flagged(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_bad_helpers.py",
+        """
+        def _module_noop(value):
+            return value
+
+        def _module_inner():
+            assert True
+
+        def _module_two_hop():
+            _module_inner()
+
+        class TestOther:
+            def _owned_elsewhere(self):
+                self.assertTrue(True)
+
+        class TestCron:
+            def _asserts(self):
+                self.assertTrue(True)
+
+            def _no_assert(self):
+                run("cron")
+
+            def _assert_named_but_silent(self):
+                run("cron")
+
+            def _dead_assert(self):
+                return None
+                self.assertTrue(True)
+
+            def _false_branch(self):
+                if False:
+                    self.assertTrue(True)
+
+            def test_uncalled(self):
+                run("cron")
+
+            def test_called_after_return(self):
+                return None
+                self._asserts()
+
+            def test_non_asserting(self):
+                self._no_assert()
+
+            def test_name_is_not_evidence_for_a_local_helper(self):
+                self._assert_named_but_silent()
+
+            def test_unreachable_helper_assert(self):
+                self._dead_assert()
+
+            def test_constant_false_helper_assert(self):
+                self._false_branch()
+
+            def test_other_class_method(self):
+                self._owned_elsewhere()
+
+            def test_module_noop(self):
+                _module_noop(1)
+
+            def test_two_hops_is_not_one_hop(self):
+                _module_two_hop()
+
+            def test_nested_def_never_runs(self):
+                def inner():
+                    assert True
+
+            def test_self_call_does_not_reach_module_function(self):
+                self._module_inner()
+        """,
+    )
+    relative = "tests/test_bad_helpers.py"
+    assert _flagged(tmp_path) == {
+        (relative, name)
+        for name in (
+            "test_uncalled",
+            "test_called_after_return",
+            "test_non_asserting",
+            "test_name_is_not_evidence_for_a_local_helper",
+            "test_unreachable_helper_assert",
+            "test_constant_false_helper_assert",
+            "test_other_class_method",
+            "test_module_noop",
+            "test_two_hops_is_not_one_hop",
+            "test_nested_def_never_runs",
+            "test_self_call_does_not_reach_module_function",
+        )
+    }
+
+
+def test_direct_assertions_after_return_are_not_evidence(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_dead.py",
+        """
+        def test_dead_assert():
+            return None
+            assert True
+
+        def test_conditional_return_keeps_later_assert():
+            if flag():
+                return None
+            assert True
+        """,
+    )
+    assert _flagged(tmp_path) == {("tests/test_dead.py", "test_dead_assert")}
+
+
+def _run_cli(root: Path):
+    import subprocess
+
+    return subprocess.run(
+        [sys.executable, str(FIXER_PATH), str(root)], capture_output=True, text=True, check=False, timeout=60
+    )
+
+
+def test_cli_fails_on_an_assertion_free_test(tmp_path: Path):
+    _write(tmp_path, "tests/test_weak.py", _EMPTY_TEST)
+    result = _run_cli(tmp_path)
+    assert result.returncode == 1, result.stdout
+    assert "test_empty" in result.stdout
+
+
+def test_cli_passes_on_helper_backed_tests(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_good.py",
+        """
+        class TestCron:
+            def _run_twice(self):
+                self.assertTrue(run())
+
+            def test_twice(self):
+                self._run_twice()
+        """,
+    )
+    result = _run_cli(tmp_path)
+    assert result.returncode == 0, result.stdout
+
+
+def test_ci_static_checks_consume_the_exit_code():
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'run_check "Weak test detection"     python3 ci/weak_test_fixer.py' in workflow
+    assert 'run_advisory "Weak test detection"' not in workflow
+
+
+def test_repository_has_no_assertion_free_tests():
+    assert _run_cli(ROOT).returncode == 0
