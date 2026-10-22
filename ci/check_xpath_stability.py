@@ -5,7 +5,7 @@ XPath Anchor Stability Checker for Odoo 19 XML Views.
 Detects risky XPath patterns that can cause silent UI corruption:
 - Multi-match field selectors (field exists in both form and list)
 - Unscoped list field selectors (missing //list/ prefix)
-- Class-based anchors (fragile @class selectors)
+- Class-based anchors (fragile @class selectors; a positional [1] does not stabilise them)
 - Unscoped notebook selectors (no named notebook or named page)
 - Positional notebook indexes (notebook[1] is not a stable anchor)
 - Duplicate xpath usage in same view
@@ -42,13 +42,14 @@ SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 
 # Patterns that indicate risky xpaths
 RISKY_PATTERNS = [
-    # Class-based anchors without name fallback
+    # Class-based anchors, indexed or not: a positional [1] only picks whichever
+    # matching div comes first, so it does not stabilise a class selector.
     (
-        r'//div\[@class=[\'"]oe_title[\'"]\](?!\[1\])',
+        r'//div\[@class=[\'"]oe_title[\'"]\]',
         "CLASS_BASED_ANCHOR",
         "HIGH",
-        "Class-based anchor without index - fragile to upstream changes",
-        "Add [1] index: //div[@class='oe_title'][1]",
+        "Class-based anchor - fragile to upstream changes; a positional [1] index does not make it stable",
+        "Anchor on a named element instead: //field[@name='...'] or //div[@name='...']",
     ),
     # Unscoped notebook selectors
     (
@@ -167,7 +168,6 @@ SAFE_PATTERNS = [
     r"//page\[@name=",  # Named page anchor
     r"//group\[@name=",  # Named group anchor
     r"//div\[@name=",  # Named div anchor
-    r'\[@class=[\'"]oe_title[\'"]\]\[1\]',  # Indexed class selector
     r'//field\[@name=[\'"](\w+)[\'"]\]//list',  # Field containing list (one2many)
 ]
 
