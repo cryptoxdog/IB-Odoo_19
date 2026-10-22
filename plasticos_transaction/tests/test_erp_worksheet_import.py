@@ -1653,6 +1653,52 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(len(self._marked("sale.order", "legacy_erp_so_")), 2)
         self.assertFalse(self.Transaction.search([("name", "=", "60403")]))
 
+    def test_inventory_marker_follows_a_corrected_site_and_a_sale_only_line_is_rejected(self):
+        """A corrected ShipToID moves the worksheet marker. A sale-only line is not counted as stored."""
+        index = erp_source_index.build_source_index(
+            SourcePayload(
+                kind=PayloadKind.GRID,
+                root=Path("."),
+                tables={
+                    "Address": [
+                        {"AddressID": "404812", "CpID": "(INV)", "Type": "GREENVIEW WASHINGTON WAREHOUSE"},
+                        {"AddressID": "405026", "CpID": "(INV)", "Type": "JEI DALLAS WAREHOUSE"},
+                    ],
+                },
+            )
+        )
+        number = "62001"
+        self._add_order(index, "30000", "33600", "PO", VENDOR, "2026-04-01 00:00:00")
+        self._add_order(index, "30001", "18001", "SO", CUSTOMER, "2026-04-01 00:00:00")
+        self._add_line(index, "30010", "33600", _line("15001", number, "", "30010", "100", "0", "100", "40"))
+        self._add_line(index, "30011", "18001", _line("15002", number, "30011", "", "100", "50", "0", "0"))
+        index.buysells[number] = _buysell(
+            number, "2026-04-01 00:00:00", cust="(INV)", vendor=VENDOR, ShipToID="GREENVIEW WASHINGTON WAREHOUSE"
+        )
+        report = self._run(index)
+        greenview = self._order("stock.location", "legacy_erp_inv_addr_404812")
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_wks_62001"), greenview)
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_18001"))
+        self.assertEqual(report.counts["transaction_lines"]["created"], 1)
+        self.assertEqual(report.counts["transaction_lines"]["rejected"], 1)
+        self.assertEqual(report.counts["transactions"]["skipped"], 1)
+
+        index.buysells[number]["ShipToID"] = "JEI DALLAS WAREHOUSE"
+        corrected = self._run(index)
+        dallas = self._order("stock.location", "legacy_erp_inv_addr_405026")
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_wks_62001"), dallas)
+        self.assertNotEqual(dallas, greenview)
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_18001"))
+        self.assertEqual(corrected.counts["transaction_lines"]["created"], 0)
+        self.assertEqual(corrected.counts["transaction_lines"]["skipped"], 1)
+        self.assertEqual(corrected.counts["transaction_lines"]["rejected"], 1)
+
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(replay.counts["transaction_lines"]["created"], 0)
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_wks_62001"), dallas)
+
     def _on_hand(self):
         quant = self.env["stock.quant"].search([])
         layers = 0

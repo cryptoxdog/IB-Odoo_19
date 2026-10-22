@@ -63,12 +63,13 @@
   },
   "tests": [
     "pytest tests/test_erp_source_layer.py tests/test_phantom_enum_values.py: 124 passed",
-    "make test-module m=plasticos_transaction fresh=0 on clone odoo_test_w6af58c6046 of template odoo_test_tpl_ee_c9e8a81f52f23680: 0 failed, 0 error(s) of 44 tests (plasticos_transaction: 52 tests)"
+    "make test-module m=plasticos_transaction fresh=0 on clone odoo_test_w6af58c6046 of template odoo_test_tpl_ee_c9e8a81f52f23680: 0 failed, 0 error(s) of 44 tests, then again after the review fixes: 0 failed, 0 error(s) of 45 tests"
   ],
   "outbound_regression": "PASS: worksheet 61000 VendorID=(INV) with customer 1577 created a sale order and a plasticos.transaction and is absent from inventory_inbound",
   "ordinary_sale_regression": "PASS: worksheet 61001 created a sale order and a plasticos.transaction and is absent from inventory_inbound",
   "on_hand_delta": 0,
   "untouched_concerns": ["vendor_bills", "customer_invoices", "payment_terms", "salesperson", "crm", "outbound_inventory"],
-  "external_publication": "NONE",
+  "external_publication": "https://github.com/cryptoxdog/IB-Odoo_19/pull/284",
+  "review_fixes": "A corrected ShipToID rebinds legacy_erp_inv_wks_<number> to the new stock.location. A sale-only line on an inventory worksheet is rejected instead of counted as stored.",
   "unresolved_unknowns": []
 }

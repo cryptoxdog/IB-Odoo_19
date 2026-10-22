@@ -469,9 +469,10 @@ def _drop_expected_inventory_sale_link(index, report, context, number: str) -> N
     ]
 
 
-def _bump_inventory_lines(report, line_outcomes, new_lines: set[str], *, wrote: bool) -> None:
+def _bump_inventory_lines(report, line_outcomes, new_lines: set[str], written_lines: set[str]) -> None:
+    """Count only purchase lines that were stored. A sale-only line is not a skipped purchase."""
     for outcome in line_outcomes:
-        if not wrote or outcome == "rejected":
+        if outcome == "rejected" or outcome not in written_lines:
             report.bump("transaction_lines", "rejected")
         else:
             report.bump("transaction_lines", "created" if outcome in new_lines else "skipped")
@@ -479,7 +480,8 @@ def _bump_inventory_lines(report, line_outcomes, new_lines: set[str], *, wrote: 
 
 def _realize_purchase_groups(
     importer, context, report, partner_by_cp, buysell, number, purchase_groups, documents, new_lines, incoterm_code
-):
+) -> set[str]:
+    written: set[str] = set()
     for _po_id, rows in purchase_groups.items():
         header = rows[0][2]
         xml_id = f"legacy_erp_po_{_token(header.get('PONumber'))}"
@@ -490,12 +492,16 @@ def _realize_purchase_groups(
             continue
         documents["purchases"].append(order.id)
         for detail_id, line, _header in rows:
-            if (
-                order.state in _OPEN_PURCHASE_STATES
-                and _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}") is None
-            ):
+            existing_line = _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}")
+            if order.state not in _OPEN_PURCHASE_STATES:
+                if existing_line is not None:
+                    written.add(detail_id)
+                continue
+            if existing_line is None:
                 new_lines.add(detail_id)
             _upsert_purchase_line(importer, context, report, order, detail_id, line)
+            written.add(detail_id)
+    return written
 
 
 def _inventory_location(importer, index, address_id: str):
@@ -511,9 +517,25 @@ def _inventory_location(importer, index, address_id: str):
     )
 
 
+def _bind_inventory_worksheet(importer, number: str, location) -> None:
+    """Point the worksheet marker at the resolved site, including after a ShipToID correction."""
+    xml_id = f"legacy_erp_inv_wks_{_token(number)}"
+    model = importer.env["stock.location"]
+    data = importer.env["ir.model.data"].search(
+        [("module", "=", XMLID_MODULE), ("name", "=", xml_id), ("model", "=", model._name)],
+        limit=1,
+    )
+    if data and data.res_id == location.id and model.browse(data.res_id).exists():
+        return
+    if data:
+        data.write({"res_id": location.id})
+        return
+    importer._ensure_identity_marker(model, xml_id, location)
+
+
 def _keep_inventory_destination(importer, index, number: str, address_id: str) -> str:
     location = _inventory_location(importer, index, address_id)
-    importer._ensure_identity_marker(importer.env["stock.location"], f"legacy_erp_inv_wks_{_token(number)}", location)
+    _bind_inventory_worksheet(importer, number, location)
     return f"legacy_erp_inv_addr_{_token(address_id)}"
 
 
@@ -535,7 +557,7 @@ def _realize_inventory_inbound(
         _record_inventory(context, number, _INVENTORY_CANCELLED, "", "")
         report.anomaly("BuySell", number, _INVENTORY_CANCELLED_REASON)
         report.reject("transactions")
-        _bump_inventory_lines(report, line_outcomes, set(), wrote=False)
+        _bump_inventory_lines(report, line_outcomes, set(), set())
         _quarantine_worksheet_payables(
             index,
             context,
@@ -550,7 +572,7 @@ def _realize_inventory_inbound(
         _record_inventory(context, number, _INVENTORY_HELD_PURCHASE, destination, location_xmlid)
         report.anomaly("BuySell", number, _INVENTORY_HELD_PURCHASE_REASON)
         report.reject("transactions")
-        _bump_inventory_lines(report, line_outcomes, set(), wrote=False)
+        _bump_inventory_lines(report, line_outcomes, set(), set())
         _quarantine_worksheet_payables(
             index,
             context,
@@ -561,7 +583,7 @@ def _realize_inventory_inbound(
         )
         return [], []
     new_lines: set[str] = set()
-    _realize_purchase_groups(
+    written_lines = _realize_purchase_groups(
         importer, context, report, partner_by_cp, buysell, number, purchase_groups, documents, new_lines, incoterm_code
     )
     _vendor_bills(importer, index, report, context, partner_by_cp, number, documents)
@@ -573,7 +595,7 @@ def _realize_inventory_inbound(
         location_xmlid = _keep_inventory_destination(importer, index, number, destination)
         _record_inventory(context, number, _INVENTORY_RECOGNIZED, destination, location_xmlid)
         report.skip("transactions")
-    _bump_inventory_lines(report, line_outcomes, new_lines, wrote=True)
+    _bump_inventory_lines(report, line_outcomes, new_lines, written_lines)
     return [], []
 
 
