@@ -32,6 +32,7 @@ _USER_GROUPS = {
     "plasticos_base.user_sales_rep_rp": _SALES_REP_GROUPS,
     "plasticos_base.user_sales_rep_aa": _SALES_REP_GROUPS,
     "plasticos_base.user_sales_rep_tw": _SALES_REP_GROUPS,
+    "plasticos_base.user_sales_rep_mm": _SALES_REP_GROUPS,
 }
 
 

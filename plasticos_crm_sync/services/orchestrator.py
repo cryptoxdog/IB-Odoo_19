@@ -18,6 +18,7 @@ from .approved_identity import (
     without_duplicate_contacts,
     xmlid_name,
 )
+from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
 
 _logger = logging.getLogger(__name__)
 
@@ -1390,22 +1391,22 @@ class SyncOrchestrator:
             self.last_lead_outcome = "duplicate_rejected"
             return lead
 
-        vals = self._lead_vals_from_dto(dto)
-        # Archival provenance, not a mirror of the provider flag. `active` is
-        # shared state: Odoo users archive leads for their own reasons, and
-        # `deleted=false` is the provider's steady state for every live contact,
-        # so mirroring it would silently reopen every lead a user ever archived.
-        # Reactivation is therefore conditional on THIS sync having been the one
-        # that archived the lead.
-        if dto.deleted:
-            vals["active"] = False
-            vals["vanillasoft_sync_archived"] = True
-        elif lead and lead.vanillasoft_sync_archived:
-            vals["active"] = True
-            vals["vanillasoft_sync_archived"] = False
-
         prior_lead_id = lead.id if lead else False
         try:
+            vals = self._lead_vals_from_dto(dto)
+            # Archival provenance, not a mirror of the provider flag. `active` is
+            # shared state: Odoo users archive leads for their own reasons, and
+            # `deleted=false` is the provider's steady state for every live contact,
+            # so mirroring it would silently reopen every lead a user ever archived.
+            # Reactivation is therefore conditional on THIS sync having been the one
+            # that archived the lead.
+            if dto.deleted:
+                vals["active"] = False
+                vals["vanillasoft_sync_archived"] = True
+            elif lead and lead.vanillasoft_sync_archived:
+                vals["active"] = True
+                vals["vanillasoft_sync_archived"] = False
+
             with self.env.cr.savepoint():
                 if lead:
                     changed = {k: v for k, v in vals.items() if _differs(lead, k, v)}
@@ -1473,6 +1474,34 @@ class SyncOrchestrator:
         country = Country.search([("name", "=ilike", _collapse_ws(text))], limit=1)
         return country.id if country else False
 
+    def backfill_owners(self, owner_by_external_id: dict[str, str]) -> dict[str, int]:
+        """Assign ``crm.lead.user_id`` from the locked owner map.
+
+        A missing lead is counted and skipped. An owner that does not resolve
+        to exactly one eligible user is counted as failed and does not clear
+        a salesperson already on the lead.
+        """
+        counts = {"seen": 0, "updated": 0, "unchanged": 0, "missing": 0, "failed": 0}
+        leads = self.env[CRM_LEAD].with_context(active_test=False)
+        for external_id, owner_raw in owner_by_external_id.items():
+            counts["seen"] += 1
+            lead = leads.search([("vanillasoft_id", "=", str(external_id))], limit=1)
+            if not lead:
+                counts["missing"] += 1
+                continue
+            try:
+                user = resolve_salesperson(self.env, owner_raw)
+            except OwnerResolutionError as exc:
+                counts["failed"] += 1
+                self.error_rows.append({"record_ref": str(external_id), "message": str(exc)})
+                continue
+            if lead.user_id.id == user.id:
+                counts["unchanged"] += 1
+                continue
+            lead.write({"user_id": user.id})
+            counts["updated"] += 1
+        return counts
+
     def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
         # Lazy import mapping SSOT from crm_bridge
         from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING
@@ -1508,11 +1537,7 @@ class SyncOrchestrator:
             )
             state_id = state.id if state else False
 
-        user_id = False
-        owner_name = _collapse_ws(dto.owner_name)
-        if owner_name and owner_name.casefold() != "false":
-            users = self.env["res.users"].search([("name", "=ilike", owner_name)])
-            user_id = users.id if len(users) == 1 else False
+        user_id = resolve_salesperson(self.env, dto.owner_name).id
 
         return {
             "name": name,

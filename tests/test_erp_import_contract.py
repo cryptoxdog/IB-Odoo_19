@@ -204,24 +204,13 @@ def test_change_detection_compares_the_values_odoo_normalizes_on_write(service_t
     assert "html2plaintext" in service_source
 
 
-def _comment_helper(service_tree, service_source):
-    namespace = {}
-    exec("from html import escape\nfrom html.parser import HTMLParser", namespace)  # noqa: S102
-    for node in service_tree.body:
-        names = [t.id for t in getattr(node, "targets", []) if isinstance(t, ast.Name)]
-        if (
-            getattr(node, "name", None) in {"_CommentBlocks", "_comment_with_erp_notes"}
-            or "_COMMENT_BLOCK_TAGS" in names
-        ):
-            exec(ast.get_source_segment(service_source, node), namespace)  # noqa: S102
-    return namespace["_comment_with_erp_notes"]
-
-
 def test_erp_replay_keeps_crm_notes_appended_to_the_partner_comment(service_tree, service_source):
     """The CRM sync appends paragraphs to ``comment``; an ERP replay must neither drop nor repeat them."""
+    from erp.comment_notes import comment_with_erp_notes
+
     upsert = ast.get_source_segment(service_source, _function(service_tree, "_upsert"))
     assert "_comment_with_erp_notes(record.comment" in upsert
-    merge = _comment_helper(service_tree, service_source)
+    merge = comment_with_erp_notes
     stored = "<p>Ext 1187\next 1187</p><p>CRM history</p>"
     assert merge(stored, "Ext 1187\next 1187") is None
     assert merge("<p>Ext 1187</p><p>ext 1187</p><p>CRM history</p>", "Ext 1187\next 1187") is None
@@ -364,9 +353,11 @@ def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_t
     assert "len(rows)" in ast.get_source_segment(
         SERVICE.read_text(encoding="utf-8"), _function(service_tree, "_import_sales_reps")
     )
-    assert "'user_id': False" in reps or '"user_id": False' in ast.get_source_segment(
-        SERVICE.read_text(encoding="utf-8"), _function(service_tree, "_import_sales_reps")
-    ), "a company whose source names no default rep must drop a stale Salesperson"
+    source = ast.get_source_segment(SERVICE.read_text(encoding="utf-8"), _function(service_tree, "_import_sales_reps"))
+    assert "default_sales_rep" in source
+    assert "'user_id': False" not in source and '"user_id": False' not in source, (
+        "an unresolved rep must leave the existing Salesperson"
+    )
 
 
 def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):

@@ -26,6 +26,7 @@ __all__ = [
     "ODOO_ADDRESS_TYPE",
     "PRIMARY_CONTACT_ROLE",
     "COMPANY_ROLE_BY_ERP_ROLE",
+    "SALES_REP_LOGINS",
     "SALES_REP_NAMES",
     "SALES_REP_REASSIGNED",
     "UNIT_TYPE_MAP",
@@ -398,7 +399,23 @@ def map_contact_role(raw_role: str | None) -> tuple[str | None, str | None]:
     return tag, None
 
 
-# SalesReps.ReferrerNo initials -> the Odoo user name the Salesperson is matched by.
+# SalesReps.ReferrerNo initials -> the existing res.users login written to
+# res.partner.user_id. The mailbox is the match. Display names are not:
+# AA and AB are both Arthur, and TF's mailbox is sa@, not tf@.
+# MM and DAVE are Mack's account. LR is Lindsey; the mailbox prefix is lm.
+SALES_REP_LOGINS: dict[str, str] = {
+    "IB": "ib@scrapmanagement.com",
+    "AA": "aa@scrapmanagement.com",
+    "RP": "rp@scrapmanagement.com",
+    "AB": "ab@scrapmanagement.com",
+    "TF": "sa@scrapmanagement.com",
+    "MM": "sales2@scrapmanagement.com",
+    "LR": "lm@scrapmanagement.com",
+    "DAVE": "sales2@scrapmanagement.com",
+}
+
+# Worksheet commission still names the historical recipient. That lookup is
+# the display name, and it does not apply the partner-ownership logins above.
 SALES_REP_NAMES: dict[str, str] = {
     "IB": "Igor Beylin",
     "AA": "Arthur Akopyan",
@@ -432,23 +449,44 @@ def sales_rep_code(code: str | None) -> str:
 
 
 def default_sales_rep(rows) -> tuple[str | None, str | None]:
-    """The ``IsDefault=1`` rep initials for one company's SalesReps rows.
+    """The rep initials that set one company's Salesperson.
 
-    Returns ``(None, None)`` when no row is the default; that company gets no
-    Salesperson. Two different default reps return ``(None, reason)``.
+    A unique ``IsDefault=1`` row wins, including when other reps are also
+    present. When the source marks none as default, the sole assigned rep is
+    the Salesperson: an ``IsDefault=0`` row is still an assignment. Two
+    different defaults, or several assigned reps and no default, return
+    ``(None, reason)`` and set nobody.
     """
-    codes = sorted(
-        {sales_rep_code(row.get("ReferrerNo")) for row in rows if _clean(row.get("IsDefault")) == "1"} - {""}
-    )
-    if not codes:
+    defaults = _sales_rep_codes(rows, default_only=True)
+    if len(defaults) > 1:
+        return None, f"more than one default rep: {', '.join(defaults)}"
+    if len(defaults) == 1:
+        return defaults[0], None
+    assigned = _sales_rep_codes(rows, default_only=False)
+    if len(assigned) > 1:
+        return None, f"more than one rep and no default: {', '.join(assigned)}"
+    if not assigned:
         return None, None
-    if len(codes) > 1:
-        return None, f"more than one default rep: {', '.join(codes)}"
-    return codes[0], None
+    return assigned[0], None
+
+
+def _sales_rep_codes(rows, *, default_only: bool) -> list[str]:
+    selected = rows
+    if default_only:
+        selected = [row for row in rows if _clean(row.get("IsDefault")) == "1"]
+    return sorted({sales_rep_code(row.get("ReferrerNo")) for row in selected} - {""})
+
+
+def sales_rep_login(code: str | None) -> str | None:
+    """Odoo user login for rep initials, or ``None`` for unknown initials.
+
+    Former initials are reassigned first, so a live ``JB`` row is Mack's login.
+    """
+    return SALES_REP_LOGINS.get(sales_rep_code(code))
 
 
 def sales_rep_name(code: str | None) -> str | None:
-    """Odoo user name for rep initials, or ``None`` for unknown initials."""
+    """Display name for rep initials. Worksheet history uses this, not the login."""
     return SALES_REP_NAMES.get(sales_rep_code(code))
 
 

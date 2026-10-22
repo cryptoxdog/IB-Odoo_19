@@ -25,7 +25,7 @@
       "why": "YES/NO/PENDING matrix. This run executes YES only, and the pinned CSV is that YES allowlist."
     },
     "VanillaSoft_4876_Field_Mapping_Resolved_Owners_Stage_Review.xlsx": {
-      "sha256": "cd5a1cf8422609faa6785cb60897c577bbba27163f0c5534430981971d8a56ad",
+      "sha256": "983177dedb4f1409d283986d27d745c50577bc47fa797b6c5af2ae5c4f154f9e",
       "why": "Lead owner and stage oracle. This run does not create crm.lead rows."
     },
     "VanillaSoft_to_Odoo_Polymer_Mapping_Decisions_2026-10-14.xlsx": {
