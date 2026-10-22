@@ -4,7 +4,7 @@
 **Date:** 2026-06-04
 **Deciders:** Igor Beylin
 **Scope:** External intelligence integration (`plasticos_buyer_match_engine`, `plasticos_enrichment`, brokerage pipeline)
-**Related:** [GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
+**Related:** [ADR-016](ADR-016-web-lead-triage-boundary.md), [ADR-018](ADR-018-human-brokerage-checkpoints.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
 
 > **Supersession (2026-08-07):** §2 “Odoo local engines are fallback” is **not** architectural authority. Binding rules: [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md) (Gate → CEG/EIE only) and [ADR-013-fail-closed-gate-transport.md](ADR-013-fail-closed-gate-transport.md) (no silent local intelligence). Hub topology and phased human checkpoints in this ADR remain binding unless a later ADR amends them. See also ADR-009–019 architecture convergence set.
 
@@ -54,7 +54,7 @@ Human checkpoints stay in place until each step proves reliable in production. A
 | **Phase 2** | Smarter defaults (e.g. top-N match pre-selection, pre-filled offers). Human still approves Send Offer. |
 | **Phase 3** | Gate-routed web-lead triage and higher autonomy — only after Phase 1–2 metrics justify removing middle steps. |
 
-Full phase definitions, graduation criteria, and deferred pack scope: **[GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md)**.
+Phase definitions are §3 of this ADR. Web-lead triage stays in Odoo until an ADR amendment ([ADR-016](ADR-016-web-lead-triage-boundary.md)). Human checkpoints are [ADR-018](ADR-018-human-brokerage-checkpoints.md).
 
 ### 4. Brokerage pipeline ownership (Phase 1)
 
@@ -102,14 +102,13 @@ enrichment must be live-activated and testable on sample data, so:
 - `plasticos.gate.enrichment_enabled` defaults to **`1`** (converge attempted whenever a Gate URL is set + SDK present).
 - `plasticos.gate.auto_writeback` defaults to **`1`**: converge results are applied to the partner immediately, restricted to the **allowlisted** partner fields (`name, website, city, zip, street, street2, email, phone`), **merge-not-overwrite** (blanks only), with a `plasticos.enrichment.provenance` row per write. ROAD-GATE-024 moves to `scope_in` / `complete`.
 - Setting `plasticos.gate.auto_writeback=0` restores review-only (proposal stored, `state="review"`, no writes).
-- Contract stays **`action="converge"`** (`ConvergeRequest`); EIE must add a matching `converge` handler (see `docs/track_b/03_enrichment_inference_engine.md`).
+- Contract stays **`action="converge"`** (`ConvergeRequest`); EIE must add a matching `converge` handler (see ADR-011).
 
 **Authority model clarification.** The `TransportPacket` schema (Gate_SDK), hub routing / `/v1/execute`
 semantics (Constellation.Gate), and worker action/payload contracts (EIE/CEG) are owned by those
 constellation repos. Odoo (`plasticos_gate`) is a **consumer that adapts** to them — it does not own
 the transport or worker contracts. Odoo owns only *when* to call Gate, *how* it maps results into CRM
-records (allowlists, merge-not-overwrite, fallback), and its own audit/UX. Odoo-side wiring guidance:
-[`docs/track_b/04_odoo_gate_consumer_wiring.md`](../track_b/04_odoo_gate_consumer_wiring.md).
+records (allowlists, merge-not-overwrite, fallback), and its own audit/UX. Odoo-side wiring lives in `plasticos_gate` and ADR-010.
 
 Unchanged: Gate remains the mandatory hub, local enrichment remains the fallback, and web-lead
 triage stays local in Phase 1 (ROAD-GATE-020/023 still deferred).

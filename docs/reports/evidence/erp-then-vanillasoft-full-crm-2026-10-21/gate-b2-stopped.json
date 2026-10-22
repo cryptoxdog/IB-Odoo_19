@@ -1,0 +1,17 @@
+{
+  "gate": "B2",
+  "database": "odoo_test_erpvs1021",
+  "stopped_before_completion": true,
+  "reason": "Operator redirected the run from commercial documents to the VanillaSoft contact import. The clone was not dropped.",
+  "preserved_counts": {
+    "sale_order": 3066,
+    "purchase_order": 3009,
+    "account_move": 8634,
+    "plasticos_transaction": 3396,
+    "res_partner": 5194,
+    "contact_xmlid": 3726,
+    "address_xmlid": 2602,
+    "crm_lead": 0,
+    "plasticos_crm_external_ref": 0
+  }
+}

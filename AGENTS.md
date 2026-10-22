@@ -623,3 +623,45 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > GMP execution is the `/gmp` slash command, which runs the governance executor against this clone:
 > `"$GOV_PY" "$GOV/workflows/gmp_executor.py" --workspace "$(git rev-parse --show-toplevel)" …`
 > (`commands/gmp.md` in Cursor-Governance). Do not re-add the skill symlink.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Repo Index block above that names `reports/repo-index/` is superseded.
+> Lookup indexes live at `docs/reports/repo-index/`. Regenerate them with
+> `python3 scripts/repo_generators/export_repo_indexes.py`.
+> Do not create a root `reports/` directory. The global `l9-repo-index` skill's
+> default output path does not apply in this repo. The line that says no
+> repo-local generator exists is also superseded: the generator is
+> `scripts/repo_generators/export_repo_indexes.py`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> GMP execution reports are saved in `docs/reports/gmp-reports/` and committed.
+> Do not write them to a root `reports/` directory, do not scatter them, and do not
+> finish a GMP without saving the report. `docs/GATE_AUTONOMY_ROADMAP.md` moved to
+> `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the `make roadmap` and `make roadmap-list` commands above, and the generated Gate
+> autonomy document they named, are retired. Do not restore that generator.
+> `docs/roadmap/` is hand-authored strategic planning; no script may write it.
+> Phase criteria are ADR-002 §3, ADR-016, and ADR-018. Web-lead triage stays in
+> Odoo until an ADR amendment.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `docs/runbooks/ERP_IMPORT.md` does not exist. The ERP import contract is
+> ADR-021 and `plasticos_partner_import` (`erp/mapping.py`, `erp/mapping_status.py`,
+> `erp/reader.py`). The unadopted `docs/runbooks/erp_sync_mapping_matrix/` proposal
+> was removed. Do not restore it.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `memory-bank/` is retired. Do not recreate it. Session resume is Graphiti
+> (`https://github.com/Quantum-L9/l9-graphiti-memory`). Current operational
+> state is `workflow_state.md`. Code debt stays in `docs/campaigns/odoo_tech_debt`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the sentence above that says `docs/GATE_AUTONOMY_ROADMAP.md` moved to
+> `docs/roadmap/GATE_AUTONOMY_ROADMAP.md` is superseded. That generated file
+> was deleted. `docs/roadmap/` was emptied on purpose, including `README.md`.
+> `docs/erp_extract_research.md` is removed with the retired `data/erp_sm_export/`
+> probe. SQL authority is `plasticos_partner_import/erp_extracted_data/` and
+> `erp/reader.py`. `docs/runbooks/` is removed. The CI contract note lives at
+> `docs/reports/CI_CONTRACT_ASSURANCE.md`.

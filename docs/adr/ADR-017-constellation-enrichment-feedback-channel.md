@@ -55,7 +55,7 @@ If PlasticOS adopts batch enrichment from CEG queues, Odoo remains a **client**:
 
 1. Do not vendor CEG `engine/health/` into IB-Odoo_19.
 2. Do not treat EIE SCORE/HEALTH modules as permission to schedule from Odoo without ADR-010.
-3. Document any new Odoo queue-consumer seam in track_b + ICP.
+3. Document any new Odoo queue-consumer seam in an ADR and the ICP.
 
 ## References
 

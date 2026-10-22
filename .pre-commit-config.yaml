@@ -42,7 +42,8 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=1000']
         # ERP extract grids are multi-MB fixtures (largest ~7MB).
-        exclude: ^plasticos_partner_import/erp_extracted_data/bulk/
+        # The historical VanillaSoft contact snapshot is an operator input tracked under campaigns.
+        exclude: ^plasticos_partner_import/erp_extracted_data/bulk/|^docs/campaigns/.*/PRIVATE_INPUTS/
 
       - id: check-merge-conflict
 

@@ -1,0 +1,65 @@
+{
+  "gate": "B",
+  "database": "odoo_test_erpvs1021",
+  "mode": "ERP_PARTNERS_ONLY=1",
+  "source": "host.docker.internal:14330/ERP_SM",
+  "reader": "erp_reader",
+  "require_empty": 1,
+  "limit": null,
+  "final_status": "partial",
+  "exit_code": 0,
+  "reconciliation": {
+    "records_seen": 12518,
+    "records_created": 7679,
+    "records_updated": 2115,
+    "records_unchanged": 1432,
+    "records_rejected": 1292,
+    "duplicates": 0,
+    "equation_closed": true
+  },
+  "source_worksheets": {
+    "CounterParty": 1300,
+    "Address": 2968,
+    "Contact": 4084,
+    "ContactRoleAssignment": 3108,
+    "SalesReps": 1058
+  },
+  "layer_counts_from_importer_log": {
+    "counterparties": {"created": 1300, "updated": 0, "skipped": 0, "rejected": 0},
+    "locations": {"created": 1266, "updated": 1297, "skipped": 39, "rejected": 0},
+    "contacts": {"created": 2615, "updated": 0, "skipped": 1116, "rejected": 0},
+    "contact_roles": {"created": 2498, "updated": 0, "skipped": 180, "rejected": 0},
+    "salespersons": {"created": 0, "updated": 818, "skipped": 97, "rejected": 0},
+    "transactions": {"created": 0, "updated": 0, "skipped": 0, "rejected": 0},
+    "transaction_lines": {"created": 0, "updated": 0, "skipped": 0, "rejected": 0}
+  },
+  "contact_accounting": {
+    "source_rows": 4084,
+    "created_plus_skipped": 3731,
+    "inactive_contact": 2,
+    "unresolved_counterparty": 332,
+    "missing_parent_key": 19,
+    "accounted": 4084
+  },
+  "inactive_contact_ids_recorded_unresolved": ["12250001", "85100001"],
+  "inactive_contact_xmlids": 0,
+  "validators": ["database", "counterparties", "addresses", "contacts", "roles", "salesreps"],
+  "summary_error_rows_capped_at": 1000,
+  "unresolved_kind_counts_inside_cap": {
+    "Address unresolved_counterparty": 366,
+    "Contact unresolved_counterparty": 332,
+    "Contact missing_parent_key": 19,
+    "Contact inactive_contact": 2,
+    "ContactRoleAssignment unresolved_contact": 135,
+    "ContactRoleAssignment unresolved_rr": 4,
+    "SalesReps unresolved_counterparty": 142
+  },
+  "post_counts": {
+    "res_partner": 5194,
+    "sale_order": 0,
+    "purchase_order": 0,
+    "account_move": 0,
+    "plasticos_transaction": 0,
+    "crm_lead": 0
+  }
+}

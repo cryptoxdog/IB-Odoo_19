@@ -6,7 +6,6 @@
 **Scope:** Separation of web-lead HOT/COLD triage from Gate match/enrichment
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
-[GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md),
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),
 [ADR-018-human-brokerage-checkpoints.md](ADR-018-human-brokerage-checkpoints.md)
 
@@ -36,9 +35,9 @@ Web-lead triage is **not**:
 - EIE `converge` partner enrichment
 - Buyer `match` scoring
 
-### 3. Phase 3 only by later ADR/roadmap
+### 3. Phase 3 only by a later ADR
 
-Moving triage to Gate requires GATE_AUTONOMY_ROADMAP Phase 3 criteria plus an ADR amendment. Do not “soft enable” via draft packs.
+Moving triage to Gate requires an ADR amendment. Do not “soft enable” via draft packs.
 
 ## Consequences
 
@@ -60,4 +59,4 @@ Moving triage to Gate requires GATE_AUTONOMY_ROADMAP Phase 3 criteria plus an AD
 ## References
 
 - `plasticos_web_leads/models/web_lead.py`
-- ADR-002 Phase 1–3 table; GATE_AUTONOMY_ROADMAP.md
+- ADR-002 Phase 1–3 table; ADR-018 human checkpoints
