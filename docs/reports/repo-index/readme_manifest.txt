@@ -3,19 +3,12 @@
 ./README.md:1:# PlasticOS · Odoo 19
 ./ci/baselines/README.md:1:# Audit baselines — per-finding allowlist, not a count
 ./contracts/schemas/README.md:1:# Odoo PlasticOS payload schemas
-./data/erp_sm_export/README.md:1:# ERP `SM_EXPORT` — tracked extract pack
 ./docs/README_INDEX.md:1:# PlasticOS IB-Odoo 19 — README Index
-./docs/README_backup_github_actions.md:1:# PlasticOS Disaster Recovery — External Backup via GitHub Actions
-./docs/README_backup_github_actions.md:44:# Add public key to: Odoo.sh Dashboard → Project → Settings → SSH Keys
-./docs/README_backup_github_actions.md:155:# List available backups
-./docs/README_backup_github_actions.md:158:# Download most recent
-./docs/README_backup_github_actions.md:161:# Restore to local Postgres
-./docs/README_backup_github_actions.md:165:# Or restore to Odoo.sh via the Odoo.sh platform backup restore UI
 ./docs/adr/README.md:1:# Architecture Decision Records (ADRs)
 ./docs/adr/gate-integration/README.md:1:# Gate Integration ADR Pack
-./docs/roadmap/README.md:1:# Roadmap tooling
-./docs/roadmap/README.md:18:# Sync all roadmap docs + validate IDs (no item added)
-./docs/roadmap/README.md:21:# Add item → auto ID (ROAD-GATE-NNN) → sync → validate — one command
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/README.md:1:# Mack PR #197 | source-bound execution pack v1
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/README.md:1:# Cursor delegation: ERP contacts, then VanillaSoft crosswalk only
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/README.md:1:# Cursor delegation: full ERP import, then full VanillaSoft CRM import
 ./plasticos_accounting/README.md:13:# Plasticos Accounting
 ./plasticos_automation/README.md:13:# Plasticos Automation
 ./plasticos_base/README.md:13:# Plasticos Base

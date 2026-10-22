@@ -34,6 +34,22 @@
 ./ci/test_generator.py:10:class TestGenerator:
 ./ci/test_generator.py:47:    def test_create_basic(self):
 ./ci/test_generator.py:75:    def test_constraint_{field["name"]}_required(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:15:class TestModel:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:23:    def test_identical_retry_returns_prior_receipt_without_second_activity(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:59:    def test_exact_fixture_generates_applyable_patch(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:79:    def test_wrong_branch_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:84:    def test_dirty_worktree_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:89:    def test_changed_remote_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:94:    def test_lookalike_host_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:99:    def test_https_origin_is_accepted(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:103:    def test_stale_head_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:110:    def test_missing_model_anchor_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:114:    def test_duplicate_test_anchor_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:118:    def test_existing_helper_is_rejected(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:191:    def test_owned_disposable_allows_binding(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:194:    def test_refuses_non_disposable_db_before_any_connection(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:197:    def test_refuses_remote_host_before_any_connection(self):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:200:    def test_refuses_database_without_ownership_marker(self):
 ./plasticos_commission/tests/test_commission_config_access.py:18:class TestCommissionConfigAccess(TransactionCase):
 ./plasticos_commission/tests/test_commission_config_access.py:61:    def test_setter_is_rpc_reachable(self):
 ./plasticos_commission/tests/test_commission_config_access.py:65:    def test_settings_admin_sets_both_keys(self):
@@ -336,8 +352,8 @@
 ./tests/contracts/test_external_intelligence_authority.py:49:def test_invariants_declare_external_intelligence_authority():
 ./tests/contracts/test_external_intelligence_authority.py:56:def test_architecture_points_at_successor_adr_not_fallback_authority():
 ./tests/contracts/test_external_intelligence_authority.py:64:def test_agents_forbid_local_engines_as_authority():
-./tests/contracts/test_external_intelligence_authority.py:71:def test_gate_roadmap_generator_is_retired_and_folder_is_hand_authored():
-./tests/contracts/test_external_intelligence_authority.py:82:def test_acceptance_local_engines_no_longer_architectural_authority():
+./tests/contracts/test_external_intelligence_authority.py:71:def test_gate_roadmap_generator_is_retired_and_folder_is_empty():
+./tests/contracts/test_external_intelligence_authority.py:89:def test_acceptance_local_engines_no_longer_architectural_authority():
 ./tests/contracts/test_external_intelligence_contract_parity.py:64:def test_default_actions_are_match_and_converge():
 ./tests/contracts/test_external_intelligence_contract_parity.py:70:def test_availability_missing_url(monkeypatch):
 ./tests/contracts/test_external_intelligence_contract_parity.py:78:def test_availability_insecure_http_blocked(monkeypatch):
