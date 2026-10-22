@@ -277,8 +277,8 @@ def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path:
     assert workspaces == [worktree, worktree]
     assert governance not in workspaces
     assert text.index("l4 ") < text.rindex("l4 ") < text.index("gitleaks ")
-    assert text.index("gitleaks ") < text.index("smoke --resolve") < text.index("make ")
-    assert text.index("make ") < text.index("smoke --recheck") < text.index("\npush\n")
+    assert text.index("gitleaks ") < text.index("make ") < text.index("\npush\n")
+    assert "smoke " not in text, "the Odoo install-smoke runs on the PR (GitHub workflow), never in make pr"
     assert "Open PR #222" in output
 
 
@@ -462,11 +462,23 @@ def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
     assert _seq(seq) == ""
 
 
-def test_pr_check_reuses_live_evidence_not_a_source_hash() -> None:
-    text = (ROOT / "scripts" / "pr_check_run.sh").read_text(encoding="utf-8")
-    assert "smoke_fingerprint" not in text
-    assert "--recheck" in text
-    assert "install-smoke.sha" not in text
+def test_local_publication_gate_never_runs_the_install_smoke() -> None:
+    # The Odoo load is proven by .github/workflows/odoo-install-smoke.yml on the
+    # PR; neither the local gate nor the push pipeline may invoke the installer
+    # or reason about its evidence.
+    for name in ("pr_check_run.sh", "git_push_with_pr.sh", "make_push_pipeline.sh"):
+        text = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+        for invocation in (
+            "bash scripts/install_smoke.sh",
+            'install_smoke.sh" --',
+            "install_smoke.sh --",
+            "install-smoke\n",
+        ):
+            assert invocation not in text, f"{name} still invokes the installer: {invocation!r}"
+        assert "smoke_fingerprint" not in text and "install-smoke.sha" not in text, name
+    workflow = (ROOT / ".github" / "workflows" / "odoo-install-smoke.yml").read_text(encoding="utf-8")
+    assert "scripts/install_smoke.sh" in workflow
+    assert "odoo/enterprise" in workflow and "ODOO_ENTERPRISE_TOKEN" in workflow
 
 
 def test_api_push_and_autopilot_do_not_publish() -> None:
@@ -498,8 +510,8 @@ def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:
     proc = _push(repo, tmp_path, "fix/example")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     text = _seq(seq)
-    assert text.index("gitleaks ") < text.index("smoke --resolve") < text.index("make ")
-    assert text.index("make ") < text.index("smoke --recheck") < text.index("\npush\n")
+    assert text.index("gitleaks ") < text.index("make ") < text.index("\npush\n")
+    assert "smoke " not in text
 
 
 def test_failed_or_missing_gitleaks_does_not_push(tmp_path: Path) -> None:
@@ -582,7 +594,8 @@ def test_accepting_pre_push_hook_runs_once_and_publishes_validated_head(tmp_path
     assert _hook_runs(seq) == 1
     assert _remote_sha(bare) == _head(repo) != seeded
     text = _seq(seq)
-    assert text.index("make ") < text.index("smoke --recheck") < text.index("pre-push ")
+    assert text.index("make ") < text.index("pre-push ")
+    assert "smoke " not in text
 
 
 @pytest.mark.parametrize(
@@ -643,10 +656,17 @@ def test_bad_origin_and_skip_switches_refuse(tmp_path: Path) -> None:
     _assert_no_push(seq2)
 
     repo3, seq3 = _init_repo(tmp_path / "skip")
-    skipped = _push(repo3, tmp_path / "skip", "fix/example", PR_CHECK_SKIP_SMOKE="1")
+    skipped = _push(repo3, tmp_path / "skip", "fix/example", PR_CHECK_SKIP_REMOTE="1")
     assert skipped.returncode == 1
-    assert "PR_CHECK_SKIP_SMOKE" in (skipped.stdout + skipped.stderr)
+    assert "PR_CHECK_SKIP_REMOTE" in (skipped.stdout + skipped.stderr)
     _assert_no_push(seq3)
+
+    # The smoke switches are retired with the local smoke itself: they are
+    # ignored, never a reason to refuse.
+    repo4, seq4 = _init_repo(tmp_path / "retired")
+    ignored = _push(repo4, tmp_path / "retired", "fix/example", PR_CHECK_SKIP_SMOKE="1", PR_CHECK_FORCE_SMOKE="1")
+    assert ignored.returncode == 0, ignored.stdout + ignored.stderr
+    assert "smoke " not in _seq(seq4)
 
 
 def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:

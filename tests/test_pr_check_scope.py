@@ -1,8 +1,9 @@
-"""scripts/pr_check_run.sh — change-class gate selection, timing receipts, parallel smoke.
+"""scripts/pr_check_run.sh — change-class gate selection and timing receipts.
 
 Real shell, real Git (a local bare origin with a Staging branch), a fake `make`
 that records the targets it was asked to build, and a stub installer that
-records how it was called. The load-surface owner is the real script.
+records if it is ever called (it must not be: the Odoo install-smoke runs on
+the PR in GitHub Actions). The load-surface owner is the real script.
 """
 
 from __future__ import annotations
@@ -129,7 +130,12 @@ def repo(tmp_path: Path) -> Repo:
     return Repo(root, log, env)
 
 
-def test_docs_only_branch_runs_the_light_wave_and_only_the_smoke_recheck(repo: Repo) -> None:
+def _no_local_smoke(calls: list[str]) -> None:
+    assert not any(c.startswith("smoke ") for c in calls), "the installer must never run from the local gate"
+    assert "make install-smoke" not in calls
+
+
+def test_docs_only_branch_runs_only_the_light_wave(repo: Repo) -> None:
     repo.commit("docs", **{"docs/guide.md": "# changed\n", "plasticos_base/README.md": "# changed\n"})
     result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
@@ -137,20 +143,10 @@ def test_docs_only_branch_runs_the_light_wave_and_only_the_smoke_recheck(repo: R
     calls = repo.calls()
     assert "make audit-quick" in calls and "make ban-check" in calls
     assert "make test" not in calls and "make audit" not in calls and "make audit-baseline" not in calls
-    assert "smoke --recheck" in calls
-    assert "make install-smoke" not in calls
+    _no_local_smoke(calls)
     scope = repo.scope()
     assert scope["scope"] == "docs_only" and scope["changed_count"] == 2
     assert "⏱ wave1 (audit-quick + ban-check):" in result.stdout
-
-
-def test_docs_only_branch_still_installs_when_evidence_is_missing(repo: Repo) -> None:
-    repo.commit("docs", **{"docs/guide.md": "# changed\n"})
-    result = repo.run("full", FAKE_SMOKE_RC="1")
-    assert result.returncode == 0, result.stdout + result.stderr
-    calls = repo.calls()
-    assert "smoke --recheck" in calls
-    assert "make install-smoke" in calls, "DOCS_ONLY: an evidence miss must still prove the load locally"
 
 
 @pytest.mark.parametrize(
@@ -171,24 +167,24 @@ def test_docs_only_branch_still_installs_when_evidence_is_missing(repo: Repo) ->
 )
 def test_load_installer_or_tooling_change_selects_full_scope(repo: Repo, files: dict, reason: str) -> None:
     repo.commit("change", **files)
-    result = repo.run("full", PR_CHECK_SMOKE_PARALLEL="0")
+    result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "scope=full" in result.stdout, reason
     calls = repo.calls()
     assert {"make audit", "make audit-baseline", "make test"} <= set(calls)
-    assert "smoke --recheck" in calls
+    _no_local_smoke(calls)
 
 
 def test_uncommitted_and_untracked_load_changes_also_select_full_scope(repo: Repo) -> None:
     repo.commit("docs", **{"docs/guide.md": "# changed\n"})
     (repo.root / "plasticos_base/models.py").write_text("VALUE = 1\n")  # untracked, on the surface
-    result = repo.run("full", PR_CHECK_SMOKE_PARALLEL="0")
+    result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "scope=full" in result.stdout
 
 
 def test_no_change_against_base_fails_closed_to_full(repo: Repo) -> None:
-    result = repo.run("full", PR_CHECK_SMOKE_PARALLEL="0")
+    result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "scope=full" in result.stdout and "no change against" in result.stdout
 
@@ -196,14 +192,14 @@ def test_no_change_against_base_fails_closed_to_full(repo: Repo) -> None:
 def test_unreachable_base_fails_closed_to_full(repo: Repo) -> None:
     repo.commit("docs", **{"docs/guide.md": "# changed\n"})
     _git(repo.root, "remote", "set-url", "origin", str(repo.root / "nowhere.git"))
-    result = repo.run("full", PR_CHECK_SMOKE_PARALLEL="0")
+    result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "scope=full" in result.stdout and "cannot fetch origin/Staging" in result.stdout
 
 
 def test_forced_full_scope_overrides_docs_only(repo: Repo) -> None:
     repo.commit("docs", **{"docs/guide.md": "# changed\n"})
-    result = repo.run("full", PR_CHECK_SCOPE="full", PR_CHECK_SMOKE_PARALLEL="0")
+    result = repo.run("full", PR_CHECK_SCOPE="full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "scope=full reason=forced" in result.stdout
     assert "make test" in repo.calls()
@@ -212,31 +208,23 @@ def test_forced_full_scope_overrides_docs_only(repo: Repo) -> None:
 def test_classifier_error_fails_closed_to_full(repo: Repo) -> None:
     repo.commit("docs", **{"docs/guide.md": "# changed\n"})
     (repo.root / "plasticos_base/data/seed.xml").unlink()  # declared file missing: owner exits 2
-    result = repo.run("full", PR_CHECK_SMOKE_PARALLEL="0")
+    result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "scope=full" in result.stdout
 
 
-def test_full_scope_runs_smoke_beside_wave_one_and_propagates_its_failure(repo: Repo) -> None:
+def test_load_surface_change_does_not_start_a_local_install(repo: Repo) -> None:
+    # The Odoo load is proven by the "Odoo Install Smoke" workflow on the PR; a
+    # local gate that still called the installer would reintroduce the ten
+    # minutes this contract removes, and a stub that fails must not matter.
     repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
-    result = repo.run("full", FAKE_SMOKE_RC="1", FAKE_MAKE_FAIL="install-smoke")
-    assert result.returncode != 0, "PARALLEL: a failed smoke install did not fail the gate"
-    assert "install-smoke started beside wave 1" in result.stdout
-    calls = repo.calls()
-    assert "make test" in calls and "smoke --recheck" in calls and "make install-smoke" in calls
-
-
-def test_full_scope_sequential_switch_runs_smoke_after_wave_one(repo: Repo) -> None:
-    repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
-    result = repo.run("full", PR_CHECK_SMOKE_PARALLEL="0")
+    result = repo.run("full", FAKE_SMOKE_RC="1")
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "started beside wave 1" not in result.stdout
-    calls = repo.calls()
-    assert calls.index("smoke --recheck") > calls.index("make test")
-    assert "⏱ install-smoke:" in result.stdout
+    assert "install-smoke" not in result.stdout
+    _no_local_smoke(repo.calls())
 
 
-def test_wave_one_failure_fails_the_gate_even_when_smoke_passes(repo: Repo) -> None:
+def test_wave_one_failure_fails_the_gate(repo: Repo) -> None:
     repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
     result = repo.run("full", FAKE_MAKE_FAIL="test")
     assert result.returncode != 0

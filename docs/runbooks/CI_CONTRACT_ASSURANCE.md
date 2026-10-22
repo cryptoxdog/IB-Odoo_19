@@ -18,6 +18,12 @@ surface (manifests, non-test Python, manifest-declared data, `i18n/`, `static/`,
 plus the installer inputs). Install-smoke evidence (v4) is keyed to it, and
 `scripts/pr_check_run.sh` uses the same owner to select the local gates by change
 class (`scope=full` / `scope=docs_only`, receipt `.cache/pr-check/scope.json`).
+The Odoo install itself is not a local publication gate: the "Odoo Install
+Smoke" workflow (`.github/workflows/odoo-install-smoke.yml`) runs the real
+`scripts/install_smoke.sh` on every pull request with Enterprise checked out from
+`odoo/enterprise` (`secrets.ODOO_ENTERPRISE_TOKEN`). `make pr` and `make pr-check`
+never invoke the installer; `tests/test_make_pr_publication.py` and
+`tests/test_pr_check_scope.py` pin that.
 The Odoo-supplied base is installed once into the `odoo_install_smoke_base`
 template and cloned for every smoke install, which then installs only the
 PlasticOS list. The fake Docker models several databases for that contract.

@@ -722,6 +722,14 @@ pr:
 # 2026-10-22 (additive): "plasticos/load inputs" means the load surface owned by
 # scripts/odoo_load_surface.py; evidence is reused when it, the image, the
 # Enterprise tree and the database are unchanged (PR_CHECK_FORCE_SMOKE=1 installs again).
+# 2026-10-22 (additive, supersedes the install-smoke lines above): pr-check no longer
+# runs the Odoo install-smoke in either scope and make pr no longer resolves or rechecks
+# its evidence. The load is proven on GitHub by .github/workflows/odoo-install-smoke.yml
+# ("Odoo Install Smoke": same scripts/install_smoke.sh, Enterprise checked out from
+# odoo/enterprise 19.0 with secrets.ODOO_ENTERPRISE_TOKEN) on every pull request and on
+# pushes to Staging/Production. `make install-smoke` stays as the explicit local run.
+# PR_CHECK_SKIP_SMOKE / PR_CHECK_FORCE_SMOKE / PR_CHECK_SMOKE_CACHE / PR_CHECK_SMOKE_PARALLEL
+# are retired (ignored).
 pr-check:
 	@bash scripts/pr_check_run.sh full
 

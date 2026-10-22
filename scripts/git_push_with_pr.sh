@@ -129,13 +129,6 @@ export GH_REPO="cryptoxdog/IB-Odoo_19"
 case "${PR_CHECK_SKIP_REMOTE:-0}" in
   1|true|True|yes) refuse "PR_CHECK_SKIP_REMOTE is set" ;;
 esac
-case "${PR_CHECK_SKIP_SMOKE:-0}" in
-  1|true|True|yes) refuse "PR_CHECK_SKIP_SMOKE is set" ;;
-esac
-case "${PR_CHECK_FORCE_SMOKE:-0}" in
-  1|true|True|yes) refuse "PR_CHECK_FORCE_SMOKE is set" ;;
-esac
-
 require_pre_push_enforcement
 
 if ! command -v gitleaks >/dev/null 2>&1; then
@@ -145,19 +138,15 @@ if ! gitleaks detect --config .gitleaks.toml --redact --exit-code 2; then
   refuse "gitleaks detect failed"
 fi
 
-if ! bash scripts/install_smoke.sh --resolve; then
-  refuse "install-smoke --resolve rejected the effective module lists"
-fi
-
+# The Odoo install-smoke is not a local publication gate any more: the
+# "Odoo Install Smoke" workflow (.github/workflows/odoo-install-smoke.yml) runs
+# the same scripts/install_smoke.sh on every pull request after the push.
 if ! make pr-check; then
   refuse "make pr-check failed"
 fi
 
 if [[ "$(git rev-parse HEAD)" != "${LOCAL_SHA}" ]] || [[ -n "$(git status --porcelain)" ]]; then
   refuse "HEAD or the worktree changed during validation"
-fi
-if ! bash scripts/install_smoke.sh --recheck; then
-  refuse "install-smoke --recheck rejected the live evidence"
 fi
 
 # Push the validated commit, never the moving HEAD. The pre-push hook runs here;

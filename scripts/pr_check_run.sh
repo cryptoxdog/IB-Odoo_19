@@ -4,7 +4,11 @@
 # This is not the GitHub CI job graph. GitHub CI (ci.yml) stays authoritative and
 # runs the full suite on every PR (lint, static-checks, pure-python-tests,
 # gate-sdk-tests, audit-baseline, secret-scan). Secrets are scanned locally by
-# the pre-commit gitleaks-push hook at `git push` time, not here.
+# the pre-commit gitleaks-push hook at `git push` time, not here. The Odoo
+# install-smoke (`odoo-bin -i` of every PlasticOS module on the Enterprise base)
+# runs on GitHub too, as the "Odoo Install Smoke" workflow on every pull request
+# (.github/workflows/odoo-install-smoke.yml); `make install-smoke` remains the
+# explicit local run for Docker-side debugging and is never part of this gate.
 #
 # Modes:
 #   fast  — audit-quick + pytest (local iteration only; not publication)
@@ -13,12 +17,10 @@
 #             scope=full       any Odoo load-surface, installer or repo-tooling
 #                              path changed (scripts/odoo_load_surface.py owns
 #                              the load surface): make audit + audit-baseline +
-#                              test, local Odoo install-smoke (evidence reuse
-#                              when the load surface is unchanged), remote
-#                              feedback.
+#                              test, then remote feedback.
 #             scope=docs_only  nothing the Odoo install or the repo tooling
-#                              reads changed: audit-quick + ban-check, the
-#                              install-smoke evidence recheck, remote feedback.
+#                              reads changed: audit-quick + ban-check, then
+#                              remote feedback.
 #           Classification fails closed: no base, no merge-base, a classifier
 #           error or an empty change set all select scope=full.
 #
@@ -27,10 +29,6 @@
 #   PR_CHECK_SCOPE=full         force the full scope
 #   PR_CHECK_JOBS=N             parallel make jobs (default: 4)
 #   PR_CHECK_SKIP_REMOTE=1      skip GitHub/Sonar/review sync
-#   PR_CHECK_SKIP_SMOKE=1       skip Docker install-smoke
-#   PR_CHECK_FORCE_SMOKE=1      ignore install-smoke evidence and install again
-#   PR_CHECK_SMOKE_CACHE=0      disable evidence reuse (always install when not skipped)
-#   PR_CHECK_SMOKE_PARALLEL=0   run install-smoke after wave 1 instead of beside it
 #
 # Receipts: .cache/pr-check/scope.json (scope, base, head, changed paths) and a
 # per-phase elapsed-seconds line for every phase on stdout.
@@ -151,35 +149,6 @@ classify_scope() {
   esac
 }
 
-maybe_install_smoke() {
-  if [ "${PR_CHECK_SKIP_SMOKE:-0}" = "1" ]; then
-    log "→ install-smoke skipped (PR_CHECK_SKIP_SMOKE=1)"
-    return 0
-  fi
-
-  local use_cache="${PR_CHECK_SMOKE_CACHE:-1}"
-  local force="${PR_CHECK_FORCE_SMOKE:-0}"
-  local rc
-
-  if [ "$force" != "1" ] && [ "$use_cache" = "1" ]; then
-    set +e
-    bash "$ROOT/scripts/install_smoke.sh" --recheck
-    rc=$?
-    set -e
-    if [ "$rc" -eq 0 ]; then
-      log "→ install-smoke evidence matches the live image, load surface, Enterprise tree and database"
-      return 0
-    fi
-    if [ "$rc" -eq 2 ]; then
-      log "→ install-smoke recheck refused"
-      return 2
-    fi
-    log "→ install-smoke evidence miss; running a fresh install"
-  fi
-
-  "${MAKE}" --no-print-directory install-smoke
-}
-
 maybe_remote() {
   if [ "${PR_CHECK_SKIP_REMOTE:-0}" = "1" ]; then
     log "→ Remote PR feedback skipped (PR_CHECK_SKIP_REMOTE=1)"
@@ -189,46 +158,20 @@ maybe_remote() {
 }
 
 run_full_scope() {
-  # Wave 1: local counterparts of ci.yml's static/baseline/pytest collectors.
-  # Wave 2: local Odoo load (not in GHA), beside wave 1 unless disabled.
-  local smoke_pid="" smoke_rc=0 smoke_log
-  if [ "${PR_CHECK_SMOKE_PARALLEL:-1}" = "1" ] && [ "${PR_CHECK_SKIP_SMOKE:-0}" != "1" ]; then
-    mkdir -p "$RECEIPT_DIR"
-    smoke_log="$RECEIPT_DIR/install-smoke.phase.log"
-    phase_start
-    maybe_install_smoke > "$smoke_log" 2>&1 &
-    smoke_pid=$!
-    log "→ install-smoke started beside wave 1 (log: ${smoke_log#"$ROOT/"})"
-  fi
+  # Local counterparts of ci.yml's static/baseline/pytest collectors. The Odoo
+  # load itself is proven by the "Odoo Install Smoke" workflow on the PR.
   phase_start
   run_wave audit audit-baseline test
   phase_end "wave1 (audit + audit-baseline + test)"
-  if [ -n "$smoke_pid" ]; then
-    set +e
-    wait "$smoke_pid"
-    smoke_rc=$?
-    set -e
-    cat "$smoke_log"
-    log "⏱ install-smoke (parallel): finished with exit ${smoke_rc}"
-    [ "$smoke_rc" -eq 0 ] || return "$smoke_rc"
-  else
-    phase_start
-    maybe_install_smoke
-    phase_end "install-smoke"
-  fi
 }
 
 run_docs_only_scope() {
   # Lint, format, XML and wiring on the whole tree are seconds; the heavy
   # collectors (semgrep, audit-baseline, pytest) run in CI on the PR and read
-  # nothing this change touched. The smoke recheck still runs: evidence that is
-  # absent on this machine, or bound to another image/database, is re-proven.
+  # nothing this change touched.
   phase_start
   run_wave audit-quick ban-check
   phase_end "wave1 (audit-quick + ban-check)"
-  phase_start
-  maybe_install_smoke
-  phase_end "install-smoke recheck"
 }
 
 case "$MODE" in
@@ -244,7 +187,7 @@ case "$MODE" in
   full | pr-check)
     log "════════════════════════════════════════════════════"
     log " make pr-check — local pre-push gate (change-class scoped, parallel waves)"
-    log " GitHub CI remains authoritative (full suite runs on the PR)"
+    log " GitHub CI remains authoritative (full suite + Odoo install smoke run on the PR)"
     log "════════════════════════════════════════════════════"
     phase_start
     classify_scope

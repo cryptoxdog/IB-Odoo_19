@@ -1,0 +1,87 @@
+# Odoo Install Smoke — the real `odoo-bin -i` load of every PlasticOS module on
+# the Enterprise base, run on GitHub after the PR is open instead of on the
+# developer machine before the push.
+#
+# This is the same ceremony as `make install-smoke` (scripts/install_smoke.sh):
+# the repo's docker-compose.yml stack, the Odoo 19 image built from Dockerfile,
+# the Enterprise checkout mounted at /mnt/enterprise, and the canonical module
+# lists from config/odoo_module_order.yaml. Nothing is re-implemented here.
+#
+# It is deliberately a separate workflow from ci.yml: ci.yml's merge-gate
+# contract (ci/check_github_actions_kernel.sh merge_gate_logic) pins its Phase 1
+# job set, and the smoke needs Docker, a private checkout and ~10 minutes.
+# Make the "Odoo Install Smoke" check required on Staging to block merges on it.
+#
+# Secret: ODOO_ENTERPRISE_TOKEN — a read-only token for github.com/odoo/enterprise
+# (the Enterprise subscription's GitHub access). Repository or organization
+# secret; the job fails closed when it is absent.
+name: Odoo Install Smoke
+
+on:
+  pull_request:
+  push:
+    branches: [Staging, Production]
+  workflow_dispatch:
+
+concurrency:
+  group: odoo-install-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  install-smoke:
+    name: Odoo Install Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # One fresh daemon per run: a full install into one database is simpler
+      # than the local base-template clone, which only pays off across runs.
+      ODOO_INSTALL_SMOKE_BASE: "0"
+      ODOO_ENTERPRISE_PATH: ./odoo-enterprise
+      # install_smoke.sh logs to /tmp by default; keep the log inside the
+      # workspace so the artifact step below can collect it.
+      ODOO_INSTALL_SMOKE_LOG_DIR: ${{ github.workspace }}/.cache/pr-check
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          persist-credentials: false
+
+      - name: Require the Enterprise read token
+        env:
+          ODOO_ENTERPRISE_TOKEN: ${{ secrets.ODOO_ENTERPRISE_TOKEN }}
+        run: |
+          if [ -z "$ODOO_ENTERPRISE_TOKEN" ]; then
+            echo "::error::secrets.ODOO_ENTERPRISE_TOKEN is not set. Add a read-only token for github.com/odoo/enterprise as a repository or organization secret; the install smoke cannot run without the Enterprise addons."
+            exit 1
+          fi
+
+      - name: Check out Odoo Enterprise 19.0
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          repository: odoo/enterprise
+          ref: "19.0"
+          token: ${{ secrets.ODOO_ENTERPRISE_TOKEN }}
+          path: odoo-enterprise
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build the odoo-test image
+        run: docker compose build odoo-test
+
+      - name: Install every PlasticOS module on the Enterprise base
+        run: bash scripts/install_smoke.sh
+
+      - name: Keep the install log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: odoo-install-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .cache/pr-check/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Tear the stack down
+        if: always()
+        run: docker compose down --volumes --remove-orphans || true

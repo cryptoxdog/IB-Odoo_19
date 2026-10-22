@@ -641,3 +641,17 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > stays unfiltered. The "pr-check = local (ruff, XML, wiring, semgrep, pytest)" line in the Commands block above
 > is historical: those collectors run locally only in `scope=full`. The first publish after this change
 > rebuilds evidence once per machine.
+
+> **2026-10-22 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Odoo install-smoke moved from the developer machine to GitHub. `.github/workflows/odoo-install-smoke.yml`
+> ("Odoo Install Smoke") runs the same `scripts/install_smoke.sh` ceremony (docker-compose stack, image built from
+> `Dockerfile`, canonical lists from `config/odoo_module_order.yaml`) on every pull request and on pushes to
+> `Staging` / `Production`, with Odoo Enterprise 19.0 checked out from `odoo/enterprise` using the repository or
+> organization secret `ODOO_ENTERPRISE_TOKEN` (read-only; the job fails closed without it). It is a separate workflow
+> because `ci.yml`'s merge-gate contract pins its Phase 1 job set; make the "Odoo Install Smoke" check required on
+> `Staging` so it blocks merge. Locally, `make pr-check` (both scopes) and `make pr` no longer run the installer,
+> resolve its module lists or recheck its evidence; the `PR_CHECK_SKIP_SMOKE`, `PR_CHECK_FORCE_SMOKE`,
+> `PR_CHECK_SMOKE_CACHE` and `PR_CHECK_SMOKE_PARALLEL` switches are retired. `make install-smoke` remains the
+> explicit local run (Docker-side debugging; `plasticos-odoo-docker-testing`). The workflow table above therefore
+> has one more automatic, blocking-by-branch-protection workflow, and the earlier 2026-10-22 correction's
+> "with install-smoke beside them" / "install-smoke evidence recheck" phrases are superseded by this one.
