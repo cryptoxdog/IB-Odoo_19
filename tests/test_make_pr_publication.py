@@ -623,6 +623,23 @@ def test_bad_origin_and_skip_switches_refuse(tmp_path: Path) -> None:
     _assert_no_push(seq3)
 
 
+def test_operator_smoke_bypass_skips_only_the_smoke_recheck(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    proc = _push(repo, tmp_path, "fix/example", PR_SMOKE_BYPASS="docs-only change")
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 0, output
+    assert "install-smoke BYPASSED by operator: docs-only change" in output
+    text = _seq(seq)
+    assert text.index("gitleaks ") < text.index("make ") < text.index("\npush\n")
+    assert "smoke --recheck" not in text
+
+    repo2, seq2 = _init_repo(tmp_path / "blank")
+    blank = _push(repo2, tmp_path / "blank", "fix/example", PR_SMOKE_BYPASS="  ", PR_CHECK_SKIP_SMOKE="1")
+    assert blank.returncode == 1
+    assert "PR_CHECK_SKIP_SMOKE" in (blank.stdout + blank.stderr)
+    _assert_no_push(seq2)
+
+
 def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     proc = _push(repo, tmp_path, "fix/example", MAKE_DIRTY="1")
