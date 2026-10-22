@@ -4,6 +4,7 @@ SELECT
   RTRIM(BuySellNo) AS BuySellNo,
   RTRIM(CustID) AS CustID,
   RTRIM(VendorID) AS VendorID,
+  RTRIM(ShipToID) AS ShipToID,
   CONVERT(varchar(19), OrderDt, 120) AS OrderDt,
   CONVERT(varchar(19), InvoiceDt, 120) AS InvoiceDt,
   RTRIM(PriceBasis) AS PriceBasis,

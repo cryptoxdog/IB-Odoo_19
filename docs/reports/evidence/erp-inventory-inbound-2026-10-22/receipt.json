@@ -1,0 +1,137 @@
+{
+  "subject": "ERP-INVENTORY-INBOUND-001",
+  "verdict": "PASS_FIXTURE_SCOPE",
+  "recorded_at": "2026-10-22T22:26:52Z",
+  "repo": "cryptoxdog/IB-Odoo_19",
+  "branch": "fix/erp-inventory-inbound",
+  "baseline_sha": "6036b79c0e40ebb8bc41505b26ae533e42ca70e2",
+  "tested_sha": "6036b79c0e40ebb8bc41505b26ae533e42ca70e2",
+  "tested_tree_note": "Odoo and source-layer tests ran on the worktree at baseline 6036b79 before this receipt was added. The tested importer bytes are the sha256 values below.",
+  "source_reader": "existing_read_only_restored_sql",
+  "source_writes": 0,
+  "source_database": {
+    "container": "cie-sql-proof",
+    "database": "cieTrade_SM",
+    "read_only": true,
+    "restored_from": "/var/opt/mssql/backup/cieTrade_SM_2026-10-03.bak",
+    "backup_start": "2026-10-03T16:35:00",
+    "queried_on": "2026-10-22"
+  },
+  "warehouse_link": {
+    "status": "PROVED",
+    "source_table": "dbo.BuySell",
+    "source_column": "ShipToID",
+    "source_key_shape": "(BuySell.CustID, BuySell.ShipToID) = (Address.CpID, Address.Type)",
+    "worksheet_60403_selected_warehouse": "GREENVIEW WASHINGTON WAREHOUSE",
+    "worksheet_60403_address_id_candidate": "404812",
+    "verified_address_id": "404812",
+    "odoo_location_identity": "plasticos_transaction.legacy_erp_inv_addr_404812",
+    "worksheet_marker": "plasticos_transaction.legacy_erp_inv_ws_60403",
+    "site_uniqueness_proved": true,
+    "uniqueness_census": {
+      "inv_addresses": 41,
+      "distinct_types": 41,
+      "custid_inv_worksheets": 373,
+      "unique_match": 373,
+      "blank": 0,
+      "unmatched": 0,
+      "multi": 0,
+      "status_x_all_years": 34
+    },
+    "disproved_substitutes_on_60403": {
+      "WarehouseLocation": "blank",
+      "WarehouseBin": "blank",
+      "DBAAddrID": 0,
+      "cieWhseType": "P",
+      "Address.WarehouseID": "2331 is the operating company",
+      "AddressID_404811": "CpID 2331 Type INVOICE, not the selector"
+    }
+  },
+  "worksheet_60403_source": {
+    "CustID": "(INV)",
+    "VendorID": "2106",
+    "status": "I",
+    "ShipToID": "GREENVIEW WASHINGTON WAREHOUSE",
+    "WKSDetail": "13303",
+    "PPO_ID": "19339",
+    "PONumber": "33498",
+    "POID": "15168",
+    "PO_CpID": "2106",
+    "quantity_lb": 38580,
+    "purchase_amount": 3472.2
+  },
+  "sample_baseline": {
+    "recent_inbound_2025_2026": 138,
+    "not_cancelled": 135,
+    "noncancelled_with_purchase_link": 119,
+    "noncancelled_without_purchase_link": 16,
+    "cancelled": 3,
+    "note": "Import-side rejection diagnostic. This change did not reimport those worksheets."
+  },
+  "after": {
+    "scope": "fixture cases only",
+    "inbound_classified": 5,
+    "inbound_with_verified_destination": 3,
+    "inbound_held_missing_destination": 1,
+    "inbound_held_missing_purchase": 1,
+    "cancelled": 1,
+    "recognized": ["58868", "60403"],
+    "destinations": {
+      "60403": "404812",
+      "58868": "405026",
+      "58975": "405026"
+    },
+    "source_rows_reconciled": "fixture report buckets only; make import-erp was not run",
+    "new_sale_orders_for_inv": 0,
+    "new_customer_invoices_for_inv": 0,
+    "new_plasticos_transaction_for_inv": 0,
+    "unexpected_new_on_hand": 0,
+    "unexpected_valuation_delta": 0,
+    "duplicate_source_markers_on_replay": 0,
+    "recognized_transaction_outcome": "skipped",
+    "held_and_cancelled_transaction_outcome": "rejected"
+  },
+  "tests": [
+    {
+      "command": "pytest tests/test_erp_source_layer.py -q",
+      "result": "76 passed",
+      "proved": "frozen (INV) address 404812 is the destination for GREENVIEW WASHINGTON WAREHOUSE; other placeholder CpIDs stay unresolved"
+    },
+    {
+      "command": "make test-module m=plasticos_transaction fresh=0",
+      "database": "odoo_test_w39da19266a",
+      "template": "odoo_test_tpl_ee_c9e8a81f52f23680",
+      "result": "49 run, 0 failed, 0 error(s)",
+      "finished_at": "2026-10-22T22:26:52Z",
+      "cases": [
+        "60403 draft PO quantity 38580 lb subtotal 3472.20 location 404812",
+        "58868 draft PO location 405026",
+        "58975 location 405026 and no purchase order",
+        "status X creates no location and no purchase order",
+        "ambiguous ShipToID holds the purchase and creates no location",
+        "VendorID (INV) with a real customer still compiles a transaction",
+        "ordinary sale is not classified inbound",
+        "replay of 60403 and 58868 adds no markers, lines, sales, invoices, transactions, or quants"
+      ]
+    }
+  ],
+  "file_sha256": {
+    "plasticos_partner_import/erp/source_index.py": "1863c9b7e5449ac5c400ad46d9b314e996a8ee02d5ae893d8011f9c07bd829f6",
+    "plasticos_partner_import/erp/native_orders.py": "a3ed9644172a482b692c1b18a0aa728b77fd2a856fd5131ee3a5558691e91bc1",
+    "plasticos_partner_import/erp_extracted_data/24_buysell.sql": "38715e3a570b2a4b0a3c03c5d225fd9a6d8a012c20b8afbacd7fe7d8e6533579",
+    "plasticos_transaction/models/native_document_import.py": "4a52965c52fc61febc4f8f0ffe0de1475432a08d275d6bedec04ec8f012410f8"
+  },
+  "outbound_regression": "PASS",
+  "ordinary_sale_regression": "PASS",
+  "untouched_concerns": [
+    "vendor_bills",
+    "customer_invoices",
+    "payment_terms",
+    "salesperson",
+    "crm",
+    "outbound_inventory"
+  ],
+  "not_claimed": "The other 119 linked 2025-2026 inbound worksheets were not imported.",
+  "external_publication": "PENDING_MAKE_PR",
+  "unresolved_unknowns": []
+}

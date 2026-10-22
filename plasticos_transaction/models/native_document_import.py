@@ -193,6 +193,18 @@ def _census(index, context) -> dict:
     limited = census["payables_excluded"]["by_reason"].get("diagnostic_limit")
     census["payables_unselected"] = dict(limited) if limited else {"rows": 0, "amount": 0.0}
     census["worksheets_rejected"] = sorted(rejected)
+    entries = context.get("inventory_inbound") or []
+    by_outcome: dict[str, list[str]] = {}
+    destinations: dict[str, str] = {}
+    for entry in entries:
+        by_outcome.setdefault(entry["outcome"], []).append(entry["worksheet"])
+        if entry.get("address_id"):
+            destinations[entry["worksheet"]] = entry["address_id"]
+    census["inventory_inbound"] = {
+        "worksheets": len(entries),
+        "by_outcome": {key: sorted(values) for key, values in sorted(by_outcome.items())},
+        "destinations": dict(sorted(destinations.items())),
+    }
     return census
 
 
@@ -267,6 +279,131 @@ def _new_documents() -> dict:
     return {"sales": [], "purchases": [], "invoice": False, "credits": [], "bills": [], "freight_bills": []}
 
 
+def _realize_inventory_inbound(
+    importer,
+    index,
+    report,
+    partner_by_cp,
+    context,
+    number,
+    buysell,
+    documents,
+    purchase_groups,
+    line_outcomes,
+    incoterm_code,
+):
+    """A ``CustID`` of ``(INV)`` is an inventory receipt, not a missing customer.
+
+    The destination is ``(CustID, ShipToID)`` = ``(Address.CpID, Address.Type)``.
+    The purchase order stays draft. No sale, customer invoice, stock move, or
+    on-hand quantity is created.
+    """
+    destination, site_reason = index.inventory_destination(buysell.get("CustID"), buysell.get("ShipToID"))
+    status = (buysell.get("status") or "").strip().upper()
+    if status == "X":
+        outcome = "cancelled"
+    elif not purchase_groups:
+        outcome = "held_missing_purchase"
+    elif destination is None:
+        outcome = "held_missing_destination"
+    else:
+        outcome = "recognized"
+    context.setdefault("inventory_inbound", []).append(
+        {
+            "worksheet": number,
+            "outcome": outcome,
+            "address_id": (destination.get("AddressID") or "").strip() if destination else "",
+            "ship_to": (buysell.get("ShipToID") or "").strip(),
+            "site_reason": site_reason,
+        }
+    )
+    if outcome == "cancelled":
+        report.reject("transactions")
+        report.reject("transaction_lines", len(line_outcomes) or len(index.detail_ids(number)))
+        _quarantine_worksheet_payables(
+            index,
+            context,
+            report,
+            number,
+            "cancelled inventory inbound creates no stock event",
+            "inventory_inbound_cancelled",
+        )
+        return [], []
+    if destination is not None and outcome != "held_missing_destination":
+        _bind_inventory_destination(importer, number, destination)
+    if outcome == "held_missing_purchase":
+        report.reject("transactions")
+        report.reject("transaction_lines", len(line_outcomes) or len(index.detail_ids(number)))
+        _quarantine_worksheet_payables(
+            index,
+            context,
+            report,
+            number,
+            "inventory inbound has no purchase order link",
+            "inventory_inbound_no_purchase",
+        )
+        return [], []
+
+    new_lines: set[str] = set()
+    for _po_id, rows in purchase_groups.items():
+        header = rows[0][2]
+        xml_id = f"legacy_erp_po_{_token(header.get('PONumber'))}"
+        order = _upsert_order(
+            importer, context, partner_by_cp, header, buysell, number, "purchase.order", xml_id, incoterm_code
+        )
+        if order is None:
+            continue
+        documents["purchases"].append(order.id)
+        for detail_id, line, _header in rows:
+            if (
+                order.state in _OPEN_PURCHASE_STATES
+                and _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}") is None
+            ):
+                new_lines.add(detail_id)
+            _upsert_purchase_line(importer, context, report, order, detail_id, line)
+    _vendor_bills(importer, index, report, context, partner_by_cp, number, documents)
+    if outcome == "recognized":
+        report.skip("transactions")
+    else:
+        report.reject("transactions")
+        report.anomaly("BuySell", number, "inventory inbound destination was not a single warehouse")
+    for line_outcome in line_outcomes:
+        if line_outcome == "rejected":
+            report.bump("transaction_lines", "rejected")
+        else:
+            report.bump("transaction_lines", "created" if line_outcome in new_lines else "skipped")
+    return [], []
+
+
+def _bind_inventory_destination(importer, number, destination):
+    """One internal location per inventory AddressID, plus a worksheet marker.
+
+    Replay finds both xmlids and writes nothing. The location is not a
+    receipt type, and no quant or move is created.
+    """
+    address_id = (destination.get("AddressID") or "").strip()
+    label = (destination.get("Type") or "").strip() or address_id
+    location_xml = f"legacy_erp_inv_addr_{_token(address_id)}"
+    location = _existing(importer, "stock.location", location_xml)
+    if location is None:
+        parent = importer.env.ref("stock.stock_location_stock")
+        location = (
+            importer.env["stock.location"]
+            .with_context(**_import_context())
+            .create(
+                {
+                    "name": label,
+                    "usage": "internal",
+                    "location_id": parent.id,
+                    "company_id": importer.env.company.id,
+                }
+            )
+        )
+        importer._write_identity_marker(importer.env["stock.location"], location_xml, location)
+    importer._ensure_identity_marker(importer.env["stock.location"], f"legacy_erp_inv_ws_{_token(number)}", location)
+    return location
+
+
 def _realize_one(importer, index, report, partner_by_cp, context, number):
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         header_for_line,
@@ -274,6 +411,7 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         worksheet_log,
         worksheet_outcome,
     )
+    from odoo.addons.plasticos_partner_import.erp.source_index import INVENTORY_CUSTOMER  # noqa: PLC0415
 
     buysell = index.buysells.get(number, {})
     documents = _new_documents()
@@ -289,6 +427,7 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     purchase_groups: dict[str, list] = {}
     line_outcomes = []
     links = context["worksheet_links"].setdefault(number, {"sale": False, "purchase": False})
+    inbound = (buysell.get("CustID") or "").strip() == INVENTORY_CUSTOMER
     for detail_id in index.detail_ids(number):
         line = index.lines[detail_id]
         sale_key = (line.get("SPO_ID") or "").strip()
@@ -297,10 +436,14 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         purchase_header, purchase_reason = header_for_line(index, purchase_key, "PO")
         # Each side that resolves no header is recorded with its own reason, so
         # a line that still links on the other side is not a silent half-link.
+        # An inventory inbound worksheet has no customer sale by definition, so
+        # a blank SPO_ID is not a commercial sale-link failure.
         for side, key, header, reason in (
             ("sale", sale_key, sale_header, sale_reason),
             ("purchase", purchase_key, purchase_header, purchase_reason),
         ):
+            if inbound and side == "sale":
+                continue
             if header is None:
                 context["link_failures"].append(
                     {"number": number, "detail_id": detail_id, "side": side, "key": key, "reason": reason}
@@ -309,13 +452,28 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         if sale_header is None and purchase_header is None:
             line_outcomes.append("rejected")
             continue
-        if sale_header is not None:
+        if sale_header is not None and not inbound:
             links["sale"] = True
             sale_groups.setdefault(sale_header["POID"], []).append((detail_id, line, sale_header))
         if purchase_header is not None:
             links["purchase"] = True
             purchase_groups.setdefault(purchase_header["POID"], []).append((detail_id, line, purchase_header))
         line_outcomes.append(detail_id)
+
+    if inbound:
+        return _realize_inventory_inbound(
+            importer,
+            index,
+            report,
+            partner_by_cp,
+            context,
+            number,
+            buysell,
+            documents,
+            purchase_groups,
+            line_outcomes,
+            incoterm_code,
+        )
 
     if not sale_groups and not purchase_groups:
         report.reject("transactions")

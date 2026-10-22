@@ -1491,6 +1491,170 @@ class TestErpWorksheetImport(TransactionCase):
         )
         self.assertEqual(len(self._marked("product.product", "legacy_erp_grade_PE")), 2)
 
+    def _inventory_site(self, index, address_id, label):
+        index.inventory_destinations[address_id] = {
+            "AddressID": address_id,
+            "CpID": "(INV)",
+            "Type": label,
+        }
+
+    def test_inventory_inbound_keeps_the_vendor_purchase_and_selected_warehouse(self):
+        """60403 and 58868 are receipts into different warehouses, not missing customers."""
+        index = self._index()
+        self._inventory_site(index, "404812", "GREENVIEW WASHINGTON WAREHOUSE")
+        self._inventory_site(index, "405026", "JEI DALLAS WAREHOUSE")
+        index.addresses["404811"] = {
+            "AddressID": "404811",
+            "CpID": "2331",
+            "Type": "INVOICE",
+            "Addr1": "GREENVIEW WASHINGTON WAREHOUSE",
+        }
+        self._add_order(index, "15168", "33498", "PO", VENDOR, "2026-04-13 00:00:00")
+        self._add_line(
+            index,
+            "19339",
+            "33498",
+            _line("13303", "60403", "", "19339", "38580", "3472.20", "38580", "3472.20", grade="PP-PURGE"),
+        )
+        index.buysells["60403"] = _buysell(
+            "60403", "2026-04-13 00:00:00", cust="(INV)", vendor=VENDOR, ShipToID="GREENVIEW WASHINGTON WAREHOUSE"
+        )
+        self._add_order(index, "10400", "10442", "PO", VENDOR, "2025-01-02 00:00:00")
+        self._add_line(index, "16639", "10442", _line("11408", "58868", "", "16639", "882", "100", "882", "80"))
+        index.buysells["58868"] = _buysell(
+            "58868", "2025-01-02 00:00:00", cust="(INV)", vendor=VENDOR, ShipToID="JEI DALLAS WAREHOUSE"
+        )
+        report = self._run(index)
+
+        self.assertFalse(self.Transaction.search([("name", "in", ["60403", "58868"])]))
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_"))
+        self.assertFalse(self._marked("account.move", "legacy_erp_outinv_"))
+        greenview = self._order("purchase.order", "legacy_erp_po_33498")
+        dallas = self._order("purchase.order", "legacy_erp_po_10442")
+        self.assertEqual(greenview.partner_id, self.vendor)
+        self.assertEqual(greenview.state, "draft")
+        self.assertFalse(greenview.picking_ids)
+        self.assertEqual(greenview.order_line.product_uom_id, self.env.ref("uom.product_uom_lb"))
+        self.assertAlmostEqual(greenview.order_line.product_qty, 38580.0, places=2)
+        self.assertAlmostEqual(greenview.order_line.price_subtotal, 3472.20, places=2)
+        self.assertEqual(dallas.state, "draft")
+        greenview_loc = self._order("stock.location", "legacy_erp_inv_addr_404812")
+        dallas_loc = self._order("stock.location", "legacy_erp_inv_addr_405026")
+        self.assertEqual(greenview_loc.name, "GREENVIEW WASHINGTON WAREHOUSE")
+        self.assertEqual(dallas_loc.name, "JEI DALLAS WAREHOUSE")
+        self.assertNotEqual(greenview_loc, dallas_loc)
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_ws_60403"), greenview_loc)
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_ws_58868"), dallas_loc)
+        self.assertFalse(self.Data.search([("module", "=", XMLID_MODULE), ("name", "=", "legacy_erp_inv_addr_404811")]))
+        self.assertFalse(self.env["stock.quant"].search([("location_id", "in", (greenview_loc | dallas_loc).ids)]))
+        self.assertFalse(self.env["stock.move"].search([("location_dest_id", "in", (greenview_loc | dallas_loc).ids)]))
+        self.assertAlmostEqual(greenview.order_line.product_id.qty_available, 0.0, places=2)
+        inbound = report.census["inventory_inbound"]
+        self.assertEqual(inbound["by_outcome"]["recognized"], ["58868", "60403"])
+        self.assertEqual(inbound["destinations"]["60403"], "404812")
+        self.assertEqual(inbound["destinations"]["58868"], "405026")
+        self.assertEqual(report.counts["transactions"]["skipped"], 2)
+        self.assertEqual(report.counts["transactions"]["rejected"], 0)
+        self.assertEqual(report.counts["transactions"]["created"], 0)
+        details = {item["detail"] for item in report.anomalies}
+        self.assertNotIn("no sale order link: purchase documents realized, no transaction compiled", details)
+        self.assertNotIn("60403", report.census["worksheets"]["without_sale_link"]["numbers"])
+        self.assertNotIn("58868", report.census["worksheets"]["without_sale_link"]["numbers"])
+
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(replay.counts["transactions"]["skipped"], 2)
+        self.assertEqual(replay.counts["transaction_lines"]["created"], 0)
+        self.assertEqual(len(self._marked("stock.location", "legacy_erp_inv_addr_")), 2)
+
+    def test_inventory_inbound_without_a_purchase_keeps_the_destination_only(self):
+        index = self._index()
+        self._inventory_site(index, "405026", "JEI DALLAS WAREHOUSE")
+        # Another worksheet in the same source has an order header. This one does not link to it.
+        self._add_order(index, "999", "UNRELATED", "PO", VENDOR, "2025-01-01 00:00:00")
+        detail = _line("11522", "58975", "", "", "75", "75", "75", "0")
+        index.lines[detail["DetailID"]] = detail
+        index.lines_by_buysell["58975"] = [detail["DetailID"]]
+        index.buysells["58975"] = _buysell(
+            "58975", "2025-01-01 00:00:00", cust="(INV)", vendor=VENDOR, ShipToID="JEI DALLAS WAREHOUSE"
+        )
+        report = self._run(index)
+
+        self.assertFalse(self._marked("purchase.order", "legacy_erp_po_"))
+        self.assertFalse(self.Transaction.search([("name", "=", "58975")]))
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_"))
+        location = self._order("stock.location", "legacy_erp_inv_addr_405026")
+        self.assertEqual(self._order("stock.location", "legacy_erp_inv_ws_58975"), location)
+        self.assertEqual(report.census["inventory_inbound"]["by_outcome"]["held_missing_purchase"], ["58975"])
+        self.assertEqual(report.census["inventory_inbound"]["destinations"]["58975"], "405026")
+        self.assertEqual(report.counts["transactions"]["rejected"], 1)
+        self.assertNotIn("58975", report.census["worksheets"]["without_sale_link"]["numbers"])
+        self.assertIn("58975", report.census["worksheets"]["without_purchase_link"]["numbers"])
+
+    def test_cancelled_inventory_inbound_creates_no_location_or_purchase(self):
+        index = self._index()
+        self._inventory_site(index, "404812", "GREENVIEW WASHINGTON WAREHOUSE")
+        self._add_order(index, "9", "1", "PO", VENDOR, "2026-01-01 00:00:00")
+        self._add_line(index, "8", "1", _line("7", "60001", "", "8", "10", "10", "10", "10"))
+        index.buysells["60001"] = _buysell(
+            "60001", "2026-01-01 00:00:00", cust="(INV)", status="X", ShipToID="GREENVIEW WASHINGTON WAREHOUSE"
+        )
+        report = self._run(index)
+
+        self.assertFalse(self._marked("purchase.order", "legacy_erp_po_"))
+        self.assertFalse(self._marked("stock.location", "legacy_erp_inv_"))
+        self.assertFalse(self.Transaction.search([("name", "=", "60001")]))
+        self.assertEqual(report.census["inventory_inbound"]["by_outcome"]["cancelled"], ["60001"])
+        self.assertEqual(report.counts["transactions"]["rejected"], 1)
+
+    def test_inventory_inbound_with_no_single_warehouse_holds_the_purchase(self):
+        index = self._index()
+        self._inventory_site(index, "1", "SHARED WAREHOUSE")
+        self._inventory_site(index, "2", "SHARED WAREHOUSE")
+        self._add_order(index, "3", "99", "PO", VENDOR, "2026-02-01 00:00:00")
+        self._add_line(index, "4", "99", _line("5", "60002", "", "4", "10", "10", "10", "10"))
+        index.buysells["60002"] = _buysell("60002", "2026-02-01 00:00:00", cust="(INV)", ShipToID="SHARED WAREHOUSE")
+        report = self._run(index)
+
+        purchase = self._order("purchase.order", "legacy_erp_po_99")
+        self.assertEqual(purchase.state, "draft")
+        self.assertFalse(self._marked("stock.location", "legacy_erp_inv_"))
+        self.assertFalse(self.Transaction.search([("name", "=", "60002")]))
+        self.assertEqual(report.census["inventory_inbound"]["by_outcome"]["held_missing_destination"], ["60002"])
+        details = {item["detail"] for item in report.anomalies}
+        self.assertIn("inventory inbound destination was not a single warehouse", details)
+        self.assertNotIn("no sale order link: purchase documents realized, no transaction compiled", details)
+
+    def test_inventory_outbound_still_compiles_the_customer_sale(self):
+        index = self._index()
+        self._add_order(index, "21", "SO-OUT", "SO", CUSTOMER, "2026-03-01 00:00:00")
+        self._add_order(index, "20", "PO-OUT", "PO", VENDOR, "2026-03-01 00:00:00")
+        detail = _line("30", "60003", "31", "32", "100", "50", "100", "40")
+        self._add_line(index, "32", "PO-OUT", detail)
+        index.order_lines["31"] = {"PONumber": "SO-OUT"}
+        index.buysells["60003"] = _buysell("60003", "2026-03-01 00:00:00", vendor="(INV)")
+        report = self._run(index)
+
+        self.assertTrue(self.Transaction.search([("name", "=", "60003")]))
+        self.assertTrue(self._order("sale.order", "legacy_erp_so_SO_OUT"))
+        self.assertEqual(report.census["inventory_inbound"]["worksheets"], 0)
+        self.assertFalse(self._marked("stock.location", "legacy_erp_inv_"))
+
+    def test_ordinary_customer_sale_is_not_an_inventory_receipt(self):
+        index = self._index()
+        self._add_order(index, "41", "SO-SALE", "SO", CUSTOMER, "2026-03-02 00:00:00")
+        self._add_order(index, "40", "PO-SALE", "PO", VENDOR, "2026-03-02 00:00:00")
+        detail = _line("50", "60004", "51", "52", "100", "50", "100", "40")
+        self._add_line(index, "52", "PO-SALE", detail)
+        index.order_lines["51"] = {"PONumber": "SO-SALE"}
+        index.buysells["60004"] = _buysell("60004", "2026-03-02 00:00:00")
+        report = self._run(index)
+
+        self.assertTrue(self.Transaction.search([("name", "=", "60004")]))
+        self.assertEqual(report.census["inventory_inbound"]["worksheets"], 0)
+        self.assertFalse(self._marked("stock.location", "legacy_erp_inv_"))
+
     def _order(self, model_name, xml_id):
         data = self.Data.search(
             [("module", "=", XMLID_MODULE), ("model", "=", model_name), ("name", "=", xml_id)],

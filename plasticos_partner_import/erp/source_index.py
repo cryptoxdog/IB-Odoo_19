@@ -8,6 +8,7 @@ Identity contract (source key -> imported entity)::
 
     CpID       -> counterparty            (res.partner company)
     AddressID  -> facility / location     (res.partner child company)
+    CpID (INV) + Address.Type -> inventory destination, not a partner
     CT_ID      -> contact                 (res.partner person)
     CRA_ID     -> contact role assignment
     CpID       -> SalesReps rows          (res.partner.user_id on the company)
@@ -29,7 +30,12 @@ from dataclasses import dataclass, field
 
 from .reader import SourcePayload, SourcePayloadError
 
-__all__ = ["IdentityViolation", "SourceIndex", "build_source_index"]
+__all__ = ["INVENTORY_CUSTOMER", "IdentityViolation", "SourceIndex", "build_source_index"]
+
+# BuySell.CustID value for an internal inventory movement. Its addresses are
+# warehouse labels (Address.Type), selected by BuySell.ShipToID. They are not
+# commercial customers.
+INVENTORY_CUSTOMER = "(INV)"
 
 # Source key column per indexed table.
 PRIMARY_KEYS: dict[str, str] = {
@@ -74,6 +80,8 @@ class SourceIndex:
 
     # Grouped relationships
     addresses_by_cp: dict[str, list[str]] = field(default_factory=dict)
+    # Address rows whose CpID is exactly ``(INV)``, keyed by AddressID.
+    inventory_destinations: dict[str, dict[str, str | None]] = field(default_factory=dict)
     contacts_by_cp: dict[str, list[str]] = field(default_factory=dict)
     roles_by_contact: dict[str, list[str]] = field(default_factory=dict)
     sales_reps_by_cp: dict[str, list[dict[str, str | None]]] = field(default_factory=dict)
@@ -118,6 +126,31 @@ class SourceIndex:
 
     def detail_ids(self, buysell_no: str) -> list[str]:
         return sorted(self.lines_by_buysell.get(buysell_no, []))
+
+    def inventory_destination(
+        self, cust_id: str | None, ship_to_id: str | None
+    ) -> tuple[dict[str, str | None] | None, str]:
+        """The one ``(INV)`` address selected by ``(CustID, ShipToID)``.
+
+        ``ShipToID`` is ``Address.Type`` for ``Address.CpID == CustID``. It is
+        not an AddressID. A blank, unmatched, or repeated label is held.
+        """
+        cust = (cust_id or "").strip()
+        site = (ship_to_id or "").strip()
+        if cust != INVENTORY_CUSTOMER:
+            return None, "not_inventory"
+        if not site:
+            return None, "blank"
+        matches = [
+            row
+            for _address_id, row in sorted(self.inventory_destinations.items())
+            if (row.get("CpID") or "").strip() == cust and (row.get("Type") or "").strip() == site
+        ]
+        if len(matches) == 1:
+            return matches[0], ""
+        if not matches:
+            return None, "unmatched"
+        return None, "ambiguous"
 
     # -- unresolved foreign keys -------------------------------------------
     def unresolved(self, kind: str) -> list[IdentityViolation]:
@@ -239,6 +272,9 @@ def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_
         cp_id = _key(index.addresses[address_id], "CpID")
         if not cp_id:
             index.violations.append(IdentityViolation("Address", "missing_parent_key", address_id, "blank CpID"))
+            continue
+        if cp_id == INVENTORY_CUSTOMER:
+            index.inventory_destinations[address_id] = index.addresses[address_id]
             continue
         if counterparties_loaded and cp_id not in index.counterparties:
             index.violations.append(

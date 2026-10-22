@@ -10,6 +10,7 @@ from __future__ import annotations
 import html
 
 from .limits import resolve_limit
+from .source_index import INVENTORY_CUSTOMER
 
 MATERIAL_GL = "50100"
 FREIGHT_GL = "50200"
@@ -184,7 +185,14 @@ def link_census(index, failures: list[dict], worksheet_links: dict[str, dict[str
 
     worksheets = {}
     for side in ("sale", "purchase"):
-        unlinked = sorted(number for number, links in worksheet_links.items() if not links.get(side))
+        unlinked = sorted(
+            number
+            for number, links in worksheet_links.items()
+            if not links.get(side)
+            and not (
+                side == "sale" and (index.buysells.get(number, {}).get("CustID") or "").strip() == INVENTORY_CUSTOMER
+            )
+        )
         worksheets[f"without_{side}_link"] = _worksheet_view(index, unlinked, worksheet_links, side)
     return {"lines_by_reason": by_reason, "worksheets": worksheets}
 

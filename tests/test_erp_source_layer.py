@@ -654,13 +654,27 @@ def test_internal_mailboxes_are_dropped_by_the_mapping_not_by_editing_the_extrac
 
 
 def test_placeholder_counterparty_rows_stay_in_the_extract_and_are_reported(index):
-    """Address rows under placeholder CpIDs such as ``(INV)`` are source truth: reported, never imported, never deleted."""
+    """Placeholder CpIDs stay in the extract. ``(INV)`` is an inventory destination; other placeholders stay unresolved."""
     placeholder_rows = [row for row in index.addresses.values() if (row.get("CpID") or "").startswith(("(", "{", "["))]
     assert placeholder_rows, "the frozen Address extract must keep its placeholder rows"
     reported = {v.key for v in index.violations if v.table == "Address" and v.kind == "unresolved_counterparty"}
-    for row in placeholder_rows:
+    linked = {a for ids in index.addresses_by_cp.values() for a in ids}
+    inventory = [row for row in placeholder_rows if (row.get("CpID") or "").strip() == "(INV)"]
+    others = [row for row in placeholder_rows if (row.get("CpID") or "").strip() != "(INV)"]
+    assert inventory and others
+    for row in inventory:
+        assert row["AddressID"] in index.inventory_destinations
+        assert row["AddressID"] not in reported
+        assert row["AddressID"] not in linked
+    for row in others:
         assert row["AddressID"] in reported
-        assert row["AddressID"] not in {a for ids in index.addresses_by_cp.values() for a in ids}
+        assert row["AddressID"] not in linked
+    greenview, reason = index.inventory_destination("(INV)", "GREENVIEW WASHINGTON WAREHOUSE")
+    assert reason == ""
+    assert greenview["AddressID"] == "404812"
+    assert index.addresses["404811"]["CpID"] == "2331"
+    assert index.inventory_destination("2331", "GREENVIEW WASHINGTON WAREHOUSE") == (None, "not_inventory")
+    assert index.inventory_destination("(INV)", "") == (None, "blank")
 
 
 # ---------------------------------------------------------------------------
@@ -763,7 +777,8 @@ def test_direct_database_read_executes_the_projection_scripts_with_source_fideli
     indexed = source_index.build_source_index(payload)
     assert indexed.counterparty_ids() == ["1004"]
     assert indexed.addresses_by_cp == {"1004": ["402426"]}
-    assert [v.kind for v in indexed.violations if v.table == "Address"] == ["unresolved_counterparty"]
+    assert indexed.inventory_destinations["402427"]["Type"] == "[STAGING]"
+    assert [v.kind for v in indexed.violations if v.table == "Address"] == []
     assert indexed.counts()["sales_reps"] == 1
 
 
