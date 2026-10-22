@@ -1,0 +1,61 @@
+{
+  "approved_identity_crosswalk_verified_locally": {
+    "pinned_sha256": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
+    "sha256_matches_current_repository_pin": true,
+    "unique_erp_ct_ids": 702,
+    "vs_ids": 759
+  },
+  "contract_id": "PLASTICOS-ERP-THEN-VS-FULL-CRM-2026-10-21-v2",
+  "created_date": "2026-10-21",
+  "files": {
+    "03_APPROVED_CONTACT_CROSSWALK.csv": {
+      "commit_to_git": false,
+      "relative_path": "PRIVATE_INPUTS/03_APPROVED_CONTACT_CROSSWALK.csv",
+      "sha256": "3689fccf9c62737709ca07a05912309c1cc41ec00c828f17d0283469bce1ecd9",
+      "size_bytes": 14855
+    },
+    "CRM Leads - VanillaSoft - Scrap-Management(1).csv": {
+      "commit_to_git": false,
+      "relative_path": "PRIVATE_INPUTS/CRM Leads - VanillaSoft - Scrap-Management(1).csv",
+      "sha256": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
+      "size_bytes": 2923496
+    },
+    "PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx": {
+      "commit_to_git": false,
+      "relative_path": "PRIVATE_INPUTS/PlasticOS_ERP_VanillaSoft_Operator_Confirmed_Crosswalk_2026-10-16.xlsx",
+      "sha256": "9d3e364e51d508b72351682631ce9a3faadeca3aab6c4fa39b7db61d6d93f2f1",
+      "size_bytes": 470778
+    },
+    "VanillaSoft_4876_Field_Mapping_Resolved_Owners_Stage_Review.xlsx": {
+      "commit_to_git": false,
+      "relative_path": "PRIVATE_INPUTS/VanillaSoft_4876_Field_Mapping_Resolved_Owners_Stage_Review.xlsx",
+      "sha256": "cd5a1cf8422609faa6785cb60897c577bbba27163f0c5534430981971d8a56ad",
+      "size_bytes": 28588
+    },
+    "VanillaSoft_to_Odoo_Polymer_Mapping_Decisions_2026-10-14.xlsx": {
+      "commit_to_git": false,
+      "relative_path": "PRIVATE_INPUTS/VanillaSoft_to_Odoo_Polymer_Mapping_Decisions_2026-10-14.xlsx",
+      "sha256": "1b1acc0357d86441496578a0dcd7abafc8c4a0c642476f4125c9ca01f60ed5f8",
+      "size_bytes": 270492
+    }
+  },
+  "manifest_type": "private-operator-inputs",
+  "operator_matrix_census_verified_locally": {
+    "approved_yes": 763,
+    "pending_review": 4095,
+    "rejected_candidate_link_no": 18,
+    "rows": 4876,
+    "same_ids_as_source_csv": true,
+    "unique_contact_ids": 4876
+  },
+  "privacy": "PRIVATE; contains customer/contact data; must never be committed to GitHub",
+  "runtime_host_must_reverify_all": true,
+  "source_census_verified_locally": {
+    "all_flagged_true": true,
+    "csv_columns": 96,
+    "rows": 4876,
+    "unique_contact_ids": 4876
+  },
+  "source_csv_snapshot_sha256": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
+  "source_identity": "original historical CSV snapshot; cohort enumeration/evidence only, not independent Odoo import path"
+}
