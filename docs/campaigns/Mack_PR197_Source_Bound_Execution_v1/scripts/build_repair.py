@@ -114,9 +114,8 @@ def bind_config(config) -> None:
 
 
 def call(root: Path, *argv: str) -> str:
-    if not argv or argv[0] != "git":
-        raise RuntimeError("refusing a command that is not git")
-    p = subprocess.run(["git", *argv[1:]], cwd=root, text=True, capture_output=True, check=False)  # noqa: S603, S607
+    # argv is this pack's own git/python command tuple, not an external string.
+    p = subprocess.run(argv, cwd=root, text=True, capture_output=True, check=False)  # noqa: S603
     if p.returncode != 0:
         raise RuntimeError(f"{' '.join(argv)} failed ({p.returncode}): {p.stderr.strip()}")
     return p.stdout.strip()
@@ -135,7 +134,9 @@ def ensure_target(root: Path) -> None:
     if head != HEAD:
         raise RuntimeError(f"Stale PR source: HEAD {head}; expected {HEAD}")
     url = call(root, "git", "remote", "get-url", "origin")
-    if not re.search(r"(?:github\.com[:/])cryptoxdog/IB-Odoo_19(?:\.git)?$", url):
+    if not re.fullmatch(
+        r"(?:git@github\.com:|https://github\.com/|ssh://git@github\.com/)cryptoxdog/IB-Odoo_19(?:\.git)?", url
+    ):
         raise RuntimeError(f"Wrong origin; expected {REPO}: {url}")
     status = call(root, "git", "status", "--porcelain")
     if status:

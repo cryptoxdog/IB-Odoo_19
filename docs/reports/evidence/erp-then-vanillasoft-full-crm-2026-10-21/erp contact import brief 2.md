@@ -2,7 +2,7 @@ The partners-only import on `odoo_test_day1021` finished in 21 seconds. The cros
 
 The lines before the payload are startup, not a failure. `Initiating shutdown` is the shell process stopping its HTTP server because this run is `--no-http`. The two `tracking` warnings are existing logistics fields (`plasticos.freight.estimate.status` and `plasticos.freight.quote.selected`) that Odoo 19 does not treat as a real field parameter. They print on every registry load.
 
-**What was read.** One read-only pass of `<restored-reader-database>`: 1,300 companies, 2,968 addresses, 4,084 contacts, 3,108 role rows, 1,058 salesperson rows. That is 12,518 source rows.
+**What was read.** One read-only pass of `ERP_SM`: 1,300 companies, 2,968 addresses, 4,084 contacts, 3,108 role rows, 1,058 salesperson rows. That is 12,518 source rows.
 
 **The count closes.** 12,518 seen = 7,679 created + 2,115 updated + 1,432 unchanged + 1,292 rejected. Duplicates are 0. `partial` means those 1,292 rows were refused, not that the arithmetic failed. All five layer validators passed. No sale orders, purchase orders, invoices, or transactions were created. `res.partner` went from 13 seed rows to 5,194. Company markers: 1,300. Contact markers: 3,734.
 

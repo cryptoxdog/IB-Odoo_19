@@ -1,6 +1,6 @@
 # Roadmap
 
-`docs/roadmap/` is hand-authored strategic planning. No script generates or overwrites it.
+`docs/roadmap/` is empty. No script generates or overwrites it.
 
 Gate phase law stays in the ADRs:
 
@@ -10,5 +10,4 @@ Gate phase law stays in the ADRs:
 | [docs/adr/ADR-016-web-lead-triage-boundary.md](docs/adr/ADR-016-web-lead-triage-boundary.md) | Web-lead triage stays in Odoo until an ADR amendment. |
 | [docs/adr/ADR-018-human-brokerage-checkpoints.md](docs/adr/ADR-018-human-brokerage-checkpoints.md) | Intake, match review, and Send Offer stay human actions. Phase 2 or 3 requires an ADR amendment. |
 | [docs/adr/ADR-013-fail-closed-gate-transport.md](docs/adr/ADR-013-fail-closed-gate-transport.md) | Gate transport fails closed. There is no local matcher. |
-| [docs/roadmap/README.md](docs/roadmap/README.md) | Hand-authored strategic roadmap. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layer map and the Gate boundary summary. |
