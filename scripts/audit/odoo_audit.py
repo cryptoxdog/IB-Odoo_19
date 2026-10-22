@@ -301,7 +301,11 @@ class OdooAudit:
                     self.defined_models.add(model)
 
     def _depends_closure(self, module):
-        """The module plus every module reachable through manifest ``depends``."""
+        """The module plus every module reachable through manifest ``depends``.
+
+        ``module`` is an addon path as ``rglob`` under ``root_dir`` yields it, so it
+        already carries the root; it is never joined to ``root_dir`` again.
+        """
         if module in self._depends_cache:
             return self._depends_cache[module]
         closure = set()
@@ -312,7 +316,7 @@ class OdooAudit:
                 continue
             closure.add(current)
             try:
-                data = ast.literal_eval((self.root_dir / current / "__manifest__.py").read_text(encoding="utf-8"))
+                data = ast.literal_eval((Path(current) / "__manifest__.py").read_text(encoding="utf-8"))
             except (OSError, SyntaxError, ValueError):
                 continue
             depends = data.get("depends", []) if isinstance(data, dict) else []
@@ -380,7 +384,12 @@ class OdooAudit:
                 yield from OdooAudit._iter_records(child)
 
     def _xpath_context(self, expr, model, module):
-        """Model an ``<xpath>`` body is evaluated against: a targeted subview switches to its comodel."""
+        """``(model, target_field)`` an ``<xpath>`` body is evaluated against.
+
+        A targeted subview switches to its comodel. ``target_field`` is the field
+        the expression ends on, if any: a subview inserted directly into it is
+        evaluated on that field's comodel.
+        """
         context = model
         pending_field = None
         for match in re.finditer(r"field\[@name=['\"]([\w.]+)['\"]\]|\b(" + "|".join(self.SUBVIEW_TAGS) + r")\b", expr):
@@ -390,13 +399,26 @@ class OdooAudit:
                 context = self._comodel(context, pending_field, module)
                 pending_field = None
                 if context is None:
-                    return None
-        return context
+                    return None, None
+        return context, pending_field
 
     def _comodel(self, model, field, module):
         if model is None:
             return None
         return self._visible_fields(model, module).get(field)
+
+    def _walk_field_body(self, node, model, field, module, xml_file):
+        """Walk the children of ``field`` on ``model``: a subview child is evaluated on the field's comodel."""
+        for child in node["children"]:
+            if child["tag"] in self.SUBVIEW_TAGS:
+                comodel = self._comodel(model, field, module)
+                if comodel is None and model in self.defined_models:
+                    self.unresolved_view_contexts.append(
+                        {"model": model, "field": field, "file": str(xml_file), "line": child["line"]}
+                    )
+                self._walk_arch({"children": [child]}, comodel, module, xml_file)
+            else:
+                self._walk_arch({"children": [child]}, model, module, xml_file)
 
     def _walk_arch(self, node, model, module, xml_file):
         for child in node["children"]:
@@ -407,24 +429,18 @@ class OdooAudit:
                     self.field_refs[(model, field)].append(
                         {"file": str(xml_file), "line": child["line"], "module": module}
                     )
-                for grandchild in child["children"]:
-                    if grandchild["tag"] in self.SUBVIEW_TAGS:
-                        comodel = self._comodel(model, field, module)
-                        if comodel is None and model in self.defined_models:
-                            self.unresolved_view_contexts.append(
-                                {"model": model, "field": field, "file": str(xml_file), "line": grandchild["line"]}
-                            )
-                        self._walk_arch({"children": [grandchild]}, comodel, module, xml_file)
-                    else:
-                        self._walk_arch({"children": [grandchild]}, model, module, xml_file)
+                self._walk_field_body(child, model, field, module, xml_file)
             elif tag == "xpath":
                 expr = child["attrs"].get("expr", "")
-                context = self._xpath_context(expr, model, module)
+                context, target_field = self._xpath_context(expr, model, module)
                 if context is None and model in self.defined_models:
                     self.unresolved_view_contexts.append(
                         {"model": model, "field": expr, "file": str(xml_file), "line": child["line"]}
                     )
-                self._walk_arch(child, context, module, xml_file)
+                if target_field and context is not None:
+                    self._walk_field_body(child, context, target_field, module, xml_file)
+                else:
+                    self._walk_arch(child, context, module, xml_file)
             else:
                 self._walk_arch(child, model, module, xml_file)
 

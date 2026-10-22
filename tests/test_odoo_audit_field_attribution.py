@@ -297,3 +297,38 @@ def test_repository_has_no_unbaselined_findings(monkeypatch):
     logged = {entry["fingerprint"] for entry in baseline["entries"]}
     new = [e for e in errors if e["severity"] in {"CRITICAL", "HIGH"} and compute_fingerprint(e) not in logged]
     assert new == []
+
+
+def test_subview_inserted_by_xpath_into_a_field_uses_the_comodel(tmp_path: Path):
+    root = _tree(tmp_path)
+    _views(
+        root,
+        "sample_ui",
+        _view("order_form", "sample.order", '<form><field name="line_ids"/></form>'),
+        _view(
+            "order_form_ext",
+            None,
+            """<data><xpath expr="//field[@name='line_ids']" position="inside">
+            <list><field name="qty"/><field name="ghost"/></list></xpath>
+            <xpath expr="//field[@name='amount']" position="after"><field name="ext_score"/></xpath></data>""",
+            inherit="sample_ui.order_form",
+        ),
+    )
+    assert _missing(root) == {("sample.line", "ghost")}
+
+
+def test_relative_root_resolves_manifest_depends(tmp_path: Path, monkeypatch):
+    _tree(tmp_path / "checkout")
+    _views(
+        tmp_path / "checkout",
+        "sample_ui",
+        _view("order_form", "sample.order", '<form><field name="ext_score"/></form>'),
+    )
+    _views(
+        tmp_path / "checkout",
+        "sample_unrelated",
+        _view("order_form_2", "sample.order", '<form><field name="ext_score"/></form>'),
+    )
+    monkeypatch.chdir(tmp_path)
+    assert _missing(Path("checkout")) == {("sample.order", "ext_score")}
+    assert {e["file"] for e in _findings(Path("checkout"))} == {"checkout/sample_unrelated/views/views.xml"}
