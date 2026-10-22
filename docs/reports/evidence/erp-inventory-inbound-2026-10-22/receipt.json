@@ -11,9 +11,9 @@
   "source_writes": 0,
   "source_database": {
     "container": "cie-sql-proof",
-    "database": "cieTrade_SM",
+    "database": "restored read-only ERP database",
     "read_only": true,
-    "restored_from": "/var/opt/mssql/backup/cieTrade_SM_2026-10-03.bak",
+    "restored_from": "the SQL Server backup already mounted in the proof container",
     "backup_start": "2026-10-03T16:35:00",
     "queried_on": "2026-10-22"
   },
