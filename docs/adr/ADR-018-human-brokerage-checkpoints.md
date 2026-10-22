@@ -6,7 +6,6 @@
 **Scope:** Phase-1 human-in-the-loop gates that automation must not skip
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
-[GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md),
 [ADR-016-web-lead-triage-boundary.md](ADR-016-web-lead-triage-boundary.md)
 
 ## Context
@@ -33,7 +32,7 @@ Web lead (local triage) → Human (HOT) → Intake
 
 ### 2. Phase graduation
 
-Moving to Phase 2 (smarter defaults) or Phase 3 (higher autonomy / Gate triage) requires roadmap criteria in `GATE_AUTONOMY_ROADMAP.md` and an ADR amendment — not feature flags hidden in modules.
+Moving to Phase 2 (smarter defaults) or Phase 3 (higher autonomy / Gate triage) requires an ADR amendment — not feature flags hidden in modules.
 
 ### 3. Gate does not replace commercial consent
 
@@ -59,5 +58,5 @@ Successful Gate `match` or `converge` never implies permission to bind the compa
 ## References
 
 - ADR-002 §3 phased autonomy
-- `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`
+- ADR-016 web-lead triage boundary
 - Intake match / offer module actions

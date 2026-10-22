@@ -4,7 +4,7 @@
 **Date:** 2026-06-04
 **Deciders:** Igor Beylin
 **Scope:** External intelligence integration (`plasticos_buyer_match_engine`, `plasticos_enrichment`, brokerage pipeline)
-**Related:** [GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
+**Related:** [ADR-016](ADR-016-web-lead-triage-boundary.md), [ADR-018](ADR-018-human-brokerage-checkpoints.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
 
 > **Supersession (2026-08-07):** §2 “Odoo local engines are fallback” is **not** architectural authority. Binding rules: [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md) (Gate → CEG/EIE only) and [ADR-013-fail-closed-gate-transport.md](ADR-013-fail-closed-gate-transport.md) (no silent local intelligence). Hub topology and phased human checkpoints in this ADR remain binding unless a later ADR amends them. See also ADR-009–019 architecture convergence set.
 
@@ -54,7 +54,7 @@ Human checkpoints stay in place until each step proves reliable in production. A
 | **Phase 2** | Smarter defaults (e.g. top-N match pre-selection, pre-filled offers). Human still approves Send Offer. |
 | **Phase 3** | Gate-routed web-lead triage and higher autonomy — only after Phase 1–2 metrics justify removing middle steps. |
 
-Full phase definitions, graduation criteria, and deferred pack scope: **[GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md)**.
+Phase definitions are §3 of this ADR. Web-lead triage stays in Odoo until an ADR amendment ([ADR-016](ADR-016-web-lead-triage-boundary.md)). Human checkpoints are [ADR-018](ADR-018-human-brokerage-checkpoints.md).
 
 ### 4. Brokerage pipeline ownership (Phase 1)
 

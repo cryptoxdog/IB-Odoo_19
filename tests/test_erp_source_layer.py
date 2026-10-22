@@ -603,7 +603,7 @@ def test_sales_rep_name_matches_seeded_user_names():
 
 
 def test_former_rep_initials_are_reassigned_in_the_mapping_not_the_source():
-    """docs/erp_import_mapping.md §3a: former reps' accounts belong to MM. A live row still saying JB maps."""
+    """mapping.SALES_REP_REASSIGNED: former reps' accounts belong to MM. A live row still saying JB maps."""
     for former in mapping.SALES_REP_REASSIGNED:
         assert mapping.sales_rep_code(f"{former}   ") == "MM"
         assert mapping.sales_rep_name(former) == "Mack McMurray"

@@ -7,7 +7,7 @@
 **Related:**
 [ADR-002](ADR-002-gate-hub-phased-autonomy.md),
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),
-[GATE_AUTONOMY_ROADMAP.md](../roadmap/GATE_AUTONOMY_ROADMAP.md),
+[ADR-016](ADR-016-web-lead-triage-boundary.md),
 [ADR-010](ADR-010-odoo-consumer-trigger-ownership.md)–[ADR-019](ADR-019-documentation-convergence-supersession.md) (architecture convergence set)
 
 ## Context

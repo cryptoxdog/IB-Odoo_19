@@ -13,9 +13,7 @@
 ./docs/README_backup_github_actions.md:165:# Or restore to Odoo.sh via the Odoo.sh platform backup restore UI
 ./docs/adr/README.md:1:# Architecture Decision Records (ADRs)
 ./docs/adr/gate-integration/README.md:1:# Gate Integration ADR Pack
-./docs/roadmap/README.md:1:# Roadmap tooling
-./docs/roadmap/README.md:18:# Sync all roadmap docs + validate IDs (no item added)
-./docs/roadmap/README.md:21:# Add item → auto ID (ROAD-GATE-NNN) → sync → validate — one command
+./docs/roadmap/README.md:1:# Roadmap
 ./plasticos_accounting/README.md:13:# Plasticos Accounting
 ./plasticos_automation/README.md:13:# Plasticos Automation
 ./plasticos_base/README.md:13:# Plasticos Base

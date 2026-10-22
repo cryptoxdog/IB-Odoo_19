@@ -83,7 +83,7 @@ Numbers below are **proposed** next free slots after ADR-009. Rename on write if
 
 ### ADR-016 — Web-lead triage boundary (Phase 1 local; Phase 3 Gate optional)
 
-**Complements:** ADR-002 phases, GATE_AUTONOMY_ROADMAP
+**Complements:** ADR-002 phases, ADR-016
 **Decision draft:** Restate with sharper non-goals: web-lead HOT/COLD is **not** enrichment ranking; not CEG health; not EIE converge. Phase 1 remains Cognito → Odoo LLM/vision/classify → intake. Gate web-lead triage stays deferred.
 **Chat evidence:** Clarification that “leads” cron/ranking ≠ web-lead pipeline.
 

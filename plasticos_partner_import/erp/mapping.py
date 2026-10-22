@@ -397,10 +397,10 @@ SALES_REP_NAMES: dict[str, str] = {
     "DAVE": "David McLawhorn",
 }
 
-# Former representatives whose accounts the brokerage reassigned to MM
-# (docs/erp_import_mapping.md §3a). The restored database may still carry the
-# former initials on those rows; the reassignment is a mapping rule, not an
-# edit of the source.
+# Former representatives whose accounts the brokerage reassigned to MM.
+# The restored database may still carry the former initials on those rows.
+# The reassignment is this mapping rule, not an edit of the source.
+# Contract: docs/adr/ADR-021-erp-sql-crm-api-import.md.
 SALES_REP_REASSIGNED: dict[str, str] = {
     "JB": "MM",
     "YK": "MM",

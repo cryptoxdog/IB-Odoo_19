@@ -429,7 +429,7 @@ consumer-path local authority fails the build.
 
 **Detection**: `tests/contracts/test_external_intelligence_authority.py`, `tests/contracts/test_no_local_intelligence.py`, `ci/check_no_local_intelligence.py`
 
-**Enforcement**: Blocking contract tests + CI/pre-commit/Makefile drift guard + Gate consumer docs (`docs/track_b/04_*`)
+**Enforcement**: Blocking contract tests + CI/pre-commit/Makefile drift guard + ADR-013 fail-closed transport
 
 ---
 

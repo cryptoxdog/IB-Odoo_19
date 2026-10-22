@@ -1651,13 +1651,6 @@
 ./scripts/repo_generators/export_repo_indexes.py:22:import re
 ./scripts/repo_generators/export_repo_indexes.py:23:import sys
 ./scripts/repo_generators/export_repo_indexes.py:24:from pathlib import Path
-./scripts/roadmap.py:16:from __future__ import annotations
-./scripts/roadmap.py:18:import argparse
-./scripts/roadmap.py:19:import re
-./scripts/roadmap.py:20:import sys
-./scripts/roadmap.py:21:from datetime import date
-./scripts/roadmap.py:22:from pathlib import Path
-./scripts/roadmap.py:25:    import yaml
 ./scripts/semantic_kernel_backfill.py:13:from __future__ import annotations
 ./scripts/semantic_kernel_backfill.py:15:import argparse
 ./scripts/semantic_kernel_backfill.py:16:import json

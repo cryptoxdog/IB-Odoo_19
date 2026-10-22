@@ -4,11 +4,10 @@ Encodes the disposition of every source column of the tracked export
 (``plasticos_partner_import/erp_extracted_data``) and emits the mapping-status table consumed by
 the canonical import command, the completeness test, and operator evidence.
 
-The dispositions below are verified against the mapping authority
-``docs/erp_import_mapping.md`` (identity contract, header
-reconstruction, CounterParty/Address/Contact/WKSDetail mappings, drop
-decisions with measured evidence) and against the Odoo model schema as the
-import service probes it at runtime. Status vocabulary:
+The dispositions below are the column authority, together with
+``plasticos_partner_import/erp/mapping.py`` and
+``docs/adr/ADR-021-erp-sql-crm-api-import.md``. The import service probes the
+Odoo model schema at runtime. Status vocabulary:
 
 * ``VERIFIED`` — mapped to a real Odoo field (or a proven identity/reference
   role) and exercised by the service.
@@ -1153,7 +1152,11 @@ def build_mapping_status(repo_root: Path | str | None = None) -> MappingStatus:
 def as_dict(status: MappingStatus) -> dict:
     return {
         "source": status.source,
-        "mapping_authority": "docs/erp_import_mapping.md",
+        "mapping_authority": (
+            "plasticos_partner_import/erp/mapping.py; "
+            "plasticos_partner_import/erp/mapping_status.py; "
+            "docs/adr/ADR-021-erp-sql-crm-api-import.md"
+        ),
         "row_count": len(status.rows),
         "unknown_count": len(status.unknowns),
         "rows": status.rows,

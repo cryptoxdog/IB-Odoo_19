@@ -332,7 +332,7 @@
 ./tests/contracts/test_external_intelligence_authority.py:49:def test_invariants_declare_external_intelligence_authority():
 ./tests/contracts/test_external_intelligence_authority.py:56:def test_architecture_points_at_successor_adr_not_fallback_authority():
 ./tests/contracts/test_external_intelligence_authority.py:64:def test_agents_forbid_local_engines_as_authority():
-./tests/contracts/test_external_intelligence_authority.py:71:def test_roadmap_and_track_b_cite_successor_authority():
+./tests/contracts/test_external_intelligence_authority.py:71:def test_gate_roadmap_generator_is_retired_and_folder_is_hand_authored():
 ./tests/contracts/test_external_intelligence_authority.py:82:def test_acceptance_local_engines_no_longer_architectural_authority():
 ./tests/contracts/test_external_intelligence_contract_parity.py:64:def test_default_actions_are_match_and_converge():
 ./tests/contracts/test_external_intelligence_contract_parity.py:70:def test_availability_missing_url(monkeypatch):

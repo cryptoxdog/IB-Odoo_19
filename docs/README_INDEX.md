@@ -15,12 +15,8 @@
 | File | Topic |
 |---|---|
 | [LOCAL_DEV_SETUP.md](LOCAL_DEV_SETUP.md) | Fresh clone: venv, Odoo source for Pylance, Cursor, two-machine parity |
-<!-- roadmap:index:architecture:start -->
-| [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md) | Why Gate is the hub, why Odoo local is fallback, what agents must not ship in Phase 1 |
-| [GATE_AUTONOMY_ROADMAP.md](roadmap/GATE_AUTONOMY_ROADMAP.md) | Gate → CEG matching, human-in-loop phases, autonomy graduation, implementation scope |
-<!-- roadmap:index:architecture:end -->
-
-Managed by `make roadmap` — see [roadmap/README.md](roadmap/README.md).
+| [adr/ADR-002-gate-hub-phased-autonomy.md](adr/ADR-002-gate-hub-phased-autonomy.md) | Hub topology and phased human checkpoints |
+| [roadmap/README.md](roadmap/README.md) | Hand-authored strategic roadmap |
 
 ## Module README Locations
 
