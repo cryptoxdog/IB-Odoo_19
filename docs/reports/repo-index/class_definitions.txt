@@ -59,10 +59,10 @@
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:9:class TestCrm4ProfileReuse(TransactionCase):
 ./plasticos_crm_sync/adapters/base.py:10:class CrmAdapterError(Exception):
 ./plasticos_crm_sync/adapters/base.py:15:class CanonicalLead:
-./plasticos_crm_sync/adapters/base.py:39:class CanonicalCall:
-./plasticos_crm_sync/adapters/base.py:51:class CanonicalTableRow:
-./plasticos_crm_sync/adapters/base.py:60:class CrmAdapter(Protocol):
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:244:class VanillaSoftAdapter:
+./plasticos_crm_sync/adapters/base.py:42:class CanonicalCall:
+./plasticos_crm_sync/adapters/base.py:54:class CanonicalTableRow:
+./plasticos_crm_sync/adapters/base.py:63:class CrmAdapter(Protocol):
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:252:class VanillaSoftAdapter:
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:58:class VanillaSoftClient:
 ./plasticos_crm_sync/controllers/webhook.py:18:class PlasticosCrmSyncWebhook(http.Controller):
 ./plasticos_crm_sync/models/crm_call_event.py:4:class PlasticosCrmCallEvent(models.Model):
@@ -73,12 +73,16 @@
 ./plasticos_crm_sync/models/crm_sync_orphan.py:4:class PlasticosCrmSyncOrphan(models.Model):
 ./plasticos_crm_sync/models/crm_sync_run.py:4:class PlasticosCrmSyncRun(models.Model):
 ./plasticos_crm_sync/models/res_config_settings.py:7:class ResConfigSettings(models.TransientModel):
-./plasticos_crm_sync/services/orchestrator.py:32:class CrmSyncLockedError(CrmAdapterError):
-./plasticos_crm_sync/services/orchestrator.py:36:class CrmFullImportArgumentError(CrmAdapterError):
-./plasticos_crm_sync/services/orchestrator.py:254:class SyncOrchestrator:
+./plasticos_crm_sync/services/approved_identity.py:29:class CrosswalkError(ValueError):
+./plasticos_crm_sync/services/approved_identity.py:127:class _CommentBlocks(HTMLParser):
+./plasticos_crm_sync/services/orchestrator.py:40:class CrmSyncLockedError(CrmAdapterError):
+./plasticos_crm_sync/services/orchestrator.py:44:class CrmFullImportArgumentError(CrmAdapterError):
+./plasticos_crm_sync/services/orchestrator.py:262:class SyncOrchestrator:
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:32:class TestVanillaSoftLeadLifecycle(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:15:class TestCrmSyncOrchestrator(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:380:        class Adapter:
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:14:class CrmSyncOrchestratorCase(TransactionCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:45:class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:382:        class Adapter:
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1104:class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:14:class TestCrmSyncSettingsImportAction(TransactionCase):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:43:class _StubAdapter:
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:73:class TestWatermarkAcknowledgement(TransactionCase):
@@ -205,7 +209,8 @@
 ./plasticos_partner_import/erp/report.py:12:class ImportReport:
 ./plasticos_partner_import/erp/source_index.py:48:class IdentityViolation:
 ./plasticos_partner_import/erp/source_index.py:66:class SourceIndex:
-./plasticos_partner_import/models/erp_import_service.py:75:class PlasticosErpImport(models.AbstractModel):
+./plasticos_partner_import/models/erp_import_service.py:77:class PlasticosErpImport(models.AbstractModel):
+./plasticos_partner_import/models/erp_import_service.py:1171:class _CommentBlocks(HTMLParser):
 ./plasticos_partner_import/models/partner_import_service.py:31:class PlasticosPartnerImportService(models.AbstractModel):
 ./plasticos_partner_import/models/validation.py:9:class PlasticosPartnerImportValidation(models.AbstractModel):
 ./plasticos_partner_import/scripts/validate_partner_layer.py:53:class LayerRejected(RuntimeError):
@@ -427,6 +432,7 @@
 ./tests/test_constraints_onchanges.py:105:class TestIntakeOnchangesConsolidated(PlasticosTestCase):
 ./tests/test_constraints_onchanges.py:136:class TestClaimConstraintsConsolidated(PlasticosTestCase):
 ./tests/test_constraints_onchanges.py:165:class TestTransactionComputesConsolidated(PlasticosTestCase):
+./tests/test_crm_approved_identity.py:119:class _Partners(_Model):
 ./tests/test_crm_sync_classification.py:23:class _Missing:
 ./tests/test_crm_sync_classification.py:33:class _Record:
 ./tests/test_crm_sync_classification.py:47:class _Model:
@@ -504,6 +510,7 @@
 ./tests/test_golden_flows.py:149:class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
 ./tests/test_golden_flows.py:337:class TestGoldenTransactionWithClaim(PlasticosTestCase):
 ./tests/test_golden_flows.py:403:class TestGoldenCommissionCalculation(PlasticosTestCase):
+./tests/test_install_smoke_evidence.py:134:class Site:
 ./tests/test_integration_flows.py:23:class TestLeadToIntakeToTransaction(PlasticosTestCase):
 ./tests/test_integration_flows.py:71:class TestIntakeToMatchToOffer(PlasticosTestCase):
 ./tests/test_integration_flows.py:121:class TestTransactionToLoadToDelivery(PlasticosTestCase):
@@ -529,17 +536,17 @@
 ./tests/test_performance.py:20:class TestBulkImportPerformance(PlasticosTestCase):
 ./tests/test_performance.py:90:class TestCronPerformance(PlasticosTestCase):
 ./tests/test_performance.py:111:class TestSearchPerformance(PlasticosTestCase):
-./tests/test_phantom_enum_values.py:902:class EnumSource(NamedTuple):
-./tests/test_phantom_enum_values.py:910:class EnumUsage(NamedTuple):
-./tests/test_phantom_enum_values.py:1033:class _EnumUsageVisitor(ast.NodeVisitor):
-./tests/test_phantom_enum_values.py:1344:class TestRegistrySanity:
-./tests/test_phantom_enum_values.py:1432:class TestSelectionComparisons:
-./tests/test_phantom_enum_values.py:1463:class TestPhantomEnumValues:
-./tests/test_phantom_enum_values.py:1523:class TestPerModulePhantomAudit:
-./tests/test_phantom_enum_values.py:1544:class TestSelectionFieldConsistency:
-./tests/test_phantom_enum_values.py:1592:class TestXmlSelectionAlignment:
-./tests/test_phantom_enum_values.py:1713:class TestEquipmentCodeAlignment:
-./tests/test_phantom_enum_values.py:1769:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:907:class EnumSource(NamedTuple):
+./tests/test_phantom_enum_values.py:915:class EnumUsage(NamedTuple):
+./tests/test_phantom_enum_values.py:1038:class _EnumUsageVisitor(ast.NodeVisitor):
+./tests/test_phantom_enum_values.py:1349:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1437:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1468:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1528:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1549:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1597:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1718:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1774:class TestPhantomAuditReport:
 ./tests/test_process_enum_alignment.py:64:class TestProcessEnumAlignment:
 ./tests/test_sal_resolver_service.py:24:    class Datetime:
 ./tests/test_sal_resolver_service.py:54:class _LoadSearch:
@@ -554,9 +561,9 @@
 ./tests/test_state_machines.py:235:class TestTransactionStateMachineConsolidated(PlasticosTestCase):
 ./tests/test_state_machines.py:336:class TestClaimStateMachineConsolidated(PlasticosTestCase):
 ./tests/test_state_machines.py:423:class TestOfferStateMachineConsolidated(PlasticosTestCase):
-./tests/test_suite_structure.py:93:class TestSuiteStructure:
-./tests/test_suite_structure.py:196:class TestTestFileNaming:
-./tests/test_suite_structure.py:216:class TestTestContent:
+./tests/test_suite_structure.py:105:class TestSuiteStructure:
+./tests/test_suite_structure.py:206:class TestTestFileNaming:
+./tests/test_suite_structure.py:226:class TestTestContent:
 ./tests/test_triage_pipeline.py:81:class TestParseWeightLbs:
 ./tests/test_triage_pipeline.py:181:class TestHelpers:
 ./tests/test_triage_pipeline.py:219:class TestClassifyLead:
