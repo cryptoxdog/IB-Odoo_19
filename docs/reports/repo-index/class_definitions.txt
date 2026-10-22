@@ -16,6 +16,13 @@
 ./ci/test_generator.py:10:class TestGenerator:
 ./ci/test_generator.py:27:class Test{self._to_camel_case(model_name)}(TransactionCase):
 ./ci/weak_test_fixer.py:101:class WeakTestFixer:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:15:class TestModel:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:35:class BuilderTests(unittest.TestCase):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:130:class RuntimeBindingSafetyTests(unittest.TestCase):
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:150:        class Cursor:
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:163:        class Conn:
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:59:class _SignalCapture(logging.Handler):
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:62:class _SignalCapture(logging.Handler):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:36:class PlasticosAdminKpi(models.Model):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:617:class PlasticosRepPerformance(models.Model):
 ./plasticos_automation/models/account_move_penalty.py:8:class AccountMovePenalty(models.Model):

@@ -137,14 +137,61 @@
 ./ci/weak_test_fixer.py:17:import sys
 ./ci/weak_test_fixer.py:18:from pathlib import Path
 ./ci/weak_test_fixer.py:96:    from path_filters import SKIP_DIR_PARTS, skip_path
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/census.py:6:import importlib.util
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/census.py:7:import sys
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d05_singleton_proof.py:2:import psycopg2
-./docs/campaigns/odoo_noncritical_gmp_campaign_pack/reports/evidence/gmp-nc-d/d05_singleton_proof.py:4:from odoo.exceptions import ValidationError
-./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:8:from __future__ import annotations
-./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:10:import json
-./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:11:import sys
-./docs/runbooks/erp_sync_mapping_matrix/validate_erp_sync_mapping.py:12:from pathlib import Path
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:4:from __future__ import annotations
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:6:import argparse
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:7:import difflib
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:8:import re
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:9:import subprocess
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:10:import sys
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:11:from pathlib import Path
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:52:from __future__ import annotations
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:54:import glob
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:55:import os
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:56:import re
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:57:from pathlib import Path
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:59:import psycopg2
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:3:import importlib.util
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:4:import subprocess
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:5:import tempfile
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:6:import unittest
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:7:from pathlib import Path
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:74:        import py_compile
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:143:        import os
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:144:        import sys
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:145:        import types
+./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:146:        from unittest.mock import patch
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:17:import json
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:18:import logging
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:19:import re
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:20:from pathlib import Path
+./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:90:    from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:17:import csv
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:18:import json
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:19:import logging
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:20:import re
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:21:from pathlib import Path
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:121:    from odoo.addons.plasticos_crm_sync.services.approved_identity import OMITTED_DUPLICATE_VS_IDS
+./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:122:    from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
+./docs/campaigns/odoo_tech_debt/_build_register.py:4:from __future__ import annotations
+./docs/campaigns/odoo_tech_debt/_build_register.py:6:import ast
+./docs/campaigns/odoo_tech_debt/_build_register.py:7:import collections
+./docs/campaigns/odoo_tech_debt/_build_register.py:8:import hashlib
+./docs/campaigns/odoo_tech_debt/_build_register.py:9:import io
+./docs/campaigns/odoo_tech_debt/_build_register.py:10:import json
+./docs/campaigns/odoo_tech_debt/_build_register.py:11:import os
+./docs/campaigns/odoo_tech_debt/_build_register.py:12:import re
+./docs/campaigns/odoo_tech_debt/_build_register.py:13:import subprocess
+./docs/campaigns/odoo_tech_debt/_build_register.py:14:import sys
+./docs/campaigns/odoo_tech_debt/_build_register.py:15:import tarfile
+./docs/campaigns/odoo_tech_debt/_build_register.py:16:import tempfile
+./docs/campaigns/odoo_tech_debt/_build_register.py:17:from datetime import UTC, datetime
+./docs/campaigns/odoo_tech_debt/_build_register.py:18:from pathlib import Path
+./docs/campaigns/odoo_tech_debt/_build_register.py:219:    from baseline_utils import compute_fingerprint, diff_findings, load_baseline
+./docs/campaigns/odoo_tech_debt/_build_register.py:220:    from business_logic_audit import BusinessLogicAudit
+./docs/campaigns/odoo_tech_debt/_build_register.py:221:    from odoo_audit import OdooAudit
+./docs/campaigns/odoo_tech_debt/_build_register.py:222:    from performance_audit import PerformanceAudit
+./docs/campaigns/odoo_tech_debt/_build_register.py:223:    from security_audit import SecurityAudit
+./docs/campaigns/odoo_tech_debt/_build_register.py:224:    from test_audit import TestAudit
 ./plasticos_accounting/__init__.py:1:import logging
 ./plasticos_admin_dashboard/__init__.py:1:from . import models
 ./plasticos_admin_dashboard/models/__init__.py:1:from . import admin_dashboard
@@ -1666,13 +1713,6 @@
 ./scripts/repo_generators/export_repo_indexes.py:28:import subprocess
 ./scripts/repo_generators/export_repo_indexes.py:29:import sys
 ./scripts/repo_generators/export_repo_indexes.py:30:from pathlib import Path
-./scripts/roadmap.py:16:from __future__ import annotations
-./scripts/roadmap.py:18:import argparse
-./scripts/roadmap.py:19:import re
-./scripts/roadmap.py:20:import sys
-./scripts/roadmap.py:21:from datetime import date
-./scripts/roadmap.py:22:from pathlib import Path
-./scripts/roadmap.py:25:    import yaml
 ./scripts/semantic_kernel_backfill.py:13:from __future__ import annotations
 ./scripts/semantic_kernel_backfill.py:15:import argparse
 ./scripts/semantic_kernel_backfill.py:16:import json
