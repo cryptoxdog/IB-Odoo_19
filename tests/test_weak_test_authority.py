@@ -595,3 +595,78 @@ def test_awaited_coroutine_and_python_mro_helpers_count(tmp_path: Path):
         """,
     )
     assert _flagged(tmp_path) == set()
+
+
+def test_helper_body_resolves_in_its_own_scope_not_the_tests(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_scope.py",
+        """
+        def assert_noop():
+            return None
+
+        def local_helper():
+            assert_noop()
+
+        def asserting_helper():
+            assert True
+
+        def test_shadowed():
+            assert_noop = lambda: None
+            local_helper()
+
+        def test_shadowed_but_helper_really_asserts():
+            assert_noop = lambda: None
+            asserting_helper()
+        """,
+    )
+    assert _flagged(tmp_path) == {("tests/test_scope.py", "test_shadowed")}
+
+
+def test_for_else_after_a_definite_first_iteration_exit_is_dead(tmp_path: Path):
+    _write(
+        tmp_path,
+        "tests/test_for_else.py",
+        """
+        def test_nonempty_literal_break():
+            for item in [1]:
+                break
+            else:
+                assert False, "never executed"
+
+        def test_nonempty_tuple_return():
+            for item in (1, 2):
+                return None
+            else:
+                assert True
+
+        def test_empty_literal_runs_else():
+            for item in []:
+                break
+            else:
+                assert True
+
+        def test_unknown_iterable_stays_conservative(items):
+            for item in items:
+                break
+            else:
+                assert True
+
+        def test_conditional_break_keeps_else(flag):
+            for item in [1]:
+                if flag:
+                    break
+            else:
+                assert True
+
+        def test_continue_is_not_an_exit():
+            for item in [1]:
+                continue
+            else:
+                assert True
+        """,
+    )
+    assert _flagged(tmp_path) == {
+        ("tests/test_for_else.py", "test_nonempty_literal_break"),
+        ("tests/test_for_else.py", "test_nonempty_tuple_return"),
+    }

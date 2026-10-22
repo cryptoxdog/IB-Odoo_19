@@ -39,7 +39,9 @@ Known False Positive Patterns (for code review agents)
      When the comodel cannot be resolved the subtree is reported as
      UNRESOLVED_VIEW_CONTEXT (HIGH, so the baseline gate fails closed on the
      coverage gap) instead of being charged to the parent. An unreadable view
-     file is VIEW_PARSE_ERROR (HIGH) for the same reason.
+     file is VIEW_PARSE_ERROR (HIGH) for the same reason, and so is a view whose
+     model neither `<field name="model">` nor a known `inherit_id` chain gives
+     (UNRESOLVED_VIEW_MODEL).
    - A model's fields are the fields of every class that defines or extends it
      (`_name`, `_inherit` string or list) in the view's module and its manifest
      `depends` closure, plus prototype parents resolved the same way. Only the
@@ -153,6 +155,7 @@ class OdooAudit:
         self.defined_models = set()  # models created by a class in the repo (``_name`` not an extension)
         self.unresolved_view_contexts = []  # subviews whose comodel could not be resolved
         self.view_parse_errors = []  # view files the field check could not read
+        self.unresolved_view_models = []  # views whose model neither <field name="model"> nor inherit_id gives
         self._depends_cache = {}
         self._fields_cache = {}
 
@@ -490,7 +493,16 @@ class OdooAudit:
             return view["model"] or resolve(view["inherit"], (*seen, xmlid))
 
         for xmlid, arch, module, xml_file in pending:
-            self._walk_arch(arch, resolve(xmlid), module, xml_file)
+            model = resolve(xmlid)
+            if model is None and self._has_field(arch):
+                self.unresolved_view_models.append(
+                    {"view": xmlid, "inherit": views[xmlid]["inherit"], "file": str(xml_file), "line": arch["line"]}
+                )
+            self._walk_arch(arch, model, module, xml_file)
+
+    @staticmethod
+    def _has_field(node):
+        return any(child["tag"] == "field" or OdooAudit._has_field(child) for child in node["children"])
 
     def check_field_mismatches(self):
         """Find view field references that no visible class of the model defines."""
@@ -525,27 +537,43 @@ class OdooAudit:
 
     def check_unresolved_view_contexts(self):
         """Subviews whose comodel could not be resolved, and unreadable view files: their fields are not checked."""
-        return [
-            {
-                "type": "UNRESOLVED_VIEW_CONTEXT",
-                "severity": "HIGH",
-                "model": item["model"],
-                "field": item["field"],
-                "file": item["file"],
-                "line": item["line"],
-                "message": f"Subview of '{item['field']}' on '{item['model']}' has no resolvable comodel; "
-                "its fields are not checked",
-            }
-            for item in self.unresolved_view_contexts
-        ] + [
-            {
-                "type": "VIEW_PARSE_ERROR",
-                "severity": "HIGH",
-                "file": item["file"],
-                "message": f"View file not parsed; its fields are not checked: {item['error']}",
-            }
-            for item in self.view_parse_errors
-        ]
+        return (
+            [
+                {
+                    "type": "UNRESOLVED_VIEW_CONTEXT",
+                    "severity": "HIGH",
+                    "model": item["model"],
+                    "field": item["field"],
+                    "file": item["file"],
+                    "line": item["line"],
+                    "message": f"Subview of '{item['field']}' on '{item['model']}' has no resolvable comodel; "
+                    "its fields are not checked",
+                }
+                for item in self.unresolved_view_contexts
+            ]
+            + [
+                {
+                    "type": "VIEW_PARSE_ERROR",
+                    "severity": "HIGH",
+                    "file": item["file"],
+                    "message": f"View file not parsed; its fields are not checked: {item['error']}",
+                }
+                for item in self.view_parse_errors
+            ]
+            + [
+                {
+                    "type": "UNRESOLVED_VIEW_MODEL",
+                    "severity": "HIGH",
+                    "model": None,
+                    "field": item["view"],
+                    "file": item["file"],
+                    "line": item["line"],
+                    "message": f"View '{item['view']}' has no <field name=\"model\"> and its inherit_id "
+                    f"'{item['inherit']}' is not a view this scan knows; its fields are not checked",
+                }
+                for item in self.unresolved_view_models
+            ]
+        )
 
     def check_compute_depends(self):
         """Validate @api.depends() field references."""

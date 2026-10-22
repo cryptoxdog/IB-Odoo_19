@@ -12,14 +12,19 @@ call is not evidence.
 Only reachable statements count: anything after a statement that always leaves
 the block (``return`` / ``raise`` / ``continue`` / ``break``, an ``if`` whose
 taken or both branches do, a ``try`` whose ``finally`` or body-and-handlers do),
-a constant-false branch (``False``, ``not True``), and the bodies of nested
-``def`` / ``lambda`` / ``class`` are not executed by the test and are ignored.
+a constant-false branch (``False``, ``not True``), the ``else`` of a ``for``
+over a non-empty literal whose body always leaves on the first iteration, and
+the bodies of nested ``def`` / ``lambda`` / ``class`` are not executed by the
+test and are ignored. Any other loop ``else`` stays reachable: the iterable may
+be empty.
 
 A call to a helper defined in the same file is resolved one hop instead of
 judged by its name: ``self.<name>()`` / ``cls.<name>()`` against the test's own
 class and that class's bases defined in the file, and a bare ``<name>()``
-against the file's module-level functions unless the test binds that name
-itself (a parameter, fixture, assignment or nested def). Methods follow
+against the file's module-level functions unless the calling function binds
+that name itself (a parameter, fixture, assignment or nested def). Each body is
+resolved in its own scope: a test's bindings never decide what a helper's calls
+resolve to. Methods follow
 Python's C3 order over the in-file bases. The call is evidence only when the
 helper's own reachable body carries direct evidence and actually runs: an
 ``async`` helper must be awaited, and a generator helper never counts. Inside
@@ -63,6 +68,8 @@ _NON_ASSERTION_HELPER_PREFIXES = ("check_", "_check_", "validate_", "_run_", "_s
 _FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 _SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 _TERMINATORS = (ast.Return, ast.Raise, ast.Continue, ast.Break)
+_LOOP_EXITS = (ast.Return, ast.Raise, ast.Break)
+_Function = ast.FunctionDef | ast.AsyncFunctionDef
 
 
 def _is_skipped(path: Path) -> bool:
@@ -103,14 +110,32 @@ def _constant_truth(test: ast.expr) -> bool | None:
     return None
 
 
+def _is_nonempty_literal(node: ast.expr) -> bool:
+    """A literal the loop is statically known to iterate at least once."""
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return bool(node.elts) and not any(isinstance(item, ast.Starred) for item in node.elts)
+    return isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes)) and bool(node.value)
+
+
 def _child_blocks(stmt: ast.stmt) -> list[list[ast.stmt]]:
-    """Statement lists nested in ``stmt`` that can execute, honouring constant branches."""
+    """Statement lists nested in ``stmt`` that can execute, honouring constant branches.
+
+    A ``for`` over a non-empty literal whose body always leaves the loop on its
+    first iteration (``break`` / ``return`` / ``raise``) never runs its ``else``.
+    Any other iterable may be empty, so its ``else`` stays reachable.
+    """
     if isinstance(stmt, (ast.If, ast.While)):
         truth = _constant_truth(stmt.test)
         if truth is True:
             return [stmt.body]
         if truth is False:
             return [stmt.orelse]
+    if (
+        isinstance(stmt, (ast.For, ast.AsyncFor))
+        and _is_nonempty_literal(stmt.iter)
+        and _block_terminates(stmt.body, exits=_LOOP_EXITS)
+    ):
+        return [stmt.body]
     blocks: list[list[ast.stmt]] = []
     for _field, value in ast.iter_fields(stmt):
         if not isinstance(value, list) or not value:
@@ -125,25 +150,27 @@ def _child_blocks(stmt: ast.stmt) -> list[list[ast.stmt]]:
     return blocks
 
 
-def _block_terminates(body: list[ast.stmt]) -> bool:
-    return any(_terminates(stmt) for stmt in body)
+def _block_terminates(body: list[ast.stmt], exits: tuple[type[ast.stmt], ...] = _TERMINATORS) -> bool:
+    return any(_terminates(stmt, exits) for stmt in body)
 
 
-def _terminates(stmt: ast.stmt) -> bool:
-    """True when control never reaches the statement after ``stmt``."""
-    if isinstance(stmt, _TERMINATORS):
+def _terminates(stmt: ast.stmt, exits: tuple[type[ast.stmt], ...] = _TERMINATORS) -> bool:
+    """True when control never reaches the statement after ``stmt`` (``exits`` are the leaving statements)."""
+    if isinstance(stmt, exits):
         return True
     if isinstance(stmt, ast.If):
         truth = _constant_truth(stmt.test)
         if truth is True:
-            return _block_terminates(stmt.body)
+            return _block_terminates(stmt.body, exits)
         if truth is False:
-            return _block_terminates(stmt.orelse)
-        return bool(stmt.orelse) and _block_terminates(stmt.body) and _block_terminates(stmt.orelse)
-    if isinstance(stmt, (ast.Try, getattr(ast, "TryStar", ast.Try))):
-        if stmt.finalbody and _block_terminates(stmt.finalbody):
+            return _block_terminates(stmt.orelse, exits)
+        return bool(stmt.orelse) and _block_terminates(stmt.body, exits) and _block_terminates(stmt.orelse, exits)
+    if isinstance(stmt, (ast.Try, ast.TryStar)):
+        if stmt.finalbody and _block_terminates(stmt.finalbody, exits):
             return True
-        return _block_terminates(stmt.body) and all(_block_terminates(handler.body) for handler in stmt.handlers)
+        return _block_terminates(stmt.body, exits) and all(
+            _block_terminates(handler.body, exits) for handler in stmt.handlers
+        )
     return False
 
 
@@ -181,28 +208,31 @@ def _is_direct_evidence_call(name: str) -> bool:
     return name in ("fail", "raises", "xfail")
 
 
-def _is_generator(func_node: ast.AST) -> bool:
+def _is_generator(func_node: _Function) -> bool:
     """A generator's body does not run when it is called, only when it is iterated."""
     return any(isinstance(node, (ast.Yield, ast.YieldFrom)) for node in _reachable_nodes(func_node.body))
 
 
-def _helper_body_runs(helper: ast.AST, call: ast.Call, awaited: set[int]) -> bool:
+def _helper_body_runs(helper: _Function, call: ast.Call, awaited: set[int]) -> bool:
     if isinstance(helper, ast.AsyncFunctionDef) and id(call) not in awaited:
         return False
     return not _is_generator(helper)
 
 
-def _has_assertion_evidence(func_node: ast.AST, resolve_helper=None, *, in_helper: bool = False) -> bool:
+def _has_assertion_evidence(
+    func_node: _Function, resolve_helper: _Resolver | None = None, *, in_helper: bool = False
+) -> bool:
     """True when a reachable statement of ``func_node`` asserts.
 
     ``resolve_helper(call)`` returns the local helper definition a call targets,
-    or ``None``. A resolved call is evidence only through the helper's own
-    reachable body, and only when that body actually runs (an un-awaited
-    coroutine or an un-iterated generator does not). Inside the helper a call
-    to another local definition is a second hop: it is neither followed nor
-    judged by its name.
+    or ``None``; it is bound to ``func_node``'s own lexical scope. A resolved
+    call is evidence only through the helper's own reachable body, judged with
+    a resolver bound to the helper's scope, and only when that body actually
+    runs (an un-awaited coroutine or an un-iterated generator does not). Inside
+    the helper a call to another local definition is a second hop: it is
+    neither followed nor judged by its name.
     """
-    nodes = list(_reachable_nodes(getattr(func_node, "body", [])))
+    nodes = list(_reachable_nodes(func_node.body))
     awaited = {id(node.value) for node in nodes if isinstance(node, ast.Await)}
     for node in nodes:
         if isinstance(node, ast.Assert) or _is_raise_assertion_error(node):
@@ -210,11 +240,11 @@ def _has_assertion_evidence(func_node: ast.AST, resolve_helper=None, *, in_helpe
         if not isinstance(node, ast.Call):
             continue
         helper = resolve_helper(node) if resolve_helper else None
-        if helper is not None:
+        if helper is not None and resolve_helper is not None:
             if (
                 not in_helper
                 and _helper_body_runs(helper, node, awaited)
-                and _has_assertion_evidence(helper, resolve_helper, in_helper=True)
+                and _has_assertion_evidence(helper, resolve_helper.for_scope(helper), in_helper=True)
             ):
                 return True
             continue
@@ -224,16 +254,16 @@ def _has_assertion_evidence(func_node: ast.AST, resolve_helper=None, *, in_helpe
     return False
 
 
-def _is_soft_warning_only(func_node: ast.AST, resolve_helper=None) -> bool:
+def _is_soft_warning_only(func_node: _Function, resolve_helper: _Resolver | None = None) -> bool:
     if _has_assertion_evidence(func_node, resolve_helper):
         return False
-    for node in _reachable_nodes(getattr(func_node, "body", [])):
+    for node in _reachable_nodes(func_node.body):
         if isinstance(node, ast.Call) and _call_name(node.func) == "warn":
             return True
     return False
 
 
-def _local_names(func_node: ast.AST) -> set[str]:
+def _local_names(func_node: _Function) -> set[str]:
     """Names a function binds itself (parameters, assignments, nested defs, imports)."""
     args = func_node.args
     names = {arg.arg for arg in (*args.posonlyargs, *args.args, *args.kwonlyargs)}
@@ -287,20 +317,31 @@ class _LocalHelpers:
                     return item
         return None
 
-    def resolver(self, owner: ast.ClassDef | None, scope: ast.AST):
-        shadowed = _local_names(scope)
+    def resolver(self, owner: ast.ClassDef | None, scope: _Function) -> _Resolver:
+        return _Resolver(self, owner, scope)
 
-        def resolve(call: ast.Call):
-            func = call.func
-            if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-                if owner is not None and func.value.id in ("self", "cls"):
-                    return self._method(owner, func.attr)
-                return None
-            if isinstance(func, ast.Name) and func.id not in shadowed:
-                return self.functions.get(func.id)
+
+class _Resolver:
+    """Resolves calls made inside ``scope`` to same-file definitions, honouring ``scope``'s own bindings."""
+
+    def __init__(self, helpers: _LocalHelpers, owner: ast.ClassDef | None, scope: _Function):
+        self.helpers = helpers
+        self.owner = owner
+        self.shadowed = _local_names(scope)
+
+    def __call__(self, call: ast.Call) -> _Function | None:
+        func = call.func
+        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            if self.owner is not None and func.value.id in ("self", "cls"):
+                return self.helpers._method(self.owner, func.attr)
             return None
+        if isinstance(func, ast.Name) and func.id not in self.shadowed:
+            return self.helpers.functions.get(func.id)
+        return None
 
-        return resolve
+    def for_scope(self, scope: _Function) -> _Resolver:
+        """The resolver for calls made inside ``scope`` (a helper body), not the caller's scope."""
+        return _Resolver(self.helpers, self.owner, scope)
 
 
 def _functions_with_owner(node: ast.AST, owner: ast.ClassDef | None = None):

@@ -115,7 +115,11 @@ def _findings(root: Path) -> list[dict]:
     audit = OdooAudit(root)
     with contextlib.redirect_stdout(io.StringIO()):
         errors = audit.run_all_checks()
-    return [e for e in errors if e["type"] in {"FIELD_NOT_FOUND", "UNRESOLVED_VIEW_CONTEXT", "VIEW_PARSE_ERROR"}]
+    return [
+        e
+        for e in errors
+        if e["type"] in {"FIELD_NOT_FOUND", "UNRESOLVED_VIEW_CONTEXT", "VIEW_PARSE_ERROR", "UNRESOLVED_VIEW_MODEL"}
+    ]
 
 
 def _missing(root: Path) -> set[tuple[str, str]]:
@@ -362,3 +366,24 @@ def test_xpath_axes_and_class_text_are_not_subview_steps(tmp_path: Path):
         ("sample.order", "bogus_parent"),
         ("sample.order", "bogus_not_inside_the_field"),
     }
+
+
+def test_inherited_view_with_no_model_and_an_unknown_parent_is_reported_not_skipped(tmp_path: Path):
+    root = _tree(tmp_path)
+    _views(
+        root,
+        "sample_ui",
+        _view("order_form", "sample.order", '<form><field name="amount"/></form>'),
+        _view(
+            "external_ext",
+            None,
+            '<data><xpath expr="//field[@name=\'x\']" position="after"><field name="anything"/></xpath></data>',
+            inherit="external_module.some_view",
+        ),
+        _view("known_ext", None, '<data><field name="ghost" position="after"/></data>', inherit="sample_ui.order_form"),
+    )
+    findings = _findings(root)
+    assert sorted((e["type"], e["severity"], e["field"]) for e in findings) == [
+        ("FIELD_NOT_FOUND", "CRITICAL", "ghost"),
+        ("UNRESOLVED_VIEW_MODEL", "HIGH", "sample_ui.external_ext"),
+    ]

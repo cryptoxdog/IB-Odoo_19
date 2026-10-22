@@ -69,6 +69,10 @@ RISKY_PATTERNS = [
     ),
 ]
 
+# A named step elsewhere in the expression does not stabilise a class step, so
+# these are judged even when SAFE_PATTERNS matches some other part of the xpath.
+INDEPENDENT_OF_SAFE_PATTERNS = frozenset({"CLASS_BASED_ANCHOR"})
+
 NOTEBOOK_STEP = "notebook"
 # Characters that continue an XML name, or mark an attribute/variable, around a node test.
 _NAME_CHARS = re.compile(r"[\w.\-@$]")
@@ -200,10 +204,10 @@ def check_xpath(xpath: str, file_path: str, view_id: str) -> list[Finding]:
             )
         )
 
-    if is_safe_xpath(xpath):
-        return findings
-
+    safe = is_safe_xpath(xpath)
     for pattern, issue_type, severity, message, fix_template in RISKY_PATTERNS:
+        if safe and issue_type not in INDEPENDENT_OF_SAFE_PATTERNS:
+            continue
         match = re.search(pattern, xpath)
         if match:
             fix = fix_template
