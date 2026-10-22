@@ -21,8 +21,6 @@ sys.path.insert(0, str(ROOT / "scripts" / "audit"))
 from odoo_audit import OdooAudit  # noqa: E402
 
 BASE_MODELS = """
-from odoo import fields, models
-
 from .constants import IMPORTED_MODEL
 
 PARTNER = "res.partner"
@@ -66,9 +64,6 @@ class SampleWrapped(models.Model):
 """
 
 EXT_MODELS = """
-from odoo import fields, models
-
-
 class SampleOrderExtension(models.Model):
     _inherit = "sample.order"
 
