@@ -4,7 +4,7 @@
   "repo": "cryptoxdog/IB-Odoo_19",
   "baseline_sha": "6036b79c0e40ebb8bc41505b26ae533e42ca70e2",
   "tested_sha": "7c062268561c7a09fe4a381b9a8ddc2c6260b734",
-  "source_reader": "column proved 2026-10-22 by a prior SELECT-only read of cieTrade_SM; this change did not query or restore the backup again",
+  "source_reader": "column proved 2026-10-22 by a prior SELECT-only read of the restored read-only source database; this change did not query or restore the backup again",
   "source_writes": 0,
   "scope_note": "The 119 linked 2025-2026 (INV) worksheets were not imported. Counts below are the fixtures this change actually ran.",
   "warehouse_link": {
