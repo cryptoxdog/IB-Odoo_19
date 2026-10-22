@@ -1,7 +1,7 @@
 # Open tech-debt register
 
 Subject: `cryptoxdog/IB-Odoo_19` `origin/Staging` `e78af874604890f8adb6b049694f93c48311eab4`.
-Census date: 2026-10-21.
+Census date: 2026-10-22.
 
 Machine contract: [`OPEN_REGISTER.json`](OPEN_REGISTER.json). This page is the same census in reading order. If they differ, the JSON wins.
 
@@ -273,7 +273,7 @@ Actions:
 
 | ID | Remediate | Class | File | Line | Symbol | Code / message |
 |---|---|---|---|---:|---|---|
-| TD-SCAN-001 | yes | scanner_misalignment | `scripts/audit/odoo_audit.py` | 186 | scan_view_field_refs | current_model = model_match.group(1) |
+| TD-SCAN-001 | yes | scanner_misalignment | `scripts/audit/odoo_audit.py` | 189 | scan_view_field_refs | current_model = model_match.group(1) |
 | TD-FIELD-001 | no | false_positive | `plasticos_automation/views/automation_config_views.xml` | 44 | target | [record_context_bleed] <field name="target">current</field> |
 | TD-FIELD-002 | no | false_positive | `plasticos_claims/views/transaction_claims_bridge_views.xml` | 15 | claim_count | [cross_module_inherit] <field name="claim_count" nolabel="1"/> |
 | TD-FIELD-003 | no | false_positive | `plasticos_commission/views/commission_payout_views.xml` | 88 | supplier_id | [nested_subview] <field name="supplier_id"              string="Supplier"/> |

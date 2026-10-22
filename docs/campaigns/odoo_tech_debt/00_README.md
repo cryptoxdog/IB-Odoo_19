@@ -7,7 +7,7 @@ This pack is the open-debt record for the two campaigns it replaces:
 
 Those packs can be deleted. Closed work is listed under `sealed` so it is not rediscovered as new debt. Open work is one row per site, with the file, line, source line, and the change a coding agent is allowed to make.
 
-Bound subject: `cryptoxdog/IB-Odoo_19` `origin/Staging` `e78af874604890f8adb6b049694f93c48311eab4` on 2026-10-21. Uncommitted partner-import edits in the working tree were not part of the census.
+Bound subject: `cryptoxdog/IB-Odoo_19` `origin/Staging` `e78af874604890f8adb6b049694f93c48311eab4` on 2026-10-22. The scanners ran on a `git archive` export of that commit, so nothing in the working tree or the current branch was part of the census.
 
 ## Files
 
@@ -16,7 +16,7 @@ Bound subject: `cryptoxdog/IB-Odoo_19` `origin/Staging` `e78af874604890f8adb6b04
 | `OPEN_REGISTER.json` | Remediation contract. Schema `plasticos.odoo_tech_debt.open_register.v1`. |
 | `OPEN_REGISTER.sha256` | SHA-256 of that JSON, repo-root relative. |
 | `OPEN_REGISTER.md` | Same rows, reading order. The JSON wins if they differ. |
-| `_build_register.py` | Rebuilds the JSON and the markdown from the live scanners. |
+| `_build_register.py` | Rebuilds the JSON and the markdown by running the `origin/Staging` scanners on an export of that commit. The census date is the rebuild date. |
 
 Check the hash from the repo root:
 

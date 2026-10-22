@@ -8,58 +8,32 @@ import collections
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import sys
+import tarfile
+import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / "scripts" / "audit"))
-sys.path.insert(0, str(ROOT / "ci"))
+REPO = Path(__file__).resolve().parents[3]
+# Replaced in main() by an exact export of origin/Staging; the scanners read only that tree.
+ROOT = REPO
 
 OUT = Path(__file__).resolve().parent
 
 
 def git(*args: str) -> str:
     # Fixed argv. The only variable pieces are paths from this repo's git index.
-    return subprocess.check_output(["git", *args], text=True)  # noqa: S603, S607
+    return subprocess.check_output(["git", "-C", str(REPO), *args], text=True)  # noqa: S603, S607
 
 
-def overlay_origin_staging() -> None:
-    dirty = git("diff", "--name-only", "origin/Staging").splitlines()
-    present = set(git("ls-tree", "-r", "--name-only", "origin/Staging").splitlines())
-    blobs: dict[str, str] = {}
-    for rel in dirty:
-        if rel not in present or not rel.endswith((".py", ".xml", ".csv")):
-            continue
-        blobs[rel] = git("show", f"origin/Staging:{rel}")
-    orig_read = Path.read_text
-
-    def read_text(self, *args, **kwargs):
-        try:
-            rel = str(self.resolve().relative_to(ROOT))
-        except ValueError:
-            rel = None
-        if rel in blobs:
-            return blobs[rel]
-        return orig_read(self, *args, **kwargs)
-
-    Path.read_text = read_text
-    builtin_open = __builtins__["open"] if isinstance(__builtins__, dict) else __builtins__.open
-
-    def open_patched(file, mode="r", *args, **kwargs):
-        path = Path(file)
-        try:
-            rel = str(path.resolve().relative_to(ROOT))
-        except Exception:
-            rel = None
-        if rel in blobs and "r" in mode and "b" not in mode:
-            return io.StringIO(blobs[rel])
-        return builtin_open(file, mode, *args, **kwargs)
-
-    import builtins
-
-    builtins.open = open_patched
+def export_origin_staging(dest: Path) -> Path:
+    archive = subprocess.check_output(["git", "-C", str(REPO), "archive", "--format=tar", "origin/Staging"])  # noqa: S603, S607
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        tar.extractall(dest, filter="data")
+    return dest
 
 
 def sha() -> str:
@@ -90,6 +64,17 @@ def source_of(rel: str) -> str:
     if path.is_file():
         return path.read_text(encoding="utf-8")
     return git("show", f"origin/Staging:{rel}")
+
+
+def line_in_symbol(rel: str, symbol: str, code: str) -> int:
+    source = source_of(rel)
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == symbol:
+            lines = source.splitlines()
+            for number in range(node.lineno, node.end_lineno + 1):
+                if lines[number - 1].strip() == code:
+                    return number
+    raise LookupError(f"{code!r} not found in {rel}:{symbol}")
 
 
 def line_text(rel: str, line: int) -> str:
@@ -219,7 +204,18 @@ def unbounded_disposition(rel: str, line: int, code: str, bound: str) -> tuple[s
 
 
 def main() -> None:
-    overlay_origin_staging()
+    global ROOT
+    with tempfile.TemporaryDirectory(prefix="odoo_tech_debt_") as tmp:
+        ROOT = export_origin_staging(Path(tmp))
+        sys.path[:0] = [str(ROOT / "scripts" / "audit"), str(ROOT / "ci")]
+        os.chdir(ROOT)
+        try:
+            build()
+        finally:
+            os.chdir(REPO)
+
+
+def build() -> None:
     from baseline_utils import compute_fingerprint, diff_findings, load_baseline
     from business_logic_audit import BusinessLogicAudit
     from odoo_audit import OdooAudit
@@ -471,7 +467,9 @@ def main() -> None:
             source_campaign="ci/baselines/odoo_audit_baseline.json",
             source_id="odoo_audit.check_field_mismatches",
             file="scripts/audit/odoo_audit.py",
-            line=186,
+            line=line_in_symbol(
+                "scripts/audit/odoo_audit.py", "scan_view_field_refs", "current_model = model_match.group(1)"
+            ),
             symbol="scan_view_field_refs",
             code="current_model = model_match.group(1)",
             message="View fields are checked against the wrong model.",
@@ -959,7 +957,7 @@ def main() -> None:
             "repository": "cryptoxdog/IB-Odoo_19",
             "ref": "origin/Staging",
             "sha": head,
-            "census_date": "2026-10-21",
+            "census_date": datetime.now(UTC).date().isoformat(),
             "supersedes": [
                 "docs/campaigns/odoo_critical_debt_playbook_pack",
                 "docs/campaigns/odoo_noncritical_gmp_campaign_pack",
@@ -1043,7 +1041,7 @@ def main() -> None:
     json_path = OUT / "OPEN_REGISTER.json"
     json_path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
     digest = hashlib.sha256(json_path.read_bytes()).hexdigest()
-    rel = json_path.relative_to(ROOT).as_posix()
+    rel = json_path.relative_to(REPO).as_posix()
     (OUT / "OPEN_REGISTER.sha256").write_text(f"{digest}  {rel}\n", encoding="utf-8")
     write_markdown(document, OUT / "OPEN_REGISTER.md")
     print(json.dumps(document["census"], indent=2))

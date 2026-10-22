@@ -4,7 +4,7 @@
     "repository": "cryptoxdog/IB-Odoo_19",
     "ref": "origin/Staging",
     "sha": "e78af874604890f8adb6b049694f93c48311eab4",
-    "census_date": "2026-10-21",
+    "census_date": "2026-10-22",
     "supersedes": [
       "docs/campaigns/odoo_critical_debt_playbook_pack",
       "docs/campaigns/odoo_noncritical_gmp_campaign_pack"
@@ -87,10 +87,10 @@
     "One recommended_batch per change. Do not clear the register in one branch.",
     "Do not add limit=1 to an UNBOUNDED_SEARCH row.",
     "Do not add a parent-model field for a FIELD_NOT_FOUND row.",
-            "A rewritten N+1 line must remove its fingerprint from ci/baselines/extended_audit_baseline.json in the same change.",
-            "Do not special-case a file inside performance_audit.py or security_audit.py.",
-            "Do not inherit mail.thread on plasticos.freight.estimate or plasticos.freight.quote to silence tracking. Remove tracking=True. TD-TRACK-001 and TD-TRACK-002.",
-            "Publication of a fix is make pr."
+    "A rewritten N+1 line must remove its fingerprint from ci/baselines/extended_audit_baseline.json in the same change.",
+    "Do not special-case a file inside performance_audit.py or security_audit.py.",
+    "Do not inherit mail.thread on plasticos.freight.estimate or plasticos.freight.quote to silence tracking. Remove tracking=True. TD-TRACK-001 and TD-TRACK-002.",
+    "Publication of a fix is make pr."
   ],
   "census": {
     "live_n_plus_one": 77,
@@ -3077,7 +3077,7 @@
       "source_campaign": "ci/baselines/odoo_audit_baseline.json",
       "source_id": "odoo_audit.check_field_mismatches",
       "file": "scripts/audit/odoo_audit.py",
-      "line": 186,
+      "line": 189,
       "why_open": "101 live CRITICAL rows match 87 baseline fingerprints (repeated fields share a fingerprint). new=0 stale=0. Three causes, recorded on each TD-FIELD row as scanner_cause: nested_subview, record_context_bleed (the model is not reset on the next ir.actions or ir.cron record), and cross_module_inherit (the field is added by another module's _inherit).",
       "action": "Teach scan_view_field_refs to enter a relational subview, to reset the model when a record ends, and to follow _inherit. Child TD-FIELD rows are the fixtures."
     },
