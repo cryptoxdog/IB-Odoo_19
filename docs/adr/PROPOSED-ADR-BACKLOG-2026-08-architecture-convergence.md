@@ -43,7 +43,7 @@ Numbers below are **proposed** next free slots after ADR-009. Rename on write if
 
 ### ADR-011 — Intelligence action topology (`match` vs `converge`)
 
-**Complements:** ADR-002, track_b 02/03
+**Complements:** ADR-002. The track_b worker briefs were later removed.
 **Decision draft:** `action=match` → Gate → CEG only. `action=converge` → Gate → EIE only. No Odoo→worker direct HTTP. Worker-to-worker collaboration (EIE consulting CEG) stays inside the constellation, never as a second Odoo egress.
 **Chat evidence:** Sequence diagrams and module roles for matching vs enrichment.
 
@@ -51,7 +51,7 @@ Numbers below are **proposed** next free slots after ADR-009. Rename on write if
 
 ### ADR-012 — CRM writeback allowlist, merge-not-overwrite, provenance
 
-**Complements:** ADR-002 amendment (2026-07-19), track_b 04
+**Complements:** ADR-002 amendment (2026-07-19). The track_b consumer brief was later removed.
 **Decision draft:** Elevate the amendment into a standalone ADR: allowlisted partner fields only; merge-not-overwrite; `plasticos.enrichment.provenance` per write; `plasticos.gate.auto_writeback` toggles live vs review-only.
 **Chat evidence:** Converge return path and writeback rules.
 
@@ -114,8 +114,7 @@ Numbers below are **proposed** next free slots after ADR-009. Rename on write if
 |----------|-------------|
 | `ARCHITECTURE.md` | Revise Gate/enrichment/matching sections to ADR-003 + ADR-009; remove local-engine authority language |
 | `AGENTS.md` / `CLAUDE.md` | Point agents at ADR-003-single + ADR-009 for intelligence ownership |
-| `docs/track_b/00_AGENT_HANDOFF.md` | Remove “always falls back to local”; cite fail-closed + M7 |
-| `docs/track_b/02` / `03` | Drop local-fallback acceptance criteria; add ADR-009 pointer for ranking |
+| `docs/track_b/` and `docs/handoffs/` | Removed. Do not restore the local-fallback briefs. |
 | `ADR-002` | Mark §2 superseded (already) and add banner linking ADR-003-single + ADR-013 |
 | README / module READMEs that still say “buyer matching engine” for Odoo-local scoring | Retitle to Gate orchestrator / result store |
 

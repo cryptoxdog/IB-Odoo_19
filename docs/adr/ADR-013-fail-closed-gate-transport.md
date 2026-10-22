@@ -54,7 +54,7 @@ Authoritative replacements: ADR-003-single + this ADR + `ci/check_no_local_intel
 ### Implementation rules (agents)
 
 1. Never reintroduce local Neo4j/YAML intelligence paths as fallback.
-2. When editing track_b or ARCHITECTURE, delete silent-fallback language.
+2. When editing ARCHITECTURE, delete silent-fallback language. `docs/track_b/` and `docs/handoffs/` were removed.
 3. Preserve failure classification + retry UX on match/enrichment runs.
 
 ## References

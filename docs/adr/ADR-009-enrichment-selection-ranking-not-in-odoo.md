@@ -8,8 +8,6 @@
 [ADR-002](ADR-002-gate-hub-phased-autonomy.md),
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),
 [GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md),
-[`docs/track_b/02_cognitive_engine_graphs.md`](../track_b/02_cognitive_engine_graphs.md),
-[`docs/track_b/03_enrichment_inference_engine.md`](../track_b/03_enrichment_inference_engine.md),
 [ADR-010](ADR-010-odoo-consumer-trigger-ownership.md)–[ADR-019](ADR-019-documentation-convergence-supersession.md) (architecture convergence set)
 
 ## Context

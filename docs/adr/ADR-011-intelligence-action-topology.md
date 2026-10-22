@@ -6,10 +6,7 @@
 **Scope:** Gate action routing from Odoo to CEG and EIE
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
-[ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),
-[`docs/track_b/01_constellation_gate_node.md`](../track_b/01_constellation_gate_node.md),
-[`docs/track_b/02_cognitive_engine_graphs.md`](../track_b/02_cognitive_engine_graphs.md),
-[`docs/track_b/03_enrichment_inference_engine.md`](../track_b/03_enrichment_inference_engine.md)
+[ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md)
 
 ## Context
 
@@ -57,7 +54,7 @@ If EIE consults CEG (or vice versa) for field determination, that traffic stays 
 
 ### Implementation rules (agents)
 
-1. New intelligence features need a named Gate `action` and a track_b contract note.
+1. New intelligence features need a named Gate `action` and an ADR note.
 2. Do not add “convenience” direct worker clients in Odoo addons.
 
 ## References
