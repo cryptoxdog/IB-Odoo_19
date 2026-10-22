@@ -52,6 +52,9 @@ SKIP_PARTS = frozenset(
         ".git",
         "Current Work - IGNORE",
         "odoo-enterprise",
+        # Gitignored l9-ci-core runtime (``.l9/runtime/``) that CI workflows
+        # provision into the workspace: foreign code, not this repository's suite.
+        ".l9",
     }
 )
 

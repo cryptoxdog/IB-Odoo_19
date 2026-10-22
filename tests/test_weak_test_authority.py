@@ -173,6 +173,7 @@ def test_excluded_directories_and_non_test_files_stay_excluded(tmp_path: Path):
         "lib/site-packages/pkg/tests/test_vendor.py",
         "node_modules/pkg/tests/test_vendor.py",
         "odoo-enterprise/documents/tests/test_vendor.py",
+        ".l9/runtime/core/tests/test_vendor.py",
         "odoo/addons/base/tests/test_core.py",
         "Current Work - IGNORE/tests/test_scratch.py",
         "scripts/nested/tests/test_script.py",
