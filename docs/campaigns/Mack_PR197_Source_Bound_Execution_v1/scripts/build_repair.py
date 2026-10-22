@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Source-bound four-file Mack PR #197 repair. No network, push or merge."""
+
 from __future__ import annotations
 
 import argparse
@@ -25,7 +26,7 @@ BAD_VALIDATOR = 'if not _SHA256_RE.fullmatch((record.decision_snapshot_hash or "
 GOOD_VALIDATOR = 'if not _SHA256_RE.fullmatch(record.decision_snapshot_hash or ""):'
 TEST_ANCHOR = "    def test_identical_retry_returns_prior_receipt_without_second_activity(self):\n"
 
-TEST_ADDITION = '''    def test_snapshot_hash_requires_exact_lowercase_sha256_without_whitespace(self):
+TEST_ADDITION = """    def test_snapshot_hash_requires_exact_lowercase_sha256_without_whitespace(self):
         intake = self._canonical_intake()
         valid_hash = "a" * 64
         for index, malformed in enumerate(
@@ -40,7 +41,7 @@ TEST_ADDITION = '''    def test_snapshot_hash_requires_exact_lowercase_sha256_wi
                 0,
             )
 
-'''
+"""
 
 HELPER_BODY = '''"""Mack-only, fail-closed Odoo runtime configuration for independent-session gates.
 
@@ -113,7 +114,9 @@ def bind_config(config) -> None:
 
 
 def call(root: Path, *argv: str) -> str:
-    p = subprocess.run(argv, cwd=root, text=True, capture_output=True, check=False)
+    if not argv or argv[0] != "git":
+        raise RuntimeError("refusing a command that is not git")
+    p = subprocess.run(["git", *argv[1:]], cwd=root, text=True, capture_output=True, check=False)  # noqa: S603, S607
     if p.returncode != 0:
         raise RuntimeError(f"{' '.join(argv)} failed ({p.returncode}): {p.stderr.strip()}")
     return p.stdout.strip()
@@ -156,8 +159,11 @@ def replacements(model: str, test: str) -> tuple[str, str]:
 
 
 def patch_file(path: str, old: str, new: str) -> str:
-    return "".join(difflib.unified_diff(old.splitlines(keepends=True), new.splitlines(keepends=True),
-                                    fromfile="a/" + path, tofile="b/" + path))
+    return "".join(
+        difflib.unified_diff(
+            old.splitlines(keepends=True), new.splitlines(keepends=True), fromfile="a/" + path, tofile="b/" + path
+        )
+    )
 
 
 def make_patch(root: Path) -> str:
@@ -170,8 +176,9 @@ def make_patch(root: Path) -> str:
     manifest_new = manifest_old.replace(OLD_VERSION, NEW_VERSION)
     patch = patch_file(MODEL, model_old, model_new) + patch_file(TEST, test_old, test_new)
     patch += patch_file(MANIFEST, manifest_old, manifest_new)
-    patch += "".join(difflib.unified_diff([], HELPER_BODY.splitlines(keepends=True),
-                                           fromfile="/dev/null", tofile="b/" + HELPER))
+    patch += "".join(
+        difflib.unified_diff([], HELPER_BODY.splitlines(keepends=True), fromfile="/dev/null", tofile="b/" + HELPER)
+    )
     return patch
 
 
