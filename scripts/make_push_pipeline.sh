@@ -79,7 +79,11 @@ esac
 if [[ -n "${GH_REPO:-}" && "${GH_REPO}" != "cryptoxdog/IB-Odoo_19" ]]; then
   refuse "GH_REPO=${GH_REPO} is not the origin repository cryptoxdog/IB-Odoo_19"
 fi
-export GH_REPO="cryptoxdog/IB-Odoo_19"
+# `gh api repos/...` takes its host from GH_HOST, not from origin; pin it too.
+if [[ -n "${GH_HOST:-}" && "${GH_HOST}" != "github.com" ]]; then
+  refuse "GH_HOST=${GH_HOST} is not the origin host github.com"
+fi
+export GH_REPO="cryptoxdog/IB-Odoo_19" GH_HOST="github.com"
 
 # REST only. `gh auth status` reports a false negative and `gh pr`/`gh label`
 # are GraphQL-backed (HTTP 403) on a surface whose egress proxy injects the

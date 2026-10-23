@@ -79,7 +79,14 @@ if method == "GET":
     fields = {}
 log(f"gh {method} {path}")
 with open(os.environ["FAKE_GH_CALLS"], "a", encoding="utf-8") as handle:
-    record = {"method": method, "path": path, "params": params, "fields": fields, "gh_repo": os.environ.get("GH_REPO")}
+    record = {
+        "method": method,
+        "path": path,
+        "params": params,
+        "fields": fields,
+        "gh_repo": os.environ.get("GH_REPO"),
+        "gh_host": os.environ.get("GH_HOST"),
+    }
     handle.write(json.dumps(record) + "\n")
 
 with open(os.environ["FAKE_GH_STATE"], encoding="utf-8") as handle:
@@ -260,8 +267,9 @@ exit "${{INSTALL_SMOKE_RC:-0}}"
     )
     (repo / "README.md").write_text("fixture\n", encoding="utf-8")
     (repo / ".pre-commit-config.yaml").write_text("repos: []\n", encoding="utf-8")
+    (repo / ".gitignore").write_text(".cache/\n", encoding="utf-8")
     subprocess.run(
-        [REAL_GIT, "add", "scripts", "README.md", ".pre-commit-config.yaml"],
+        [REAL_GIT, "add", "scripts", "README.md", ".pre-commit-config.yaml", ".gitignore"],
         cwd=repo,
         check=True,
         capture_output=True,
@@ -423,6 +431,7 @@ def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
     env.pop("L9_LOCAL_PUSH_AUTHORIZED", None)
     env.pop("SKIP", None)
     env.pop("GH_REPO", None)
+    env.pop("GH_HOST", None)
     env["FAKE_GH_STATE"] = str(tmp_path / "gh-state.json")
     env["FAKE_GH_LOG"] = str(tmp_path / "seq.log")
     env["FAKE_GH_CALLS"] = str(tmp_path / "gh-calls.jsonl")
@@ -900,6 +909,25 @@ def test_operator_smoke_bypass_skips_only_the_smoke_recheck(tmp_path: Path) -> N
     _assert_no_push(seq2)
 
 
+def test_scope_receipt_without_smoke_inputs_skips_only_the_recheck(tmp_path: Path) -> None:
+    # make pr-check (faked here) leaves .cache/pr-check/scope.json; a change that
+    # reached no addon or installer input publishes without the Docker recheck.
+    repo, seq = _init_repo(tmp_path)
+    (repo / ".cache" / "pr-check").mkdir(parents=True)
+    _write(repo / ".cache" / "pr-check" / "scope.json", json.dumps({"schema": "l9.pr-check-scope.v1", "smoke": 0}))
+    proc = _push(repo, tmp_path, "fix/example")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = _seq(seq)
+    assert text.index("smoke --resolve") < text.index("make ") < text.index("\npush\n")
+    assert "smoke --recheck" not in text
+    for name, receipt in (("needed", '{"smoke": 1}'), ("broken", "not json")):
+        repo2, seq2 = _init_repo(tmp_path / name)
+        (repo2 / ".cache" / "pr-check").mkdir(parents=True)
+        _write(repo2 / ".cache" / "pr-check" / "scope.json", receipt)
+        assert _push(repo2, tmp_path / name, "fix/example").returncode == 0
+        assert "smoke --recheck" in _seq(seq2), "RECHECK: only an explicit smoke=0 receipt skips it"
+
+
 def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     proc = _push(repo, tmp_path, "fix/example", MAKE_DIRTY="1")
@@ -982,6 +1010,7 @@ def test_unset_gh_repo_binds_origin_and_reaches_every_child(tmp_path: Path) -> N
     calls = _gh_calls(tmp_path)
     assert calls[-1]["path"] == f"repos/{REPO}/issues/300/labels", "apply_pr_kernel_metadata.sh must run"
     assert {call["gh_repo"] for call in calls} == {REPO}
+    assert {call["gh_host"] for call in calls} == {"github.com"}
 
 
 def test_matching_gh_repo_publishes(tmp_path: Path) -> None:
@@ -1006,6 +1035,32 @@ def test_foreign_gh_repo_refuses_before_any_api_call(tmp_path: Path, entry: str)
     assert _gh_calls(tmp_path) == []
     assert "l4 " not in _seq(seq)
     _assert_no_push(seq)
+
+
+@pytest.mark.parametrize("entry", ["make_pr", "open_pr"])
+def test_foreign_gh_host_refuses_before_any_api_call(tmp_path: Path, entry: str) -> None:
+    """`gh api repos/...` follows GH_HOST, not origin; an Enterprise host must not receive these calls."""
+    repo, seq = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    host = "github.example.com"
+    if entry == "make_pr":
+        proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", GH_HOST=host)
+    else:
+        proc = _open_pr(repo, tmp_path, GH_HOST=host)
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 1, output
+    assert f"GH_HOST={host} is not the origin host github.com" in output
+    assert _gh_calls(tmp_path) == []
+    assert "l4 " not in _seq(seq)
+    _assert_no_push(seq)
+
+
+def test_github_com_gh_host_publishes(tmp_path: Path) -> None:
+    repo, _seq_path = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", GH_HOST="github.com")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert {call["gh_host"] for call in _gh_calls(tmp_path)} == {"github.com"}
 
 
 @pytest.mark.parametrize("entry", ["make_pr", "open_pr"])

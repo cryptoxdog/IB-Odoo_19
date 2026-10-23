@@ -1,9 +1,12 @@
 SET NOCOUNT ON;
-/* BuySell — worksheet header. Notes and ProblemNotes print on the sale order. */
+/* BuySell — worksheet header. Notes and ProblemNotes print on the sale order.
+   ShipToID is the Sold To address Type, not an AddressID. CustID (INV) uses it
+   to select the inventory site: Address.CpID = CustID and Address.Type = ShipToID. */
 SELECT
   RTRIM(BuySellNo) AS BuySellNo,
   RTRIM(CustID) AS CustID,
   RTRIM(VendorID) AS VendorID,
+  RTRIM(ShipToID) AS ShipToID,
   CONVERT(varchar(19), OrderDt, 120) AS OrderDt,
   CONVERT(varchar(19), InvoiceDt, 120) AS InvoiceDt,
   RTRIM(PriceBasis) AS PriceBasis,

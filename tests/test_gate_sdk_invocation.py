@@ -237,10 +237,16 @@ def test_adapter_produces_a_real_sdk_transport_packet(gate):
 
 def test_sdk_validates_the_adapter_packet_as_gate_bound(gate):
     """Gate-only egress is proven by the SDK's validator accepting the packet (ADR-002)."""
-    from constellation_node_sdk import validate_outbound_gate_packet
+    from constellation_node_sdk import GatePolicyError, validate_outbound_gate_packet
 
     _, packet = _send(gate)
-    validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate")
+    assert validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate") is None
+    # The same packet fails the same validator for any other local identity or destination,
+    # so the acceptance above is bound to odoo -> gate rather than vacuous.
+    with pytest.raises(GatePolicyError, match="does not match local node"):
+        validate_outbound_gate_packet(packet, local_node="not-odoo", gate_node_name="gate")
+    with pytest.raises(GatePolicyError, match="must target"):
+        validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="not-gate")
 
 
 def test_destination_is_gate_although_odoo_never_names_it(gate):

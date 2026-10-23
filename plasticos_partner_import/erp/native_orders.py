@@ -598,11 +598,14 @@ def incoterm_code(basis: str | None) -> str | None:
     return None
 
 
+WORKSHEET_CANCELLED = "cancelled"
+
+
 def worksheet_outcome(status: str | None) -> str:
     """Worksheet dropdown. WORK and NEW stay open. Invoiced stays closed."""
     code = (status or "").strip().upper()
     if code == "X":
-        return "cancelled"
+        return WORKSHEET_CANCELLED
     if code in {"I", "C"}:
         return "closed"
     return "active"

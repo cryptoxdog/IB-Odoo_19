@@ -1,0 +1,75 @@
+{
+  "subject": "ERP-INVENTORY-INBOUND-001",
+  "verdict": "PASS_SCOPED_FIXTURES",
+  "repo": "cryptoxdog/IB-Odoo_19",
+  "baseline_sha": "6036b79c0e40ebb8bc41505b26ae533e42ca70e2",
+  "tested_sha": "7c062268561c7a09fe4a381b9a8ddc2c6260b734",
+  "source_reader": "column proved 2026-10-22 by a prior SELECT-only read of the restored read-only source database; this change did not query or restore the backup again",
+  "source_writes": 0,
+  "scope_note": "The 119 linked 2025-2026 (INV) worksheets were not imported. Counts below are the fixtures this change actually ran.",
+  "warehouse_link": {
+    "status": "proved",
+    "source_table": "BuySell",
+    "source_column": "ShipToID",
+    "source_key_shape": "(CustID, ShipToID) = (Address.CpID, Address.Type)",
+    "worksheet_60403_selected_warehouse": "GREENVIEW WASHINGTON WAREHOUSE",
+    "worksheet_60403_address_id_candidate": "404812",
+    "verified_address_id": "404812",
+    "odoo_location_identity": "legacy_erp_inv_addr_404812",
+    "site_uniqueness_proved": true,
+    "uniqueness_note": "The fixture selector for 60403 resolves only Address 404812. The backup census of 373 unique (INV) matches is prior evidence and was not re-run."
+  },
+  "sample_baseline": {
+    "recent_inbound_2025_2026": 138,
+    "not_cancelled": 135,
+    "noncancelled_with_purchase_link": 119,
+    "noncancelled_without_purchase_link": 16,
+    "cancelled": 3,
+    "note": "Import-side diagnostic baseline. This change did not reimport those rows."
+  },
+  "after": {
+    "inbound_classified": 5,
+    "inbound_with_verified_destination": 3,
+    "inbound_held_missing_destination": 1,
+    "inbound_held_missing_purchase": 1,
+    "inbound_cancelled": 1,
+    "inbound_recognized": 2,
+    "source_rows_reconciled": "fixture equation closed: seen == created + updated + unchanged + rejected; final_status partial because held and cancelled rows are rejected",
+    "new_sale_orders_for_inv": 0,
+    "new_customer_invoices_for_inv": 0,
+    "new_transactions_for_inv": 0,
+    "unexpected_new_on_hand": 0,
+    "unexpected_valuation_delta": 0,
+    "inbound_purchase_stock_moves": 0,
+    "inbound_purchase_pickings": 0,
+    "duplicate_source_markers_on_replay": 0,
+    "replay_purchase_lines_created": 0,
+    "replay_transactions_created": 0
+  },
+  "fixture_census": {
+    "recognized": [
+      {"number": "60403", "address_id": "404812", "location_xmlid": "legacy_erp_inv_addr_404812", "purchase_order": "33498", "state": "draft"},
+      {"number": "58868", "address_id": "405026", "location_xmlid": "legacy_erp_inv_addr_405026", "purchase_order": "10442", "state": "draft"}
+    ],
+    "held_missing_purchase": [
+      {"number": "58975", "address_id": "405026", "location_xmlid": "legacy_erp_inv_addr_405026", "purchase_order": null}
+    ],
+    "held_missing_destination": [
+      {"number": "60499", "address_id": "", "location_xmlid": "", "purchase_order": "33500", "state": "draft"}
+    ],
+    "cancelled": [
+      {"number": "59100", "address_id": "", "location_xmlid": "", "existing_purchase_order_left_in_place": "99901"}
+    ]
+  },
+  "tests": [
+    "pytest tests/test_erp_source_layer.py tests/test_phantom_enum_values.py: 124 passed",
+    "make test-module m=plasticos_transaction fresh=0 on clone odoo_test_w6af58c6046 of template odoo_test_tpl_ee_c9e8a81f52f23680: 0 failed, 0 error(s) of 44 tests, then again after the review fixes: 0 failed, 0 error(s) of 45 tests"
+  ],
+  "outbound_regression": "PASS: worksheet 61000 VendorID=(INV) with customer 1577 created a sale order and a plasticos.transaction and is absent from inventory_inbound",
+  "ordinary_sale_regression": "PASS: worksheet 61001 created a sale order and a plasticos.transaction and is absent from inventory_inbound",
+  "on_hand_delta": 0,
+  "untouched_concerns": ["vendor_bills", "customer_invoices", "payment_terms", "salesperson", "crm", "outbound_inventory"],
+  "external_publication": "https://github.com/cryptoxdog/IB-Odoo_19/pull/284",
+  "review_fixes": "A corrected ShipToID rebinds legacy_erp_inv_wks_<number> to the new stock.location. A sale-only line on an inventory worksheet is rejected instead of counted as stored.",
+  "unresolved_unknowns": []
+}

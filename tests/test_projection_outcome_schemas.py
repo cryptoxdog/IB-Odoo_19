@@ -43,16 +43,41 @@ def test_schema_files_exist() -> None:
 
 
 def test_canonical_fixture() -> None:
-    validate_canonical_projection(_load(EXAMPLES / "canonical-projection.json"))
+    normalized = validate_canonical_projection(_load(EXAMPLES / "canonical-projection.json"))
+    assert normalized == {
+        "entity_ref": "plasticos.material.specification:9",
+        "entity_type": "material_specification",
+        "revision": 3,
+        "source_record": {"system": "odoo", "record_ref": "plasticos.material.specification:9", "revision": 3},
+        "tombstone": False,
+        "projection_version": "1.0.0",
+    }
 
 
 def test_sync_and_tombstone_fixtures() -> None:
-    validate_sync_projection(_load(EXAMPLES / "sync-projection.json"))
-    validate_sync_projection(_load(EXAMPLES / "sync-projection-tombstone.json"))
+    upsert = validate_sync_projection(_load(EXAMPLES / "sync-projection.json"))
+    tombstone = validate_sync_projection(_load(EXAMPLES / "sync-projection-tombstone.json"))
+    assert upsert["projection_version"] == tombstone["projection_version"] == "1.0.0"
+    assert [(r["entity_ref"], r["revision"], r["operation"]) for r in upsert["records"]] == [
+        ("res.partner:102", 8, "upsert")
+    ]
+    assert [(r["entity_ref"], r["revision"], r["operation"]) for r in tombstone["records"]] == [
+        ("res.partner:102", 9, "tombstone")
+    ]
+    assert tombstone["records"][0]["properties"] == {}
 
 
 def test_outcome_fixture() -> None:
-    validate_outcome_feedback(_load(EXAMPLES / "outcome-feedback.json"))
+    normalized = validate_outcome_feedback(_load(EXAMPLES / "outcome-feedback.json"))
+    assert [
+        (o["match_result_ref"], o["candidate_ref"], o["outcome_type"], o["idempotency_key"])
+        for o in normalized["outcomes"]
+    ] == [("plasticos.match.result:501", "res.partner:102", "accepted", "match-501-accepted-20260802")]
+    assert normalized["outcomes"][0]["source_record"] == {
+        "system": "odoo",
+        "record_ref": "plasticos.offer:88",
+        "revision": 2,
+    }
 
 
 def test_canonical_rejects_transport() -> None:

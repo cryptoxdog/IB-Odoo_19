@@ -13,3 +13,5 @@ pytest-cov==5.0.0
 requests>=2.28.0
 # tests/test_phantom_enum_values.py parses addon XML with defusedxml (pure tier).
 defusedxml==0.7.1
+# 2026-10-22: the baseline ratchet workflow named above is retired. No workflow
+# reads this file now; ci.yml installs its own pins.
