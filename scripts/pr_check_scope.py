@@ -48,6 +48,7 @@ from pathlib import Path
 ADDON_PREFIX = "plasticos_"
 # Documentation: nothing a collector reads. requirements*.txt and constraints.txt
 # are dependency inputs, not documentation, so .txt is deliberately not here.
+# Python under docs/ is executable source (campaign importers), not documentation.
 DOCS_RE = re.compile(r"^docs/|\.(md|rst)$")
 INSTALLER_RE = re.compile(
     r"^(Dockerfile[^/]*|docker-compose[^/]*\.ya?ml|config/.*|requirements[^/]*\.txt|constraints\.txt"
@@ -77,10 +78,14 @@ def changed_paths(root: Path, base: str) -> list[str] | None:
     return sorted({line for line in listed.split("\n") if line})
 
 
+def is_docs(rel: str) -> bool:
+    return bool(DOCS_RE.search(rel)) and not rel.endswith(".py")
+
+
 def is_smoke_input(rel: str) -> bool:
     parts = Path(rel).parts
     if parts[0].startswith(ADDON_PREFIX):
-        return not DOCS_RE.search(rel) and "tests" not in parts[1:]
+        return not is_docs(rel) and "tests" not in parts[1:]
     return bool(INSTALLER_RE.match(rel))
 
 
@@ -153,7 +158,7 @@ def plan(root: Path, base: str) -> dict:
     tests = select_tests(root, changed)
     return {
         "changed": changed,
-        "audit": int(any(not DOCS_RE.search(rel) for rel in changed)),
+        "audit": int(any(not is_docs(rel) for rel in changed)),
         "smoke": int(any(is_smoke_input(rel) for rel in changed)),
         "tests": "all" if tests == "ALL" else tests,
         "reason": f"{len(changed)} changed path(s); "
