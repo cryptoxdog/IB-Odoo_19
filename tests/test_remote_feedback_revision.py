@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from scripts.pr_autopilot import Issue
 from scripts.pr_check_remote_feedback import decide_remote_gate, format_stale_evidence
 
@@ -123,3 +125,40 @@ def test_resolved_thread_lookup_fails_open_to_no_resolution(monkeypatch) -> None
 
     monkeypatch.setattr(autopilot, "_http", boom)
     assert autopilot._resolved_review_comment_ids(231) == set()
+
+
+def test_resolved_thread_ids_come_from_the_ccr_rest_route(monkeypatch) -> None:
+    """Resolution state is read from ``ccr/review_threads`` over REST; only resolved threads count."""
+    import scripts.pr_autopilot as autopilot
+
+    calls: list[str] = []
+
+    def fake_gh(path: str):
+        calls.append(path)
+        return [
+            {"resolved": True, "outdated": True, "path": "a.py", "line": None, "comment_ids": [11, 12]},
+            {"resolved": False, "outdated": False, "path": "b.py", "line": 4, "comment_ids": [13]},
+            {"resolved": True, "outdated": False, "path": "c.py", "line": 9, "comment_ids": [14, "x", None]},
+            "not-a-thread",
+        ]
+
+    monkeypatch.setattr(autopilot, "gh", fake_gh)
+    assert autopilot._resolved_review_comment_ids(231) == {11, 12, 14}
+    assert calls == [f"/repos/{autopilot.REPO}/pulls/231/ccr/review_threads"]
+
+
+def test_resolved_thread_lookup_error_payload_resolves_nothing(monkeypatch) -> None:
+    """An HTTP error (``gh`` returns ``{"_error": ...}``) or a non-list body resolves no thread."""
+    import scripts.pr_autopilot as autopilot
+
+    for payload in ({"_error": 404, "_msg": "Not Found"}, "<html>proxy</html>", None):
+        monkeypatch.setattr(autopilot, "gh", lambda _path, payload=payload: payload)
+        assert autopilot._resolved_review_comment_ids(231) == set()
+
+
+def test_pr_autopilot_never_calls_graphql() -> None:
+    """GraphQL is disabled on the cloud surface by design; no code path may call it."""
+    source = (Path(__file__).resolve().parents[1] / "scripts" / "pr_autopilot.py").read_text(encoding="utf-8")
+    code = "\n".join(line for line in source.splitlines() if not line.lstrip().startswith("#"))
+    assert "/graphql" not in code
+    assert "reviewThreads" not in code
