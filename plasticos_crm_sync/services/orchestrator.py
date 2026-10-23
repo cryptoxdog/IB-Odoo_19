@@ -1811,9 +1811,12 @@ class SyncOrchestrator:
 
         A VanillaSoft contact bound to an ERP person keeps its history on that
         person. A contact that is still only a lead keeps its history on the lead.
+        A ref whose ``res_id`` no longer names a partner is treated as unbound:
+        ``res_id`` is a plain integer and ``partner_id`` is a foreign key.
         """
-        if person_ref:
-            return False, person_ref.res_id or False
+        partner_id = person_ref.res_id if person_ref else False
+        if partner_id and self.env["res.partner"].browse(partner_id).exists():
+            return False, partner_id
         return (lead.id if lead else False), False
 
     def _find_lead(self, provider: str, contact_external_id: str, Ref):
