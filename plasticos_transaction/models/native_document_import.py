@@ -505,16 +505,23 @@ def _realize_purchase_groups(
 
 
 def _inventory_location(importer, index, address_id: str):
+    """The source-keyed inbound site. Created under the company's warehouse stock location.
+
+    Replay only refreshes the label: the parent and company an existing site
+    already has are never rewritten from the ambient company.
+    """
     row = index.inventory_destinations.get(address_id) or index.addresses.get(address_id) or {}
     label = (row.get("Type") or "").strip() or f"ERP inventory {address_id}"
+    xml_id = f"legacy_erp_inv_addr_{_token(address_id)}"
     model = importer.env["stock.location"].with_context(**_import_context())
-    return importer._upsert(
-        model,
-        f"legacy_erp_inv_addr_{_token(address_id)}",
-        {"name": label, "usage": "internal", "company_id": importer.env.company.id, "location_id": False},
-        _silent(),
-        None,
-    )
+    values = {"name": label}
+    if _existing(importer, model._name, xml_id) is None:
+        company = importer.env.company
+        warehouse = importer.env["stock.warehouse"].search([("company_id", "=", company.id)], order="id", limit=1)
+        if not warehouse.lot_stock_id:
+            raise ValueError(f"company {company.name} has no warehouse stock location to hold inventory {address_id}")
+        values.update({"usage": "internal", "company_id": company.id, "location_id": warehouse.lot_stock_id.id})
+    return importer._upsert(model, xml_id, values, _silent(), None)
 
 
 def _bind_inventory_worksheet(importer, number: str, location) -> None:
