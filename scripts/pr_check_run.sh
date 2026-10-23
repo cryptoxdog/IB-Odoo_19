@@ -12,7 +12,17 @@
 #           pure-Python tests + local Odoo install-smoke (when its load inputs
 #           changed) + remote PR feedback (when available) (make pr-check)
 #
+# full runs only what the branch changed can reach. scripts/pr_check_scope.py
+# compares the branch with origin/$PR_BASE (committed range, working tree,
+# untracked files) and decides: the static audits run when any non-documentation
+# path changed; pytest runs only the test modules touched by, or reading, the
+# changed paths (the whole suite when the harness changed); install-smoke runs
+# only when an addon load input or an installer input changed. Every doubt
+# keeps the whole gate. GitHub ci.yml still runs everything on the PR.
+#
 # Env:
+#   PR_BASE=<branch>          publication base (default: Staging)
+#   PR_CHECK_SCOPE=full       run the whole gate regardless of what changed
 #   PR_CHECK_JOBS=N           parallel make jobs (default: 4)
 #   PR_CHECK_SKIP_REMOTE=1    skip GitHub/Sonar/review sync
 #   PR_CHECK_SKIP_SMOKE=1     skip Docker install-smoke
@@ -104,12 +114,33 @@ case "$MODE" in
     ;;
   full | pr-check)
     log "════════════════════════════════════════════════════"
-    log " make pr-check — full local pre-push gate (parallel waves)"
+    log " make pr-check — local pre-push gate scoped to the changed files (parallel waves)"
     log " GitHub CI remains authoritative (gate-sdk-tests, secret-scan run there)"
     log "════════════════════════════════════════════════════"
+    # One scope decision for the whole gate; the receipt is read again by
+    # scripts/git_push_with_pr.sh for the post-gate smoke recheck. A stale
+    # receipt never survives into this run.
+    rm -f "$ROOT/.cache/pr-check/scope.json"
+    scope="$(python3 "$ROOT/scripts/pr_check_scope.py" --base "${PR_BASE:-Staging}" --receipt "$ROOT/.cache/pr-check/scope.json")" \
+      || scope=$'audit=1\nsmoke=1\ntests=all\nreason=scope owner failed; whole gate'
+    scope_audit="$(printf '%s\n' "$scope" | sed -n 's/^audit=//p')"
+    scope_smoke="$(printf '%s\n' "$scope" | sed -n 's/^smoke=//p')"
+    scope_tests="$(printf '%s\n' "$scope" | sed -n 's/^tests=//p')"
+    log "scope: $(printf '%s\n' "$scope" | sed -n 's/^reason=//p')"
     # Wave 1: local counterparts of ci.yml's static/baseline/pytest collectors.
-    run_wave audit audit-baseline test
-    # Wave 2: local Odoo load (not in GHA). Cached when plasticos/load inputs unchanged.
+    targets=()
+    if [ "$scope_audit" != "0" ]; then targets+=(audit audit-baseline); else log "→ audits skipped: only documentation changed"; fi
+    case "$scope_tests" in
+      all) targets+=(test) ;;
+      "") log "→ pytest skipped: no test module is touched by or reads the changed paths" ;;
+      *) export TEST_PATHS="$scope_tests"; targets+=(test-scoped) ;;
+    esac
+    run_wave "${targets[@]}"
+    # Wave 2: local Odoo load (not in GHA), only when an addon or installer input changed.
+    if [ "$scope_smoke" = "0" ]; then
+      SMOKE_SKIP=1
+      log "→ install-smoke not needed: no addon load input or installer input changed"
+    fi
     maybe_install_smoke
     # Wave 3: remote signals when a PR/token exists.
     maybe_remote
