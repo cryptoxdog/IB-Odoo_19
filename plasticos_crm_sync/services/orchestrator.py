@@ -1487,6 +1487,7 @@ class SyncOrchestrator:
             )
             lead = self._find_lead(dto.provider, dto.contact_external_id, Ref)
             person_ref = self._find_person_ref(dto.provider, dto.contact_external_id)
+            lead_id, partner_id = self._history_links(person_ref, lead)
             vals = {
                 "provider": dto.provider,
                 "external_id": dto.external_id,
@@ -1496,7 +1497,8 @@ class SyncOrchestrator:
                 "user_name": dto.user_name or False,
                 "result_code": dto.result_code or False,
                 "comment": dto.comment or False,
-                "lead_id": False if person_ref else (lead.id if lead else False),
+                "lead_id": lead_id,
+                "partner_id": partner_id,
             }
             try:
                 if existing:
@@ -1583,9 +1585,11 @@ class SyncOrchestrator:
                 ],
                 limit=1,
             )
+            lead_id, partner_id = self._history_links(person_ref, lead)
             vals = {
                 "provider": dto.provider,
-                "lead_id": False if person_ref else lead.id,
+                "lead_id": lead_id,
+                "partner_id": partner_id,
                 "contact_external_id": dto.contact_external_id,
                 "table_id": dto.table_id,
                 "table_name": dto.table_name or False,
@@ -1748,7 +1752,7 @@ class SyncOrchestrator:
             if not lead and not person_ref:
                 continue
             payload = orphan.payload_json or {}
-            lead_id = False if person_ref else lead.id
+            lead_id, partner_id = self._history_links(person_ref, lead)
             if orphan.kind == "call":
                 existing = Call.search(
                     [
@@ -1767,6 +1771,7 @@ class SyncOrchestrator:
                     "result_code": payload.get("result_code") or False,
                     "comment": payload.get("comment") or False,
                     "lead_id": lead_id,
+                    "partner_id": partner_id,
                 }
                 if existing:
                     existing.write(vals)
@@ -1784,6 +1789,7 @@ class SyncOrchestrator:
                 vals = {
                     "provider": payload.get("provider"),
                     "lead_id": lead_id,
+                    "partner_id": partner_id,
                     "contact_external_id": payload.get("contact_external_id"),
                     "table_id": payload.get("table_id"),
                     "table_name": payload.get("table_name") or False,
@@ -1799,6 +1805,19 @@ class SyncOrchestrator:
         if run:
             run.orphans_resolved = resolved
         return resolved
+
+    def _history_links(self, person_ref, lead):
+        """Return ``(lead_id, partner_id)`` for one call or custom-table row.
+
+        A VanillaSoft contact bound to an ERP person keeps its history on that
+        person. A contact that is still only a lead keeps its history on the lead.
+        A ref whose ``res_id`` no longer names a partner is treated as unbound:
+        ``res_id`` is a plain integer and ``partner_id`` is a foreign key.
+        """
+        partner_id = person_ref.res_id if person_ref else False
+        if partner_id and self.env["res.partner"].browse(partner_id).exists():
+            return False, partner_id
+        return (lead.id if lead else False), False
 
     def _find_lead(self, provider: str, contact_external_id: str, Ref):
         ref = Ref.search(

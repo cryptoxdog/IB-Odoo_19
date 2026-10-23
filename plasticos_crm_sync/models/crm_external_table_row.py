@@ -1,5 +1,7 @@
 from odoo import fields, models
 
+RES_PARTNER = "res.partner"
+
 
 class PlasticosCrmExternalTableRow(models.Model):
     _name = "plasticos.crm.external.table.row"
@@ -12,6 +14,14 @@ class PlasticosCrmExternalTableRow(models.Model):
         string="Lead",
         ondelete="cascade",
         index=True,
+    )
+    partner_id = fields.Many2one(
+        RES_PARTNER,
+        string="Contact",
+        domain=[("is_company", "=", False)],
+        ondelete="set null",
+        index=True,
+        help="ERP person this custom-table row belongs to. Set when the VanillaSoft contact is bound to that person.",
     )
     contact_external_id = fields.Char(index=True)
     table_id = fields.Char(required=True, index=True)
