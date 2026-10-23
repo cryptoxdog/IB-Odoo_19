@@ -23,7 +23,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Keep in lockstep with .github/workflows/baseline-ratchet.yml's core-revision.
   L9_CORE_REF: "3a085894895f754a4eab19a88d8449804ba805c3"
   # pr_fast.allowed_events = [pull_request, workflow_dispatch] only (see
   # .github/governance/execution-profiles.yaml) — it does NOT allow `push`.
