@@ -43,7 +43,32 @@ def test_positional_notebook_is_a_finding_and_class_guidance_stays():
     named_index = checker.check_xpath("//notebook[@name='pages'][1]", "view.xml", "sample")
     assert named_index[0].issue_type == "POSITIONAL_NOTEBOOK"
     class_fix = next(fix for _p, issue, _s, _m, fix in checker.RISKY_PATTERNS if issue == "CLASS_BASED_ANCHOR")
-    assert "Add [1] index" in class_fix
+    assert "[1]" not in class_fix
+    assert "@name" in class_fix
+
+
+def test_class_anchor_stays_a_finding_with_or_without_an_index():
+    for xpath in (
+        "//div[@class='oe_title']",
+        "//div[@class='oe_title'][1]",
+        '//div[@class="oe_title"][1]',
+        "//sheet//div[@class='oe_title'][1]/h1",
+        "//div[@class='oe_title'][1]//group[@name='details']",
+        "//div[@class='oe_title']//group[@name='details']",
+        "//div[@class='oe_title'][1]//page[@name='pages']",
+        "//div[@class='oe_title']//field[@name='name']//list/field[@name='x']",
+        "//div[@name='header']//div[@class='oe_title'][1]",
+    ):
+        findings = checker.check_xpath(xpath, "view.xml", "sample")
+        assert [(item.issue_type, item.severity) for item in findings] == [("CLASS_BASED_ANCHOR", "HIGH")], xpath
+        assert "[1]" not in findings[0].fix_suggestion
+    assert all("oe_title" not in pattern for pattern in checker.SAFE_PATTERNS)
+
+
+def test_named_anchor_replacing_a_class_anchor_is_accepted():
+    for xpath in ("//div[@name='title']", "//field[@name='name']", "//div[@name='button_box']/button[@name='x']"):
+        findings = checker.check_xpath(xpath, "view.xml", "sample")
+        assert "CLASS_BASED_ANCHOR" not in [item.issue_type for item in findings], xpath
 
 
 def test_positional_index_after_any_notebook_predicate_is_a_finding():
@@ -118,3 +143,12 @@ def test_repo_medium_notebook_findings_are_named():
         text = path.read_text()
         assert "notebook[1]" not in text
         assert "[1]" not in text
+
+
+def test_safe_patterns_still_exempt_notebook_rules_but_not_class_anchors():
+    # A named page anchors a sheet notebook; that exemption is unchanged.
+    assert checker.check_xpath("//sheet/notebook//page[@name='pages']", "view.xml", "sample") == []
+    assert [f.issue_type for f in checker.check_xpath("//sheet/notebook", "view.xml", "sample")] == [
+        "UNSCOPED_SHEET_NOTEBOOK"
+    ]
+    assert checker.INDEPENDENT_OF_SAFE_PATTERNS == {"CLASS_BASED_ANCHOR"}

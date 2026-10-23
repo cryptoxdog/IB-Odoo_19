@@ -24,7 +24,11 @@ from plasticos_gate.services.semantic_payloads import (  # noqa: E402
 EXAMPLES = ROOT / "contracts" / "schemas" / "examples"
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
-from opportunity_protocol import validate_buyer_demand_payload, validate_supply_payload  # noqa: E402
+from opportunity_protocol import (  # noqa: E402
+    OpportunityProtocolError,
+    validate_buyer_demand_payload,
+    validate_supply_payload,
+)
 
 
 def _supply_stub(**overrides):
@@ -116,8 +120,15 @@ def test_match_query_wrappers_have_directions() -> None:
 
 
 def test_example_fixtures_still_valid() -> None:
-    validate_supply_payload(json.loads((EXAMPLES / "supply-opportunity.json").read_text()))
-    validate_buyer_demand_payload(json.loads((EXAMPLES / "buyer-demand.json").read_text()))
+    supply = json.loads((EXAMPLES / "supply-opportunity.json").read_text())
+    demand = json.loads((EXAMPLES / "buyer-demand.json").read_text())
+    assert validate_supply_payload(supply) is None
+    assert validate_buyer_demand_payload(demand) is None
+    # Each fixture is valid only under its own protocol; a cross-protocol pass would mean the validators are vacuous.
+    with pytest.raises(OpportunityProtocolError):
+        validate_supply_payload(demand)
+    with pytest.raises(OpportunityProtocolError):
+        validate_buyer_demand_payload(supply)
 
 
 def test_transport_fields_rejected_if_smuggled() -> None:
