@@ -84,8 +84,9 @@ exit "${{INSTALL_SMOKE_RC:-0}}"
     )
     (repo / "README.md").write_text("fixture\n", encoding="utf-8")
     (repo / ".pre-commit-config.yaml").write_text("repos: []\n", encoding="utf-8")
+    (repo / ".gitignore").write_text(".cache/\n", encoding="utf-8")
     subprocess.run(
-        [REAL_GIT, "add", "scripts", "README.md", ".pre-commit-config.yaml"],
+        [REAL_GIT, "add", "scripts", "README.md", ".pre-commit-config.yaml", ".gitignore"],
         cwd=repo,
         check=True,
         capture_output=True,
@@ -638,6 +639,25 @@ def test_operator_smoke_bypass_skips_only_the_smoke_recheck(tmp_path: Path) -> N
     assert blank.returncode == 1
     assert "PR_CHECK_SKIP_SMOKE" in (blank.stdout + blank.stderr)
     _assert_no_push(seq2)
+
+
+def test_scope_receipt_without_smoke_inputs_skips_only_the_recheck(tmp_path: Path) -> None:
+    # make pr-check (faked here) leaves .cache/pr-check/scope.json; a change that
+    # reached no addon or installer input publishes without the Docker recheck.
+    repo, seq = _init_repo(tmp_path)
+    (repo / ".cache" / "pr-check").mkdir(parents=True)
+    _write(repo / ".cache" / "pr-check" / "scope.json", json.dumps({"schema": "l9.pr-check-scope.v1", "smoke": 0}))
+    proc = _push(repo, tmp_path, "fix/example")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = _seq(seq)
+    assert text.index("smoke --resolve") < text.index("make ") < text.index("\npush\n")
+    assert "smoke --recheck" not in text
+    for name, receipt in (("needed", '{"smoke": 1}'), ("broken", "not json")):
+        repo2, seq2 = _init_repo(tmp_path / name)
+        (repo2 / ".cache" / "pr-check").mkdir(parents=True)
+        _write(repo2 / ".cache" / "pr-check" / "scope.json", receipt)
+        assert _push(repo2, tmp_path / name, "fix/example").returncode == 0
+        assert "smoke --recheck" in _seq(seq2), "RECHECK: only an explicit smoke=0 receipt skips it"
 
 
 def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
