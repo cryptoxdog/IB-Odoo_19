@@ -692,6 +692,26 @@ def test_api_push_and_autopilot_do_not_publish() -> None:
     assert atomic_push("fix/example", "fix: local only") is False
 
 
+def test_remote_feedback_trusts_ssl_cert_file_over_certifi(tmp_path: Path) -> None:
+    """pr-remote-feedback must honour SSL_CERT_FILE, or a TLS-intercepting egress proxy blocks make pr."""
+    bundle = tmp_path / "proxy-ca.pem"
+    bundle.write_text("", encoding="utf-8")
+    probe = "import sys; sys.path.insert(0, 'scripts'); import pr_autopilot; print(pr_autopilot._SSL_CAFILE)"
+    env = {key: value for key, value in os.environ.items() if key != "SSL_CERT_FILE"}
+    pinned = subprocess.run(
+        [sys.executable, "-c", probe],
+        cwd=ROOT,
+        env={**env, "SSL_CERT_FILE": str(bundle)},
+        capture_output=True,
+        text=True,
+    )
+    assert pinned.returncode == 0, pinned.stderr
+    assert pinned.stdout.strip() == str(bundle)
+    default = subprocess.run([sys.executable, "-c", probe], cwd=ROOT, env=env, capture_output=True, text=True)
+    assert default.returncode == 0, default.stderr
+    assert default.stdout.strip() != str(bundle)
+
+
 def _push(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["bash", PUSH, *args],
