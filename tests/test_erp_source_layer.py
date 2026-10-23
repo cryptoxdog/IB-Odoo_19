@@ -654,13 +654,73 @@ def test_internal_mailboxes_are_dropped_by_the_mapping_not_by_editing_the_extrac
 
 
 def test_placeholder_counterparty_rows_stay_in_the_extract_and_are_reported(index):
-    """Address rows under placeholder CpIDs such as ``(INV)`` are source truth: reported, never imported, never deleted."""
+    """Placeholder CpIDs stay in the extract. ``(INV)`` is a destination; every other placeholder stays unresolved."""
     placeholder_rows = [row for row in index.addresses.values() if (row.get("CpID") or "").startswith(("(", "{", "["))]
     assert placeholder_rows, "the frozen Address extract must keep its placeholder rows"
     reported = {v.key for v in index.violations if v.table == "Address" and v.kind == "unresolved_counterparty"}
+    linked = {address_id for ids in index.addresses_by_cp.values() for address_id in ids}
+    inventory = [
+        row for row in placeholder_rows if (row.get("CpID") or "").strip() == source_index.INVENTORY_COUNTERPARTY
+    ]
+    assert inventory, "the frozen Address extract must keep its (INV) destination rows"
     for row in placeholder_rows:
-        assert row["AddressID"] in reported
-        assert row["AddressID"] not in {a for ids in index.addresses_by_cp.values() for a in ids}
+        address_id = row["AddressID"]
+        assert address_id not in linked
+        if (row.get("CpID") or "").strip() == source_index.INVENTORY_COUNTERPARTY:
+            assert address_id not in reported
+            assert address_id in index.inventory_destinations
+            assert index.inventory_destination_ids(row.get("CpID"), row.get("Type"))
+        else:
+            assert address_id in reported
+            assert address_id not in index.inventory_destinations
+
+
+def test_inventory_destination_selector_holds_zero_or_many_and_the_summary_closes():
+    """(CustID, ShipToID) matches (CpID, Type). Other placeholders stay rejected and the equation closes."""
+    from erp.report import ImportReport
+    from erp.summary import import_run_summary
+
+    payload = reader.SourcePayload(
+        kind=reader.PayloadKind.GRID,
+        root=PAYLOAD_ROOT,
+        tables={
+            "CounterParty": [{"CpID": "2106", "CompanyNm": "JEI"}],
+            "Address": [
+                {"AddressID": "404812", "CpID": "(INV)", "Type": "GREENVIEW WASHINGTON WAREHOUSE"},
+                {"AddressID": "405026", "CpID": "(INV)", "Type": "JEI DALLAS WAREHOUSE"},
+                {"AddressID": "405027", "CpID": "(INV)", "Type": "JEI DALLAS WAREHOUSE"},
+                {"AddressID": "404811", "CpID": "2106", "Type": "INVOICE"},
+                {"AddressID": "1", "CpID": "(HOLD)", "Type": "GREENVIEW WASHINGTON WAREHOUSE"},
+            ],
+        },
+    )
+    indexed = source_index.build_source_index(payload)
+    assert indexed.inventory_destination_ids("(INV)", "GREENVIEW WASHINGTON WAREHOUSE") == ["404812"]
+    assert indexed.inventory_destination_ids("(INV)", "JEI DALLAS WAREHOUSE") == ["405026", "405027"]
+    assert indexed.inventory_destination_ids("(INV)", "") == []
+    assert "1" not in indexed.inventory_destinations
+    assert "404811" not in indexed.inventory_destinations
+    assert indexed.addresses_by_cp == {"2106": ["404811"]}
+    assert indexed.inventory_destination_ids("2106", "GREENVIEW WASHINGTON WAREHOUSE") == []
+    # The address population under test is the three (INV) rows plus the other
+    # placeholder. The exported company is a partner row, not one of those.
+    report = ImportReport()
+    report.source_counts = {"addresses": 4}
+    for violation in indexed.violations:
+        if violation.table == "Address":
+            report.unresolved.append(violation.as_dict())
+    source_index.account_inventory_destinations(indexed, report)
+    summary = import_run_summary(report.as_dict())
+    accounted = (
+        summary["records_created"]
+        + summary["records_updated"]
+        + summary["records_unchanged"]
+        + summary["records_rejected"]
+    )
+    assert summary["records_seen"] == accounted
+    assert summary["records_unchanged"] == 3
+    assert summary["records_rejected"] == 1
+    assert summary["final_status"] == "partial"
 
 
 # ---------------------------------------------------------------------------
@@ -716,6 +776,7 @@ def _database_fixture():
             [
                 (402426, "1004", "INVOICE", "PIER", None, "Y", False),
                 (402427, "(INV)", "[STAGING]", None, "", "N", True),
+                (402428, "(HOLD)", "OTHER", None, "", "N", False),
             ],
         ),
         "Contact": (["CT_ID", "CpID", "ContactNm", "Email", "IsActive"], [(100001, "1004", "Heather", "", "Y")]),
@@ -763,7 +824,11 @@ def test_direct_database_read_executes_the_projection_scripts_with_source_fideli
     indexed = source_index.build_source_index(payload)
     assert indexed.counterparty_ids() == ["1004"]
     assert indexed.addresses_by_cp == {"1004": ["402426"]}
-    assert [v.kind for v in indexed.violations if v.table == "Address"] == ["unresolved_counterparty"]
+    assert set(indexed.inventory_destinations) == {"402427"}
+    assert indexed.inventory_destination_ids("(INV)", "[STAGING]") == ["402427"]
+    address_violations = [v for v in indexed.violations if v.table == "Address"]
+    assert [v.key for v in address_violations] == ["402428"]
+    assert [v.kind for v in address_violations] == ["unresolved_counterparty"]
     assert indexed.counts()["sales_reps"] == 1
 
 

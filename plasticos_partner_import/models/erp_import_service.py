@@ -153,6 +153,7 @@ class PlasticosErpImport(models.AbstractModel):
         report.source_counts = index.counts()
         for violation in index.violations:
             report.unresolved.append(violation.as_dict())
+        source_index.account_inventory_destinations(index, report)
 
         def stage_done(name: str) -> None:
             if after_stage is not None and not dry_run:

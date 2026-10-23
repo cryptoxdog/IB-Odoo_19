@@ -145,7 +145,20 @@ def _census(index, context) -> dict:
         source_payable_identities,
     )
 
-    census = link_census(index, context.get("link_failures") or [], context.get("worksheet_links") or {})
+    inventory_rows = list(context.get("inventory_inbound") or [])
+    inventory_numbers = {row["number"] for row in inventory_rows}
+    commercial_links = {
+        number: flags
+        for number, flags in (context.get("worksheet_links") or {}).items()
+        if number not in inventory_numbers
+    }
+    commercial_failures = [
+        failure
+        for failure in (context.get("link_failures") or [])
+        if failure.get("number") not in inventory_numbers or failure.get("side") != "sale"
+    ]
+    census = link_census(index, commercial_failures, commercial_links)
+    census["inventory_inbound"] = _inventory_inbound_census(inventory_rows)
     drift = dict(context.get("price_drift") or _new_price_drift(context.get("price_digits")))
     drift["display_digits"] = context.get("display_digits")
     drift["net_drift"] = round(drift["net_drift"], 2)
@@ -260,6 +273,9 @@ def _load_context(importer) -> dict:
         # Payable rows whose disposition depends on that verdict.
         "pending_costs": {},
         "rejected": set(),
+        # (INV) worksheet outcomes. The commercial sale-link census does not
+        # count these worksheets a second time.
+        "inventory_inbound": [],
     }
 
 
@@ -317,6 +333,19 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
             purchase_groups.setdefault(purchase_header["POID"], []).append((detail_id, line, purchase_header))
         line_outcomes.append(detail_id)
 
+    if _is_inventory_customer(buysell):
+        return _realize_inventory_inbound(
+            importer,
+            index,
+            report,
+            partner_by_cp,
+            context,
+            number,
+            buysell,
+            purchase_groups,
+            line_outcomes,
+        )
+
     if not sale_groups and not purchase_groups:
         report.reject("transactions")
         report.reject("transaction_lines", len(line_outcomes) or len(index.detail_ids(number)))
@@ -357,21 +386,9 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
                 _upsert_sale_line(importer, context, report, order, detail_id, line)
     if len(documents["sales"]) > 1:
         report.anomaly("BuySell", number, f"worksheet carries {len(documents['sales'])} sale orders")
-    for _po_id, rows in purchase_groups.items():
-        header = rows[0][2]
-        xml_id = f"legacy_erp_po_{_token(header.get('PONumber'))}"
-        order = _upsert_order(
-            importer, context, partner_by_cp, header, buysell, number, "purchase.order", xml_id, incoterm_code
-        )
-        if order is not None:
-            documents["purchases"].append(order.id)
-            for detail_id, line, _header in rows:
-                if (
-                    order.state in _OPEN_PURCHASE_STATES
-                    and _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}") is None
-                ):
-                    new_lines.add(detail_id)
-                _upsert_purchase_line(importer, context, report, order, detail_id, line)
+    _realize_purchase_groups(
+        importer, context, report, partner_by_cp, buysell, number, purchase_groups, documents, new_lines, incoterm_code
+    )
     invoice = _customer_invoice(importer, report, context, partner_by_cp, number, buysell, sale_groups)
     documents["invoice"] = invoice.id if invoice is not None else False
     _customer_adjustments(importer, index, report, context, partner_by_cp, number, invoice, documents)
@@ -389,6 +406,204 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         else:
             report.bump("transaction_lines", "created" if outcome in new_lines else "skipped")
     return list(documents["sales"]), trailers
+
+
+_INVENTORY_RECOGNIZED = "recognized"
+_INVENTORY_HELD_PURCHASE = "held_missing_purchase"
+_INVENTORY_HELD_DESTINATION = "held_missing_destination"
+_INVENTORY_CANCELLED = "cancelled"
+_INVENTORY_CANCELLED_REASON = "inventory inbound cancelled"
+_INVENTORY_HELD_PURCHASE_REASON = "inventory inbound held: missing purchase"
+_INVENTORY_HELD_DESTINATION_REASON = "inventory inbound held: missing destination"
+
+
+def _is_inventory_customer(buysell) -> bool:
+    from odoo.addons.plasticos_partner_import.erp.source_index import (  # noqa: PLC0415
+        INVENTORY_COUNTERPARTY,
+    )
+
+    return (buysell.get("CustID") or "").strip() == INVENTORY_COUNTERPARTY
+
+
+def _inventory_inbound_census(rows: list[dict]) -> dict:
+    grouped = {
+        _INVENTORY_RECOGNIZED: [],
+        _INVENTORY_HELD_PURCHASE: [],
+        _INVENTORY_HELD_DESTINATION: [],
+        _INVENTORY_CANCELLED: [],
+    }
+    for row in rows:
+        grouped[row["outcome"]].append(
+            {
+                "number": row["number"],
+                "address_id": row["address_id"],
+                "location_xmlid": row["location_xmlid"],
+            }
+        )
+    return {key: sorted(grouped[key], key=lambda item: item["number"]) for key in grouped}
+
+
+def _record_inventory(context, number: str, outcome: str, address_id: str, location_xmlid: str) -> None:
+    context["inventory_inbound"].append(
+        {
+            "number": number,
+            "outcome": outcome,
+            "address_id": address_id,
+            "location_xmlid": location_xmlid,
+        }
+    )
+
+
+def _drop_expected_inventory_sale_link(index, report, context, number: str) -> None:
+    """A missing customer SO is the inventory case, not a commercial sale-link failure."""
+    detail_ids = set(index.detail_ids(number))
+    context["link_failures"] = [
+        failure
+        for failure in context["link_failures"]
+        if not (failure.get("number") == number and failure.get("side") == "sale")
+    ]
+    report.anomalies = [
+        item
+        for item in report.anomalies
+        if not (item["key"] in detail_ids and str(item["detail"]).startswith("sale link:"))
+    ]
+
+
+def _bump_inventory_lines(report, line_outcomes, new_lines: set[str], written_lines: set[str]) -> None:
+    """Count only purchase lines that were stored. A sale-only line is not a skipped purchase."""
+    for outcome in line_outcomes:
+        if outcome == "rejected" or outcome not in written_lines:
+            report.bump("transaction_lines", "rejected")
+        else:
+            report.bump("transaction_lines", "created" if outcome in new_lines else "skipped")
+
+
+def _realize_purchase_groups(
+    importer, context, report, partner_by_cp, buysell, number, purchase_groups, documents, new_lines, incoterm_code
+) -> set[str]:
+    written: set[str] = set()
+    for _po_id, rows in purchase_groups.items():
+        header = rows[0][2]
+        xml_id = f"legacy_erp_po_{_token(header.get('PONumber'))}"
+        order = _upsert_order(
+            importer, context, partner_by_cp, header, buysell, number, "purchase.order", xml_id, incoterm_code
+        )
+        if order is None:
+            continue
+        documents["purchases"].append(order.id)
+        for detail_id, line, _header in rows:
+            existing_line = _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}")
+            if order.state not in _OPEN_PURCHASE_STATES:
+                if existing_line is not None:
+                    written.add(detail_id)
+                continue
+            if existing_line is None:
+                new_lines.add(detail_id)
+            _upsert_purchase_line(importer, context, report, order, detail_id, line)
+            written.add(detail_id)
+    return written
+
+
+def _inventory_location(importer, index, address_id: str):
+    """The source-keyed inbound site. Created under the company's warehouse stock location.
+
+    Replay only refreshes the label: the parent and company an existing site
+    already has are never rewritten from the ambient company.
+    """
+    row = index.inventory_destinations.get(address_id) or index.addresses.get(address_id) or {}
+    label = (row.get("Type") or "").strip() or f"ERP inventory {address_id}"
+    xml_id = f"legacy_erp_inv_addr_{_token(address_id)}"
+    model = importer.env["stock.location"].with_context(**_import_context())
+    values = {"name": label}
+    if _existing(importer, model._name, xml_id) is None:
+        company = importer.env.company
+        warehouse = importer.env["stock.warehouse"].search([("company_id", "=", company.id)], order="id", limit=1)
+        if not warehouse.lot_stock_id:
+            raise ValueError(f"company {company.name} has no warehouse stock location to hold inventory {address_id}")
+        values.update({"usage": "internal", "company_id": company.id, "location_id": warehouse.lot_stock_id.id})
+    return importer._upsert(model, xml_id, values, _silent(), None)
+
+
+def _bind_inventory_worksheet(importer, number: str, location) -> None:
+    """Point the worksheet marker at the resolved site, including after a ShipToID correction."""
+    xml_id = f"legacy_erp_inv_wks_{_token(number)}"
+    model = importer.env["stock.location"]
+    data = importer.env["ir.model.data"].search(
+        [("module", "=", XMLID_MODULE), ("name", "=", xml_id), ("model", "=", model._name)],
+        limit=1,
+    )
+    if data and data.res_id == location.id and model.browse(data.res_id).exists():
+        return
+    if data:
+        data.write({"res_id": location.id})
+        return
+    importer._ensure_identity_marker(model, xml_id, location)
+
+
+def _keep_inventory_destination(importer, index, number: str, address_id: str) -> str:
+    location = _inventory_location(importer, index, address_id)
+    _bind_inventory_worksheet(importer, number, location)
+    return f"legacy_erp_inv_addr_{_token(address_id)}"
+
+
+def _realize_inventory_inbound(
+    importer, index, report, partner_by_cp, context, number, buysell, purchase_groups, line_outcomes
+):
+    """Draft purchase and a location marker. No sale, invoice, quant, or transaction."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        WORKSHEET_CANCELLED,
+        incoterm_code,
+        worksheet_outcome,
+    )
+
+    _drop_expected_inventory_sale_link(index, report, context, number)
+    matches = index.inventory_destination_ids(buysell.get("CustID"), buysell.get("ShipToID"))
+    destination = matches[0] if len(matches) == 1 else ""
+    documents = context["documents"][number]
+    if worksheet_outcome(buysell.get("status")) == WORKSHEET_CANCELLED:
+        _record_inventory(context, number, _INVENTORY_CANCELLED, "", "")
+        report.anomaly("BuySell", number, _INVENTORY_CANCELLED_REASON)
+        report.reject("transactions")
+        _bump_inventory_lines(report, line_outcomes, set(), set())
+        _quarantine_worksheet_payables(
+            index,
+            context,
+            report,
+            number,
+            "inventory inbound cancelled; no stock event and no new purchase document",
+            "no_order_link_not_realized",
+        )
+        return [], []
+    if not purchase_groups:
+        location_xmlid = _keep_inventory_destination(importer, index, number, destination) if destination else ""
+        _record_inventory(context, number, _INVENTORY_HELD_PURCHASE, destination, location_xmlid)
+        report.anomaly("BuySell", number, _INVENTORY_HELD_PURCHASE_REASON)
+        report.reject("transactions")
+        _bump_inventory_lines(report, line_outcomes, set(), set())
+        _quarantine_worksheet_payables(
+            index,
+            context,
+            report,
+            number,
+            "inventory inbound has no purchase order; no document to attach the bill to",
+            "no_order_link_not_realized",
+        )
+        return [], []
+    new_lines: set[str] = set()
+    written_lines = _realize_purchase_groups(
+        importer, context, report, partner_by_cp, buysell, number, purchase_groups, documents, new_lines, incoterm_code
+    )
+    _vendor_bills(importer, index, report, context, partner_by_cp, number, documents)
+    if not destination:
+        _record_inventory(context, number, _INVENTORY_HELD_DESTINATION, "", "")
+        report.anomaly("BuySell", number, _INVENTORY_HELD_DESTINATION_REASON)
+        report.reject("transactions")
+    else:
+        location_xmlid = _keep_inventory_destination(importer, index, number, destination)
+        _record_inventory(context, number, _INVENTORY_RECOGNIZED, destination, location_xmlid)
+        report.skip("transactions")
+    _bump_inventory_lines(report, line_outcomes, new_lines, written_lines)
+    return [], []
 
 
 def _upsert_order(importer, context, partner_by_cp, header, buysell, number, model_name, xml_id, incoterm_code):
