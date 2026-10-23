@@ -53,12 +53,16 @@ try:
 except ImportError:
     _PR_REPAIR_WIRED = False
 
-try:
-    import certifi  # type: ignore[import-untyped]
+# An explicit SSL_CERT_FILE wins over certifi: behind a TLS-intercepting egress
+# proxy (cloud agent sessions) certifi's bundle lacks the proxy CA.
+_SSL_CAFILE: str | None = os.environ.get("SSL_CERT_FILE") or None
+if _SSL_CAFILE is None:
+    try:
+        import certifi  # type: ignore[import-untyped]
 
-    _SSL_CAFILE: str | None = certifi.where()
-except ImportError:
-    _SSL_CAFILE = None
+        _SSL_CAFILE = certifi.where()
+    except ImportError:
+        pass
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
