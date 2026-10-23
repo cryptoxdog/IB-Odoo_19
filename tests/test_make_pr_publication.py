@@ -79,7 +79,14 @@ if method == "GET":
     fields = {}
 log(f"gh {method} {path}")
 with open(os.environ["FAKE_GH_CALLS"], "a", encoding="utf-8") as handle:
-    record = {"method": method, "path": path, "params": params, "fields": fields, "gh_repo": os.environ.get("GH_REPO")}
+    record = {
+        "method": method,
+        "path": path,
+        "params": params,
+        "fields": fields,
+        "gh_repo": os.environ.get("GH_REPO"),
+        "gh_host": os.environ.get("GH_HOST"),
+    }
     handle.write(json.dumps(record) + "\n")
 
 with open(os.environ["FAKE_GH_STATE"], encoding="utf-8") as handle:
@@ -423,6 +430,7 @@ def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
     env.pop("L9_LOCAL_PUSH_AUTHORIZED", None)
     env.pop("SKIP", None)
     env.pop("GH_REPO", None)
+    env.pop("GH_HOST", None)
     env["FAKE_GH_STATE"] = str(tmp_path / "gh-state.json")
     env["FAKE_GH_LOG"] = str(tmp_path / "seq.log")
     env["FAKE_GH_CALLS"] = str(tmp_path / "gh-calls.jsonl")
@@ -982,6 +990,7 @@ def test_unset_gh_repo_binds_origin_and_reaches_every_child(tmp_path: Path) -> N
     calls = _gh_calls(tmp_path)
     assert calls[-1]["path"] == f"repos/{REPO}/issues/300/labels", "apply_pr_kernel_metadata.sh must run"
     assert {call["gh_repo"] for call in calls} == {REPO}
+    assert {call["gh_host"] for call in calls} == {"github.com"}
 
 
 def test_matching_gh_repo_publishes(tmp_path: Path) -> None:
@@ -1006,6 +1015,32 @@ def test_foreign_gh_repo_refuses_before_any_api_call(tmp_path: Path, entry: str)
     assert _gh_calls(tmp_path) == []
     assert "l4 " not in _seq(seq)
     _assert_no_push(seq)
+
+
+@pytest.mark.parametrize("entry", ["make_pr", "open_pr"])
+def test_foreign_gh_host_refuses_before_any_api_call(tmp_path: Path, entry: str) -> None:
+    """`gh api repos/...` follows GH_HOST, not origin; an Enterprise host must not receive these calls."""
+    repo, seq = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    host = "github.example.com"
+    if entry == "make_pr":
+        proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", GH_HOST=host)
+    else:
+        proc = _open_pr(repo, tmp_path, GH_HOST=host)
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 1, output
+    assert f"GH_HOST={host} is not the origin host github.com" in output
+    assert _gh_calls(tmp_path) == []
+    assert "l4 " not in _seq(seq)
+    _assert_no_push(seq)
+
+
+def test_github_com_gh_host_publishes(tmp_path: Path) -> None:
+    repo, _seq_path = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", GH_HOST="github.com")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert {call["gh_host"] for call in _gh_calls(tmp_path)} == {"github.com"}
 
 
 @pytest.mark.parametrize("entry", ["make_pr", "open_pr"])

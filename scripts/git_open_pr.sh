@@ -36,7 +36,12 @@ if [[ -n "${GH_REPO:-}" && "${GH_REPO}" != "cryptoxdog/IB-Odoo_19" ]]; then
   echo "refusing to publish: GH_REPO=${GH_REPO} is not the origin repository cryptoxdog/IB-Odoo_19" >&2
   exit 1
 fi
-export GH_REPO="cryptoxdog/IB-Odoo_19"
+# `gh api repos/...` takes its host from GH_HOST, not from origin; pin it too.
+if [[ -n "${GH_HOST:-}" && "${GH_HOST}" != "github.com" ]]; then
+  echo "refusing to publish: GH_HOST=${GH_HOST} is not the origin host github.com" >&2
+  exit 1
+fi
+export GH_REPO="cryptoxdog/IB-Odoo_19" GH_HOST="github.com"
 OWNER="${GH_REPO%%/*}"
 
 if ! command -v gh >/dev/null 2>&1; then
