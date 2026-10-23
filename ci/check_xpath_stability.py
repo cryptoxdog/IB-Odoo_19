@@ -5,7 +5,7 @@ XPath Anchor Stability Checker for Odoo 19 XML Views.
 Detects risky XPath patterns that can cause silent UI corruption:
 - Multi-match field selectors (field exists in both form and list)
 - Unscoped list field selectors (missing //list/ prefix)
-- Class-based anchors (fragile @class selectors)
+- Class-based anchors (fragile @class selectors; a positional [1] does not stabilise them)
 - Unscoped notebook selectors (no named notebook or named page)
 - Positional notebook indexes (notebook[1] is not a stable anchor)
 - Duplicate xpath usage in same view
@@ -42,13 +42,14 @@ SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 
 # Patterns that indicate risky xpaths
 RISKY_PATTERNS = [
-    # Class-based anchors without name fallback
+    # Class-based anchors, indexed or not: a positional [1] only picks whichever
+    # matching div comes first, so it does not stabilise a class selector.
     (
-        r'//div\[@class=[\'"]oe_title[\'"]\](?!\[1\])',
+        r'//div\[@class=[\'"]oe_title[\'"]\]',
         "CLASS_BASED_ANCHOR",
         "HIGH",
-        "Class-based anchor without index - fragile to upstream changes",
-        "Add [1] index: //div[@class='oe_title'][1]",
+        "Class-based anchor - fragile to upstream changes; a positional [1] index does not make it stable",
+        "Anchor on a named element instead: //field[@name='...'] or //div[@name='...']",
     ),
     # Unscoped notebook selectors
     (
@@ -67,6 +68,10 @@ RISKY_PATTERNS = [
         "Use a named notebook or a named page: //notebook[@name='...'] or //notebook[page[@name='...']]",
     ),
 ]
+
+# A named step elsewhere in the expression does not stabilise a class step, so
+# these are judged even when SAFE_PATTERNS matches some other part of the xpath.
+INDEPENDENT_OF_SAFE_PATTERNS = frozenset({"CLASS_BASED_ANCHOR"})
 
 NOTEBOOK_STEP = "notebook"
 # Characters that continue an XML name, or mark an attribute/variable, around a node test.
@@ -167,7 +172,6 @@ SAFE_PATTERNS = [
     r"//page\[@name=",  # Named page anchor
     r"//group\[@name=",  # Named group anchor
     r"//div\[@name=",  # Named div anchor
-    r'\[@class=[\'"]oe_title[\'"]\]\[1\]',  # Indexed class selector
     r'//field\[@name=[\'"](\w+)[\'"]\]//list',  # Field containing list (one2many)
 ]
 
@@ -200,10 +204,10 @@ def check_xpath(xpath: str, file_path: str, view_id: str) -> list[Finding]:
             )
         )
 
-    if is_safe_xpath(xpath):
-        return findings
-
+    safe = is_safe_xpath(xpath)
     for pattern, issue_type, severity, message, fix_template in RISKY_PATTERNS:
+        if safe and issue_type not in INDEPENDENT_OF_SAFE_PATTERNS:
+            continue
         match = re.search(pattern, xpath)
         if match:
             fix = fix_template

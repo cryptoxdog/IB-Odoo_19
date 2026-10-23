@@ -8,10 +8,38 @@ Counts bare ``assert``, unittest ``assert*``, ``pytest.raises`` /
 ``assertRaises``, ``raise AssertionError(...)``, and assertion-named helpers
 as evidence. A ``check_``, ``_check_``, ``validate_``, ``_run_``, or ``_safe_``
 call is not evidence.
+
+Only reachable statements count: anything after a statement that always leaves
+the block (``return`` / ``raise`` / ``continue`` / ``break``, an ``if`` whose
+taken or both branches do, a ``try`` whose ``finally`` or body-and-handlers do),
+a constant-false branch (``False``, ``not True``), the ``else`` of a ``for``
+over a non-empty literal whose body always leaves on the first iteration, and
+the bodies of nested ``def`` / ``lambda`` / ``class`` are not executed by the
+test and are ignored. Any other loop ``else`` stays reachable: the iterable may
+be empty.
+
+A call to a helper defined in the same file is resolved one hop instead of
+judged by its name: ``self.<name>()`` / ``cls.<name>()`` against the test's own
+class and that class's bases defined in the file, and a bare ``<name>()``
+against the file's module-level functions unless the calling function binds
+that name itself (a parameter, fixture, assignment or nested def). Each body is
+resolved in its own scope: a test's bindings never decide what a helper's calls
+resolve to. Methods follow
+Python's C3 order over the in-file bases. The call is evidence only when the
+helper's own reachable body carries direct evidence and actually runs: an
+``async`` helper must be awaited, and a generator helper never counts. Inside
+the helper, a call to another local definition is a second hop and is neither
+followed nor judged by its name. A helper that is never called, is called on
+an unreachable path, does not assert, or belongs to another class is not
+evidence. A call the file does not define is judged by its name as above.
+
+Exit status is 1 when any test is assertion-free; CI ``static-checks`` runs this
+command as a blocking check.
 """
 
 from __future__ import annotations
 
+import argparse
 import ast
 import os
 import sys
@@ -29,11 +57,19 @@ SKIP_PARTS = frozenset(
         ".git",
         "Current Work - IGNORE",
         "odoo-enterprise",
+        # Gitignored l9-ci-core runtime (``.l9/runtime/``) that CI workflows
+        # provision into the workspace: foreign code, not this repository's suite.
+        ".l9",
     }
 )
 
 _ASSERTION_HELPER_PREFIXES = ("assert_", "_assert")
 _NON_ASSERTION_HELPER_PREFIXES = ("check_", "_check_", "validate_", "_run_", "_safe_")
+_FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
+_SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
+_TERMINATORS = (ast.Return, ast.Raise, ast.Continue, ast.Break)
+_LOOP_EXITS = (ast.Return, ast.Raise, ast.Break)
+_Function = ast.FunctionDef | ast.AsyncFunctionDef
 
 
 def _is_skipped(path: Path) -> bool:
@@ -65,28 +101,259 @@ def _is_raise_assertion_error(node: ast.AST) -> bool:
     return False
 
 
-def _has_assertion_evidence(func_node: ast.AST) -> bool:
-    for node in ast.walk(func_node):
-        if isinstance(node, ast.Assert) or _is_raise_assertion_error(node):
+def _constant_truth(test: ast.expr) -> bool | None:
+    if isinstance(test, ast.Constant):
+        return bool(test.value)
+    if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
+        inner = _constant_truth(test.operand)
+        return None if inner is None else not inner
+    return None
+
+
+def _is_nonempty_literal(node: ast.expr) -> bool:
+    """A literal the loop is statically known to iterate at least once."""
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return bool(node.elts) and not any(isinstance(item, ast.Starred) for item in node.elts)
+    return isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes)) and bool(node.value)
+
+
+def _child_blocks(stmt: ast.stmt) -> list[list[ast.stmt]]:
+    """Statement lists nested in ``stmt`` that can execute, honouring constant branches.
+
+    A ``for`` over a non-empty literal whose body always leaves the loop on its
+    first iteration (``break`` / ``return`` / ``raise``) never runs its ``else``.
+    Any other iterable may be empty, so its ``else`` stays reachable.
+    """
+    if isinstance(stmt, (ast.If, ast.While)):
+        truth = _constant_truth(stmt.test)
+        if truth is True:
+            return [stmt.body]
+        if truth is False:
+            return [stmt.orelse]
+    if (
+        isinstance(stmt, (ast.For, ast.AsyncFor))
+        and _is_nonempty_literal(stmt.iter)
+        and _block_terminates(stmt.body, exits=_LOOP_EXITS)
+    ):
+        return [stmt.body]
+    blocks: list[list[ast.stmt]] = []
+    for _field, value in ast.iter_fields(stmt):
+        if not isinstance(value, list) or not value:
+            continue
+        if all(isinstance(item, ast.stmt) for item in value):
+            blocks.append(value)
+            continue
+        for item in value:
+            body = getattr(item, "body", None)
+            if isinstance(item, (ast.excepthandler, ast.match_case)) and body:
+                blocks.append(body)
+    return blocks
+
+
+def _block_terminates(body: list[ast.stmt], exits: tuple[type[ast.stmt], ...] = _TERMINATORS) -> bool:
+    return any(_terminates(stmt, exits) for stmt in body)
+
+
+def _terminates(stmt: ast.stmt, exits: tuple[type[ast.stmt], ...] = _TERMINATORS) -> bool:
+    """True when control never reaches the statement after ``stmt`` (``exits`` are the leaving statements)."""
+    if isinstance(stmt, exits):
+        return True
+    if isinstance(stmt, ast.If):
+        truth = _constant_truth(stmt.test)
+        if truth is True:
+            return _block_terminates(stmt.body, exits)
+        if truth is False:
+            return _block_terminates(stmt.orelse, exits)
+        return bool(stmt.orelse) and _block_terminates(stmt.body, exits) and _block_terminates(stmt.orelse, exits)
+    if isinstance(stmt, (ast.Try, ast.TryStar)):
+        if stmt.finalbody and _block_terminates(stmt.finalbody, exits):
             return True
-        if isinstance(node, ast.Call):
-            name = _call_name(node.func)
-            if not name or name.startswith(_NON_ASSERTION_HELPER_PREFIXES):
-                continue
-            if name.startswith("assert") or name.startswith(_ASSERTION_HELPER_PREFIXES):
-                return True
-            if name in ("fail", "raises", "xfail"):
-                return True
+        return _block_terminates(stmt.body, exits) and all(
+            _block_terminates(handler.body, exits) for handler in stmt.handlers
+        )
     return False
 
 
-def _is_soft_warning_only(func_node: ast.AST) -> bool:
-    if _has_assertion_evidence(func_node):
+def _expression_nodes(node: ast.AST):
+    """Yield the expression nodes of one statement, without entering nested scopes or blocks."""
+    stack = [child for child in ast.iter_child_nodes(node) if not isinstance(child, (ast.stmt, *_SCOPE_NODES))]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, (ast.excepthandler, ast.match_case)):
+            continue
+        yield current
+        stack.extend(
+            child for child in ast.iter_child_nodes(current) if not isinstance(child, (ast.stmt, *_SCOPE_NODES))
+        )
+
+
+def _reachable_nodes(body: list[ast.stmt]):
+    """Yield every statement and expression node a call of this body can execute."""
+    for stmt in body:
+        if isinstance(stmt, (*_FUNCTION_NODES, ast.ClassDef)):
+            continue
+        yield stmt
+        yield from _expression_nodes(stmt)
+        for block in _child_blocks(stmt):
+            yield from _reachable_nodes(block)
+        if _terminates(stmt):
+            return
+
+
+def _is_direct_evidence_call(name: str) -> bool:
+    if name.startswith(_NON_ASSERTION_HELPER_PREFIXES):
         return False
-    for node in ast.walk(func_node):
+    if name.startswith("assert") or name.startswith(_ASSERTION_HELPER_PREFIXES):
+        return True
+    return name in ("fail", "raises", "xfail")
+
+
+def _is_generator(func_node: _Function) -> bool:
+    """A generator's body does not run when it is called, only when it is iterated."""
+    return any(isinstance(node, (ast.Yield, ast.YieldFrom)) for node in _reachable_nodes(func_node.body))
+
+
+def _helper_body_runs(helper: _Function, call: ast.Call, awaited: set[int]) -> bool:
+    if isinstance(helper, ast.AsyncFunctionDef) and id(call) not in awaited:
+        return False
+    return not _is_generator(helper)
+
+
+def _has_assertion_evidence(
+    func_node: _Function, resolve_helper: _Resolver | None = None, *, in_helper: bool = False
+) -> bool:
+    """True when a reachable statement of ``func_node`` asserts.
+
+    ``resolve_helper(call)`` returns the local helper definition a call targets,
+    or ``None``; it is bound to ``func_node``'s own lexical scope. A resolved
+    call is evidence only through the helper's own reachable body, judged with
+    a resolver bound to the helper's scope, and only when that body actually
+    runs (an un-awaited coroutine or an un-iterated generator does not). Inside
+    the helper a call to another local definition is a second hop: it is
+    neither followed nor judged by its name.
+    """
+    nodes = list(_reachable_nodes(func_node.body))
+    awaited = {id(node.value) for node in nodes if isinstance(node, ast.Await)}
+    for node in nodes:
+        if isinstance(node, ast.Assert) or _is_raise_assertion_error(node):
+            return True
+        if not isinstance(node, ast.Call):
+            continue
+        helper = resolve_helper(node) if resolve_helper else None
+        if helper is not None and resolve_helper is not None:
+            if (
+                not in_helper
+                and _helper_body_runs(helper, node, awaited)
+                and _has_assertion_evidence(helper, resolve_helper.for_scope(helper), in_helper=True)
+            ):
+                return True
+            continue
+        name = _call_name(node.func)
+        if name and _is_direct_evidence_call(name):
+            return True
+    return False
+
+
+def _is_soft_warning_only(func_node: _Function, resolve_helper: _Resolver | None = None) -> bool:
+    if _has_assertion_evidence(func_node, resolve_helper):
+        return False
+    for node in _reachable_nodes(func_node.body):
         if isinstance(node, ast.Call) and _call_name(node.func) == "warn":
             return True
     return False
+
+
+def _local_names(func_node: _Function) -> set[str]:
+    """Names a function binds itself (parameters, assignments, nested defs, imports)."""
+    args = func_node.args
+    names = {arg.arg for arg in (*args.posonlyargs, *args.args, *args.kwonlyargs)}
+    names.update(arg.arg for arg in (args.vararg, args.kwarg) if arg is not None)
+    for node in ast.walk(func_node):
+        if node is func_node:
+            continue
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            names.add(node.id)
+        elif isinstance(node, (*_FUNCTION_NODES, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names.update((alias.asname or alias.name).split(".")[0] for alias in node.names)
+    return names
+
+
+class _LocalHelpers:
+    """One-hop resolution of helper calls to definitions in the same file."""
+
+    def __init__(self, tree: ast.Module):
+        self.functions = {node.name: node for node in tree.body if isinstance(node, _FUNCTION_NODES)}
+        self.classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
+
+    def _mro(self, class_node: ast.ClassDef, seen: tuple[str, ...] = ()) -> list[ast.ClassDef]:
+        """C3 linearization over the bases defined in this file (Python's method order for them)."""
+        if class_node.name in seen:
+            return [class_node]
+        bases = [
+            self.classes[base.id] for base in class_node.bases if isinstance(base, ast.Name) and base.id in self.classes
+        ]
+        sequences = [self._mro(base, (*seen, class_node.name)) for base in bases] + [bases]
+        result = [class_node]
+        while True:
+            sequences = [sequence for sequence in sequences if sequence]
+            if not sequences:
+                return result
+            for sequence in sequences:
+                head = sequence[0]
+                if not any(head in other[1:] for other in sequences):
+                    break
+            else:
+                # Inconsistent hierarchy (Python itself would refuse it): keep declaration order.
+                return result + [cls for sequence in sequences for cls in sequence if cls not in result]
+            result.append(head)
+            sequences = [sequence[1:] if sequence[0] is head else sequence for sequence in sequences]
+
+    def _method(self, class_node: ast.ClassDef, name: str):
+        for cls in self._mro(class_node):
+            for item in cls.body:
+                if isinstance(item, _FUNCTION_NODES) and item.name == name:
+                    return item
+        return None
+
+    def resolver(self, owner: ast.ClassDef | None, scope: _Function) -> _Resolver:
+        return _Resolver(self, owner, scope)
+
+
+class _Resolver:
+    """Resolves calls made inside ``scope`` to same-file definitions, honouring ``scope``'s own bindings."""
+
+    def __init__(self, helpers: _LocalHelpers, owner: ast.ClassDef | None, scope: _Function):
+        self.helpers = helpers
+        self.owner = owner
+        self.shadowed = _local_names(scope)
+
+    def __call__(self, call: ast.Call) -> _Function | None:
+        func = call.func
+        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            if self.owner is not None and func.value.id in ("self", "cls"):
+                return self.helpers._method(self.owner, func.attr)
+            return None
+        if isinstance(func, ast.Name) and func.id not in self.shadowed:
+            return self.helpers.functions.get(func.id)
+        return None
+
+    def for_scope(self, scope: _Function) -> _Resolver:
+        """The resolver for calls made inside ``scope`` (a helper body), not the caller's scope."""
+        return _Resolver(self.helpers, self.owner, scope)
+
+
+def _functions_with_owner(node: ast.AST, owner: ast.ClassDef | None = None):
+    """Yield ``(function, class whose body defines it or None)`` for every function in the file."""
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, ast.ClassDef):
+            yield from _functions_with_owner(child, child)
+        elif isinstance(child, _FUNCTION_NODES):
+            yield child, owner
+            yield from _functions_with_owner(child, None)
+        else:
+            yield from _functions_with_owner(child, owner)
 
 
 def _audit_skip_parts():
@@ -106,17 +373,17 @@ class WeakTestFixer:
         with open(test_file, encoding="utf-8") as f:
             tree = ast.parse(f.read())
 
+        helpers = _LocalHelpers(tree)
         weak_tests = []
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
+        for node, owner in _functions_with_owner(tree):
             if not node.name.startswith("test_"):
                 continue
             if any(_decorator_is_skip(d) for d in node.decorator_list):
                 continue
-            if _has_assertion_evidence(node):
+            resolve = helpers.resolver(owner, node)
+            if _has_assertion_evidence(node, resolve):
                 continue
-            if _is_soft_warning_only(node):
+            if _is_soft_warning_only(node, resolve):
                 continue
             operations = self._extract_operations(node)
             weak_tests.append(
@@ -178,8 +445,11 @@ class WeakTestFixer:
         yield from sorted(found)
 
 
-def main() -> int:
-    fixer = WeakTestFixer(ROOT)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("root", nargs="?", default=str(ROOT), help="tree to scan (default: repository root)")
+    args = parser.parse_args(argv)
+    fixer = WeakTestFixer(args.root)
     total_weak = 0
     files_with_weak = 0
     for test_file in fixer.iter_test_files():
@@ -199,9 +469,8 @@ def main() -> int:
 
     print()
     if total_weak:
-        print(f"⚠️  {total_weak} assertion-free test(s) in {files_with_weak} file(s)")
-        print("   (advisory — does not fail the gate)")
-        return 0
+        print(f"❌ {total_weak} assertion-free test(s) in {files_with_weak} file(s)")
+        return 1
     print("✅ No assertion-free tests in any tests/ tree")
     return 0
 

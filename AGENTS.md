@@ -667,6 +667,13 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `docs/reports/CI_CONTRACT_ASSURANCE.md`.
 
 > **2026-10-22 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the GATE-01 Baseline Ratchet is retired. `.github/workflows/baseline-ratchet.yml` and its two
+> ledgers under `.l9/baselines/` were removed. Every sentence above that names `baseline-ratchet.yml`,
+> "Baseline Ratchet", or `Ratchet Verdict` as a CI gate is superseded. On each PR push, **CI Gate** and
+> **L9 Analysis** start together; `CI Gate Result` is the merge aggregator. The `audit-baseline` job in
+> `ci.yml` (`ci/baselines/*.json`) is separate and unchanged. Do not re-add the ratchet caller.
+
+> **2026-10-22 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > `make pr-check` (and therefore `make pr`) runs only what the branch changed can reach. `scripts/pr_check_scope.py`
 > compares the branch with `origin/Staging` (committed range, working tree, untracked files) and decides once:
 > `audit` + `audit-baseline` run when any non-documentation path changed; pytest runs only the test modules

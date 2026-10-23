@@ -39,11 +39,18 @@ def test_schemas_exist_as_peer_files() -> None:
 
 
 def test_positive_supply_fixture() -> None:
-    validate_supply_payload(_load(EXAMPLES / "supply-opportunity.json"))
+    payload = _load(EXAMPLES / "supply-opportunity.json")
+    assert validate_supply_payload(payload) is None
+    # The same fixture is not accepted under the peer protocol, so acceptance above is protocol-specific.
+    with pytest.raises(OpportunityProtocolError, match="buyer-demand"):
+        validate_buyer_demand_payload(payload)
 
 
 def test_positive_buyer_demand_fixture() -> None:
-    validate_buyer_demand_payload(_load(EXAMPLES / "buyer-demand.json"))
+    payload = _load(EXAMPLES / "buyer-demand.json")
+    assert validate_buyer_demand_payload(payload) is None
+    with pytest.raises(OpportunityProtocolError, match="supply-opportunity"):
+        validate_supply_payload(payload)
 
 
 def test_negative_reversed_quantity() -> None:
