@@ -254,6 +254,7 @@ def _load_context(importer) -> dict:
         "product_cache": {},
         "uom_cache": {},
         "incoterm_cache": {},
+        "payment_term_cache": {},
         "documents": {},
         "price_digits": price_digits,
         "quantity_digits": quantity_digits,
@@ -284,6 +285,7 @@ def _new_documents() -> dict:
 
 
 def _realize_one(importer, index, report, partner_by_cp, context, number):
+    from odoo.addons.plasticos_partner_import.erp.header_forensics import trade_date  # noqa: PLC0415
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         header_for_line,
         incoterm_code,
@@ -300,6 +302,7 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     )
     context.setdefault("states", {})[number] = worksheet_outcome(buysell.get("status"))
     context.setdefault("order_days", {})[number] = (_date(buysell.get("OrderDt")) or "")[:10]
+    context.setdefault("trade_dates", {})[number] = trade_date(index, number)
     _remember_carrier(importer, context, partner_by_cp, number, index.deliveries_by_buysell.get(number, []))
     sale_groups: dict[str, list] = {}
     purchase_groups: dict[str, list] = {}
@@ -373,7 +376,7 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         header = rows[0][2]
         xml_id = f"legacy_erp_so_{_token(header.get('PONumber'))}"
         order = _upsert_order(
-            importer, context, partner_by_cp, header, buysell, number, "sale.order", xml_id, incoterm_code
+            importer, context, report, partner_by_cp, header, buysell, number, "sale.order", xml_id, incoterm_code
         )
         if order is not None:
             documents["sales"].append(order.id)
@@ -486,7 +489,7 @@ def _realize_purchase_groups(
         header = rows[0][2]
         xml_id = f"legacy_erp_po_{_token(header.get('PONumber'))}"
         order = _upsert_order(
-            importer, context, partner_by_cp, header, buysell, number, "purchase.order", xml_id, incoterm_code
+            importer, context, report, partner_by_cp, header, buysell, number, "purchase.order", xml_id, incoterm_code
         )
         if order is None:
             continue
@@ -606,9 +609,17 @@ def _realize_inventory_inbound(
     return [], []
 
 
-def _upsert_order(importer, context, partner_by_cp, header, buysell, number, model_name, xml_id, incoterm_code):
-    """One native order per source ``PONumber``. Every worksheet it serves is listed on ``origin``."""
-    from odoo.addons.plasticos_partner_import.erp.native_orders import with_worksheet  # noqa: PLC0415
+def _upsert_order(importer, context, report, partner_by_cp, header, buysell, number, model_name, xml_id, incoterm_code):
+    """One native order per source ``PONumber``. Every worksheet it serves is listed on ``origin``.
+
+    A purchase order's ``date_approve`` is the earliest trade date
+    (``GPLedger.TradeDt``) of the worksheets it serves (ADR-021 Decision 7).
+    Writing it does not confirm the order: it stays a draft, with no picking.
+    """
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        declined_price_basis,
+        with_worksheet,
+    )
 
     env = importer.env
     model = env[model_name].with_context(**_import_context())
@@ -635,14 +646,25 @@ def _upsert_order(importer, context, partner_by_cp, header, buysell, number, mod
     }
     if model_name == "sale.order":
         values["client_order_ref"] = (header.get("POReference") or "").strip() or False
-        if "incoterm" in model._fields:
-            incoterm = _incoterm(env, context, incoterm_code(basis))
-            if incoterm:
-                values["incoterm"] = incoterm
-    elif "incoterm_id" in model._fields:
+        incoterm_field = "incoterm"
+    else:
+        incoterm_field = "incoterm_id"
+        approved = (context.get("trade_dates") or {}).get(number)
+        current = existing.date_approve if existing is not None else False
+        if approved and (not current or approved < current):
+            values["date_approve"] = approved
+    if incoterm_field in model._fields:
         incoterm = _incoterm(env, context, incoterm_code(basis))
         if incoterm:
-            values["incoterm_id"] = incoterm
+            values[incoterm_field] = incoterm
+        elif declined_price_basis(basis):
+            # An Incoterm an earlier run wrote for this basis is cleared, not kept.
+            values[incoterm_field] = False
+            report.anomaly(
+                "BuySell",
+                number,
+                f"{model_name} {values['name']}: price basis {basis.strip()!r} has no supported Incoterm; none set",
+            )
     return importer._upsert(model, xml_id, values, _silent(), None)
 
 
@@ -789,7 +811,10 @@ def _customer_invoice(importer, report, context, partner_by_cp, number, buysell,
     if signed < 0:
         for item in commands:
             item[2]["price_unit"] = abs(item[2]["price_unit"])
-    invoice_date = _date(buysell.get("InvoiceDt") or buysell.get("OrderDt"))
+    # A worksheet with no source invoice date gets an undated draft, never its order date.
+    invoice_date = _date(buysell.get("InvoiceDt"))
+    if not invoice_date:
+        report.anomaly("BuySell", number, "no source invoice date; customer invoice left undated")
     return _move(
         importer,
         f"legacy_erp_outinv_{_token(number)}",
@@ -939,6 +964,7 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         NOT_REALIZED,
         PREPAY_OMITTED,
         UNBILLABLE,
+        vendor_bill_header_facts,
     )
 
     material = context["material_account"]
@@ -1022,7 +1048,10 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             else:
                 _quarantine(context, report, row, number, f"{reason}; not counted", UNBILLABLE)
             continue
-        invoice_date = _date(row.get("InvoiceDt")) or _date(index.buysells.get(number, {}).get("OrderDt"))
+        facts = vendor_bill_header_facts(row, index.payables_batches.get(batch) if batch else None)
+        invoice_date = facts["invoice_date"]
+        if not invoice_date:
+            report.anomaly("Payables", payable_id, "no source invoice date; vendor bill left undated")
         if gl_acct == FREIGHT_GL:
             lines = [
                 Command.create(
@@ -1047,10 +1076,11 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
                 "move_type": "in_refund" if amount < 0 else "in_invoice",
                 "partner_id": partner_id,
                 "journal_id": journal.id,
-                "invoice_date": (invoice_date or "")[:10] or False,
+                "invoice_date": invoice_date or False,
                 "invoice_origin": number,
-                "ref": (row.get("InvoiceNo") or payable_id).strip(),
+                "ref": facts["ref"],
                 "invoice_line_ids": lines,
+                **_vendor_due_terms(importer, context, report, batch, facts),
             },
         )
         documents["freight_bills" if gl_acct == FREIGHT_GL else "bills"].append(move.id)
@@ -1087,6 +1117,37 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
     else:
         for row, reason in unbilled_freight_rows:
             _quarantine(context, report, row, number, f"{reason}; no transaction exists to carry it", NOT_REALIZED)
+
+
+def _vendor_due_terms(importer, context, report, batch: str, facts: dict) -> dict:
+    """The bill's payment term or explicit due date. A term is never created.
+
+    ``APTerms`` naming an existing ``account.payment.term`` wins; Odoo then
+    computes the due date from the invoice date. Otherwise the header
+    ``DueDate`` is the due date and no term is set, so the partner's default
+    supplier term does not replace it. A row with neither keeps Odoo's default.
+    """
+    term = _payment_term(importer.env, context, report, batch, facts["terms"])
+    if term:
+        return {"invoice_payment_term_id": term}
+    if facts["due_date"]:
+        return {"invoice_payment_term_id": False, "invoice_date_due": facts["due_date"]}
+    return {}
+
+
+def _payment_term(env, context, report, batch: str, name: str):
+    """Existing ``account.payment.term`` named exactly ``name``. An unmatched name is reported once."""
+    if not name:
+        return None
+    cache = context.setdefault("payment_term_cache", {})
+    if name not in cache:
+        record = env["account.payment.term"].search([("name", "=", name)], limit=1)
+        cache[name] = record.id if record else None
+        if not record:
+            report.anomaly(
+                "PayablesBatch", batch, f"no account.payment.term named {name!r}; bills carry the header DueDate"
+            )
+    return cache[name]
 
 
 def _count_expense(context, bucket: str, number: str, amount: float) -> None:
@@ -1508,6 +1569,10 @@ def _remember_salesperson(importer, report, context, number, buysell) -> None:
 def _confirm_context(context, costs) -> dict:
     return {
         **_import_context(),
+        # A historical sale is not shipped again: confirming it launches no
+        # procurement, so no delivery picking or stock move is created
+        # (sale_stock ``_action_launch_stock_rule`` honours this key).
+        "skip_procurement": True,
         "erp_freight_by_origin": costs.get("freight") or {},
         "erp_other_by_origin": costs.get("other") or {},
         "erp_salesperson_by_origin": context.get("salesperson") or {},

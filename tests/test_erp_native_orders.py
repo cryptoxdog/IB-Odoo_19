@@ -22,6 +22,7 @@ from erp.native_orders import (  # noqa: E402
     UNBILLABLE,
     amount_drift,
     commission_recipients,
+    declined_price_basis,
     freight_vendor_id,
     header_for_line,
     incoterm_code,
@@ -41,6 +42,7 @@ from erp.native_orders import (  # noqa: E402
     selected_worksheets,
     source_payable_identities,
     unit_price,
+    vendor_bill_header_facts,
     with_worksheet,
     worksheet_commission,
     worksheet_log,
@@ -88,8 +90,52 @@ def test_purchase_line_key_resolves_the_purchase_header():
 
 def test_incoterm_crosswalk_skips_the_do_not_use_basis():
     assert incoterm_code("FOB Supplier Dock") == "FOB"
-    assert incoterm_code("Delivered") == "FAS"
+    assert incoterm_code("FAS") == "FAS"
     assert incoterm_code("Z - DO NOT USE") is None
+
+
+def test_delivered_basis_is_declined_not_mapped_to_fas():
+    """Delivered is not FAS, and the source proves neither DAP nor DDP: no Incoterm, reported."""
+    assert incoterm_code("Delivered") is None
+    assert declined_price_basis(" Delivered ")
+    assert not declined_price_basis("FOB Supplier Dock")
+    assert not declined_price_basis("Z - DO NOT USE")
+    assert not declined_price_basis(None)
+
+
+def test_vendor_bill_takes_its_batch_header_facts():
+    payable = {"PayableID": "591398", "InvoiceNo": "7275", "InvoiceDt": "2022-03-14 00:00:00"}
+    header = {
+        "InvoiceNo": "V-7275",
+        "InvoiceDt": "2022-03-15 00:00:00",
+        "DueDate": "2022-04-14 00:00:00",
+        "APTerms": "Net 30",
+    }
+    assert vendor_bill_header_facts(payable, header) == {
+        "invoice_date": "2022-03-15",
+        "ref": "V-7275",
+        "due_date": "2022-04-14",
+        "terms": "Net 30",
+    }
+
+
+def test_vendor_bill_without_a_header_keeps_its_row_facts_and_no_due_date():
+    payable = {"PayableID": "591398", "InvoiceNo": " 7275 ", "InvoiceDt": "2022-03-14 00:00:00"}
+    assert vendor_bill_header_facts(payable, None) == {
+        "invoice_date": "2022-03-14",
+        "ref": "7275",
+        "due_date": "",
+        "terms": "",
+    }
+
+
+def test_vendor_bill_with_no_source_invoice_date_gets_none_and_ref_falls_back_to_the_payable():
+    payable = {"PayableID": "600009", "InvoiceNo": "", "InvoiceDt": None}
+    header = {"InvoiceNo": " ", "InvoiceDt": None, "DueDate": None, "APTerms": ""}
+    facts = vendor_bill_header_facts(payable, header)
+    assert facts["invoice_date"] == "", "never the worksheet order date"
+    assert facts["ref"] == "600009"
+    assert facts["due_date"] == "" and facts["terms"] == ""
 
 
 def test_sale_note_joins_the_sticky_and_the_speech_bubble():

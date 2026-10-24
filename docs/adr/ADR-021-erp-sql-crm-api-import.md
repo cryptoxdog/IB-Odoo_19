@@ -38,6 +38,15 @@ The first sentence of Decision 8 still holds: the importer must not report succe
 
 Not proven: source-accurate posting state, settlement, vendor bill identity (`PayablesBatch` header vs one bill per `PayableID`), and a complete direct-SQL import with identical replay. This amendment records current behaviour. It authorizes no new import policy and makes no claim that the accounting is complete.
 
+### 2026-10-24 — Vendor bill identity and header facts (operator decision)
+
+- A vendor bill stays one `account.move` per `Payables.PayableID`. It is not regrouped per `PayablesBatch`: 599 multi-row batches span more than one worksheet in the 2026-08-07 extract, and documents are realized per worksheet.
+- The bill takes its `PayablesBatch` header's `InvoiceDt`, `InvoiceNo` and terms. `APTerms` naming an existing `account.payment.term` sets the term; no term is created. Otherwise the header `DueDate` is the due date, with no term set.
+- No invoice or bill takes the worksheet order date as its invoice date.
+- `purchase.order.date_approve` is the earliest `GPLedger.TradeDt` of the worksheets the order serves (Decision 7). The order stays a draft.
+- A `Delivered` price basis carries no Incoterm. Confirming a historical sale order launches no procurement, so no picking or stock move is created.
+- Whether a re-import updates documents that already exist is not decided. They are left as they are.
+
 ## Direct database projections
 
 The direct database reader covers the five partner-side sources and the six transaction-reconstruction sources used by the deterministic pipeline:

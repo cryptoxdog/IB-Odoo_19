@@ -33,6 +33,7 @@ __all__ = [
     "CARRIED_BY_PAYABLES",
     "CUSTOMER_CREDIT",
     "CUSTOMER_DEBIT",
+    "DECLINED_PRICE_BASES",
     "EQUIPMENT_GL",
     "EXPENSE_GL",
     "FREIGHT_GL",
@@ -50,6 +51,7 @@ __all__ = [
     "amount_drift",
     "commission_recipients",
     "commission_slots",
+    "declined_price_basis",
     "freight_vendor_id",
     "header_for_line",
     "incoterm_code",
@@ -73,6 +75,7 @@ __all__ = [
     "worksheet_numbers",
     "worksheet_outcome",
     "unit_price",
+    "vendor_bill_header_facts",
     "worksheet_commission",
 ]
 
@@ -586,6 +589,12 @@ def freight_vendor_id(rows) -> str:
     return chosen
 
 
+# Price bases with no Incoterm that means the same thing. ``delivered`` is not
+# FAS (seller delivers alongside the ship), and neither DAP nor DDP is proven
+# by the source, so the order carries no Incoterm and the basis is reported.
+DECLINED_PRICE_BASES = frozenset({"delivered"})
+
+
 def incoterm_code(basis: str | None) -> str | None:
     """Map a source price basis onto an ``account.incoterms`` code."""
     text = (basis or "").strip().lower()
@@ -593,9 +602,35 @@ def incoterm_code(basis: str | None) -> str | None:
         return None
     if text in {"fob", "fob supplier dock", "pickup"}:
         return "FOB"
-    if text in {"delivered", "fas"}:
+    if text == "fas":
         return "FAS"
     return None
+
+
+def declined_price_basis(basis: str | None) -> bool:
+    """True when the basis is known and deliberately carries no Incoterm."""
+    return (basis or "").strip().lower() in DECLINED_PRICE_BASES
+
+
+def vendor_bill_header_facts(payable: dict, header: dict | None) -> dict[str, str]:
+    """Invoice date, vendor invoice number, due date and terms for one ``Payables`` row.
+
+    The bill stays one per ``PayableID``. Its header facts come from the
+    row's ``PayablesBatch`` header when one is indexed, else from the row.
+    There is no order-date fallback: a bill with no source invoice date has
+    none. ``due_date`` and ``terms`` exist only on the header.
+    """
+    header = header or {}
+
+    def first(*values) -> str:
+        return next((text for value in values if (text := (value or "").strip())), "")
+
+    return {
+        "invoice_date": first(header.get("InvoiceDt"), payable.get("InvoiceDt"))[:10],
+        "ref": first(header.get("InvoiceNo"), payable.get("InvoiceNo"), payable.get("PayableID")),
+        "due_date": first(header.get("DueDate"))[:10],
+        "terms": first(header.get("APTerms")),
+    }
 
 
 WORKSHEET_CANCELLED = "cancelled"
