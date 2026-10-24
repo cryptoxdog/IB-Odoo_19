@@ -538,12 +538,32 @@ class _PartnerModel:
         return self
 
     def browse(self, rec_id=None):
+        if isinstance(rec_id, list):
+            return _PartnerSet(self.rows[rid] for rid in rec_id if rid in self.rows)
         return self.rows.get(rec_id) or _Empty()
 
     def create(self, vals):
         record = _Partner(len(self.rows) + 1, vals)
         self.rows[record.id] = record
         return record
+
+
+class _PartnerSet(list):
+    def exists(self):
+        return self
+
+    def filtered(self, fn):
+        return _PartnerSet(row for row in self if fn(row))
+
+    def write(self, vals):
+        for row in self:
+            row.write(vals)
+
+
+class _MarkerSet(list):
+    def unlink(self):
+        for row in list(self):
+            row.unlink()
 
 
 class _Marker(types.SimpleNamespace):
@@ -565,12 +585,17 @@ class _MarkerModel:
                 if op == "=like":
                     if not str(current).startswith(value.rstrip("%")):
                         return False
+                elif op == "in":
+                    if current not in value:
+                        return False
                 elif current != value:
                     return False
             return True
 
         hits = [row for row in self.rows if hit(row)]
-        return hits[0] if hits else _Empty()
+        if limit == 1:
+            return hits[0] if hits else _Empty()
+        return _MarkerSet(hits)
 
     def create(self, vals):
         row = _Marker(store=self.rows, **vals)

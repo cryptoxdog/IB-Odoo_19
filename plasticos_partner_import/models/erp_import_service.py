@@ -606,36 +606,33 @@ class PlasticosErpImport(models.AbstractModel):
         person and an approved CRM binding to an excluded CT_ID no longer resolves.
         """
         Data = self.env["ir.model.data"]
-        affected: set[int] = set()
-        for contact_id in contact_ids:
-            data = Data.search(
-                [
-                    ("module", "=", XMLID_MODULE),
-                    ("name", "=", f"legacy_erp_contact_{contact_id}"),
-                    ("model", "=", RES_PARTNER),
-                ],
-                limit=1,
-            )
-            if not data:
-                continue
-            if data.res_id:
-                affected.add(data.res_id)
-            data.unlink()
-        for partner_id in sorted(affected):
-            still_named = Data.search(
-                [
-                    ("module", "=", XMLID_MODULE),
-                    ("name", "=like", "legacy_erp_contact_%"),
-                    ("model", "=", RES_PARTNER),
-                    ("res_id", "=", partner_id),
-                ],
-                limit=1,
-            )
-            if still_named:
-                continue
-            partner = partner_model.browse(partner_id).exists()
-            if partner and not partner.is_company and partner.active:
-                partner.write({"active": False})
+        stale = Data.search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "in", [f"legacy_erp_contact_{contact_id}" for contact_id in contact_ids]),
+                ("model", "=", RES_PARTNER),
+            ]
+        )
+        if not stale:
+            return
+        affected = {row.res_id for row in stale if row.res_id}
+        stale.unlink()
+        if not affected:
+            return
+        still_named = Data.search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "=like", "legacy_erp_contact_%"),
+                ("model", "=", RES_PARTNER),
+                ("res_id", "in", sorted(affected)),
+            ]
+        )
+        orphans = sorted(affected - {row.res_id for row in still_named})
+        people = (
+            partner_model.browse(orphans).exists().filtered(lambda partner: not partner.is_company and partner.active)
+        )
+        if people:
+            people.write({"active": False})
 
     def _import_person(
         self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping
