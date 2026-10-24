@@ -27,7 +27,10 @@ PURCHASE_ORDER = "purchase.order"
 MAIL_MAIL = "mail.mail"
 
 LINDA_MODE_PARAM = "plasticos_logistics.linda_mode"
-LINDA_MODES = ("off", "shadow", "live")
+LINDA_MODE_OFF = "off"
+LINDA_MODE_SHADOW = "shadow"
+LINDA_MODE_LIVE = "live"
+LINDA_MODES = (LINDA_MODE_OFF, LINDA_MODE_SHADOW, LINDA_MODE_LIVE)
 PO_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_po_issue"
 
 # Context keys under which an order transition is not a live native release.
@@ -164,9 +167,9 @@ class PlasticosLogisticsRequest(models.Model):
     def _linda_mode(self):
         """Configured Linda mode; anything unrecognized fails closed to ``off``."""
         # sudo: reading one system parameter; purchase users have no ir.config_parameter access.
-        value = self.env["ir.config_parameter"].sudo().get_param(LINDA_MODE_PARAM, "off")
-        mode = (value or "off").strip().lower()
-        return mode if mode in LINDA_MODES else "off"
+        value = self.env["ir.config_parameter"].sudo().get_param(LINDA_MODE_PARAM, LINDA_MODE_OFF)
+        mode = (value or LINDA_MODE_OFF).strip().lower()
+        return mode if mode in LINDA_MODES else LINDA_MODE_OFF
 
     @api.model
     def _po_fingerprint(self, order):
@@ -187,22 +190,23 @@ class PlasticosLogisticsRequest(models.Model):
             ]
             for line in order.order_line.sorted("id")
         ]
-        payload = {
-            "company": order.company_id.id,
-            "order": order.id,
-            "partner": partner.id,
-            "recipient": email_normalize(partner.email or "") or "",
-            "currency": order.currency_id.id,
-            "payment_term": order.payment_term_id.id,
-            "incoterm": order.incoterm_id.id,
-            "date_planned": fields.Datetime.to_string(order.date_planned) if order.date_planned else "",
-            "dest_address": order.dest_address_id.id,
-            "picking_type": order.picking_type_id.id if "picking_type_id" in order._fields else False,
-            "partner_ref": order.partner_ref or "",
-            "amount_total": order.amount_total,
-            "lines": lines,
-        }
-        return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+        # Positional, not keyed: the order of this list is part of the fingerprint contract.
+        payload = [
+            order.company_id.id,
+            order.id,
+            partner.id,
+            email_normalize(partner.email or "") or "",
+            order.currency_id.id,
+            order.payment_term_id.id,
+            order.incoterm_id.id,
+            fields.Datetime.to_string(order.date_planned) if order.date_planned else "",
+            order.dest_address_id.id,
+            order.picking_type_id.id if "picking_type_id" in order._fields else False,
+            order.partner_ref or "",
+            order.amount_total,
+            lines,
+        ]
+        return hashlib.sha256(json.dumps(payload, default=str).encode()).hexdigest()
 
     @api.model
     def _po_block_reason(self, order):
@@ -237,7 +241,7 @@ class PlasticosLogisticsRequest(models.Model):
         record nothing; shadow records evidence without creating any mail.
         """
         mode = self._linda_mode()
-        if mode == "off" or any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS):
+        if mode == LINDA_MODE_OFF or any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS):
             return self.browse()
         requests = self.browse()
         for order in orders:
@@ -247,7 +251,7 @@ class PlasticosLogisticsRequest(models.Model):
     def _issue_purchase_order(self, order, mode):
         fingerprint = self._po_fingerprint(order)
         block_reason = self._po_block_reason(order)
-        outcome = "blocked" if block_reason else ("shadow" if mode == "shadow" else "queued")
+        outcome = "blocked" if block_reason else ("shadow" if mode == LINDA_MODE_SHADOW else "queued")
 
         # A queued issue that no longer matches the order must never leave the queue.
         stale = self.search(
@@ -287,7 +291,8 @@ class PlasticosLogisticsRequest(models.Model):
             _logger.info("Linda PO issue blocked for %s: %s", order.name, block_reason)
             return self.create(values)
 
-        template = self.env.ref(PO_ISSUE_TEMPLATE)
+        # Presence was checked by _po_block_reason ("template_missing").
+        template = self.env.ref(PO_ISSUE_TEMPLATE, raise_if_not_found=False)
         values["subject"] = template._render_field("subject", order.ids)[order.id]
         if outcome == "shadow":
             return self.create(values)
@@ -320,7 +325,7 @@ class PlasticosLogisticsRequest(models.Model):
         """Why this queued request may no longer be delivered, or ``False``."""
         self.ensure_one()
         order = self.purchase_order_id
-        if self._linda_mode() != "live":
+        if self._linda_mode() != LINDA_MODE_LIVE:
             return "mode_not_live"
         reason = self._po_block_reason(order)
         if reason:
@@ -342,43 +347,57 @@ class PlasticosLogisticsRequest(models.Model):
 
     @api.model
     def _guard_mails_before_send(self, mails):
-        """Recheck each Linda mail at send time; returns True when evidence was written.
+        """Recheck each Linda mail at send time.
 
-        A mail whose request already recorded a send attempt without an outcome is
-        uncertain: it may have reached the supplier, so it is not sent again.
+        Returns ``(withheld, touched)``: the Linda mails that must not reach
+        native sending, and whether request evidence was written. A mail whose
+        request already recorded a send attempt without an outcome is uncertain:
+        it may have reached the supplier, so it is not sent again.
         """
-        requests = self.search([("mail_id", "in", mails.ids)])
+        withheld = self.env[MAIL_MAIL]
         touched = False
-        for request in requests:
+        for request in self.search([("mail_id", "in", mails.ids)]):
             mail = request.mail_id
-            if mail.state != "outgoing" or request.state in ("sent", "canceled", "blocked", "shadow"):
+            if mail.state != "outgoing":
                 continue
             touched = True
+            if request.state in ("sent", "canceled", "blocked", "shadow"):
+                # The obligation is closed; this mail must not leave again.
+                withheld |= mail
+                continue
             if request.state == "queued" and request.send_attempt_count:
                 # sudo: the queue may run as any user; this cancels only the uncertain Linda mail.
                 mail.sudo().write({"state": "cancel", "failure_reason": "linda:prior_send_outcome_unknown"})
                 request.write({"state": "unknown", "state_reason": "prior_send_outcome_unknown"})
+                withheld |= mail
                 continue
             reason = request._current_block_reason()
             if reason:
                 request.write({"state": "queued"})
                 request._cancel_queued(reason)
+                withheld |= mail
                 continue
             # First attempt, or a person explicitly retried a failed/unknown delivery.
             request.write(
                 {"state": "queued", "state_reason": False, "send_attempt_count": request.send_attempt_count + 1}
             )
-        return touched
+        return withheld, touched
 
     @api.model
     def _reconcile_mails(self, mails):
-        """Mirror the native outcome of these mails onto their requests."""
-        for request in self.search([("mail_id", "in", mails.ids)]):
+        """Mirror the native outcome of these mails onto requests still awaiting one."""
+        for request in self.search([("mail_id", "in", mails.ids), ("state", "=", "queued")]):
             mail = request.mail_id
-            if mail.state == "sent" and request.state != "sent":
+            if mail.state == "sent":
                 request.write({"state": "sent", "state_reason": False, "sent_at": fields.Datetime.now()})
-            elif mail.state == "exception" and request.state != "exception":
-                reason = mail.failure_type or "unknown"
-                request.write({"state": "exception", "state_reason": reason})
-            elif mail.state == "cancel" and request.state == "queued":
+            elif mail.state == "exception":
+                request.write({"state": "exception", "state_reason": mail.failure_type or "unknown"})
+            elif mail.state == "cancel":
                 request.write({"state": "canceled", "state_reason": "mail_canceled"})
+
+    @api.model
+    def _mark_interrupted(self, mails):
+        """A send that raised before native post-processing has an unknown outcome."""
+        for request in self.search([("mail_id", "in", mails.ids), ("state", "=", "queued")]):
+            if request.mail_id.state == "exception":
+                request.write({"state": "unknown", "state_reason": "send_interrupted"})

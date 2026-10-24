@@ -8,7 +8,7 @@ Issuance is therefore observed after that method, never triggered by drafts,
 
 from odoo import fields, models
 
-from .linda_request import MATERIAL_PO_FIELDS
+from .linda_request import LINDA_MODE_LIVE, MATERIAL_PO_FIELDS
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
 
@@ -40,4 +40,4 @@ class PurchaseOrderInherit(models.Model):
 
     def _linda_owns_po_issuance(self):
         """True when Linda, not the legacy automation, sends the initial supplier PO."""
-        return self.env[LOGISTICS_REQUEST]._linda_mode() == "live"
+        return self.env[LOGISTICS_REQUEST]._linda_mode() == LINDA_MODE_LIVE

@@ -6,6 +6,8 @@ cannot release a stale document. The native outcome is mirrored back onto the
 request only after transport records it.
 """
 
+import smtplib
+
 from odoo import models
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
@@ -17,15 +19,24 @@ class MailMailInherit(models.Model):
     def send(self, auto_commit=False, raise_exception=False, post_send_callback=None):
         # sudo: transport bookkeeping must see every Linda request whatever user runs the queue.
         requests = self.env[LOGISTICS_REQUEST].sudo()
-        if requests._guard_mails_before_send(self) and auto_commit is True:
+        withheld, touched = requests._guard_mails_before_send(self)
+        if touched and auto_commit is True:
             # Persist the attempt marker before SMTP, as the native queue commits per mail;
             # otherwise a crash mid-send would roll it back and the cron would resend blindly.
             self.env.cr.commit()
-        return super().send(
-            auto_commit=auto_commit,
-            raise_exception=raise_exception,
-            post_send_callback=post_send_callback,
-        )
+        # Withheld mails stay out of the native batch, whose connection-failure path
+        # rewrites every mail it was given to "exception".
+        sendable = self - withheld
+        try:
+            return super(MailMailInherit, sendable).send(
+                auto_commit=auto_commit,
+                raise_exception=raise_exception,
+                post_send_callback=post_send_callback,
+            )
+        except smtplib.SMTPServerDisconnected:
+            # The session dropped mid-send: the message may have been delivered.
+            requests._mark_interrupted(sendable)
+            raise
 
     def _postprocess_sent_message(self, success_pids, success_emails, failure_reason=False, failure_type=None):
         res = super()._postprocess_sent_message(

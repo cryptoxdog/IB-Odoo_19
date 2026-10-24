@@ -13,6 +13,7 @@ from odoo import fields
 from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import new_test_user, tagged
+from odoo.tools import mute_logger
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
 PURCHASE_ORDER = "purchase.order"
@@ -83,7 +84,13 @@ class TestLindaPoIssuance(PlasticosTestCase):
             sent.append(message)
             return message["Message-Id"]
 
-        with patch.object(type(self.env["ir.mail_server"]), "send_email", send_email):
+        server_class = type(self.env["ir.mail_server"])
+        # Odoo disables sending under tests unless _disable_send is patched; no SMTP connection is opened.
+        with (
+            patch.object(server_class, "_disable_send", lambda *args: False),
+            patch.object(server_class, "_connect__", lambda *args, **kwargs: None),
+            patch.object(server_class, "send_email", send_email),
+        ):
             yield sent
 
     def _process_queue(self, request):
@@ -116,7 +123,8 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self.assertFalse(mail.email_cc)
         self.assertFalse(mail.recipient_ids, "recipients come from the request, never followers")
         self.assertEqual(len(mail.attachment_ids), 1)
-        self.assertEqual(mail.attachment_ids.name, f"Purchase Order - {po.name}.pdf")
+        # Test mode renders reports as HTML; the real PDF is verified outside test mode.
+        self.assertTrue(mail.attachment_ids.name.startswith(f"Purchase Order - {po.name}."))
         self.assertFalse(self._legacy_mails(po), "legacy supplier-ready mail must not overlap in live mode")
         for model, before in counts.items():
             self.assertEqual(self.env[model].search_count([]), before, f"{model} must not be invented")
@@ -128,6 +136,18 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self.assertEqual(sink[0]["To"], "sales@acme-regrind.example")
         self.assertEqual(request.state, "sent")
         self.assertTrue(request.sent_at)
+
+    def test_attachment_is_the_native_po_report(self):
+        """A19: the supplier attachment comes from the native purchase order report, nothing custom."""
+        self._set_mode("live")
+        template = self.env.ref("plasticos_logistics.mail_template_linda_po_issue")
+        self.assertEqual(template.report_template_ids, self.env.ref("purchase.action_report_purchase_order"))
+        po = self._new_po()
+        po.button_confirm()
+        attachment = self._requests(po).mail_id.attachment_ids
+        self.assertEqual(len(attachment), 1)
+        self.assertTrue(attachment.name.startswith(f"Purchase Order - {po.name}."))
+        self.assertTrue(attachment.raw, "the rendered report is attached at queue time")
 
     def test_two_step_sends_only_after_manager_approval(self):
         """Native two-step approval is untouched: 'to approve' never issues, approval does once."""
@@ -155,7 +175,7 @@ class TestLindaPoIssuance(PlasticosTestCase):
     # ── duplicates and replays ───────────────────────────────
 
     def test_replay_and_later_so_link_do_not_reissue(self):
-        """A08: repeated buttons, direct replay, reconfirmation and a later SO link keep one obligation."""
+        """A08: repeated buttons, direct replay, a later SO link and an unchanged reconfirmation keep one send."""
         self._set_mode("live")
         po = self._new_po()
         po.button_confirm()
@@ -166,13 +186,35 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self.Request._issue_purchase_orders(po)
         so = self.env["sale.order"].create({"partner_id": self.buyer.id})
         po.write({"origin": so.name})
+        self.assertEqual(self._requests(po), first)
+
+        with self._mail_sink() as sink:
+            self._process_queue(first)
+        self.assertEqual((len(sink), first.state), (1, "sent"))
+
         po.button_cancel()
         po.button_draft()
         po.button_confirm()
-
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(sink, "an unchanged reconfirmation must not resend a delivered PO")
         self.assertEqual(self._requests(po), first)
-        self.assertEqual(len(self.env["mail.mail"].search([("model", "=", PURCHASE_ORDER), ("res_id", "=", po.id)])), 1)
 
+    def test_cancel_before_send_cancels_the_unsent_issue(self):
+        """A11: a PO canceled while its issue is queued never sends it; a later release is a new revision."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        first = self._requests(po)
+        po.button_cancel()
+        self.assertEqual((first.state, first.state_reason), ("canceled", "order_not_confirmed"))
+        self.assertEqual(first.mail_id.state, "cancel")
+
+        po.button_draft()
+        po.button_confirm()
+        self.assertEqual((self._requests(po) - first).revision, 2)
+
+    @mute_logger("odoo.sql_db")
     def test_identity_is_unique_and_immutable(self):
         self._set_mode("live")
         po = self._new_po()
@@ -377,13 +419,28 @@ class TestLindaPoIssuance(PlasticosTestCase):
 
         with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=smtplib.SMTPServerDisconnected()):
             self._process_queue(request)
-        self.assertEqual(request.state, "queued")
+        self.assertEqual((request.state, request.state_reason), ("unknown", "send_interrupted"))
         self.assertEqual(request.send_attempt_count, 1)
 
         with self._mail_sink() as sink:
             self._process_queue(request)
         self.assertFalse(sink)
-        self.assertEqual(request.state, "unknown")
+        self.assertEqual(request.state, "unknown", "an uncertain delivery is never marked sent")
+
+    def test_attempt_rolled_back_to_outgoing_is_not_resent(self):
+        """A14: when a crash rolls the mail back to outgoing, the committed attempt marker stops a resend."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        request = self._requests(po)
+        # The state the queue sees after a crash mid-SMTP: marker committed, mail back to outgoing.
+        request.write({"send_attempt_count": 1})
+
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+
+        self.assertFalse(sink)
+        self.assertEqual((request.state, request.state_reason), ("unknown", "prior_send_outcome_unknown"))
         self.assertEqual(request.mail_id.state, "cancel")
 
     def test_mode_switched_off_before_send_cancels_queue(self):
