@@ -27,12 +27,16 @@ CALL_BATCH_SIZE = 500
 # VanillaSoft custom fields with no approved native lead target. Each is kept
 # as one source-labelled paragraph of ``crm.lead.description`` when the payload
 # carries it; none becomes a partner relationship, tag, facility, call or
-# activity. Every name is a ``custom_fields[].name`` observed in a live
-# ``GET /Contacts/{id}`` payload. The census columns "Last Result Code" and
-# "Last Call Date" are not in that payload (neither top-level nor custom
-# field): they are export columns of the call history, which the call sync
-# already stores, so they are not read here.
-LEAD_CONTEXT_FIELDS = ("Buyer/Supplier", "Company Type", "Location Type", "Location", "Load Ready")
+# activity. Names are the exact source fields of the approved census.
+LEAD_CONTEXT_FIELDS = (
+    "Buyer/Supplier",
+    "Company Type",
+    "Location Type",
+    "Location",
+    "Load Ready",
+    "Last Result Code",
+    "Last Call Date",
+)
 
 # The Contacts list endpoint accepts `modified_after` only within this lookback.
 # Incremental runs clamp to it. The full import deliberately does not, and
