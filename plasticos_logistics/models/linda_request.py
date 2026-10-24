@@ -47,7 +47,8 @@ UNDELIVERED_FAILURE_TYPES = frozenset(
     {"mail_email_invalid", "mail_email_missing", "mail_from_invalid", "mail_from_missing", "mail_smtp"}
 )
 
-# purchase.order fields whose change can make a queued, unsent issue stale.
+# purchase.order fields whose change can make a queued, unsent issue stale: every
+# order field purchase.report_purchaseorder (and purchase_stock's block) renders.
 MATERIAL_PO_FIELDS = frozenset(
     {
         "state",
@@ -57,6 +58,8 @@ MATERIAL_PO_FIELDS = frozenset(
         "order_line",
         "payment_term_id",
         "incoterm_id",
+        "incoterm_location",
+        "note",
         "date_planned",
         "date_order",
         "user_id",
@@ -183,19 +186,33 @@ class PlasticosLogisticsRequest(models.Model):
 
     @api.model
     def _po_fingerprint(self, order):
-        """Hash of everything the supplier-facing PO message and PDF commit to."""
+        """Hash of everything the supplier-facing PO message and PDF commit to.
+
+        Covers every field the native purchase.report_purchaseorder renders, so a
+        queued PDF that no longer matches the order is never delivered. The one
+        exception is ``date_approve``: it is release metadata that every
+        reconfirmation renews, and it cannot change while a mail is queued.
+        """
         partner = order.partner_id
-        # The PDF prints the supplier block, so its address is part of the payload.
-        supplier_block = [
-            partner.name or "",
-            partner.street or "",
-            partner.street2 or "",
-            partner.zip or "",
-            partner.city or "",
-            partner.state_id.id,
-            partner.country_id.id,
-            partner.vat or "",
-        ]
+        warehouse_partner = (
+            order.picking_type_id.warehouse_id.partner_id if "picking_type_id" in order._fields else False
+        )
+
+        def address(contact):
+            if not contact:
+                return []
+            return [
+                contact.name or "",
+                contact.street or "",
+                contact.street2 or "",
+                contact.zip or "",
+                contact.city or "",
+                contact.state_id.id,
+                contact.country_id.id,
+                contact.vat or "",
+                contact.phone or "",
+            ]
+
         lines = [
             [
                 line.id,
@@ -220,14 +237,21 @@ class PlasticosLogisticsRequest(models.Model):
             order.currency_id.id,
             order.payment_term_id.id,
             order.incoterm_id.id,
+            order.incoterm_location or "",
+            str(order.note or ""),
             fields.Datetime.to_string(order.date_planned) if order.date_planned else "",
             fields.Datetime.to_string(order.date_order) if order.date_order else "",
             order.user_id.id,
             order.fiscal_position_id.id,
-            supplier_block,
+            order.company_id.name or "",
+            partner.lang or "",
+            address(partner),
+            address(warehouse_partner),
             order.dest_address_id.id,
             order.picking_type_id.id if "picking_type_id" in order._fields else False,
             order.partner_ref or "",
+            order.amount_untaxed,
+            order.amount_tax,
             order.amount_total,
             lines,
         ]

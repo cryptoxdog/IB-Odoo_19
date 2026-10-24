@@ -333,6 +333,15 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self.assertEqual((request.state, request.state_reason), ("blocked", "render_failed"))
         self.assertFalse(request.mail_id)
 
+    def test_printed_terms_change_is_material(self):
+        """Codex finding: the PDF prints Terms and Conditions; editing them invalidates a queued issue."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        request = self._requests(po)
+        po.write({"note": "<p>Payment within 15 days, pickup by appointment.</p>"})
+        self.assertEqual((request.state, request.state_reason), ("canceled", "payload_changed"))
+
     def test_order_date_change_is_material(self):
         """Review finding: fields printed on the PDF (here the order deadline) invalidate a queued issue."""
         self._set_mode("live")
