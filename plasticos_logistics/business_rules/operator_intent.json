@@ -1,0 +1,163 @@
+{
+  "schema": "plasticos.logistics.operator-intent-local/v1",
+  "scope": "Linda logistics user intent; NO code implementation or new production connection",
+  "status": "OPERATOR_ACCEPTED_PRODUCT_INTENT_NOT_REPOSITORY_ADMITTED",
+  "effective_date": "2026-10-21",
+  "source": "source_inputs/OPERATOR_EVIDENCE_2026-10-21.json",
+  "source_completeness": "PARTIAL_VISIBLE_MESSAGES_AND_SELECTED_DONORS",
+  "decisions": [
+    {
+      "id": "OI-01",
+      "title": "Transaction issuance trigger",
+      "statement": "Linda starts when an eligible Odoo transaction reaches its machine-observable issuance/release condition. An Approved-like field is intended; its precise technical name is not asserted. Sales saying Ready is NOT the trigger.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-03",
+      "evidence_quote": "a field like approved or something mechanical that triggered Linda to send the po and so",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-02",
+      "title": "Linda mechanically sends the orders",
+      "statement": "Linda, not another human or upstream dispatcher, generates/resolves the applicable PO and SO from Odoo, renders Odoo PDFs, sends locked party-specific email templates and hands the work into Pending Logistics with true send status.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-03",
+      "evidence_quote": "it’s purely mechanical templates with Odoo generated documents",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-03",
+      "title": "No routine human approval",
+      "statement": "There is no extra human approval required for normal PO/SO emails, supplier/buyer/carrier requests or permitted logistical transitions. Distinct existing commercial rate/carrier commitment and financial controls are not silently revoked.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-02",
+      "evidence_quote": "No human approval. That was wrong",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-04",
+      "title": "Existing Google Workspace mailbox",
+      "statement": "Google Workspace is active by operator report and Gmail is the selected transport for logistics2@scrapmanagement.com. The account is intended for Linda; Odoo OAuth/alias/routing is not yet tested or configured in this pack.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-03",
+      "evidence_quote": "logistics2@scrapmanagement.com",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-05",
+      "title": "Two-stage inbound understanding",
+      "statement": "Standardized inbound emails use deterministic parsing. Free-form and complex inbound emails may use a bounded LLM as a semantic-to-typed-evidence extractor.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-04",
+      "evidence_quote": "A deterministic parser can handle the standardized replies. An LLM can help extract meaning from everything else.",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-06",
+      "title": "Only deterministic validation governs actions",
+      "statement": "Regardless of parser, candidate meaning is never a direct command. Odoo-controlled validators check source actor/request/version/company/business prerequisites, then allow the next routine action or clarification/exception.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-03",
+      "evidence_quote": "so Linda does the right next thing where it’ll be deterministic",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-07",
+      "title": "Intent pack, not an implementation audit",
+      "statement": "Product intent is compiled from accepted operator decisions and relevant donor sources. Current repository incompleteness is expected and becomes planned implementation work, not grounds to erase intent.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-03",
+      "evidence_quote": "We’re working on a user intent pack. Most of this isn’t in the current repo",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-08",
+      "title": "Established timing and shipment rules retained",
+      "statement": "Source-defined shipping cadence, shipper READY proof, appointments, three-PDF packet, double-blind routing and correct closeout remain in force as intent. Technical scheduling particulars not defined in sources remain unknown.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-01",
+      "evidence_quote": "3-cadence was covered in source files",
+      "technical_realization": "DEFERRED"
+    },
+    {
+      "id": "OI-09",
+      "title": "Technical execution strategy deferred",
+      "statement": "Do not choose provider/model, transport integration internals, new database models, migrations, code changes, deployment, production sends or a technical implementation campaign during this user-intent revision.",
+      "status": "OPERATOR_ACCEPTED_INTENT",
+      "evidence_message_id": "op-2026-10-21-04",
+      "evidence_quote": "We’ll get to the technical stuff update the pack now",
+      "technical_realization": "DEFERRED"
+    }
+  ],
+  "supersessions": [
+    {
+      "old": "Human approval for each routine Linda send/transition",
+      "replaced_by": "OI-03",
+      "status": "EXPLICIT_USER_REVERSAL"
+    },
+    {
+      "old": "Salesperson signals Ready to dispatch as Linda initiation",
+      "replaced_by": "OI-01",
+      "status": "EXPLICIT_USER_CORRECTION"
+    },
+    {
+      "old": "Separate upstream dispatcher emails PO/SO before Linda starts",
+      "replaced_by": "OI-02",
+      "status": "EXPLICIT_USER_CORRECTION"
+    },
+    {
+      "old": "LLM must never participate in email reading",
+      "replaced_by": "OI-05 and OI-06",
+      "status": "EXPLICIT_USER_ACCEPTED_BOUNDED_INTERPRETATION"
+    },
+    {
+      "old": "Consequential acceptance requires only an authenticated form POST",
+      "replaced_by": "OI-05 and OI-06 plus LR-011",
+      "status": "SUPERSEDED_OVERRESTRICTIVE_TECHNICAL_ASSUMPTION"
+    },
+    {
+      "old": "Ask operator to select new Monday/daytime/cadence rules",
+      "replaced_by": "OI-08",
+      "status": "SOURCE_ALREADY_DEFINED"
+    }
+  ],
+  "known_provider": {
+    "mailbox": "logistics2@scrapmanagement.com",
+    "provider": "Gmail",
+    "tenant": "Google Workspace",
+    "workspace_active": "REPORTED_BY_OPERATOR",
+    "mailbox_oauth_configured": "UNKNOWN",
+    "native_odoo_transport": "DESIRED_NOT_TESTED"
+  },
+  "inbound_policy": {
+    "standardized": "DETERMINISTIC_PARSER",
+    "complex": "BOUNDED_LLM_CANDIDATE_EXTRACTION",
+    "authoritative_action": "ONLY_DETERMINISTIC_ODOO_BUSINESS_RULE_VALIDATOR",
+    "unknown": "AUTOMATIC_CLARIFICATION_OR_EXCEPTION",
+    "prompt_or_email_contents_are_commands": false
+  },
+  "handoff_policy": {
+    "trigger": "ELIGIBLE_EXPLICIT_TRANSACTION_ISSUANCE_OR_RELEASE_STATE",
+    "exact_odoo_field_name": "UNKNOWN_TECHNICAL_MAPPING",
+    "PO_SO_pdf_source": "NATIVE_ODOO_REPORTS",
+    "sender": "logistics2@scrapmanagement.com",
+    "routine_human_approval": false,
+    "after_send": "RECORD_SENT_AND_PENDING_LOGISTICS",
+    "physical_supplier_ready": "SEPARATE_LATER_GATE"
+  },
+  "open_technical_choices": [
+    "Exact Odoo transaction field/transition",
+    "Gmail OAuth and Odoo inbound alias/fetch route",
+    "Reply actor proof and current-request correlation",
+    "Canonical typed interpretation schema and model invocation boundary",
+    "LLM provider, privacy, runtime and cost",
+    "Mail retries/deduplication and case-conformance tests"
+  ],
+  "not_authorized": [
+    "code_changes",
+    "repo_mutation",
+    "deployment",
+    "provider_connection",
+    "external_email_sends",
+    "business_contract_amendment"
+  ]
+}

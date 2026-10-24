@@ -1,0 +1,1747 @@
+[
+  {
+    "rule_id": "BRS-01-R001",
+    "requirement_id": "LR-001",
+    "family_id": "BRS-01",
+    "title": "Machine release starts Linda with Odoo PO/SO issuance",
+    "normative_source_statement": "Exactly one eligible commercial transaction/movement, with its correct company and currently permitted counterparties, must reach a machine-observable Approved-like issue/release transition before Linda issues applicable PO and SO. Linda then resolves/creates those native Odoo orders, renders current Odoo PDF reports, sends the locked supplier and buyer templates from logistics2@scrapmanagement.com through Google Workspace Gmail, records truthful per-order sent results, and hands off to Pending Logistics. A preapproved counterparty is an eligibility condition, never an independent order-send trigger. No extra human review, salesperson Ready utterance, record creation, import, retry or unrelated load can initiate issuance. Supplier cargo READY remains a separate downstream verified fact.",
+    "evidence_ids": [
+      "E43",
+      "E25",
+      "E20",
+      "T04",
+      "T14"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/sale_order_inherit.py + models/load.py",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V01",
+      "AC-V02",
+      "AC-V18",
+      "AC-UI01",
+      "AC-UI02",
+      "AC-UI03",
+      "AC-UI04",
+      "AC-BR01",
+      "AC-BR02"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "One exact released transaction/movement starts one load-specific readiness obligation. Never trigger external coordination solely from import/create.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-01",
+      "OI-02",
+      "OI-03",
+      "OI-04",
+      "OI-07"
+    ],
+    "business_policy_resolution_id": "PR-01"
+  },
+  {
+    "rule_id": "BRS-01-R002",
+    "requirement_id": "LR-002",
+    "family_id": "BRS-01",
+    "title": "Exact transaction/load/PO/SO association",
+    "normative_source_statement": "Every consequential request identifies company, load, transaction and actual facilities; shared order reference alone is ambiguous.",
+    "evidence_ids": [
+      "E06",
+      "E43",
+      "E46",
+      "T01",
+      "T13",
+      "T38"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/load.py + models/transaction_inherit.py",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V03",
+      "AC-V04",
+      "AC-V88"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Every consequential request identifies company, load, transaction and actual facilities; shared order reference alone is ambiguous.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-01-R003",
+    "requirement_id": "LR-003",
+    "family_id": "BRS-01",
+    "title": "Company ownership cannot be unknown for automation",
+    "normative_source_statement": "No automatic coordination on company-less or conflicting source records, even when user has access to both companies.",
+    "evidence_ids": [
+      "E46",
+      "E06",
+      "T01",
+      "T23"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/load.py; plasticos_security_base/security/record_rules.xml",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V04",
+      "AC-V80"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "No automatic coordination on company-less or conflicting source records, even when user has access to both companies.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R004",
+    "requirement_id": "LR-004",
+    "family_id": "BRS-02",
+    "title": "Direct shipper READY for every load",
+    "normative_source_statement": "Only attributed current shipper evidence authorizes readiness; record confirmer identity, event/received time and actual cargo availability.",
+    "evidence_ids": [
+      "E43",
+      "E01",
+      "E21",
+      "E22",
+      "T01",
+      "T17",
+      "T04"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/load.py; plasticos_automation supplier bridge",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V11",
+      "AC-V18",
+      "AC-V21",
+      "AC-UI05",
+      "AC-UI09"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Only attributed current shipper evidence authorizes readiness; record confirmer identity, event/received time and actual cargo availability.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R005",
+    "requirement_id": "LR-005",
+    "family_id": "BRS-02",
+    "title": "Ready date versus proposed date",
+    "normative_source_statement": "Ready interval, proposal, confirmation time and planned pickup remain different facts.",
+    "evidence_ids": [
+      "E21",
+      "E22",
+      "E06",
+      "T01",
+      "T04"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/load.py",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V17",
+      "AC-V55"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Ready interval, proposal, confirmation time and planned pickup remain different facts.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R006",
+    "requirement_id": "LR-006",
+    "family_id": "BRS-02",
+    "title": "Explicit negative and corrected responses",
+    "normative_source_statement": "Not-ready/correction blocks affected commitments, retains previous proof and resumes only through a current accepted revision.",
+    "evidence_ids": [
+      "E09",
+      "E22",
+      "E43",
+      "T01",
+      "T04"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/load.py and native party conversation",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V19",
+      "AC-V16",
+      "AC-V82"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Not-ready/correction blocks affected commitments, retains previous proof and resumes only through a current accepted revision.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R007",
+    "requirement_id": "LR-007",
+    "family_id": "BRS-02",
+    "title": "Source-defined Monday shipper status cadence",
+    "normative_source_statement": "For each current PO/load that is not yet physically READY, Linda sends one supplier status request every Monday morning in the supplier-local morning window, identifying the PO number and shipper company. Do not convert a projected ready date into verified READY, run a second weekly touch for the same open status obligation, or extend the request after verified READY, cancellation, or supersession. A specific hour within that source-defined morning window is runtime scheduler configuration, not a new business-policy approval.",
+    "evidence_ids": [
+      "E43",
+      "E44",
+      "E14",
+      "T17",
+      "T16"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing plasticos_logistics cron + plasticos_automation mail templates",
+    "disposition": "SOURCE_POLICY_RESOLVED_RUNTIME_CONFIG_DEFERRED",
+    "tests": [
+      "AC-V20",
+      "AC-V50"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Before final READY, one approved Monday-morning status touch uses PO number and shipper company, not just DO; stop on readiness/cancel.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-08",
+      "OI-09"
+    ],
+    "business_policy_resolution_id": "PR-03"
+  },
+  {
+    "rule_id": "BRS-02-R008",
+    "requirement_id": "LR-008",
+    "family_id": "BRS-02",
+    "title": "Required cargo/equipment facts",
+    "normative_source_statement": "Require material identity, authoritative quantity/weight when relevant, trailer/loading constraints and pickup contact; missing facts block.",
+    "evidence_ids": [
+      "E06",
+      "E43",
+      "E21",
+      "T01",
+      "T12"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/load.py",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V36",
+      "AC-V28",
+      "AC-V68"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Require material identity, authoritative quantity/weight when relevant, trailer/loading constraints and pickup contact; missing facts block.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R009",
+    "requirement_id": "LR-009",
+    "family_id": "BRS-02",
+    "title": "Google Workspace Gmail through native Odoo Mail",
+    "normative_source_statement": "Linda sends and receives as logistics2@scrapmanagement.com through the existing Google Workspace Gmail provider connected to native Odoo Mail. Preserve original messages, recipient audiences, Gmail/native Message-ID and thread/request identifiers, attachments and Odoo audit trail. Mailbox OAuth, routing and delivery must be verified during later technical design; no second logistics email processor or orchestration platform.",
+    "evidence_ids": [
+      "E30",
+      "E47",
+      "E02",
+      "T01",
+      "T37",
+      "O01"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics Mail integration; configured Odoo alias domain",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V09",
+      "AC-V10",
+      "AC-V78",
+      "AC-UI06",
+      "AC-UI14"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "Direct 2026-10-21 operator accepted intent supersedes conflicting historic text for campaign meaning; source donor remains verbatim in source_inputs and requirement.assertion. No repository admission.",
+    "original_donor_normative_statement": "Use native mail routing and retained message IDs/attachments; custom-domain routing must be tested in an isolated environment.",
+    "effective_status": "OPERATOR_INTENT_ACCEPTED_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-04",
+      "OI-07",
+      "OI-09"
+    ]
+  },
+  {
+    "rule_id": "BRS-02-R010",
+    "requirement_id": "LR-010",
+    "family_id": "BRS-02",
+    "title": "Typed request evidence with minimal new persistence",
+    "normative_source_statement": "A fixed-purpose party-scoped request binds load/company/party/revision/payload and native messages. Response lifecycle is not another load state machine.",
+    "evidence_ids": [
+      "E06",
+      "E21",
+      "E37",
+      "E38",
+      "T01",
+      "T09",
+      "T10"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics, one proposed load-confirmation record type",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V11",
+      "AC-V15",
+      "AC-V16",
+      "AC-V43",
+      "AC-UI06"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "A fixed-purpose party-scoped request binds load/company/party/revision/payload and native messages. Response lifecycle is not another load state machine.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R011",
+    "requirement_id": "LR-011",
+    "family_id": "BRS-02",
+    "title": "Attributed confirmation through validated reply or secure action",
+    "normative_source_statement": "A current explicit confirmation from an authorized supplier/buyer/carrier may arrive as a scoped Gmail reply or a verified structured confirmation action. Linda binds sender and company/party authorization, exact current request, load, purpose, document/version and clear intent before a deterministic command accepts the fact. Email From, subject, forwarded copy, bearer link, or LLM interpretation alone never proves that commitment. The exact provider authentication mechanism remains a technical design question.",
+    "evidence_ids": [
+      "E43",
+      "E06",
+      "E47",
+      "T01",
+      "T09"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics confirmation command; native authenticated portal/mail capabilities",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V11",
+      "AC-V12",
+      "AC-V13",
+      "AC-V14",
+      "AC-V84",
+      "AC-UI06",
+      "AC-UI08",
+      "AC-UI09",
+      "AC-UI12"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "Direct 2026-10-21 operator accepted intent supersedes conflicting historic text for campaign meaning; source donor remains verbatim in source_inputs and requirement.assertion. No repository admission.",
+    "original_donor_normative_statement": "Current authenticated party plus single-use scoped request and explicit POST are required for consequential acceptance; From or bearer link alone is not enough.",
+    "effective_status": "OPERATOR_INTENT_ACCEPTED_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-04",
+      "OI-05",
+      "OI-06",
+      "OI-09"
+    ]
+  },
+  {
+    "rule_id": "BRS-02-R012",
+    "requirement_id": "LR-012",
+    "family_id": "BRS-02",
+    "title": "Rules-first interpretation then deterministic fact acceptance",
+    "normative_source_statement": "Separate provider transport and inbound message from extracted candidate facts, validated accepted facts and canonical state transitions. Parse standardized replies deterministically; use a narrowly scoped LLM only for free-form/complex mail extraction into typed candidate evidence. Odoo-owned validators verify provenance, identity, currentness and allowed transitions before any action. Missing/contradictory facts trigger an automatic clarification or recorded exception, not guessed acceptance.",
+    "evidence_ids": [
+      "E28",
+      "E36",
+      "E46",
+      "T01",
+      "T03"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics confirmation command",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V10",
+      "AC-V17",
+      "AC-V35",
+      "AC-V85",
+      "AC-UI07",
+      "AC-UI08",
+      "AC-UI09",
+      "AC-UI10",
+      "AC-UI11"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "Direct 2026-10-21 operator accepted intent supersedes conflicting historic text for campaign meaning; source donor remains verbatim in source_inputs and requirement.assertion. No repository admission.",
+    "original_donor_normative_statement": "Queued/sent/received/accepted/fulfilled are separate; only typed validated evidence may affect the canonical milestone.",
+    "effective_status": "OPERATOR_INTENT_ACCEPTED_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-05",
+      "OI-06"
+    ]
+  },
+  {
+    "rule_id": "BRS-02-R013",
+    "requirement_id": "LR-013",
+    "family_id": "BRS-02",
+    "title": "Stable business identity independent of payload hash",
+    "normative_source_statement": "Unique company/load/purpose/party/revision/touch key controls operation; payload fingerprint detects drift but cannot mint a duplicate by itself.",
+    "evidence_ids": [
+      "E37",
+      "E38",
+      "E40",
+      "T01",
+      "T09"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics confirmation/send command + native Mail",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V15",
+      "AC-V48",
+      "AC-V49"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Unique company/load/purpose/party/revision/touch key controls operation; payload fingerprint detects drift but cannot mint a duplicate by itself.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R014",
+    "requirement_id": "LR-014",
+    "family_id": "BRS-02",
+    "title": "Stale, forwarded and contradictory replies",
+    "normative_source_statement": "Validate exact request, current revision and party; duplicates are no-ops, conflicts retained, cancelled requests never revived.",
+    "evidence_ids": [
+      "E37",
+      "E38",
+      "E46",
+      "E06",
+      "T01",
+      "T09"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics confirmation command",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V13",
+      "AC-V15",
+      "AC-V16",
+      "AC-V19",
+      "AC-UI10",
+      "AC-UI12"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Validate exact request, current revision and party; duplicates are no-ops, conflicts retained, cancelled requests never revived.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-02-R015",
+    "requirement_id": "LR-015",
+    "family_id": "BRS-02",
+    "title": "Linda autonomous routine coordination within distinct commercial boundaries",
+    "normative_source_statement": "Linda autonomously performs eligible Odoo PO/SO generation and templated sends, supplier/buyer/carrier coordination, rule-based response handling, permitted logistical updates, reminders and clarifications without per-action human approval. Existing separately owned commercial rate/carrier award, confidentiality, security and financial controls remain distinct; notification of an exception is not a default approval gate.",
+    "evidence_ids": [
+      "E31",
+      "E46",
+      "E01",
+      "T01",
+      "T10",
+      "T24"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics guarded actions; plasticos_security_base role owner",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V08",
+      "AC-V21",
+      "AC-V80",
+      "AC-UI05",
+      "AC-UI13"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "Direct 2026-10-21 operator accepted intent supersedes conflicting historic text for campaign meaning; source donor remains verbatim in source_inputs and requirement.assertion. No repository admission.",
+    "original_donor_normative_statement": "Routine actor may record validated facts and advance allowed noncommercial transitions; may not select or approve carrier/rate.",
+    "effective_status": "OPERATOR_INTENT_ACCEPTED_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-02",
+      "OI-03",
+      "OI-06"
+    ]
+  },
+  {
+    "rule_id": "BRS-03-R016",
+    "requirement_id": "LR-016",
+    "family_id": "BRS-03",
+    "title": "Per-facility unknown-safe dock rules",
+    "normative_source_statement": "Determine pickup and delivery dock requirements independently; blank/default/unverified differs from confirmed FCFS.",
+    "evidence_ids": [
+      "E43",
+      "E21",
+      "E17",
+      "T22",
+      "T21",
+      "T01"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_facility_profile actual facility fields; plasticos_logistics load",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V22",
+      "AC-V23",
+      "AC-V25"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Determine pickup and delivery dock requirements independently; blank/default/unverified differs from confirmed FCFS.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-03-R017",
+    "requirement_id": "LR-017",
+    "family_id": "BRS-03",
+    "title": "Delivery slot constrains pickup scheduling",
+    "normative_source_statement": "When destination requires appointment, obtain accepted available slot before final pickup commitment and coordinate feasible pickup around it.",
+    "evidence_ids": [
+      "E43",
+      "E44",
+      "E28",
+      "T01",
+      "T21"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics scheduling command",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V24",
+      "AC-V26",
+      "AC-V28"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "When destination requires appointment, obtain accepted available slot before final pickup commitment and coordinate feasible pickup around it.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-03-R018",
+    "requirement_id": "LR-018",
+    "family_id": "BRS-03",
+    "title": "Proposal/request/acceptance/cancellation distinction",
+    "normative_source_statement": "Keep both-party proposals and explicit accepted slot/reference/source. appointment_requested remains a request indicator only.",
+    "evidence_ids": [
+      "E21",
+      "E28",
+      "E43",
+      "T03",
+      "T21"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics confirmation records; existing SO bridge projection",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V26",
+      "AC-V29",
+      "AC-V81"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Keep both-party proposals and explicit accepted slot/reference/source. appointment_requested remains a request indicator only.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-03-R019",
+    "requirement_id": "LR-019",
+    "family_id": "BRS-03",
+    "title": "FCFS removes only appointment gate",
+    "normative_source_statement": "Confirmed FCFS allows arrival within approved hours but does not prove material ready, immediate loading, truck acceptance or rate authority.",
+    "evidence_ids": [
+      "E17",
+      "E26",
+      "E43",
+      "T01",
+      "T22"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics scheduling prerequisites",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V18",
+      "AC-V23",
+      "AC-V32"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Confirmed FCFS allows arrival within approved hours but does not prove material ready, immediate loading, truck acceptance or rate authority.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-03-R020",
+    "requirement_id": "LR-020",
+    "family_id": "BRS-03",
+    "title": "Facility time zones, hours and lead time",
+    "normative_source_statement": "Persist UTC instants and explicit facility-local windows; unknown hours/time zone require a question to the facility or exception.",
+    "evidence_ids": [
+      "E21",
+      "E39",
+      "E43",
+      "T01",
+      "T22"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "facility requirements owner; plasticos_logistics scheduling",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V27",
+      "AC-V28",
+      "AC-V52"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Persist UTC instants and explicit facility-local windows; unknown hours/time zone require a question to the facility or exception.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-03-R021",
+    "requirement_id": "LR-021",
+    "family_id": "BRS-03",
+    "title": "No invented dock-capacity subsystem",
+    "normative_source_statement": "Validate exact exclusive slot/resource only where actually known; two loads at a facility need not be an overlap violation.",
+    "evidence_ids": [
+      "E21",
+      "E43",
+      "T01",
+      "T22"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics scheduling",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V26",
+      "AC-V30"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Validate exact exclusive slot/resource only where actually known; two loads at a facility need not be an overlap violation.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-03-R022",
+    "requirement_id": "LR-022",
+    "family_id": "BRS-03",
+    "title": "Amendment invalidates dependencies",
+    "normative_source_statement": "Material accepted slot/readiness changes invalidate only dependent current requests and require renewed commitments; history remains.",
+    "evidence_ids": [
+      "E38",
+      "E46",
+      "E43",
+      "T01",
+      "T12"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics recovery/confirmation command",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V16",
+      "AC-V29",
+      "AC-V38",
+      "AC-V82"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Material accepted slot/readiness changes invalidate only dependent current requests and require renewed commitments; history remains.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-04-R023",
+    "requirement_id": "LR-023",
+    "family_id": "BRS-04",
+    "title": "SAL and canonical executed history",
+    "normative_source_statement": "Preserve exact elapsed-time and physical-context matching; reuse prior confirmed/booked rate, not actual invoice variance.",
+    "evidence_ids": [
+      "E46",
+      "E47",
+      "E34",
+      "T11",
+      "T12",
+      "T01",
+      "T33"
+    ],
+    "admission": "EXISTING_BEHAVIOR_CLAIM_NOT_RUNTIME_PROVEN",
+    "target_owner": "existing SAL/context/rate owners",
+    "disposition": "PRESERVE_EXISTING",
+    "tests": [
+      "AC-V31",
+      "AC-V38",
+      "AC-V79",
+      "AC-UI13"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Preserve exact elapsed-time and physical-context matching; reuse prior confirmed/booked rate, not actual invoice variance.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-04-R024",
+    "requirement_id": "LR-024",
+    "family_id": "BRS-04",
+    "title": "Estimate/recommendation/award/actual remain distinct",
+    "normative_source_statement": "Nonbinding estimate and ranked recommendation cannot commit rate/carrier; actuals remain executed outcome.",
+    "evidence_ids": [
+      "E46",
+      "E47",
+      "E34",
+      "T09",
+      "T10",
+      "T37"
+    ],
+    "admission": "EXISTING_BEHAVIOR_CLAIM_NOT_RUNTIME_PROVEN",
+    "target_owner": "existing local estimation, quote and actual-cost owners",
+    "disposition": "PRESERVE_EXISTING",
+    "tests": [
+      "AC-V31",
+      "AC-V34",
+      "AC-V39",
+      "AC-V40",
+      "AC-V79",
+      "AC-UI13"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Nonbinding estimate and ranked recommendation cannot commit rate/carrier; actuals remain executed outcome.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-04-R025",
+    "requirement_id": "LR-025",
+    "family_id": "BRS-04",
+    "title": "Manual-only RFQ after SAL miss",
+    "normative_source_statement": "After a genuine current SAL miss, Linda may record and surface the missing commercial rate and coordinate informational follow-up, but no freight rate/carrier award or new outbound carrier RFQ is inferred from autonomous routine logistics authority. The pre-existing freight RFQ episode and any solicitation are manual-only until a separately authorized commercial decision supplies exact current terms. Previously approved/booked valid rate/carrier records can be used for routine follow-through without a redundant Linda human send approval.",
+    "evidence_ids": [
+      "E46",
+      "E47",
+      "E13",
+      "T01",
+      "T09",
+      "T37"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics existing freight request action",
+    "disposition": "PRESERVE_EXISTING",
+    "tests": [
+      "AC-V33",
+      "AC-V34",
+      "AC-BR03"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Maintain deliberate manual RFQ and operator decision boundary; surfaced requirements are not permission for automated solicitation.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-03",
+      "OI-08"
+    ],
+    "business_policy_resolution_id": "PR-02"
+  },
+  {
+    "rule_id": "BRS-04-R026",
+    "requirement_id": "LR-026",
+    "family_id": "BRS-04",
+    "title": "Immutable market response and recipient evidence",
+    "normative_source_statement": "Retain losing, late, declined and superseding quote facts without fabricated send evidence or zero-price declines.",
+    "evidence_ids": [
+      "E46",
+      "E47",
+      "E06",
+      "T09",
+      "T10",
+      "T33"
+    ],
+    "admission": "EXISTING_BEHAVIOR_CLAIM_NOT_RUNTIME_PROVEN",
+    "target_owner": "plasticos_logistics/models/freight_quote.py",
+    "disposition": "PRESERVE_EXISTING",
+    "tests": [
+      "AC-V39",
+      "AC-V15",
+      "AC-V79"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Retain losing, late, declined and superseding quote facts without fabricated send evidence or zero-price declines.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-04-R027",
+    "requirement_id": "LR-027",
+    "family_id": "BRS-04",
+    "title": "Carrier commitment beyond approved rate",
+    "normative_source_statement": "Linda may autonomously coordinate and dispatch against the exact already-authorized carrier, confirmed freight rate/currency, permitted equipment and validated facility windows. Booking acceptance must be attributable to that carrier and current request; a ranked quote, stale SAL context or estimate is not an award. No additional human prompt is required merely for Linda to execute routine booking or document sends once the commercial authorization exists.",
+    "evidence_ids": [
+      "E28",
+      "E21",
+      "E43",
+      "T01",
+      "T09"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics booking confirmation command",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V32",
+      "AC-V35",
+      "AC-V36",
+      "AC-BR03"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Book only exact approved carrier/rate/currency/equipment/windows/current context with attributable carrier acceptance.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-03",
+      "OI-08"
+    ],
+    "business_policy_resolution_id": "PR-02"
+  },
+  {
+    "rule_id": "BRS-04-R028",
+    "requirement_id": "LR-028",
+    "family_id": "BRS-04",
+    "title": "Unavailable carrier routes commercial exception",
+    "normative_source_statement": "A carrier decline, failed capacity commitment or material freight-context change invalidates affected booking/dispatch commitments. Linda preserves the refusal and old rate evidence, seeks permitted factual clarification autonomously, and raises one commercial re-resolution exception for the existing decision owner. Linda does not select the next-best carrier, change the rate or reroute an unapproved substitute by itself; after the resulting commercial decision, routine coordination resumes automatically.",
+    "evidence_ids": [
+      "E22",
+      "E24",
+      "E30",
+      "E31",
+      "E47",
+      "T01",
+      "T09"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing freight recovery and operator owner",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V37",
+      "AC-V38",
+      "AC-V82",
+      "AC-BR03"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Carrier decline/unavailability holds release; operator chooses permitted re-resolution. Preserve old evidence and document amendments.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-03",
+      "OI-08"
+    ],
+    "business_policy_resolution_id": "PR-02"
+  },
+  {
+    "rule_id": "BRS-05-R029",
+    "requirement_id": "LR-029",
+    "family_id": "BRS-05",
+    "title": "One guarded dispatch authority",
+    "normative_source_statement": "All send/release paths call the canonical load checks; stock assigned is not a carrier instruction and no independent dispatch state can grant permission.",
+    "evidence_ids": [
+      "E02",
+      "E18",
+      "E47",
+      "E32",
+      "T01",
+      "T03",
+      "T15"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics/models/load.py; plasticos_automation/data/workflow_automations.xml",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V06",
+      "AC-V07",
+      "AC-V86"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "All send/release paths call the canonical load checks; stock assigned is not a carrier instruction and no independent dispatch state can grant permission.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-05-R030",
+    "requirement_id": "LR-030",
+    "family_id": "BRS-05",
+    "title": "Three documents, current version, then acknowledgment",
+    "normative_source_statement": "The carrier packet contains exactly the three separately rendered current Odoo PDF documents: Pickup Bill of Lading (pickup BOL), Delivery Bill of Lading (delivery BOL) and Delivery Order (DO). Only the permitted carrier receives the complete current-revision packet, after valid READY, appointments when required and authorized booking. Sending or Gmail provider acceptance records transport status only. Attributable carrier acknowledgment of all three same-version attachments is a separate mandatory condition before the load may transition to Dispatched; stale, missing, partial or mismatched attachments fail closed.",
+    "evidence_ids": [
+      "E44",
+      "E40",
+      "E28",
+      "E33",
+      "T01",
+      "T25",
+      "T26",
+      "T27",
+      "T28"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing load packet/report/Mail owners",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V41",
+      "AC-V42",
+      "AC-V53",
+      "AC-BR05",
+      "AC-BR06"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "A fully scheduled/booked load can send its packet in Scheduled; exact packet receipt gates Dispatched. Sending and releasing are separate facts.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-02",
+      "OI-04",
+      "OI-08"
+    ],
+    "business_policy_resolution_id": "PR-04"
+  },
+  {
+    "rule_id": "BRS-05-R031",
+    "requirement_id": "LR-031",
+    "family_id": "BRS-05",
+    "title": "Party-specific document and message audiences",
+    "normative_source_statement": "Supplier sees pickup-side allowed content, buyer delivery-side content, carrier execution itinerary. DO and combined packet only to carrier.",
+    "evidence_ids": [
+      "E02",
+      "E03",
+      "E29",
+      "E44",
+      "E35",
+      "T25",
+      "T26",
+      "T27",
+      "T28"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing templates/report generation and Mail guard",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V43",
+      "AC-V45",
+      "AC-UI03"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Supplier sees pickup-side allowed content, buyer delivery-side content, carrier execution itinerary. DO and combined packet only to carrier.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-05-R032",
+    "requirement_id": "LR-032",
+    "family_id": "BRS-05",
+    "title": "No Sales CC on buyer SO; no archival CC",
+    "normative_source_statement": "Apply literal no-Sales-CC on buyer/SO and no buyer/supplier CC on trucker mail; archive in Odoo.",
+    "evidence_ids": [
+      "E03",
+      "E02",
+      "T25",
+      "T01"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_automation email templates; load Mail/composer guard",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V44",
+      "AC-V43",
+      "AC-UI03"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Apply literal no-Sales-CC on buyer/SO and no buyer/supplier CC on trucker mail; archive in Odoo.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-05-R033",
+    "requirement_id": "LR-033",
+    "family_id": "BRS-05",
+    "title": "No secret leakage through shared notes or chatter",
+    "normative_source_statement": "Exclude shared internal notes and other-side identity from party documents; native followers must not relay cross-party replies.",
+    "evidence_ids": [
+      "E29",
+      "E35",
+      "E49",
+      "T26",
+      "T27",
+      "T25",
+      "T01"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "report/template owners and party-scoped Mail records",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V45",
+      "AC-V43",
+      "AC-V13",
+      "AC-UI11"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Exclude shared internal notes and other-side identity from party documents; native followers must not relay cross-party replies.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-05-R034",
+    "requirement_id": "LR-034",
+    "family_id": "BRS-05",
+    "title": "Durable queue and truthful send status",
+    "normative_source_statement": "Persist one outbound obligation and enqueue atomically; queue/sent/ack are separate; failed mail does not produce sent/release success.",
+    "evidence_ids": [
+      "E30",
+      "E35",
+      "E37",
+      "E22",
+      "T01",
+      "T03",
+      "T25"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "load send command plus native mail.mail",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V46",
+      "AC-V47",
+      "AC-V48",
+      "AC-UI04",
+      "AC-UI14"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Persist one outbound obligation and enqueue atomically; queue/sent/ack are separate; failed mail does not produce sent/release success.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-05-R035",
+    "requirement_id": "LR-035",
+    "family_id": "BRS-05",
+    "title": "Uncertain SMTP outcome is not safely retryable by default",
+    "normative_source_statement": "After post-accept timeout/crash, reconcile provider/native message identity or raise an exception; no exactly-once external-delivery promise.",
+    "evidence_ids": [
+      "E37",
+      "E35",
+      "E30",
+      "T01",
+      "T16"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "native Mail reconciliation and load activity owner",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V47",
+      "AC-V49",
+      "AC-V77",
+      "AC-UI14"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "After post-accept timeout/crash, reconcile provider/native message identity or raise an exception; no exactly-once external-delivery promise.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-05-R036",
+    "requirement_id": "LR-036",
+    "family_id": "BRS-05",
+    "title": "Currency, time zone and actual fields rendered correctly",
+    "normative_source_statement": "Show approved currency and explicit local window, and label planned versus actual checkpoint honestly.",
+    "evidence_ids": [
+      "E06",
+      "E46",
+      "E40",
+      "T25",
+      "T28",
+      "T29"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing report/templates/load UX",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V40",
+      "AC-V27",
+      "AC-V57"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Show approved currency and explicit local window, and label planned versus actual checkpoint honestly.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R037",
+    "requirement_id": "LR-037",
+    "family_id": "BRS-06",
+    "title": "One state-dependent milestone clock",
+    "normative_source_statement": "One evaluation owner schedules due readiness/slot/ack/checkpoint/doc obligations; other models project it rather than independently chase.",
+    "evidence_ids": [
+      "E39",
+      "E40",
+      "E14",
+      "E45",
+      "T16",
+      "T17",
+      "T18",
+      "T19",
+      "T20"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing logistics escalation/scheduler owner",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V20",
+      "AC-V53",
+      "AC-V59",
+      "AC-V75"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "One evaluation owner schedules due readiness/slot/ack/checkpoint/doc obligations; other models project it rather than independently chase.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R038",
+    "requirement_id": "LR-038",
+    "family_id": "BRS-06",
+    "title": "Race-safe due evaluation and catch-up",
+    "normative_source_statement": "Under transaction lock re-read current request/status; due<=now, bounded fair batches and durable touch keys.",
+    "evidence_ids": [
+      "E37",
+      "E39",
+      "E40",
+      "E45",
+      "T16",
+      "T20"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing logistics cron + guarded command",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V49",
+      "AC-V50",
+      "AC-V51",
+      "AC-V87"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Under transaction lock re-read current request/status; due<=now, bounded fair batches and durable touch keys.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R039",
+    "requirement_id": "LR-039",
+    "family_id": "BRS-06",
+    "title": "Reconcile existing distinct cadence obligations, no invented schedule",
+    "normative_source_statement": "One Odoo-owned reminder schedule maintains distinct obligations and stops on current acknowledgment, cancellation or supersession: (1) not-yet-READY shipper status every Monday morning with PO and shipper; (2) separately due supplier confirmation follow-up after 24 hours, at most one per day, with escalation after three unanswered follow-ups, and buyer slot follow-up on the documented 24-hour/48-hour buyer thresholds; (3) carrier packet acknowledgment reminder at T+2 hours and carrier/ops escalation at T+4 hours; (4) for still-unacknowledged carrier dispatch, broker-facing pre-pickup touch D-1 09:00 and pickup-day touch D 08:00 origin-local, plus DISTINCT ops-only D-1 13:00 digest and D 07:00 alert origin-local. These different audiences/touch types must not be collapsed into an apparent time contradiction or duplicated by multiple crons. Broker-facing routine messages honor 22:00-06:00 broker-local quiet hours from the selected dispatch templates; internal urgent exceptions can remain actionable. Source-defined timing is binding intent; precise Monday clock hour and job wiring are technical configuration.",
+    "evidence_ids": [
+      "E39",
+      "E40",
+      "E43",
+      "E49",
+      "T16",
+      "T17",
+      "T18",
+      "T19"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "business policy owner + existing cron configuration",
+    "disposition": "SOURCE_POLICY_RESOLVED_RUNTIME_CONFIG_DEFERRED",
+    "tests": [
+      "AC-V20",
+      "AC-V50",
+      "AC-V52",
+      "AC-BR04",
+      "AC-BR05"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Preserve approved current limits until a single selected cadence is admitted; Monday status, pre-pickup and acknowledgment touch types are distinct.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-08",
+      "OI-09"
+    ],
+    "business_policy_resolution_id": "PR-03"
+  },
+  {
+    "rule_id": "BRS-06-R040",
+    "requirement_id": "LR-040",
+    "family_id": "BRS-06",
+    "title": "Actionable, deduplicated human exceptions",
+    "normative_source_statement": "One unresolved activity per load/milestone/reason/revision names blocked step, owner, source, deadline and allowed resolution.",
+    "evidence_ids": [
+      "E39",
+      "E49",
+      "E31",
+      "T17",
+      "T18",
+      "T01"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "native mail.activity and responsible business owner",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V59",
+      "AC-V71",
+      "AC-V46"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "One unresolved activity per load/milestone/reason/revision names blocked step, owner, source, deadline and allowed resolution.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R041",
+    "requirement_id": "LR-041",
+    "family_id": "BRS-06",
+    "title": "Checkpoint vocabulary without new load states",
+    "normative_source_statement": "Driver assignment, en-route, arrival, pickup, departure, delay and destination arrival are attributed checkpoints; picked_up represents in-transit at load level.",
+    "evidence_ids": [
+      "E21",
+      "E25",
+      "E42",
+      "T01",
+      "T02",
+      "T04"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics checkpoint handler; transaction bridge",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V54",
+      "AC-V55",
+      "AC-V57"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Driver assignment, en-route, arrival, pickup, departure, delay and destination arrival are attributed checkpoints; picked_up represents in-transit at load level.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R042",
+    "requirement_id": "LR-042",
+    "family_id": "BRS-06",
+    "title": "Pickup proof does not finish delivery picking",
+    "normative_source_statement": "Accept pickup only with exact current load/facility/actor evidence; update actual pickup and in-transit projection once.",
+    "evidence_ids": [
+      "E21",
+      "E12",
+      "E43",
+      "T01",
+      "T04",
+      "T03"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "load checkpoint action and native stock/transaction bridge",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V54",
+      "AC-V69"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Accept pickup only with exact current load/facility/actor evidence; update actual pickup and in-transit projection once.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R043",
+    "requirement_id": "LR-043",
+    "family_id": "BRS-06",
+    "title": "Out-of-order and stale event handling",
+    "normative_source_statement": "Retain late evidence, separate physical and receive times; hold missing predecessor; never overwrite delivered with an older delay.",
+    "evidence_ids": [
+      "E21",
+      "E37",
+      "E46",
+      "T01",
+      "T02",
+      "T04"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "load checkpoint command",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V55",
+      "AC-V56",
+      "AC-V58"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Retain late evidence, separate physical and receive times; hold missing predecessor; never overwrite delivered with an older delay.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R044",
+    "requirement_id": "LR-044",
+    "family_id": "BRS-06",
+    "title": "No response after pickup is a monitored exception",
+    "normative_source_statement": "Every active load has next expected milestone and due evidence; lost contact/overdue arrival creates an owned exception.",
+    "evidence_ids": [
+      "E25",
+      "E39",
+      "E49",
+      "T20",
+      "T19"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing logistics scheduler",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V53",
+      "AC-V59",
+      "AC-V51"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Every active load has next expected milestone and due evidence; lost contact/overdue arrival creates an owned exception.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R045",
+    "requirement_id": "LR-045",
+    "family_id": "BRS-07",
+    "title": "Receiver evidence and destination validation",
+    "normative_source_statement": "Carrier-reported delivered is an attributed claim; verified delivery requires correct receiver/destination evidence and unresolved dispute handling.",
+    "evidence_ids": [
+      "E28",
+      "E41",
+      "E49",
+      "T01",
+      "T04",
+      "T03"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "load delivery action and existing receiver/document owners",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V60",
+      "AC-V61",
+      "AC-V68"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Carrier-reported delivered is an attributed claim; verified delivery requires correct receiver/destination evidence and unresolved dispute handling.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R046",
+    "requirement_id": "LR-046",
+    "family_id": "BRS-07",
+    "title": "Store once, preserve original and role views",
+    "normative_source_statement": "Native Documents owns file UX, existing attachment and mirror stay linked; supplier/carrier/buyer views use tags, not duplicate physical files.",
+    "evidence_ids": [
+      "E08",
+      "E49",
+      "E41",
+      "T05",
+      "T07"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_documents_native plus existing legacy compliance mirror",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V64",
+      "AC-V66",
+      "AC-V71"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Native Documents owns file UX, existing attachment and mirror stay linked; supplier/carrier/buyer views use tags, not duplicate physical files.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R047",
+    "requirement_id": "LR-047",
+    "family_id": "BRS-07",
+    "title": "Deterministic association before classification",
+    "normative_source_statement": "Bind submitted attachment through authenticated request and exact company/load; ambiguous PO-only/domain matches go to review.",
+    "evidence_ids": [
+      "E08",
+      "E49",
+      "E06",
+      "T05",
+      "T07"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing document/mail intake seam",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V88",
+      "AC-V83",
+      "AC-V63"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Bind submitted attachment through authenticated request and exact company/load; ambiguous PO-only/domain matches go to review.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R048",
+    "requirement_id": "LR-048",
+    "family_id": "BRS-07",
+    "title": "Current verified BOL/POD, not checkboxes",
+    "normative_source_statement": "Operational delivery/closeout needs attributable evidence for this exact current load, destination, delivery event and document revision. A current signed or otherwise verified BOL/POD is sufficient when required; a distinctly authenticated receiver delivery acknowledgment may also establish the delivery fact where its format is permitted. A handwritten or unsigned document is not rejected solely for lacking a signature, but its contents must still be attributable, coherent and verified. A hash, OCR score, checkbox, file count, forwarded text or carrier assertion alone cannot impersonate receiver acceptance. All separately required load/facility compliance documents must be current and verified before unattended operational close; incomplete/uncertain evidence is archived with an exception. Financial transaction close remains governed by its own accounting/compliance actions.",
+    "evidence_ids": [
+      "E38",
+      "E41",
+      "E28",
+      "T01",
+      "T05",
+      "T06",
+      "T08"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_documents/models/load_docs_bridge.py close guard; load action",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V62",
+      "AC-V63",
+      "AC-V65",
+      "AC-V67",
+      "AC-BR07"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Required current signed/verified evidence for this load must exist before close; eligibility separate from file count/content hash.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-08"
+    ],
+    "business_policy_resolution_id": "PR-05"
+  },
+  {
+    "rule_id": "BRS-07-R049",
+    "requirement_id": "LR-049",
+    "family_id": "BRS-07",
+    "title": "Native-to-legacy proof synchronization",
+    "normative_source_statement": "The compliance mirror must track exact current attachment, tag, source link and verification/supersession; not only a stale verification flag.",
+    "evidence_ids": [
+      "E49",
+      "E38",
+      "E08",
+      "T07",
+      "T05",
+      "T08"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_documents_native/models/document_sync.py",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V64",
+      "AC-V63",
+      "AC-V66"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "The compliance mirror must track exact current attachment, tag, source link and verification/supersession; not only a stale verification flag.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R050",
+    "requirement_id": "LR-050",
+    "family_id": "BRS-07",
+    "title": "Hash and supersession as integrity, not authority",
+    "normative_source_statement": "Hash binds exact bytes/version; corrected evidence is a successor; acceptance of old bytes cannot seal a new file.",
+    "evidence_ids": [
+      "E38",
+      "E41",
+      "E37",
+      "T05",
+      "T07"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing document versioning and verification owner",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V65",
+      "AC-V66",
+      "AC-V67"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Hash binds exact bytes/version; corrected evidence is a successor; acceptance of old bytes cannot seal a new file.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R051",
+    "requirement_id": "LR-051",
+    "family_id": "BRS-07",
+    "title": "Party-specific missing-document SLA and escalation",
+    "normative_source_statement": "For each actually required outstanding document, Linda tracks the accountable party and milestone in business days (Monday-Friday): supplier document checks begin one business day after pickup and escalate after five business days after pickup; carrier checks begin two business days after pickup and escalate after six; buyer checks begin one business day after delivery and escalate after five after delivery. Once a party-specific check is due, send at most one missing-doc reminder per day through the configured approved Gmail channel, including exact transaction/reference and missing types. An escalation creates one native internal activity for the correct responsible role; it is not a request for new routine approval and not a blanket broadcast. Suppress cleared, inapplicable, canceled and superseded obligations. Preserve source-required proof gates without using receipt/file hashing alone to mark operational close. Historical alternate SMS and docs@ inbox are not additional configured transport obligations under the later chosen Google Workspace logistics2 mailbox.",
+    "evidence_ids": [
+      "E08",
+      "E49",
+      "E41",
+      "T05",
+      "T16",
+      "T04"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing document rules/cron and native activities",
+    "disposition": "SOURCE_POLICY_RESOLVED_RUNTIME_CONFIG_DEFERRED",
+    "tests": [
+      "AC-V71",
+      "AC-V62",
+      "AC-BR08",
+      "AC-BR09",
+      "AC-BR10"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Request only actually required missing docs from responsible party; keep internal escalations on existing activity surface.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-04",
+      "OI-08"
+    ],
+    "business_policy_resolution_id": "PR-06"
+  },
+  {
+    "rule_id": "BRS-07-R052",
+    "requirement_id": "LR-052",
+    "family_id": "BRS-07",
+    "title": "Quantities, discrepancies and original unit evidence",
+    "normative_source_statement": "Separate expected/actual/source weights, normalize through existing units and block disputes; logistics does not settle financial variance.",
+    "evidence_ids": [
+      "E06",
+      "E41",
+      "E28",
+      "T04",
+      "T05"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing transaction weight authority and document evidence",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V68",
+      "AC-V61"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Separate expected/actual/source weights, normalize through existing units and block disputes; logistics does not settle financial variance.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R053",
+    "requirement_id": "LR-053",
+    "family_id": "BRS-07",
+    "title": "Verified downstream synchronization",
+    "normative_source_statement": "Idempotently publish verified dispatch/pickup/delivery facts to exact linked records; stock completion uses native business actions and valid route quantities.",
+    "evidence_ids": [
+      "E12",
+      "E28",
+      "E22",
+      "T04",
+      "T03",
+      "T13",
+      "T38"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing transaction/picking bridges and load owner",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V69",
+      "AC-V03",
+      "AC-V56"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Idempotently publish verified dispatch/pickup/delivery facts to exact linked records; stock completion uses native business actions and valid route quantities.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R054",
+    "requirement_id": "LR-054",
+    "family_id": "BRS-07",
+    "title": "Financial close is a separate gate",
+    "normative_source_statement": "Logistics close publishes evidence; posted financial docs, manager authority and current compliance/margin checks remain mandatory.",
+    "evidence_ids": [
+      "E28",
+      "E38",
+      "E41",
+      "E46",
+      "T04",
+      "T08"
+    ],
+    "admission": "EXISTING_BEHAVIOR_CLAIM_NOT_RUNTIME_PROVEN",
+    "target_owner": "plasticos_transaction existing action_close and accounting owners",
+    "disposition": "PRESERVE_EXISTING",
+    "tests": [
+      "AC-V70",
+      "AC-V61"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Logistics close publishes evidence; posted financial docs, manager authority and current compliance/margin checks remain mandatory.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R055",
+    "requirement_id": "LR-055",
+    "family_id": "BRS-07",
+    "title": "Truthful operational metrics",
+    "normative_source_statement": "Measure event time vs accepted baseline, acknowledgment latency, overdue milestones and human exceptions; no fabricated KPI percentages.",
+    "evidence_ids": [
+      "E41",
+      "E49",
+      "E25",
+      "T01",
+      "T04",
+      "T29"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing logistics dashboard/evidence projection",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V72",
+      "AC-V57"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Measure event time vs accepted baseline, acknowledgment latency, overdue milestones and human exceptions; no fabricated KPI percentages.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-07-R056",
+    "requirement_id": "LR-056",
+    "family_id": "BRS-07",
+    "title": "Legacy assertions are not confirmed events",
+    "normative_source_statement": "Classify existing fields as verified evidence, legacy assertion, contradictory or unassociated; automation activates only reviewed eligible cohort.",
+    "evidence_ids": [
+      "E21",
+      "E06",
+      "E48",
+      "T01",
+      "T04",
+      "T05"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "affected existing models migration/adoption owner",
+    "disposition": "NATIVE_REIMPLEMENTATION",
+    "tests": [
+      "AC-V73",
+      "AC-V62",
+      "AC-V05"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Classify existing fields as verified evidence, legacy assertion, contradictory or unassociated; automation activates only reviewed eligible cohort.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-04-R067",
+    "requirement_id": "LR-067",
+    "family_id": "BRS-04",
+    "title": "Retain useful working freight; do not repeat predecessor campaign",
+    "normative_source_statement": "Current implementation outranks older donor baseline; retain already-satisfied interfaces and regressions.",
+    "evidence_ids": [
+      "E46",
+      "E47",
+      "E48",
+      "T09",
+      "T10",
+      "T11",
+      "T12",
+      "T33"
+    ],
+    "admission": "EXISTING_BEHAVIOR_CLAIM_NOT_RUNTIME_PROVEN",
+    "target_owner": "current plasticos_logistics freight spine",
+    "disposition": "PRESERVE_EXISTING",
+    "tests": [
+      "AC-V79",
+      "AC-V78",
+      "AC-V90"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Current implementation outranks older donor baseline; retain already-satisfied interfaces and regressions.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-06-R068",
+    "requirement_id": "LR-068",
+    "family_id": "BRS-06",
+    "title": "Minimal operator-facing exception and next action",
+    "normative_source_statement": "Show last verified checkpoint, next required fact, owner and blocked reason; routine email threads are not the work queue.",
+    "evidence_ids": [
+      "E25",
+      "E31",
+      "E46",
+      "T01",
+      "T19",
+      "T04"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "existing Odoo load/activity/dashboard UI",
+    "disposition": "MERGE_WITH_HARDENING",
+    "tests": [
+      "AC-V57",
+      "AC-V59",
+      "AC-V72"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "No legacy donation can override current Odoo action or business approval.",
+    "original_donor_normative_statement": "Show last verified checkpoint, next required fact, owner and blocked reason; routine email threads are not the work queue.",
+    "effective_status": "HISTORICAL_SOURCE_CANDIDATE_NOT_ADMITTED"
+  },
+  {
+    "rule_id": "BRS-01-R065",
+    "requirement_id": "LR-065",
+    "family_id": "BRS-01",
+    "title": "Mechanical transaction eligibility before automatic order issuance",
+    "normative_source_statement": "Linda issues orders only after an exact commercial transaction reaches its Approved-like machine issuance event and all source-authoritative eligibility gates are satisfied: current active supplier and buyer/approved contacts, correct company, required vendor onboarding form when applicable, and complete movement association. Preapproved-party status can satisfy its own eligibility check but never releases an order alone. No second Linda human approval is added. The implementation maps the existing or necessary Odoo field/event in technical design; no field literally named approved is asserted by this pack.",
+    "evidence_ids": [
+      "E04",
+      "E05",
+      "E25",
+      "T04",
+      "T24"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_transaction existing eligibility and plasticos_logistics entry handoff",
+    "disposition": "MERGE_WITH_EXISTING_AND_HARDEN",
+    "tests": [
+      "AC-V02",
+      "AC-V84",
+      "AC-V90",
+      "AC-UI01",
+      "AC-UI02",
+      "AC-BR01",
+      "AC-BR02"
+    ],
+    "revision": "0.3.0-source-reconciled-candidate",
+    "supersession": "Current operator intent adopts source-defined logistics behavior; source assertion and donor source bytes are preserved. This candidate rule is not registered or implemented.",
+    "original_donor_normative_statement": "Logistics consumes approved eligible contacts; vendor onboarding/first-PO policy remains upstream.",
+    "effective_status": "SOURCE_RESOLVED_BUSINESS_POLICY_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-01",
+      "OI-02",
+      "OI-03",
+      "OI-07"
+    ],
+    "business_policy_resolution_id": "PR-01"
+  },
+  {
+    "rule_id": "BRS-02-R062",
+    "requirement_id": "LR-062",
+    "family_id": "BRS-02",
+    "title": "Bounded LLM may interpret; deterministic rules alone govern action",
+    "normative_source_statement": "A scoped LLM may extract structured candidate meaning from free-form inbound email only when deterministic parsing is insufficient. Its candidate facts and confidence are never business authority and cannot directly send, change load state, select carrier/rate, satisfy document proof or invoke tools. Deterministic verification of identity, request version, explicit response and all business prerequisites alone governs the next permitted Odoo action. OCR confidence likewise never proves a physical event.",
+    "evidence_ids": [
+      "E36",
+      "E41",
+      "E49",
+      "E46",
+      "T37",
+      "T01"
+    ],
+    "admission": "CANDIDATE_REQUIRES_TARGET_OWNER_REVIEW",
+    "target_owner": "plasticos_logistics Mail interpretation and deterministic fact-acceptance actions",
+    "disposition": "MERGE_WITH_EXISTING_AND_HARDEN",
+    "tests": [
+      "AC-V10",
+      "AC-V67",
+      "AC-V78",
+      "AC-UI07",
+      "AC-UI08",
+      "AC-UI10",
+      "AC-UI11"
+    ],
+    "revision": "0.2.0-operator-intent-candidate",
+    "supersession": "Direct 2026-10-21 operator accepted intent supersedes conflicting historic text for campaign meaning; source donor remains verbatim in source_inputs and requirement.assertion. No repository admission.",
+    "original_donor_normative_statement": "No LLM/probabilistic intent or OCR confidence advances routine workflow. Ambiguous input stays exception evidence.",
+    "effective_status": "OPERATOR_INTENT_ACCEPTED_CANDIDATE_NOT_ADMITTED",
+    "operator_intent_ids": [
+      "OI-05",
+      "OI-06",
+      "OI-09"
+    ]
+  }
+]

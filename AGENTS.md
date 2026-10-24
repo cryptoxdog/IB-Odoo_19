@@ -2,6 +2,10 @@
 
 Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code, Codex, Cursor, Copilot, Jules, Aider, CodeRabbit, and all AGENTS.md-compatible tools.
 
+### Logistics business requirements (BRS)
+
+The canonical local Linda business requirements live **inside** `plasticos_logistics/business_rules/`, not under `docs/`. Read `plasticos_logistics/LINDA_BUILD_PLAN.md` (60-rule work-package/acceptance map), its business-rules README, applicable `BRS-01`..`BRS-07`, the exact-ID `SUPERSESSION.md`, and accepted ADRs before implementing Linda. Keep the seven original BRS files unchanged. For changes, cite affected rule IDs and observable acceptance evidence; don't treat source status as runtime proof.
+
 ## Project Overview
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
