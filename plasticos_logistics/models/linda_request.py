@@ -1,9 +1,10 @@
-"""Linda order-scoped request evidence — PO issuance slice (WP01b).
+"""Linda order-scoped request evidence — PO and SO issuance (WP01b).
 
-A ``po_issue`` request is valid with only a company and an exact purchase order:
-no sale order, ``plasticos.transaction`` or ``plasticos.load`` is required
+A ``po_issue`` request is valid with only a company and an exact purchase order;
+an ``so_issue`` request with only a company and an exact sale order. No
+counterpart order, ``plasticos.transaction`` or ``plasticos.load`` is required
 (BRS-01-R002, BRS-02-R010, SUPERSESSION). The obligation identity is
-company + PO + supplier + purpose + revision (BRS-02-R013); the payload
+company + source order + party + purpose + revision (BRS-02-R013); the payload
 fingerprint only detects change and never grants a second send on its own.
 
 Queued is not sent: ``state`` becomes ``sent`` only after native Odoo Mail
@@ -14,9 +15,10 @@ recorded becomes ``unknown`` and is not retried automatically.
 import hashlib
 import json
 import logging
+from typing import NamedTuple
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools import email_normalize
 
 _logger = logging.getLogger(__name__)
@@ -24,6 +26,7 @@ _logger = logging.getLogger(__name__)
 RES_COMPANY = "res.company"
 RES_PARTNER = "res.partner"
 PURCHASE_ORDER = "purchase.order"
+SALE_ORDER = "sale.order"
 MAIL_MAIL = "mail.mail"
 
 LINDA_MODE_PARAM = "plasticos_logistics.linda_mode"
@@ -32,6 +35,7 @@ LINDA_MODE_SHADOW = "shadow"
 LINDA_MODE_LIVE = "live"
 LINDA_MODES = (LINDA_MODE_OFF, LINDA_MODE_SHADOW, LINDA_MODE_LIVE)
 PO_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_po_issue"
+SO_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_so_issue"
 
 # Context keys under which an order transition is not a live native release.
 NON_RELEASE_CONTEXT_KEYS = ("import_mode", "install_mode", "skip_automations")
@@ -70,17 +74,66 @@ MATERIAL_PO_FIELDS = frozenset(
     }
 )
 
+# sale.order fields whose change can make a queued, unsent issue stale: every
+# order field sale.report_saleorder (and sale_stock's incoterm block) renders.
+MATERIAL_SO_FIELDS = frozenset(
+    {
+        "state",
+        "company_id",
+        "partner_id",
+        "partner_invoice_id",
+        "partner_shipping_id",
+        "currency_id",
+        "order_line",
+        "payment_term_id",
+        "incoterm",
+        "incoterm_location",
+        "note",
+        "client_order_ref",
+        "commitment_date",
+        "validity_date",
+        "user_id",
+        "fiscal_position_id",
+        "signed_by",
+    }
+)
+
 # Identity of an obligation; immutable once recorded.
 IDENTITY_FIELDS = frozenset(
-    {"company_id", "purpose", "purchase_order_id", "partner_id", "revision", "payload_fingerprint"}
+    {
+        "company_id",
+        "purpose",
+        "purchase_order_id",
+        "sale_order_id",
+        "partner_id",
+        "revision",
+        "payload_fingerprint",
+    }
 )
+
+
+class IssueSpec(NamedTuple):
+    """How one purpose finds its source order, payload, eligibility and template."""
+
+    order_model: str
+    order_field: str
+    template: str
+    fingerprint: str
+    block_reason: str
+
+
+ISSUE_SPECS = {
+    "po_issue": IssueSpec(
+        PURCHASE_ORDER, "purchase_order_id", PO_ISSUE_TEMPLATE, "_po_fingerprint", "_po_block_reason"
+    ),
+    "so_issue": IssueSpec(SALE_ORDER, "sale_order_id", SO_ISSUE_TEMPLATE, "_so_fingerprint", "_so_block_reason"),
+}
 
 
 class PlasticosLogisticsRequest(models.Model):
     _name = "plasticos.logistics.request"
     _description = "Linda Logistics Request"
     _order = "id desc"
-    _rec_name = "purchase_order_id"
 
     company_id = fields.Many2one(
         RES_COMPANY,
@@ -92,7 +145,7 @@ class PlasticosLogisticsRequest(models.Model):
         help="Company of the source order; never inferred from a transaction or load.",
     )
     purpose = fields.Selection(
-        [("po_issue", "PO Issuance")],
+        [("po_issue", "PO Issuance"), ("so_issue", "SO Issuance")],
         required=True,
         readonly=True,
         help="External obligation this request evidences.",
@@ -100,24 +153,31 @@ class PlasticosLogisticsRequest(models.Model):
     purchase_order_id = fields.Many2one(
         PURCHASE_ORDER,
         string="Purchase Order",
-        required=True,
         readonly=True,
         index=True,
         ondelete="restrict",
-        help="Exact native purchase order the supplier issue belongs to.",
+        help="Exact native purchase order of a po_issue; empty for any other purpose.",
+    )
+    sale_order_id = fields.Many2one(
+        SALE_ORDER,
+        string="Sale Order",
+        readonly=True,
+        index="btree_not_null",
+        ondelete="restrict",
+        help="Exact native sale order of an so_issue; empty for any other purpose.",
     )
     partner_id = fields.Many2one(
         RES_PARTNER,
-        string="Supplier",
+        string="Party",
         required=True,
         readonly=True,
         index=True,
         ondelete="restrict",
-        help="Supplier of the purchase order at release time.",
+        help="Supplier of the PO or buyer of the SO at release time.",
     )
     recipient_email = fields.Char(
         readonly=True,
-        help="Normalized supplier address the issue was addressed to.",
+        help="Normalized party address the issue was addressed to.",
     )
     revision = fields.Integer(
         required=True,
@@ -127,9 +187,9 @@ class PlasticosLogisticsRequest(models.Model):
     payload_fingerprint = fields.Char(
         required=True,
         readonly=True,
-        help="SHA-256 of the supplier-facing commercial payload at release time.",
+        help="SHA-256 of the party-facing commercial payload at release time.",
     )
-    subject = fields.Char(readonly=True, help="Rendered subject of the supplier message.")
+    subject = fields.Char(readonly=True, help="Rendered subject of the party message.")
     state = fields.Selection(
         [
             ("blocked", "Blocked"),
@@ -153,7 +213,7 @@ class PlasticosLogisticsRequest(models.Model):
         readonly=True,
         index="btree_not_null",
         ondelete="set null",
-        help="Native mail.mail carrying the supplier message.",
+        help="Native mail.mail carrying the party message.",
     )
     send_attempt_count = fields.Integer(readonly=True, help="Native send attempts started for this mail.")
     queued_at = fields.Datetime(readonly=True)
@@ -163,6 +223,37 @@ class PlasticosLogisticsRequest(models.Model):
         "UNIQUE(company_id, purchase_order_id, partner_id, purpose, revision)",
         "A Linda request already exists for this company, order, party, purpose and revision.",
     )
+    # PostgreSQL treats NULLs as distinct, so the PO constraint above never binds an SO
+    # row (purchase_order_id is NULL there): SO identity needs its own constraint.
+    _unique_so_obligation_revision = models.Constraint(
+        "UNIQUE(company_id, sale_order_id, partner_id, purpose, revision)",
+        "A Linda request already exists for this company, sale order, party, purpose and revision.",
+    )
+    _check_exactly_one_source_order = models.Constraint(
+        "CHECK((purpose = 'po_issue' AND purchase_order_id IS NOT NULL AND sale_order_id IS NULL)"
+        " OR (purpose = 'so_issue' AND sale_order_id IS NOT NULL AND purchase_order_id IS NULL))",
+        "A Linda request has exactly one source order, matching its purpose.",
+    )
+
+    @api.constrains("company_id", "purchase_order_id", "sale_order_id")
+    def _check_company_matches_source_order(self):
+        for request in self:
+            order = request._source_order()
+            if order.company_id != request.company_id:
+                raise ValidationError(_("A Linda request's company must be its source order's company."))
+
+    @api.depends("purpose", "purchase_order_id", "sale_order_id", "revision")
+    def _compute_display_name(self):
+        labels = dict(self._fields["purpose"].selection)
+        for request in self:
+            order = request._source_order()
+            request.display_name = f"{order.name or ''} · {labels.get(request.purpose, '')} r{request.revision}"
+
+    def _source_order(self):
+        """The exact native order this request evidences."""
+        self.ensure_one()
+        spec = ISSUE_SPECS.get(self.purpose)
+        return self[spec.order_field] if spec else self.env[PURCHASE_ORDER]
 
     # ── Evidence integrity ───────────────────────────────────
 
@@ -280,6 +371,101 @@ class PlasticosLogisticsRequest(models.Model):
             return "template_missing"
         return False
 
+    @api.model
+    def _so_fingerprint(self, order):
+        """Hash of everything the buyer-facing SO message and PDF commit to.
+
+        Covers every field the native sale.report_saleorder renders, so a queued
+        PDF that no longer matches the order is never delivered. The one
+        exception is ``date_order``: native confirmation stamps it with the
+        confirmation time, so on a confirmed SO it is release metadata, and
+        including it would turn an unchanged reconfirmation into a resend.
+        """
+        partner = order.partner_id
+
+        def address(contact):
+            if not contact:
+                return []
+            return [
+                contact.id,
+                contact.name or "",
+                contact.street or "",
+                contact.street2 or "",
+                contact.zip or "",
+                contact.city or "",
+                contact.state_id.id,
+                contact.country_id.id,
+                contact.vat or "",
+                contact.phone or "",
+            ]
+
+        def stamp(value):
+            return fields.Datetime.to_string(value) if value else ""
+
+        lines = [
+            [
+                line.id,
+                line.display_type or "",
+                line.product_id.id,
+                line.name or "",
+                line.product_uom_qty,
+                line.product_uom_id.id,
+                line.price_unit,
+                line.discount,
+                sorted(line.tax_ids.ids),
+                line.is_downpayment,
+            ]
+            for line in order.order_line.sorted("id")
+        ]
+        # Positional, not keyed: the order of this list is part of the fingerprint contract.
+        payload = [
+            order.company_id.id,
+            order.company_id.name or "",
+            order.id,
+            email_normalize(partner.email or "") or "",
+            partner.lang or "",
+            address(partner),
+            address(order.partner_invoice_id),
+            address(order.partner_shipping_id),
+            order.currency_id.id,
+            order.payment_term_id.id,
+            str(order.payment_term_id.note or ""),
+            order.incoterm.id if "incoterm" in order._fields else False,
+            (order.incoterm_location or "") if "incoterm_location" in order._fields else "",
+            str(order.note or ""),
+            order.client_order_ref or "",
+            stamp(order.commitment_date),
+            str(order.validity_date or ""),
+            order.user_id.id,
+            order.fiscal_position_id.id,
+            order.signed_by or "",
+            order.amount_untaxed,
+            order.amount_tax,
+            order.amount_total,
+            lines,
+        ]
+        return hashlib.sha256(json.dumps(payload, default=str).encode()).hexdigest()
+
+    @api.model
+    def _so_block_reason(self, order):
+        """Why this exact sale order may not be issued to its buyer now, or ``False``."""
+        if order.state != "sale":
+            return "order_not_confirmed"
+        if not order.company_id:
+            return "company_missing"
+        buyer = order.partner_id
+        if not buyer:
+            return "buyer_missing"
+        if buyer.company_id and buyer.company_id != order.company_id:
+            return "buyer_company_mismatch"
+        if not email_normalize(buyer.email or ""):
+            return "buyer_email_invalid"
+        if not order.order_line.filtered(lambda line: not line.display_type):
+            return "order_lines_missing"
+        if not self.env.ref(SO_ISSUE_TEMPLATE, raise_if_not_found=False):
+            return "template_missing"
+        return False
+
     # ── Issuance ─────────────────────────────────────────────
 
     @api.model
@@ -289,39 +475,49 @@ class PlasticosLogisticsRequest(models.Model):
         Called only after a live native release. Off mode and non-release contexts
         record nothing; shadow records evidence without creating any mail.
         """
+        return self._issue_orders(orders, "po_issue")
+
+    @api.model
+    def _issue_sale_orders(self, orders):
+        """Record and queue the buyer issue for orders that just reached native ``sale``."""
+        return self._issue_orders(orders, "so_issue")
+
+    @api.model
+    def _issue_orders(self, orders, purpose):
         mode = self._linda_mode()
         if mode == LINDA_MODE_OFF or any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS):
             return self.browse()
-        # sudo: evidence bookkeeping only. Roles allowed to confirm a PO (purchase, sales rep,
-        # logistics) differ, and a missing evidence right must not roll back a native approval.
-        # Company, PO and supplier are copied from the exact order; nothing is chosen.
+        # sudo: evidence bookkeeping only. Roles allowed to confirm an order differ, and a
+        # missing evidence right must not roll back a native approval. Company, order and
+        # party are copied from the exact order; nothing is chosen.
         evidence = self.sudo()
         requests = self.browse()
         for order in orders:
-            requests |= evidence._issue_purchase_order(order, mode)
+            requests |= evidence._issue_order(order, mode, purpose)
         return requests
 
-    def _issue_purchase_order(self, order, mode):
-        fingerprint = self._po_fingerprint(order)
-        block_reason = self._po_block_reason(order)
+    def _issue_order(self, order, mode, purpose):
+        spec = ISSUE_SPECS[purpose]
+        fingerprint = getattr(self, spec.fingerprint)(order)
+        block_reason = getattr(self, spec.block_reason)(order)
         outcome = "blocked" if block_reason else ("shadow" if mode == LINDA_MODE_SHADOW else "queued")
 
         # A queued issue that no longer matches the order must never leave the queue.
         stale = self.search(
-            [("purchase_order_id", "=", order.id), ("purpose", "=", "po_issue"), ("state", "=", "queued")]
+            [(spec.order_field, "=", order.id), ("purpose", "=", purpose), ("state", "=", "queued")]
         ).filtered(lambda request: request.payload_fingerprint != fingerprint)
         stale._cancel_queued("superseded_by_release")
 
         partner = order.partner_id
         if not partner:
-            _logger.warning("Linda PO issue skipped for %s: no supplier on the order", order.name)
+            _logger.warning("Linda %s skipped for %s: no party on the order", purpose, order.name)
             return self.browse()
         latest = self.search(
             [
                 ("company_id", "=", order.company_id.id),
-                ("purchase_order_id", "=", order.id),
+                (spec.order_field, "=", order.id),
                 ("partner_id", "=", partner.id),
-                ("purpose", "=", "po_issue"),
+                ("purpose", "=", purpose),
             ],
             order="revision desc",
             limit=1,
@@ -331,8 +527,8 @@ class PlasticosLogisticsRequest(models.Model):
 
         values = {
             "company_id": order.company_id.id,
-            "purpose": "po_issue",
-            "purchase_order_id": order.id,
+            "purpose": purpose,
+            spec.order_field: order.id,
             "partner_id": partner.id,
             "recipient_email": email_normalize(partner.email or "") or False,
             "revision": latest.revision + 1,
@@ -341,13 +537,13 @@ class PlasticosLogisticsRequest(models.Model):
             "state_reason": block_reason,
         }
         if outcome == "blocked":
-            _logger.info("Linda PO issue blocked for %s: %s", order.name, block_reason)
+            _logger.info("Linda %s blocked for %s: %s", purpose, order.name, block_reason)
             return self.create(values)
 
         request = self.create(values)
         # Rendered and queued as the releasing user (order.env), not as superuser.
-        # Presence was checked by _po_block_reason ("template_missing").
-        template = order.env.ref(PO_ISSUE_TEMPLATE, raise_if_not_found=False)
+        # Presence was checked by the purpose's block reason ("template_missing").
+        template = order.env.ref(spec.template, raise_if_not_found=False)
         mail_id = False
         try:
             with self.env.cr.savepoint():
@@ -365,7 +561,7 @@ class PlasticosLogisticsRequest(models.Model):
                     )
         except Exception:
             # A render or queue failure blocks only this issue, never the native approval.
-            _logger.exception("Linda PO issue could not be rendered or queued for %s", order.name)
+            _logger.exception("Linda %s could not be rendered or queued for %s", purpose, order.name)
             request.write({"state": "blocked", "state_reason": "render_failed"})
             return request
         request.write({"subject": subject, "mail_id": mail_id, "queued_at": mail_id and fields.Datetime.now()})
@@ -385,23 +581,25 @@ class PlasticosLogisticsRequest(models.Model):
     def _current_block_reason(self):
         """Why this queued request may no longer be delivered, or ``False``."""
         self.ensure_one()
-        order = self.purchase_order_id
+        spec = ISSUE_SPECS[self.purpose]
+        order = self._source_order()
         if self._linda_mode() != LINDA_MODE_LIVE:
             return "mode_not_live"
-        reason = self._po_block_reason(order)
+        reason = getattr(self, spec.block_reason)(order)
         if reason:
             return reason
         if order.company_id != self.company_id or order.partner_id != self.partner_id:
             return "party_changed"
-        if self._po_fingerprint(order) != self.payload_fingerprint:
+        if getattr(self, spec.fingerprint)(order) != self.payload_fingerprint:
             return "payload_changed"
         return False
 
     @api.model
     def _cancel_stale_for_orders(self, orders):
         """Cancel queued issues of these orders that no longer match their current payload."""
-        # sudo: same evidence scope as issuance; the PO editor may hold no right on requests.
-        queued = self.sudo().search([("purchase_order_id", "in", orders.ids), ("state", "=", "queued")])
+        order_field = next(spec.order_field for spec in ISSUE_SPECS.values() if spec.order_model == orders._name)
+        # sudo: same evidence scope as issuance; the order editor may hold no right on requests.
+        queued = self.sudo().search([(order_field, "in", orders.ids), ("state", "=", "queued")])
         for request in queued:
             reason = request._current_block_reason()
             if reason:

@@ -57,6 +57,11 @@ if env.context.get('skip_automations') or env.context.get('import_mode') or env.
 else:
     # Send SO confirmation to buyer when order is confirmed
     for so in records.filtered(lambda s: s.state == 'sale'):
+        # Linda owns the initial buyer SO issue in live mode (plasticos_logistics WP01b);
+        # in off and shadow modes this legacy send is unchanged.
+        if so._linda_owns_so_issuance():
+            continue
+
         # Duplicate guard: check if already sent
         if so.message_ids.filtered(lambda m: 'Sales order confirmation sent to buyer' in (m.body or '')):
             continue

@@ -1,8 +1,20 @@
-from odoo import models
+from odoo import fields, models
+
+from .linda_request import LINDA_MODE_LIVE, MATERIAL_SO_FIELDS
+
+LOGISTICS_REQUEST = "plasticos.logistics.request"
 
 
 class SaleOrderInherit(models.Model):
     _inherit = "sale.order"
+
+    linda_request_ids = fields.One2many(
+        LOGISTICS_REQUEST,
+        "sale_order_id",
+        string="Linda Requests",
+        readonly=True,
+        help="Order-scoped Linda issuance evidence for this sale order.",
+    )
 
     def action_create_load(self):
         """Open load form with this sale order set as default."""
@@ -14,3 +26,28 @@ class SaleOrderInherit(models.Model):
             "target": "current",
             "context": {"default_sale_order_id": self.id},
         }
+
+    def action_confirm(self):
+        """Issue the buyer SO after the full native confirmation path succeeded (WP01b, BRS-01-R065).
+
+        plasticos_automation's approval gate runs before this override and
+        plasticos_transaction's compiler inside ``super()``; only orders that
+        actually moved into ``sale`` here are issued. Native confirmation
+        refuses orders already in ``sale``, so a replay never reaches this point.
+        """
+        previous_state = {order.id: order.state for order in self}
+        res = super().action_confirm()
+        released = self.filtered(lambda order: previous_state.get(order.id) != "sale" and order.state == "sale")
+        if released:
+            self.env[LOGISTICS_REQUEST]._issue_sale_orders(released)
+        return res
+
+    def write(self, vals):
+        res = super().write(vals)
+        if MATERIAL_SO_FIELDS.intersection(vals) and self.ids:
+            self.env[LOGISTICS_REQUEST]._cancel_stale_for_orders(self)
+        return res
+
+    def _linda_owns_so_issuance(self):
+        """True when Linda, not the legacy automation, sends the initial buyer SO."""
+        return self.env[LOGISTICS_REQUEST]._linda_mode() == LINDA_MODE_LIVE
