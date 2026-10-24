@@ -1,0 +1,43 @@
+"""Linda PO issuance hooks on native ``purchase.order`` (WP01b, BRS-01-R001/R065).
+
+Native ``button_approve`` is the only path into ``purchase``: manager-direct
+``button_confirm`` calls it, and two-step approval calls it after ``to approve``.
+Issuance is therefore observed after that method, never triggered by drafts,
+``to approve``, imports or ``plasticos.transaction.action_activate``.
+"""
+
+from odoo import fields, models
+
+from .linda_request import MATERIAL_PO_FIELDS
+
+LOGISTICS_REQUEST = "plasticos.logistics.request"
+
+
+class PurchaseOrderInherit(models.Model):
+    _inherit = "purchase.order"
+
+    linda_request_ids = fields.One2many(
+        LOGISTICS_REQUEST,
+        "purchase_order_id",
+        string="Linda Requests",
+        readonly=True,
+        help="Order-scoped Linda issuance evidence for this purchase order.",
+    )
+
+    def button_approve(self, force=False):
+        previous_state = {order.id: order.state for order in self}
+        res = super().button_approve(force=force)
+        released = self.filtered(lambda order: previous_state.get(order.id) != "purchase" and order.state == "purchase")
+        if released:
+            self.env[LOGISTICS_REQUEST]._issue_purchase_orders(released)
+        return res
+
+    def write(self, vals):
+        res = super().write(vals)
+        if MATERIAL_PO_FIELDS.intersection(vals) and self.ids:
+            self.env[LOGISTICS_REQUEST]._cancel_stale_for_orders(self)
+        return res
+
+    def _linda_owns_po_issuance(self):
+        """True when Linda, not the legacy automation, sends the initial supplier PO."""
+        return self.env[LOGISTICS_REQUEST]._linda_mode() == "live"

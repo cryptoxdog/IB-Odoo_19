@@ -26,6 +26,11 @@ if env.context.get('skip_automations') or env.context.get('import_mode') or env.
 else:
     # Send supplier confirmation request when PO is confirmed
     for po in records.filtered(lambda p: p.state == 'purchase'):
+        # Linda owns the initial supplier PO issue in live mode (plasticos_logistics WP01b);
+        # in off and shadow modes this legacy send is unchanged.
+        if po._linda_owns_po_issuance():
+            continue
+
         # Duplicate guard: check if already sent
         if po.message_ids.filtered(lambda m: 'Supplier confirmation request sent' in (m.body or '')):
             continue

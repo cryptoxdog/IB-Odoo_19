@@ -6,6 +6,9 @@ from . import load
 from . import transaction_inherit
 from . import sale_order_inherit
 from . import rate_memory
+from . import linda_request
+from . import purchase_order_inherit
+from . import mail_mail_inherit
 
 # load_dashboard MUST import last: its SQL VIEW reads plasticos_transaction.load_id,
 # a column injected by transaction_inherit. Importing it earlier builds the VIEW before
