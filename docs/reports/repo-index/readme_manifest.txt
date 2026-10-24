@@ -26,6 +26,7 @@
 ./plasticos_intake/README.md:139:# Offer creation per selected match line:
 ./plasticos_intake_normalizer/README.md:1:# plasticos_intake_normalizer
 ./plasticos_logistics/README.md:13:# Plasticos Logistics
+./plasticos_logistics/business_rules/README.md:1:# Linda Logistics business requirements (BRS)
 ./plasticos_matching/README.md:13:# Plasticos Matching
 ./plasticos_material_profile/README.md:1:# plasticos_material_profile
 ./plasticos_offer/README.md:1:# plasticos_offer

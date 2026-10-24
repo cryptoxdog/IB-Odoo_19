@@ -15,7 +15,10 @@
 ./ci/test_check_odoo19_xml.py:436:class TestCheckXmlPatterns:
 ./ci/test_generator.py:10:class TestGenerator:
 ./ci/test_generator.py:27:class Test{self._to_camel_case(model_name)}(TransactionCase):
-./ci/weak_test_fixer.py:101:class WeakTestFixer:
+./ci/weak_test_fixer.py:23:class and that class's bases defined in the file, and a bare ``<name>()``
+./ci/weak_test_fixer.py:283:class _LocalHelpers:
+./ci/weak_test_fixer.py:324:class _Resolver:
+./ci/weak_test_fixer.py:368:class WeakTestFixer:
 ./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:15:class TestModel:
 ./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:35:class BuilderTests(unittest.TestCase):
 ./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:130:class RuntimeBindingSafetyTests(unittest.TestCase):
@@ -65,31 +68,34 @@
 ./plasticos_crm_bridge/models/web_lead.py:4:class PlasticosWebLeadCRM(models.Model):
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:9:class TestCrm4ProfileReuse(TransactionCase):
 ./plasticos_crm_sync/adapters/base.py:10:class CrmAdapterError(Exception):
-./plasticos_crm_sync/adapters/base.py:15:class CanonicalLead:
-./plasticos_crm_sync/adapters/base.py:42:class CanonicalCall:
-./plasticos_crm_sync/adapters/base.py:54:class CanonicalTableRow:
-./plasticos_crm_sync/adapters/base.py:63:class CrmAdapter(Protocol):
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:252:class VanillaSoftAdapter:
+./plasticos_crm_sync/adapters/base.py:15:class CanonicalPhone:
+./plasticos_crm_sync/adapters/base.py:29:class CanonicalLead:
+./plasticos_crm_sync/adapters/base.py:57:class CanonicalCall:
+./plasticos_crm_sync/adapters/base.py:69:class CanonicalTableRow:
+./plasticos_crm_sync/adapters/base.py:78:class CrmAdapter(Protocol):
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:256:class VanillaSoftAdapter:
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:58:class VanillaSoftClient:
 ./plasticos_crm_sync/controllers/webhook.py:18:class PlasticosCrmSyncWebhook(http.Controller):
-./plasticos_crm_sync/models/crm_call_event.py:4:class PlasticosCrmCallEvent(models.Model):
+./plasticos_crm_sync/models/crm_call_event.py:6:class PlasticosCrmCallEvent(models.Model):
 ./plasticos_crm_sync/models/crm_connection.py:20:class PlasticosCrmConnection(models.Model):
 ./plasticos_crm_sync/models/crm_external_ref.py:4:class PlasticosCrmExternalRef(models.Model):
-./plasticos_crm_sync/models/crm_external_table_row.py:4:class PlasticosCrmExternalTableRow(models.Model):
+./plasticos_crm_sync/models/crm_external_table_row.py:6:class PlasticosCrmExternalTableRow(models.Model):
 ./plasticos_crm_sync/models/crm_lead_sync.py:4:class CrmLeadSync(models.Model):
 ./plasticos_crm_sync/models/crm_sync_orphan.py:4:class PlasticosCrmSyncOrphan(models.Model):
 ./plasticos_crm_sync/models/crm_sync_run.py:4:class PlasticosCrmSyncRun(models.Model):
 ./plasticos_crm_sync/models/res_config_settings.py:7:class ResConfigSettings(models.TransientModel):
-./plasticos_crm_sync/services/approved_identity.py:29:class CrosswalkError(ValueError):
-./plasticos_crm_sync/services/approved_identity.py:127:class _CommentBlocks(HTMLParser):
-./plasticos_crm_sync/services/orchestrator.py:40:class CrmSyncLockedError(CrmAdapterError):
-./plasticos_crm_sync/services/orchestrator.py:44:class CrmFullImportArgumentError(CrmAdapterError):
-./plasticos_crm_sync/services/orchestrator.py:262:class SyncOrchestrator:
+./plasticos_crm_sync/models/res_partner_sync.py:4:class ResPartnerCrmSync(models.Model):
+./plasticos_crm_sync/services/approved_identity.py:34:class CrosswalkError(ValueError):
+./plasticos_crm_sync/services/approved_identity.py:147:class _CommentBlocks(HTMLParser):
+./plasticos_crm_sync/services/orchestrator.py:55:class CrmSyncLockedError(CrmAdapterError):
+./plasticos_crm_sync/services/orchestrator.py:59:class CrmFullImportArgumentError(CrmAdapterError):
+./plasticos_crm_sync/services/orchestrator.py:347:class SyncOrchestrator:
+./plasticos_crm_sync/services/owner_crosswalk.py:36:class OwnerResolutionError(Exception):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:32:class TestVanillaSoftLeadLifecycle(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:14:class CrmSyncOrchestratorCase(TransactionCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:45:class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:382:        class Adapter:
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1104:class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:16:class CrmSyncOrchestratorCase(TransactionCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:73:class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:486:        class Adapter:
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1208:class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
 ./plasticos_crm_sync/tests/test_settings_import_action.py:14:class TestCrmSyncSettingsImportAction(TransactionCase):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:43:class _StubAdapter:
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:73:class TestWatermarkAcknowledgement(TransactionCase):
@@ -206,18 +212,18 @@
 ./plasticos_offer/wizards/offer_bulk_action_wizard.py:10:class OfferBulkActionWizard(models.TransientModel):
 ./plasticos_order_lines/models/purchase_order_line.py:6:class PurchaseOrderLine(models.Model):
 ./plasticos_order_lines/models/sale_order_line.py:6:class SaleOrderLine(models.Model):
+./plasticos_partner_import/erp/comment_notes.py:11:class _CommentBlocks(HTMLParser):
 ./plasticos_partner_import/erp/header_forensics.py:77:class TransactionHeader:
-./plasticos_partner_import/erp/mapping_status.py:1035:class MappingStatusRow:
-./plasticos_partner_import/erp/mapping_status.py:1052:class MappingStatus:
+./plasticos_partner_import/erp/mapping_status.py:1155:class MappingStatusRow:
+./plasticos_partner_import/erp/mapping_status.py:1172:class MappingStatus:
 ./plasticos_partner_import/erp/reader.py:150:class SourcePayloadError(RuntimeError):
 ./plasticos_partner_import/erp/reader.py:154:class PayloadKind(StrEnum):
 ./plasticos_partner_import/erp/reader.py:163:class SourcePayload:
 ./plasticos_partner_import/erp/reader.py:184:class DatabaseSource:
 ./plasticos_partner_import/erp/report.py:12:class ImportReport:
-./plasticos_partner_import/erp/source_index.py:48:class IdentityViolation:
-./plasticos_partner_import/erp/source_index.py:66:class SourceIndex:
-./plasticos_partner_import/models/erp_import_service.py:77:class PlasticosErpImport(models.AbstractModel):
-./plasticos_partner_import/models/erp_import_service.py:1171:class _CommentBlocks(HTMLParser):
+./plasticos_partner_import/erp/source_index.py:61:class IdentityViolation:
+./plasticos_partner_import/erp/source_index.py:79:class SourceIndex:
+./plasticos_partner_import/models/erp_import_service.py:78:class PlasticosErpImport(models.AbstractModel):
 ./plasticos_partner_import/models/partner_import_service.py:31:class PlasticosPartnerImportService(models.AbstractModel):
 ./plasticos_partner_import/models/validation.py:9:class PlasticosPartnerImportValidation(models.AbstractModel):
 ./plasticos_partner_import/scripts/validate_partner_layer.py:53:class LayerRejected(RuntimeError):
@@ -240,7 +246,7 @@
 ./plasticos_transaction/models/audit_cron.py:8:class PlasticosAuditCron(models.Model):
 ./plasticos_transaction/models/intake_bridge.py:4:class PlasticosIntakeTxBridge(models.Model):
 ./plasticos_transaction/models/legacy_erp_import_service.py:12:class PlasticosLegacyErpImport(models.AbstractModel):
-./plasticos_transaction/models/native_document_import.py:435:    class _Report:
+./plasticos_transaction/models/native_document_import.py:650:    class _Report:
 ./plasticos_transaction/models/offer_bridge.py:4:class PlasticosOfferTxBridge(models.Model):
 ./plasticos_transaction/models/partner_bridge.py:4:class ResPartnerTxBridge(models.Model):
 ./plasticos_transaction/models/purchase_inherit.py:8:class PurchaseOrder(models.Model):
@@ -251,7 +257,7 @@
 ./plasticos_transaction/models/transaction_import_service.py:41:class PlasticosTransactionImportService(models.AbstractModel):
 ./plasticos_transaction/models/transaction_line.py:11:class PlasticosTransactionLine(models.Model):
 ./plasticos_transaction/services/status_cascade.py:32:class StatusCascadeService:
-./plasticos_transaction/tests/test_erp_worksheet_import.py:111:class TestErpWorksheetImport(TransactionCase):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:114:class TestErpWorksheetImport(TransactionCase):
 ./plasticos_transaction/tests/test_profile_form_coexistence.py:9:class TestProfileFormCoexistence(TransactionCase):
 ./plasticos_transaction/tests/test_relationship_batch.py:7:class TestRelationshipBatch(TransactionCase):
 ./plasticos_transaction/tests/test_transaction_form_ui.py:24:class TestTransactionFormUi(TransactionCase):
@@ -288,7 +294,7 @@
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:10:class LeadBulkActionWizard(models.TransientModel):
 ./scripts/audit/api_regression.py:12:class APIRegressionAudit:
 ./scripts/audit/business_logic_audit.py:68:class BusinessLogicAudit:
-./scripts/audit/odoo_audit.py:52:class OdooAudit:
+./scripts/audit/odoo_audit.py:68:class OdooAudit:
 ./scripts/audit/performance_audit.py:103:class PerformanceAudit:
 ./scripts/audit/schema_audit.py:10:class SchemaAudit:
 ./scripts/audit/security_audit.py:85:class SecurityAudit:
@@ -302,8 +308,8 @@
 ./scripts/evidence_odoo_mapping_consumer.py:55:class EvidenceApplyInput:
 ./scripts/generate_subsystem_readmes.py:117:class _ModuleVisitor(ast.NodeVisitor):
 ./scripts/opportunity_protocol.py:55:class OpportunityProtocolError(ValueError):
-./scripts/pr_autopilot.py:190:    class _StopRedirect(urllib.request.HTTPRedirectHandler):
-./scripts/pr_autopilot.py:222:class Issue:
+./scripts/pr_autopilot.py:194:    class _StopRedirect(urllib.request.HTTPRedirectHandler):
+./scripts/pr_autopilot.py:226:class Issue:
 ./scripts/pr_check_remote_feedback.py:126:class RemoteGateResult:
 ./scripts/projection_outcome_schemas.py:63:class ProjectionOutcomeError(ValueError):
 ./scripts/projection_outcome_schemas.py:241:class ProjectionEntry:
@@ -440,6 +446,14 @@
 ./tests/test_constraints_onchanges.py:136:class TestClaimConstraintsConsolidated(PlasticosTestCase):
 ./tests/test_constraints_onchanges.py:165:class TestTransactionComputesConsolidated(PlasticosTestCase):
 ./tests/test_crm_approved_identity.py:119:class _Partners(_Model):
+./tests/test_crm_approved_identity.py:213:class _Person:
+./tests/test_crm_approved_identity.py:237:class _PhoneLines:
+./tests/test_crm_approved_identity.py:250:class _Markers:
+./tests/test_crm_approved_identity.py:263:class _MarkerRows(list):
+./tests/test_crm_approved_identity.py:269:class _People:
+./tests/test_crm_history_links.py:21:class _Record:
+./tests/test_crm_history_links.py:33:class _Ref:
+./tests/test_crm_history_links.py:42:class _Partners:
 ./tests/test_crm_sync_classification.py:23:class _Missing:
 ./tests/test_crm_sync_classification.py:33:class _Record:
 ./tests/test_crm_sync_classification.py:47:class _Model:
@@ -450,6 +464,12 @@
 ./tests/test_crm_sync_classification.py:332:class _Connection:
 ./tests/test_crm_sync_classification.py:340:class _PageAdapter:
 ./tests/test_crm_sync_classification.py:353:class _TableSpyOrchestrator(_Orchestrator):
+./tests/test_crm_sync_classification.py:420:class _Found(list):
+./tests/test_crm_sync_classification.py:429:class _Lookup:
+./tests/test_crm_sync_classification.py:450:class _User(types.SimpleNamespace):
+./tests/test_crm_sync_classification.py:455:class _SourceResolver:
+./tests/test_crm_sync_classification.py:481:class _LeadEnv(_Env):
+./tests/test_crm_sync_classification.py:494:class _RealValsOrchestrator(SyncOrchestrator):
 ./tests/test_crm_sync_full_import.py:94:class _Record:
 ./tests/test_crm_sync_full_import.py:114:class _Missing:
 ./tests/test_crm_sync_full_import.py:132:class _Id:
@@ -474,14 +494,22 @@
 ./tests/test_cypher_schema_alignment.py:391:class TestSchemaDocumentation:
 ./tests/test_cypher_schema_alignment.py:427:class TestIntakeCypherMapping:
 ./tests/test_depends_transaction_claims_bridge.py:23:class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
+./tests/test_erp_import_contract.py:476:class _Empty:
+./tests/test_erp_import_contract.py:490:class _Partner:
+./tests/test_erp_import_contract.py:530:class _PartnerModel:
+./tests/test_erp_import_contract.py:551:class _PartnerSet(list):
+./tests/test_erp_import_contract.py:563:class _MarkerSet(list):
+./tests/test_erp_import_contract.py:569:class _Marker(types.SimpleNamespace):
+./tests/test_erp_import_contract.py:577:class _MarkerModel:
+./tests/test_erp_import_contract.py:609:class _ContactEnv(dict):
 ./tests/test_erp_layer_gate.py:51:class _Cursor:
 ./tests/test_erp_layer_gate.py:80:class _Env:
 ./tests/test_erp_layer_gate.py:85:class _Harness:
 ./tests/test_erp_layer_gate.py:340:class _Modules:
 ./tests/test_erp_layer_gate.py:351:class _DatabaseEnv:
 ./tests/test_erp_scratch_db_guard.py:53:class _SqlImportForbidden:
-./tests/test_erp_source_layer.py:655:class _FakeCursor:
-./tests/test_erp_source_layer.py:676:class _FakeConnection:
+./tests/test_erp_source_layer.py:729:class _FakeCursor:
+./tests/test_erp_source_layer.py:750:class _FakeConnection:
 ./tests/test_error_handling.py:35:class TestAPIFailures(PlasticosTestCase):
 ./tests/test_error_handling.py:96:class TestInvalidData(PlasticosTestCase):
 ./tests/test_error_handling.py:176:class TestPermissionDenied(PlasticosTestCase):
@@ -534,6 +562,13 @@
 ./tests/test_odoo19_compat.py:110:class TestOdoo19APICompat(unittest.TestCase):
 ./tests/test_odoo19_compat.py:215:class TestOdoo19XMLCompat(unittest.TestCase):
 ./tests/test_odoo19_compat.py:301:class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
+./tests/test_odoo_audit_field_attribution.py:30:class SampleOrder(models.Model):
+./tests/test_odoo_audit_field_attribution.py:41:class SampleLine(models.Model):
+./tests/test_odoo_audit_field_attribution.py:48:class SampleTag(models.Model):
+./tests/test_odoo_audit_field_attribution.py:54:class SamplePrototype(models.Model):
+./tests/test_odoo_audit_field_attribution.py:61:class SampleWrapped(models.Model):
+./tests/test_odoo_audit_field_attribution.py:67:class SampleOrderExtension(models.Model):
+./tests/test_odoo_audit_field_attribution.py:73:class SampleLineExtension(models.Model):
 ./tests/test_odoo_test_setup_validity.py:23:class SetupViolation(NamedTuple):
 ./tests/test_offer_price_bridge_wiring.py:31:class TestOfferPriceBridge:
 ./tests/test_onchange_purchase_order_line_plasticos.py:14:class TestPurchaseOrderLineOnchange(PlasticosTestCase):
@@ -554,6 +589,7 @@
 ./tests/test_phantom_enum_values.py:1597:class TestXmlSelectionAlignment:
 ./tests/test_phantom_enum_values.py:1718:class TestEquipmentCodeAlignment:
 ./tests/test_phantom_enum_values.py:1774:class TestPhantomAuditReport:
+./tests/test_pr_check_scope.py:54:class Repo:
 ./tests/test_process_enum_alignment.py:64:class TestProcessEnumAlignment:
 ./tests/test_sal_resolver_service.py:24:    class Datetime:
 ./tests/test_sal_resolver_service.py:54:class _LoadSearch:
@@ -582,7 +618,21 @@
 ./tests/test_triage_pipeline.py:529:class TestNormalizeWithFallback:
 ./tests/test_triage_pipeline.py:625:class TestMergeVisionResults:
 ./tests/test_triage_pipeline.py:672:class TestVisionBytePath:
-./tests/test_weak_test_authority.py:253:        class Thing:
+./tests/test_weak_test_authority.py:254:        class Thing:
+./tests/test_weak_test_authority.py:283:        class Base:
+./tests/test_weak_test_authority.py:287:        class TestCron(Base):
+./tests/test_weak_test_authority.py:330:        class TestOther:
+./tests/test_weak_test_authority.py:334:        class TestCron:
+./tests/test_weak_test_authority.py:445:        class TestCron:
+./tests/test_weak_test_authority.py:482:        class Base:
+./tests/test_weak_test_authority.py:486:        class Left(Base):
+./tests/test_weak_test_authority.py:489:        class Right(Base):
+./tests/test_weak_test_authority.py:493:        class TestDiamond(Left, Right):
+./tests/test_weak_test_authority.py:497:        class TestHops:
+./tests/test_weak_test_authority.py:571:        class Base:
+./tests/test_weak_test_authority.py:575:        class Left(Base):
+./tests/test_weak_test_authority.py:578:        class Right(Base):
+./tests/test_weak_test_authority.py:582:        class TestDiamond(Left, Right):
 ./tests/test_web_lead_adapter_contract.py:97:class _BodySigningAdapter(WebLeadAdapter):
 ./tests/test_web_lead_evidence.py:36:class _StoredAttachment:
 ./tests/test_web_lead_evidence.py:70:class _AttachmentModel:
