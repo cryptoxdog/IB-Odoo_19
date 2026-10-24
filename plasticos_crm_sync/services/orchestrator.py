@@ -13,7 +13,7 @@ from .approved_identity import (
     CrosswalkError,
     comment_with_note,
     load_crosswalk_map,
-    phone_match_key,
+    phone_identity_key,
     xmlid_name,
 )
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
@@ -25,9 +25,18 @@ CONTACT_PAGE_SIZE = 200
 CALL_BATCH_SIZE = 500
 
 # VanillaSoft custom fields with no approved native lead target. Each is kept
-# as one source-labelled paragraph of ``crm.lead.description``; none becomes a
-# partner relationship, tag or facility. Names are the exact source fields.
-LEAD_CONTEXT_FIELDS = ("Buyer/Supplier", "Company Type", "Location Type", "Location")
+# as one source-labelled paragraph of ``crm.lead.description`` when the payload
+# carries it; none becomes a partner relationship, tag, facility, call or
+# activity. Names are the exact source fields of the approved census.
+LEAD_CONTEXT_FIELDS = (
+    "Buyer/Supplier",
+    "Company Type",
+    "Location Type",
+    "Location",
+    "Load Ready",
+    "Last Result Code",
+    "Last Call Date",
+)
 
 # The Contacts list endpoint accepts `modified_after` only within this lookback.
 # Incremental runs clamp to it. The full import deliberately does not, and
@@ -220,40 +229,39 @@ def _us_mobile(number: str | None) -> bool:
     return len(digits) == 10
 
 
-def _approved_phone_candidates(dto: CanonicalLead) -> list[tuple[str, str]]:
-    """``(mobile|fax|other, number)`` for every source number, in source order.
+def _phone_line(kind: str, number: str | None) -> tuple[str, str]:
+    """A classified line: ``(mobile|fax|other, number with extension, normalized)``."""
+    return kind, phone_identity_key(number or "")
+
+
+def _source_phones(dto: CanonicalLead) -> list[tuple[str, str, str]]:
+    """``(source label, mobile|fax|other, number)`` for every source line, in source order.
 
     Typed entries carry the source classification. A DTO built without them
     falls back to the number tuples. The native primaries are added when the
-    entries do not already hold them.
+    entries do not already hold them as the same classified line.
     """
     if dto.phone_entries:
-        candidates = [(entry.kind, entry.number) for entry in dto.phone_entries]
+        lines = [(entry.label or entry.kind, entry.kind, entry.number) for entry in dto.phone_entries]
     else:
-        mobiles = {phone_match_key(number) for number in (dto.mobile_numbers or ())}
-        candidates = [
-            ("mobile" if phone_match_key(number) in mobiles else "other", number)
-            for number in (dto.phone_numbers or ())
-        ]
-    tokens = {phone_match_key(number) for _kind, number in candidates}
-    for kind, number in (("other", dto.phone), ("mobile", dto.mobile)):
-        token = phone_match_key(number)
-        if token and token not in tokens:
-            candidates.append((kind, number))
-            tokens.add(token)
-    return candidates
+        mobiles = {phone_identity_key(number) for number in (dto.mobile_numbers or ())}
+        lines = []
+        for number in dto.phone_numbers or ():
+            kind = "mobile" if phone_identity_key(number) in mobiles else "other"
+            lines.append((kind, kind, number))
+    seen = {_phone_line(kind, number) for _label, kind, number in lines}
+    for label, kind, number in (("Phone", "other", dto.phone), ("Mobile", "mobile", dto.mobile)):
+        line = _phone_line(kind, number)
+        if line[1] and line not in seen:
+            lines.append((label, kind, number))
+            seen.add(line)
+    return lines
 
 
-def _labelled_phones(dto: CanonicalLead) -> list[tuple[str, str]]:
-    """``(source label, number)`` for every source number, in source order."""
-    labelled = [(entry.label or entry.kind, entry.number) for entry in dto.phone_entries]
-    tokens = {phone_match_key(number) for _label, number in labelled}
-    for label, number in (("Phone", dto.phone), ("Mobile", dto.mobile)):
-        token = phone_match_key(number)
-        if token and token not in tokens:
-            labelled.append((label, number))
-            tokens.add(token)
-    return labelled
+def _lead_mobile(dto: CanonicalLead) -> str | bool:
+    """The first source mobile ``crm.lead.mobile`` accepts: the primary, then any other mobile."""
+    candidates = [dto.mobile] + [entry.number for entry in dto.phone_entries if entry.kind == "mobile"]
+    return next((number for number in candidates if number and _us_mobile(number)), False)
 
 
 def _description_with(current, lines: list[str]):
@@ -1109,23 +1117,24 @@ class SyncOrchestrator:
     def _add_approved_phones(self, partner, dto: CanonicalLead) -> bool:
         """Add missing CRM numbers as phone lines. Never assign phone or mobile.
 
-        Each enabled source number keeps its classification (mobile, fax or
+        Each enabled source line keeps its classification (mobile, fax or
         other); a second distinct mobile is a mobile line too. ERP and CRM
-        values are normalized to the same key before the comparison, so a
-        formatting variant of a number already on the person adds nothing.
+        lines are compared on classification plus the normalized number,
+        extension included: a formatting variant of a line already on the
+        person adds nothing, while another extension or the same number as a
+        fax is its own line. The ERP ``phone`` counts as an ``other`` line.
         """
         Phone = self.env["plasticos.partner.phone"].sudo()  # cron user has no facility-phone ACL; lines are additive
-        present = {phone_match_key(partner.phone or ""), phone_match_key(getattr(partner, "mobile", "") or "")}
+        present = {_phone_line("other", partner.phone), _phone_line("mobile", getattr(partner, "mobile", ""))}
         for line in partner.phone_line_ids:
-            present.add(phone_match_key(line.number or ""))
-        present.discard("")
+            present.add(_phone_line(line.label, line.number))
         wrote = False
-        for kind, number in _approved_phone_candidates(dto):
-            token = phone_match_key(number)
-            if not token or token in present:
+        for _label, kind, number in _source_phones(dto):
+            line = _phone_line(kind, number)
+            if not line[1] or line in present:
                 continue
             Phone.create({"partner_id": partner.id, "label": kind, "number": number})
-            present.add(token)
+            present.add(line)
             wrote = True
         return wrote
 
@@ -1523,9 +1532,10 @@ class SyncOrchestrator:
             "contact_name": contact_name or False,
             "email_from": dto.email or False,
             "phone": dto.phone or False,
-            # crm.lead.mobile accepts a 10-digit US number only; any other
-            # mobile is kept, labelled, in the description (`_lead_evidence`).
-            "mobile": dto.mobile if dto.mobile and _us_mobile(dto.mobile) else False,
+            # crm.lead.mobile accepts a 10-digit US number only: the primary
+            # mobile when it qualifies, else another source mobile that does.
+            # Every mobile not stored here stays, labelled, in the description.
+            "mobile": _lead_mobile(dto),
             "street": dto.street or False,
             "street2": dto.street2 or False,
             "city": dto.city or False,
@@ -1555,14 +1565,16 @@ class SyncOrchestrator:
             value = _collapse_ws(custom.get(name))
             if value:
                 lines.append(f"VanillaSoft {name}: {value}")
-        stored = {phone_match_key(vals.get("phone") or ""), phone_match_key(vals.get("mobile") or "")}
-        stored.discard("")
-        for label, number in _labelled_phones(dto):
-            if phone_match_key(number) not in stored:
+        stored = {_phone_line("other", vals.get("phone")), _phone_line("mobile", vals.get("mobile"))}
+        for label, kind, number in _source_phones(dto):
+            if _phone_line(kind, number) not in stored:
                 lines.append(f"VanillaSoft phone ({label}): {number}")
-        if dto.mobile and "mobile" in vals and not vals["mobile"]:
+        if dto.mobile and "mobile" in vals and not _us_mobile(dto.mobile):
             self.error_rows.append(
-                {"record_ref": ref, "message": "mobile is not a 10-digit US number; kept in the lead description"}
+                {
+                    "record_ref": ref,
+                    "message": "primary mobile is not a 10-digit US number; kept in the lead description",
+                }
             )
         country = _collapse_ws(dto.country_code)
         if country and "country_id" in vals and not vals["country_id"]:

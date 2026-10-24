@@ -672,3 +672,51 @@ def _new_counts():
         "duplicate_rejected": 0,
         "failed": 0,
     }
+
+
+def test_a_valid_second_mobile_fills_the_lead_when_the_first_is_international(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    phones = [
+        {"name": "Mobile 1", "number": "+44 7700 900123"},
+        {"name": "Mobile 2", "number": "267-555-0110"},
+    ]
+    lead = orch._upsert_lead(connection, _contact(phone_numbers=phones, custom_fields=[]))
+    assert lead.mobile == "267-555-0110"
+    assert _paragraphs(lead) == ("VanillaSoft phone (Mobile 1): +44 7700 900123",)
+    assert any("primary mobile is not a 10-digit US number" in row["message"] for row in orch.error_rows)
+    again = orch._upsert_lead(connection, _contact(phone_numbers=phones, custom_fields=[]))
+    assert again.id == lead.id and lead.writes == 0
+
+
+def test_a_same_number_fax_stays_visible_beside_the_lead_phone(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    phones = [
+        {"name": "Direct", "number": "215-555-0101"},
+        {"name": "Fax", "number": "(215) 555-0101"},
+        {"name": "Business", "number": "215-555-0101 ext. 7"},
+    ]
+    lead = orch._upsert_lead(connection, _contact(phone_numbers=phones, custom_fields=[]))
+    assert lead.phone == "215-555-0101"
+    assert _paragraphs(lead) == (
+        "VanillaSoft phone (Fax): (215) 555-0101",
+        "VanillaSoft phone (Business): 215-555-0101 ext. 7",
+    )
+
+
+def test_call_and_load_context_is_kept_as_labelled_notes_only_when_present(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    custom = [
+        {"name": "Last Result Code", "value": "LM"},
+        {"name": "Last Call Date", "value": "2024-03-05 14:10"},
+        {"name": "Load Ready", "value": "Yes - 2 loads"},
+    ]
+    lead = orch._upsert_lead(connection, _contact(custom_fields=custom, phone_numbers=[]))
+    assert _paragraphs(lead) == (
+        "VanillaSoft Load Ready: Yes - 2 loads",
+        "VanillaSoft Last Result Code: LM",
+        "VanillaSoft Last Call Date: 2024-03-05 14:10",
+    )
+    assert "plasticos.crm.call.event" not in orch.env, "a note, never a synthesized call"
+    blank = [{"name": "Last Result Code", "value": "  "}]
+    other = orch._upsert_lead(connection, _contact(contact_id="vs-9010", custom_fields=blank, phone_numbers=[]))
+    assert not other.description

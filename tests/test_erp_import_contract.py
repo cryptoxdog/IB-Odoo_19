@@ -611,7 +611,7 @@ class _ContactEnv(dict):
         return None
 
 
-def _contact_run(rows, existing_company=None, earlier=None):
+def _contact_run(rows, existing_company=None, earlier=None, roles=None):
     """Run the contact layer over ``rows`` for one counterparty.
 
     ``earlier`` maps a person name to the CT_IDs an earlier run stored for it.
@@ -640,8 +640,8 @@ def _contact_run(rows, existing_company=None, earlier=None):
     index = types.SimpleNamespace(
         contacts=contacts,
         contacts_by_cp={"C1": list(contacts)},
-        roles_by_contact={},
-        contact_roles={},
+        roles_by_contact={ct: [f"R{ct}"] for ct in (roles or {})},
+        contact_roles={f"R{ct}": {"RoleNm": role} for ct, role in (roles or {}).items()},
         addresses={},
         addresses_by_cp={},
     )
@@ -780,3 +780,26 @@ def test_an_earlier_person_of_only_inactive_ct_ids_is_archived_not_deleted():
     assert markers.names() == ["legacy_erp_contact_6003"]
     assert len(partners.rows) == 3, "the replay creates and deletes nothing"
     assert [u["key"] for u in replay.unresolved] == ["6001", "6002"]
+
+
+def test_company_phone_and_email_are_filled_independently_preferring_the_primary():
+    _people, _markers, _report, company, _ = _contact_run(
+        [
+            _contact_row("7001", Email="", PhoneBusiness="215-555-0701", name="Ann First"),
+            _contact_row("7002", "N", PhoneBusiness="215-555-0702", name="Old Gone"),
+            _contact_row("7003", Email="ap@example.test", PhoneBusiness="NULL", name="Bo Primary"),
+            _contact_row("7004", Email="other@example.test", name="Cy Third"),
+        ],
+        roles={"7003": "Primary"},
+    )
+    assert company.email == "ap@example.test", "the primary contact's email wins"
+    assert company.phone == "215-555-0701", "the primary has no real number, so the first active one supplies it"
+
+
+def test_company_values_already_set_are_never_overwritten():
+    _people, _markers, _report, company, _ = _contact_run(
+        [_contact_row("7101", Email="pat@example.test", PhoneBusiness="215-555-0711")],
+        existing_company={"email": "remit@example.test"},
+    )
+    assert company.email == "remit@example.test"
+    assert company.phone == "215-555-0711", "only the missing phone is filled"

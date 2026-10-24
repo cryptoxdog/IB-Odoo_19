@@ -471,7 +471,81 @@ def test_formatting_variants_of_one_number_are_one_entry():
                 {"name": "Direct", "number": "(215) 555-0101"},
                 {"name": "Business", "number": "+1 215.555.0101"},
                 {"name": "Office", "number": "215-555-0101 ext. 4"},
+                {"name": "Work", "number": "215 555 0101 x4"},
             ],
         }
     )
-    assert _entries(contact) == [("Direct", "(215) 555-0101", "other")]
+    assert _entries(contact) == [
+        ("Direct", "(215) 555-0101", "other"),
+        ("Office", "215-555-0101 ext. 4", "other"),
+    ], "an extension is its own line; a formatting variant of one line is not"
+
+
+def test_distinct_extensions_of_one_number_stay_two_lines():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone_numbers": [
+                {"name": "Direct", "number": "555-201-0100 ext. 101"},
+                {"name": "Business", "number": "555-201-0100 ext. 102"},
+            ],
+        }
+    )
+    assert _entries(contact) == [
+        ("Direct", "555-201-0100 ext. 101", "other"),
+        ("Business", "555-201-0100 ext. 102", "other"),
+    ]
+
+
+def test_one_number_given_as_direct_and_fax_keeps_both_classifications():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone_numbers": [
+                {"name": "Direct", "number": "215-555-0101"},
+                {"name": "Fax", "number": "(215) 555-0101"},
+            ],
+        }
+    )
+    assert _entries(contact) == [("Direct", "215-555-0101", "other"), ("Fax", "(215) 555-0101", "fax")]
+
+
+def test_a_number_disabled_in_the_list_never_returns_through_the_top_level_fallback():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone": "+1 (215) 555-0101",
+            "Direct": "215-555-0199",
+            "mobile": "215.555.0102",
+            "phone_numbers": [
+                {"name": "Direct", "number": "215-555-0101", "disabled": True},
+                {"name": "Mobile 1", "number": "215-555-0102", "disabled": "1"},
+            ],
+        }
+    )
+    assert contact.phone == "215-555-0199", "the next top-level value that the list did not disable"
+    assert contact.mobile == ""
+    assert contact.phone_entries == ()
+
+
+def test_the_top_level_number_is_still_a_fallback_when_the_list_has_none():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone": "215-555-0101",
+            "mobile": "215-555-0102",
+            "phone_numbers": [{"name": "Fax", "number": "215-555-0107"}],
+        }
+    )
+    assert (contact.phone, contact.mobile) == ("215-555-0101", "215-555-0102")
+
+
+def test_the_list_wins_over_the_top_level_number():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone": "215-555-0199",
+            "phone_numbers": [{"name": "Direct", "number": "215-555-0101"}],
+        }
+    )
+    assert contact.phone == "215-555-0101"

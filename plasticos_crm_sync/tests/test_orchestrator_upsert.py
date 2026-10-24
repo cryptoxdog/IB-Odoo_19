@@ -252,15 +252,15 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         lead = orch._upsert_lead(self.connection, contact_to_canonical(raw))
         self.assertEqual(orch.last_lead_outcome, "created")
         self.assertEqual(lead.phone, "555-100-0001")
-        self.assertFalse(lead.mobile, "a non-US mobile is not forced into crm.lead.mobile")
+        self.assertEqual(lead.mobile, "555-100-0002", "the valid second mobile fills the field the first cannot")
         self.assertEqual(lead.state_id.code, "PA")
         for line in (
             "VanillaSoft Notes: synthetic note",
             "VanillaSoft phone (mobile 1): +44 7700 900123",
-            "VanillaSoft phone (mobile 2): 555-100-0002",
             "VanillaSoft phone (fax): 555-100-0003",
         ):
             self.assertIn(line, lead.description)
+        self.assertNotIn("555-100-0002", lead.description)
         stored = lead.description
         again = orch._upsert_lead(self.connection, contact_to_canonical(raw))
         self.assertEqual(again, lead)

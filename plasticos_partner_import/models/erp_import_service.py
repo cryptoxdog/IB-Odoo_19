@@ -428,10 +428,12 @@ class PlasticosErpImport(models.AbstractModel):
         return True
 
     def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
-        """Put the primary contact's phone and email on the company when it has none.
+        """Fill the company's missing phone and email from its active contacts.
 
         The ERP stores the number and the mailbox on the person. The company
-        is who we trade with, so those values also land on the company. A
+        is who we trade with, so those values also land on the company. Each
+        value is filled on its own: from the first active ``Primary`` contact
+        that has it, else from the first other active contact that has it. A
         value already taken from the counterparty or the remit is left as-is.
         """
         from ..erp import mapping
@@ -439,28 +441,24 @@ class PlasticosErpImport(models.AbstractModel):
         partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(company_partner_id)
         if partner.email and partner.phone:
             return
-        chosen = None
-        fallback = None
+        primary_rows: list = []
+        other_rows: list = []
         for contact_id in index.contacts_by_cp.get(cp_id, []):
             row = index.contacts[contact_id]
             if mapping.contact_exclusion(row.get("IsActive")):
                 continue
-            if not _email(row, "Email") and not _text(row, "PhoneBusiness"):
-                continue
             roles = [role.lower() for role in self._contact_roles(index, contact_id)]
-            if "primary" in roles:
-                chosen = row
-                break
-            if fallback is None:
-                fallback = row
-        row = chosen or fallback
-        if not row:
-            return
+            (primary_rows if "primary" in roles else other_rows).append(row)
         values = {}
-        if not partner.email and _email(row, "Email"):
-            values["email"] = _email(row, "Email")
-        if not partner.phone and _text(row, "PhoneBusiness"):
-            values["phone"] = _text(row, "PhoneBusiness")
+        for row in primary_rows + other_rows:
+            if not partner.email and "email" not in values and _email(row, "Email"):
+                values["email"] = _email(row, "Email")
+            if not partner.phone and "phone" not in values:
+                number = mapping.real_phone(row.get("PhoneBusiness"))
+                if number:
+                    values["phone"] = number
+            if (partner.email or "email" in values) and (partner.phone or "phone" in values):
+                break
         if values:
             partner.write(values)
 

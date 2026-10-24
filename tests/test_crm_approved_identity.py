@@ -369,3 +369,24 @@ def test_record_outcome_keeps_the_reason_without_counters():
     counts = _outcomes(orch)
     orch._record_outcome(counts, "failed", "9003", "boom")
     assert counts["failed"] == 1 and orch.error_rows[-1] == {"record_ref": "9003", "message": "boom"}
+
+
+def test_approved_person_keeps_each_extension_and_a_same_number_fax():
+    person = _Person(45, phone="215-555-0101", lines=[("other", "555-201-0100 x101")])
+    orch, connection, _leads, _refs = _approved_harness(person)
+    phones = [
+        {"name": "Direct", "number": "(215) 555-0101"},
+        {"name": "Fax", "number": "215-555-0101"},
+        {"name": "Business", "number": "555-201-0100 ext. 101"},
+        {"name": "Office", "number": "555-201-0100 ext. 102"},
+    ]
+    orch._upsert_lead(connection, _approved_dto(phones=phones))
+    assert person.phone == "215-555-0101", "the ERP phone is never overwritten"
+    assert _lines(person) == [
+        ("other", "555-201-0100 x101"),
+        ("fax", "215-555-0101"),
+        ("other", "555-201-0100 ext. 102"),
+    ], "the same number as a fax and a second extension are their own lines; x101 is already there"
+    lines = _lines(person)
+    orch._upsert_lead(connection, _approved_dto(phones=phones))
+    assert _lines(person) == lines, "a replay adds no line"
