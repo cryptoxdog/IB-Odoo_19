@@ -53,12 +53,12 @@ class TestOfferStateMachine(PlasticosTestCase):
 
         polymer = False
         form = False
+        # plasticos.polymer / plasticos.material.form both require a unique ``code``
+        # (plasticos_material_profile/models/polymer.py:11-15, material_form.py:11-14).
         if "plasticos.polymer" in cls.env:
-            Polymer = cls.env["plasticos.polymer"]
-            polymer = Polymer.create({"name": "PP-Offer"})
+            polymer = cls._get_or_create_polymer("pp_offer", "PP-Offer")
         if "plasticos.material.form" in cls.env:
-            Form = cls.env["plasticos.material.form"]
-            form = Form.create({"name": "Regrind-Offer"})
+            form = cls._get_or_create_form("regrind_offer", "Regrind-Offer")
 
         cls.intake = cls.env["plasticos.intake"].create(
             {
@@ -233,9 +233,12 @@ class TestOfferComputed(PlasticosTestCase):
                 "is_company": True,
             }
         )
+        # polymer_id / form_id are required=True (plasticos_intake/models/intake.py:181-196).
         cls.intake = cls.env["plasticos.intake"].create(
             {
                 "partner_id": cls.supplier.id,
+                "polymer_id": cls.default_polymer.id,
+                "form_id": cls.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )
@@ -333,9 +336,12 @@ class TestOfferCronExpiry(PlasticosTestCase):
                 "is_company": True,
             }
         )
+        # polymer_id / form_id are required=True (plasticos_intake/models/intake.py:181-196).
         cls.intake = cls.env["plasticos.intake"].create(
             {
                 "partner_id": cls.supplier.id,
+                "polymer_id": cls.default_polymer.id,
+                "form_id": cls.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )

@@ -63,7 +63,7 @@ class TestBulkImportPerformance(PlasticosTestCase):
                 "quantity_per_load_lbs": 40000,
             }
         )
-        buyer = self._partner("Perf Buyer")
+        buyer = self._create_partner("Perf Buyer")
         vals_list = [
             {
                 "intake_id": intake.id,
@@ -114,7 +114,7 @@ class TestSearchPerformance(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.default_partner = cls._partner()
+        cls.default_partner = cls._create_partner()
 
     def test_partner_search_under_1s(self):
         start = time.time()
@@ -134,7 +134,9 @@ class TestSearchPerformance(PlasticosTestCase):
         start = time.time()
         self.env["plasticos.intake"].search(
             [
-                ("state", "not in", ("cancelled", "archived")),
+                # plasticos.intake carries ``status`` (no ``state``); lost/expired are its
+                # closed-inactive values (plasticos_intake/models/intake.py:365-373).
+                ("status", "not in", ("lost", "expired")),
                 ("normalized", "=", True),
             ],
             limit=100,

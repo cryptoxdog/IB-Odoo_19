@@ -63,7 +63,14 @@ class TestLindaFreightModels(PlasticosTestCase):
         return self.env["res.users"].create({"name": login, "login": login, "group_ids": [(6, 0, groups.ids)]})
 
     def _new_load(self):
-        intake = self.env["plasticos.intake"].create({"partner_id": self.origin.id})
+        # polymer_id / form_id are required=True (plasticos_intake/models/intake.py:181-196).
+        intake = self.env["plasticos.intake"].create(
+            {
+                "partner_id": self.origin.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
+            }
+        )
         sale = self.env["sale.order"].create({"partner_id": self.destination.id})
         load = self.env["plasticos.load"].create(
             {

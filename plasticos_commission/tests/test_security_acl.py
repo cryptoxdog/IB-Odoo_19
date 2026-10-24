@@ -24,14 +24,14 @@ class TestTransactionACL(PlasticosTestCase):
             {
                 "name": "TX Base User",
                 "login": "tx_base_user",
-                "groups_id": [(6, 0, [base_grp_id])] if base_grp_id else [],
+                "group_ids": [(6, 0, [base_grp_id])] if base_grp_id else [],
             }
         )
         cls.manager_user = cls.env["res.users"].create(
             {
                 "name": "TX Manager",
                 "login": "tx_manager",
-                "groups_id": [(6, 0, [g for g in [base_grp_id, mgr_grp_id] if g])],
+                "group_ids": [(6, 0, [g for g in [base_grp_id, mgr_grp_id] if g])],
             }
         )
         cls.supplier = cls.env["res.partner"].create({"name": "ACL Supplier", "is_company": True, "supplier_rank": 1})
@@ -110,21 +110,21 @@ class TestClaimACL(PlasticosTestCase):
             {
                 "name": "Claim User",
                 "login": "claim_u",
-                "groups_id": [(6, 0, [g for g in [base_grp_id, claim_user_grp_id] if g])],
+                "group_ids": [(6, 0, [g for g in [base_grp_id, claim_user_grp_id] if g])],
             }
         )
         cls.no_claim_user = cls.env["res.users"].create(
             {
                 "name": "No Claim",
                 "login": "no_claim",
-                "groups_id": [(6, 0, [base_grp_id])] if base_grp_id else [],
+                "group_ids": [(6, 0, [base_grp_id])] if base_grp_id else [],
             }
         )
         cls.claim_mgr = cls.env["res.users"].create(
             {
                 "name": "Claim Mgr",
                 "login": "claim_m",
-                "groups_id": [(6, 0, [g for g in [base_grp_id, claim_mgr_grp_id] if g])],
+                "group_ids": [(6, 0, [g for g in [base_grp_id, claim_mgr_grp_id] if g])],
             }
         )
         cls.tx = cls.env["plasticos.transaction"].create(
@@ -135,7 +135,9 @@ class TestClaimACL(PlasticosTestCase):
 
     def _claim(self, user=None):
         C = self.env["plasticos.claim"].with_user(user or self.env.user)
-        return C.create({"transaction_id": self.tx.id, "case_type": "quality", "summary": "T"})
+        # plasticos.claim has no ``summary`` field and no ``quality`` case_type; the free-text field is
+        # ``description`` and the default case type is ``buyer_claim`` (plasticos_claims/models/claim.py:46-58, 145).
+        return C.create({"transaction_id": self.tx.id, "case_type": "buyer_claim", "description": "T"})
 
     def test_claim_user_can_create(self):
         self.assertTrue(self._claim(self.claim_user).id)

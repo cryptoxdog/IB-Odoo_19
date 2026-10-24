@@ -12,9 +12,12 @@ Validates:
   - SQL constraints (score range, uniqueness)
 """
 
+from psycopg2.errors import CheckViolation, UniqueViolation
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 from odoo.tests.common import tagged
+from odoo.tools import mute_logger
 
 
 @tagged("post_install", "-at_install", "matching", "critical")
@@ -47,12 +50,12 @@ class TestMatchResultStateMachine(PlasticosTestCase):
         # Create polymer and form for the intake
         polymer = False
         form = False
+        # plasticos.polymer / plasticos.material.form both require a unique ``code``
+        # (plasticos_material_profile/models/polymer.py:11-15, material_form.py:11-14).
         if "plasticos.polymer" in cls.env:
-            Polymer = cls.env["plasticos.polymer"]
-            polymer = Polymer.create({"name": "PP-Test"})
+            polymer = cls._get_or_create_polymer("pp_mr_test", "PP-Test")
         if "plasticos.material.form" in cls.env:
-            Form = cls.env["plasticos.material.form"]
-            form = Form.create({"name": "Regrind-Test"})
+            form = cls._get_or_create_form("regrind_mr_test", "Regrind-Test")
 
         cls.intake = cls.env["plasticos.intake"].create(
             {
@@ -143,28 +146,30 @@ class TestMatchResultStateMachine(PlasticosTestCase):
             self.assertIn(expected, values, f"Missing match result state: {expected}")
 
     # ── Constraints ──────────────────────────────────────────
+    # These are SQL-level models.Constraint checks (plasticos_matching/models/match_result.py:159-172):
+    # the INSERT itself is rejected by PostgreSQL, so the ORM surfaces the psycopg2 violation.
     def test_score_range_constraint_lower(self):
         """Score < 0 violates SQL constraint."""
         self._skip_check()
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(CheckViolation), mute_logger("odoo.sql_db"):
             self._make_match(score=-1.0)
 
     def test_score_range_constraint_upper(self):
         """Score > 100 violates SQL constraint."""
         self._skip_check()
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(CheckViolation), mute_logger("odoo.sql_db"):
             self._make_match(score=101.0)
 
     def test_confidence_range_constraint(self):
         self._skip_check()
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(CheckViolation), mute_logger("odoo.sql_db"):
             self._make_match(confidence=-5.0)
 
     def test_uniqueness_constraint(self):
         """Same intake + buyer + run_id should fail."""
         self._skip_check()
         self._make_match(run_id="dup-run")
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(UniqueViolation), mute_logger("odoo.sql_db"):
             self._make_match(run_id="dup-run")
 
     # ── Display name ─────────────────────────────────────────

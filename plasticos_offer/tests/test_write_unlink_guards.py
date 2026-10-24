@@ -9,6 +9,9 @@ Validates guards on:
   - plasticos.intake: reset blocked on won
 """
 
+import os
+from unittest.mock import patch
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
@@ -29,9 +32,12 @@ class TestIntakeWriteGuards(PlasticosTestCase):
         )
 
     def _make_intake(self, status="draft"):
+        # polymer_id / form_id are required=True (plasticos_intake/models/intake.py:181-196).
         return self.env["plasticos.intake"].create(
             {
                 "partner_id": self.partner.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000,
                 "status": status,
             }
@@ -44,9 +50,11 @@ class TestIntakeWriteGuards(PlasticosTestCase):
             intake.action_reset_to_draft()
 
     def test_action_send_offer_only_from_matched(self):
+        # The send action is action_send_offers(), guarded by _assert_status("matched")
+        # (plasticos_intake/models/intake.py:897-900).
         intake = self._make_intake(status="draft")
         with self.assertRaises(UserError):
-            intake.action_send_offer()
+            intake.action_send_offers()
 
     def test_action_mark_processing_only_from_offer_sent(self):
         intake = self._make_intake(status="draft")
@@ -62,23 +70,26 @@ class TestIntakeWriteGuards(PlasticosTestCase):
         """action_make_po raises when no partner set."""
         intake = self.env["plasticos.intake"].create(
             {
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000,
                 "status": "matched",
             }
         )
-        with self.assertRaises(UserError):
+        with self.assertRaisesRegex(UserError, "without a supplier partner"):
             intake.action_make_po()
 
     def test_action_match_to_buyers_raises_without_engine(self):
-        """Base stub raises UserError (engine not installed)."""
+        """Matching without a configured Gate raises UserError (no local scoring fallback).
+
+        The local "Buyer Match Engine" stub was retired (ADR-003-single, M3): the base
+        action requires GATE_URL (plasticos_intake/models/intake.py:768-773) and the
+        plasticos_matching override refuses via _require_gate_for_ui
+        (plasticos_matching/models/intake_extension.py:8-13, 19-21).
+        """
         intake = self._make_intake()
-        # plasticos_matching may override this.
-        # We test the base behavior.
-        try:
+        with patch.dict(os.environ, {"GATE_URL": ""}), self.assertRaisesRegex(UserError, "Gate"):
             intake.action_match_to_buyers()
-            # If no error, engine is installed — that's fine
-        except UserError as e:
-            self.assertIn("Buyer Match Engine", str(e))
 
 
 @tagged("post_install", "-at_install", "guards")
@@ -103,6 +114,8 @@ class TestOfferWriteGuards(PlasticosTestCase):
         cls.intake = cls.env["plasticos.intake"].create(
             {
                 "partner_id": cls.partner.id,
+                "polymer_id": cls.default_polymer.id,
+                "form_id": cls.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )

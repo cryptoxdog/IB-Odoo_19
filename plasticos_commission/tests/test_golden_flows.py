@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import tagged
 
 
@@ -49,6 +49,7 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
         cls.Load = cls.env["plasticos.load"]
 
         cls.partner = cls._create_partner("Golden Flow Co", supplier_rank=1)
+        cls.buyer = cls._create_partner("Golden Flow Buyer", customer_rank=1)
         cls.polymer = cls._get_or_create_polymer("HDPE")
         cls.form = cls._get_or_create_form("pellet")
 
@@ -81,10 +82,15 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
             self.assertEqual(intake.state, "confirmed", "Intake should be confirmed")
 
         # 3) Intake → offer (via match result or direct)
-        offer_vals = {"buyer_partner_id": self.partner.id}
-        if "intake_id" in self.Offer._fields:
-            offer_vals["intake_id"] = intake.id
-        offer = self.Offer.create(offer_vals)
+        # plasticos.offer requires intake_id, supplier_id and buyer_id (there is no
+        # buyer_partner_id) — plasticos_offer/models/offer.py:48-76.
+        offer = self.Offer.create(
+            {
+                "intake_id": intake.id,
+                "supplier_id": intake.partner_id.id,
+                "buyer_id": self.buyer.id,
+            }
+        )
         if hasattr(offer, "action_send"):
             offer.action_send()
             self.assertIn(offer.state, ("sent", "accepted", "draft"), "Offer should be sent")
@@ -103,7 +109,10 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
         load_vals = {"transaction_id": tx.id} if "transaction_id" in self.Load._fields else {}
         load = self.Load.create(load_vals)
 
-        # Walk through the logistics lifecycle
+        # Walk through the logistics lifecycle. draft -> awaiting_ready has no public action;
+        # it is the first edge of VALID_TRANSITIONS (plasticos_logistics/services/state_machine.py:9-10)
+        # and action_confirm_ready only leaves awaiting_ready (plasticos_logistics/models/load.py:458-464).
+        load._transition("awaiting_ready")
         logistics_actions = (
             "action_confirm_ready",
             "action_confirm_rate",
@@ -352,27 +361,31 @@ class TestGoldenTransactionWithClaim(PlasticosTestCase):
         cls.Claim = cls.env["plasticos.claim"]
 
     def test_transaction_claim_full_lifecycle(self):
-        """Claim should progress through full lifecycle without breaking links."""
+        """Claim should progress through full lifecycle without breaking links.
+
+        Current lifecycle (plasticos_claims/models/claim.py:73-86, 266-317):
+        pending --action_start--> in_progress --action_resolve (needs resolution_note)-->
+        resolved --action_archive--> archived. There is no ``open``/``investigating``/``closed``.
+        """
         tx = self._create_transaction(name="TX-GOLD-CLM")
 
         # Create claim linked to transaction
-        claim_vals = {"name": "GOLD-CLM", "state": "open"}
-        if "transaction_id" in self.Claim._fields:
-            claim_vals["transaction_id"] = tx.id
-        claim = self.Claim.create(claim_vals)
+        claim = self.Claim.create({"name": "GOLD-CLM", "transaction_id": tx.id})
+        self.assertEqual(claim.state, "pending", "New claim should start pending review")
 
         # Walk through lifecycle
-        if hasattr(claim, "action_investigate"):
-            claim.action_investigate()
-            self.assertEqual(claim.state, "investigating", "Claim should be investigating")
+        claim.action_start()
+        self.assertEqual(claim.state, "in_progress", "Claim should be in progress")
 
-        if hasattr(claim, "action_resolve"):
+        with self.assertRaises(ValidationError):
             claim.action_resolve()
-            self.assertEqual(claim.state, "resolved", "Claim should be resolved")
+        claim.resolution_note = "Credit memo issued to buyer"
+        claim.action_resolve()
+        self.assertEqual(claim.state, "resolved", "Claim should be resolved")
+        self.assertTrue(claim.resolved_at)
 
-        if hasattr(claim, "action_close"):
-            claim.action_close()
-            self.assertEqual(claim.state, "closed", "Claim should be closed")
+        claim.action_archive()
+        self.assertEqual(claim.state, "archived", "Claim should be archived (closed)")
 
         # Verify data integrity
         self.assertTrue(tx.exists(), "Transaction should still exist")
@@ -380,13 +393,17 @@ class TestGoldenTransactionWithClaim(PlasticosTestCase):
             self.assertIn(claim.id, tx.claim_ids.ids, "Transaction should reference claim")
 
     def test_claim_reopen_from_resolved(self):
-        """Resolved claims should be reopenable for further investigation."""
-        tx = self._create_transaction(name="TX-GOLD-REOPEN")
-        claim = self._create_claim(transaction=tx, state="resolved")
+        """Resolved claims should be reopenable for further investigation.
 
-        if hasattr(claim, "action_reopen"):
-            claim.action_reopen()
-            self.assertEqual(claim.state, "open", "Claim should be reopened")
+        A resolved claim must carry a resolution_note (claim.py:224-228) and
+        action_reopen returns it to ``in_progress`` (claim.py:309-317).
+        """
+        tx = self._create_transaction(name="TX-GOLD-REOPEN")
+        claim = self._create_claim(transaction=tx, state="resolved", resolution_note="Resolved before reopen")
+
+        claim.action_reopen()
+        self.assertEqual(claim.state, "in_progress", "Claim should be reopened for investigation")
+        self.assertFalse(claim.resolved_at)
 
     def test_claim_posts_messages_on_transitions(self):
         """State transitions should post chatter messages for audit trail."""
@@ -424,16 +441,46 @@ class TestGoldenCommissionCalculation(PlasticosTestCase):
         cls.CommService = cls.env["plasticos.commission.service"]
         cls.supplier = cls._create_partner("Commission Supplier", supplier_rank=1)
         cls.buyer = cls._create_partner("Commission Buyer", customer_rank=1)
-
-    def _profitable_tx(self, revenue=10000.0, cost=8000.0):
-        return self.Tx.create(
+        # Without a rule, override or ICP default rate the service returns 0
+        # (plasticos_commission/models/commission_service.py:55-105); the golden
+        # flow therefore assigns an explicit 10% percentage-of-margin rule.
+        cls.sales_rep = cls.env["res.users"].create({"name": "Golden Commission Rep", "login": "golden_comm_rep"})
+        cls.rule = cls.env["plasticos.commission.rule"].create(
             {
-                "supplier_id": self.supplier.id,
-                "buyer_id": self.buyer.id,
-                "revenue_total": revenue,
-                "purchase_cost_total": cost,
+                "name": "Golden 10% Margin",
+                "sales_rep_id": cls.sales_rep.id,
+                "calculation_type": "percentage",
+                "percentage": 0.10,
             }
         )
+
+    def _invoice(self, move_type, partner, amount):
+        return self.env["account.move"].create(
+            {
+                "move_type": move_type,
+                "partner_id": partner.id,
+                "invoice_line_ids": [
+                    (0, 0, {"name": "Golden line", "quantity": 1, "price_unit": amount, "tax_ids": []})
+                ],
+            }
+        )
+
+    def _profitable_tx(self, revenue=10000.0, cost=8000.0):
+        # revenue_total / purchase_cost_total / gross_margin are computed from the linked
+        # customer invoice and vendor bills (plasticos_transaction/models/transaction.py:378-406,
+        # 776-824); they cannot be seeded directly, so the fixture links real documents.
+        tx = self.Tx.create(
+            {"supplier_id": self.supplier.id, "buyer_id": self.buyer.id, "commission_rule_id": self.rule.id}
+        )
+        tx.write(
+            {
+                "customer_invoice_id": self._invoice("out_invoice", self.buyer, revenue).id,
+                "vendor_bill_ids": [(4, self._invoice("in_invoice", self.supplier, cost).id)],
+            }
+        )
+        self.assertAlmostEqual(tx.revenue_total, revenue, places=2)
+        self.assertAlmostEqual(tx.purchase_cost_total, cost, places=2)
+        return tx
 
     def test_commission_fields_live_on_transaction(self):
         """The commission contract is carried by plasticos.transaction itself."""
@@ -452,6 +499,7 @@ class TestGoldenCommissionCalculation(PlasticosTestCase):
         tx = self._profitable_tx()
         self.assertGreater(tx.gross_margin, 0.0)
         self.assertGreater(tx.commission_amount, 0.0, "Profitable deal should earn commission")
+        self.assertAlmostEqual(tx.commission_amount, tx.gross_margin * self.rule.percentage, places=2)
 
     def test_commission_never_exceeds_gross_margin(self):
         """Commission is a share of margin, never larger than the margin itself."""
