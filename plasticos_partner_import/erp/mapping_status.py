@@ -892,7 +892,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "CurrencyCd": {"status": UNMAPPED, "reason": SOURCE_CONTROL, "identity_role": "none"},
         "PostedInAccting": {
             "status": UNMAPPED,
-            "reason": f"{READ_NOT_WRITTEN} Posted in CieTrade accounting is not vendor cash paid. {QUICKBOOKS_OWNS}",
+            "reason": f"{READ_NOT_WRITTEN} Posted in the ERP accounting is not vendor cash paid. {QUICKBOOKS_OWNS}",
             "identity_role": "none",
         },
         "Comment": {"status": UNMAPPED, "reason": READ_NOT_WRITTEN, "identity_role": "none"},
