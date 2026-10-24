@@ -12,6 +12,10 @@ summary: "Logistics coordination with trucker communications plus SAL, manual-on
 
 # Plasticos Logistics
 
+## Business requirements and implementation plan
+
+Linda's seven original BRS files (60 rule IDs) are in [`business_rules/`](business_rules/README.md), governed by the exact-ID [`SUPERSESSION.md`](business_rules/SUPERSESSION.md) and bound to WP00-WP11 and planned acceptance by [`LINDA_BUILD_PLAN.md`](LINDA_BUILD_PLAN.md). This is a target specification, not a runtime-completion claim.
+
 ## Purpose
 Load management, dispatch, delivery tracking, and Odoo-local deterministic freight evidence
 
