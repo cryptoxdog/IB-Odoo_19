@@ -405,8 +405,8 @@ def test_approved_person_context_names_each_vanillasoft_contact_and_replays_once
         [
             {"name": "Notes", "value": "CRM history"},
             {"name": "Buyer/Supplier", "value": "Supplier"},
-            {"name": "Last Result Code", "value": "LM"},
-            {"name": "Last Call Date", "value": "2024-03-05 14:10"},
+            {"name": "Location Type", "value": "Facility", "data_type": 1},
+            {"name": "Load Ready", "value": "Yes", "data_type": 1},
         ],
     )
     second = dto("9002", [{"name": "Buyer/Supplier", "value": "Buyer"}, {"name": "Load Ready", "value": "  "}])
@@ -416,8 +416,8 @@ def test_approved_person_context_names_each_vanillasoft_contact_and_replays_once
         "ERP notes",
         "CRM history",
         "VanillaSoft ContactID 9001 Buyer/Supplier: Supplier",
-        "VanillaSoft ContactID 9001 Last Result Code: LM",
-        "VanillaSoft ContactID 9001 Last Call Date: 2024-03-05 14:10",
+        "VanillaSoft ContactID 9001 Location Type: Facility",
+        "VanillaSoft ContactID 9001 Load Ready: Yes",
         "VanillaSoft ContactID 9002 Buyer/Supplier: Buyer",
     )
     assert comment_blocks(person.comment) == expected, "ERP notes stay first; a blank field adds nothing"

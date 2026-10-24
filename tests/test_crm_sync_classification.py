@@ -703,20 +703,39 @@ def test_a_same_number_fax_stays_visible_beside_the_lead_phone(lead_harness):
     )
 
 
-def test_call_and_load_context_is_kept_as_labelled_notes_only_when_present(lead_harness):
+def test_load_ready_is_read_where_a_live_payload_carries_it(lead_harness):
+    """Shape of a live ``GET /Contacts/{id}`` payload (values synthetic).
+
+    ``Load Ready`` is a ``custom_fields[]`` entry. "Last Result Code" and
+    "Last Call Date" do not exist in that payload: they are call-history
+    export columns, so a contact never supplies them and none is invented.
+    """
     orch, connection, _leads, _refs = lead_harness
-    custom = [
-        {"name": "Last Result Code", "value": "LM"},
-        {"name": "Last Call Date", "value": "2024-03-05 14:10"},
-        {"name": "Load Ready", "value": "Yes - 2 loads"},
-    ]
-    lead = orch._upsert_lead(connection, _contact(custom_fields=custom, phone_numbers=[]))
-    assert _paragraphs(lead) == (
-        "VanillaSoft Load Ready: Yes - 2 loads",
-        "VanillaSoft Last Result Code: LM",
-        "VanillaSoft Last Call Date: 2024-03-05 14:10",
-    )
+    raw = {
+        "contact_id": 9004,
+        "project_id": 1,
+        "company": "Synthetic Plastics",
+        "first_name": "Ada",
+        "last_name": "Byron",
+        "address1": "1 Test Way",
+        "postal_code": "19000",
+        "city": "Testville",
+        "state": "PA",
+        "country": "USA",
+        "lead_status": "",
+        "lead_source_name": "",
+        "contact_owner": "sa@scrapmanagement.com",
+        "deleted": False,
+        "custom_fields": [
+            {"name": "Load Ready", "value": "Yes - 2 loads", "data_type": 1},
+            {"name": "Location Type", "value": "Facility", "data_type": 1},
+            {"name": "Notes (PP)", "value": "", "data_type": 1},
+        ],
+        "phone_numbers": [],
+    }
+    lead = orch._upsert_lead(connection, contact_to_canonical(raw))
+    assert _paragraphs(lead) == ("VanillaSoft Location Type: Facility", "VanillaSoft Load Ready: Yes - 2 loads")
     assert "plasticos.crm.call.event" not in orch.env, "a note, never a synthesized call"
-    blank = [{"name": "Last Result Code", "value": "  "}]
-    other = orch._upsert_lead(connection, _contact(contact_id="vs-9010", custom_fields=blank, phone_numbers=[]))
-    assert not other.description
+    raw["contact_id"] = 9005
+    raw["custom_fields"] = [{"name": "Load Ready", "value": "  ", "data_type": 1}]
+    assert not orch._upsert_lead(connection, contact_to_canonical(raw)).description
