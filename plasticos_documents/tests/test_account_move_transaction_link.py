@@ -413,3 +413,60 @@ class TestAccountMoveComplianceGate(PlasticosTestCase):
             )
             with self.assertRaises(UserError):
                 move.action_post()
+
+    # ── Unmocked gate: rules are scoped by purpose ────────────────────
+
+    def _invoice_for_new_transaction(self):
+        tx = self.env["plasticos.transaction"].create({"supplier_id": self.partner.id, "buyer_id": self.partner.id})
+        so = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
+        move = self.env["account.move"].create(
+            {
+                "move_type": "out_invoice",
+                "partner_id": self.partner.id,
+                "invoice_origin": so.name,
+                "invoice_line_ids": [(0, 0, {"name": "Line", "quantity": 1, "price_unit": 50.0})],
+            }
+        )
+        return tx, move
+
+    def _rule(self, code, *, for_invoice, for_close):
+        tag = self.env["plasticos.document.tag"].create({"name": f"Gate {code}", "code": code})
+        self.env["plasticos.document.rule"].create(
+            {
+                "name": f"Gate rule {code}",
+                "tag_id": tag.id,
+                "res_model": "plasticos.transaction",
+                "required_for_invoice": for_invoice,
+                "required_for_close": for_close,
+            }
+        )
+        return tag
+
+    def test_invoice_rule_without_document_blocks_invoice(self):
+        """A missing required_for_invoice document blocks posting (no mock)."""
+        self._rule("gate_invoice_doc", for_invoice=True, for_close=False)
+        _tx, move = self._invoice_for_new_transaction()
+        with self.assertRaisesRegex(UserError, "Missing required documents for invoice posting"):
+            move.action_post()
+        self.assertEqual(move.state, "draft")
+
+    def test_close_only_rule_does_not_block_invoice(self):
+        """A rule required only for close must not block invoice posting."""
+        self._rule("gate_close_doc", for_invoice=False, for_close=True)
+        _tx, move = self._invoice_for_new_transaction()
+        move.action_post()
+        self.assertEqual(move.state, "posted")
+
+    def test_compliance_service_scopes_rules_by_purpose(self):
+        invoice_tag = self._rule("gate_scope_invoice", for_invoice=True, for_close=False)
+        close_tag = self._rule("gate_scope_close", for_invoice=False, for_close=True)
+        tx, _move = self._invoice_for_new_transaction()
+        service = self.env["plasticos.compliance.service"]
+        for_invoice = service.get_missing_documents("plasticos.transaction", tx.id, purpose="invoice")
+        for_close = service.get_missing_documents("plasticos.transaction", tx.id, purpose="close")
+        unscoped = service.get_missing_documents("plasticos.transaction", tx.id)
+        self.assertIn(invoice_tag.code, for_invoice)
+        self.assertNotIn(close_tag.code, for_invoice)
+        self.assertIn(close_tag.code, for_close)
+        self.assertNotIn(invoice_tag.code, for_close)
+        self.assertTrue({invoice_tag.code, close_tag.code} <= set(unscoped))

@@ -1041,7 +1041,8 @@ class PlasticosTransaction(models.Model):
         load = getattr(rec, "load_id", False)
         if load and load.state != "closed":
             raise UserError("Logistics must be closed.")
-        if service_docs and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id):
+        # An empty AbstractModel recordset is falsy: test for None, not truthiness.
+        if service_docs is not None and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id, purpose="close"):
             raise UserError("Required documents missing.")
         if rec.gross_margin < 0:
             raise UserError("Cannot close transaction with negative gross margin.")
