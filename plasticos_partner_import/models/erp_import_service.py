@@ -539,6 +539,7 @@ class PlasticosErpImport(models.AbstractModel):
 
             groups: dict[str, list] = {}
             order: list[str] = []
+            excluded_ids: list[str] = []
             addresses = [
                 (address_id, label) for item_cp, address_id, label, _partner_id in catalog if item_cp == cp_id and label
             ]
@@ -551,8 +552,8 @@ class PlasticosErpImport(models.AbstractModel):
                 if excluded:
                     # Before grouping, channel writes and aliasing: an inactive
                     # CT_ID gets no person, no number on the company and no marker.
-                    report.anomaly("Contact", contact_id, f"not imported: {excluded}")
-                    report.reject("contacts")
+                    report.unresolved_ref("Contact", "inactive_contact", contact_id, f"not imported: {excluded}")
+                    excluded_ids.append(contact_id)
                     continue
                 name = _text(row, "ContactNm")
                 if not name:
@@ -593,6 +594,48 @@ class PlasticosErpImport(models.AbstractModel):
                     dry_run,
                     mapping,
                 )
+            if excluded_ids and not dry_run:
+                self._retire_inactive_contacts(Partner, excluded_ids)
+
+    def _retire_inactive_contacts(self, partner_model, contact_ids: list[str]) -> None:
+        """Remove the marker an earlier run stored for each excluded CT_ID.
+
+        Runs after the active people of the counterparty are stored. The person
+        a removed marker named is archived (never deleted) only when no other
+        ERP contact marker still points at it, so an active alias keeps its
+        person and an approved CRM binding to an excluded CT_ID no longer resolves.
+        """
+        Data = self.env["ir.model.data"]
+        affected: set[int] = set()
+        for contact_id in contact_ids:
+            data = Data.search(
+                [
+                    ("module", "=", XMLID_MODULE),
+                    ("name", "=", f"legacy_erp_contact_{contact_id}"),
+                    ("model", "=", RES_PARTNER),
+                ],
+                limit=1,
+            )
+            if not data:
+                continue
+            if data.res_id:
+                affected.add(data.res_id)
+            data.unlink()
+        for partner_id in sorted(affected):
+            still_named = Data.search(
+                [
+                    ("module", "=", XMLID_MODULE),
+                    ("name", "=like", "legacy_erp_contact_%"),
+                    ("model", "=", RES_PARTNER),
+                    ("res_id", "=", partner_id),
+                ],
+                limit=1,
+            )
+            if still_named:
+                continue
+            partner = partner_model.browse(partner_id).exists()
+            if partner and not partner.is_company and partner.active:
+                partner.write({"active": False})
 
     def _import_person(
         self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping

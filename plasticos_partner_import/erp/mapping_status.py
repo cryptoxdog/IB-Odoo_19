@@ -413,7 +413,10 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
                 "company channel fill and CT_ID aliasing (no person, no marker); imported people are active"
             ),
             "required": True,
-            "null_behavior": "blank or unrecognised -> anomaly, row rejected (counted in records_rejected)",
+            "null_behavior": (
+                "N, blank or unrecognised -> unresolved inactive_contact (counted in records_rejected); an earlier "
+                "run's marker is removed and its person archived when no other contact marker points at it"
+            ),
             "identity_role": "none",
         },
         "Notes": {

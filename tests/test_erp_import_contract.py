@@ -493,6 +493,7 @@ class _Partner:
 
     def __init__(self, rec_id, vals):
         self.id = rec_id
+        self.name = self.type = self.parent_id = False
         self.email = self.phone = self.comment = self.company_role = False
         self.supplier_rank = self.customer_rank = 0
         self.is_company = False
@@ -558,8 +559,17 @@ class _MarkerModel:
         self.rows: list[_Marker] = []
 
     def search(self, domain, limit=None):
-        wanted = {field: value for field, _op, value in domain}
-        hits = [row for row in self.rows if all(getattr(row, k) == v for k, v in wanted.items())]
+        def hit(row):
+            for field, op, value in domain:
+                current = getattr(row, field)
+                if op == "=like":
+                    if not str(current).startswith(value.rstrip("%")):
+                        return False
+                elif current != value:
+                    return False
+            return True
+
+        hits = [row for row in self.rows if hit(row)]
         return hits[0] if hits else _Empty()
 
     def create(self, vals):
@@ -576,13 +586,28 @@ class _ContactEnv(dict):
         return None
 
 
-def _contact_run(rows, existing_company=None):
-    """Run the contact layer over ``rows`` for one counterparty. Returns (people, markers, report)."""
+def _contact_run(rows, existing_company=None, earlier=None):
+    """Run the contact layer over ``rows`` for one counterparty.
+
+    ``earlier`` maps a person name to the CT_IDs an earlier run stored for it.
+    """
     from erp.report import ImportReport
 
     module = _load_contact_service()
     partners, markers = _PartnerModel(), _MarkerModel()
     company = partners.create({"name": "Synthetic Co", "is_company": True, **(existing_company or {})})
+    for name, ct_ids in (earlier or {}).items():
+        person = partners.create({"name": name, "parent_id": company.id})
+        for ct_id in ct_ids:
+            markers.create(
+                {
+                    "module": module.XMLID_MODULE,
+                    "name": f"legacy_erp_contact_{ct_id}",
+                    "model": "res.partner",
+                    "res_id": person.id,
+                    "noupdate": True,
+                }
+            )
     service = module.PlasticosErpImport()
     service.env = _ContactEnv({"res.partner": partners, "ir.model.data": markers})
     service._address_catalog = lambda: []
@@ -617,8 +642,10 @@ def test_mixed_alias_group_imports_only_the_active_ct_id():
     assert (person.email, person.phone, person.active) == ("pat@example.test", "215-555-0101", True)
     assert person.phone_line_ids == [], "an inactive alias contributes no number"
     assert markers.names() == ["legacy_erp_contact_1001"], "no XMLID for the inactive alias"
-    assert report.counts["contacts"]["rejected"] == 1
-    assert report.anomalies == [{"table": "Contact", "key": "1002", "detail": "not imported: IsActive is inactive"}]
+    assert report.counts["contacts"]["rejected"] == 0
+    assert report.unresolved == [
+        {"table": "Contact", "kind": "inactive_contact", "key": "1002", "detail": "not imported: IsActive is inactive"}
+    ], "an inactive CT_ID is an unresolved row the summary explains, not an anomaly"
 
 
 @pytest.mark.parametrize("flag", ["N", "", None, "X", "maybe"])
@@ -632,9 +659,13 @@ def test_a_group_with_no_explicitly_active_row_creates_no_person(flag):
     )
     assert people == [] and markers.rows == []
     assert (company.email, company.phone) == (False, False), "an ineligible row writes no channel on the company"
-    assert report.counts["contacts"] == {"created": 0, "updated": 0, "skipped": 0, "rejected": 3}
-    assert [a["key"] for a in report.anomalies] == ["2001", "2002", "2003"]
-    assert all(a["detail"].startswith("not imported: IsActive") for a in report.anomalies)
+    assert report.counts["contacts"] == {"created": 0, "updated": 0, "skipped": 0, "rejected": 0}
+    assert [(u["kind"], u["key"]) for u in report.unresolved] == [
+        ("inactive_contact", "2001"),
+        ("inactive_contact", "2002"),
+        ("inactive_contact", "2003"),
+    ]
+    assert all(u["detail"].startswith("not imported: IsActive") for u in report.unresolved)
 
 
 def test_contact_fields_land_on_the_documented_targets():
@@ -696,3 +727,31 @@ def test_a_distinct_active_alias_email_is_kept_as_evidence_and_replays_once():
     assert person.comment == stored and len(person.writes) == writes
     assert blocks(person.comment) == ["ERP note", "ERP contact 4003 email: pat.doe@example.test", "CRM history"]
     assert len([p for p in partners.rows.values() if not p.is_company]) == 1
+
+
+def test_an_earlier_inactive_alias_marker_is_removed_and_the_active_person_kept():
+    people, markers, report, _company, _ = _contact_run(
+        [_contact_row("5001", "N"), _contact_row("5002", "Y", Email="pat@example.test")],
+        earlier={"Pat Doe": ["5001", "5002"]},
+    )
+    assert markers.names() == ["legacy_erp_contact_5002"], "the excluded CT_ID no longer resolves"
+    (person,) = people
+    assert person.active is True, "an active alias still names the person"
+    assert [u["key"] for u in report.unresolved] == ["5001"]
+
+
+def test_an_earlier_person_of_only_inactive_ct_ids_is_archived_not_deleted():
+    people, markers, report, _company, (service, index, partners) = _contact_run(
+        [_contact_row("6001", "N"), _contact_row("6002", "")],
+        earlier={"Pat Doe": ["6001", "6002"], "Lee Roe": ["6003"]},
+    )
+    assert markers.names() == ["legacy_erp_contact_6003"], "a marker of a CT_ID not in the source is untouched"
+    archived = {p.name: p.active for p in people}
+    assert archived == {"Pat Doe": False, "Lee Roe": True}
+    from erp.report import ImportReport
+
+    replay = ImportReport()
+    service._import_contacts(index, replay, {"C1": 1}, dry_run=False)
+    assert markers.names() == ["legacy_erp_contact_6003"]
+    assert len(partners.rows) == 3, "the replay creates and deletes nothing"
+    assert [u["key"] for u in replay.unresolved] == ["6001", "6002"]
