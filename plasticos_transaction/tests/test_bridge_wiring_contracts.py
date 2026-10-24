@@ -24,11 +24,14 @@ class TestIntakeBridgeWiring(PlasticosTestCase):
         match_status was previously contributed by plasticos_buyer_match_engine's
         intake_extension.py; that module was retired in M7 / TASK-051 and the
         normalizer now owns the field.
+
+        The normalizer stamps its last run on normalization_ts (not normalized_date) and reads one
+        global plasticos.normalizer.config via get_config() instead of a per-intake config link
+        (plasticos_intake_normalizer/models/intake_normalizer.py:30-63, 72).
         """
         normalizer_fields = [
             "normalized",
-            "normalized_date",
-            "normalizer_config_id",
+            "normalization_ts",
             "match_status",
         ]
         for fname in normalizer_fields:
@@ -37,6 +40,8 @@ class TestIntakeBridgeWiring(PlasticosTestCase):
                 self.fields,
                 f"Normalizer bridge field missing: {fname}. Is plasticos_intake_normalizer installed?",
             )
+        self.assertEqual(self.fields["normalization_ts"].type, "datetime")
+        self.assertTrue(callable(getattr(self.env["plasticos.normalizer.config"], "get_config", None)))
 
     def test_geo_fields_present(self):
         """plasticos_geolocalize adds lat/lon via intake_geo.py."""
@@ -71,12 +76,18 @@ class TestTransactionBridgeWiring(PlasticosTestCase):
         )
 
     def test_logistics_bridge_fields(self):
-        """plasticos_logistics adds load_ids via transaction_inherit.py."""
+        """plasticos_logistics adds load_id via transaction_inherit.py.
+
+        One load belongs to one transaction: a Many2one with a UNIQUE constraint, not a load_ids
+        One2many (plasticos_logistics/models/transaction_inherit.py:10-21).
+        """
         self.assertIn(
-            "load_ids",
+            "load_id",
             self.fields,
-            "load_ids missing — is plasticos_logistics installed?",
+            "load_id missing — is plasticos_logistics installed?",
         )
+        self.assertEqual(self.fields["load_id"].type, "many2one")
+        self.assertEqual(self.fields["load_id"].comodel_name, "plasticos.load")
 
     def test_documents_bridge_fields(self):
         """plasticos_documents adds document fields."""

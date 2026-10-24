@@ -6,8 +6,8 @@ res.partner is inherited by 8+ PlastOS modules:
   - plasticos_geolocalize (lat, lon, geo_status)
   - plasticos_material_profile (material_profile_ids)
   - plasticos_enrichment (enrichment_source_ids)
-  - plasticos_automation (contract_end_date, contract_alert_sent)
-  - plasticos_intake (res_partner_intake.py)
+  - plasticos_automation (contract_end_date, cron_contract_renewal_alert)
+  - plasticos_intake (res_partner_intake.py: intake_count, action_view_intakes)
   - plasticos_transaction (partner_bridge.py)
 """
 
@@ -53,17 +53,34 @@ class TestPartnerFieldContract(PlasticosTestCase):
 
     # ── From plasticos_intake (res_partner_intake.py) ──
     def test_intake_ids_exists(self):
-        f = self.fields.get("intake_ids")
-        self.assertIsNotNone(f, "intake_ids missing — partner form smart button needs it")
+        """The partner form smart button is backed by intake_count + action_view_intakes, which
+        select intakes by company OR facility (plasticos_intake/models/res_partner_intake.py:17-47,
+        views/material_profile_intake_views.xml:59-64); res.partner declares no intake_ids relation."""
+        partner = self.Partner.create({"name": "Intake Navigation Partner", "is_company": True})
+        action = partner.action_view_intakes()
+        self.assertEqual(action["res_model"], "plasticos.intake")
+        self.assertEqual(action["domain"], ["|", ("partner_id", "=", partner.id), ("facility_id", "=", partner.id)])
+        intake = self._create_intake(partner=partner)
+        self.assertEqual(self.env["plasticos.intake"].search(action["domain"]), intake)
+        partner.invalidate_recordset(["intake_count"])
+        self.assertEqual(partner.intake_count, 1)
 
     def test_intake_count_exists(self):
         self.assertIn("intake_count", self.fields)
 
     # ── From plasticos_automation ──
     def test_contract_fields_exist(self):
-        """Contract renewal cron depends on these."""
-        for fname in ("contract_end_date", "contract_alert_sent"):
-            self.assertIn(fname, self.fields, f"Missing automation field: {fname}")
+        """Contract renewal cron depends on these.
+
+        The cron selects partners by contract_end_date and de-duplicates alerts through a same-day
+        plasticos.automation.log row of action_type "contract_alert", not a partner flag
+        (plasticos_automation/models/contract_renewal.py:12,29-64; models/automation_log.py:28).
+        """
+        self.assertIn("contract_end_date", self.fields)
+        self.assertEqual(self.fields["contract_end_date"].type, "date")
+        self.assertTrue(callable(getattr(self.Partner, "cron_contract_renewal_alert", None)))
+        action_types = self.env["plasticos.automation.log"]._fields["action_type"].get_values(self.env)
+        self.assertIn("contract_alert", action_types)
 
     # ── From plasticos_enrichment ──
     def test_enrichment_source_ids_exists(self):

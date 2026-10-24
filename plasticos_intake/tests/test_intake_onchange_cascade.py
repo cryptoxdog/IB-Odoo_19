@@ -123,8 +123,10 @@ class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
             return
         Polymer = cls.env["plasticos.polymer"]
         FormModel = cls.env["plasticos.material.form"]
-        cls.polymer = Polymer.create({"name": "HDPE-Test"})
-        cls.form = FormModel.create({"name": "Pellet-Test"})
+        # `code` is required on both masters (plasticos_material_profile/models/polymer.py:11,
+        # models/material_form.py:11); use test-only codes so seed rows are untouched.
+        cls.polymer = Polymer.create({"name": "HDPE-Test", "code": "hdpe_test_prefill"})
+        cls.form = FormModel.create({"name": "Pellet-Test", "code": "pellet_test_prefill"})
 
         if "plasticos.material.profile" not in cls.env:
             cls.has_profile = False

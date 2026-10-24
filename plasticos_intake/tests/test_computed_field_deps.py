@@ -18,11 +18,16 @@ class TestIntakeComputedFieldDeps(PlasticosTestCase):
         cls.fields = cls.Intake._fields
 
     def _get_depends(self, field_name):
-        """Get the depends list for a computed field."""
+        """Get the resolved depends list for a computed field.
+
+        Odoo 19 fields expose no public ``depends`` attribute; the registry holds the resolved
+        dependencies of every field (odoo/orm/registry.py:517-518, via Field.get_depends,
+        odoo/orm/fields.py:561).
+        """
         f = self.fields.get(field_name)
         if not f or not f.compute:
             return None
-        return list(f.depends) if f.depends else []
+        return list(self.env.registry.field_depends[f])
 
     def test_match_count_depends_on_match_line_ids(self):
         deps = self._get_depends("match_count")

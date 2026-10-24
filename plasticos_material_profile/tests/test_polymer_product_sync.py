@@ -18,7 +18,11 @@ class TestProductBridgeWiring(PlasticosTestCase):
     """Product template PlastOS extensions."""
 
     def test_product_template_model_accessible(self):
-        self.assertTrue(self.env["product.template"])
+        # An empty recordset is falsy; assert the model is registered with its PlasticOS extension
+        # fields instead (plasticos_product/models/product_template.py:51-63).
+        self.assertIn("product.template", self.env)
+        for fname in ("polymer_id", "is_polymer_product"):
+            self.assertIn(fname, self.env["product.template"]._fields)
 
     def test_plasticos_product_categories_seeded(self):
         """product_category_data.xml should seed categories."""
@@ -76,7 +80,8 @@ class TestPolymerProductSync(PlasticosTestCase):
     def test_polymer_create_generates_product(self):
         """Creating a polymer should auto-create a matching product."""
         self._skip_check()
-        polymer = self.Polymer.create({"name": "TestSync-LDPE"})
+        # `code` is required (plasticos_material_profile/models/polymer.py:11).
+        polymer = self.Polymer.create({"name": "TestSync-LDPE", "code": "testsync_ldpe"})
         # Check for product with matching name
         product = self.env["product.template"].search(
             [

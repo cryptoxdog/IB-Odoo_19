@@ -2,12 +2,6 @@ import uuid
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.tests import tagged
 
 
@@ -22,11 +16,13 @@ class TestMaterialProfileConstraintsConsolidated(PlasticosTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Profile = cls.env["plasticos.material.profile"]
-        # Partner must have parent_id to satisfy _check_partner_is_facility constraint
+        # Partner must be a facility to satisfy _check_partner_is_facility: a child *company* partner
+        # (plasticos_facility_profile/models/res_partner.py:138-146 — person contacts are never facilities).
         cls.parent_company = cls.env["res.partner"].create({"name": "Parent Co", "is_company": True})
         cls.partner = cls.env["res.partner"].create(
             {
                 "name": "Facility",
+                "is_company": True,
                 "parent_id": cls.parent_company.id,
             }
         )
@@ -42,7 +38,8 @@ class TestMaterialProfileConstraintsConsolidated(PlasticosTestCase):
                 "form_id": self.form.id,
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        # create() rejects the duplicate triple before INSERT (material_profile.py:592-597, 397-419).
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.Profile.create(
                     {

@@ -45,8 +45,24 @@ class TestCrmLeadContract(PlasticosTestCase):
         )
 
     def test_material_profile_ids_on_lead(self):
+        """crm.lead carries no material_profile_ids relation: its materials are resolved through
+        the facility profile, a facility partner, or the partner's child facilities
+        (plasticos_crm_bridge/models/crm_lead.py:191-200), counted by material_profile_count
+        (crm_lead.py:83) and opened by action_view_material_profiles (crm_lead.py:456)."""
         self._skip_if_no_crm()
-        self.assertIn("material_profile_ids", self.fields)
+        self.assertIn("material_profile_count", self.fields)
+        self.assertTrue(callable(getattr(self.Lead, "_linked_material_profiles", None)))
+        facility = self.env["res.partner"].create({"name": "Lead Material Facility", "is_company": True})
+        company = self.env["res.partner"].create(
+            {"name": "Lead Material Company", "is_company": True, "child_ids": [(4, facility.id)]}
+        )
+        profile = self._create_material_profile(partner=facility)
+        lead = self.Lead.create({"name": "Material profile contract", "type": "lead", "partner_id": company.id})
+        self.assertIn(profile, lead._linked_material_profiles())
+        self.assertEqual(lead.material_profile_count, len(lead._linked_material_profiles()))
+        action = lead.action_view_material_profiles()
+        self.assertEqual(action["res_model"], "plasticos.material.profile")
+        self.assertEqual(self.env["plasticos.material.profile"].search(action["domain"]), profile)
 
     def test_web_opportunity_provenance_and_profile_fields(self):
         self._skip_if_no_crm()

@@ -80,10 +80,21 @@ class TestTransactionMethodContract(PlasticosTestCase):
         expected = [
             "action_activate",
             "action_close",
-            "action_cancel",
         ]
         for method in expected:
             self.assertTrue(
                 callable(getattr(self.TX, method, None)),
                 f"Missing transition method: {method}",
             )
+
+    def test_cancel_transition_goes_through_bulk_status_wizard(self):
+        """plasticos.transaction has no action_cancel; a live transaction is cancelled through the
+        bulk status wizard, which writes the guarded state and logs the reason
+        (plasticos_transaction/wizards/transaction_bulk_update_wizard.py:14-27, 60-84)."""
+        partner = self._create_partner("Cancel Contract Partner")
+        tx = self.TX.create({"supplier_id": partner.id, "buyer_id": partner.id, "quantity": 1000})
+        wizard = self.env["plasticos.tx.bulk.wizard"].create(
+            {"new_state": "cancelled", "reason": "Contract test", "transaction_ids": [(6, 0, tx.ids)]}
+        )
+        wizard.action_update_status()
+        self.assertEqual(tx.state, "cancelled")

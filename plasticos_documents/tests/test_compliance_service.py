@@ -74,12 +74,17 @@ class TestDocumentRuleModel(PlasticosTestCase):
             Rule = self.env["plasticos.document.rule"]
         except KeyError:
             self.skipTest("not installed")
-        for fname in ("name", "model_id", "tag_ids"):
+        # A rule names its target model as a Char and requires exactly one tag
+        # (plasticos_documents/models/document_rule.py:8-10); there is no model_id / tag_ids.
+        for fname in ("name", "res_model", "tag_id"):
             self.assertIn(
                 fname,
                 Rule._fields,
                 f"Missing field on document.rule: {fname}",
             )
+        self.assertEqual(Rule._fields["res_model"].type, "char")
+        self.assertEqual(Rule._fields["tag_id"].comodel_name, "plasticos.document.tag")
+        self.assertTrue(Rule._fields["tag_id"].required)
 
 
 @tagged("post_install", "-at_install", "documents")
@@ -98,8 +103,11 @@ class TestDocumentValidationMatrix(PlasticosTestCase):
             Matrix = self.env["plasticos.document.validation.matrix"]
         except KeyError:
             self.skipTest("not installed")
-        for fname in ("name", "rule_ids"):
+        # Each matrix row is one requirement: a party category plus the one tag it requires
+        # (plasticos_documents/models/document_validation_matrix.py:14-39); there is no rule_ids.
+        for fname in ("name", "doc_category", "tag_id"):
             self.assertIn(fname, Matrix._fields, f"Missing: {fname}")
+        self.assertEqual(Matrix._fields["tag_id"].comodel_name, "plasticos.document.tag")
 
 
 @tagged("post_install", "-at_install", "documents")
@@ -118,7 +126,9 @@ class TestDocumentModel(PlasticosTestCase):
             Doc = self.env["plasticos.document"]
         except KeyError:
             self.skipTest("not installed")
-        self.assertIn("tag_ids", Doc._fields)
+        # A document carries exactly one tag (plasticos_documents/models/document.py:19).
+        self.assertIn("tag_id", Doc._fields)
+        self.assertEqual(Doc._fields["tag_id"].comodel_name, "plasticos.document.tag")
 
     def test_document_has_transaction_link(self):
         try:

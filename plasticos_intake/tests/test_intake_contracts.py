@@ -13,6 +13,7 @@ Any change to these contracted fields/methods MUST update all consumers.
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
 
@@ -177,8 +178,8 @@ class TestIntakeFieldContract(PlasticosTestCase):
             self.assertIn(v, values)
 
     def test_origin_process_type_selection_values(self):
-        f = self.fields["origin_process_type"]
-        values = [s[0] for s in f.selection]
+        # The selection is a callable (plasticos_intake/models/intake.py:331-333); resolve it.
+        values = self.fields["origin_process_type"].get_values(self.env)
         required = ["injection", "extrusion", "blow_mold", "film_blown"]
         for v in required:
             self.assertIn(v, values)
@@ -195,7 +196,17 @@ class TestIntakeMethodContract(PlasticosTestCase):
 
     # ── Status transition methods (offer, transaction bridges) ──
     def test_action_send_offer_exists(self):
-        self.assertTrue(callable(getattr(self.Intake, "action_send_offer", None)))
+        """matched -> offer_sent is action_send_offers (plasticos_intake/models/intake.py:897-939).
+
+        There is no singular ``action_send_offer``; the transition method must refuse to run
+        from any status other than ``matched``.
+        """
+        self.assertTrue(callable(getattr(self.Intake, "action_send_offers", None)))
+        intake = self._create_intake()
+        self.assertEqual(intake.status, "draft")
+        with self.assertRaises(UserError):
+            intake.action_send_offers()
+        self.assertEqual(intake.status, "draft")
 
     def test_action_mark_processing_exists(self):
         self.assertTrue(callable(getattr(self.Intake, "action_mark_processing", None)))
@@ -255,7 +266,9 @@ class TestIntakeMailMixin(PlasticosTestCase):
     """Verify intake inherits mail.thread for chatter integration."""
 
     def test_intake_has_mail_thread(self):
-        self.assertIn("mail.thread", self.env["plasticos.intake"]._inherit)
+        # The registry class' ``_inherit`` is the model's own name in Odoo 19; the parent
+        # records its children instead (odoo/orm/model_classes.py:205).
+        self.assertIn("plasticos.intake", self.env["mail.thread"]._inherit_children)
 
     def test_intake_has_message_post(self):
         self.assertTrue(callable(getattr(self.env["plasticos.intake"], "message_post", None)))

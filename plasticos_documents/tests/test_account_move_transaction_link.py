@@ -22,6 +22,19 @@ from odoo.tests.common import tagged
 _logger = logging.getLogger(__name__)
 
 
+def _close_transaction(tx):
+    """Close ``tx`` through the production close write.
+
+    A direct ``state`` write is refused outside action methods
+    (plasticos_transaction/models/transaction.py:924-946). ``_apply_close`` is the write that
+    ``action_close`` performs once its preconditions pass (transaction.py:1049-1051), including the
+    commission lock (plasticos_commission/models/transaction_commission.py:100-106); the guards under
+    test here only read the resulting closed state.
+    """
+    tx._apply_close(tx)
+    return tx
+
+
 @tagged("post_install", "-at_install", "accounting", "critical")
 class TestAccountMoveTransactionLink(PlasticosTestCase):
     """Invoice/bill ↔ transaction linking on action_post()."""
@@ -163,7 +176,7 @@ class TestAccountMoveCancelGuard(PlasticosTestCase):
             }
         )
         self.tx.customer_invoice_id = move.id
-        self.tx.state = "closed"
+        _close_transaction(self.tx)
         with self.assertRaises(UserError, msg="Should block cancel on closed tx"):
             move.button_cancel()
 
@@ -242,7 +255,7 @@ class TestAccountMoveUnlinkGuard(PlasticosTestCase):
             }
         )
         self.tx.customer_invoice_id = move.id
-        self.tx.state = "closed"
+        _close_transaction(self.tx)
         with self.assertRaises(UserError):
             move.unlink()
 
@@ -317,7 +330,7 @@ class TestAccountMoveCreditNoteGuard(PlasticosTestCase):
             }
         )
         self.tx.customer_invoice_id = original.id
-        self.tx.state = "closed"
+        _close_transaction(self.tx)
         refund = self.env["account.move"].create(
             {
                 "move_type": "out_refund",
