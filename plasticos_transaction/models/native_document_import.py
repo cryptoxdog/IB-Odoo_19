@@ -649,10 +649,16 @@ def _upsert_order(importer, context, report, partner_by_cp, header, buysell, num
         incoterm_field = "incoterm"
     else:
         incoterm_field = "incoterm_id"
-        approved = (context.get("trade_dates") or {}).get(number)
+        approved, missing = (context.get("trade_dates") or {}).get(number) or (None, [])
         current = existing.date_approve if existing is not None else False
         if approved and (not current or approved < current):
             values["date_approve"] = approved
+        elif not approved:
+            report.anomaly(
+                "BuySell",
+                number,
+                f"purchase.order {values['name']}: date_approve not set ({'; '.join(missing) or 'no trade date'})",
+            )
     if incoterm_field in model._fields:
         incoterm = _incoterm(env, context, incoterm_code(basis))
         if incoterm:
@@ -1120,19 +1126,10 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
 
 
 def _vendor_due_terms(importer, context, report, batch: str, facts: dict) -> dict:
-    """The bill's payment term or explicit due date. A term is never created.
+    """The bill's payment term or explicit due date (``native_orders.vendor_bill_due_terms``). A term is never created."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import vendor_bill_due_terms  # noqa: PLC0415
 
-    ``APTerms`` naming an existing ``account.payment.term`` wins; Odoo then
-    computes the due date from the invoice date. Otherwise the header
-    ``DueDate`` is the due date and no term is set, so the partner's default
-    supplier term does not replace it. A row with neither keeps Odoo's default.
-    """
-    term = _payment_term(importer.env, context, report, batch, facts["terms"])
-    if term:
-        return {"invoice_payment_term_id": term}
-    if facts["due_date"]:
-        return {"invoice_payment_term_id": False, "invoice_date_due": facts["due_date"]}
-    return {}
+    return vendor_bill_due_terms(facts, _payment_term(importer.env, context, report, batch, facts["terms"]))
 
 
 def _payment_term(env, context, report, batch: str, name: str):

@@ -188,9 +188,9 @@ def _resolve_trade_date(index: SourceIndex, buysell_no: str) -> tuple[datetime |
     return min(dates), anomalies
 
 
-def trade_date(index: SourceIndex, buysell_no: str) -> datetime | None:
-    """Earliest ``GPLedger.TradeDt`` of the worksheet, or ``None``."""
-    return _resolve_trade_date(index, buysell_no)[0]
+def trade_date(index: SourceIndex, buysell_no: str) -> tuple[datetime | None, list[str]]:
+    """Earliest ``GPLedger.TradeDt`` of the worksheet, or ``None``, with the reasons it is missing."""
+    return _resolve_trade_date(index, buysell_no)
 
 
 def _derive_state(index: SourceIndex, buysell_no: str) -> str:

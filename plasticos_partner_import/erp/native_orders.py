@@ -76,6 +76,7 @@ __all__ = [
     "worksheet_outcome",
     "unit_price",
     "vendor_bill_header_facts",
+    "vendor_bill_due_terms",
     "worksheet_commission",
 ]
 
@@ -631,6 +632,22 @@ def vendor_bill_header_facts(payable: dict, header: dict | None) -> dict[str, st
         "due_date": first(header.get("DueDate"))[:10],
         "terms": first(header.get("APTerms")),
     }
+
+
+def vendor_bill_due_terms(facts: dict[str, str], term_id: int | None) -> dict:
+    """``account.move`` values for the bill's payment term or explicit due date.
+
+    A matched term applies only to a dated bill: Odoo computes a term from
+    ``invoice_date or date or today``, so on an undated bill the due date
+    would come from the day of the import. Without a usable term the header
+    ``DueDate`` is the due date and no term is set, so the partner's default
+    supplier term does not replace it. With neither, Odoo's default stays.
+    """
+    if term_id and facts.get("invoice_date"):
+        return {"invoice_payment_term_id": term_id}
+    if facts.get("due_date"):
+        return {"invoice_payment_term_id": False, "invoice_date_due": facts["due_date"]}
+    return {}
 
 
 WORKSHEET_CANCELLED = "cancelled"

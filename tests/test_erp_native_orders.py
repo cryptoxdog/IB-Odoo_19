@@ -42,6 +42,7 @@ from erp.native_orders import (  # noqa: E402
     selected_worksheets,
     source_payable_identities,
     unit_price,
+    vendor_bill_due_terms,
     vendor_bill_header_facts,
     with_worksheet,
     worksheet_commission,
@@ -616,3 +617,20 @@ def test_source_index_keeps_payables_with_a_blank_worksheet_reference():
     assert [row["PayableID"] for row in index.payables_by_buysell[""]] == ["999001"]
     assert [row["PayableID"] for row in index.payables_by_buysell["54839"]] == ["591398"]
     assert "" not in index.ledger_by_buysell, "only payables keep a blank reference; other tables need a worksheet"
+
+
+def test_matched_term_applies_only_to_a_dated_bill():
+    dated = {"invoice_date": "2022-04-14", "due_date": "2022-04-20"}
+    assert vendor_bill_due_terms(dated, 7) == {"invoice_payment_term_id": 7}
+    undated = {"invoice_date": "", "due_date": "2022-04-20"}
+    assert vendor_bill_due_terms(undated, 7) == {
+        "invoice_payment_term_id": False,
+        "invoice_date_due": "2022-04-20",
+    }, "an undated bill never gets a due date computed from the import day"
+    assert vendor_bill_due_terms({"invoice_date": "", "due_date": ""}, 7) == {}
+
+
+def test_unmatched_term_uses_the_header_due_date_and_clears_the_default_term():
+    facts = {"invoice_date": "2022-03-15", "due_date": "2022-03-20"}
+    assert vendor_bill_due_terms(facts, None) == {"invoice_payment_term_id": False, "invoice_date_due": "2022-03-20"}
+    assert vendor_bill_due_terms({"invoice_date": "2022-03-15", "due_date": ""}, None) == {}

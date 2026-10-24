@@ -328,7 +328,16 @@ class TestErpWorksheetImport(TransactionCase):
         self._worksheet_54839(index)
         index.orders["6345"]["PriceBasis"] = "Delivered"
         index.buysells["54839"]["InvoiceDt"] = None
+        for row in index.ledger_by_buysell["54839"]:
+            row["TradeDt"] = None
         report = self._run(index)
+
+        purchase = self._marked("purchase.order", "legacy_erp_po_7275")
+        self.assertFalse(purchase.date_approve, "no trade date is never replaced by another date")
+        self.assertIn(
+            "purchase.order 7275: date_approve not set (no GPLedger trade date)",
+            [anomaly["detail"] for anomaly in report.anomalies],
+        )
 
         sale = self._marked("sale.order", "legacy_erp_so_14263")
         if "incoterm" in sale._fields:
