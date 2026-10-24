@@ -10,6 +10,7 @@ Validates:
   - _onchange_lead_source_id syncs to partner
 """
 
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import Form, tagged
 
 

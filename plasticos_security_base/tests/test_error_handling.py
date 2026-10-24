@@ -212,7 +212,7 @@ class TestConcurrentEdits(PlasticosTestCase):
     # test_advisory_lock_prevents_double_cron exercised
     # plasticos.graph.service._cron_nightly_graph_sync — mothballed with the local graph
     # helper (scripts/migrations/mothball_local_intelligence.py DISCARDABLE_CATALOG).
-    # Cron idempotency is covered by tests/integration/test_cron_idempotency.py.
+    # Cron idempotency is covered by plasticos_claims/tests/test_cron_idempotency.py.
 
     def test_idempotent_web_lead_creation(self):
         if "plasticos.web.lead" not in self.env:
