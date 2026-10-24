@@ -1,8 +1,10 @@
 """Odoo-runtime coverage for Linda PO-only supplier issuance (WP01b).
 
 Plan acceptance A01, A08, A09, A11, A12, A13, A14, A19 and both native PO
-release paths. Delivery uses a controlled sink patched onto ir.mail_server:
-no message leaves the test database.
+release paths, plus the cancellation notice and post-cancellation release
+cycle (SUPERSESSION 2026-10-24, contract AC-02..AC-24). Delivery uses a
+controlled sink patched onto ir.mail_server: no message leaves the test
+database.
 """
 
 import smtplib
@@ -12,6 +14,7 @@ from unittest.mock import patch
 from odoo import fields
 from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
 from odoo.tools import mute_logger
 
@@ -20,6 +23,9 @@ PURCHASE_ORDER = "purchase.order"
 LINDA_MODE_PARAM = "plasticos_logistics.linda_mode"
 LINDA_SENDER = "logistics2@scrapmanagement.com"
 LEGACY_SUBJECT = "Ready for Pickup Confirmation Required"
+PO_ISSUE = "po_issue"
+PO_CANCEL = "po_cancel"
+SUPPLIER_EMAIL = "sales@acme-regrind.example"
 MAIL_LOGGER = "odoo.addons.mail.models.mail_mail"
 
 
@@ -65,8 +71,25 @@ class TestLindaPoIssuance(PlasticosTestCase):
             }
         )
 
-    def _requests(self, po):
-        return self.Request.search([("purchase_order_id", "=", po.id)], order="revision")
+    def _requests(self, po, purpose=PO_ISSUE):
+        return self.Request.search([("purchase_order_id", "=", po.id), ("purpose", "=", purpose)], order="revision")
+
+    def _notices(self, po):
+        return self._requests(po, purpose=PO_CANCEL)
+
+    def _sent_po(self, **values):
+        """A live PO whose first issue the sink has already delivered."""
+        self._set_mode("live")
+        po = self._new_po(**values)
+        po.button_confirm()
+        first = self._requests(po)
+        with self._mail_sink():
+            self._process_queue(first)
+        self.assertEqual(first.state, "sent")
+        return po, first
+
+    def _to_supplier(self, sink):
+        return [message for message in sink if message["To"] == SUPPLIER_EMAIL]
 
     def _legacy_mails(self, po):
         return self.env["mail.mail"].search(
@@ -181,7 +204,7 @@ class TestLindaPoIssuance(PlasticosTestCase):
     # ── duplicates and replays ───────────────────────────────
 
     def test_replay_and_later_so_link_do_not_reissue(self):
-        """A08: repeated buttons, direct replay, a later SO link and an unchanged reconfirmation keep one send."""
+        """A08/AC-10: repeated buttons, direct replay and a later SO link keep one send in one cycle."""
         self._set_mode("live")
         po = self._new_po()
         po.button_confirm()
@@ -198,13 +221,15 @@ class TestLindaPoIssuance(PlasticosTestCase):
             self._process_queue(first)
         self.assertEqual((len(sink), first.state), (1, "sent"))
 
-        po.button_cancel()
-        po.button_draft()
-        po.button_confirm()
+        # Without a cancellation the cycle stays open: re-approving a confirmed PO renews
+        # native date_approve but issues nothing (adversarial probe 4).
+        po.button_approve()
+        self.Request._issue_purchase_orders(po)
         with self._mail_sink() as sink:
             self.env["mail.mail"].process_email_queue()
-        self.assertFalse(sink, "an unchanged reconfirmation must not resend a delivered PO")
+        self.assertFalse(self._to_supplier(sink))
         self.assertEqual(self._requests(po), first)
+        self.assertFalse(self._notices(po))
 
     def test_cancel_before_send_cancels_the_unsent_issue(self):
         """A11: a PO canceled while its issue is queued never sends it; a later release is a new revision."""
@@ -215,6 +240,10 @@ class TestLindaPoIssuance(PlasticosTestCase):
         po.button_cancel()
         self.assertEqual((first.state, first.state_reason), ("canceled", "order_not_confirmed"))
         self.assertEqual(first.mail_id.state, "cancel")
+        self.assertFalse(self._notices(po), "AC-03: nothing reached the supplier, so nothing is retracted")
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_supplier(sink), "probe 2: no stale initial mail after cancel")
 
         po.button_draft()
         po.button_confirm()
@@ -429,6 +458,7 @@ class TestLindaPoIssuance(PlasticosTestCase):
         po.write({"partner_ref": "RFQ-ONLY"})
         po.button_cancel()
         self.assertFalse(self._requests(po))
+        self.assertFalse(self._notices(po), "AC-05: an RFQ cancellation notifies nobody")
 
     def test_invalid_supplier_contact_blocks_only_that_order(self):
         """A12: a bad supplier address blocks this PO; another valid PO still issues."""
@@ -592,3 +622,276 @@ class TestLindaPoIssuance(PlasticosTestCase):
         before = fields.Datetime.now()
         po.button_confirm()
         self.assertGreaterEqual(self._requests(po).queued_at, before)
+
+    # ── cancellation notice and release cycles (SUPERSESSION 2026-10-24) ──
+
+    def test_sent_po_cancel_notifies_supplier_once(self):
+        """AC-02/AC-06/AC-07/AC-23: one supplier notice, inert reset, no repeat on repeated cancel."""
+        sale_count = self.env["sale.order"].search_count([])
+        po, first = self._sent_po()
+
+        po.button_cancel()
+
+        notice = self._notices(po)
+        self.assertEqual(len(notice), 1)
+        self.assertEqual(
+            (notice.state, notice.origin_request_id, notice.partner_id, notice.recipient_email, notice.company_id),
+            ("queued", first, self.supplier, SUPPLIER_EMAIL, self.company),
+        )
+        self.assertFalse(notice.sale_order_id)
+        self.assertEqual((first.state, first.cycle_closed), ("sent", True), "issue evidence stays sent")
+        mail = notice.mail_id
+        self.assertEqual((mail.state, mail.email_to), ("outgoing", SUPPLIER_EMAIL))
+        self.assertIn(LINDA_SENDER, mail.email_from)
+        self.assertFalse(mail.email_cc)
+        self.assertFalse(mail.recipient_ids, "recipients come from the request, never followers")
+        self.assertFalse(mail.attachment_ids, "a cancellation carries no PO PDF")
+        self.assertEqual(mail.subject, f"CANCELED: Purchase Order {po.name}")
+        self.assertIn(po.name, mail.body_html)
+        self.assertIn("has been canceled", mail.body_html)
+        for secret in (self.buyer.name, self.buyer.email, "0.12", self.supplier.name):
+            self.assertNotIn(secret, f"{mail.subject} {mail.body_html} {mail.email_to}")
+
+        po.button_cancel()
+        po.write({"state": "cancel"})
+        po.button_draft()
+        self.assertEqual(po.state, "draft")
+        self.assertEqual(self._notices(po), notice, "repeated cancel creates no second notice")
+        self.assertEqual(self._requests(po), first, "reset to draft issues nothing")
+        self.assertEqual(mail.state, "outgoing", "the pending notice survives the reset")
+        self.assertEqual(self.env["sale.order"].search_count([]), sale_count, "no SO is invented")
+
+        with self._mail_sink() as sink:
+            self._process_queue(notice)
+        self.assertEqual(len(sink), 1)
+        self.assertEqual((sink[0]["To"], sink[0]["Cc"]), (SUPPLIER_EMAIL, None))
+        self.assertEqual(notice.state, "sent")
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_supplier(sink), "AC-18: a sent notice is never replayed")
+
+    def test_unchanged_reconfirm_after_cancel_is_a_new_cycle(self):
+        """AC-09/AC-17/probes 3, 6, 7: notice first, then a new issue revision, each delivered once."""
+        po, first = self._sent_po()
+        po.button_cancel()
+        notice = self._notices(po)
+        po.button_draft()
+        po.button_confirm()
+
+        self.assertEqual(po.state, "purchase")
+        second = self._requests(po) - first
+        self.assertEqual((second.revision, second.state), (2, "queued"))
+        self.assertEqual(second.payload_fingerprint, first.payload_fingerprint, "terms did not change")
+        self.assertNotEqual(second.mail_id, first.mail_id, "a new native mail, not a replay of the old one")
+        self.assertTrue(second.mail_id.attachment_ids.name.startswith(f"Purchase Order - {po.name}."))
+        self.assertEqual(notice.state, "queued", "the notice still reports the real cancellation")
+
+        with self._mail_sink() as sink:
+            self._process_queue(second)
+        self.assertFalse(sink, "the reissue never overtakes the pending cancellation notice")
+        self.assertEqual((second.state, second.send_attempt_count, second.mail_id.state), ("queued", 0, "outgoing"))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        delivered = self._to_supplier(sink)
+        self.assertEqual([message["Subject"] for message in delivered][0], f"CANCELED: Purchase Order {po.name}")
+        self.assertEqual(len(delivered), 2)
+        (notice | second).invalidate_recordset()
+        self.assertEqual((notice.state, second.state), ("sent", "sent"))
+
+        po.button_approve()
+        self.Request._issue_purchase_orders(po)
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_supplier(sink), "AC-10: the new cycle does not repeat itself")
+        self.assertEqual(self._requests(po), first | second)
+
+    def test_two_step_reapproval_after_cancel_issues_once(self):
+        """AC-09/AC-21: native two-step approval still gates the new cycle."""
+        self.company.write({"po_double_validation": "two_step", "po_double_validation_amount": 100.0})
+        self._set_mode("live")
+        po = self._new_po()
+        po.with_user(self.buyer_clerk).button_confirm()
+        po.with_user(self.manager).button_approve()
+        first = self._requests(po)
+        with self._mail_sink():
+            self._process_queue(first)
+        po.with_user(self.manager).button_cancel()
+        po.with_user(self.manager).button_draft()
+
+        po.with_user(self.buyer_clerk).button_confirm()
+        self.assertEqual(po.state, "to approve")
+        self.assertEqual(self._requests(po), first, "'to approve' is not a release")
+        po.with_user(self.manager).button_approve()
+        self.assertEqual((self._requests(po) - first).revision, 2)
+        self.assertEqual(len(self._notices(po)), 1)
+
+    def test_two_cancellation_cycles_create_two_notices(self):
+        """AC-11: each cycle's cancellation is its own obligation, delivered once."""
+        po, first = self._sent_po()
+        po.button_cancel()
+        po.button_draft()
+        po.button_confirm()
+        with self._mail_sink():
+            self.env["mail.mail"].process_email_queue()
+        second = self._requests(po) - first
+        self.assertEqual(second.state, "sent")
+
+        po.button_cancel()
+        notices = self._notices(po)
+        self.assertEqual(len(notices), 2)
+        self.assertEqual(notices.origin_request_id, first | second)
+        self.assertEqual(sorted(notices.mapped("revision")), [1, 2])
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertEqual(len(self._to_supplier(sink)), 1, "the first cycle's notice was already delivered")
+        self.assertEqual(set(notices.mapped("state")), {"sent"})
+
+    def test_amendment_after_cancel_issues_the_new_terms(self):
+        """AC-12: the reopened, amended order issues its new terms; old history is immutable."""
+        po, first = self._sent_po()
+        po.button_cancel()
+        po.button_draft()
+        po.write({"order_line": [(1, po.order_line.id, {"price_unit": 0.14})]})
+        po.button_confirm()
+        second = self._requests(po) - first
+        self.assertEqual(second.payload_fingerprint, self.Request._po_fingerprint(po))
+        self.assertNotEqual(second.payload_fingerprint, first.payload_fingerprint)
+        self.assertEqual((first.state, first.mail_id.state), ("sent", "sent"))
+        self.assertEqual(self._notices(po).origin_request_id, first)
+
+    def test_failed_vs_uncertain_issue_on_cancel(self):
+        """AC-04: proven undelivered sends no notice; an attempted, unknown outcome does."""
+        self._set_mode("live")
+        refused_po, generic_po, inflight_po = self._new_po(), self._new_po(price=0.13), self._new_po(price=0.14)
+        (refused_po | generic_po | inflight_po).button_confirm()
+
+        def refuse(*args, **kwargs):
+            raise ConnectionRefusedError("smtp down")
+
+        with self._mail_sink(), patch.object(type(self.env["ir.mail_server"]), "_connect__", refuse):
+            self._process_queue(self._requests(refused_po))
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self._process_queue(self._requests(generic_po))
+        inflight = self._requests(inflight_po)
+        # The state a crash mid-SMTP leaves behind: attempt committed, mail still outgoing.
+        inflight.write({"send_attempt_count": 1})
+        self.assertEqual((self._requests(refused_po).state, self._requests(generic_po).state), ("exception", "unknown"))
+
+        (refused_po | generic_po | inflight_po).button_cancel()
+
+        self.assertFalse(self._notices(refused_po), "a proven undelivered issue is not retracted")
+        self.assertEqual(self._notices(generic_po).state, "queued")
+        self.assertEqual((inflight.state, inflight.mail_id.state), ("unknown", "cancel"))
+        self.assertEqual(self._notices(inflight_po).state, "queued")
+        self.assertEqual(self._requests(generic_po).state, "unknown", "never relabeled sent")
+
+    def test_notice_goes_only_to_the_historical_audience(self):
+        """AC-13/probe 5: a contact or party change after the send never redirects the notice."""
+        po, first = self._sent_po()
+        other = self.env["res.partner"].create(
+            {"name": "Other Supplier", "is_company": True, "supplier_rank": 1, "email": "other@supplier.example"}
+        )
+        self.supplier.email = "new-desk@acme-regrind.example"
+        po.write({"partner_id": other.id})
+
+        po.button_cancel()
+
+        notice = self._notices(po)
+        self.assertEqual(len(notice), 1)
+        self.assertEqual((notice.partner_id, notice.recipient_email), (self.supplier, SUPPLIER_EMAIL))
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertEqual([message["To"] for message in sink], [SUPPLIER_EMAIL])
+
+    def test_rejected_native_cancel_creates_nothing(self):
+        """AC-16/probe 1: a locked PO refuses cancellation; no notice, no state change."""
+        po, first = self._sent_po()
+        po.button_lock()
+        with self.assertRaises(UserError):
+            po.button_cancel()
+        self.assertEqual((po.state, first.cycle_closed), ("purchase", False))
+        self.assertFalse(self._notices(po))
+
+    def test_cancel_modes_and_contexts_send_no_notice(self):
+        """AC-15: shadow records without mail; off, unknown modes and non-release contexts send nothing."""
+        shadow_po, _first = self._sent_po()
+        self._set_mode("shadow")
+        shadow_po.button_cancel()
+        notice = self._notices(shadow_po)
+        self.assertEqual((notice.state, bool(notice.mail_id)), ("shadow", False))
+        self.assertIn(shadow_po.name, notice.subject)
+
+        for mode in ("off", "LIVE-ish"):
+            po, first = self._sent_po()
+            self._set_mode(mode)
+            po.button_cancel()
+            self.assertFalse(self._notices(po), mode)
+            self.assertTrue(first.cycle_closed, "the cycle still ends")
+        for key in ("import_mode", "install_mode", "skip_automations"):
+            po, first = self._sent_po()
+            po.with_context(**{key: True}).button_cancel()
+            self.assertEqual(po.state, "cancel")
+            self.assertFalse(self._notices(po), key)
+
+    def test_notice_transport_outcomes_are_not_retried(self):
+        """AC-18: notice failures are discriminated and never auto-retried."""
+        refused_po, _ = self._sent_po()
+        generic_po, _ = self._sent_po(price=0.13)
+        (refused_po | generic_po).button_cancel()
+        refused, generic = self._notices(refused_po), self._notices(generic_po)
+
+        def refuse(*args, **kwargs):
+            raise ConnectionRefusedError("smtp down")
+
+        with self._mail_sink(), patch.object(type(self.env["ir.mail_server"]), "_connect__", refuse):
+            self._process_queue(refused)
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self._process_queue(generic)
+        self.assertEqual((refused.state, generic.state), ("exception", "unknown"))
+        with self._mail_sink() as sink:
+            self._process_queue(refused)
+            self._process_queue(generic)
+        self.assertFalse(sink)
+
+    def test_notice_render_failure_keeps_native_cancel(self):
+        """A notice that cannot be queued is recorded blocked; the native cancellation stands."""
+        po, _first = self._sent_po()
+        template_class = type(self.env["mail.template"])
+
+        def broken(*args, **kwargs):
+            raise ValueError("render crashed")
+
+        with (
+            patch.object(template_class, "send_mail", broken),
+            self.assertLogs("odoo.addons.plasticos_logistics.models.linda_request", level="ERROR"),
+        ):
+            po.button_cancel()
+        self.assertEqual(po.state, "cancel")
+        self.assertEqual((self._notices(po).state, self._notices(po).state_reason), ("blocked", "render_failed"))
+
+    def test_purchase_user_cancel_records_notice_but_cannot_forge_one(self):
+        """AC-20: an authorized cancel records the notice via Linda's sudo; the user cannot forge or edit."""
+        po, first = self._sent_po()
+        po.with_user(self.buyer_clerk).button_cancel()
+        notice = self._notices(po)
+        self.assertEqual(notice.state, "queued")
+        as_user = notice.with_user(self.buyer_clerk)
+        for vals in ({"state": "sent"}, {"recipient_email": "attacker@example.com"}, {"mail_id": False}):
+            with self.assertRaises(AccessError):
+                as_user.write(vals)
+        with self.assertRaises(AccessError):
+            self.Request.with_user(self.buyer_clerk).create(
+                {
+                    "company_id": self.company.id,
+                    "purpose": PO_CANCEL,
+                    "purchase_order_id": po.id,
+                    "partner_id": self.supplier.id,
+                    "revision": 9,
+                    "payload_fingerprint": "forged",
+                    "origin_request_id": first.id,
+                }
+            )
+        with self.assertRaises(UserError):
+            as_user.unlink()
+        self.assertEqual(notice.state, "queued")

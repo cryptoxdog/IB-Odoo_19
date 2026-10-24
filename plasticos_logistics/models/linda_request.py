@@ -36,6 +36,8 @@ LINDA_MODE_LIVE = "live"
 LINDA_MODES = (LINDA_MODE_OFF, LINDA_MODE_SHADOW, LINDA_MODE_LIVE)
 PO_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_po_issue"
 SO_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_so_issue"
+PO_CANCEL_TEMPLATE = "plasticos_logistics.mail_template_linda_po_cancel"
+SO_CANCEL_TEMPLATE = "plasticos_logistics.mail_template_linda_so_cancel"
 
 # Context keys under which an order transition is not a live native release.
 NON_RELEASE_CONTEXT_KEYS = ("import_mode", "install_mode", "skip_automations")
@@ -108,6 +110,7 @@ IDENTITY_FIELDS = frozenset(
         "partner_id",
         "revision",
         "payload_fingerprint",
+        "origin_request_id",
     }
 )
 
@@ -130,6 +133,21 @@ ISSUE_SPECS = {
 }
 
 
+class CancelSpec(NamedTuple):
+    """A cancellation notice purpose: the issue it follows up on and its template."""
+
+    issue_purpose: str
+    order_field: str
+    template: str
+
+
+CANCEL_SPECS = {
+    "po_cancel": CancelSpec("po_issue", "purchase_order_id", PO_CANCEL_TEMPLATE),
+    "so_cancel": CancelSpec("so_issue", "sale_order_id", SO_CANCEL_TEMPLATE),
+}
+CANCEL_PURPOSE_BY_ISSUE = {spec.issue_purpose: purpose for purpose, spec in CANCEL_SPECS.items()}
+
+
 class PlasticosLogisticsRequest(models.Model):
     _name = "plasticos.logistics.request"
     _description = "Linda Logistics Request"
@@ -145,7 +163,12 @@ class PlasticosLogisticsRequest(models.Model):
         help="Company of the source order; never inferred from a transaction or load.",
     )
     purpose = fields.Selection(
-        [("po_issue", "PO Issuance"), ("so_issue", "SO Issuance")],
+        [
+            ("po_issue", "PO Issuance"),
+            ("so_issue", "SO Issuance"),
+            ("po_cancel", "PO Cancellation"),
+            ("so_cancel", "SO Cancellation"),
+        ],
         required=True,
         readonly=True,
         help="External obligation this request evidences.",
@@ -156,7 +179,7 @@ class PlasticosLogisticsRequest(models.Model):
         readonly=True,
         index=True,
         ondelete="restrict",
-        help="Exact native purchase order of a po_issue; empty for any other purpose.",
+        help="Exact native purchase order of a po_issue or po_cancel; empty for any other purpose.",
     )
     sale_order_id = fields.Many2one(
         SALE_ORDER,
@@ -164,7 +187,7 @@ class PlasticosLogisticsRequest(models.Model):
         readonly=True,
         index="btree_not_null",
         ondelete="restrict",
-        help="Exact native sale order of an so_issue; empty for any other purpose.",
+        help="Exact native sale order of an so_issue or so_cancel; empty for any other purpose.",
     )
     partner_id = fields.Many2one(
         RES_PARTNER,
@@ -216,6 +239,18 @@ class PlasticosLogisticsRequest(models.Model):
         help="Native mail.mail carrying the party message.",
     )
     send_attempt_count = fields.Integer(readonly=True, help="Native send attempts started for this mail.")
+    origin_request_id = fields.Many2one(
+        "plasticos.logistics.request",
+        string="Canceled Issue",
+        readonly=True,
+        index="btree_not_null",
+        ondelete="restrict",
+        help="The issue this cancellation notice follows up on; its recipient is the notice's audience.",
+    )
+    cycle_closed = fields.Boolean(
+        readonly=True,
+        help="A native cancellation ended this issue's release cycle; the next native release issues anew.",
+    )
     queued_at = fields.Datetime(readonly=True)
     sent_at = fields.Datetime(readonly=True)
 
@@ -230,8 +265,8 @@ class PlasticosLogisticsRequest(models.Model):
         "A Linda request already exists for this company, sale order, party, purpose and revision.",
     )
     _check_exactly_one_source_order = models.Constraint(
-        "CHECK((purpose = 'po_issue' AND purchase_order_id IS NOT NULL AND sale_order_id IS NULL)"
-        " OR (purpose = 'so_issue' AND sale_order_id IS NOT NULL AND purchase_order_id IS NULL))",
+        "CHECK((purpose IN ('po_issue', 'po_cancel') AND purchase_order_id IS NOT NULL AND sale_order_id IS NULL)"
+        " OR (purpose IN ('so_issue', 'so_cancel') AND sale_order_id IS NOT NULL AND purchase_order_id IS NULL))",
         "A Linda request has exactly one source order, matching its purpose.",
     )
 
@@ -252,7 +287,7 @@ class PlasticosLogisticsRequest(models.Model):
     def _source_order(self):
         """The exact native order this request evidences."""
         self.ensure_one()
-        spec = ISSUE_SPECS.get(self.purpose)
+        spec = ISSUE_SPECS.get(self.purpose) or CANCEL_SPECS.get(self.purpose)
         return self[spec.order_field] if spec else self.env[PURCHASE_ORDER]
 
     # ── Evidence integrity ───────────────────────────────────
@@ -535,7 +570,15 @@ class PlasticosLogisticsRequest(models.Model):
             order="revision desc",
             limit=1,
         )
-        if latest.payload_fingerprint == fingerprint and (latest.state in HOLDING_STATES or latest.state == outcome):
+        # Inside one release cycle the same payload never issues twice. After a native
+        # cancellation closed the cycle, a new native release is a new issue even when the
+        # terms are identical (operator decision 2026-10-24, SUPERSESSION).
+        same_cycle = latest and not latest.cycle_closed
+        if (
+            same_cycle
+            and latest.payload_fingerprint == fingerprint
+            and (latest.state in HOLDING_STATES or latest.state == outcome)
+        ):
             return latest
 
         values = {
@@ -580,6 +623,110 @@ class PlasticosLogisticsRequest(models.Model):
         request.write({"subject": subject, "mail_id": mail_id, "queued_at": mail_id and fields.Datetime.now()})
         return request
 
+    # ── Native cancellation ──────────────────────────────────
+
+    @api.model
+    def _cancel_block_reason(self, cancel_purpose, recipient_email):
+        """Why a cancellation notice to this historical address may not go out, or ``False``."""
+        if not email_normalize(recipient_email or ""):
+            return "recipient_unattributable"
+        if not self.env.ref(CANCEL_SPECS[cancel_purpose].template, raise_if_not_found=False):
+            return "template_missing"
+        return False
+
+    @api.model
+    def _record_cancellations(self, orders):
+        """Record a successful native cancellation of these orders.
+
+        Closes each order's open release cycle, settles in-flight issues as
+        unknown, and queues one cancellation notice per audience that was, or
+        may have been, sent the issue. The audience is the original issue's own
+        party and address, never the order's current contact. Off mode and
+        non-release contexts send nothing; the cycle still closes.
+        """
+        issue_purpose = next(purpose for purpose, spec in ISSUE_SPECS.items() if spec.order_model == orders._name)
+        order_field = ISSUE_SPECS[issue_purpose].order_field
+        cancel_purpose = CANCEL_PURPOSE_BY_ISSUE[issue_purpose]
+        mode = self._linda_mode()
+        notify = mode != LINDA_MODE_OFF and not any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS)
+        # sudo: evidence bookkeeping only, as in issuance; the canceling user may hold no
+        # right on requests, and a notice failure must never undo the native cancellation.
+        evidence = self.sudo()
+        notices = self.browse()
+        for order in orders:
+            issues = evidence.search(
+                [(order_field, "=", order.id), ("purpose", "=", issue_purpose), ("cycle_closed", "=", False)],
+                order="revision desc",
+            )
+            in_flight = issues.filtered(lambda issue: issue.state == "queued" and issue.send_attempt_count)
+            in_flight.mail_id.filtered(lambda mail: mail.state == "outgoing").write(
+                {"state": "cancel", "failure_reason": "linda:prior_send_outcome_unknown"}
+            )
+            in_flight.write({"state": "unknown", "state_reason": "prior_send_outcome_unknown"})
+            communicated = issues.filtered(
+                lambda issue: issue.state == "sent" or (issue.state == "unknown" and issue.send_attempt_count)
+            )
+            issues.write({"cycle_closed": True})
+            if not notify:
+                continue
+            audiences = set()
+            for origin in communicated:
+                audience = (origin.partner_id.id, origin.recipient_email)
+                if audience in audiences:
+                    continue
+                audiences.add(audience)
+                notices |= evidence._queue_cancellation_notice(order, origin, cancel_purpose, mode)
+        return notices
+
+    def _queue_cancellation_notice(self, order, origin, cancel_purpose, mode):
+        spec = CANCEL_SPECS[cancel_purpose]
+        existing = self.search([("purpose", "=", cancel_purpose), ("origin_request_id", "=", origin.id)], limit=1)
+        if existing:
+            return existing
+        block_reason = self._cancel_block_reason(cancel_purpose, origin.recipient_email)
+        outcome = "blocked" if block_reason else ("shadow" if mode == LINDA_MODE_SHADOW else "queued")
+        event = json.dumps([cancel_purpose, origin.id, origin.revision, origin.recipient_email or ""])
+        request = self.create(
+            {
+                "company_id": origin.company_id.id,
+                "purpose": cancel_purpose,
+                spec.order_field: order.id,
+                "partner_id": origin.partner_id.id,
+                "recipient_email": origin.recipient_email,
+                "revision": origin.revision,
+                "payload_fingerprint": hashlib.sha256(event.encode()).hexdigest(),
+                "origin_request_id": origin.id,
+                "state": outcome,
+                "state_reason": block_reason,
+            }
+        )
+        if outcome == "blocked":
+            _logger.info("Linda %s blocked for %s: %s", cancel_purpose, order.name, block_reason)
+            return request
+        template = order.env.ref(spec.template, raise_if_not_found=False)
+        mail_id = False
+        try:
+            with self.env.cr.savepoint():
+                subject = template._render_field("subject", order.ids)[order.id]
+                if outcome == "queued":
+                    mail_id = template.send_mail(
+                        order.id,
+                        force_send=False,
+                        email_values={
+                            "email_to": origin.recipient_email,
+                            "recipient_ids": [],
+                            "email_cc": False,
+                            "auto_delete": False,
+                        },
+                    )
+        except Exception:
+            # A notice failure is recorded; the native cancellation already happened and stays.
+            _logger.exception("Linda %s could not be rendered or queued for %s", cancel_purpose, order.name)
+            request.write({"state": "blocked", "state_reason": "render_failed"})
+            return request
+        request.write({"subject": subject, "mail_id": mail_id, "queued_at": mail_id and fields.Datetime.now()})
+        return request
+
     # ── Queue protection and reconciliation ──────────────────
 
     def _cancel_queued(self, reason):
@@ -594,10 +741,14 @@ class PlasticosLogisticsRequest(models.Model):
     def _current_block_reason(self):
         """Why this queued request may no longer be delivered, or ``False``."""
         self.ensure_one()
-        spec = ISSUE_SPECS[self.purpose]
-        order = self._source_order()
         if self._linda_mode() != LINDA_MODE_LIVE:
             return "mode_not_live"
+        if self.purpose in CANCEL_SPECS:
+            # A notice reports a past cancellation event: a later reopen of the order does
+            # not make it stale, so only its own audience and template are rechecked.
+            return self._cancel_block_reason(self.purpose, self.recipient_email)
+        spec = ISSUE_SPECS[self.purpose]
+        order = self._source_order()
         reason = getattr(self, spec.block_reason)(order)
         if reason:
             return reason
@@ -622,13 +773,16 @@ class PlasticosLogisticsRequest(models.Model):
     def _guard_mails_before_send(self, mails):
         """Recheck each Linda mail at send time.
 
-        Returns ``(withheld, sendable)``: Linda mails that must not reach native
-        sending (now canceled) and Linda mails cleared to send. A mail whose
-        request already recorded an attempt without an outcome is uncertain: it
-        may have reached the supplier, so it is not sent again.
+        Returns ``(withheld, sendable, held)``: Linda mails that must not reach
+        native sending (now canceled), Linda mails cleared to send, and issue
+        mails held back this run because an earlier cancellation notice to the
+        same party is still pending (they stay queued for the next run). A mail
+        whose request already recorded an attempt without an outcome is
+        uncertain: it may have reached the party, so it is not sent again.
         """
-        withheld = sendable = self.env[MAIL_MAIL]
-        for request in self.search([("mail_id", "in", mails.ids)]):
+        withheld = sendable = held = self.env[MAIL_MAIL]
+        # Ascending mail id, the order native sending uses, so a notice clears before its reissue.
+        for request in self.search([("mail_id", "in", mails.ids)]).sorted(lambda request: request.mail_id.id):
             mail = request.mail_id
             if mail.state != "outgoing":
                 continue
@@ -643,11 +797,38 @@ class PlasticosLogisticsRequest(models.Model):
                 request.write({"state": "queued"})
                 request._cancel_queued(reason)
                 withheld |= mail
+            elif (
+                request._pending_cancellation_notices().mail_id.filtered(
+                    lambda notice_mail: notice_mail.state == "outgoing"
+                )
+                - sendable
+            ):
+                # A reissue never overtakes the cancellation notice owed to the same party.
+                held |= mail
             else:
                 # First attempt, or a person explicitly retried a failed/unknown delivery.
                 request.write({"state": "queued", "state_reason": False})
                 sendable |= mail
-        return withheld, sendable
+        return withheld, sendable, held
+
+    def _pending_cancellation_notices(self):
+        """Queued cancellation notices this issue's party must receive before it."""
+        self.ensure_one()
+        cancel_purpose = CANCEL_PURPOSE_BY_ISSUE.get(self.purpose)
+        if not cancel_purpose:
+            return self.browse()
+        order_field = CANCEL_SPECS[cancel_purpose].order_field
+        return self.search(
+            [
+                ("purpose", "=", cancel_purpose),
+                (order_field, "=", self._source_order().id),
+                ("state", "=", "queued"),
+                ("id", "<", self.id),
+                "|",
+                ("partner_id", "=", self.partner_id.id),
+                ("recipient_email", "=", self.recipient_email),
+            ]
+        )
 
     @api.model
     def _mark_attempt(self, mail):
