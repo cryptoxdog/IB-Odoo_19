@@ -1144,3 +1144,224 @@ def test_required_direct_sql_without_a_source_skips_before_any_gate(erp_gate, mo
     assert erp_gate.main() == 77
     assert ran == [], "no scratch database may be created when the required seam cannot run"
     assert "cannot run" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
+# PayablesBatch — source batch identity and reconciliation, no Odoo write
+# ---------------------------------------------------------------------------
+PAYABLES_BATCH_SQL = PAYLOAD_ROOT / "25_payablesbatch.sql"
+PAYABLES_BATCH_COLUMNS = [
+    "APBatchNo",
+    "PrePay",
+    "NumofItems",
+    "PostingDt",
+    "FXAmount",
+    "CurrencyCd",
+    "PostedInAccting",
+    "Comment",
+    "APTerms",
+    "CpID",
+    "InvoiceNo",
+    "InvoiceDt",
+    "DueDate",
+    "ReversedFxAmt",
+]
+
+
+def _projected_columns(text):
+    import re
+
+    select = text.upper().index("SELECT")
+    body = text[select + len("SELECT") : text.upper().index("FROM DBO.")]
+    columns = []
+    for item in body.split(",\n"):
+        item = item.strip()
+        alias = re.search(r"\bAS\s+(\w+)$", item, re.IGNORECASE)
+        columns.append(alias.group(1) if alias else item)
+    return columns
+
+
+def test_payables_batch_projection_is_the_inventoried_header_columns_only():
+    import csv as _csv
+
+    text = PAYABLES_BATCH_SQL.read_text(encoding="utf-8-sig")
+    columns = _projected_columns(text)
+    assert columns == PAYABLES_BATCH_COLUMNS
+    assert columns[:2] == ["APBatchNo", "PrePay"], "the existing key and PrePay flag stay first"
+    with open(PAYLOAD_ROOT / "diagnostics" / "q4_columns.csv", encoding="utf-8-sig", newline="") as handle:
+        inventory = {row["COLUMN_NAME"] for row in _csv.DictReader(handle) if row["TABLE_NAME"] == "PayablesBatch"}
+    assert set(columns) <= inventory, f"projected columns absent from the source inventory: {set(columns) - inventory}"
+    upper = text.upper()
+    assert "FROM DBO.PAYABLESBATCH\nORDER BY APBATCHNO;" in upper, "same table, no filter, same order"
+    assert "PREPAYLEDGER" not in upper and "JOIN" not in upper and "WHERE" not in upper
+    assert reader.PROJECTION_SCRIPTS["PayablesBatch"] == "25_payablesbatch.sql"
+    assert "17_prepayledger.sql" not in reader.PROJECTION_SCRIPTS.values()
+
+
+def test_payables_batch_direct_read_keeps_exact_decimals_null_and_blank():
+    from decimal import Decimal
+
+    header = ["APBatchNo", *PAYABLES_BATCH_COLUMNS[1:]]
+    row = (
+        "107200 ",
+        False,
+        1,
+        "2022-03-16 00:00:00",
+        Decimal("-9366.5200"),
+        "USD",
+        True,
+        "{C107200}",
+        "",
+        "1671",
+        "INV-1",
+        "2022-03-16 00:00:00",
+        "2022-03-16 00:00:00",
+        None,
+    )
+    connection = _FakeConnection({"PayablesBatch": (header, [row]), "Payables": (["PayableID"], [])})
+    source = reader.DatabaseSource(connect=lambda: connection, label=SOURCE_LABEL)
+    payload = reader.load_payload(database=source, only=frozenset({"PayablesBatch", "Payables"}))
+    executed = "\n".join(statement for cursor in connection.cursors for statement in cursor.executed)
+    assert PAYABLES_BATCH_SQL.read_text(encoding="utf-8-sig") in executed
+    batch = payload.rows("PayablesBatch")[0]
+    assert batch["FXAmount"] == "-9366.52", "money stays an exact decimal string"
+    assert batch["PrePay"] == "0" and batch["PostedInAccting"] == "1" and batch["NumofItems"] == "1"
+    assert batch["ReversedFxAmt"] is None, "SQL NULL stays None"
+    assert batch["APTerms"] == "", "a blank stays a blank"
+    assert all(value is None or isinstance(value, str) for value in batch.values())
+
+
+def _batch(no, *, prepay="0", items="1", amount="0", currency="USD", cp="1004"):
+    return {
+        "APBatchNo": no,
+        "PrePay": prepay,
+        "NumofItems": items,
+        "FXAmount": amount,
+        "CurrencyCd": currency,
+        "CpID": cp,
+        "PostedInAccting": "1",
+        "ReversedFxAmt": None,
+    }
+
+
+def _payable(payable_id, batch, amount, *, gl="50100", cp="1004", currency="USD", buysell="BS1"):
+    return {
+        "PayableID": payable_id,
+        "BuySellNo": buysell,
+        "CpID": cp,
+        "Amount": amount,
+        "FxAmount": amount,
+        "CurrencyCd": currency,
+        "APBatchNo": batch,
+        "GLAcct": gl,
+        "Posted": "1",
+    }
+
+
+def _batch_index(batches, payables):
+    tables = {
+        "PayablesBatch": batches,
+        "Payables": payables,
+        "GPLedger": [],
+        "Receipt": [],
+        "ReceiptBatch": [],
+        "WksDelivery": [],
+    }
+    payload = reader.SourcePayload(kind=reader.PayloadKind.DATABASE, root=PAYLOAD_ROOT, tables=tables)
+    return source_index.build_source_index(payload)
+
+
+def test_payables_batch_header_and_member_grouping_classify_without_writing():
+    index = _batch_index(
+        [
+            _batch("B2LINE", items="2", amount="950"),  # two-line bill: material + freight
+            _batch("BREV", amount="-382.9"),  # vendor credit / reversal
+            _batch("BEMPTY"),  # header with no Payables row
+            _batch("BPRE", prepay="1", amount="500"),
+            _batch("BDUP"),
+            _batch("BDUP"),
+            _batch(" "),
+            _batch("BRESID", items="3", amount="650"),
+        ],
+        [
+            _payable("1", "B2LINE", "900.00"),
+            _payable("2", "B2LINE", "50", gl="50200"),
+            _payable("3", "BREV", "-382.90"),
+            _payable("4", "BMISSING", "10"),
+            _payable("5", "BMISSING", "20"),
+            _payable("6", "", "7"),
+            _payable("7", "BRESID", "950"),
+            _payable("8", "BDUP", "1"),
+        ],
+    )
+    assert sorted(index.payables_batches) == ["B2LINE", "BEMPTY", "BPRE", "BRESID", "BREV"]
+    assert [row["PayableID"] for row in index.payables_by_batch["B2LINE"]] == ["1", "2"]
+    assert "" not in index.payables_by_batch
+    kinds = {(v.table, v.kind, v.key) for v in index.payables_batch_violations}
+    assert kinds == {
+        ("PayablesBatch", "missing_primary_key", "row 7"),
+        ("PayablesBatch", "duplicate_batch_header", "BDUP"),
+        ("Payables", "missing_batch_header", "BMISSING"),
+    }
+    assert index.violations == [], "batch evidence must not reach the import summary's unresolved rows"
+    assert index.prepay_batches == {"BPRE"}, "PrePay=1 exclusion is unchanged"
+
+    census = source_index.payables_batch_census(index)
+    assert census == {
+        "headers": 5,
+        "prepay_headers": 1,
+        "prepay_member_rows": 0,
+        "headers_without_payables": 2,
+        "headers_with_one_payable": 2,
+        "headers_with_many_payables": 1,
+        "payables_without_batch": 1,
+        "duplicate_headers": 1,
+        "blank_header_keys": 1,
+        "missing_header_batches": 1,
+        "missing_header_rows": 2,
+        "batches_mixing_gl": 1,
+        "batches_mixing_vendor": 0,
+        "header_vendor_mismatch": 0,
+        "num_of_items_mismatch": 1,
+        "amount_residual_batches": 1,
+        "amount_currency_mismatch_batches": 0,
+        "amount_uncomparable_batches": 0,
+    }
+
+
+def test_payables_batch_census_compares_amounts_only_within_one_currency():
+    index = _batch_index(
+        [
+            _batch("BFX", amount="100"),
+            _batch("BNULL", amount="100"),
+            _batch("BVEND", items="2", amount="3", cp="1004"),
+        ],
+        [
+            _payable("1", "BFX", "100", currency="CAD"),
+            {**_payable("2", "BNULL", "100"), "FxAmount": None},
+            _payable("3", "BVEND", "1", cp="1004"),
+            _payable("4", "BVEND", "2", cp="2002"),
+        ],
+    )
+    census = source_index.payables_batch_census(index)
+    assert census["amount_currency_mismatch_batches"] == 1
+    assert census["amount_uncomparable_batches"] == 1
+    assert census["amount_residual_batches"] == 0, "a currency or null gap is never reported as an amount residual"
+    assert census["batches_mixing_vendor"] == 1 and census["header_vendor_mismatch"] == 1
+
+
+def test_payables_without_batch_headers_still_group_and_report_nothing_missing():
+    payload = reader.SourcePayload(
+        kind=reader.PayloadKind.GRID,
+        root=PAYLOAD_ROOT,
+        tables={
+            "Payables": [_payable("1", "B1", "5")],
+            "GPLedger": [],
+            "Receipt": [],
+            "ReceiptBatch": [],
+            "WksDelivery": [],
+        },
+    )
+    index = source_index.build_source_index(payload)
+    assert list(index.payables_by_batch) == ["B1"]
+    assert index.payables_batches == {} and index.payables_batch_violations == []

@@ -19,7 +19,7 @@
 - Canonical operator path: `make import-erp`.
 - Runtime authority: restored ERP SQL Server through `plasticos_partner_import/erp/reader.py::PROJECTION_SCRIPTS`.
 - Frozen `erp_extracted_data/bulk/` grids are regression fixtures only; never extend CSV as the runtime architecture.
-- `PARTNERS_ONLY=1` is Concern 1 only. A full run is refused before any write. It must not create `plasticos.transaction` or `plasticos.transaction.line` records. Commercial documents are `sale.order`, `purchase.order`, and `account.move`.
+- `PARTNERS_ONLY=1` is Concern 1 only. A full run writes partners, then `plasticos_transaction` writes `sale.order`, `purchase.order`, and draft `account.move` records. The importer writes no `plasticos.transaction` or `plasticos.transaction.line` itself; it confirms the sale orders it realizes, and that confirmation compiles the transaction. It creates no payment and posts nothing itself. Source-accurate posting, settlement, vendor bill identity, and full direct-SQL replay are unproven (ADR-021 amendment 2026-10-24).
 - Import summaries are fail-closed evidence. A full run is not green unless `records_seen == records_created + records_updated + records_unchanged + records_rejected` and `duplicates == 0`.
 - Changes to the direct-SQL source seam require a real restored-SQL-Server → Odoo runtime import plus identical replay. Fixture-only runtime gates are insufficient for that claim.
 - `GPLedger.TradeDt` means PO issued / transaction approved under current PlasticOS rules. Native target: `purchase.order.date_approve` when the historical PO is realized. `purchase.order.date_order` remains RFQ/order deadline. Do not add `plasticos.transaction.transaction_date`.
