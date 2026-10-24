@@ -82,20 +82,23 @@ class TestIntakeModelContract(PlasticosTestCase):
         self.assertEqual(field.type, "many2one", "form_id must be Many2one")
         self.assertEqual(field.comodel_name, "plasticos.material.form")
 
-    def test_intake_has_state_selection(self):
-        """state field is used by multiple modules for workflow."""
-        field = self.fields.get("state")
-        self.assertIsNotNone(field, "state field missing from intake")
-        self.assertEqual(field.type, "selection", "state must be Selection")
+    def test_intake_has_status_selection(self):
+        """The intake workflow field is ``status`` (plasticos_intake/models/intake.py:365), used by
+        plasticos_matching (intake_extension.py:38) and the admin dashboard."""
+        field = self.fields.get("status")
+        self.assertIsNotNone(field, "status field missing from intake")
+        self.assertEqual(field.type, "selection", "status must be Selection")
 
-    def test_intake_state_has_required_values(self):
-        """State values that other modules depend on."""
-        field = self.fields.get("state")
+    def test_intake_status_has_required_values(self):
+        """Status values that other modules depend on: plasticos_matching writes ``matched``
+        (intake_extension.py:38) and plasticos_admin_dashboard counts every value
+        (models/admin_dashboard.py:213-223)."""
+        field = self.fields.get("status")
         self.assertIsNotNone(field)
         values = [s[0] for s in field.selection]
-        required_states = ["draft", "confirmed", "cancelled"]
+        required_states = ["draft", "matched", "offer_sent", "processing", "won", "lost", "expired"]
         for state in required_states:
-            self.assertIn(state, values, f"Missing required state: {state}")
+            self.assertIn(state, values, f"Missing required status: {state}")
 
     def test_intake_has_quantity_per_load_lbs(self):
         """quantity_per_load_lbs is used by normalizer and matcher."""
@@ -255,12 +258,16 @@ class TestTransactionModelContract(PlasticosTestCase):
         self.assertEqual(field.type, "many2one")
         self.assertEqual(field.comodel_name, "plasticos.intake")
 
-    def test_transaction_has_offer_id(self):
-        """offer_id links transaction to accepted offer."""
-        field = self.fields.get("offer_id")
-        self.assertIsNotNone(field, "offer_id field missing")
+    def test_transaction_offer_link(self):
+        """The offer↔transaction link is contributed by plasticos_transaction on the offer side:
+        plasticos.offer.transaction_id (plasticos_transaction/models/offer_bridge.py:9). The
+        transaction itself carries no offer_id."""
+        if "plasticos.offer" not in self.env:
+            self.skipTest("plasticos.offer not installed")
+        field = self.env["plasticos.offer"]._fields.get("transaction_id")
+        self.assertIsNotNone(field, "plasticos.offer.transaction_id field missing")
         self.assertEqual(field.type, "many2one")
-        self.assertEqual(field.comodel_name, "plasticos.offer")
+        self.assertEqual(field.comodel_name, "plasticos.transaction")
 
     def test_transaction_has_supplier_and_buyer(self):
         """supplier_id and buyer_id are required for partner bridge."""
@@ -309,11 +316,12 @@ class TestTransactionModelContract(PlasticosTestCase):
 
     # ── Logistics Bridge Contract ────────────────────────────────────────
 
-    def test_transaction_has_load_ids(self):
-        """load_ids added by plasticos_logistics."""
-        field = self.fields.get("load_ids")
-        self.assertIsNotNone(field, "load_ids field missing — logistics not installed?")
-        self.assertEqual(field.type, "one2many")
+    def test_transaction_has_load_id(self):
+        """load_id added by plasticos_logistics: one load per transaction
+        (plasticos_logistics/models/transaction_inherit.py:10-22, UNIQUE(load_id))."""
+        field = self.fields.get("load_id")
+        self.assertIsNotNone(field, "load_id field missing — logistics not installed?")
+        self.assertEqual(field.type, "many2one")
         self.assertEqual(field.comodel_name, "plasticos.load")
 
     # ── Documents Bridge Contract ────────────────────────────────────────
@@ -625,12 +633,13 @@ class TestOfferModelContract(PlasticosTestCase):
         self.assertEqual(field.type, "many2one")
         self.assertEqual(field.comodel_name, "plasticos.transaction")
 
-    def test_offer_has_buyer_partner_id(self):
-        """buyer_partner_id is required for offer creation."""
-        field = self.fields.get("buyer_partner_id")
-        self.assertIsNotNone(field, "buyer_partner_id field missing")
+    def test_offer_has_buyer_id(self):
+        """buyer_id is required for offer creation (plasticos_offer/models/offer.py:70)."""
+        field = self.fields.get("buyer_id")
+        self.assertIsNotNone(field, "buyer_id field missing")
         self.assertEqual(field.type, "many2one")
         self.assertEqual(field.comodel_name, "res.partner")
+        self.assertTrue(field.required, "buyer_id must be required")
 
     def test_offer_has_state_selection(self):
         """state field for workflow."""
@@ -693,20 +702,25 @@ class TestLoadModelContract(PlasticosTestCase):
         self.assertEqual(field.type, "selection")
 
     def test_load_state_has_required_values(self):
-        """State values for logistics lifecycle."""
+        """State values for logistics lifecycle. The machine has no ``cancelled`` state: the
+        off-ramp is ``exception`` and ``closed`` is terminal
+        (plasticos_logistics/services/state_machine.py:9-20)."""
         field = self.fields.get("state")
         values = [s[0] for s in field.selection]
-        required = ["draft", "scheduled", "dispatched", "delivered", "cancelled"]
+        required = ["draft", "scheduled", "dispatched", "delivered", "closed", "exception"]
         for state in required:
             self.assertIn(state, values, f"Missing required state: {state}")
 
     def test_load_has_logistics_actions(self):
-        """Logistics action methods for state transitions."""
+        """Logistics action methods for state transitions (plasticos_logistics/models/load.py:458,
+        :844, :1072, :1080, :1111). Delivery and the exception off-ramp are workflow transitions,
+        not buttons: there is no action_deliver / action_cancel."""
         actions = [
             "action_confirm_ready",
+            "action_confirm_rate",
+            "action_schedule",
             "action_dispatch",
-            "action_deliver",
-            "action_cancel",
+            "action_close",
         ]
         for action in actions:
             self.assertTrue(

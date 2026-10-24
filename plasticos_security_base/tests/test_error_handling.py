@@ -18,7 +18,7 @@ These tests validate that PlastOS handles errors gracefully:
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import AccessError, UserError
 
 try:
     from psycopg.errors import IntegrityError
@@ -26,6 +26,7 @@ except ImportError:
     from psycopg2 import IntegrityError
 
 from odoo.tests.common import tagged
+from odoo.tools import mute_logger
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -42,19 +43,62 @@ class TestAPIFailures(PlasticosTestCase):
     # and tests/contracts/test_external_intelligence_authority.py.
 
     def test_enrichment_api_failure_caught(self):
+        """A Gate converge transport failure fails closed: UserError, run durably ``degraded``.
+
+        Enrichment is Gate-only (M4); the local crawl it once patched is gone. The run
+        rolls the request back and persists the classified state on an owned cursor
+        (plasticos_enrichment/models/enrichment_run.py:317-347, :427-441). partner_id is
+        required (enrichment_run.py:26).
+        """
         if "plasticos.enrichment.run" not in self.env:
             self.skipTest("Enrichment not installed")
-        run = self.env["plasticos.enrichment.run"].create({})
-        if hasattr(run, "action_execute"):
-            with patch.object(type(run), "_crawl_source", side_effect=Exception("API down")):
+        from odoo.addons.plasticos_gate.services.gate_config import (
+            GateAvailability,
+            GateAvailabilityVerdict,
+            GateCapability,
+        )
+
+        available = GateAvailabilityVerdict(
+            status=GateAvailability.AVAILABLE,
+            available=True,
+            capability=GateCapability.ENRICHMENT,
+            reasons=[],
+            gate_url_configured=True,
+        )
+        partner = self._create_partner("Enrichment API Down", supplier_rank=1)
+        run = self.env["plasticos.enrichment.run"].create({"partner_id": partner.id})
+        # The durable failure write opens pool.cursor(); in test mode that wraps this cursor.
+        self.registry_enter_test_mode()
+        savepoint = self.env.cr.savepoint(flush=True)
+        raised = False
+        try:
+            with (
+                patch(
+                    "odoo.addons.plasticos_gate.services.gate_config.classify_gate_availability",
+                    return_value=available,
+                ),
+                patch("odoo.addons.plasticos_gate.services.gate_config.gate_enrichment_enabled", return_value=True),
+                patch(
+                    "odoo.addons.plasticos_gate.services.gate_client.send_converge_action",
+                    side_effect=Exception("API down"),
+                ),
+                # Stand in for the RPC request rollback (cr.rollback() is forbidden in tests).
+                patch.object(self.env.cr, "rollback", savepoint.rollback),
+            ):
+                # Not self.assertRaises: its savepoint would undo the durable failure write.
                 try:
                     run.action_execute()
-                except Exception:
-                    pass
-                self.assertIn(run.state, ("error", "draft"))
+                except UserError:
+                    raised = True
+        finally:
+            savepoint.close(rollback=False)
+        self.assertTrue(raised, "Gate transport failure must surface as UserError")
+        run.invalidate_recordset()
+        self.assertEqual(run.state, "degraded")
+        self.assertIn("API down", " ".join(run.validation_issues or []))
 
     def test_geo_backfill_api_timeout(self):
-        partner = self._partner("Geo Timeout")
+        partner = self._create_partner("Geo Timeout")
         us_country = self.env.ref("base.us", raise_if_not_found=False)
         partner.write({"city": "Test", "country_id": us_country.id if us_country else False})
         if not hasattr(partner, "cron_geo_backfill"):
@@ -99,7 +143,9 @@ class TestInvalidData(PlasticosTestCase):
     def test_intake_missing_required_fields(self):
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
-        with self.assertRaises((ValidationError, IntegrityError)):
+        # Odoo's TransactionCase.assertRaises takes one exception class (odoo/tests/common.py:507).
+        # The missing NOT NULL polymer_id is refused by PostgreSQL at INSERT.
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
             with self.env.cr.savepoint():
                 self.env["plasticos.intake"].create({})
 
@@ -113,7 +159,8 @@ class TestInvalidData(PlasticosTestCase):
                 "company_name": "Dup Co",
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        # unique(lead_id) is a SQL constraint (plasticos_web_leads/models/web_lead.py:434).
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
             with self.env.cr.savepoint():
                 self.env["plasticos.web.lead"].create(
                     {
@@ -143,11 +190,23 @@ class TestInvalidData(PlasticosTestCase):
         """Negative prices should be rejected."""
         if "plasticos.offer" not in self.env:
             self.skipTest("Offer not installed")
-        partner = self._create_partner()
+        # Build an otherwise valid offer (intake/supplier/buyer are required,
+        # plasticos_offer/models/offer.py:48-77) so only check(price_per_lb >= 0)
+        # (offer.py:234) can refuse it.
+        supplier = self._create_partner("Negative Price Supplier", supplier_rank=1)
+        buyer = self._create_partner("Negative Price Buyer", customer_rank=1)
+        intake = self._create_intake(partner=supplier)
         Offer = self.env["plasticos.offer"]
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
             with self.env.cr.savepoint():
-                Offer.create({"buyer_id": partner.id, "price_per_lb": -1.0})
+                Offer.create(
+                    {
+                        "intake_id": intake.id,
+                        "supplier_id": supplier.id,
+                        "buyer_id": buyer.id,
+                        "price_per_lb": -1.0,
+                    }
+                )
 
     def test_load_cancel_from_delivered_rejected(self):
         if "plasticos.load" not in self.env:
@@ -239,14 +298,14 @@ class TestRollbackScenarios(PlasticosTestCase):
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
         count_before = self.env["plasticos.intake"].search_count([])
-        try:
+        # The failing INSERT aborts the transaction, so it must run inside a savepoint
+        # (assertRaises opens one); swallowing it left the cursor unusable.
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
             self.env["plasticos.intake"].create(
                 {
-                    "partner_id": False,  # Should fail validation
+                    "partner_id": False,  # polymer_id (NOT NULL) is missing too
                 }
             )
-        except Exception:
-            pass
         count_after = self.env["plasticos.intake"].search_count([])
         self.assertEqual(count_before, count_after, "Failed create should not leave partial records")
 
