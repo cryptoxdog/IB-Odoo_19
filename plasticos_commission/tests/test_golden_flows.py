@@ -13,6 +13,7 @@ Golden flows represent the critical business paths that must always work:
 
 from unittest.mock import patch
 
+from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
 from odoo.exceptions import UserError, ValidationError
@@ -102,27 +103,41 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
         if tx:
             self.assertEqual(tx.offer_id.id, offer.id, "Transaction should link to offer")
         else:
-            tx = self.Tx.create({})
+            # A load can only be assigned to a transaction with both parties set
+            # (plasticos_logistics/models/transaction_inherit.py:59).
+            tx = self.Tx.create({"supplier_id": self.partner.id, "buyer_id": self.buyer.id, "intake_id": intake.id})
         self.assertTrue(tx.exists(), "Transaction should exist")
+        # The transaction lifecycle is driven by its own actions, not by load progress
+        # (plasticos_transaction/models/transaction.py:998-1003).
+        tx.action_activate()
 
         # 5) Transaction → load → delivered
-        load_vals = {"transaction_id": tx.id} if "transaction_id" in self.Load._fields else {}
-        load = self.Load.create(load_vals)
-
-        # Walk through the logistics lifecycle. draft -> awaiting_ready has no public action;
-        # it is the first edge of VALID_TRANSITIONS (plasticos_logistics/services/state_machine.py:9-10)
-        # and action_confirm_ready only leaves awaiting_ready (plasticos_logistics/models/load.py:458-464).
-        load._transition("awaiting_ready")
-        logistics_actions = (
-            "action_confirm_ready",
-            "action_confirm_rate",
-            "action_schedule",
-            "action_dispatch",
-            "action_deliver",
+        # Rate confirmation needs a complete freight context: a company via sale_order_id,
+        # pickup/delivery partners, a positive reference weight and a transaction intake
+        # (plasticos_logistics/services/freight_context.py:57-69); dispatch needs a carrier
+        # (plasticos_logistics/models/load.py:1086).
+        load = self.Load.create(
+            {
+                "transaction_id": tx.id,
+                "sale_order_id": self.env["sale.order"].create({"partner_id": self.buyer.id}).id,
+                "pickup_partner_id": self.partner.id,
+                "delivery_partner_id": self.buyer.id,
+                "carrier_id": self._create_partner("Golden Flow Carrier").id,
+                "reference_weight": 40000.0,
+            }
         )
-        for action_name in logistics_actions:
-            if hasattr(load, action_name):
-                getattr(load, action_name)()
+
+        # Walk through the logistics lifecycle. draft -> awaiting_ready, picked_up and delivered
+        # have no public action; they are VALID_TRANSITIONS edges taken through _transition
+        # (plasticos_logistics/services/state_machine.py:9-20). action_schedule takes the pickup
+        # and delivery datetimes (load.py:1072).
+        load._transition("awaiting_ready")
+        load.action_confirm_ready()
+        load.action_confirm_rate(100.0)
+        load.action_schedule(fields.Datetime.now(), fields.Datetime.now())
+        load.action_dispatch()
+        load._transition("picked_up")
+        load._transition("delivered")
 
         # Final state should be delivered or closed
         self.assertIn(load.state, ("delivered", "closed"), "Load should reach delivered/closed state")
