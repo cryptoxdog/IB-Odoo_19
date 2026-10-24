@@ -60,7 +60,9 @@ def test_unconsumed_tables_are_all_intentional(status):
     unconsumed = {
         row["source_table"]
         for row in status.rows
-        if row["status"] == "UNMAPPED_INTENTIONALLY" and row["source_table"] not in SOURCE_TABLES
+        if row["status"] == "UNMAPPED_INTENTIONALLY"
+        and row["source_table"] not in SOURCE_TABLES
+        and row["source_table"] not in mapping_status.DIRECT_SQL_DISPOSITION_TABLES
     }
     assert unconsumed == set(mapping_status.UNCONSUMED_TABLES)
 
@@ -107,3 +109,60 @@ def test_needs_correction_rows_are_explicit(status):
     for row in needs:
         assert row["reason"].strip(), row
         assert row["target_field"], row
+
+
+PAYABLES_BATCH_PROJECTED = {
+    "APBatchNo",
+    "PrePay",
+    "NumofItems",
+    "PostingDt",
+    "FXAmount",
+    "CurrencyCd",
+    "PostedInAccting",
+    "Comment",
+    "APTerms",
+    "CpID",
+    "InvoiceNo",
+    "InvoiceDt",
+    "DueDate",
+    "ReversedFxAmt",
+}
+
+
+def test_payables_batch_is_consumed_not_unconsumed_evidence():
+    assert "PayablesBatch" not in mapping_status.UNCONSUMED_TABLES
+    assert "PayablesBatch" in mapping_status.DIRECT_SQL_DISPOSITION_TABLES
+
+
+def test_every_payables_batch_column_has_an_explicit_disposition(status):
+    with open(PAYLOAD_ROOT / "bulk" / "PayablesBatch.csv", encoding="utf-8-sig", newline="") as handle:
+        columns = {column.strip() for column in next(csv.reader(handle)) if column.strip()}
+    rows = {row["source_field"]: row for row in status.rows if row["source_table"] == "PayablesBatch"}
+    assert set(rows) == columns
+    assert not [row for row in rows.values() if row["status"] == "UNKNOWN"]
+    assert PAYABLES_BATCH_PROJECTED <= columns
+    for column, row in rows.items():
+        projected = column in PAYABLES_BATCH_PROJECTED
+        assert (row["reason"] == mapping_status.NOT_PROJECTED) is not projected, row
+        assert row["source_sql_type"], f"PayablesBatch.{column} has no SQL type"
+
+
+def test_payables_batch_header_columns_write_no_odoo_field(status):
+    """Only the batch key and the PrePay exclusion are exercised; no Odoo target is claimed."""
+    rows = [row for row in status.rows if row["source_table"] == "PayablesBatch"]
+    verified = {row["source_field"] for row in rows if row["status"] == "VERIFIED"}
+    assert verified == {"APBatchNo", "PrePay"}
+    for row in rows:
+        if row["status"] == "VERIFIED":
+            assert row["target_model"] == "—", row
+        if row["status"] == "NEEDS_CORRECTION":
+            assert row["reason"] == mapping_status.UNRESOLVED_TARGET, row
+            assert row["target_field"].startswith("unresolved"), row
+    posted = next(row for row in rows if row["source_field"] == "PostedInAccting")
+    assert "not vendor cash paid" in posted["reason"]
+
+
+def test_payables_batch_link_on_payables_is_the_prepay_join(rows_by_key):
+    row = rows_by_key[("Payables", "APBatchNo")]
+    assert row["status"] == "VERIFIED"
+    assert "PrePay=1 exclusion" in row["target_field"]

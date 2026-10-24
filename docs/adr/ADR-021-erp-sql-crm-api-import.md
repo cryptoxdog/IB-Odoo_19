@@ -22,6 +22,21 @@ The architecture must preserve deterministic source identity while preventing th
 6. **Native Odoo semantics first.** A legacy field does not justify a new Odoo field. Map into native Odoo or an existing PlasticOS field when the business meaning already exists. A new field requires a proven representation gap and explicit operator approval.
 7. **Trade date is a PO approval date.** `GPLedger.TradeDt` means the date the purchase order was issued and the transaction approved under current PlasticOS rules. When the historical PO is realized, its native target is `purchase.order.date_approve` (`Confirmation Date`). `purchase.order.date_order` remains the RFQ/order-deadline date. No custom `plasticos.transaction.transaction_date` field is authorized.
 8. **Full import fails closed.** A full ERP import must not report success by writing `plasticos.transaction` or `plasticos.transaction.line`. Commercial documents are `sale.order`, `purchase.order`, and `account.move`, and this import does not realize them yet. A full run is refused before any write. Partner imports still fail closed when source-row accounting does not reconcile.
+   *Amended 2026-10-24 (see Amendments): the last two sentences before "Partner imports" no longer describe the code.*
+
+## Amendments
+
+### 2026-10-24 — Decision 8 describes a full run that no longer exists
+
+Decision 8 as written on 2026-10-01 says a full run is refused before any write and does not realize commercial documents. The code has since changed:
+
+- A full run (no `PARTNERS_ONLY`) runs the partner stages, then `plasticos_transaction` (`legacy_erp_import_service._extend_historical_import` → `native_document_import.realize`) writes `sale.order`, `purchase.order`, and draft `account.move` records from the source index.
+- The importer writes no `plasticos.transaction` or `plasticos.transaction.line` itself. It confirms the sale orders it realizes (`native_document_import._confirm_sales`), and the sales hook compiles the transaction from the confirmed order.
+- The importer creates no payment and posts nothing itself.
+
+The first sentence of Decision 8 still holds: the importer must not report success by writing transaction records directly. Partner imports still fail closed when source-row accounting does not reconcile.
+
+Not proven: source-accurate posting state, settlement, vendor bill identity (`PayablesBatch` header vs one bill per `PayableID`), and a complete direct-SQL import with identical replay. This amendment records current behaviour. It authorizes no new import policy and makes no claim that the accounting is complete.
 
 ## Direct database projections
 

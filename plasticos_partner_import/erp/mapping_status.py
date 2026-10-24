@@ -39,14 +39,25 @@ NEEDS_CORRECTION = "NEEDS_CORRECTION"
 NATIVE_PENDING = "Native target from the field matrix. The import service does not write it yet."
 OMITTED_NO_NATIVE = "Authorized omission. No native field; do not create one."
 QUICKBOOKS_OWNS = "QuickBooks owns settlement. Do not write account.payment."
+# PayablesBatch header columns 25_payablesbatch.sql projects. None is written to Odoo.
+SOURCE_CONTROL = "Source control. Read by source_index.payables_batch_census; no Odoo field is written from it."
+READ_NOT_WRITTEN = "Read but not yet written. Projected by 25_payablesbatch.sql; no Odoo field is written from it."
+UNRESOLVED_TARGET = (
+    "Unresolved target. The bill owner (PayablesBatch header or one bill per PayableID) is unproven; "
+    "no Odoo field is written from it."
+)
+NOT_PROJECTED = "Not projected by 25_payablesbatch.sql."
 
 # Tables tracked in the export but not consumed by the importer: their columns
 # stay UNMAPPED_INTENTIONALLY with the table-level reason below.
 UNCONSUMED_TABLES: dict[str, str] = {
-    "PayablesBatch": "tracked export evidence only; importer reads Payables rows directly, never the batch",
     "UACashLedger": "cash-ledger evidence only; no Odoo target field and no business requirement identified",
     "WksDocument": "document-registry evidence only; document files are not carried by the export",
 }
+
+# Direct-SQL tables outside the grid set whose columns carry per-column
+# dispositions. Their column inventory is the frozen extract header.
+DIRECT_SQL_DISPOSITION_TABLES: tuple[str, ...] = ("PayablesBatch",)
 
 # Consumed-table dispositions: table -> column -> disposition record.
 # identity_role marks the source-native reconciliation identity columns.
@@ -842,9 +853,13 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "IsCheck": {"status": UNMAPPED, "reason": "payment method flag; no Odoo target", "identity_role": "none"},
         "CheckNo": {"status": UNMAPPED, "reason": "check number; no Odoo target", "identity_role": "none"},
         "APBatchNo": {
-            "status": UNMAPPED,
-            "reason": "batch link; supplier evidence uses Payables rows directly",
-            "identity_role": "none",
+            "status": VERIFIED,
+            "target_model": "—",
+            "target_field": "PayablesBatch join: PrePay=1 exclusion; source batch grouping",
+            "transformation": "strip; membership in SourceIndex.prepay_batches",
+            "required": False,
+            "null_behavior": "blank -> no batch; row is not a prepay exclusion",
+            "identity_role": "payables batch link",
         },
         "Reference_Date": {
             "status": UNMAPPED,
@@ -852,6 +867,98 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "identity_role": "none",
         },
         "GLAcct": {"status": UNMAPPED, "reason": "source GL account; Odoo owns accounting", "identity_role": "none"},
+    },
+    "PayablesBatch": {
+        "APBatchNo": {
+            "status": VERIFIED,
+            "target_model": "—",
+            "target_field": "payables batch header key",
+            "transformation": "RTRIM; source-key index (SourceIndex.payables_batches)",
+            "required": True,
+            "null_behavior": "blank or duplicated -> payables_batch_violations; left out of the lookup",
+            "identity_role": "payables batch identity",
+        },
+        "PrePay": {
+            "status": VERIFIED,
+            "target_model": "—",
+            "target_field": "prepayment-batch exclusion; Payables rows in a PrePay=1 batch are never billed",
+            "transformation": "== '1'",
+            "required": False,
+            "null_behavior": "not '1' -> not excluded",
+            "identity_role": "none",
+        },
+        "NumofItems": {"status": UNMAPPED, "reason": SOURCE_CONTROL, "identity_role": "none"},
+        "FXAmount": {"status": UNMAPPED, "reason": SOURCE_CONTROL, "identity_role": "none"},
+        "CurrencyCd": {"status": UNMAPPED, "reason": SOURCE_CONTROL, "identity_role": "none"},
+        "PostedInAccting": {
+            "status": UNMAPPED,
+            "reason": f"{READ_NOT_WRITTEN} Posted in the ERP accounting is not vendor cash paid. {QUICKBOOKS_OWNS}",
+            "identity_role": "none",
+        },
+        "Comment": {"status": UNMAPPED, "reason": READ_NOT_WRITTEN, "identity_role": "none"},
+        "ReversedFxAmt": {"status": UNMAPPED, "reason": READ_NOT_WRITTEN, "identity_role": "none"},
+        "CpID": {
+            "status": NEEDS_CORRECTION,
+            "target_model": "account.move (owner unresolved)",
+            "target_field": "unresolved (candidate partner_id)",
+            "reason": UNRESOLVED_TARGET,
+            "required": False,
+            "null_behavior": "not written",
+            "identity_role": "none",
+        },
+        "InvoiceNo": {
+            "status": NEEDS_CORRECTION,
+            "target_model": "account.move (owner unresolved)",
+            "target_field": "unresolved (candidate ref)",
+            "reason": UNRESOLVED_TARGET,
+            "required": False,
+            "null_behavior": "not written",
+            "identity_role": "none",
+        },
+        "InvoiceDt": {
+            "status": NEEDS_CORRECTION,
+            "target_model": "account.move (owner unresolved)",
+            "target_field": "unresolved (candidate invoice_date)",
+            "reason": UNRESOLVED_TARGET,
+            "required": False,
+            "null_behavior": "not written",
+            "identity_role": "none",
+        },
+        "PostingDt": {
+            "status": NEEDS_CORRECTION,
+            "target_model": "account.move (owner unresolved)",
+            "target_field": "unresolved (candidate date)",
+            "reason": UNRESOLVED_TARGET,
+            "required": False,
+            "null_behavior": "not written",
+            "identity_role": "none",
+        },
+        "DueDate": {
+            "status": NEEDS_CORRECTION,
+            "target_model": "account.move (owner unresolved)",
+            "target_field": "unresolved (candidate invoice_date_due)",
+            "reason": UNRESOLVED_TARGET,
+            "required": False,
+            "null_behavior": "not written",
+            "identity_role": "none",
+        },
+        "APTerms": {
+            "status": NEEDS_CORRECTION,
+            "target_model": "account.move (owner unresolved)",
+            "target_field": "unresolved (candidate invoice_payment_term_id)",
+            "reason": UNRESOLVED_TARGET,
+            "required": False,
+            "null_behavior": "not written",
+            "identity_role": "none",
+        },
+        "COID": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "UserID": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "RecordDate": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "ExportBatchNo": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "FxRate": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "FxDiscountAmt": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "DoNotExport": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "ReverseBatchNo": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
     },
     "Receipt": {
         "ReceiptID": {
@@ -1125,6 +1232,20 @@ def build_mapping_status(repo_root: Path | str | None = None) -> MappingStatus:
     sql_types = _sql_types(root)
     for table, filename in sorted(SOURCE_TABLES.items()):
         extract = root / "bulk" / filename
+        with open(extract, encoding="utf-8-sig", newline="") as handle:
+            columns = next(csv.reader(handle))
+        for column in columns:
+            column = column.strip()
+            if not column:
+                continue
+            row = _disposition(table, column, sql_types.get(table, {}).get(column, ""))
+            if row["status"] == "UNKNOWN":
+                status.unknowns.append(row)
+            status.rows.append(row)
+    for table in DIRECT_SQL_DISPOSITION_TABLES:
+        extract = root / "bulk" / f"{table}.csv"
+        if not extract.is_file():
+            continue
         with open(extract, encoding="utf-8-sig", newline="") as handle:
             columns = next(csv.reader(handle))
         for column in columns:

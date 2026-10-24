@@ -13,6 +13,7 @@ Identity contract (source key -> imported entity)::
     CpID       -> SalesReps rows          (res.partner.user_id on the company)
     BuySellNo  -> deal header
     DetailID   -> deal line
+    APBatchNo  -> payables batch header   (source evidence only; no Odoo record)
 
 Company names, e-mail addresses, phone numbers, address text, and Odoo database
 ids are never identity. They are business data.
@@ -26,6 +27,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 
 from .reader import SourcePayload, SourcePayloadError
 
@@ -35,6 +37,7 @@ __all__ = [
     "SourceIndex",
     "account_inventory_destinations",
     "build_source_index",
+    "payables_batch_census",
 ]
 
 # BuySell.CustID / Address.CpID for an internal inventory receipt. The address
@@ -110,6 +113,13 @@ class SourceIndex:
     buysells: dict[str, dict[str, str | None]] = field(default_factory=dict)
     orders_by_source_number: dict[tuple[str, str], list[str]] = field(default_factory=dict)
     prepay_batches: set[str] = field(default_factory=set)
+    # PayablesBatch headers by APBatchNo, and Payables rows grouped by the
+    # APBatchNo they carry. Source evidence only: no importer reads them, and
+    # their violations are kept apart from ``violations`` so the import
+    # summary does not change. A duplicated APBatchNo is left out of the lookup.
+    payables_batches: dict[str, dict[str, str | None]] = field(default_factory=dict)
+    payables_by_batch: dict[str, list[dict[str, str | None]]] = field(default_factory=dict)
+    payables_batch_violations: list[IdentityViolation] = field(default_factory=list)
 
     violations: list[IdentityViolation] = field(default_factory=list)
 
@@ -197,8 +207,11 @@ def build_source_index(payload: SourcePayload) -> SourceIndex:
         index.buysells = _index_by_pk(payload, "BuySell")
     if "PayablesBatch" in payload.tables:
         _index_prepay_batches(payload, index)
+        _index_payables_batches(payload, index)
     if payload.tables.keys() & {"GPLedger", "Payables", "Receipt", "ReceiptBatch", "WksDelivery"}:
         _index_supporting_tables(payload, index)
+    if "Payables" in payload.tables:
+        _group_payables_by_batch(payload, index, headers_loaded="PayablesBatch" in payload.tables)
 
     _link_children(
         index,
@@ -355,6 +368,119 @@ def _index_prepay_batches(payload: SourcePayload, index: SourceIndex) -> None:
             batch = _key(row, "APBatchNo")
             if batch:
                 index.prepay_batches.add(batch)
+
+
+def _index_payables_batches(payload: SourcePayload, index: SourceIndex) -> None:
+    """Index PayablesBatch headers by APBatchNo. Blank and duplicated keys are violations."""
+    grouped: dict[str, list[dict[str, str | None]]] = defaultdict(list)
+    for position, row in enumerate(payload.rows("PayablesBatch"), start=1):
+        batch = _key(row, "APBatchNo")
+        if not batch:
+            index.payables_batch_violations.append(
+                IdentityViolation("PayablesBatch", "missing_primary_key", f"row {position}", "blank APBatchNo")
+            )
+            continue
+        grouped[batch].append(row)
+    for batch in sorted(grouped):
+        rows = grouped[batch]
+        if len(rows) > 1:
+            index.payables_batch_violations.append(
+                IdentityViolation("PayablesBatch", "duplicate_batch_header", batch, f"{len(rows)} header rows")
+            )
+            continue
+        index.payables_batches[batch] = rows[0]
+
+
+def _group_payables_by_batch(payload: SourcePayload, index: SourceIndex, *, headers_loaded: bool) -> None:
+    """Group Payables rows by APBatchNo. A batch with no header is a violation when headers are loaded."""
+    grouped: dict[str, list[dict[str, str | None]]] = defaultdict(list)
+    for row in payload.rows("Payables"):
+        batch = _key(row, "APBatchNo")
+        if batch:
+            grouped[batch].append(row)
+    index.payables_by_batch = {batch: grouped[batch] for batch in sorted(grouped)}
+    if not headers_loaded:
+        return
+    duplicated = {v.key for v in index.payables_batch_violations if v.kind == "duplicate_batch_header"}
+    for batch, rows in index.payables_by_batch.items():
+        if batch not in index.payables_batches and batch not in duplicated:
+            index.payables_batch_violations.append(
+                IdentityViolation(
+                    "Payables", "missing_batch_header", batch, f"{len(rows)} Payables rows; no PayablesBatch header"
+                )
+            )
+
+
+def _decimal(value: str | None) -> Decimal | None:
+    try:
+        return Decimal((value or "").strip())
+    except InvalidOperation:
+        return None
+
+
+def payables_batch_census(index: SourceIndex) -> dict[str, int]:
+    """Classify PayablesBatch headers against their Payables rows. Counts only; nothing is written.
+
+    The amount check compares the header ``FXAmount`` with the signed sum of
+    its rows' ``FxAmount`` when every row carries the header currency. Rows
+    in another currency or with no parseable amount are counted, not compared.
+    """
+    census = {
+        "headers": len(index.payables_batches),
+        "prepay_headers": len(index.prepay_batches),
+        "prepay_member_rows": sum(len(index.payables_by_batch.get(b, [])) for b in index.prepay_batches),
+        "headers_without_payables": 0,
+        "headers_with_one_payable": 0,
+        "headers_with_many_payables": 0,
+        "payables_without_batch": sum(
+            1 for rows in index.payables_by_buysell.values() for row in rows if not _key(row, "APBatchNo")
+        ),
+        "duplicate_headers": 0,
+        "blank_header_keys": 0,
+        "missing_header_batches": 0,
+        "missing_header_rows": 0,
+        "batches_mixing_gl": 0,
+        "batches_mixing_vendor": 0,
+        "header_vendor_mismatch": 0,
+        "num_of_items_mismatch": 0,
+        "amount_residual_batches": 0,
+        "amount_currency_mismatch_batches": 0,
+        "amount_uncomparable_batches": 0,
+    }
+    for violation in index.payables_batch_violations:
+        if violation.kind == "duplicate_batch_header":
+            census["duplicate_headers"] += 1
+        elif violation.kind == "missing_primary_key":
+            census["blank_header_keys"] += 1
+        elif violation.kind == "missing_batch_header":
+            census["missing_header_batches"] += 1
+            census["missing_header_rows"] += len(index.payables_by_batch.get(violation.key, []))
+    for batch, header in index.payables_batches.items():
+        rows = index.payables_by_batch.get(batch, [])
+        if not rows:
+            census["headers_without_payables"] += 1
+            continue
+        census["headers_with_one_payable" if len(rows) == 1 else "headers_with_many_payables"] += 1
+        if len({_key(row, "GLAcct") for row in rows}) > 1:
+            census["batches_mixing_gl"] += 1
+        vendors = {_key(row, "CpID") for row in rows}
+        if len(vendors) > 1:
+            census["batches_mixing_vendor"] += 1
+        if _key(header, "CpID") and vendors != {_key(header, "CpID")}:
+            census["header_vendor_mismatch"] += 1
+        items = _key(header, "NumofItems")
+        if items and items != str(len(rows)):
+            census["num_of_items_mismatch"] += 1
+        currency = _key(header, "CurrencyCd")
+        total = _decimal(header.get("FXAmount"))
+        amounts = [_decimal(row.get("FxAmount")) for row in rows]
+        if any(_key(row, "CurrencyCd") != currency for row in rows):
+            census["amount_currency_mismatch_batches"] += 1
+        elif total is None or any(amount is None for amount in amounts):
+            census["amount_uncomparable_batches"] += 1
+        elif total != sum(amounts, Decimal(0)):
+            census["amount_residual_batches"] += 1
+    return census
 
 
 def _link_lines(index: SourceIndex) -> None:
