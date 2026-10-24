@@ -39,6 +39,13 @@ NON_RELEASE_CONTEXT_KEYS = ("import_mode", "install_mode", "skip_automations")
 # A later release with an identical payload never re-sends while the latest
 # request holds the obligation in one of these states.
 HOLDING_STATES = ("queued", "sent", "exception", "unknown")
+# Request states whose obligation is closed: their mail must never leave again.
+CLOSED_STATES = ("sent", "canceled", "blocked", "shadow")
+# Native failure types that prove the message was not delivered. Anything else,
+# including Odoo's generic "unknown", may have reached the supplier.
+UNDELIVERED_FAILURE_TYPES = frozenset(
+    {"mail_email_invalid", "mail_email_missing", "mail_from_invalid", "mail_from_missing", "mail_smtp"}
+)
 
 # purchase.order fields whose change can make a queued, unsent issue stale.
 MATERIAL_PO_FIELDS = frozenset(
@@ -51,6 +58,9 @@ MATERIAL_PO_FIELDS = frozenset(
         "payment_term_id",
         "incoterm_id",
         "date_planned",
+        "date_order",
+        "user_id",
+        "fiscal_position_id",
         "dest_address_id",
         "picking_type_id",
         "partner_ref",
@@ -175,6 +185,17 @@ class PlasticosLogisticsRequest(models.Model):
     def _po_fingerprint(self, order):
         """Hash of everything the supplier-facing PO message and PDF commit to."""
         partner = order.partner_id
+        # The PDF prints the supplier block, so its address is part of the payload.
+        supplier_block = [
+            partner.name or "",
+            partner.street or "",
+            partner.street2 or "",
+            partner.zip or "",
+            partner.city or "",
+            partner.state_id.id,
+            partner.country_id.id,
+            partner.vat or "",
+        ]
         lines = [
             [
                 line.id,
@@ -200,6 +221,10 @@ class PlasticosLogisticsRequest(models.Model):
             order.payment_term_id.id,
             order.incoterm_id.id,
             fields.Datetime.to_string(order.date_planned) if order.date_planned else "",
+            fields.Datetime.to_string(order.date_order) if order.date_order else "",
+            order.user_id.id,
+            order.fiscal_position_id.id,
+            supplier_block,
             order.dest_address_id.id,
             order.picking_type_id.id if "picking_type_id" in order._fields else False,
             order.partner_ref or "",
@@ -243,9 +268,13 @@ class PlasticosLogisticsRequest(models.Model):
         mode = self._linda_mode()
         if mode == LINDA_MODE_OFF or any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS):
             return self.browse()
+        # sudo: evidence bookkeeping only. Roles allowed to confirm a PO (purchase, sales rep,
+        # logistics) differ, and a missing evidence right must not roll back a native approval.
+        # Company, PO and supplier are copied from the exact order; nothing is chosen.
+        evidence = self.sudo()
         requests = self.browse()
         for order in orders:
-            requests |= self._issue_purchase_order(order, mode)
+            requests |= evidence._issue_purchase_order(order, mode)
         return requests
 
     def _issue_purchase_order(self, order, mode):
@@ -291,34 +320,42 @@ class PlasticosLogisticsRequest(models.Model):
             _logger.info("Linda PO issue blocked for %s: %s", order.name, block_reason)
             return self.create(values)
 
-        # Presence was checked by _po_block_reason ("template_missing").
-        template = self.env.ref(PO_ISSUE_TEMPLATE, raise_if_not_found=False)
-        values["subject"] = template._render_field("subject", order.ids)[order.id]
-        if outcome == "shadow":
-            return self.create(values)
-
         request = self.create(values)
-        mail_id = template.send_mail(
-            order.id,
-            force_send=False,
-            email_values={
-                "email_to": request.recipient_email,
-                "recipient_ids": [],
-                "email_cc": False,
-                "auto_delete": False,
-            },
-        )
-        request.write({"mail_id": mail_id, "queued_at": fields.Datetime.now()})
+        # Rendered and queued as the releasing user (order.env), not as superuser.
+        # Presence was checked by _po_block_reason ("template_missing").
+        template = order.env.ref(PO_ISSUE_TEMPLATE, raise_if_not_found=False)
+        mail_id = False
+        try:
+            with self.env.cr.savepoint():
+                subject = template._render_field("subject", order.ids)[order.id]
+                if outcome == "queued":
+                    mail_id = template.send_mail(
+                        order.id,
+                        force_send=False,
+                        email_values={
+                            "email_to": request.recipient_email,
+                            "recipient_ids": [],
+                            "email_cc": False,
+                            "auto_delete": False,
+                        },
+                    )
+        except Exception:
+            # A render or queue failure blocks only this issue, never the native approval.
+            _logger.exception("Linda PO issue could not be rendered or queued for %s", order.name)
+            request.write({"state": "blocked", "state_reason": "render_failed"})
+            return request
+        request.write({"subject": subject, "mail_id": mail_id, "queued_at": mail_id and fields.Datetime.now()})
         return request
 
     # ── Queue protection and reconciliation ──────────────────
 
     def _cancel_queued(self, reason):
         """Cancel queued requests and their unsent mail. Sent history is never touched."""
-        queued = self.filtered(lambda request: request.state == "queued")
+        # sudo: mail.mail is readable and writable only by system users, and the caller may be
+        # any user editing or canceling the PO. Only Linda's own unsent mail is touched.
+        queued = self.sudo().filtered(lambda request: request.state == "queued")
         outgoing = queued.mail_id.filtered(lambda mail: mail.state == "outgoing")
-        # sudo: only Linda's own unsent mail is canceled; mail.mail is not writable by purchase users.
-        outgoing.sudo().write({"state": "cancel", "failure_reason": f"linda:{reason}"})
+        outgoing.write({"state": "cancel", "failure_reason": f"linda:{reason}"})
         queued.write({"state": "canceled", "state_reason": reason})
 
     def _current_block_reason(self):
@@ -339,7 +376,8 @@ class PlasticosLogisticsRequest(models.Model):
     @api.model
     def _cancel_stale_for_orders(self, orders):
         """Cancel queued issues of these orders that no longer match their current payload."""
-        queued = self.search([("purchase_order_id", "in", orders.ids), ("state", "=", "queued")])
+        # sudo: same evidence scope as issuance; the PO editor may hold no right on requests.
+        queued = self.sudo().search([("purchase_order_id", "in", orders.ids), ("state", "=", "queued")])
         for request in queued:
             reason = request._current_block_reason()
             if reason:
@@ -349,49 +387,54 @@ class PlasticosLogisticsRequest(models.Model):
     def _guard_mails_before_send(self, mails):
         """Recheck each Linda mail at send time.
 
-        Returns ``(withheld, touched)``: the Linda mails that must not reach
-        native sending, and whether request evidence was written. A mail whose
-        request already recorded a send attempt without an outcome is uncertain:
-        it may have reached the supplier, so it is not sent again.
+        Returns ``(withheld, sendable)``: Linda mails that must not reach native
+        sending (now canceled) and Linda mails cleared to send. A mail whose
+        request already recorded an attempt without an outcome is uncertain: it
+        may have reached the supplier, so it is not sent again.
         """
-        withheld = self.env[MAIL_MAIL]
-        touched = False
+        withheld = sendable = self.env[MAIL_MAIL]
         for request in self.search([("mail_id", "in", mails.ids)]):
             mail = request.mail_id
             if mail.state != "outgoing":
                 continue
-            touched = True
-            if request.state in ("sent", "canceled", "blocked", "shadow"):
-                # The obligation is closed; this mail must not leave again.
+            if request.state in CLOSED_STATES:
+                mail.write({"state": "cancel", "failure_reason": "linda:obligation_closed"})
                 withheld |= mail
-                continue
-            if request.state == "queued" and request.send_attempt_count:
-                # sudo: the queue may run as any user; this cancels only the uncertain Linda mail.
-                mail.sudo().write({"state": "cancel", "failure_reason": "linda:prior_send_outcome_unknown"})
+            elif request.state == "queued" and request.send_attempt_count:
+                mail.write({"state": "cancel", "failure_reason": "linda:prior_send_outcome_unknown"})
                 request.write({"state": "unknown", "state_reason": "prior_send_outcome_unknown"})
                 withheld |= mail
-                continue
-            reason = request._current_block_reason()
-            if reason:
+            elif reason := request._current_block_reason():
                 request.write({"state": "queued"})
                 request._cancel_queued(reason)
                 withheld |= mail
-                continue
-            # First attempt, or a person explicitly retried a failed/unknown delivery.
-            request.write(
-                {"state": "queued", "state_reason": False, "send_attempt_count": request.send_attempt_count + 1}
-            )
-        return withheld, touched
+            else:
+                # First attempt, or a person explicitly retried a failed/unknown delivery.
+                request.write({"state": "queued", "state_reason": False})
+                sendable |= mail
+        return withheld, sendable
 
     @api.model
-    def _reconcile_mails(self, mails):
-        """Mirror the native outcome of these mails onto requests still awaiting one."""
+    def _mark_attempt(self, mail):
+        """Record that this mail is about to be handed to SMTP."""
+        request = self.search([("mail_id", "=", mail.id)], limit=1)
+        request.write({"send_attempt_count": request.send_attempt_count + 1})
+
+    @api.model
+    def _reconcile_mails(self, mails, failure_type=None):
+        """Mirror the native outcome of these mails onto requests still awaiting one.
+
+        ``failure_type`` is the value native post-processing reports; its
+        connection-failure path does not write it onto the mail itself.
+        """
         for request in self.search([("mail_id", "in", mails.ids), ("state", "=", "queued")]):
             mail = request.mail_id
             if mail.state == "sent":
                 request.write({"state": "sent", "state_reason": False, "sent_at": fields.Datetime.now()})
             elif mail.state == "exception":
-                request.write({"state": "exception", "state_reason": mail.failure_type or "unknown"})
+                reason = failure_type or mail.failure_type or "unknown"
+                undelivered = reason in UNDELIVERED_FAILURE_TYPES
+                request.write({"state": "exception" if undelivered else "unknown", "state_reason": reason})
             elif mail.state == "cancel":
                 request.write({"state": "canceled", "state_reason": "mail_canceled"})
 

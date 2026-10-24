@@ -74,13 +74,19 @@ class TestLindaPoIssuance(PlasticosTestCase):
         )
 
     @contextmanager
-    def _mail_sink(self, error=None):
-        """Controlled outbound sink: capture instead of delivering, or fail like SMTP would."""
+    def _mail_sink(self, error=None, fail_once=None):
+        """Controlled outbound sink: capture instead of delivering, or fail like SMTP would.
+
+        ``error`` fails every send; ``fail_once`` fails only the first one.
+        """
         sent = []
+        pending = [fail_once] if fail_once else []
 
         def send_email(server, message, *args, **kwargs):
             if error:
                 raise error
+            if pending:
+                raise pending.pop()
             sent.append(message)
             return message["Message-Id"]
 
@@ -261,6 +267,81 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self.assertEqual(current.revision, 2)
         self.assertEqual(current.state, "queued")
 
+    def test_purchase_users_can_cancel_and_edit_a_queued_po(self):
+        """Review finding: canceling or editing a queued PO must not need mail.mail rights."""
+        self._set_mode("live")
+        for user in (self.manager, self.buyer_clerk):
+            po = self._new_po()
+            po.with_user(user).button_confirm()
+            request = self._requests(po)
+            po.with_user(user).write({"order_line": [(1, po.order_line.id, {"price_unit": 0.19})]})
+            self.assertEqual((request.state, request.state_reason), ("canceled", "payload_changed"))
+
+            po2 = self._new_po()
+            po2.with_user(user).button_confirm()
+            po2.with_user(user).button_cancel()
+            self.assertEqual(self._requests(po2).state, "canceled")
+
+    def test_roles_without_request_rights_still_release_natively(self):
+        """A role that may confirm POs but has no right on Linda requests still gets its native approval.
+
+        plasticos_security_base grants purchase.order rights to sales reps and logistics without any
+        purchase group; this builds the same shape locally so the test holds whichever modules load.
+        """
+        self._set_mode("live")
+        confirmer = self.env["res.groups"].create({"name": "Linda test PO confirmer"})
+        for model in ("purchase.order", "purchase.order.line"):
+            self.env["ir.model.access"].create(
+                {
+                    "name": f"linda test {model}",
+                    "model_id": self.env["ir.model"]._get_id(model),
+                    "group_id": confirmer.id,
+                    "perm_read": True,
+                    "perm_write": True,
+                    "perm_create": True,
+                }
+            )
+        user = new_test_user(
+            self.env, login="linda_po_confirmer", groups="stock.group_stock_user", email="c@example.com"
+        )
+        user.write({"group_ids": [(4, confirmer.id)]})
+        self.assertFalse(self.Request.with_user(user).has_access("create"), "fixture must lack request rights")
+        po = self._new_po()
+
+        po.with_user(user).button_confirm()
+
+        self.assertEqual(po.state, "purchase")
+        self.assertEqual(self._requests(po).state, "queued")
+
+    def test_render_failure_blocks_only_the_issue(self):
+        """A failed render/queue records a blocked issue and leaves the native approval in place."""
+        self._set_mode("live")
+        po = self._new_po()
+        template_class = type(self.env["mail.template"])
+
+        def broken(*args, **kwargs):
+            raise ValueError("wkhtmltopdf crashed")
+
+        with (
+            patch.object(template_class, "send_mail", broken),
+            self.assertLogs("odoo.addons.plasticos_logistics.models.linda_request", level="ERROR"),
+        ):
+            po.button_confirm()
+
+        self.assertEqual(po.state, "purchase")
+        request = self._requests(po)
+        self.assertEqual((request.state, request.state_reason), ("blocked", "render_failed"))
+        self.assertFalse(request.mail_id)
+
+    def test_order_date_change_is_material(self):
+        """Review finding: fields printed on the PDF (here the order deadline) invalidate a queued issue."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        request = self._requests(po)
+        po.write({"date_order": fields.Datetime.add(po.date_order, days=3)})
+        self.assertEqual((request.state, request.state_reason), ("canceled", "payload_changed"))
+
     def test_recipient_change_is_caught_at_send_time(self):
         """A09: a supplier address change outside the PO is rechecked when the queue runs."""
         self._set_mode("live")
@@ -393,22 +474,64 @@ class TestLindaPoIssuance(PlasticosTestCase):
 
     # ── delivery outcomes ────────────────────────────────────
 
-    def test_delivery_failure_is_not_sent_and_not_retried(self):
-        """A14: a transport failure is recorded as such and the queue does not resend it."""
+    def test_connection_failure_is_undelivered_and_not_retried(self):
+        """A14: a refused SMTP connection proves non-delivery; the queue does not resend it."""
         self._set_mode("live")
         po = self._new_po()
         po.button_confirm()
         request = self._requests(po)
 
-        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("refused")):
+        def refuse(*args, **kwargs):
+            raise ConnectionRefusedError("smtp down")
+
+        with self._mail_sink() as sink, patch.object(type(self.env["ir.mail_server"]), "_connect__", refuse):
             self._process_queue(request)
-        self.assertEqual(request.state, "exception")
+        self.assertFalse(sink)
+        self.assertEqual((request.state, request.state_reason), ("exception", "mail_smtp"))
         self.assertEqual(request.mail_id.state, "exception")
 
         with self._mail_sink() as sink:
             self._process_queue(request)
         self.assertFalse(sink)
         self.assertEqual(request.state, "exception")
+
+    def test_generic_send_failure_is_unknown_not_failed(self):
+        """A14: Odoo wraps post-DATA errors generically; the message may have arrived, so it is unknown."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        request = self._requests(po)
+
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self._process_queue(request)
+        self.assertEqual((request.state, request.state_reason), ("unknown", "unknown"))
+        self.assertNotEqual(request.state, "sent")
+
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertFalse(sink, "an unknown outcome is never retried by the queue")
+
+    def test_abort_mid_batch_leaves_unattempted_mail_queued(self):
+        """A14: a disconnect on one mail does not mark later, never-attempted mails as uncertain."""
+        self._set_mode("live")
+        first_po, second_po = self._new_po(), self._new_po(price=0.13)
+        (first_po | second_po).button_confirm()
+        first, second = self._requests(first_po), self._requests(second_po)
+
+        with (
+            self.assertLogs(MAIL_LOGGER, level="ERROR"),
+            self._mail_sink(fail_once=smtplib.SMTPServerDisconnected()),
+        ):
+            self.env["mail.mail"].process_email_queue(email_ids=(first.mail_id | second.mail_id).ids)
+        (first | second).invalidate_recordset()
+        # The queue sends in ascending mail id: the first PO's mail is attempted and drops.
+        self.assertEqual((first.state, first.state_reason), ("unknown", "send_interrupted"))
+        self.assertEqual((second.state, second.send_attempt_count), ("queued", 0))
+
+        with self._mail_sink() as sink:
+            self._process_queue(second)
+        self.assertEqual(len(sink), 1)
+        self.assertEqual(second.state, "sent")
 
     def test_uncertain_delivery_becomes_unknown_and_is_not_resent(self):
         """A14: a disconnect mid-send may have delivered; the next queue run must not resend."""
