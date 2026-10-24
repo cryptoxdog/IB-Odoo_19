@@ -12,7 +12,7 @@ import psycopg2
 
 from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import new_test_user, tagged
 from odoo.tools import mute_logger
 
@@ -274,6 +274,33 @@ class TestLindaSoIssuance(PlasticosTestCase):
             request.write({"sale_order_id": False})
         with self.assertRaises(UserError):
             request.unlink()
+
+    def test_users_cannot_forge_or_edit_evidence(self):
+        """Codex P1 on #304: only Linda's sudo code paths may create or change requests."""
+        self._set_mode("live")
+        so = self._new_so()
+        so.action_confirm()
+        request = self._requests(so)
+        purchaser = new_test_user(
+            self.env, login="linda_evidence_probe", groups="purchase.group_purchase_user", email="p@example.com"
+        )
+        as_user = request.with_user(purchaser)
+        self.assertEqual(as_user.state, "queued", "users can still read evidence")
+        for vals in ({"mail_id": False}, {"state": "sent"}, {"send_attempt_count": 0}):
+            with self.assertRaises(AccessError):
+                as_user.write(vals)
+        with self.assertRaises(AccessError):
+            self.Request.with_user(purchaser).create(
+                {
+                    "company_id": self.company.id,
+                    "purpose": "so_issue",
+                    "sale_order_id": so.id,
+                    "partner_id": self.buyer.id,
+                    "revision": 9,
+                    "payload_fingerprint": "forged",
+                }
+            )
+        self.assertEqual((request.state, bool(request.mail_id)), ("queued", True))
 
     # ── SO-04: stale queue and amendments ────────────────────
 

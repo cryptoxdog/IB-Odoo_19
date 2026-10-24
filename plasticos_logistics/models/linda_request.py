@@ -18,7 +18,7 @@ import logging
 from typing import NamedTuple
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools import email_normalize
 
 _logger = logging.getLogger(__name__)
@@ -256,8 +256,21 @@ class PlasticosLogisticsRequest(models.Model):
         return self[spec.order_field] if spec else self.env[PURCHASE_ORDER]
 
     # ── Evidence integrity ───────────────────────────────────
+    # Requests are written only by Linda's own issuance, cancellation and mail-transport
+    # code, all of which runs under sudo(). Access rights let users read evidence; they
+    # never let anyone forge a request or move its state, recipient or mail link.
+
+    def _check_evidence_writer(self):
+        if not self.env.su:
+            raise AccessError(_("Linda request evidence is recorded by Linda only."))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._check_evidence_writer()
+        return super().create(vals_list)
 
     def write(self, vals):
+        self._check_evidence_writer()
         if IDENTITY_FIELDS.intersection(vals):
             raise UserError(_("Linda request identity is immutable; record a new revision instead."))
         return super().write(vals)
