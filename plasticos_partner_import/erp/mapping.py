@@ -167,6 +167,21 @@ def parse_bool(value: str | None) -> bool | None:
     return None
 
 
+def contact_exclusion(is_active: str | None) -> str:
+    """Why a ``Contact`` row is not imported, or ``""`` when it is explicitly active.
+
+    Only an explicit active flag imports. ``N`` is inactive, and a blank or
+    unrecognised value is not active either: it is excluded, never guessed.
+    """
+    flag = parse_bool(is_active)
+    if flag is True:
+        return ""
+    if flag is False:
+        return "IsActive is inactive"
+    raw = _clean(is_active)
+    return f"IsActive {raw!r} is not an explicit active flag" if raw else "IsActive is blank"
+
+
 def parse_date(value: str | None) -> datetime | None:
     """Parse an exported SQL Server datetime; unknown shapes yield ``None``."""
     raw = _clean(value)

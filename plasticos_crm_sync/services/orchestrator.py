@@ -13,7 +13,7 @@ from .approved_identity import (
     CrosswalkError,
     comment_with_note,
     load_crosswalk_map,
-    phone_match_key,
+    phone_identity_key,
     xmlid_name,
 )
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
@@ -23,6 +23,20 @@ _logger = logging.getLogger(__name__)
 CRM_LEAD = "crm.lead"
 CONTACT_PAGE_SIZE = 200
 CALL_BATCH_SIZE = 500
+
+# VanillaSoft custom fields with no approved native lead target. Each is kept
+# as one source-labelled paragraph of ``crm.lead.description`` when the payload
+# carries it; none becomes a partner relationship, tag, facility, call or
+# activity. Names are the exact source fields of the approved census.
+LEAD_CONTEXT_FIELDS = (
+    "Buyer/Supplier",
+    "Company Type",
+    "Location Type",
+    "Location",
+    "Load Ready",
+    "Last Result Code",
+    "Last Call Date",
+)
 
 # The Contacts list endpoint accepts `modified_after` only within this lookback.
 # Incremental runs clamp to it. The full import deliberately does not, and
@@ -205,6 +219,76 @@ def _facility_for_material(lead):
 
 def _country_token(value: str) -> str:
     return _collapse_ws(value).casefold()
+
+
+def _us_mobile(number: str | None) -> bool:
+    """True when ``number`` passes the crm.lead mobile rule (10-digit US, optional leading 1)."""
+    digits = "".join(ch for ch in str(number or "") if ch.isdigit())
+    if digits.startswith("1") and len(digits) == 11:
+        digits = digits[1:]
+    return len(digits) == 10
+
+
+def _phone_line(kind: str, number: str | None) -> tuple[str, str]:
+    """A classified line: ``(mobile|fax|other, number with extension, normalized)``."""
+    return kind, phone_identity_key(number or "")
+
+
+def _source_phones(dto: CanonicalLead) -> list[tuple[str, str, str]]:
+    """``(source label, mobile|fax|other, number)`` for every source line, in source order.
+
+    Typed entries carry the source classification. A DTO built without them
+    falls back to the number tuples. The native primaries are added when the
+    entries do not already hold them as the same classified line.
+    """
+    if dto.phone_entries:
+        lines = [(entry.label or entry.kind, entry.kind, entry.number) for entry in dto.phone_entries]
+    else:
+        mobiles = {phone_identity_key(number) for number in (dto.mobile_numbers or ())}
+        lines = []
+        for number in dto.phone_numbers or ():
+            kind = "mobile" if phone_identity_key(number) in mobiles else "other"
+            lines.append((kind, kind, number))
+    seen = {_phone_line(kind, number) for _label, kind, number in lines}
+    for label, kind, number in (("Phone", "other", dto.phone), ("Mobile", "mobile", dto.mobile)):
+        line = _phone_line(kind, number)
+        if line[1] and line not in seen:
+            lines.append((label, kind, number))
+            seen.add(line)
+    return lines
+
+
+def _lead_mobile(dto: CanonicalLead) -> str | bool:
+    """The first source mobile ``crm.lead.mobile`` accepts: the primary, then any other mobile."""
+    candidates = [dto.mobile] + [entry.number for entry in dto.phone_entries if entry.kind == "mobile"]
+    return next((number for number in candidates if number and _us_mobile(number)), False)
+
+
+def _approved_context_lines(dto: CanonicalLead) -> list[str]:
+    """Context paragraphs for an approved ERP person, each naming its VanillaSoft ContactID.
+
+    Several ContactIDs can share one ERP person, so every line says which
+    source contact it came from. Only fields the payload carries are kept.
+    """
+    custom = dto.custom_fields or {}
+    lines = []
+    for name in LEAD_CONTEXT_FIELDS:
+        value = _collapse_ws(custom.get(name))
+        if value:
+            lines.append(f"VanillaSoft ContactID {dto.external_id} {name}: {value}")
+    return lines
+
+
+def _description_with(current, lines: list[str]):
+    """``current`` with each line appended once as its own paragraph. ``None`` means no write."""
+    description = current
+    wrote = False
+    for line in lines:
+        merged = comment_with_note(description, line)
+        if merged is not None:
+            description = merged
+            wrote = True
+    return description if wrote else None
 
 
 def _new_outcomes() -> dict[str, int]:
@@ -790,7 +874,13 @@ class SyncOrchestrator:
         """Single-contact path: contact + call history + custom tables."""
         self._load_approved_crosswalk()
         adapter = self._build_adapter(connection)
-        lead_dto = adapter.get_contact(str(external_id))
+        try:
+            lead_dto = adapter.get_contact(str(external_id))
+        except CrmAdapterError as exc:
+            # A source payload the parser refuses is a reported failure of
+            # this ContactID, never a skipped or half-read contact.
+            self.error_rows.append({"record_ref": str(external_id), "message": f"source contact refused: {exc}"})
+            raise
         if not lead_dto:
             raise CrmAdapterError(f"Contact {external_id} not found")
         lead = self._upsert_lead(connection, lead_dto, adapter)
@@ -1023,6 +1113,11 @@ class SyncOrchestrator:
                 ("model", "=", "res.partner"),
             ]
         )
+        if not rows:
+            return None, (
+                f"ERP marker {marker} resolved 0 rows: the approved ERP person was not imported "
+                "(missing from the ERP import or excluded as an inactive contact); no lead or partner was created"
+            )
         if len(rows) != 1:
             return None, f"ERP marker {marker} resolved {len(rows)} rows"
         partner = (
@@ -1037,41 +1132,33 @@ class SyncOrchestrator:
     def _add_approved_phones(self, partner, dto: CanonicalLead) -> bool:
         """Add missing CRM numbers as phone lines. Never assign phone or mobile.
 
-        ERP and CRM values are normalized to the same key before the comparison.
+        Each enabled source line keeps its classification (mobile, fax or
+        other); a second distinct mobile is a mobile line too. ERP and CRM
+        lines are compared on classification plus the normalized number,
+        extension included: a formatting variant of a line already on the
+        person adds nothing, while another extension or the same number as a
+        fax is its own line. The ERP ``phone`` counts as an ``other`` line.
         """
         Phone = self.env["plasticos.partner.phone"].sudo()  # cron user has no facility-phone ACL; lines are additive
-        present = {phone_match_key(partner.phone or "")}
-        has_mobile = False
+        present = {_phone_line("other", partner.phone), _phone_line("mobile", getattr(partner, "mobile", ""))}
         for line in partner.phone_line_ids:
-            present.add(phone_match_key(line.number or ""))
-            if line.label == "mobile":
-                has_mobile = True
-        present.discard("")
-        numbers = list(dto.phone_numbers or ())
-        mobiles = {phone_match_key(number) for number in (dto.mobile_numbers or ())}
-        for extra, kind in ((dto.phone, "other"), (dto.mobile, "mobile")):
-            token = phone_match_key(extra)
-            if token and token not in {phone_match_key(number) for number in numbers}:
-                numbers.append(extra)
-                if kind == "mobile":
-                    mobiles.add(token)
+            present.add(_phone_line(line.label, line.number))
         wrote = False
-        for number in numbers:
-            token = phone_match_key(number)
-            if not token or token in present:
+        for _label, kind, number in _source_phones(dto):
+            line = _phone_line(kind, number)
+            if not line[1] or line in present:
                 continue
-            label = "mobile" if token in mobiles and not has_mobile else "other"
-            Phone.create({"partner_id": partner.id, "label": label, "number": number})
-            if label == "mobile":
-                has_mobile = True
-            present.add(token)
+            Phone.create({"partner_id": partner.id, "label": kind, "number": number})
+            present.add(line)
             wrote = True
         return wrote
 
     def _bind_approved_contact(self, dto: CanonicalLead, ct_id: str):
         """Bind one approved ContactID onto the existing ERP person. No new lead.
 
-        The CRM note is appended to the person's ``comment`` after the ERP notes.
+        The CRM note, then each contact-context field the payload carries
+        (labelled with this ContactID), is appended to the person's ``comment``
+        after the ERP notes, once. No call or activity is created from them.
         """
         outcomes = getattr(self, "outcomes", None)
         Lead = self.env[CRM_LEAD]
@@ -1127,6 +1214,10 @@ class SyncOrchestrator:
                     lead.write({"active": True, "vanillasoft_sync_archived": False})
                     wrote = True
                 comment = comment_with_note(partner.comment, dto.contact_note)
+                current = comment if comment is not None else partner.comment
+                context = _description_with(current, _approved_context_lines(dto))
+                if context is not None:
+                    comment = context
                 if comment is not None:
                     partner.write({"comment": comment})
                     wrote = True
@@ -1301,6 +1392,12 @@ class SyncOrchestrator:
         prior_lead_id = lead.id if lead else False
         try:
             vals = self._lead_vals_from_dto(dto)
+            # Source data with no native lead field is appended to the
+            # description once; a replay finds every paragraph and adds nothing.
+            current = getattr(lead, "description", False) if lead else False
+            description = _description_with(current, self._lead_evidence(dto, vals))
+            if description is not None:
+                vals["description"] = description
             # Archival provenance, not a mirror of the provider flag. `active` is
             # shared state: Odoo users archive leads for their own reasons, and
             # `deleted=false` is the provider's steady state for every live contact,
@@ -1355,10 +1452,13 @@ class SyncOrchestrator:
         return lead
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
-        """Record a classified outcome + error detail (duplicate/failed rows)."""
-        if outcomes is None:
-            return
-        outcomes[outcome] += 1
+        """Record a classified outcome + error detail (duplicate/failed rows).
+
+        The reason is kept even when no counter accumulator is open (the
+        single-contact path), so a classified failure is never unexplained.
+        """
+        if outcomes is not None:
+            outcomes[outcome] += 1
         self.error_rows.append({"record_ref": record_ref, "message": message})
 
     def _resolve_country_id(self, raw: str | None) -> int | bool:
@@ -1413,7 +1513,6 @@ class SyncOrchestrator:
     def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
         # Lazy import mapping SSOT from crm_bridge
         from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING
-        from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
 
         contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
         company = (dto.company or "").strip()
@@ -1428,21 +1527,21 @@ class SyncOrchestrator:
             stage = self.env.ref("plasticos_crm_bridge.stage_new", raise_if_not_found=False)
             stage_id = stage.id if stage else False
 
-        source_id = False
-        raw_source = (dto.lead_source_raw or "").strip()
-        if raw_source and raw_source in LEAD_SOURCE_MAPPING:
-            utm_name = LEAD_SOURCE_MAPPING[raw_source]
-            source = self.env["utm.source"].search([("name", "=", utm_name)], limit=1)
-            source_id = source.id if source else False
+        # The canonical resolver: a mapped source, else the seeded ``Other``.
+        source = self.env["plasticos.lead.source.utils"].normalize_raw_source((dto.lead_source_raw or "").strip())
+        source_id = source.id if source else False
 
         country_id = self._resolve_country_id(dto.country_code)
 
+        # A supported code, else the exact state name, within the resolved
+        # country only. No country is ever inferred from a state value.
         state_id = False
-        if dto.state_code and country_id:
-            state = self.env["res.country.state"].search(
-                [("code", "=", dto.state_code.strip().upper()), ("country_id", "=", country_id)],
-                limit=1,
-            )
+        state_text = _collapse_ws(dto.state_code)
+        if state_text and country_id:
+            State = self.env["res.country.state"]
+            state = State.search([("code", "=", state_text.upper()), ("country_id", "=", country_id)], limit=1)
+            if not state:
+                state = State.search([("name", "=ilike", state_text), ("country_id", "=", country_id)], limit=1)
             state_id = state.id if state else False
 
         user_id = resolve_salesperson(self.env, dto.owner_name).id
@@ -1454,7 +1553,10 @@ class SyncOrchestrator:
             "contact_name": contact_name or False,
             "email_from": dto.email or False,
             "phone": dto.phone or False,
-            "mobile": dto.mobile or False,
+            # crm.lead.mobile accepts a 10-digit US number only: the primary
+            # mobile when it qualifies, else another source mobile that does.
+            # Every mobile not stored here stays, labelled, in the description.
+            "mobile": _lead_mobile(dto),
             "street": dto.street or False,
             "street2": dto.street2 or False,
             "city": dto.city or False,
@@ -1466,6 +1568,55 @@ class SyncOrchestrator:
             "user_id": user_id,
             "vanillasoft_id": dto.external_id,
         }
+
+    def _lead_evidence(self, dto: CanonicalLead, vals: dict[str, Any]) -> list[str]:
+        """Source-labelled paragraphs for data the lead has no native field for.
+
+        The VanillaSoft ``Notes`` field, the contact context fields, every
+        enabled number not stored in ``phone``/``mobile``, and a country,
+        state or lead source that did not resolve. Each unresolved value is
+        also reported on ``error_rows``; nothing is guessed.
+        """
+        ref = dto.external_id
+        custom = dto.custom_fields or {}
+        lines: list[str] = []
+        if dto.contact_note:
+            lines.append(f"VanillaSoft Notes: {dto.contact_note}")
+        for name in LEAD_CONTEXT_FIELDS:
+            value = _collapse_ws(custom.get(name))
+            if value:
+                lines.append(f"VanillaSoft {name}: {value}")
+        stored = {_phone_line("other", vals.get("phone")), _phone_line("mobile", vals.get("mobile"))}
+        for label, kind, number in _source_phones(dto):
+            if _phone_line(kind, number) not in stored:
+                lines.append(f"VanillaSoft phone ({label}): {number}")
+        if dto.mobile and "mobile" in vals and not _us_mobile(dto.mobile):
+            self.error_rows.append(
+                {
+                    "record_ref": ref,
+                    "message": "primary mobile is not a 10-digit US number; kept in the lead description",
+                }
+            )
+        country = _collapse_ws(dto.country_code)
+        if country and "country_id" in vals and not vals["country_id"]:
+            lines.append(f"VanillaSoft Country (unresolved): {country}")
+            self.error_rows.append({"record_ref": ref, "message": "country did not resolve; kept in the description"})
+        state = _collapse_ws(dto.state_code)
+        if state and "state_id" in vals and not vals["state_id"]:
+            lines.append(f"VanillaSoft State (unresolved): {state}")
+            self.error_rows.append(
+                {"record_ref": ref, "message": "state did not resolve in the country; kept in the description"}
+            )
+        raw_source = (dto.lead_source_raw or "").strip()
+        if raw_source and "source_id" in vals and self._lead_source_is_fallback(raw_source):
+            lines.append(f"VanillaSoft Lead Source: {raw_source}")
+        return lines
+
+    def _lead_source_is_fallback(self, raw_source: str) -> bool:
+        """True when the resolver maps ``raw_source`` to ``Other`` only because it is unknown."""
+        from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
+
+        return raw_source not in LEAD_SOURCE_MAPPING
 
     def _upsert_calls(self, connection, batch: list[CanonicalCall], run) -> int:
         """Upsert one call batch, classifying each row created|updated|unchanged|failed.

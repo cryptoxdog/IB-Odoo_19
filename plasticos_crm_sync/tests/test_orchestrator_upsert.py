@@ -216,14 +216,56 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
         self.assertFalse(blank["contact_name"])
 
-    def test_unmapped_source_is_left_empty(self):
+    def test_unmapped_source_falls_back_to_other_and_keeps_the_source_text(self):
         self._ensure_mapped_salespeople()
         orch = SyncOrchestrator(self.env)
         missing_source = orch._lead_vals_from_dto(self._lead("vs-source", lead_source_raw="Not A Mapped Source"))
-        self.assertFalse(missing_source["source_id"])
+        self.assertEqual(missing_source["source_id"], self.env.ref("plasticos_crm_bridge.utm_source_other").id)
+        lead = orch._upsert_lead(self.connection, self._lead("vs-source", lead_source_raw="Not A Mapped Source"))
+        self.assertIn("VanillaSoft Lead Source: Not A Mapped Source", lead.description)
+        blank = orch._lead_vals_from_dto(self._lead("vs-blank-source", lead_source_raw=""))
+        self.assertFalse(blank["source_id"])
         mapped = orch._lead_vals_from_dto(self._lead("vs-google", lead_source_raw="Google"))
         self.assertEqual(mapped["source_id"], self.env.ref("plasticos_crm_bridge.utm_source_google").id)
         self.assertEqual(self.env["res.users"].browse(mapped["user_id"]).login, BLANK_OWNER_LOGIN)
+
+    def test_extra_numbers_and_notes_persist_in_the_description_and_replay(self):
+        self._ensure_salesperson("ib@scrapmanagement.com")
+        raw = {
+            "contact_id": "vs-phone-fidelity",
+            "company": "Synthetic Co",
+            "first_name": "Ada",
+            "last_name": "Byron",
+            "state": "Pennsylvania",
+            "country": "USA",
+            "contact_owner": "ibeylin@ucsincny.com",
+            "custom_fields": [{"name": "Notes", "value": "synthetic note"}],
+            "phone_numbers": [
+                {"name": "direct", "number": "555-100-0001"},
+                {"name": "mobile 1", "number": "+44 7700 900123"},
+                {"name": "mobile 2", "number": "555-100-0002"},
+                {"name": "fax", "number": "555-100-0003"},
+            ],
+        }
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, contact_to_canonical(raw))
+        self.assertEqual(orch.last_lead_outcome, "created")
+        self.assertEqual(lead.phone, "555-100-0001")
+        self.assertEqual(lead.mobile, "555-100-0002", "the valid second mobile fills the field the first cannot")
+        self.assertEqual(lead.state_id.code, "PA")
+        for line in (
+            "VanillaSoft Notes: synthetic note",
+            "VanillaSoft phone (mobile 1): +44 7700 900123",
+            "VanillaSoft phone (fax): 555-100-0003",
+        ):
+            self.assertIn(line, lead.description)
+        self.assertNotIn("555-100-0002", lead.description)
+        stored = lead.description
+        again = orch._upsert_lead(self.connection, contact_to_canonical(raw))
+        self.assertEqual(again, lead)
+        self.assertEqual(orch.last_lead_outcome, "unchanged")
+        self.assertEqual(lead.description, stored)
 
     def test_locked_owner_emails_persist_on_the_lead_and_replay(self):
         self._ensure_mapped_salespeople()

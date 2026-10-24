@@ -36,6 +36,7 @@ stages.
 from __future__ import annotations
 
 import logging
+from html import escape
 
 from odoo import Command, api, models
 from odoo.tools import html2plaintext
@@ -427,35 +428,37 @@ class PlasticosErpImport(models.AbstractModel):
         return True
 
     def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
-        """Put the primary contact's phone and email on the company when it has none.
+        """Fill the company's missing phone and email from its active contacts.
 
         The ERP stores the number and the mailbox on the person. The company
-        is who we trade with, so those values also land on the company. A
+        is who we trade with, so those values also land on the company. Each
+        value is filled on its own: from the first active ``Primary`` contact
+        that has it, else from the first other active contact that has it. A
         value already taken from the counterparty or the remit is left as-is.
         """
+        from ..erp import mapping
+
         partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(company_partner_id)
         if partner.email and partner.phone:
             return
-        chosen = None
-        fallback = None
+        primary_rows: list = []
+        other_rows: list = []
         for contact_id in index.contacts_by_cp.get(cp_id, []):
             row = index.contacts[contact_id]
-            if not _email(row, "Email") and not _text(row, "PhoneBusiness"):
+            if mapping.contact_exclusion(row.get("IsActive")):
                 continue
             roles = [role.lower() for role in self._contact_roles(index, contact_id)]
-            if "primary" in roles:
-                chosen = row
-                break
-            if fallback is None:
-                fallback = row
-        row = chosen or fallback
-        if not row:
-            return
+            (primary_rows if "primary" in roles else other_rows).append(row)
         values = {}
-        if not partner.email and _email(row, "Email"):
-            values["email"] = _email(row, "Email")
-        if not partner.phone and _text(row, "PhoneBusiness"):
-            values["phone"] = _text(row, "PhoneBusiness")
+        for row in primary_rows + other_rows:
+            if not partner.email and "email" not in values and _email(row, "Email"):
+                values["email"] = _email(row, "Email")
+            if not partner.phone and "phone" not in values:
+                number = mapping.real_phone(row.get("PhoneBusiness"))
+                if number:
+                    values["phone"] = number
+            if (partner.email or "email" in values) and (partner.phone or "phone" in values):
+                break
         if values:
             partner.write(values)
 
@@ -534,6 +537,7 @@ class PlasticosErpImport(models.AbstractModel):
 
             groups: dict[str, list] = {}
             order: list[str] = []
+            excluded_ids: list[str] = []
             addresses = [
                 (address_id, label) for item_cp, address_id, label, _partner_id in catalog if item_cp == cp_id and label
             ]
@@ -542,6 +546,13 @@ class PlasticosErpImport(models.AbstractModel):
             }
             for contact_id in index.contacts_by_cp[cp_id]:
                 row = index.contacts[contact_id]
+                excluded = mapping.contact_exclusion(row.get("IsActive"))
+                if excluded:
+                    # Before grouping, channel writes and aliasing: an inactive
+                    # CT_ID gets no person, no number on the company and no marker.
+                    report.unresolved_ref("Contact", "inactive_contact", contact_id, f"not imported: {excluded}")
+                    excluded_ids.append(contact_id)
+                    continue
                 name = _text(row, "ContactNm")
                 if not name:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
@@ -581,24 +592,66 @@ class PlasticosErpImport(models.AbstractModel):
                     dry_run,
                     mapping,
                 )
+            if excluded_ids and not dry_run:
+                self._retire_inactive_contacts(Partner, excluded_ids)
+
+    def _retire_inactive_contacts(self, partner_model, contact_ids: list[str]) -> None:
+        """Remove the marker an earlier run stored for each excluded CT_ID.
+
+        Runs after the active people of the counterparty are stored. The person
+        a removed marker named is archived (never deleted) only when no other
+        ERP contact marker still points at it, so an active alias keeps its
+        person and an approved CRM binding to an excluded CT_ID no longer resolves.
+        """
+        Data = self.env["ir.model.data"]
+        stale = Data.search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "in", [f"legacy_erp_contact_{contact_id}" for contact_id in contact_ids]),
+                ("model", "=", RES_PARTNER),
+            ]
+        )
+        if not stale:
+            return
+        affected = {row.res_id for row in stale if row.res_id}
+        stale.unlink()
+        if not affected:
+            return
+        still_named = Data.search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "=like", "legacy_erp_contact_%"),
+                ("model", "=", RES_PARTNER),
+                ("res_id", "in", sorted(affected)),
+            ]
+        )
+        orphans = sorted(affected - {row.res_id for row in still_named})
+        people = (
+            partner_model.browse(orphans).exists().filtered(lambda partner: not partner.is_company and partner.active)
+        )
+        if people:
+            people.write({"active": False})
 
     def _import_person(
         self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping
     ) -> None:
-        """One person per company plus first and last name. Every CT_ID aliases that person."""
+        """One person per company plus first and last name. Every CT_ID aliases that person.
+
+        ``members`` holds explicitly active rows only; ``_import_contacts``
+        excluded every other row before grouping.
+        """
         members = sorted(members, key=_contact_sort_key)
         name = _text(members[0][1], "ContactNm")
-        active = any(_row_active(row, mapping) for _contact_id, row in members)
         parent = partner_model.browse(company_partner_id) if company_partner_id else partner_model.browse()
         values = {
             "name": name,
             "parent_id": company_partner_id,
             "is_company": False,
             "type": "contact",
-            "active": active,
+            "active": True,
         }
         values.update(self._copied_role(parent))
-        phone_lines = self._merge_person_channels(values, members, report)
+        phone_lines, email_evidence = self._merge_person_channels(values, members, report)
         location_ids = []
         for _contact_id, row in members:
             loc = _text(row, "Location")
@@ -619,16 +672,45 @@ class PlasticosErpImport(models.AbstractModel):
         if "location_partner_ids" in partner._fields and set(partner.location_partner_ids.ids) != set(location_ids):
             partner.write({"location_partner_ids": [(6, 0, location_ids)]})
         self._sync_phone_lines(partner, phone_lines)
+        self._append_comment_evidence(partner, email_evidence)
 
-    def _merge_person_channels(self, values: dict, members, report) -> list:
-        """Union emails and phones. The first business number stays in ``phone``."""
+    def _append_comment_evidence(self, partner, lines: list) -> None:
+        """Append each labelled line to ``comment`` as its own paragraph, once.
+
+        A paragraph already present is not written again, so a replay changes
+        nothing. The ERP notes and any CRM paragraphs stay where they are.
+        """
+        comment = partner.comment
+        wrote = False
+        for line in lines:
+            merged = _comment_with_paragraph(comment, line)
+            if merged is not None:
+                comment = merged
+                wrote = True
+        if wrote:
+            partner.with_context(**IMPORT_CONTEXT).write({"comment": comment})
+
+    def _merge_person_channels(self, values: dict, members, report) -> tuple[list, list]:
+        """Union emails and phones. The first business number stays in ``phone``.
+
+        The first email stays in ``email``. A different email from another
+        active CT_ID of the same person is returned as labelled comment
+        evidence; res.partner has one email field. Returns ``(lines, evidence)``.
+        """
         from ..erp import mapping
 
         comments: list[str] = []
         business: list[str] = []
         lines: list[tuple[str, str]] = []
+        evidence: list[str] = []
+        seen_emails: set[str] = set()
         for contact_id, row in members:
-            _keep_first(values, "email", _email(row, "Email"), report, contact_id)
+            email = _email(row, "Email")
+            _keep_first(values, "email", email, report, contact_id)
+            seen_emails.add(str(values.get("email") or "").casefold())
+            if email and email.casefold() not in seen_emails:
+                seen_emails.add(email.casefold())
+                evidence.append(f"ERP contact {contact_id} email: {email}")
             number = mapping.real_phone(row.get("PhoneBusiness"))
             if number and number not in business:
                 business.append(number)
@@ -649,7 +731,7 @@ class PlasticosErpImport(models.AbstractModel):
             lines.extend(("other", number) for number in business[1:])
         if comments:
             values["comment"] = "\n".join(comments)
-        return lines
+        return lines, evidence
 
     def _apply_non_person(self, company, row) -> None:
         """A phone-number contact title is not a person. Keep the channels on the company."""
@@ -1262,9 +1344,25 @@ def _person_key(name: str) -> str:
     return mapping.person_key(name)
 
 
-def _row_active(row, mapping) -> bool:
-    flag = mapping.parse_bool(row.get("IsActive"))
-    return True if flag is None else flag
+def _comment_with_paragraph(comment, line: str):
+    """``comment`` with ``line`` appended as its own paragraph. ``None`` means no write.
+
+    A paragraph holding the same text, whitespace collapsed, is already there.
+    """
+    from ..erp.comment_notes import _CommentBlocks
+
+    text = " ".join((line or "").split())
+    if not text:
+        return None
+    parser = _CommentBlocks()
+    parser.feed(str(comment or ""))
+    parser.close()
+    parser.flush()
+    if text in parser.blocks:
+        return None
+    if comment and not str(comment).lstrip().startswith("<"):
+        comment = f"<p>{escape(str(comment), quote=False)}</p>"
+    return f"{comment or ''}<p>{escape(line.strip(), quote=False)}</p>"
 
 
 def _keep_first(values: dict, field_name: str, value: str, report, contact_id: str) -> None:

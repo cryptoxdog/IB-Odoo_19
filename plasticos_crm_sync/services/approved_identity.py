@@ -24,6 +24,11 @@ PINNED_ERP_COUNT = 716
 XMLID_MODULE = "plasticos_transaction"
 CONTACT_NOTE_KEY = "Notes"
 MOBILE_PHONE_NAMES = frozenset({"mobile", "mobile 1", "mobile 2", "cell"})
+FAX_PHONE_NAMES = frozenset({"fax"})
+# Source names that may fill the native primary number, in preference order.
+# Mobile 2 fills ``mobile`` only when no primary mobile exists.
+PRIMARY_PHONE_NAMES = ("direct", "phone", "work", "office")
+PRIMARY_MOBILE_NAMES = ("mobile", "mobile 1", "cell", "mobile 2")
 
 
 class CrosswalkError(ValueError):
@@ -54,6 +59,21 @@ def phone_match_key(number: str) -> str:
     if len(digits) == 11 and digits.startswith("1"):
         return digits[1:]
     return digits
+
+
+def phone_identity_key(number: str) -> str:
+    """``phone_match_key`` plus the extension, so ``x101`` and ``x102`` stay two lines.
+
+    Formatting variants of one line, with or without a leading NANP ``1``,
+    still share one key. A number with an extension is a different line from
+    the same number without one.
+    """
+    base = phone_match_key(number)
+    if not base:
+        return ""
+    match = _PHONE_EXTENSION.search(str(number or "").strip())
+    extension = digits_only(match.group(0)) if match else ""
+    return f"{base}x{extension}" if extension else base
 
 
 def validate_crosswalk(
@@ -192,24 +212,81 @@ def comment_with_note(comment: str | None, note: str) -> str | None:
     return f"{comment or ''}<p>{escape(text, quote=False)}</p>"
 
 
-def phone_kinds(phones: object) -> tuple[tuple[str, str], ...]:
-    """``(mobile|other, number)`` for every enabled phone, first occurrence wins."""
+def phone_kind(name: str) -> str:
+    """The ``plasticos.partner.phone`` label for a provider phone name."""
+    key = str(name or "").strip().lower()
+    if key in MOBILE_PHONE_NAMES:
+        return "mobile"
+    if key in FAX_PHONE_NAMES:
+        return "fax"
+    return "other"
+
+
+def read_phones(phones: object, *, contact_ref: str = "") -> tuple[tuple[tuple[str, str], ...], frozenset[str]]:
+    """``((source label, number), ...)`` for every enabled entry, and the keys of the disabled ones.
+
+    ``disabled`` is read with the adapter's strict parser. An unrecognised
+    spelling raises ``CrmAdapterError`` naming the contact and the entry: it is
+    neither an enabled nor a disabled number. The disabled keys let a caller
+    refuse the same number arriving through another payload field.
+    """
+    # Imported here: the adapter package lazily imports this module.
+    from ..adapters.vanillasoft.adapter import _first_present, vs_bool
+
     if not isinstance(phones, list):
-        return ()
-    seen: set[str] = set()
+        return (), frozenset()
     kept: list[tuple[str, str]] = []
-    for item in phones:
+    disabled: set[str] = set()
+    for position, item in enumerate(phones):
         if not isinstance(item, dict):
             continue
-        disabled = item.get("disabled", item.get("Disabled"))
-        if str(disabled).strip().lower() in {"1", "true", "yes"}:
-            continue
+        field_name = f"contact {contact_ref} phone_numbers[{position}].disabled"
         number = str(item.get("number") or "").strip()
-        token = phone_match_key(number)
-        if not token or token in seen:
+        key = phone_identity_key(number)
+        if vs_bool(_first_present(item, "disabled", "Disabled"), field=field_name):
+            if key:
+                disabled.add(key)
+            continue
+        if key:
+            kept.append((str(item.get("name") or "").strip(), number))
+    return tuple(kept), frozenset(disabled)
+
+
+def enabled_phones(phones: object, *, contact_ref: str = "") -> tuple[tuple[str, str], ...]:
+    """``(source label, number)`` for every enabled entry with digits, in source order."""
+    return read_phones(phones, contact_ref=contact_ref)[0]
+
+
+def phone_entries(enabled: tuple[tuple[str, str], ...]):
+    """One ``CanonicalPhone`` per distinct classified line; the first occurrence keeps its label.
+
+    Two entries are one line only when the classification and the number,
+    extension included, both match: one number given as Direct and as Fax
+    stays two entries.
+    """
+    from ..adapters.base import CanonicalPhone
+
+    seen: set[tuple[str, str]] = set()
+    kept = []
+    for label, number in enabled:
+        kind = phone_kind(label)
+        token = (kind, phone_identity_key(number))
+        if token in seen:
             continue
         seen.add(token)
-        name = str(item.get("name") or "").strip().lower()
-        kind = "mobile" if name in MOBILE_PHONE_NAMES else "other"
-        kept.append((kind, number))
+        kept.append(CanonicalPhone(label=label, number=number, kind=kind))
     return tuple(kept)
+
+
+def primary_number(enabled: tuple[tuple[str, str], ...], names: tuple[str, ...]) -> str:
+    """The first enabled number whose source name is earliest in ``names``."""
+    for wanted in names:
+        for label, number in enabled:
+            if label.lower() == wanted:
+                return number
+    return ""
+
+
+def phone_kinds(phones: object) -> tuple[tuple[str, str], ...]:
+    """``(mobile|fax|other, number)`` for every enabled phone, first occurrence wins."""
+    return tuple((entry.kind, entry.number) for entry in phone_entries(enabled_phones(phones)))

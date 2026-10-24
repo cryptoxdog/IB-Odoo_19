@@ -379,3 +379,173 @@ def test_an_identified_row_still_persists_alongside_a_skipped_one():
     """Skipping is per row: one unusable row must not drop its siblings."""
     rows = _rows_for("42", {"rows": [{"grade": "HDPE"}, {"data_id": 9002, "grade": "PP"}]})
     assert [r.external_row_id for r in rows] == ["9002"]
+
+
+# ── phone_numbers[] fidelity: one reading, every enabled number kept ─────────
+
+_ALL_PHONES = [
+    {"name": "Direct", "number": "(215) 555-0101"},
+    {"name": "Mobile 1", "number": "215-555-0102", "disabled": "false"},
+    {"name": "Mobile 2", "number": "215.555.0103", "disabled": 0},
+    {"name": "Business", "number": "215-555-0104"},
+    {"name": "Office", "number": "215-555-0105"},
+    {"name": "Home", "number": "215-555-0106"},
+    {"name": "Fax", "number": "215-555-0107"},
+]
+
+
+def _entries(contact):
+    return [(entry.label, entry.number, entry.kind) for entry in contact.phone_entries]
+
+
+def test_every_enabled_number_keeps_its_source_label_and_classification():
+    contact = contact_to_canonical({"contact_id": 7, "phone_numbers": _ALL_PHONES})
+    assert contact.phone == "(215) 555-0101"
+    assert contact.mobile == "215-555-0102"
+    assert _entries(contact) == [
+        ("Direct", "(215) 555-0101", "other"),
+        ("Mobile 1", "215-555-0102", "mobile"),
+        ("Mobile 2", "215.555.0103", "mobile"),
+        ("Business", "215-555-0104", "other"),
+        ("Office", "215-555-0105", "other"),
+        ("Home", "215-555-0106", "other"),
+        ("Fax", "215-555-0107", "fax"),
+    ]
+    assert contact.phone_numbers == tuple(number for _label, number, _kind in _entries(contact))
+    assert contact.mobile_numbers == ("215-555-0102", "215.555.0103")
+
+
+def test_disabled_true_is_omitted_and_disabled_false_is_kept():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone_numbers": [
+                {"name": "Mobile 1", "number": "215-555-0102", "disabled": "true"},
+                {"name": "Mobile 2", "number": "215-555-0103", "Disabled": False},
+            ],
+        }
+    )
+    assert _entries(contact) == [("Mobile 2", "215-555-0103", "mobile")]
+    assert contact.mobile == "215-555-0103"
+
+
+@pytest.mark.parametrize("value", ["maybe", "yes", 2])
+def test_an_unknown_disabled_spelling_is_a_reported_source_error(value):
+    with pytest.raises(CrmAdapterError, match=r"contact 7 phone_numbers\[1\]\.disabled"):
+        contact_to_canonical(
+            {
+                "contact_id": 7,
+                "phone_numbers": [
+                    {"name": "Direct", "number": "215-555-0101"},
+                    {"name": "Mobile 1", "number": "215-555-0102", "disabled": value},
+                ],
+            }
+        )
+
+
+def test_mobile_two_alone_is_kept_as_the_mobile():
+    contact = contact_to_canonical({"contact_id": 7, "phone_numbers": [{"name": "Mobile 2", "number": "215-555-0103"}]})
+    assert contact.mobile == "215-555-0103"
+    assert _entries(contact) == [("Mobile 2", "215-555-0103", "mobile")]
+
+
+def test_two_distinct_mobiles_are_both_kept():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone_numbers": [
+                {"name": "Mobile 1", "number": "215-555-0102"},
+                {"name": "Mobile 2", "number": "215-555-0103"},
+            ],
+        }
+    )
+    assert contact.mobile == "215-555-0102"
+    assert contact.mobile_numbers == ("215-555-0102", "215-555-0103")
+
+
+def test_formatting_variants_of_one_number_are_one_entry():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone_numbers": [
+                {"name": "Direct", "number": "(215) 555-0101"},
+                {"name": "Business", "number": "+1 215.555.0101"},
+                {"name": "Office", "number": "215-555-0101 ext. 4"},
+                {"name": "Work", "number": "215 555 0101 x4"},
+            ],
+        }
+    )
+    assert _entries(contact) == [
+        ("Direct", "(215) 555-0101", "other"),
+        ("Office", "215-555-0101 ext. 4", "other"),
+    ], "an extension is its own line; a formatting variant of one line is not"
+
+
+def test_distinct_extensions_of_one_number_stay_two_lines():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone_numbers": [
+                {"name": "Direct", "number": "555-201-0100 ext. 101"},
+                {"name": "Business", "number": "555-201-0100 ext. 102"},
+            ],
+        }
+    )
+    assert _entries(contact) == [
+        ("Direct", "555-201-0100 ext. 101", "other"),
+        ("Business", "555-201-0100 ext. 102", "other"),
+    ]
+
+
+def test_one_number_given_as_direct_and_fax_keeps_both_classifications():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone_numbers": [
+                {"name": "Direct", "number": "215-555-0101"},
+                {"name": "Fax", "number": "(215) 555-0101"},
+            ],
+        }
+    )
+    assert _entries(contact) == [("Direct", "215-555-0101", "other"), ("Fax", "(215) 555-0101", "fax")]
+
+
+def test_a_number_disabled_in_the_list_never_returns_through_the_top_level_fallback():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone": "+1 (215) 555-0101",
+            "Direct": "215-555-0199",
+            "mobile": "215.555.0102",
+            "phone_numbers": [
+                {"name": "Direct", "number": "215-555-0101", "disabled": True},
+                {"name": "Mobile 1", "number": "215-555-0102", "disabled": "1"},
+            ],
+        }
+    )
+    assert contact.phone == "215-555-0199", "the next top-level value that the list did not disable"
+    assert contact.mobile == ""
+    assert contact.phone_entries == ()
+
+
+def test_the_top_level_number_is_still_a_fallback_when_the_list_has_none():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone": "215-555-0101",
+            "mobile": "215-555-0102",
+            "phone_numbers": [{"name": "Fax", "number": "215-555-0107"}],
+        }
+    )
+    assert (contact.phone, contact.mobile) == ("215-555-0101", "215-555-0102")
+
+
+def test_the_list_wins_over_the_top_level_number():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 7,
+            "phone": "215-555-0199",
+            "phone_numbers": [{"name": "Direct", "number": "215-555-0101"}],
+        }
+    )
+    assert contact.phone == "215-555-0101"

@@ -107,36 +107,41 @@ def _cf_map(raw: Any) -> dict[str, str]:
     return out
 
 
-def _phone_from_list(phones: Any, preferred: tuple[str, ...]) -> str:
-    if not phones or not isinstance(phones, list):
-        return ""
-    by_name: dict[str, str] = {}
-    for p in phones:
-        if not isinstance(p, dict):
-            continue
-        if vs_bool(_first_present(p, "disabled", "Disabled"), field="phone_numbers[].disabled"):
-            continue
-        name = str(p.get("name") or "").strip().lower()
-        number = str(p.get("number") or "").strip()
-        if not number:
-            continue
-        by_name[name] = number
-    for key in preferred:
-        if key in by_name:
-            return by_name[key]
+def _top_level_number(raw: dict[str, Any], keys: tuple[str, ...], disabled: frozenset[str]) -> str:
+    """The first top-level number under ``keys`` that ``phone_numbers[]`` did not disable.
+
+    ``phone_numbers[]`` wins: a top-level value is only a fallback, and a
+    number the list marks disabled never re-enters through it.
+    """
+    from ...services.approved_identity import phone_identity_key
+
+    for key in keys:
+        value = str(raw.get(key) or "").strip()
+        if value and phone_identity_key(value) not in disabled:
+            return value
     return ""
 
 
 def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
     # Imported here: services/__init__ loads the orchestrator, which imports the
     # adapter registry. A module-level import from this adapter cycles that load.
-    from ...services.approved_identity import contact_note_text, phone_kinds
+    from ...services.approved_identity import (
+        PRIMARY_MOBILE_NAMES,
+        PRIMARY_PHONE_NAMES,
+        contact_note_text,
+        phone_entries,
+        primary_number,
+        read_phones,
+    )
 
     custom = _cf_map(raw.get("custom_fields"))
-    phones = raw.get("phone_numbers")
     contact_id = raw.get("contact_id") or raw.get("ContactID") or raw.get("id")
     if contact_id is None:
         raise CrmAdapterError("Contact payload missing contact_id")
+    # One reading of `phone_numbers[]` feeds the primary numbers, the typed
+    # entries and the compatibility tuples, so they cannot disagree.
+    enabled, disabled = read_phones(raw.get("phone_numbers"), contact_ref=str(contact_id))
+    entries = phone_entries(enabled)
 
     lead_status = (
         custom.get("Lead Status")
@@ -157,7 +162,6 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
     modified = str(
         raw.get("modified_date_time_utc") or raw.get("modified_datetime_utc") or raw.get("ModifiedDateTimeUTC") or ""
     )
-    kinds = phone_kinds(phones)
 
     return CanonicalLead(
         provider=PROVIDER,
@@ -166,10 +170,9 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         first_name=str(raw.get("first_name") or raw.get("First Name") or ""),
         last_name=str(raw.get("last_name") or raw.get("Last Name") or ""),
         email=str(raw.get("email") or raw.get("Email") or ""),
-        phone=_phone_from_list(phones, ("direct", "phone", "work", "office"))
-        or str(raw.get("phone") or raw.get("Direct") or ""),
-        mobile=_phone_from_list(phones, ("mobile", "mobile 1", "cell"))
-        or str(raw.get("mobile") or raw.get("Mobile 1") or ""),
+        phone=primary_number(enabled, PRIMARY_PHONE_NAMES) or _top_level_number(raw, ("phone", "Direct"), disabled),
+        mobile=primary_number(enabled, PRIMARY_MOBILE_NAMES)
+        or _top_level_number(raw, ("mobile", "Mobile 1"), disabled),
         street=_payload_text(raw, "address", "Address", "street", "address1"),
         street2=_payload_text(raw, "address_2", "Address 2", "street2"),
         city=_payload_text(raw, "city", "City"),
@@ -182,9 +185,10 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         modified_utc=modified,
         deleted=deleted,
         custom_fields=custom,
-        phone_numbers=tuple(number for _kind, number in kinds),
-        mobile_numbers=tuple(number for kind, number in kinds if kind == "mobile"),
+        phone_numbers=tuple(entry.number for entry in entries),
+        mobile_numbers=tuple(entry.number for entry in entries if entry.kind == "mobile"),
         contact_note=contact_note_text(custom),
+        phone_entries=entries,
     )
 
 
