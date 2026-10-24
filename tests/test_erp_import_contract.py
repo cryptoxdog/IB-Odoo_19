@@ -411,3 +411,288 @@ def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
     assert "reconstruct_all_headers" not in ast.dump(extend)
     assert "import csv" not in deal_source
     assert "run_csv_import" not in deal_source
+
+
+# ---------------------------------------------------------------------------
+# Contact eligibility and channel fidelity: the REAL contact layer
+# ---------------------------------------------------------------------------
+# ``_import_contacts`` runs unmodified against an in-memory ORM. ``odoo`` is
+# stubbed only while the service module loads, and the module is loaded under
+# a private package name, so no other test sees the stub. Synthetic rows only.
+import importlib.util  # noqa: E402
+import re  # noqa: E402
+import types  # noqa: E402
+
+
+def _load_contact_service():
+    stub = types.ModuleType("odoo")
+    stub.Command = types.SimpleNamespace(create=lambda vals: (0, 0, vals), clear=lambda: (5, 0, 0))
+    stub.api = types.SimpleNamespace(model=lambda fn: fn)
+    stub.models = types.SimpleNamespace(AbstractModel=object)
+    tools = types.ModuleType("odoo.tools")
+    tools.html2plaintext = lambda value: re.sub(r"<[^>]+>", " ", str(value or ""))
+    saved = {name: sys.modules.get(name) for name in ("odoo", "odoo.tools")}
+    package = types.ModuleType("_erp_contact_pkg")
+    package.__path__ = [str(ROOT / "plasticos_partner_import")]
+    models_pkg = types.ModuleType("_erp_contact_pkg.models")
+    models_pkg.__path__ = [str(ROOT / "plasticos_partner_import" / "models")]
+    sys.modules.update({"odoo": stub, "odoo.tools": tools})
+    sys.modules["_erp_contact_pkg"] = package
+    sys.modules["_erp_contact_pkg.models"] = models_pkg
+    try:
+        spec = importlib.util.spec_from_file_location("_erp_contact_pkg.models.erp_import_service", SERVICE)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+    finally:
+        for name, value in saved.items():
+            if value is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = value
+    return module
+
+
+_PARTNER_FIELDS = {
+    name: types.SimpleNamespace(type=kind)
+    for name, kind in {
+        "name": "char",
+        "parent_id": "many2one",
+        "is_company": "boolean",
+        "type": "selection",
+        "active": "boolean",
+        "email": "char",
+        "phone": "char",
+        "comment": "html",
+        "supplier_rank": "integer",
+        "customer_rank": "integer",
+        "company_role": "selection",
+        "location_partner_ids": "many2many",
+        "phone_line_ids": "one2many",
+    }.items()
+}
+
+
+class _Empty:
+    id = False
+    ids: list = []
+
+    def __bool__(self):
+        return False
+
+    def exists(self):
+        return self
+
+    def __getattr__(self, name):
+        return False
+
+
+class _Partner:
+    _name = "res.partner"
+    _fields = _PARTNER_FIELDS
+
+    def __init__(self, rec_id, vals):
+        self.id = rec_id
+        self.email = self.phone = self.comment = self.company_role = False
+        self.supplier_rank = self.customer_rank = 0
+        self.is_company = False
+        self.active = True
+        self.phone_line_ids: list = []
+        self.location_partner_ids = types.SimpleNamespace(ids=[])
+        self.writes: list[dict] = []
+        self._apply(vals)
+
+    def _apply(self, vals):
+        for key, value in vals.items():
+            if key == "phone_line_ids":
+                for _cmd, _id, line in value:
+                    self.phone_line_ids.append(types.SimpleNamespace(**line))
+            elif key == "location_partner_ids":
+                self.location_partner_ids = types.SimpleNamespace(ids=list(value[0][2]))
+            else:
+                setattr(self, key, value)
+
+    def __getitem__(self, name):
+        return getattr(self, name)
+
+    def with_context(self, **_ctx):
+        return self
+
+    def exists(self):
+        return self
+
+    def write(self, vals):
+        self.writes.append(dict(vals))
+        self._apply(vals)
+
+
+class _PartnerModel:
+    _name = "res.partner"
+    _fields = _PARTNER_FIELDS
+
+    def __init__(self):
+        self.rows: dict[int, _Partner] = {}
+
+    def with_context(self, **_ctx):
+        return self
+
+    def browse(self, rec_id=None):
+        return self.rows.get(rec_id) or _Empty()
+
+    def create(self, vals):
+        record = _Partner(len(self.rows) + 1, vals)
+        self.rows[record.id] = record
+        return record
+
+
+class _Marker(types.SimpleNamespace):
+    def write(self, vals):
+        self.__dict__.update(vals)
+
+    def unlink(self):
+        self.store.remove(self)
+
+
+class _MarkerModel:
+    def __init__(self):
+        self.rows: list[_Marker] = []
+
+    def search(self, domain, limit=None):
+        wanted = {field: value for field, _op, value in domain}
+        hits = [row for row in self.rows if all(getattr(row, k) == v for k, v in wanted.items())]
+        return hits[0] if hits else _Empty()
+
+    def create(self, vals):
+        row = _Marker(store=self.rows, **vals)
+        self.rows.append(row)
+        return row
+
+    def names(self):
+        return sorted(row.name for row in self.rows)
+
+
+class _ContactEnv(dict):
+    def ref(self, xmlid, raise_if_not_found=True):
+        return None
+
+
+def _contact_run(rows, existing_company=None):
+    """Run the contact layer over ``rows`` for one counterparty. Returns (people, markers, report)."""
+    from erp.report import ImportReport
+
+    module = _load_contact_service()
+    partners, markers = _PartnerModel(), _MarkerModel()
+    company = partners.create({"name": "Synthetic Co", "is_company": True, **(existing_company or {})})
+    service = module.PlasticosErpImport()
+    service.env = _ContactEnv({"res.partner": partners, "ir.model.data": markers})
+    service._address_catalog = lambda: []
+    contacts = {str(row["CT_ID"]): {"CpID": "C1", "Location": "", "Notes": "", **row} for row in rows}
+    index = types.SimpleNamespace(
+        contacts=contacts,
+        contacts_by_cp={"C1": list(contacts)},
+        roles_by_contact={},
+        contact_roles={},
+        addresses={},
+        addresses_by_cp={},
+    )
+    report = ImportReport()
+    service._import_contacts(index, report, {"C1": company.id}, dry_run=False)
+    people = [p for p in partners.rows.values() if not p.is_company]
+    return people, markers, report, company, (service, index, partners)
+
+
+def _contact_row(ct_id, active="Y", name="Pat Doe", **extra):
+    return {"CT_ID": ct_id, "ContactNm": name, "IsActive": active, **extra}
+
+
+def test_mixed_alias_group_imports_only_the_active_ct_id():
+    people, markers, report, _company, _ = _contact_run(
+        [
+            _contact_row("1001", "Y", Email="pat@example.test", PhoneBusiness="215-555-0101"),
+            _contact_row("1002", "N", Email="old@example.test", PhoneMobile="215-555-0102"),
+        ]
+    )
+    assert len(people) == 1
+    person = people[0]
+    assert (person.email, person.phone, person.active) == ("pat@example.test", "215-555-0101", True)
+    assert person.phone_line_ids == [], "an inactive alias contributes no number"
+    assert markers.names() == ["legacy_erp_contact_1001"], "no XMLID for the inactive alias"
+    assert report.counts["contacts"]["rejected"] == 1
+    assert report.anomalies == [{"table": "Contact", "key": "1002", "detail": "not imported: IsActive is inactive"}]
+
+
+@pytest.mark.parametrize("flag", ["N", "", None, "X", "maybe"])
+def test_a_group_with_no_explicitly_active_row_creates_no_person(flag):
+    people, markers, report, company, _ = _contact_run(
+        [
+            _contact_row("2001", flag, Email="a@example.test", PhoneBusiness="215-555-0201"),
+            _contact_row("2002", flag),
+            _contact_row("2003", flag, name="215-555-0203", PhoneBusiness="215-555-0203"),
+        ]
+    )
+    assert people == [] and markers.rows == []
+    assert (company.email, company.phone) == (False, False), "an ineligible row writes no channel on the company"
+    assert report.counts["contacts"] == {"created": 0, "updated": 0, "skipped": 0, "rejected": 3}
+    assert [a["key"] for a in report.anomalies] == ["2001", "2002", "2003"]
+    assert all(a["detail"].startswith("not imported: IsActive") for a in report.anomalies)
+
+
+def test_contact_fields_land_on_the_documented_targets():
+    people, markers, _report, _company, _ = _contact_run(
+        [
+            _contact_row(
+                "3001",
+                Email="pat@example.test; ops@scrapmanagement.com",
+                PhoneBusiness="215-555-0301",
+                PhoneMobile="215-555-0302",
+                PhoneOther="215-555-0303",
+                Notes="prefers mornings",
+            ),
+            _contact_row("3002", PhoneBusiness="215-555-0304", Notes="Fax: 215-555-0305"),
+        ]
+    )
+    (person,) = people
+    assert person.name == "Pat Doe" and person.parent_id == 1
+    assert person.email == "pat@example.test", "internal staff mailboxes are dropped"
+    assert person.phone == "215-555-0301"
+    assert [(line.label, line.number) for line in person.phone_line_ids] == [
+        ("mobile", "215-555-0302"),
+        ("other", "215-555-0303"),
+        ("fax", "215-555-0305"),
+        ("other", "215-555-0304"),
+    ]
+    assert person.comment == "prefers mornings"
+    assert markers.names() == ["legacy_erp_contact_3001", "legacy_erp_contact_3002"]
+
+
+def test_a_distinct_active_alias_email_is_kept_as_evidence_and_replays_once():
+    rows = [
+        _contact_row("4001", Email="pat@example.test", Notes="ERP note"),
+        _contact_row("4002", Email="PAT@example.test"),
+        _contact_row("4003", Email="pat.doe@example.test; cc@scrapmanagement.com"),
+        _contact_row("4004", Email="pat.doe@example.test"),
+        _contact_row("4005", "N", Email="inactive@example.test"),
+    ]
+    people, _markers, report, _company, (service, index, partners) = _contact_run(rows)
+    (person,) = people
+    assert person.email == "pat@example.test", "the first ERP email stays the primary"
+    from erp.comment_notes import _CommentBlocks
+
+    def blocks(value):
+        parser = _CommentBlocks()
+        parser.feed(str(value))
+        parser.close()
+        parser.flush()
+        return parser.blocks
+
+    assert blocks(person.comment) == ["ERP note", "ERP contact 4003 email: pat.doe@example.test"]
+    assert "inactive@example.test" not in person.comment and "scrapmanagement" not in person.comment
+    # A CRM paragraph appended later survives, and a replay writes nothing new.
+    person.comment = f"{person.comment}<p>CRM history</p>"
+    stored, writes = person.comment, len(person.writes)
+    from erp.report import ImportReport
+
+    service._import_contacts(index, ImportReport(), {"C1": 1}, dry_run=False)
+    assert person.comment == stored and len(person.writes) == writes
+    assert blocks(person.comment) == ["ERP note", "ERP contact 4003 email: pat.doe@example.test", "CRM history"]
+    assert len([p for p in partners.rows.values() if not p.is_company]) == 1

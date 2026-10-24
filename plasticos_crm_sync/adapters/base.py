@@ -12,6 +12,20 @@ class CrmAdapterError(Exception):
 
 
 @dataclass(frozen=True)
+class CanonicalPhone:
+    """One enabled source number with its provider label.
+
+    ``kind`` is the ``plasticos.partner.phone`` label the number takes on a
+    person: ``mobile``, ``fax`` or ``other``. ``label`` is the provider name
+    as given (``Mobile 2``, ``Business``), kept for labelled evidence.
+    """
+
+    label: str
+    number: str
+    kind: str
+
+
+@dataclass(frozen=True)
 class CanonicalLead:
     provider: str
     external_id: str
@@ -36,6 +50,7 @@ class CanonicalLead:
     phone_numbers: tuple[str, ...] = ()
     mobile_numbers: tuple[str, ...] = ()
     contact_note: str = ""
+    phone_entries: tuple[CanonicalPhone, ...] = ()
 
 
 @dataclass(frozen=True)

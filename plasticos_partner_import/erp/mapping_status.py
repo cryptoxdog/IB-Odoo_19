@@ -349,10 +349,10 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "Location": {
             "status": VERIFIED,
             "target_model": "res.partner",
-            "target_field": "parent_id (facility)",
-            "transformation": "exact (CpID, Type) join into addresses; never fuzzy",
+            "target_field": "location_partner_ids (facility)",
+            "transformation": "exact (CpID, Type) join into addresses; never fuzzy; parent_id stays the company",
             "required": False,
-            "null_behavior": "unresolved -> parented to company",
+            "null_behavior": "unresolved -> no location link; parented to company",
             "identity_role": "none",
         },
         "ContactNm": {
@@ -367,8 +367,12 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "Email": {
             "status": VERIFIED,
             "target_model": "res.partner",
-            "target_field": "email",
-            "transformation": "direct",
+            "target_field": "email; comment for another active alias's different email",
+            "transformation": (
+                "internal brokerage mailboxes dropped (mapping.external_emails); first active CT_ID's email kept; "
+                "a different email of another active CT_ID of the same person is appended once to comment as "
+                "'ERP contact <CT_ID> email: ...'"
+            ),
             "required": False,
             "null_behavior": "blank -> unset",
             "identity_role": "none",
@@ -384,36 +388,42 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         },
         "PhoneMobile": {
             "status": VERIFIED,
-            "target_model": "res.partner",
-            "target_field": "mobile if installed registry has it, else comment",
-            "transformation": "runtime field probe; never folded into phone",
+            "target_model": "plasticos.partner.phone",
+            "target_field": "phone_line_ids (label mobile)",
+            "transformation": "mapping.real_phone; additive phone line; never folded into phone",
             "required": False,
             "null_behavior": "blank -> unset",
             "identity_role": "none",
         },
         "PhoneOther": {
             "status": VERIFIED,
-            "target_model": "res.partner",
-            "target_field": "comment",
-            "transformation": "direct (no third phone field on Odoo)",
+            "target_model": "plasticos.partner.phone",
+            "target_field": "phone_line_ids (label other)",
+            "transformation": "mapping.real_phone; additive phone line",
             "required": False,
             "null_behavior": "blank -> unset",
             "identity_role": "none",
         },
         "IsActive": {
             "status": VERIFIED,
-            "target_model": "res.partner",
-            "target_field": "active",
-            "transformation": "parse_bool (Y/N); never compared to int",
-            "required": False,
-            "null_behavior": "blank -> treated active",
+            "target_model": "—",
+            "target_field": "row eligibility (mapping.contact_exclusion)",
+            "transformation": (
+                "parse_bool is True imports the row; N, blank or unrecognised excludes it before person grouping, "
+                "company channel fill and CT_ID aliasing (no person, no marker); imported people are active"
+            ),
+            "required": True,
+            "null_behavior": "blank or unrecognised -> anomaly, row rejected (counted in records_rejected)",
             "identity_role": "none",
         },
         "Notes": {
             "status": VERIFIED,
             "target_model": "res.partner",
-            "target_field": "comment",
-            "transformation": "direct",
+            "target_field": "comment; phone_line_ids (label fax) for a 'Fax:' line",
+            "transformation": (
+                "distinct notes of the person's active CT_IDs joined; a 'Fax:' line becomes a fax phone line; "
+                "merged so CRM paragraphs already on comment are kept (erp.comment_notes)"
+            ),
             "required": False,
             "null_behavior": "blank -> unset",
             "identity_role": "none",

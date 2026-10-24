@@ -399,3 +399,276 @@ def test_upsert_lead_exposes_its_classification_beside_the_pinned_return():
     result = orch._upsert_lead(connection, _lead("dup2"))
     assert result.id in leads.rows, "the pinned return contract still yields a recordset on rejection"
     assert orch.last_lead_outcome == "duplicate_rejected"
+
+
+# ── standalone lead field fidelity: the REAL `_lead_vals_from_dto` ──────────
+#
+# Only the Odoo module seams are replaced: the stage / lead-source constant
+# modules (installed into ``sys.modules`` for one test by ``monkeypatch``), the
+# ORM lookups, and the unrelated material path. The lead write, the evidence
+# appended to ``description`` and the replay run unmodified. All values are
+# synthetic.
+
+import types  # noqa: E402
+
+import pytest  # noqa: E402
+
+from plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical  # noqa: E402
+from plasticos_crm_sync.services.approved_identity import comment_blocks  # noqa: E402
+
+
+class _Found(list):
+    @property
+    def id(self):
+        return self[0].id if self else False
+
+    def filtered(self, fn):
+        return _Found(row for row in self if fn(row))
+
+
+class _Lookup:
+    """``search`` over plain rows; ``=ilike`` is exact and case-insensitive."""
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    def search(self, domain, limit=None):
+        def hit(row):
+            for name, op, value in domain:
+                current = getattr(row, name)
+                if op == "=ilike":
+                    if str(current).casefold() != str(value).casefold():
+                        return False
+                elif current != value:
+                    return False
+            return True
+
+        found = _Found(row for row in self.rows if hit(row))
+        return _Found(found[:1]) if limit == 1 else found
+
+
+class _User(types.SimpleNamespace):
+    def has_group(self, xmlid):
+        return True
+
+
+class _SourceResolver:
+    """Contract of ``plasticos.lead.source.utils.normalize_raw_source``: mapped name, else ``Other``."""
+
+    def __init__(self, mapping, sources):
+        self.mapping = mapping
+        self.sources = sources
+
+    def normalize_raw_source(self, raw):
+        if not raw:
+            return False
+        return self.sources.search([("name", "=", self.mapping.get(raw.strip(), "Other"))], limit=1)
+
+
+_SOURCE_MAP = {"Google": "Google"}
+_US = types.SimpleNamespace(id=233, code="US", name="United States")
+_COUNTRIES = [_US, types.SimpleNamespace(id=38, code="CA", name="Canada")]
+_STATES = [
+    types.SimpleNamespace(id=10, code="PA", name="Pennsylvania", country_id=233),
+    types.SimpleNamespace(id=11, code="NY", name="New York", country_id=233),
+]
+_USERS = [
+    _User(id=7, login="sa@scrapmanagement.com", active=True, share=False),
+    _User(id=8, login="sales2@scrapmanagement.com", active=True, share=False),
+]
+
+
+class _LeadEnv(_Env):
+    def __init__(self, lead_model, ref_model):
+        super().__init__(lead_model, ref_model)
+        sources = _Lookup([types.SimpleNamespace(id=1, name="Google"), types.SimpleNamespace(id=2, name="Other")])
+        self["plasticos.lead.source.utils"] = _SourceResolver(_SOURCE_MAP, sources)
+        self["res.country"] = _Lookup(_COUNTRIES)
+        self["res.country.state"] = _Lookup(_STATES)
+        self["res.users"] = _Lookup(_USERS)
+
+    def ref(self, xmlid, raise_if_not_found=True):
+        return types.SimpleNamespace(id=99) if xmlid == "plasticos_crm_bridge.stage_new" else None
+
+
+class _RealValsOrchestrator(SyncOrchestrator):
+    def __init__(self, env):
+        super().__init__(env)
+        self.error_rows = []
+
+    def _apply_contact_materials(self, lead, *field_maps):
+        """Material normalization is outside this contract and unchanged."""
+
+
+@pytest.fixture
+def lead_harness(monkeypatch):
+    stage_mod = types.ModuleType("odoo.addons.plasticos_crm_bridge.models.crm_mapping")
+    stage_mod.STAGE_MAPPING = {}
+    source_mod = types.ModuleType("odoo.addons.plasticos_facility_profile.models.lead_source")
+    source_mod.LEAD_SOURCE_MAPPING = _SOURCE_MAP
+    monkeypatch.setitem(sys.modules, stage_mod.__name__, stage_mod)
+    monkeypatch.setitem(sys.modules, source_mod.__name__, source_mod)
+    leads, refs = _Model(), _Model()
+    orch = _RealValsOrchestrator(_LeadEnv(leads, refs))
+    return orch, type("C", (), {"id": 1})(), leads, refs
+
+
+_FULL_PHONES = [
+    {"name": "Direct", "number": "(215) 555-0101", "disabled": "false"},
+    {"name": "Mobile 1", "number": "215-555-0102"},
+    {"name": "Mobile 2", "number": "215.555.0103"},
+    {"name": "Business", "number": "215-555-0104"},
+    {"name": "Office", "number": "215-555-0105"},
+    {"name": "Home", "number": "215-555-0106"},
+    {"name": "Fax", "number": "215-555-0107"},
+    {"name": "Other", "number": "215-555-0108", "disabled": True},
+]
+
+
+def _contact(**overrides):
+    raw = {
+        "contact_id": "vs-9001",
+        "company": "Synthetic Plastics",
+        "first_name": " Ada ",
+        "last_name": "Byron",
+        "email": "ada@example.test",
+        "address": "1 Test Way",
+        "address_2": "Unit 2",
+        "city": "Testville",
+        "state": "Pennsylvania",
+        "zip": "19000",
+        "country": "USA",
+        "custom_fields": [
+            {"name": "Lead Source", "value": "Google"},
+            {"name": "Contact Owner", "value": "sa@scrapmanagement.com"},
+            {"name": "Notes", "value": "called twice; wants film"},
+            {"name": "Buyer/Supplier", "value": "Supplier"},
+            {"name": "Company Type", "value": "Recycler"},
+            {"name": "Location Type", "value": "Facility"},
+        ],
+        "phone_numbers": _FULL_PHONES,
+    }
+    raw.update(overrides)
+    return contact_to_canonical(raw)
+
+
+def _paragraphs(lead):
+    return comment_blocks(lead.description)
+
+
+def test_standalone_lead_fields_land_on_native_fields(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    lead = orch._upsert_lead(connection, _contact())
+    assert orch.last_lead_outcome == "created"
+    assert lead.name == "Synthetic Plastics — Ada Byron"
+    assert lead.partner_name == "Synthetic Plastics"
+    assert lead.contact_name == "Ada Byron"
+    assert lead.email_from == "ada@example.test"
+    assert (lead.street, lead.street2, lead.city, lead.zip) == ("1 Test Way", "Unit 2", "Testville", "19000")
+    assert lead.country_id == 233
+    assert lead.state_id == 10, "an exact state name resolves within the resolved country"
+    assert lead.user_id == 7, "Tiffany's source owner lands on sa@, never tw@"
+    assert lead.source_id == 1
+    assert lead.phone == "(215) 555-0101"
+    assert lead.mobile == "215-555-0102"
+
+
+def test_standalone_lead_keeps_every_other_number_and_note_in_the_description(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    lead = orch._upsert_lead(connection, _contact())
+    assert _paragraphs(lead) == (
+        "VanillaSoft Notes: called twice; wants film",
+        "VanillaSoft Buyer/Supplier: Supplier",
+        "VanillaSoft Company Type: Recycler",
+        "VanillaSoft Location Type: Facility",
+        "VanillaSoft phone (Mobile 2): 215.555.0103",
+        "VanillaSoft phone (Business): 215-555-0104",
+        "VanillaSoft phone (Office): 215-555-0105",
+        "VanillaSoft phone (Home): 215-555-0106",
+        "VanillaSoft phone (Fax): 215-555-0107",
+    )
+    assert "215-555-0108" not in lead.description, "a disabled number is omitted"
+
+
+def test_standalone_lead_replay_writes_nothing_and_repeats_no_note(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    orch.outcomes = _new_counts()
+    lead = orch._upsert_lead(connection, _contact())
+    first = lead.description
+    again = orch._upsert_lead(connection, _contact())
+    assert again.id == lead.id
+    assert orch.last_lead_outcome == "unchanged"
+    assert lead.writes == 0 and lead.description == first
+
+
+def test_standalone_lead_appends_new_notes_after_existing_ones(lead_harness):
+    orch, connection, leads, _refs = lead_harness
+    lead = orch._upsert_lead(connection, _contact())
+    lead.description = "<p>written by a salesperson</p>" + lead.description
+    custom = [{"name": "Notes", "value": "second note"}]
+    orch._upsert_lead(connection, _contact(custom_fields=custom))
+    paragraphs = _paragraphs(lead)
+    assert paragraphs[0] == "written by a salesperson"
+    assert "VanillaSoft Notes: called twice; wants film" in paragraphs
+    assert paragraphs[-1] == "VanillaSoft Notes: second note"
+    assert len(leads.rows) == 1
+
+
+def test_mobile_two_fills_the_lead_mobile_when_no_primary_mobile_exists(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    phones = [{"name": "Mobile 2", "number": "267-555-0110"}]
+    lead = orch._upsert_lead(connection, _contact(phone_numbers=phones, custom_fields=[]))
+    assert lead.mobile == "267-555-0110"
+    assert not lead.description
+
+
+def test_a_non_us_mobile_is_kept_and_explained_not_a_failed_contact(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    phones = [{"name": "Mobile 1", "number": "+44 7700 900123"}]
+    lead = orch._upsert_lead(connection, _contact(phone_numbers=phones, custom_fields=[]))
+    assert orch.last_lead_outcome == "created"
+    assert lead.mobile is False, "crm.lead.mobile accepts a 10-digit US number only"
+    assert _paragraphs(lead) == ("VanillaSoft phone (Mobile 1): +44 7700 900123",)
+    assert any("not a 10-digit US number" in row["message"] for row in orch.error_rows)
+
+
+def test_unknown_source_falls_back_to_other_and_keeps_the_source_text(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    custom = [{"name": "Lead Source", "value": "Trade Show 2019"}]
+    lead = orch._upsert_lead(connection, _contact(custom_fields=custom, phone_numbers=[]))
+    assert lead.source_id == 2
+    assert _paragraphs(lead) == ("VanillaSoft Lead Source: Trade Show 2019",)
+    blank = orch._upsert_lead(connection, _contact(contact_id="vs-9002", custom_fields=[], phone_numbers=[]))
+    assert blank.source_id is False and not blank.description
+
+
+def test_unresolved_state_and_country_are_reported_never_guessed(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    lead = orch._upsert_lead(connection, _contact(state="Atlantis", custom_fields=[], phone_numbers=[]), adapter=None)
+    assert lead.country_id == 233 and lead.state_id is False
+    assert _paragraphs(lead) == ("VanillaSoft State (unresolved): Atlantis",)
+    nowhere = orch._upsert_lead(
+        connection,
+        _contact(contact_id="vs-9003", country="Narnia", state="PA", custom_fields=[], phone_numbers=[]),
+    )
+    assert nowhere.country_id is False
+    assert nowhere.state_id is False, "no country is inferred from a state value"
+    assert _paragraphs(nowhere) == (
+        "VanillaSoft Country (unresolved): Narnia",
+        "VanillaSoft State (unresolved): PA",
+    )
+    messages = [row["message"] for row in orch.error_rows]
+    assert sum("state did not resolve" in m for m in messages) == 2
+    assert sum("country did not resolve" in m for m in messages) == 1
+
+
+def _new_counts():
+    return {
+        "seen": 0,
+        "table_rows": 0,
+        "created": 0,
+        "updated": 0,
+        "unchanged": 0,
+        "duplicate_rejected": 0,
+        "failed": 0,
+    }

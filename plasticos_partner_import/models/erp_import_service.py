@@ -36,6 +36,7 @@ stages.
 from __future__ import annotations
 
 import logging
+from html import escape
 
 from odoo import Command, api, models
 from odoo.tools import html2plaintext
@@ -433,6 +434,8 @@ class PlasticosErpImport(models.AbstractModel):
         is who we trade with, so those values also land on the company. A
         value already taken from the counterparty or the remit is left as-is.
         """
+        from ..erp import mapping
+
         partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(company_partner_id)
         if partner.email and partner.phone:
             return
@@ -440,6 +443,8 @@ class PlasticosErpImport(models.AbstractModel):
         fallback = None
         for contact_id in index.contacts_by_cp.get(cp_id, []):
             row = index.contacts[contact_id]
+            if mapping.contact_exclusion(row.get("IsActive")):
+                continue
             if not _email(row, "Email") and not _text(row, "PhoneBusiness"):
                 continue
             roles = [role.lower() for role in self._contact_roles(index, contact_id)]
@@ -542,6 +547,13 @@ class PlasticosErpImport(models.AbstractModel):
             }
             for contact_id in index.contacts_by_cp[cp_id]:
                 row = index.contacts[contact_id]
+                excluded = mapping.contact_exclusion(row.get("IsActive"))
+                if excluded:
+                    # Before grouping, channel writes and aliasing: an inactive
+                    # CT_ID gets no person, no number on the company and no marker.
+                    report.anomaly("Contact", contact_id, f"not imported: {excluded}")
+                    report.reject("contacts")
+                    continue
                 name = _text(row, "ContactNm")
                 if not name:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
@@ -585,20 +597,23 @@ class PlasticosErpImport(models.AbstractModel):
     def _import_person(
         self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping
     ) -> None:
-        """One person per company plus first and last name. Every CT_ID aliases that person."""
+        """One person per company plus first and last name. Every CT_ID aliases that person.
+
+        ``members`` holds explicitly active rows only; ``_import_contacts``
+        excluded every other row before grouping.
+        """
         members = sorted(members, key=_contact_sort_key)
         name = _text(members[0][1], "ContactNm")
-        active = any(_row_active(row, mapping) for _contact_id, row in members)
         parent = partner_model.browse(company_partner_id) if company_partner_id else partner_model.browse()
         values = {
             "name": name,
             "parent_id": company_partner_id,
             "is_company": False,
             "type": "contact",
-            "active": active,
+            "active": True,
         }
         values.update(self._copied_role(parent))
-        phone_lines = self._merge_person_channels(values, members, report)
+        phone_lines, email_evidence = self._merge_person_channels(values, members, report)
         location_ids = []
         for _contact_id, row in members:
             loc = _text(row, "Location")
@@ -619,16 +634,45 @@ class PlasticosErpImport(models.AbstractModel):
         if "location_partner_ids" in partner._fields and set(partner.location_partner_ids.ids) != set(location_ids):
             partner.write({"location_partner_ids": [(6, 0, location_ids)]})
         self._sync_phone_lines(partner, phone_lines)
+        self._append_comment_evidence(partner, email_evidence)
 
-    def _merge_person_channels(self, values: dict, members, report) -> list:
-        """Union emails and phones. The first business number stays in ``phone``."""
+    def _append_comment_evidence(self, partner, lines: list) -> None:
+        """Append each labelled line to ``comment`` as its own paragraph, once.
+
+        A paragraph already present is not written again, so a replay changes
+        nothing. The ERP notes and any CRM paragraphs stay where they are.
+        """
+        comment = partner.comment
+        wrote = False
+        for line in lines:
+            merged = _comment_with_paragraph(comment, line)
+            if merged is not None:
+                comment = merged
+                wrote = True
+        if wrote:
+            partner.with_context(**IMPORT_CONTEXT).write({"comment": comment})
+
+    def _merge_person_channels(self, values: dict, members, report) -> tuple[list, list]:
+        """Union emails and phones. The first business number stays in ``phone``.
+
+        The first email stays in ``email``. A different email from another
+        active CT_ID of the same person is returned as labelled comment
+        evidence; res.partner has one email field. Returns ``(lines, evidence)``.
+        """
         from ..erp import mapping
 
         comments: list[str] = []
         business: list[str] = []
         lines: list[tuple[str, str]] = []
+        evidence: list[str] = []
+        seen_emails: set[str] = set()
         for contact_id, row in members:
-            _keep_first(values, "email", _email(row, "Email"), report, contact_id)
+            email = _email(row, "Email")
+            _keep_first(values, "email", email, report, contact_id)
+            seen_emails.add(str(values.get("email") or "").casefold())
+            if email and email.casefold() not in seen_emails:
+                seen_emails.add(email.casefold())
+                evidence.append(f"ERP contact {contact_id} email: {email}")
             number = mapping.real_phone(row.get("PhoneBusiness"))
             if number and number not in business:
                 business.append(number)
@@ -649,7 +693,7 @@ class PlasticosErpImport(models.AbstractModel):
             lines.extend(("other", number) for number in business[1:])
         if comments:
             values["comment"] = "\n".join(comments)
-        return lines
+        return lines, evidence
 
     def _apply_non_person(self, company, row) -> None:
         """A phone-number contact title is not a person. Keep the channels on the company."""
@@ -1262,9 +1306,25 @@ def _person_key(name: str) -> str:
     return mapping.person_key(name)
 
 
-def _row_active(row, mapping) -> bool:
-    flag = mapping.parse_bool(row.get("IsActive"))
-    return True if flag is None else flag
+def _comment_with_paragraph(comment, line: str):
+    """``comment`` with ``line`` appended as its own paragraph. ``None`` means no write.
+
+    A paragraph holding the same text, whitespace collapsed, is already there.
+    """
+    from ..erp.comment_notes import _CommentBlocks
+
+    text = " ".join((line or "").split())
+    if not text:
+        return None
+    parser = _CommentBlocks()
+    parser.feed(str(comment or ""))
+    parser.close()
+    parser.flush()
+    if text in parser.blocks:
+        return None
+    if comment and not str(comment).lstrip().startswith("<"):
+        comment = f"<p>{escape(str(comment), quote=False)}</p>"
+    return f"{comment or ''}<p>{escape(line.strip(), quote=False)}</p>"
 
 
 def _keep_first(values: dict, field_name: str, value: str, report, contact_id: str) -> None:
