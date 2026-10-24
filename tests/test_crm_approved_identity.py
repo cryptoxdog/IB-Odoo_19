@@ -390,3 +390,45 @@ def test_approved_person_keeps_each_extension_and_a_same_number_fax():
     lines = _lines(person)
     orch._upsert_lead(connection, _approved_dto(phones=phones))
     assert _lines(person) == lines, "a replay adds no line"
+
+
+def test_approved_person_context_names_each_vanillasoft_contact_and_replays_once():
+    person = _Person(46, comment="<p>ERP notes</p>")
+    orch, connection, leads, refs = _approved_harness(person, vs="9001")
+    orch._crosswalk["9002"] = "5001"  # two VanillaSoft contacts share one ERP person
+
+    def dto(vs, custom):
+        return contact_to_canonical({"contact_id": vs, "custom_fields": custom})
+
+    first = dto(
+        "9001",
+        [
+            {"name": "Notes", "value": "CRM history"},
+            {"name": "Buyer/Supplier", "value": "Supplier"},
+            {"name": "Last Result Code", "value": "LM"},
+            {"name": "Last Call Date", "value": "2024-03-05 14:10"},
+        ],
+    )
+    second = dto("9002", [{"name": "Buyer/Supplier", "value": "Buyer"}, {"name": "Load Ready", "value": "  "}])
+    orch._upsert_lead(connection, first)
+    orch._upsert_lead(connection, second)
+    expected = (
+        "ERP notes",
+        "CRM history",
+        "VanillaSoft ContactID 9001 Buyer/Supplier: Supplier",
+        "VanillaSoft ContactID 9001 Last Result Code: LM",
+        "VanillaSoft ContactID 9001 Last Call Date: 2024-03-05 14:10",
+        "VanillaSoft ContactID 9002 Buyer/Supplier: Buyer",
+    )
+    assert comment_blocks(person.comment) == expected, "ERP notes stay first; a blank field adds nothing"
+    assert leads.rows == {}, "an approved contact never becomes a lead"
+    assert "plasticos.crm.call.event" not in orch.env, "context is a note, never a call"
+    outcomes = _outcomes(orch)
+    orch._upsert_lead(connection, first)
+    orch._upsert_lead(connection, second)
+    assert outcomes["unchanged"] == 2
+    assert comment_blocks(person.comment) == expected
+    assert [(r.res_model, r.external_id) for r in refs.rows.values()] == [
+        ("res.partner", "9001"),
+        ("res.partner", "9002"),
+    ]

@@ -264,6 +264,21 @@ def _lead_mobile(dto: CanonicalLead) -> str | bool:
     return next((number for number in candidates if number and _us_mobile(number)), False)
 
 
+def _approved_context_lines(dto: CanonicalLead) -> list[str]:
+    """Context paragraphs for an approved ERP person, each naming its VanillaSoft ContactID.
+
+    Several ContactIDs can share one ERP person, so every line says which
+    source contact it came from. Only fields the payload carries are kept.
+    """
+    custom = dto.custom_fields or {}
+    lines = []
+    for name in LEAD_CONTEXT_FIELDS:
+        value = _collapse_ws(custom.get(name))
+        if value:
+            lines.append(f"VanillaSoft ContactID {dto.external_id} {name}: {value}")
+    return lines
+
+
 def _description_with(current, lines: list[str]):
     """``current`` with each line appended once as its own paragraph. ``None`` means no write."""
     description = current
@@ -1141,7 +1156,9 @@ class SyncOrchestrator:
     def _bind_approved_contact(self, dto: CanonicalLead, ct_id: str):
         """Bind one approved ContactID onto the existing ERP person. No new lead.
 
-        The CRM note is appended to the person's ``comment`` after the ERP notes.
+        The CRM note, then each contact-context field the payload carries
+        (labelled with this ContactID), is appended to the person's ``comment``
+        after the ERP notes, once. No call or activity is created from them.
         """
         outcomes = getattr(self, "outcomes", None)
         Lead = self.env[CRM_LEAD]
@@ -1197,6 +1214,10 @@ class SyncOrchestrator:
                     lead.write({"active": True, "vanillasoft_sync_archived": False})
                     wrote = True
                 comment = comment_with_note(partner.comment, dto.contact_note)
+                current = comment if comment is not None else partner.comment
+                context = _description_with(current, _approved_context_lines(dto))
+                if context is not None:
+                    comment = context
                 if comment is not None:
                     partner.write({"comment": comment})
                     wrote = True
