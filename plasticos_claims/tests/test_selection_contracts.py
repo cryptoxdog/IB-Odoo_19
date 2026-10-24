@@ -59,8 +59,9 @@ class TestClaimStateValues(PlasticosTestCase):
             self.skipTest("plasticos_claims not installed")
         values = _get_selection_values(self.Claim, "state")
         self.assertIsNotNone(values, "claim.state must be a selection field")
-        # Verify minimum expected states
-        for v in ("draft", "open", "closed"):
+        # Workflow states the claim actions, SLA cron and midnight recompute domains rely on
+        # (plasticos_claims/models/claim.py:73-79, 253-283, 361-372).
+        for v in ("pending", "in_progress", "escalated", "resolved", "archived"):
             self.assertIn(v, values, f"Claim missing state: {v}")
 
 
@@ -80,7 +81,9 @@ class TestLoadStateValues(PlasticosTestCase):
             self.skipTest("plasticos_logistics not installed")
         values = _get_selection_values(self.Load, "state")
         self.assertIsNotNone(values)
-        for v in ("draft", "scheduled", "in_transit", "delivered"):
+        # The load has no in_transit state; transit is dispatched -> picked_up
+        # (plasticos_logistics/models/load.py:240-251, services/state_machine.py:9-20).
+        for v in ("draft", "scheduled", "dispatched", "picked_up", "delivered", "closed"):
             self.assertIn(v, values, f"Load missing state: {v}")
 
 

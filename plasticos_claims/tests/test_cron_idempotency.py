@@ -75,15 +75,15 @@ class TestCronIdempotency(PlasticosTestCase):
 
     # ── plasticos_claims ─────────────────────────────────────
     def test_claim_cron_idempotent(self):
-        self._run_twice("plasticos.claim", "cron_process_claims")
+        self._run_twice("plasticos.claim", "_cron_check_sla")  # plasticos_claims/data/claim_cron.xml
 
     # ── plasticos_logistics ──────────────────────────────────
     def test_logistics_cron_idempotent(self):
-        self._run_twice("plasticos.load", "cron_check_sla")
+        self._run_twice("plasticos.load", "_cron_escalation_check")  # plasticos_logistics/data/cron.xml
 
     # ── plasticos_enrichment ─────────────────────────────────
     def test_enrichment_cron_idempotent(self):
-        self._run_twice("plasticos.enrichment.run", "cron_run_enrichment")
+        self._run_twice("plasticos.enrichment.run", "action_cron_enrich_pending")  # plasticos_enrichment/data/cron.xml
 
     # plasticos_buyer_match_engine's ir_cron_graph_sync (plasticos.graph.sync.log,
     # cron_process_sync_queue) was retired with the module in M7 / TASK-051; the model
@@ -92,24 +92,30 @@ class TestCronIdempotency(PlasticosTestCase):
 
     # ── plasticos_transaction ────────────────────────────────
     def test_audit_cron_idempotent(self):
-        self._run_twice("plasticos.transaction", "cron_audit")
+        self._run_twice("plasticos.audit.cron", "run_monthly_audit")  # plasticos_transaction/data/audit_cron.xml
 
     # ── plasticos_documents ──────────────────────────────────
     def test_scale_ticket_cron_idempotent(self):
-        self._run_twice("plasticos.document", "cron_check_scale_tickets")
+        self._run_twice(
+            "plasticos.transaction", "cron_check_scale_tickets"
+        )  # plasticos_documents/data/scale_ticket_rule.xml
 
     def test_missing_docs_cron_idempotent(self):
-        self._run_twice("plasticos.document", "cron_check_missing_docs")
+        self._run_twice(
+            "plasticos.transaction", "cron_check_missing_docs"
+        )  # plasticos_documents/data/cron_missing_docs.xml
 
     # ── plasticos_automation ─────────────────────────────────
     def test_contract_renewal_cron_idempotent(self):
-        self._run_twice("res.partner", "cron_contract_renewal_alerts")
+        self._run_twice(
+            "res.partner", "cron_contract_renewal_alert"
+        )  # plasticos_automation/data/contract_renewal_cron.xml
 
     def test_invoice_reminder_cron_idempotent(self):
         self._run_twice("account.move", "cron_invoice_reminder")
 
     def test_sale_approval_cron_idempotent(self):
-        self._run_twice("sale.order", "cron_auto_approve_sales")
+        self._run_twice("sale.order", "cron_flag_sale_approvals")  # plasticos_automation/data/sale_approval_cron.xml
 
 
 @tagged("post_install", "-at_install", "cron")

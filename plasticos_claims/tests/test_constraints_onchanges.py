@@ -22,10 +22,12 @@ class TestTransactionConstraintsConsolidated(PlasticosTestCase):
         v.update(kw)
         return self.env["plasticos.transaction"].create(v)
 
+    # commission_override_pct is a fraction 0.0-1.0, not a percentage
+    # (plasticos_commission/models/transaction_commission.py:35-39, 79-86): 50% == 0.5.
     def test_commission_override_valid_50(self):
         tx = self._tx()
-        tx.write({"commission_override_pct": 50.0})
-        self.assertEqual(tx.commission_override_pct, 50.0)
+        tx.write({"commission_override_pct": 0.5})
+        self.assertEqual(tx.commission_override_pct, 0.5)
 
     def test_commission_override_boundary_0(self):
         tx = self._tx()
@@ -34,18 +36,18 @@ class TestTransactionConstraintsConsolidated(PlasticosTestCase):
 
     def test_commission_override_boundary_100(self):
         tx = self._tx()
-        tx.write({"commission_override_pct": 100.0})
-        self.assertEqual(tx.commission_override_pct, 100.0)
+        tx.write({"commission_override_pct": 1.0})
+        self.assertEqual(tx.commission_override_pct, 1.0)
 
     def test_commission_override_negative_rejected(self):
         tx = self._tx()
         with self.assertRaises(ValidationError):
-            tx.write({"commission_override_pct": -5.0})
+            tx.write({"commission_override_pct": -0.05})
 
     def test_commission_override_over_100_rejected(self):
         tx = self._tx()
         with self.assertRaises(ValidationError):
-            tx.write({"commission_override_pct": 150.0})
+            tx.write({"commission_override_pct": 1.5})
 
     def test_unlink_with_invoice_blocked(self):
         tx = self._tx()
@@ -78,7 +80,13 @@ class TestIntakeConstraintsConsolidated(PlasticosTestCase):
         cls.partner = cls.env["res.partner"].create({"name": "IP", "is_company": True, "supplier_rank": 1})
 
     def _intake(self, **kw):
-        v = {"partner_id": self.partner.id, "quantity_per_load_lbs": 40000}
+        # polymer_id and form_id are required (plasticos_intake/models/intake.py:181-195).
+        v = {
+            "partner_id": self.partner.id,
+            "polymer_id": self.default_polymer.id,
+            "form_id": self.default_form.id,
+            "quantity_per_load_lbs": 40000,
+        }
         v.update(kw)
         return self.env["plasticos.intake"].create(v)
 
@@ -144,7 +152,9 @@ class TestClaimConstraintsConsolidated(PlasticosTestCase):
         )
 
     def _claim(self, **kw):
-        v = {"transaction_id": self.tx.id, "case_type": "quality", "summary": "T"}
+        # plasticos.claim has no summary field and no "quality" case_type; the free-text field
+        # is description and quality issues are buyer claims (plasticos_claims/models/claim.py:46-52, 146-149).
+        v = {"transaction_id": self.tx.id, "case_type": "buyer_claim", "description": "T"}
         v.update(kw)
         return self.env["plasticos.claim"].create(v)
 
@@ -194,8 +204,12 @@ class TestTransactionComputesConsolidated(PlasticosTestCase):
         self.assertEqual(tx.weight_source, "none")
 
     def test_tare_auto_set_by_unit_type(self):
-        tx = self._tx(unit_type="bale")
-        self.assertTrue(tx.tare_per_unit > 0)
+        # Tare defaults by unit type (plasticos_transaction/models/transaction.py:665-676):
+        # gaylord/pallet 40 lbs, bale/box/super_sack 0 lbs.
+        tx = self._tx(unit_type="gaylord")
+        self.assertEqual(tx.tare_per_unit, 40.0)
+        self.assertEqual(self._tx(unit_type="pallet").tare_per_unit, 40.0)
+        self.assertEqual(self._tx(unit_type="bale").tare_per_unit, 0.0)
 
     def test_total_tare_calculation(self):
         tx = self._tx(unit_type="gaylord", unit_count=10)

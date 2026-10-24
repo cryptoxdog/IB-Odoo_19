@@ -5,10 +5,11 @@ Covers:
     - attachment_maintenance: _cron_cleanup_missing_filestore_orphans
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.tools import config
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -21,6 +22,25 @@ class TestMidnightRecompute(PlasticosTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.svc = cls.env["plasticos.midnight.recompute"]
+        cls.doc_attachment = None
+        cls.doc_tag = None
+        if "plasticos.document" in cls.env:
+            # plasticos.document requires res_model, res_id, attachment_id, tag_id
+            # (plasticos_documents/models/document.py:15-19). The tag code is deliberately
+            # not a claim code so plasticos_claims/models/document_inherit.py:25 creates no claim.
+            cls.doc_attachment = cls.env["ir.attachment"].create({"name": "cron_doc.txt", "raw": b"cron"})
+            cls.doc_tag = cls.env["plasticos.document.tag"].create({"name": "Cron Test Tag", "code": "cron_test_tag"})
+
+    @classmethod
+    def _doc_vals(cls, **kw):
+        vals = {
+            "res_model": "res.partner",
+            "res_id": cls.default_partner.id,
+            "attachment_id": cls.doc_attachment.id,
+            "tag_id": cls.doc_tag.id,
+        }
+        vals.update(kw)
+        return vals
 
     # ── Advisory lock ──────────────────────────────────────────
     def test_lock_acquired_runs_full(self):
@@ -65,12 +85,7 @@ class TestMidnightRecompute(PlasticosTestCase):
         if "plasticos.document" not in self.env:
             self.skipTest("plasticos.document not installed")
         Doc = self.env["plasticos.document"]
-        doc = Doc.create(
-            {
-                "name": "TestDoc",
-                "expiry_date": date.today() - timedelta(days=1),
-            }
-        )
+        doc = Doc.create(self._doc_vals(name="TestDoc", expiry_date=date.today() - timedelta(days=1)))
         doc.is_expired = False  # Force stale value
         self.svc._recompute_document_expiry()
         self.assertTrue(doc.is_expired, "Newly expired doc should be recomputed to True")
@@ -80,12 +95,7 @@ class TestMidnightRecompute(PlasticosTestCase):
         if "plasticos.document" not in self.env:
             self.skipTest("plasticos.document not installed")
         Doc = self.env["plasticos.document"]
-        doc = Doc.create(
-            {
-                "name": "FutureDoc",
-                "expiry_date": date.today() + timedelta(days=30),
-            }
-        )
+        doc = Doc.create(self._doc_vals(name="FutureDoc", expiry_date=date.today() + timedelta(days=30)))
         doc.is_expired = True  # Force incorrect stale value
         self.svc._recompute_document_expiry()
         self.assertFalse(doc.is_expired, "Future-dated doc should be corrected to not expired")
@@ -102,11 +112,12 @@ class TestMidnightRecompute(PlasticosTestCase):
         """Each search is capped at limit=1000 to avoid memory issues."""
         if "plasticos.document" not in self.env:
             self.skipTest("plasticos.document not installed")
-        # Implementation uses limit=1000 — verify no unbounded search
-        with patch.object(
-            self.env["plasticos.document"], "search", return_value=self.env["plasticos.document"]
-        ) as m_search:
+        # Implementation uses limit=1000 — verify no unbounded search.
+        # Recordset methods are read-only attributes; patch the model class instead.
+        Doc = self.env["plasticos.document"]
+        with patch.object(type(Doc), "search", return_value=Doc) as m_search:
             self.svc._recompute_document_expiry()
+            self.assertTrue(m_search.called, "document expiry recompute should search documents")
             for call_args in m_search.call_args_list:
                 if "limit" in call_args.kwargs:
                     self.assertLessEqual(call_args.kwargs["limit"], 1000)
@@ -124,7 +135,8 @@ class TestMidnightRecompute(PlasticosTestCase):
                 "case_type": "buyer_claim",
                 "severity": "medium",
                 "state": "pending",
-                "create_date": date.today() - timedelta(days=5),
+                # days_open is computed from opened_at (plasticos_claims/models/claim.py:320-326).
+                "opened_at": datetime.now() - timedelta(days=5),
             }
         )
         self.svc._recompute_claim_time_fields()
@@ -195,7 +207,7 @@ class TestAttachmentMaintenance(PlasticosTestCase):
 
     def test_missing_data_dir_skips(self):
         """Returns 0 when data_dir config is missing."""
-        with patch("odoo.tools.config.get", return_value=None):
+        with patch.object(config, "get", return_value=None):
             result = self.Attachment._cron_cleanup_missing_filestore_orphans()
             self.assertEqual(result, 0)
 
@@ -209,7 +221,7 @@ class TestAttachmentMaintenance(PlasticosTestCase):
             }
         )
         if att.store_fname:
-            with patch("os.path.exists", return_value=False), patch("odoo.tools.config.get", return_value="/tmp"):  # nosec B108 - test mock
+            with patch("os.path.exists", return_value=False), patch.object(config, "get", return_value="/tmp"):  # nosec B108 - test mock
                 result = self.Attachment._cron_cleanup_missing_filestore_orphans()
                 self.assertGreaterEqual(result, 0)
 
@@ -222,16 +234,17 @@ class TestAttachmentMaintenance(PlasticosTestCase):
                 "datas": "dGVzdA==",  # base64 "test"
             }
         )
-        with patch("os.path.exists", return_value=True), patch("odoo.tools.config.get", return_value="/tmp"):  # nosec B108 - test mock
+        with patch("os.path.exists", return_value=True), patch.object(config, "get", return_value="/tmp"):  # nosec B108 - test mock
             self.Attachment._cron_cleanup_missing_filestore_orphans()
             self.assertTrue(att.exists(), "Valid attachment should not be deleted")
 
     def test_cleanup_limit_2000(self):
         """Search is limited to 2000 candidates per run."""
         with (
-            patch.object(self.Attachment, "search") as m_search,
+            # Recordset methods are read-only attributes; patch the model class instead.
+            patch.object(type(self.Attachment), "search") as m_search,
             patch("os.path.exists", return_value=True),
-            patch("odoo.tools.config.get", return_value="/tmp"),  # nosec B108 - test mock
+            patch.object(config, "get", return_value="/tmp"),  # nosec B108 - test mock
         ):
             m_search.return_value = self.Attachment
             self.Attachment._cron_cleanup_missing_filestore_orphans()

@@ -13,6 +13,7 @@ test the mechanics of module integration.
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.fields import Datetime
 from odoo.tests.common import tagged
 
 
@@ -104,8 +105,10 @@ class TestIntakeToMatchToOffer(PlasticosTestCase):
             # NOTE: plasticos.offer carries no match_result_id — the field is disabled
             # in plasticos_offer/models/offer.py (matching is an external Gate service),
             # so the offer is linked to the match only through the shared intake.
+            # supplier_id is required on offer (plasticos_offer/models/offer.py:62-69).
             offer = Offer.create(
                 {
+                    "supplier_id": self.supplier.id,
                     "buyer_id": self.buyer.id,
                     "intake_id": intake.id,
                 }
@@ -125,31 +128,54 @@ class TestTransactionToLoadToDelivery(PlasticosTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls._skip_if_model_missing("plasticos.transaction", "plasticos.load")
+        cls.supplier = cls._create_partner("Load Flow Supplier", supplier_rank=1)
+        cls.buyer = cls._create_partner("Load Flow Buyer", customer_rank=1)
+        cls.carrier = cls._create_partner("Load Flow Carrier")
+        cls.intake = cls._create_intake(partner=cls.supplier, polymer=cls.default_polymer, form=cls.default_form)
+        cls.sale_order = cls.env["sale.order"].create({"partner_id": cls.buyer.id})
 
     def test_transaction_to_load_lifecycle(self):
-        tx = self.env["plasticos.transaction"].create({})
+        # Rate confirmation needs a complete freight context (company via sale_order_id,
+        # pickup/delivery partners, reference weight, transaction intake —
+        # plasticos_logistics/services/freight_context.py:57-69) and a carrier (load.py:1016, 1086).
+        tx = self.env["plasticos.transaction"].create(
+            {"supplier_id": self.supplier.id, "buyer_id": self.buyer.id, "intake_id": self.intake.id}
+        )
         if hasattr(tx, "action_confirm"):
             tx.action_confirm()
 
-        Load = self.env["plasticos.load"]
-        load_vals = {"transaction_id": tx.id} if "transaction_id" in Load._fields else {}
-        load = Load.create(load_vals)
-
-        states = []
-        actions = (
-            "action_confirm_ready",
-            "action_confirm_rate",
-            "action_schedule",
-            "action_dispatch",
-            "action_deliver",
+        load = self.env["plasticos.load"].create(
+            {
+                "transaction_id": tx.id,
+                "sale_order_id": self.sale_order.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.buyer.id,
+                "carrier_id": self.carrier.id,
+                "reference_weight": 40000.0,
+            }
         )
-        for action in actions:
-            if hasattr(load, action):
-                getattr(load, action)()
-                states.append(load.state)
+        self.assertEqual(load.state, "draft")
 
-        if states:
-            self.assertEqual(states[-1], "delivered")
+        # Current load workflow (plasticos_logistics/services/state_machine.py:9-20):
+        # draft -> awaiting_ready has no dedicated action; picked_up/delivered are
+        # transitions with no action_* wrapper (there is no action_deliver).
+        now = Datetime.now()
+        steps = (
+            (lambda: load._transition("awaiting_ready"), "awaiting_ready"),
+            (load.action_confirm_ready, "ready_confirmed"),
+            (lambda: load.action_confirm_rate(1500.0), "rate_confirmed"),
+            (lambda: load.action_schedule(now, now), "scheduled"),
+            (load.action_dispatch, "dispatched"),
+            (lambda: load._transition("picked_up"), "picked_up"),
+            (lambda: load._transition("delivered"), "delivered"),
+        )
+        states = []
+        for step, expected in steps:
+            step()
+            self.assertEqual(load.state, expected)
+            states.append(load.state)
+
+        self.assertEqual(states[-1], "delivered")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -198,7 +224,11 @@ class TestClaimLifecycle(PlasticosTestCase):
             claim.action_resolve()
         if hasattr(claim, "action_reopen"):
             claim.action_reopen()
-            self.assertEqual(claim.state, "open")
+            # Reopen returns the claim to in_progress (plasticos_claims/models/claim.py:303-311).
+            self.assertEqual(claim.state, "in_progress")
+            self.assertFalse(claim.resolved_at)
+            claim.action_resolve()
+            self.assertEqual(claim.state, "resolved")
 
 
 # ═══════════════════════════════════════════════════════════════

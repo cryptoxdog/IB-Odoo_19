@@ -20,25 +20,26 @@ _logger = logging.getLogger(__name__)
 
 
 # ── Cron Registry: (model, method, description) ─────────────────────────────
+# Each entry mirrors the model_id / code of the ir.cron record in the cited data file.
 CRON_REGISTRY = [
     # plasticos_automation
-    ("plasticos.load", "cron_load_sla_check", "Load SLA Breach Check"),
-    ("plasticos.automation.stock.alert", "cron_check_stock_alerts", "Stock Alert Check"),
-    ("plasticos.automation.trucker.followup", "cron_trucker_followup", "Trucker Follow-Up"),
-    ("plasticos.automation.contract.renewal", "cron_contract_renewal_check", "Contract Renewal Check"),
-    ("plasticos.automation.invoice.reminder", "cron_invoice_reminders", "Invoice Reminders"),
-    # plasticos_enrichment
+    ("plasticos.load", "cron_load_sla_check", "Load SLA Breach Check"),  # data/cron_load_sla.xml
+    ("product.product", "cron_stock_reorder_alert", "Stock Reorder Alert"),  # data/stock_alert_cron.xml
+    ("stock.picking", "cron_trucker_followup", "Trucker Follow-Up"),  # data/cron_trucker_followup.xml
+    ("res.partner", "cron_contract_renewal_alert", "Contract Renewal Alert"),  # data/contract_renewal_cron.xml
+    ("account.move", "cron_invoice_reminder", "Invoice Reminders"),  # data/invoice_reminder_cron.xml
+    # plasticos_enrichment (data/cron.xml)
     ("plasticos.enrichment.run", "action_cron_enrich_pending", "Enrichment Daily"),
     ("plasticos.enrichment.run", "action_cron_inference_only", "Inference Standalone"),
-    # plasticos_claims
-    ("plasticos.claim", "cron_claim_escalation_check", "Claim Escalation Check"),
-    # plasticos_transaction
-    ("plasticos.transaction", "cron_audit_check", "Transaction Audit Check"),
-    # plasticos_documents
-    ("plasticos.document.compliance", "cron_check_missing_docs", "Missing Documents Check"),
-    # plasticos_base
-    ("plasticos.base.mixin", "cron_midnight_recompute", "Midnight Recompute"),
-    # plasticos_geolocalize
+    # plasticos_claims (data/claim_cron.xml)
+    ("plasticos.claim", "_cron_check_sla", "Claim SLA Check and Escalation"),
+    # plasticos_transaction (data/audit_cron.xml)
+    ("plasticos.audit.cron", "run_monthly_audit", "Monthly Transaction Audit"),
+    # plasticos_documents (data/cron_missing_docs.xml)
+    ("plasticos.transaction", "cron_check_missing_docs", "Missing Documents Check"),
+    # plasticos_base (data/midnight_recompute_cron.xml)
+    ("plasticos.midnight.recompute", "_cron_midnight_recompute", "Midnight Recompute"),
+    # plasticos_geolocalize (data/cron_geo_backfill.xml)
     ("res.partner", "cron_geo_backfill", "Geo Backfill"),
 ]
 
@@ -51,10 +52,10 @@ class TestCronMethodsExist(PlasticosTestCase):
         """Every cron entry points to a real model + callable method."""
         missing = []
         for model_name, method_name, desc in CRON_REGISTRY:
-            Model = self.env.get(model_name)
-            if Model is None:
+            if model_name not in self.env:
                 missing.append(f"Model {model_name!r} not found ({desc})")
                 continue
+            Model = self.env[model_name]
             if not hasattr(Model, method_name):
                 missing.append(f"{model_name}.{method_name}() not found ({desc})")
             elif not callable(getattr(Model, method_name)):
@@ -71,9 +72,9 @@ class TestCronEmptyDataset(PlasticosTestCase):
 
     def _run_cron_safely(self, model_name, method_name, **kwargs):
         """Call the cron method on an empty dataset; must not raise."""
-        Model = self.env.get(model_name)
-        if Model is None:
+        if model_name not in self.env:
             self.skipTest(f"Model {model_name!r} not installed")
+        Model = self.env[model_name]
         method = getattr(Model, method_name, None)
         if method is None:
             self.skipTest(f"{model_name}.{method_name} not found")
@@ -87,8 +88,8 @@ class TestCronEmptyDataset(PlasticosTestCase):
         self._run_cron_safely("plasticos.load", "cron_load_sla_check")
 
     def test_stock_alert_empty(self):
-        """Stock alert cron runs on empty alerts table."""
-        self._run_cron_safely("plasticos.automation.stock.alert", "cron_check_stock_alerts")
+        """Stock reorder alert cron runs with no low-stock products."""
+        self._run_cron_safely("product.product", "cron_stock_reorder_alert")
 
     def test_enrichment_pending_empty(self):
         """Enrichment cron runs on empty enrichment runs."""
@@ -100,15 +101,15 @@ class TestCronEmptyDataset(PlasticosTestCase):
 
     def test_claim_escalation_empty(self):
         """Claim escalation cron runs on empty claims."""
-        self._run_cron_safely("plasticos.claim", "cron_claim_escalation_check")
+        self._run_cron_safely("plasticos.claim", "_cron_check_sla")
 
     def test_transaction_audit_empty(self):
         """Transaction audit cron runs on empty transactions."""
-        self._run_cron_safely("plasticos.transaction", "cron_audit_check")
+        self._run_cron_safely("plasticos.audit.cron", "run_monthly_audit")
 
     def test_missing_docs_check_empty(self):
         """Missing docs cron runs on empty documents."""
-        self._run_cron_safely("plasticos.document.compliance", "cron_check_missing_docs")
+        self._run_cron_safely("plasticos.transaction", "cron_check_missing_docs")
 
     def test_geo_backfill_empty(self):
         """Geo backfill cron runs on empty partners."""
@@ -130,7 +131,8 @@ class TestCronXmlIntegrity(PlasticosTestCase):
         for cron in crons:
             if not cron.model_id:
                 invalid.append(f"{cron.name}: missing model_id")
-            elif not self.env.get(cron.model_id.model):
+            # An empty recordset is falsy, so test registry membership, not env.get().
+            elif cron.model_id.model not in self.env:
                 invalid.append(f"{cron.name}: model {cron.model_id.model!r} not installed")
         self.assertFalse(
             invalid,
