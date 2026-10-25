@@ -7,7 +7,7 @@ test from the shapes the SQL projections return; no source database is read.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -267,6 +267,86 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertFalse(self.env["account.move.line"].search([("name", "=", "Historical settlement")]))
         self.assertFalse(moves.line_ids.filtered(lambda line: line.account_id.account_type == "equity_unaffected"))
         self.assertFalse(moves.line_ids.filtered("reconciled"))
+
+    # ── PR 3a: source header facts, PO approval date, no stock event ───────
+    def test_bills_take_header_facts_and_orders_keep_draft_with_no_stock_event(self):
+        """Header date, vendor invoice number, terms or due date; PO approved at TradeDt; nothing ships."""
+        thirty = self.env.ref("account.account_payment_term_30days")
+        pickings_before = self.env["stock.picking"].search_count([])
+        stock_moves_before = self.env["stock.move"].search_count([])
+        index = self._index()
+        self._worksheet_54839(index)
+        rows = {row["PayableID"]: row for row in index.payables_by_buysell["54839"]}
+        rows["591398"]["APBatchNo"] = "107184"
+        rows["594620"]["APBatchNo"] = "107367"
+        index.payables_batches["107184"] = {
+            "APBatchNo": "107184",
+            "InvoiceNo": "V-7275",
+            "InvoiceDt": "2022-03-15 00:00:00",
+            "DueDate": "2022-03-20 00:00:00",
+            "APTerms": "No Such Term",
+        }
+        index.payables_batches["107367"] = {
+            "APBatchNo": "107367",
+            "InvoiceNo": "V-7275-B",
+            "InvoiceDt": "2022-04-14 00:00:00",
+            "DueDate": "2022-04-14 00:00:00",
+            "APTerms": thirty.name,
+        }
+        report = self._run(index)
+
+        unmatched = self._marked("account.move", "legacy_erp_ininv_591398")
+        self.assertEqual(unmatched.ref, "V-7275")
+        self.assertEqual(unmatched.invoice_date, date(2022, 3, 15))
+        self.assertFalse(unmatched.invoice_payment_term_id, "the partner's default term must not replace DueDate")
+        self.assertEqual(unmatched.invoice_date_due, date(2022, 3, 20))
+        termed = self._marked("account.move", "legacy_erp_ininv_594620")
+        self.assertEqual(termed.ref, "V-7275-B")
+        self.assertEqual(termed.invoice_payment_term_id, thirty)
+        self.assertEqual(termed.invoice_date_due, date(2022, 5, 14), "the named term computes the due date")
+        headerless = self._marked("account.move", "legacy_erp_ininv_600001")
+        self.assertEqual(headerless.ref, "FRT-1", "a row without a batch header keeps its own invoice number")
+        self.assertEqual(headerless.invoice_date, date(2022, 4, 1))
+        term_anomalies = [a for a in report.anomalies if "no account.payment.term named 'No Such Term'" in a["detail"]]
+        self.assertEqual(len(term_anomalies), 1, "an unmatched term name is reported once")
+
+        purchase = self._marked("purchase.order", "legacy_erp_po_7275")
+        self.assertEqual(purchase.state, "draft")
+        self.assertEqual(purchase.date_approve, datetime(2022, 5, 12), "earliest GPLedger.TradeDt")
+        self.assertFalse(purchase.picking_ids)
+        sale = self._marked("sale.order", "legacy_erp_so_14263")
+        self.assertEqual(sale.state, "sale")
+        if "picking_ids" in sale._fields:
+            self.assertFalse(sale.picking_ids, "a historical sale is not shipped again")
+        self.assertEqual(self.env["stock.picking"].search_count([]), pickings_before)
+        self.assertEqual(self.env["stock.move"].search_count([]), stock_moves_before)
+        moves = self._marked("account.move", "legacy_erp_")
+        self.assertEqual(set(moves.mapped("state")), {"draft"})
+
+    def test_delivered_basis_sets_no_incoterm_and_undated_invoice_stays_undated(self):
+        index = self._index()
+        self._worksheet_54839(index)
+        index.orders["6345"]["PriceBasis"] = "Delivered"
+        index.buysells["54839"]["InvoiceDt"] = None
+        for row in index.ledger_by_buysell["54839"]:
+            row["TradeDt"] = None
+        report = self._run(index)
+
+        purchase = self._marked("purchase.order", "legacy_erp_po_7275")
+        self.assertFalse(purchase.date_approve, "no trade date is never replaced by another date")
+        self.assertIn(
+            "purchase.order 7275: date_approve not set (no GPLedger trade date)",
+            [anomaly["detail"] for anomaly in report.anomalies],
+        )
+
+        sale = self._marked("sale.order", "legacy_erp_so_14263")
+        if "incoterm" in sale._fields:
+            self.assertFalse(sale.incoterm, "Delivered is not FAS")
+        details = [anomaly["detail"] for anomaly in report.anomalies]
+        self.assertIn("sale.order 14263: price basis 'Delivered' has no supported Incoterm; none set", details)
+        invoice = self._marked("account.move", "legacy_erp_outinv_54839")
+        self.assertFalse(invoice.invoice_date, "never the worksheet order date")
+        self.assertIn("no source invoice date; customer invoice left undated", details)
 
     # ── F5: credits, freight, costs, prepay exclusion ──────────────────────
     def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):

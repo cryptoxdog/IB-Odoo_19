@@ -33,6 +33,7 @@ __all__ = [
     "CARRIED_BY_PAYABLES",
     "CUSTOMER_CREDIT",
     "CUSTOMER_DEBIT",
+    "DECLINED_PRICE_BASES",
     "EQUIPMENT_GL",
     "EXPENSE_GL",
     "FREIGHT_GL",
@@ -50,6 +51,7 @@ __all__ = [
     "amount_drift",
     "commission_recipients",
     "commission_slots",
+    "declined_price_basis",
     "freight_vendor_id",
     "header_for_line",
     "incoterm_code",
@@ -73,6 +75,8 @@ __all__ = [
     "worksheet_numbers",
     "worksheet_outcome",
     "unit_price",
+    "vendor_bill_header_facts",
+    "vendor_bill_due_terms",
     "worksheet_commission",
 ]
 
@@ -586,6 +590,12 @@ def freight_vendor_id(rows) -> str:
     return chosen
 
 
+# Price bases with no Incoterm that means the same thing. ``delivered`` is not
+# FAS (seller delivers alongside the ship), and neither DAP nor DDP is proven
+# by the source, so the order carries no Incoterm and the basis is reported.
+DECLINED_PRICE_BASES = frozenset({"delivered"})
+
+
 def incoterm_code(basis: str | None) -> str | None:
     """Map a source price basis onto an ``account.incoterms`` code."""
     text = (basis or "").strip().lower()
@@ -593,9 +603,51 @@ def incoterm_code(basis: str | None) -> str | None:
         return None
     if text in {"fob", "fob supplier dock", "pickup"}:
         return "FOB"
-    if text in {"delivered", "fas"}:
+    if text == "fas":
         return "FAS"
     return None
+
+
+def declined_price_basis(basis: str | None) -> bool:
+    """True when the basis is known and deliberately carries no Incoterm."""
+    return (basis or "").strip().lower() in DECLINED_PRICE_BASES
+
+
+def vendor_bill_header_facts(payable: dict, header: dict | None) -> dict[str, str]:
+    """Invoice date, vendor invoice number, due date and terms for one ``Payables`` row.
+
+    The bill stays one per ``PayableID``. Its header facts come from the
+    row's ``PayablesBatch`` header when one is indexed, else from the row.
+    There is no order-date fallback: a bill with no source invoice date has
+    none. ``due_date`` and ``terms`` exist only on the header.
+    """
+    header = header or {}
+
+    def first(*values) -> str:
+        return next((text for value in values if (text := (value or "").strip())), "")
+
+    return {
+        "invoice_date": first(header.get("InvoiceDt"), payable.get("InvoiceDt"))[:10],
+        "ref": first(header.get("InvoiceNo"), payable.get("InvoiceNo"), payable.get("PayableID")),
+        "due_date": first(header.get("DueDate"))[:10],
+        "terms": first(header.get("APTerms")),
+    }
+
+
+def vendor_bill_due_terms(facts: dict[str, str], term_id: int | None) -> dict:
+    """``account.move`` values for the bill's payment term or explicit due date.
+
+    A matched term applies only to a dated bill: Odoo computes a term from
+    ``invoice_date or date or today``, so on an undated bill the due date
+    would come from the day of the import. Without a usable term the header
+    ``DueDate`` is the due date and no term is set, so the partner's default
+    supplier term does not replace it. With neither, Odoo's default stays.
+    """
+    if term_id and facts.get("invoice_date"):
+        return {"invoice_payment_term_id": term_id}
+    if facts.get("due_date"):
+        return {"invoice_payment_term_id": False, "invoice_date_due": facts["due_date"]}
+    return {}
 
 
 WORKSHEET_CANCELLED = "cancelled"
