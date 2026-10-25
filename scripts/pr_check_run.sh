@@ -135,9 +135,12 @@ case "$MODE" in
       "") log "→ pytest skipped: no test module is touched by or reads the changed paths" ;;
       *) export TEST_PATHS="$scope_tests"; targets+=(test-scoped) ;;
     esac
-    # Bash 3.2 with set -u rejects "${targets[@]}" before run_wave can see
-    # that the list is empty. A docs-only change has no collector to run.
-    if [ "${#targets[@]}" -gt 0 ]; then
+    # Bash 3.2 (macOS /bin/bash) treats "${targets[@]}" as unbound under
+    # set -u when the array is empty. A documentation-only scope leaves it
+    # empty: both collectors are skipped, and that is a successful gate.
+    if [ "$scope_audit" = "0" ] && [ -z "$scope_tests" ]; then
+      log "→ no local collector: documentation-only change"
+    else
       run_wave "${targets[@]}"
     fi
     # Wave 2: local Odoo load (not in GHA), only when an addon or installer input changed.
