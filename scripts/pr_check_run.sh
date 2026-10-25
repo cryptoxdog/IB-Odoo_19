@@ -135,7 +135,11 @@ case "$MODE" in
       "") log "→ pytest skipped: no test module is touched by or reads the changed paths" ;;
       *) export TEST_PATHS="$scope_tests"; targets+=(test-scoped) ;;
     esac
-    run_wave "${targets[@]}"
+    # Bash 3.2 with set -u rejects "${targets[@]}" before run_wave can see
+    # that the list is empty. A docs-only change has no collector to run.
+    if [ "${#targets[@]}" -gt 0 ]; then
+      run_wave "${targets[@]}"
+    fi
     # Wave 2: local Odoo load (not in GHA), only when an addon or installer input changed.
     if [ "$scope_smoke" = "0" ]; then
       SMOKE_SKIP=1
