@@ -96,7 +96,7 @@ Migration `19.0.5.9.0` rounds legacy float `loads_per_month` and backfills `quan
 | Test file | Tier |
 |-----------|------|
 | `tests/test_material_profile_intake_delta_bridge_pure.py` | Pure Python (12 tests) — mapping, residue, payload |
-| `tests/contracts/test_material_profile_intake_delta_contract.py` | Post-install — field existence on profile |
+| `plasticos_material_profile/tests/test_material_profile_intake_delta_contract.py` | Post-install — field existence on profile |
 
 Tests assert **behavior and field metadata**, not grep of source strings.
 

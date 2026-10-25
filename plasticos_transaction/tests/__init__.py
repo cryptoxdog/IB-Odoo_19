@@ -1,4 +1,7 @@
+from . import test_bridge_wiring_contracts
 from . import test_erp_worksheet_import
 from . import test_profile_form_coexistence
 from . import test_relationship_batch
+from . import test_sale_order_transaction_autocreate
+from . import test_transaction_contracts
 from . import test_transaction_form_ui
