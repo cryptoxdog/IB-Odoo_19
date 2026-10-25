@@ -12,6 +12,7 @@ Validates:
   - action_post() runs compliance check before posting
 """
 
+import base64
 import logging
 from unittest.mock import patch
 
@@ -470,3 +471,216 @@ class TestAccountMoveComplianceGate(PlasticosTestCase):
         self.assertIn(close_tag.code, for_close)
         self.assertNotIn(invoice_tag.code, for_close)
         self.assertTrue({invoice_tag.code, close_tag.code} <= set(unscoped))
+
+
+@tagged("post_install", "-at_install", "accounting", "critical")
+class TestHistoricalAutopostGuard(PlasticosTestCase):
+    """Compliance may not post ERP historical drafts. Operational drafts still post."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.partner = cls.env["res.partner"].create(
+            {"name": "Historical Autopost Partner", "is_company": True, "customer_rank": 1, "supplier_rank": 1}
+        )
+
+    def _tx(self):
+        return self.env["plasticos.transaction"].create({"supplier_id": self.partner.id, "buyer_id": self.partner.id})
+
+    def _isolate_invoice_rule(self, code):
+        self.env["plasticos.document.rule"].search([("res_model", "=", "plasticos.transaction")]).write(
+            {"active": False}
+        )
+        tag = self.env["plasticos.document.tag"].create({"name": code, "code": code})
+        self.env["plasticos.document.rule"].create(
+            {
+                "name": code,
+                "tag_id": tag.id,
+                "res_model": "plasticos.transaction",
+                "required_for_invoice": True,
+                "required_for_close": False,
+            }
+        )
+        return tag
+
+    def _mark(self, record, name, module="plasticos_transaction", model=None):
+        self.env["ir.model.data"].create(
+            {
+                "module": module,
+                "name": name,
+                "model": model or record._name,
+                "res_id": record.id,
+                "noupdate": True,
+            }
+        )
+
+    def _move(self, move_type, *, origin=None, invoice_date=None):
+        vals = {
+            "move_type": move_type,
+            "partner_id": self.partner.id,
+            "invoice_line_ids": [(0, 0, {"name": "Line", "quantity": 1, "price_unit": 50.0})],
+        }
+        if origin:
+            vals["invoice_origin"] = origin
+        if invoice_date:
+            vals["invoice_date"] = invoice_date
+        return self.env["account.move"].create(vals)
+
+    def _satisfy(self, tx, tag):
+        # The invoice link is already stored before a document arrives. Flush it
+        # so this single test transaction matches that request boundary.
+        self.env.flush_all()
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": f"{tag.code}.txt",
+                "datas": base64.b64encode(b"proof"),
+                "res_model": "plasticos.document",
+                "res_id": 0,
+            }
+        )
+        return self.env["plasticos.document"].create(
+            {
+                "name": tag.code,
+                "tag_id": tag.id,
+                "res_model": "plasticos.transaction",
+                "res_id": tx.id,
+                "transaction_id": tx.id,
+                "attachment_id": attachment.id,
+                "verified": True,
+            }
+        )
+
+    def test_historical_markers_stay_draft_when_compliance_is_satisfied(self):
+        """A marked invoice and an undated marked bill stay draft across missing -> compliant."""
+        tag = self._isolate_invoice_rule("hist_autopost_only")
+        tx = self._tx()
+        invoice = self._move("out_invoice", origin="54839", invoice_date="2022-04-01")
+        bill = self._move("in_invoice", origin="54839")
+        self._mark(invoice, "legacy_erp_outinv_54839")
+        self._mark(bill, "legacy_erp_ininv_591398")
+        tx.customer_invoice_id = invoice
+        tx.vendor_bill_ids = [(4, bill.id)]
+        self.assertEqual(tx.compliance_status, "missing")
+        doc = self._satisfy(tx, tag)
+        tx.invalidate_recordset()
+        invoice.invalidate_recordset()
+        bill.invalidate_recordset()
+        self.assertEqual(tx.compliance_status, "compliant")
+        self.assertEqual(invoice.state, "draft")
+        self.assertEqual(bill.state, "draft")
+        doc.write({"verified": True})
+        self.assertEqual(invoice.state, "draft")
+        self.assertEqual(bill.state, "draft")
+
+    def test_ledger_prefix_is_classified_without_a_transaction_link(self):
+        """legacy_erp_ledger_ is historical even though the candidate fields do not hold it."""
+        refund = self._move("out_refund", invoice_date="2022-04-01")
+        self._mark(refund, "legacy_erp_ledger_5694")
+        classified = self.env["plasticos.transaction"]._historical_erp_moves(refund)
+        self.assertEqual(classified, refund)
+        tx = self._tx()
+        self.assertFalse(tx.customer_invoice_id)
+        self.assertFalse(tx.vendor_bill_ids)
+        self.assertFalse(tx.freight_bill_ids)
+        invoice = self._move("out_invoice", invoice_date="2022-04-01")
+        self._mark(invoice, "legacy_erp_so_14263")
+        self._mark(invoice, "legacy_erp_outinv_wrong_ns", module="plasticos_accounting")
+        sale = self.env["sale.order"].create({"partner_id": self.partner.id})
+        self._mark(sale, "legacy_erp_outinv_not_a_move", model="sale.order")
+        self.assertFalse(self.env["plasticos.transaction"]._historical_erp_moves(invoice))
+
+    def test_operational_sale_origin_invoice_still_autoposts(self):
+        """An unmarked sale-origin invoice posts when the invoice document arrives."""
+        tag = self._isolate_invoice_rule("hist_autopost_operational")
+        tx = self._tx()
+        sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
+        invoice = self._move("out_invoice", origin=sale.name, invoice_date="2026-10-24")
+        tx.customer_invoice_id = invoice
+        self._satisfy(tx, tag)
+        tx.invalidate_recordset()
+        invoice.invalidate_recordset()
+        self.assertEqual(tx.compliance_status, "compliant")
+        self.assertEqual(invoice.state, "posted")
+
+    def test_mixed_set_posts_only_the_unmarked_move(self):
+        """The operational invoice posts. The marked bill stays draft."""
+        tag = self._isolate_invoice_rule("hist_autopost_mixed")
+        tx = self._tx()
+        sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
+        invoice = self._move("out_invoice", origin=sale.name, invoice_date="2026-10-24")
+        bill = self._move("in_invoice", origin="54839", invoice_date="2022-03-15")
+        self._mark(bill, "legacy_erp_ininv_591398")
+        tx.customer_invoice_id = invoice
+        tx.vendor_bill_ids = [(4, bill.id)]
+        self._satisfy(tx, tag)
+        tx.invalidate_recordset()
+        invoice.invalidate_recordset()
+        bill.invalidate_recordset()
+        self.assertEqual(invoice.state, "posted")
+        self.assertEqual(bill.state, "draft")
+        self.assertEqual(tx.compliance_status, "compliant")
+
+    def test_lookalike_origin_and_xmlid_do_not_block_autopost(self):
+        """A worksheet-shaped origin and a non-qualifying xmlid still post."""
+        tag = self._isolate_invoice_rule("hist_autopost_lookalike")
+        tx = self._tx()
+        invoice = self._move("out_invoice", origin="54839", invoice_date="2022-04-01")
+        self._mark(invoice, "legacy_erp_so_14263")
+        tx.customer_invoice_id = invoice
+        self._satisfy(tx, tag)
+        tx.invalidate_recordset()
+        invoice.invalidate_recordset()
+        self.assertEqual(invoice.state, "posted")
+        self.assertEqual(tx.compliance_status, "compliant")
+
+    def test_direct_post_of_a_historical_draft_uses_normal_accounting(self):
+        """Explicit action_post still posts a dated historical draft and rejects an undated bill."""
+        invoice = self._move("out_invoice", origin="54839", invoice_date="2022-04-01")
+        bill = self._move("in_invoice", origin="54839")
+        self._mark(invoice, "legacy_erp_outinv_manual")
+        self._mark(bill, "legacy_erp_ininv_manual")
+        invoice.action_post()
+        self.assertEqual(invoice.state, "posted")
+        with self.assertRaisesRegex(UserError, "The Bill/Refund date is required to validate this document."):
+            bill.action_post()
+        self.assertEqual(bill.state, "draft")
+
+    def test_historical_marker_does_not_bypass_the_invoice_purpose_gate(self):
+        """A marked invoice whose origin is the sale name still requires the invoice document."""
+        self._isolate_invoice_rule("hist_autopost_purpose")
+        tx = self._tx()
+        sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
+        invoice = self._move("out_invoice", origin=sale.name, invoice_date="2026-10-24")
+        self._mark(invoice, "legacy_erp_outinv_purpose")
+        tx.customer_invoice_id = invoice
+        with self.assertRaisesRegex(UserError, "Missing required documents for invoice posting."):
+            invoice.action_post()
+        self.assertEqual(invoice.state, "draft")
+
+    def test_operational_undated_bill_rolls_back_and_retries(self):
+        """An unmarked undated bill aborts the transition. Dating it lets the next document post both."""
+        tag = self._isolate_invoice_rule("hist_autopost_retry")
+        tx = self._tx()
+        sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
+        invoice = self._move("out_invoice", origin=sale.name, invoice_date="2026-10-24")
+        bill = self._move("in_invoice", origin=sale.name)
+        tx.customer_invoice_id = invoice
+        tx.vendor_bill_ids = [(4, bill.id)]
+        self.assertEqual(tx.compliance_status, "missing")
+        with self.assertRaisesRegex(UserError, "The Bill/Refund date is required to validate this document."):
+            with self.env.cr.savepoint():
+                self._satisfy(tx, tag)
+        tx.invalidate_recordset()
+        invoice.invalidate_recordset()
+        bill.invalidate_recordset()
+        self.assertEqual(tx.compliance_status, "missing")
+        self.assertEqual(invoice.state, "draft")
+        self.assertEqual(bill.state, "draft")
+        self.assertFalse(
+            self.env["plasticos.document"].search([("res_model", "=", "plasticos.transaction"), ("res_id", "=", tx.id)])
+        )
+        bill.invoice_date = "2022-03-15"
+        self._satisfy(tx, tag)
+        self.assertEqual(tx.compliance_status, "compliant")
+        self.assertEqual(invoice.state, "posted")
+        self.assertEqual(bill.state, "posted")
