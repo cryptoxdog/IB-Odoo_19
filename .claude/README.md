@@ -26,13 +26,10 @@ Personal skills — available in all repos via `~/.cursor/skills/`.
 |-------|-------------|---------|
 | **l9-structured-reasoning** | `@.cursor-commands/skills/l9-structured-reasoning/` | Planning, plan analysis, architecture decisions, debugging |
 | **l9-skill-compiler** | `@.cursor-commands/skills/l9-skill-compiler/` | Compile kernels/SOPs into zero-stub skill packs |
-| **l9-wire-skill-into-repo** | `@.cursor-commands/skills/l9-wire-skill-into-repo/` | Register skills in repo agent config after create/compile |
 | **l9-update-agent-docs** | `@.cursor-commands/skills/l9-update-agent-docs/` | Refresh AGENTS.md, ARCHITECTURE.md, INVARIANTS.md, CLAUDE.md |
 | **l9-context7-docs** | `@.cursor-commands/skills/l9-context7-docs/` | Fetch current library/framework/SDK/API docs before coding |
-| **l9-plan** | `@.cursor-commands/skills/l9-plan/` | Create an execution plan/spec when scope is unclear |
 | **l9-code-analysis** | `@.cursor-commands/skills/l9-code-analysis/` | Explore unfamiliar code, map flows, identify hotspots |
 | **l9-gap-analysis** | `@.cursor-commands/skills/l9-gap-analysis/` | Assess readiness, missing pieces, % complete vs target |
-| **l9-pr-analysis** | `@.cursor-commands/skills/l9-pr-analysis/` | Review PRs, merge blockers, review comments, PR readiness |
 | **l9-ynp** | `@.cursor-commands/skills/l9-ynp/` | Synthesize the single highest-leverage next action |
 | **l9-code-graph-rag-mcp** | `@.cursor-commands/skills/l9-code-graph-rag-mcp/` | Operate code-graph-rag MCP — indexing, importers, impact analysis, cross-module discovery (token-safe) |
 | **l9-api-smoke-testing** | `@.cursor-commands/skills/l9-api-smoke-testing/` | Smoke-test every API route; report 404/500 regressions |
@@ -53,11 +50,7 @@ Personal skills — available in all repos via `~/.cursor/skills/`.
 | **l9-dag-authoring** | `@.cursor-commands/skills/l9-dag-authoring/` | **Explicit** — create or update L9 workflow DAGs |
 | **l9-end-session** | `@.cursor-commands/skills/l9-end-session/` | **Explicit** — session close, pickup context, governance backup |
 | **l9-forge** | `@.cursor-commands/skills/l9-forge/` | **Explicit** — autonomous high-velocity execution |
-| **l9-governance-wiring** | `@.cursor-commands/skills/l9-governance-wiring/` | **Explicit** — governance symlinks, wire executor, SSOT backup |
-| **l9-harvest-pipeline** | `@.cursor-commands/skills/l9-harvest-pipeline/` | **Explicit** — harvest extraction and deployment pipeline |
-| **l9-inspect** | `@.cursor-commands/skills/l9-inspect/` | **Explicit** — external code gate and file audit |
 | **l9-repo-index** | `@.cursor-commands/skills/l9-repo-index/` | **Explicit** — export repo indexes for fast lookup |
-| **l9-update-command** | `@.cursor-commands/skills/l9-update-command/` | **Explicit** — minimize slash commands to DAG triggers |
 
 ## Project Skills
 
@@ -81,7 +74,7 @@ Repo SSOT under `skills/` (not an Odoo addon — like `scripts/` / `tools/`). Di
 
 | File | Used by |
 |------|---------|
-| `adapters/plasticos-repo-wiring.md` | **`l9-wire-skill-into-repo`** Step 3 |
+| `adapters/plasticos-repo-wiring.md` | **`l9-wire-into-repo`** |
 | `adapters/plasticos-update-agent-docs.md` | **`l9-update-agent-docs`** in PlasticOS repos |
 
 ## Wiring Rules
@@ -91,7 +84,7 @@ Repo SSOT under `skills/` (not an Odoo addon — like `scripts/` / `tools/`). Di
 3. **Project skills:** SSOT in `skills/`; discovery symlinks under `.claude/skills/plasticos-*`. Register in **Project Skills** + `AGENTS.md` + `skills/PLASTICOS_SKILLS_MANIFEST.yaml`. All `plasticos-*` skills are **auto-invoke** (`disable-model-invocation: false`). Never add `__manifest__.py` under `skills/`.
 4. Subagents preload via frontmatter `skills:` list.
 5. Load **`l9-structured-reasoning`** for non-trivial planning and debugging.
-6. **New skills:** run **`l9-wire-skill-into-repo`** after **`l9-skill-compiler`**. L9 packs live in `@.cursor-commands/skills/l9-*/` — never repo `.cursor/skills/`. PlasticOS adapter: `adapters/plasticos-repo-wiring.md`. **PlasticOS law:** `@skills/PLASTICOS_CANONICAL_LAW.md`. Global: `@.cursor/governance/CANONICAL_LAW.md` (symlink).
+6. **New skills:** run **`l9-wire-into-repo`** after **`l9-skill-compiler`**. L9 packs live in `@.cursor-commands/skills/l9-*/` — never repo `.cursor/skills/`. PlasticOS adapter: `adapters/plasticos-repo-wiring.md`. **PlasticOS law:** `@skills/PLASTICOS_CANONICAL_LAW.md`. Global: `@.cursor/governance/CANONICAL_LAW.md` (symlink).
 
 ## Related Config
 

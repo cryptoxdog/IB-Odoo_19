@@ -25,15 +25,10 @@
     "l9-forge",
     "l9-gap-analysis",
     "l9-governance-symlinks",
-    "l9-governance-wiring",
     "l9-graphiti-memory",
-    "l9-harvest-pipeline",
     "l9-incident-response",
-    "l9-inspect",
     "l9-kubernetes-deploying",
     "l9-monitoring-terminal-errors",
-    "l9-plan",
-    "l9-pr-analysis",
     "l9-pr-remediation",
     "l9-prompt-engineering",
     "l9-python-tdd-with-uv",
@@ -46,8 +41,6 @@
     "l9-structured-reasoning",
     "l9-ui-operator",
     "l9-update-agent-docs",
-    "l9-update-command",
-    "l9-wire-skill-into-repo",
     "l9-ynp"
   ]
 }
