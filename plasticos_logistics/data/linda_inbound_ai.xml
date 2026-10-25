@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Linda inbound reply trigger (WP02, PARTIAL; BRS-02-R009, R011, R012, R014).
+
+    A native base.automation on mail.message creation hands Linda exactly the
+    incoming email messages just created; nothing reads an order's chatter.
+    Linda records response evidence only; it is inert in the default "off" mode.
+
+    The native Odoo 19 Enterprise AI server action and its candidate-recording
+    tool are intentionally NOT defined here: the Enterprise "ai" module was not
+    available to verify, and its records must not be authored from guessed
+    fields. Free-form replies therefore stay unresolved (ai_not_run).
+-->
+<odoo noupdate="1">
+    <record id="action_linda_record_incoming_reply" model="ir.actions.server">
+        <field name="name">Linda: Record Incoming Reply</field>
+        <field name="model_id" ref="mail.model_mail_message"/>
+        <field name="state">code</field>
+        <field name="code">env["plasticos.logistics.response"]._record_incoming(records)</field>
+    </record>
+
+    <record id="automation_linda_incoming_reply" model="base.automation">
+        <field name="name">Linda: Incoming Reply on PO/SO</field>
+        <field name="model_id" ref="mail.model_mail_message"/>
+        <field name="trigger">on_create</field>
+        <field name="filter_domain">[("message_type", "=", "email"), ("model", "in", ["purchase.order", "sale.order"])]</field>
+        <field name="action_server_ids" eval="[(6, 0, [ref('plasticos_logistics.action_linda_record_incoming_reply')])]"/>
+    </record>
+</odoo>

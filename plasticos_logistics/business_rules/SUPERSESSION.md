@@ -56,6 +56,18 @@ These deadlines are business requirements, **not optional example configuration*
 | `BRS-05-R034` | A notice is `sent` only after native transport reports it. A reissue mail for the same party is held in the queue while an earlier notice to that party is still pending, so a new issue never overtakes its cancellation. |
 | `BRS-05-R035` | An in-flight issue (attempted, outcome not recorded) is settled as `unknown` at cancellation, never relabeled `sent`, and counts as communicated. Notice transport failures follow the same `exception` / `unknown` discrimination, with no automatic retry. |
 
+## Operator decision 2026-10-24: D-05 native AI interpretation and the WP02 reply slice
+
+**Source:** explicit operator decision of October 24, 2026 (contract `LINDA.WP02.NATIVE_INBOUND.2026-10-24`) and the operator's 2026-10-25 instruction to publish the slice as **PARTIAL / AI NOT RUN**. D-05's prohibition on every LLM interpretation is superseded **only this far**: free-form candidate extraction may use one native Odoo 19 AI server action with one candidate-recording tool, once that Enterprise capability is verified on the actual runtime. No custom LLM client, provider abstraction, Gate route or substitute inference is authorized. The capability was **not** available to verify, so no AI action is defined yet and free-form replies stay unresolved. This is not a production-readiness claim.
+
+| Rule ID | Amended interpretation (2026-10-24) |
+| --- | --- |
+| `BRS-02-R009` | Replies arrive only through native Odoo Mail. The native Keep Original copy (`original_email.eml`) on the incoming message is the retained raw evidence and the sole source of its `In-Reply-To` / `References` ancestry. Without it, a reply stays unbound. |
+| `BRS-02-R011` | A reply binds to the exact Linda request whose outgoing Message-ID it names, never to the latest request on the order thread. A From address that differs from the request's recorded recipient, or a forwarded message, is unattributed. Because no provider-authenticated sender evidence exists, a matching reply is at most `identity_unverified` and never an accepted commitment. |
+| `BRS-02-R012` | Only an explicitly standardized reply (`CONFIRMED` / `CONFIRM` or `NOT READY` as the whole unquoted text) is interpreted, deterministically, as candidate evidence. Any other text is recorded `unresolved` (`ai_not_run`) until the native AI action is verified. Automatic clarification is a later bounded follow-on and sends nothing in this slice. |
+| `BRS-02-R014` | A reply to a canceled cycle's issue, or to a cancellation notice, is recorded as stale against that historical request and never rebinds to the current revision. |
+| `BRS-02-R062` | Native AI output, once available, is candidate evidence only. Neither it nor any reply changes an order, load, picking, appointment, carrier, mail queue or transaction. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.
