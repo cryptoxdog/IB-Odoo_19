@@ -1,6 +1,6 @@
 # Post-run evidence: ERP partners, ERP commercial documents, then full VanillaSoft CRM
 
-Contract revision `v2.2`. Importer outcomes `created` / `updated` / `unchanged` with a persisted provider ref are imported. Approved misses caused by the active-only rule are `held`. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. A second VanillaSoft id for an already approved active person is `duplicate_skipped`. Do not invent importer states. Copy each distinct checkpoint reason into section H. A class with no reason is UNKNOWN, not a result.
+Contract revision `v2.3`. Importer outcomes `created` / `updated` / `unchanged` with a persisted provider ref are imported. `placement` splits those imported rows into `erp_person`, `active_company`, and `crm_lead`. A missing ERP marker is a `crm.lead` and keeps the warning. It is not a no-lead hold. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. A second VanillaSoft id for an already approved active person is `duplicate_skipped`. Do not invent importer states. Copy each distinct checkpoint reason into section H. A class with no reason is UNKNOWN, not a result. Do not rerun the clone to turn a recorded warning into a different class.
 
 > Fill only from actual execution receipts. All `NOT_RUN` values must become observed data or explicit BLOCKED/UNKNOWN. Commit only sanitized facts, no customer PII.
 
@@ -50,7 +50,7 @@ Record fixture admission, clone-ownership proof, code and Enterprise checkout di
 | Roles | | | | | | | |
 | Sales reps | | | | | | | |
 
-No inactive source person, inactive alias, phone line, or note from an ineligible row. This pass writes no `sale.order`, `purchase.order`, `account.move`, or `plasticos.transaction`. Record the active-contact selection change (`parse_bool(IsActive) is True` only; blank is excluded; ineligible CT_IDs are not aliases).
+No inactive source person, inactive alias, phone line, or note from an ineligible row. This pass writes no `sale.order`, `purchase.order`, `account.move`, or `plasticos.transaction`. The active-contact predicate is already `parse_bool(IsActive) is True`. Confirm it. Do not record a code change that was not made.
 
 ## C2. Commercial document import (second ERP write)
 
@@ -64,20 +64,20 @@ Partner census versus section C must be unchanged except idempotent `unchanged` 
 
 ## D. VanillaSoft full source ID reconciliation (MUST SUM TO 4,876)
 
-| Operator decision | Frozen source IDs | Valid imported/bound | Source ID fetched but held | Material failure | Why held / failure |
-| --- | ---: | ---: | ---: | ---: | --- |
-| YES, exact approved ERP-person link | 763 | UNKNOWN | UNKNOWN | UNKNOWN | |
-| NO, rejected ERP candidate / normal CRM lead path | 18 | UNKNOWN | UNKNOWN | UNKNOWN | |
-| PENDING, not approved for ERP person matching | 4,095 | UNKNOWN | UNKNOWN | UNKNOWN | |
-| **TOTAL** | **4,876** | **UNKNOWN** | **UNKNOWN** | **UNKNOWN** | |
+| Operator decision | Frozen source IDs | `erp_person` | `active_company` | `crm_lead` | Held | Material failure | `duplicate_skipped` |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| YES, exact approved ERP-person link | 763 | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | 4 expected |
+| NO, rejected ERP candidate / normal CRM lead path | 18 | 0 | 0 | UNKNOWN | UNKNOWN | UNKNOWN | 0 |
+| PENDING, not approved for ERP person matching | 4,095 | 0 | 0 | UNKNOWN | UNKNOWN | UNKNOWN | 0 |
+| **TOTAL** | **4,876** | **UNKNOWN** | **UNKNOWN** | **UNKNOWN** | **UNKNOWN** | **UNKNOWN** | **4 expected** |
 
-Check `imported + held + genuine_failed = 4,876`, no source ID twice. Imported means orchestrator `created`, `updated`, or `unchanged` plus one persisted provider ref. Approved `failed` from a missing excluded ERP person is `held` and has no lead. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. `crm.lead` need not equal 4,876.
+Check `imported + held + genuine_failed + duplicate_skipped = 4,876`, no source ID twice. `imported = erp_person + active_company + crm_lead`. Imported means orchestrator `created`, `updated`, or `unchanged` plus one persisted provider ref. A blank `erp_ct_id` without an active-company placement, and a `CT_ID` whose marker missed, are `crm_lead`, not held. `duplicate_rejected`, exceptions, and fetch errors are `genuine_failed`. `crm.lead` need not equal 4,876. The four omitted YES ids are the expected `duplicate_skipped` rows.
 
 ## E. Approved identity and previous 28 exceptions
 
-- Pinned crosswalk digest verified? UNKNOWN. Operator YES: 763. Loaded crosswalk: 759 VanillaSoft ids across 691 ERP CT_IDs. Duplicate YES ids not fetched: 4. Actual exact links: UNKNOWN. Independently verify shared aliases from the loaded file.
-- Previous run: 735 bound and 28 `no_erp_person` (27 CT_IDs). New bound count: UNKNOWN. Each historical failure classified by raw company status, placeholder key, missing parent or genuine eligible missing person: UNKNOWN.
-- Wrong approved person links: UNKNOWN; approved link creating duplicate `res.partner`: UNKNOWN; NO candidate bound to rejected CTID: UNKNOWN; pending source IDs falsely matched to ERP: UNKNOWN.
+- Pinned crosswalk digest verified? UNKNOWN. Operator YES: 763. Loaded crosswalk: 759 VanillaSoft ids, 691 distinct ERP CT_IDs, 737 rows with a CT_ID, 22 blanks. Shared: 44 CT_IDs covering 90 VanillaSoft ids. Duplicate YES ids not fetched: 4. Active-company blanks: 7. Other blanks, imported as leads: 15. The figure 702 is not this file.
+- Do not compare the run against the October 16 workbook's inactive CT_IDs. The daytime receipt `docs/reports/evidence/erp-contacts-vs-crosswalk-daytime-2026-10-21/receipt.json` names the file this run loads. A lead for a still-unmapped blank is the expected result.
+- Wrong approved person links: UNKNOWN; approved link creating a duplicate `res.partner` outside `ACTIVE_COMPANY_CP_BY_VS`: UNKNOWN; NO candidate bound to rejected CTID: UNKNOWN; pending source IDs falsely matched to ERP: UNKNOWN.
 
 ## F. CRM field and history reconciliation
 
@@ -108,7 +108,7 @@ Owner, stage, and polymer workbooks are audit oracles. Record the importer's nam
 
 Cite actual command paths and output files, code SHA and fixture SHA, file hashes, source-query digests, logs redacted of personal fields and secrets, the database identity under test, an exception ledger, and any PR URL.
 
-The exception ledger is `open_exceptions`: one row per distinct signal, with `level`, `reason`, and `count`. Copy the finish line `signals {...}` from `import_4876.py`. Include warnings that rode along on imported rows. A held, failed, or skipped count with an empty ledger means the run did not pass, even when the 4,876 equation closed. `checkpoint_rows_missing_signals` and `dispositions_without_a_source_reason` are both 0 on a pass. Do not summarize a reason as its class name.
+The exception ledger is `open_exceptions.json` from the runner: one row per distinct signal, with `level`, `reason`, and `count`. Copy it here and into `receipt.json`. Include warnings that rode along on imported rows. A held, failed, or skipped count with an empty ledger means the run did not pass, even when the 4,876 equation closed. `checkpoint_rows_missing_signals` and `dispositions_without_a_source_reason` are both 0 on a pass. Do not summarize a reason as its class name or as its `placement`. If the terminal log is truncated, `crm_checkpoint.jsonl` is the authority. Do not start a second clone to recover a reason that is already in that file.
 
 **ERP partner acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  
 **ERP commercial-document acceptance:** NOT_RUN / PASS / PARTIAL / BLOCKED / FAIL.  

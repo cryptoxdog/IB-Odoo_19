@@ -1,0 +1,159 @@
+{
+  "schema": "plasticos.evidence_receipt/v1",
+  "subject": "erp-partners-then-commercial-then-vanillasoft-4876",
+  "contract_revision": "v2.3",
+  "recorded_at": "2026-10-22T08:04:13Z",
+  "verdict": "PARTIAL",
+  "repo": {
+    "url": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "branch_under_test": "Staging",
+    "commit_sha_expected_when_authored": "607a64b897cb73b19adeea1b867990c5bf556189",
+    "commit_sha_under_test": "607a64b897cb73b19adeea1b867990c5bf556189",
+    "pr_url_if_any": null
+  },
+  "scope": {
+    "order": ["verified_empty_enterprise_clone", "erp_active_only_partners", "erp_commercial_documents", "vanillasoft_4876_contact_ids", "independent_reconciliation"],
+    "erp_partners_only_first_pass": true,
+    "erp_commercial_second_pass": true,
+    "erp_limit": null,
+    "crm_method": "test_env_sh_run_shell_upsert_contact_external_id",
+    "crm_method_forbidden": "make import-vanillasoft",
+    "erp_inactive_contacts_allowed": false,
+    "erp_inactive_companies_allowed": false,
+    "financial_transactions_on_partner_pass_allowed": false,
+    "commercial_documents_on_second_pass_allowed": true,
+    "hand_built_transactions_allowed": false,
+    "fuzzy_erp_person_matching_allowed": false,
+    "hosted_writes_allowed": false,
+    "single_protected_clone_required": true,
+    "crm_flagged_source_cohort_size": 4876,
+    "crm_flagged_source_cohort_includes_all_lead_stages": true
+  },
+  "inputs": {
+    "source_csv_sha256_expected": "40df04991e9497b3b723e1478f5ea8b1a5dda74e8a052054beb856d81eb942d9",
+    "approved_crosswalk_sha256_expected": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
+    "operator_approved_yes": 763,
+    "operator_rejected_suggested_links": 18,
+    "operator_unreviewed": 4095,
+    "loaded_crosswalk_vs_ids": 759,
+    "distinct_approved_erp_ct_ids": 691,
+    "rows_with_erp_ct_id": 737,
+    "blank_erp_ct_id_rows": 22,
+    "shared_erp_ct_ids": 44,
+    "vs_ids_on_shared_erp_ct": 90,
+    "duplicate_yes_ids_not_fetched": ["1045036935", "1179868294", "584402429", "585278462"],
+    "sha256_verified_on_runtime_host": true,
+    "source_contact_id_census_verified_on_runtime_host": true
+  },
+  "environment": {
+    "enterprise_parity_verified": true,
+    "fixture_identifier": "odoo_test_tpl_ee_c9e8a81f52f23680",
+    "fixture_fingerprint": "c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30",
+    "owned_disposable_clone": "odoo_test_night1021",
+    "clone_guard_passed": true,
+    "before_import_crm_lead_count": 0,
+    "before_import_crm_provider_ref_count": 0,
+    "before_import_crm_calls_count": 0,
+    "hosted_write_count": 0
+  },
+  "erp_import": {
+    "status": "PASS",
+    "finished_at": "2026-10-22T05:50:26Z",
+    "rows_created": {"counterparties": 1300, "locations": 1266, "contacts": 2615, "contact_roles": 2498, "salespersons": 0},
+    "rows_updated": {"counterparties": 0, "locations": 1297, "contacts": 0, "contact_roles": 0, "salespersons": 818},
+    "rows_skipped": {"counterparties": 0, "locations": 39, "contacts": 1116, "contact_roles": 180, "salespersons": 97},
+    "rows_rejected_by_layer": {"counterparties": 0, "locations": 0, "contacts": 0, "contact_roles": 0, "salespersons": 0, "transactions": 0, "transaction_lines": 0},
+    "financial_transaction_rows_written": 0,
+    "exit_code": 0
+  },
+  "erp_commercial": {
+    "status": "PARTIAL",
+    "finished_at": "2026-10-22T06:23:14Z",
+    "erp_partners_only": false,
+    "erp_limit": null,
+    "erp_require_empty": 0,
+    "sale_order_count_after_run": 6951,
+    "purchase_order_count_after_run": 7054,
+    "account_move_count_after_run": 20310,
+    "plasticos_transaction_compiled": 7728,
+    "plasticos_transaction_rejected": 645,
+    "transaction_lines_created": 10525,
+    "transaction_lines_skipped": 53,
+    "transaction_lines_rejected": 863,
+    "partner_layers_skipped_on_second_pass": true,
+    "exit_code": 0
+  },
+  "between_imports": {
+    "same_verified_clone": true
+  },
+  "vanillasoft_import": {
+    "status": "PARTIAL",
+    "started_at": "2026-10-22T06:23:14Z",
+    "finished_at": "2026-10-22T08:04:13Z",
+    "method_verified": "upsert_contact_external_id",
+    "import_vanillasoft_used": false,
+    "source_ids_expected": 4876,
+    "source_ids_fetched_successfully": 4872,
+    "approved_yes": {
+      "expected": 763,
+      "erp_person": 737,
+      "active_company": 7,
+      "crm_lead": 15,
+      "genuine_failed": 0,
+      "duplicate_skipped": 4
+    },
+    "operator_no": {
+      "expected": 18,
+      "crm_lead": 18,
+      "genuine_failed": 0
+    },
+    "operator_pending": {
+      "expected": 4095,
+      "crm_lead": 4090,
+      "genuine_failed": 5,
+      "genuine_failed_ids": ["1049157719", "1079111169", "1166741035", "654802349", "906084410"],
+      "genuine_failed_reason": "Mobile must be a 10-digit US number (e.g., 555-100-0001)."
+    },
+    "unique_contact_ids_with_a_single_classification": 4876,
+    "all_4876_reconciled_once": true,
+    "total_successfully_persisted_source_ids": 4867,
+    "total_held_source_ids": 0,
+    "total_failed_source_ids": 5,
+    "total_duplicate_skipped_source_ids": 4,
+    "checkpoint_rows_missing_signals": 0,
+    "dispositions_without_a_source_reason": 0,
+    "imported_ids_that_also_warned": 3019,
+    "post_import_crm_lead_count": 4123,
+    "post_import_provider_ref_count": 4867,
+    "post_import_call_event_count": 152967,
+    "post_import_external_table_row_count": 0,
+    "historical_source_cohort_complete": "PARTIAL",
+    "current_live_provider_census_proven_complete": false,
+    "historical_call_census_proven_complete": false
+  },
+  "signal_families": {
+    "error_unresolved_material": 4002,
+    "warning_blank_ct_imported_as_lead": 15,
+    "warning_placed_on_active_company": 7,
+    "error_invalid_mobile": 5,
+    "warning_dependent_writes_skipped": 5,
+    "warning_second_id_on_approved_person": 4
+  },
+  "open_exceptions": "withheld_from_git",
+  "open_exceptions_note": "The runner wrote open_exceptions.json in Current Work - IGNORE/erp-then-vs-full-crm/. Unresolved-material reasons include customer notes, names, phone numbers, and addresses, so the raw ledger is not committed. Family counts above were taken from crm_checkpoint.jsonl.",
+  "observed_exit_codes": [
+    {"gate": "A", "exit_code": 0},
+    {"gate": "B_partners", "exit_code": 0},
+    {"gate": "B2_commercial", "exit_code": 0},
+    {"gate": "C_cohort", "exit_code": 0},
+    {"script": 0}
+  ],
+  "limitations": [
+    "Cursor terminal capture truncated near progress 3025. overnight.log and crm_checkpoint.jsonl are complete.",
+    "Commercial summary does not split sale.order, purchase.order, and account.move created counts. Table counts are post-run totals.",
+    "plasticos_crm_external_table_row remained 0.",
+    "Live provider census beyond the frozen 4876 ids is not proven."
+  ],
+  "operator_acceptance": "PARTIAL",
+  "next_action": "Review the five mobile failures and the commercial reject lines on odoo_test_night1021. Do not start a second clone."
+}

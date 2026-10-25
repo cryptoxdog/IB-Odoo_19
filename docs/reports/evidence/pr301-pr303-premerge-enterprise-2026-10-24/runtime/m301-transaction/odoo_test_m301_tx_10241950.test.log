@@ -1,0 +1,420 @@
+time="2026-10-24T19:42:29-07:00" level=warning msg="Found orphan containers (odoo19-install-smoke-86940-12567) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container odoo19-odoo-run-6e17097dc4d4 Creating 
+ Container odoo19-odoo-run-6e17097dc4d4 Created 
+2026-10-25 02:42:29,694 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0 
+2026-10-25 02:42:29,694 1 INFO ? odoo: Odoo version 19.0-20261015 
+2026-10-25 02:42:29,694 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf 
+2026-10-25 02:42:29,694 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons']) 
+2026-10-25 02:42:29,694 1 INFO ? odoo: database: odoo@db:5432 
+2026-10-25 02:42:29,806 1 INFO ? odoo.service.server: HTTP service (werkzeug) running on 0dae5f52b86c:8069 
+2026-10-25 02:42:29,811 1 INFO odoo_test_m301_tx_10241950 odoo.tests.common: Importing test framework 
+2026-10-25 02:42:29,821 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading 1 modules... 
+2026-10-25 02:42:29,822 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-10-25 02:42:29,831 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: updating modules list 
+2026-10-25 02:42:29,833 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-10-25 02:42:30,890 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a 
+2026-10-25 02:42:30,890 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a 
+2026-10-25 02:42:31,787 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
+2026-10-25 02:42:31,826 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading 169 modules... 
+2026-10-25 02:42:32,171 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_accounting (87/169) 
+2026-10-25 02:42:32,258 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_accounting/data/payment_terms.xml 
+2026-10-25 02:42:32,260 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_accounting/data/accounts.xml 
+2026-10-25 02:42:32,506 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_accounting loaded in 0.33s, 807 queries (+807 other) 
+2026-10-25 02:42:32,734 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_base (146/169) 
+2026-10-25 02:42:32,806 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_base: creating or updating database tables 
+2026-10-25 02:42:32,860 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/security/ir.model.access.csv 
+2026-10-25 02:42:32,865 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/views/menu.xml 
+2026-10-25 02:42:32,867 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/company.xml 
+2026-10-25 02:42:32,869 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/service_user.xml 
+2026-10-25 02:42:32,870 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/admin_users.xml 
+2026-10-25 02:42:32,872 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/partner_tags.xml 
+2026-10-25 02:42:32,882 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/material_taxonomy.xml 
+2026-10-25 02:42:32,939 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/sales_reps.xml 
+2026-10-25 02:42:32,942 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/attachment_maintenance_cron.xml 
+2026-10-25 02:42:32,952 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/midnight_recompute_cron.xml 
+2026-10-25 02:42:32,958 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_base/data/uom_defaults.xml 
+2026-10-25 02:42:32,962 1 INFO odoo_test_m301_tx_10241950 odoo.modules.migration: module plasticos_base: Running upgrade [19.0.1.1.9>] post-migrate 
+2026-10-25 02:42:32,965 1 INFO odoo_test_m301_tx_10241950 odoo.upgrade.plasticos_base.19.0.1.1.9.post-migrate: plasticos_base 19.0.1.1.9: Tiffany login tw@scrapmanagement.com -> sa@scrapmanagement.com 
+2026-10-25 02:42:32,979 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_base loaded in 0.25s, 792 queries (+792 other) 
+2026-10-25 02:42:32,979 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_gate (147/169) 
+2026-10-25 02:42:33,012 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_gate/data/gate_icp_seed.xml 
+2026-10-25 02:42:33,019 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_gate loaded in 0.04s, 45 queries (+45 other) 
+2026-10-25 02:42:33,019 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_material_profile (148/169) 
+2026-10-25 02:42:33,041 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_material_profile: creating or updating database tables 
+2026-10-25 02:42:33,095 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/security/ir.model.access.csv 
+2026-10-25 02:42:33,107 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/filler_type_data.xml 
+2026-10-25 02:42:33,114 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/material_attribute_data.xml 
+2026-10-25 02:42:33,131 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/packaging_type_data.xml 
+2026-10-25 02:42:33,137 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/polymer_data.xml 
+2026-10-25 02:42:33,162 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/material_form_data.xml 
+2026-10-25 02:42:33,180 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/material_color_data.xml 
+2026-10-25 02:42:33,188 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/source_type_data.xml 
+2026-10-25 02:42:33,194 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/process_type_data.xml 
+2026-10-25 02:42:33,200 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/data/grade_template_data.xml 
+2026-10-25 02:42:33,208 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/polymer_views.xml 
+2026-10-25 02:42:33,224 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/grade_template_views.xml 
+2026-10-25 02:42:33,232 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/material_form_views.xml 
+2026-10-25 02:42:33,235 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/material_color_views.xml 
+2026-10-25 02:42:33,238 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/source_type_views.xml 
+2026-10-25 02:42:33,242 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/process_type_views.xml 
+2026-10-25 02:42:33,245 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/material_profile_views.xml 
+2026-10-25 02:42:33,270 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/material_profile_ux.xml 
+2026-10-25 02:42:33,278 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_material_profile/views/partner_material_ux.xml 
+2026-10-25 02:42:33,307 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_material_profile loaded in 0.29s, 1073 queries (+1073 other) 
+2026-10-25 02:42:33,307 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_enrichment (149/169) 
+2026-10-25 02:42:33,328 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_enrichment: creating or updating database tables 
+2026-10-25 02:42:33,370 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_enrichment/security/security.xml 
+2026-10-25 02:42:33,372 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_enrichment/security/ir.model.access.csv 
+2026-10-25 02:42:33,377 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_enrichment/data/sequence.xml 
+2026-10-25 02:42:33,378 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_enrichment/data/cron.xml 
+2026-10-25 02:42:33,379 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_enrichment/views/enrichment_run_views.xml 
+2026-10-25 02:42:33,391 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_enrichment/views/enrichment_source_views.xml 
+2026-10-25 02:42:33,395 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_enrichment/views/res_partner_enrichment.xml 
+2026-10-25 02:42:33,427 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_enrichment loaded in 0.12s, 270 queries (+270 other) 
+2026-10-25 02:42:33,427 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_facility_profile (150/169) 
+2026-10-25 02:42:33,449 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_facility_profile: creating or updating database tables 
+2026-10-25 02:42:33,458 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 02:42:33,458 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 02:42:33,493 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/security/ir.model.access.csv 
+2026-10-25 02:42:33,498 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/data/equipment_type_data.xml 
+2026-10-25 02:42:33,507 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/data/utm_source_data.xml 
+2026-10-25 02:42:33,508 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/data/partner_type_data.xml 
+2026-10-25 02:42:33,514 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/data/facility_template_data.xml 
+2026-10-25 02:42:33,519 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/views/partner_type_views.xml 
+2026-10-25 02:42:33,526 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/views/facility_template_views.xml 
+2026-10-25 02:42:33,532 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_views.xml 
+2026-10-25 02:42:33,540 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 02:42:33,552 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 02:42:33,561 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_ux.xml 
+2026-10-25 02:42:33,571 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_facility_profile/views/partner_ux.xml 
+2026-10-25 02:42:33,573 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 02:42:33,581 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 02:42:33,607 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_facility_profile loaded in 0.18s, 534 queries (+534 other) 
+2026-10-25 02:42:33,607 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_product (151/169) 
+2026-10-25 02:42:33,621 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_product: creating or updating database tables 
+2026-10-25 02:42:33,651 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_product/security/ir.model.access.csv 
+2026-10-25 02:42:33,654 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_product/data/product_category_data.xml 
+2026-10-25 02:42:33,666 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_product/data/product_data.xml 
+2026-10-25 02:42:33,667 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_product/views/polymer_views.xml 
+2026-10-25 02:42:33,688 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_product loaded in 0.08s, 216 queries (+216 other) 
+2026-10-25 02:42:33,688 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_intake (152/169) 
+2026-10-25 02:42:33,708 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_intake: creating or updating database tables 
+2026-10-25 02:42:33,739 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 02:42:33,739 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 02:42:33,773 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake/security/ir.model.access.csv 
+2026-10-25 02:42:33,776 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake/data/sequence.xml 
+2026-10-25 02:42:33,778 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake/views/intake_views.xml 
+2026-10-25 02:42:33,798 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake/views/material_profile_intake_views.xml 
+2026-10-25 02:42:33,827 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake/views/intake_ux.xml 
+2026-10-25 02:42:33,849 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_intake loaded in 0.16s, 321 queries (+321 other) 
+2026-10-25 02:42:33,849 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_order_lines (153/169) 
+2026-10-25 02:42:33,861 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_order_lines: creating or updating database tables 
+2026-10-25 02:42:33,893 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_order_lines/security/ir.model.access.csv 
+2026-10-25 02:42:33,894 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_order_lines/views/purchase_order_views.xml 
+2026-10-25 02:42:33,920 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_order_lines/views/sale_order_views.xml 
+2026-10-25 02:42:33,952 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_order_lines loaded in 0.10s, 178 queries (+178 other) 
+2026-10-25 02:42:33,952 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_geolocalize (154/169) 
+2026-10-25 02:42:33,974 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_geolocalize: creating or updating database tables 
+2026-10-25 02:42:34,009 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 02:42:34,009 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 02:42:34,046 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_geolocalize/security/ir.model.access.csv 
+2026-10-25 02:42:34,047 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_geolocalize/data/geolocalize_config_params.xml 
+2026-10-25 02:42:34,049 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_geolocalize/data/cron_geo_backfill.xml 
+2026-10-25 02:42:34,051 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_geolocalize/views/intake_geo_views.xml 
+2026-10-25 02:42:34,088 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_geolocalize loaded in 0.14s, 169 queries (+169 other) 
+2026-10-25 02:42:34,088 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_intake_normalizer (155/169) 
+2026-10-25 02:42:34,100 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_intake_normalizer: creating or updating database tables 
+2026-10-25 02:42:34,127 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake_normalizer/security/ir.model.access.csv 
+2026-10-25 02:42:34,130 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake_normalizer/data/normalizer_config_data.xml 
+2026-10-25 02:42:34,131 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake_normalizer/data/cron_batch_normalize.xml 
+2026-10-25 02:42:34,141 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake_normalizer/views/normalizer_config_views.xml 
+2026-10-25 02:42:34,154 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_intake_normalizer/views/intake_normalizer_views.xml 
+2026-10-25 02:42:34,182 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_intake_normalizer loaded in 0.09s, 142 queries (+142 other) 
+2026-10-25 02:42:34,182 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_matching (156/169) 
+2026-10-25 02:42:34,199 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_matching: creating or updating database tables 
+2026-10-25 02:42:34,251 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_matching/security/ir.model.access.csv 
+2026-10-25 02:42:34,256 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_matching/views/match_result_views.xml 
+2026-10-25 02:42:34,272 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_matching/views/match_run_views.xml 
+2026-10-25 02:42:34,278 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_matching/views/match_exclusion_views.xml 
+2026-10-25 02:42:34,299 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_matching loaded in 0.12s, 227 queries (+227 other) 
+2026-10-25 02:42:34,299 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_offer (157/169) 
+2026-10-25 02:42:34,313 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_offer: creating or updating database tables 
+2026-10-25 02:42:34,348 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_offer/security/ir.model.access.csv 
+2026-10-25 02:42:34,352 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_offer/data/sequence.xml 
+2026-10-25 02:42:34,354 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_offer/data/offer_cron.xml 
+2026-10-25 02:42:34,364 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_offer/views/offer_views.xml 
+2026-10-25 02:42:34,388 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_offer/views/offer_bulk_action_wizard_views.xml 
+2026-10-25 02:42:34,392 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_offer/views/offer_ux.xml 
+2026-10-25 02:42:34,413 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_offer loaded in 0.11s, 259 queries (+259 other) 
+2026-10-25 02:42:34,413 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_partner_import (158/169) 
+2026-10-25 02:42:34,432 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_partner_import: creating or updating database tables 
+2026-10-25 02:42:34,456 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_partner_import/security/ir.model.access.csv 
+2026-10-25 02:42:34,460 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_partner_import/views/partner_bulk_update_wizard_views.xml 
+2026-10-25 02:42:34,477 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_partner_import loaded in 0.06s, 97 queries (+97 other) 
+2026-10-25 02:42:34,477 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_web_leads (159/169) 
+2026-10-25 02:42:34,501 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_web_leads: creating or updating database tables 
+2026-10-25 02:42:34,506 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (anthropic_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 02:42:34,506 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (anthropic_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 02:42:34,506 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (anthropic_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 02:42:34,506 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (mistral_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 02:42:34,506 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (mistral_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 02:42:34,506 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (mistral_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 02:42:34,529 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/security/ir.model.access.csv 
+2026-10-25 02:42:34,533 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/data/web_lead_config_data.xml 
+2026-10-25 02:42:34,535 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/data/logistics_ir_rules.xml 
+2026-10-25 02:42:34,543 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_views.xml 
+2026-10-25 02:42:34,559 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_review_snapshot_views.xml 
+2026-10-25 02:42:34,564 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_config_views.xml 
+2026-10-25 02:42:34,569 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_api_key_wizard_views.xml 
+2026-10-25 02:42:34,572 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/views/lead_bulk_action_wizard_views.xml 
+2026-10-25 02:42:34,575 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_ux.xml 
+2026-10-25 02:42:34,584 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_bridge_views.xml 
+2026-10-25 02:42:34,596 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_web_leads loaded in 0.12s, 281 queries (+281 other) 
+2026-10-25 02:42:34,596 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_transaction (160/169) 
+2026-10-25 02:42:34,634 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_transaction: creating or updating database tables 
+2026-10-25 02:42:34,655 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 02:42:34,655 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 02:42:34,713 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/security/security_hardening.xml 
+2026-10-25 02:42:34,717 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/security/ir.model.access.csv 
+2026-10-25 02:42:34,722 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/data/sequence.xml 
+2026-10-25 02:42:34,724 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/data/res.groups.csv 
+2026-10-25 02:42:34,735 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/data/audit_cron.xml 
+2026-10-25 02:42:34,743 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/transaction_views.xml 
+2026-10-25 02:42:34,760 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/sale_quotation_scope.xml 
+2026-10-25 02:42:34,763 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_update_wizard_views.xml 
+2026-10-25 02:42:34,768 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml 
+2026-10-25 02:42:34,771 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/transaction_import_wizard_views.xml 
+2026-10-25 02:42:34,776 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/transaction_ux.xml 
+2026-10-25 02:42:34,788 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/transaction_bridge_views.xml 
+2026-10-25 02:42:34,792 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/intake_bridge_views.xml 
+2026-10-25 02:42:34,800 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/partner_bridge_views.xml 
+2026-10-25 02:42:34,823 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_transaction/views/offer_bridge_views.xml 
+2026-10-25 02:42:34,859 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_transaction loaded in 0.26s, 671 queries (+671 other) 
+2026-10-25 02:42:34,859 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_logistics (161/169) 
+2026-10-25 02:42:34,883 1 WARNING odoo_test_m301_tx_10241950 odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 02:42:34,883 1 WARNING odoo_test_m301_tx_10241950 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 02:42:34,885 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_logistics: creating or updating database tables 
+2026-10-25 02:42:34,934 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/security/ir.model.access.csv 
+2026-10-25 02:42:34,941 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/security/record_rules.xml 
+2026-10-25 02:42:34,949 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/data/incoterms.xml 
+2026-10-25 02:42:34,951 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/data/sequence.xml 
+2026-10-25 02:42:34,953 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/data/cron.xml 
+2026-10-25 02:42:34,972 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/load_views.xml 
+2026-10-25 02:42:34,990 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/freight_views.xml 
+2026-10-25 02:42:35,003 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/freight_actual_correction_wizard_views.xml 
+2026-10-25 02:42:35,006 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/load_dashboard_views.xml 
+2026-10-25 02:42:35,030 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/sale_order_button.xml 
+2026-10-25 02:42:35,052 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/load_bulk_update_wizard_views.xml 
+2026-10-25 02:42:35,056 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/load_ux.xml 
+2026-10-25 02:42:35,068 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/views/transaction_load_views.xml 
+2026-10-25 02:42:35,088 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/report/load_reports.xml 
+2026-10-25 02:42:35,090 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/report/report_bol_pickup.xml 
+2026-10-25 02:42:35,093 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/report/report_bol_delivery.xml 
+2026-10-25 02:42:35,096 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_logistics/report/report_delivery_order.xml 
+2026-10-25 02:42:35,115 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_logistics loaded in 0.26s, 747 queries (+747 other) 
+2026-10-25 02:42:35,115 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_documents (162/169) 
+2026-10-25 02:42:35,130 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_documents: creating or updating database tables 
+2026-10-25 02:42:35,163 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/security/security.xml 
+2026-10-25 02:42:35,177 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/security/ir.model.access.csv 
+2026-10-25 02:42:35,182 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/data/cron.xml 
+2026-10-25 02:42:35,191 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/data/document_tags_data.xml 
+2026-10-25 02:42:35,197 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/data/cron_missing_docs.xml 
+2026-10-25 02:42:35,202 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/data/scale_ticket_rule.xml 
+2026-10-25 02:42:35,208 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/document_tag_views.xml 
+2026-10-25 02:42:35,214 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/document_rule_views.xml 
+2026-10-25 02:42:35,217 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/document_views.xml 
+2026-10-25 02:42:35,227 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/document_extension_views.xml 
+2026-10-25 02:42:35,231 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/validation_matrix_views.xml 
+2026-10-25 02:42:35,237 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/transaction_docs_views.xml 
+2026-10-25 02:42:35,244 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/transaction_docs_bridge_views.xml 
+2026-10-25 02:42:35,250 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_documents/views/load_docs_bridge_views.xml 
+2026-10-25 02:42:35,268 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_documents loaded in 0.15s, 444 queries (+444 other) 
+2026-10-25 02:42:35,268 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_claims (163/169) 
+2026-10-25 02:42:35,282 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_claims: creating or updating database tables 
+2026-10-25 02:42:35,313 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/security/claims_security.xml 
+2026-10-25 02:42:35,324 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/security/ir.model.access.csv 
+2026-10-25 02:42:35,327 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/data/claim_sequence.xml 
+2026-10-25 02:42:35,328 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/data/claim_cron.xml 
+2026-10-25 02:42:35,336 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/data/email_templates.xml 
+2026-10-25 02:42:35,340 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/views/claim_views.xml 
+2026-10-25 02:42:35,353 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/views/claim_menus.xml 
+2026-10-25 02:42:35,356 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/views/claim_bulk_update_wizard_views.xml 
+2026-10-25 02:42:35,359 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/views/claim_ux.xml 
+2026-10-25 02:42:35,369 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_claims/views/transaction_claims_bridge_views.xml 
+2026-10-25 02:42:35,388 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_claims loaded in 0.12s, 324 queries (+324 other) 
+2026-10-25 02:42:35,388 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_automation (164/169) 
+2026-10-25 02:42:35,424 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_automation: creating or updating database tables 
+2026-10-25 02:42:35,443 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 02:42:35,444 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 02:42:35,495 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/security/security.xml 
+2026-10-25 02:42:35,498 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/security/ir.model.access.csv 
+2026-10-25 02:42:35,502 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/automation_config_data.xml 
+2026-10-25 02:42:35,503 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/config_parameters.xml 
+2026-10-25 02:42:35,506 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/email_templates.xml 
+2026-10-25 02:42:35,523 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/sale_approval_cron.xml 
+2026-10-25 02:42:35,532 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/invoice_reminder_cron.xml 
+2026-10-25 02:42:35,537 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/contract_renewal_cron.xml 
+2026-10-25 02:42:35,541 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/stock_alert_cron.xml 
+2026-10-25 02:42:35,546 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/cron_supplier_followup.xml 
+2026-10-25 02:42:35,551 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/cron_trucker_followup.xml 
+2026-10-25 02:42:35,556 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/cron_load_sla.xml 
+2026-10-25 02:42:35,560 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/data/workflow_automations.xml 
+2026-10-25 02:42:35,599 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/views/automation_config_views.xml 
+2026-10-25 02:42:35,608 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/views/automation_log_views.xml 
+2026-10-25 02:42:35,613 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/views/purchase_order_views.xml 
+2026-10-25 02:42:35,631 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/views/sale_order_views.xml 
+2026-10-25 02:42:35,651 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/views/stock_picking_views.xml 
+2026-10-25 02:42:35,665 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_automation/views/penalty_rule_views.xml 
+2026-10-25 02:42:35,722 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_automation loaded in 0.33s, 969 queries (+969 other) 
+2026-10-25 02:42:35,722 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_security_base (165/169) 
+2026-10-25 02:42:35,740 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_security_base: creating or updating database tables 
+2026-10-25 02:42:35,745 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 02:42:35,745 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 02:42:35,776 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_security_base/security/security_groups.xml 
+2026-10-25 02:42:35,828 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_security_base/security/record_rules.xml 
+2026-10-25 02:42:35,847 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_security_base/security/ir.model.access.csv 
+2026-10-25 02:42:35,863 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_security_base/views/res_partner_views.xml 
+2026-10-25 02:42:35,998 1 INFO odoo_test_m301_tx_10241950 odoo.modules.migration: module plasticos_security_base: Running upgrade [19.0.1.2.21>] post-migrate 
+2026-10-25 02:42:35,998 1 INFO odoo_test_m301_tx_10241950 odoo.upgrade.plasticos_security_base.19.0.1.2.21.post-migrate: plasticos_security_base 19.0.1.2.21: grant seed salesperson groups, including Mack 
+2026-10-25 02:42:36,000 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_system', 'base.group_no_one', 'base.group_erp_manager', 'base.group_user', 'base.group_partner_manager', 'plasticos_security_base.group_system_admin', 'plasticos_security_base.group_sales_rep', 'plasticos_security_base.group_operations_manager'] to user plasticos_base.user_admin_ib. 
+2026-10-25 02:42:36,002 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_system', 'base.group_no_one', 'base.group_erp_manager', 'base.group_user', 'base.group_partner_manager', 'plasticos_security_base.group_system_admin', 'plasticos_security_base.group_sales_rep', 'plasticos_security_base.group_operations_manager'] to user plasticos_base.user_admin_ab. 
+2026-10-25 02:42:36,002 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_lm. 
+2026-10-25 02:42:36,002 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_rp. 
+2026-10-25 02:42:36,003 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_aa. 
+2026-10-25 02:42:36,003 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_tw. 
+2026-10-25 02:42:36,004 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_mm. 
+2026-10-25 02:42:36,013 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_security_base loaded in 0.29s, 659 queries (+659 other) 
+2026-10-25 02:42:36,013 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_commission (166/169) 
+2026-10-25 02:42:36,027 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_commission: creating or updating database tables 
+<string>:22: (WARNING/2) Line block ends without a blank line.
+<string>:38: (WARNING/2) Line block ends without a blank line.
+<string>:53: (WARNING/2) Line block ends without a blank line.
+<string>:111: (ERROR/3) Unexpected indentation.
+<string>:109: (WARNING/2) Inline literal start-string without end-string.
+<string>:109: (WARNING/2) Inline interpreted text or phrase reference start-string without end-string.
+<string>:113: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+<string>:113: (WARNING/2) Inline literal start-string without end-string.
+<string>:113: (WARNING/2) Inline interpreted text or phrase reference start-string without end-string.
+<string>:128: (WARNING/2) Line block ends without a blank line.
+<string>:137: (WARNING/2) Line block ends without a blank line.
+<string>:22: (ERROR/3) Undefined substitution referenced: "---".
+<string>:22: (ERROR/3) Undefined substitution referenced: "---".
+<string>:38: (ERROR/3) Undefined substitution referenced: "---".
+<string>:38: (ERROR/3) Undefined substitution referenced: "---".
+<string>:53: (ERROR/3) Undefined substitution referenced: "---".
+<string>:53: (ERROR/3) Undefined substitution referenced: "---".
+<string>:128: (ERROR/3) Undefined substitution referenced: "---".
+<string>:128: (ERROR/3) Undefined substitution referenced: "---".
+<string>:137: (ERROR/3) Undefined substitution referenced: "---".
+2026-10-25 02:42:36,068 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/security/commission_group.xml 
+2026-10-25 02:42:36,070 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/security/ir.model.access.csv 
+2026-10-25 02:42:36,075 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/security/record_rules.xml 
+2026-10-25 02:42:36,082 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/data/commission_payout_sequence.xml 
+2026-10-25 02:42:36,083 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/views/commission_rule_views.xml 
+2026-10-25 02:42:36,093 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/views/commission_payout_views.xml 
+2026-10-25 02:42:36,101 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/views/sales_dashboard_views.xml 
+2026-10-25 02:42:36,182 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_commission/views/transaction_commission_views.xml 
+2026-10-25 02:42:36,204 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_commission loaded in 0.19s, 314 queries (+314 other) 
+2026-10-25 02:42:36,204 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_crm_bridge (167/169) 
+2026-10-25 02:42:36,219 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_crm_bridge: creating or updating database tables 
+2026-10-25 02:42:36,258 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_bridge/security/crm_group_imply.xml 
+2026-10-25 02:42:36,290 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_bridge/security/ir.model.access.csv 
+2026-10-25 02:42:36,297 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_bridge/data/crm_stage_data.xml 
+2026-10-25 02:42:36,300 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_bridge/data/partner_category_data.xml 
+2026-10-25 02:42:36,304 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_bridge/data/lead_source_data.xml 
+2026-10-25 02:42:36,307 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_bridge/views/crm_lead_views.xml 
+2026-10-25 02:42:36,342 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_bridge/views/crm_facility_ownership_views.xml 
+2026-10-25 02:42:36,369 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_crm_bridge loaded in 0.17s, 445 queries (+445 other) 
+2026-10-25 02:42:36,369 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_admin_dashboard (168/169) 
+2026-10-25 02:42:36,379 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_admin_dashboard: creating or updating database tables 
+2026-10-25 02:42:36,406 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_admin_dashboard/security/ir.model.access.csv 
+2026-10-25 02:42:36,409 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_admin_dashboard/views/admin_dashboard_views.xml 
+2026-10-25 02:42:36,424 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_admin_dashboard/data/cron_refresh_dashboard.xml 
+2026-10-25 02:42:36,430 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_admin_dashboard loaded in 0.06s, 129 queries (+129 other) 
+2026-10-25 02:42:36,430 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Loading module plasticos_crm_sync (169/169) 
+2026-10-25 02:42:36,455 1 INFO odoo_test_m301_tx_10241950 odoo.registry: module plasticos_crm_sync: creating or updating database tables 
+2026-10-25 02:42:36,469 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 02:42:36,469 1 WARNING odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 02:42:36,520 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/security/ir.model.access.csv 
+2026-10-25 02:42:36,524 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/data/ir_cron_data.xml 
+2026-10-25 02:42:36,525 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/views/crm_connection_views.xml 
+2026-10-25 02:42:36,533 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/views/crm_sync_run_views.xml 
+2026-10-25 02:42:36,537 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/views/crm_call_event_views.xml 
+2026-10-25 02:42:36,540 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/views/res_partner_sync_views.xml 
+2026-10-25 02:42:36,552 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/views/crm_lead_sync_views.xml 
+2026-10-25 02:42:36,564 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/views/res_config_settings_views.xml 
+2026-10-25 02:42:36,598 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: loading plasticos_crm_sync/views/menu.xml 
+2026-10-25 02:42:36,605 1 INFO odoo_test_m301_tx_10241950 odoo.modules.migration: module plasticos_crm_sync: Running upgrade [19.0.1.9.0>] post-migrate 
+2026-10-25 02:42:36,645 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Module plasticos_crm_sync loaded in 0.21s, 473 queries (+473 other) 
+2026-10-25 02:42:36,645 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: 169 modules loaded in 4.82s, 10586 queries (+10586 extra) 
+2026-10-25 02:42:36,710 1 WARNING odoo_test_m301_tx_10241950 odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 02:42:36,711 1 WARNING odoo_test_m301_tx_10241950 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 02:42:37,059 1 INFO odoo_test_m301_tx_10241950 odoo.modules.loading: Modules loaded. 
+2026-10-25 02:42:37,074 1 INFO odoo_test_m301_tx_10241950 odoo.registry: Registry changed, signaling through the database 
+2026-10-25 02:42:37,075 1 INFO odoo_test_m301_tx_10241950 odoo.registry: Registry loaded in 7.269s 
+2026-10-25 02:42:37,075 1 INFO odoo_test_m301_tx_10241950 odoo.service.server: Starting post tests 
+2026-10-25 02:42:37,102 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_bills_take_header_facts_and_orders_keep_draft_with_no_stock_event ... 
+2026-10-25 02:42:38,062 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost ... 
+2026-10-25 02:42:38,231 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP batch confirm failed (UserError); confirming individually 
+2026-10-25 02:42:38,232 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP sale 16091 was not confirmed: blocked 
+2026-10-25 02:42:38,262 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_commission_recipient_amount_and_cutoff_per_slot ... 
+2026-10-25 02:42:38,822 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_delivered_basis_sets_no_incoterm_and_undated_invoice_stays_undated ... 
+2026-10-25 02:42:39,319 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_diagnostic_limit_counts_the_payables_it_leaves_out ... 
+2026-10-25 02:42:39,498 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_dry_run_excludes_every_payable_by_name_and_writes_nothing ... 
+2026-10-25 02:42:39,500 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_empty_order_graph_quarantines_every_payable_and_still_reconciles ... 
+2026-10-25 02:42:39,505 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles ... 
+2026-10-25 02:42:40,147 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP batch compile failed (RuntimeError); compiling individually 
+2026-10-25 02:42:40,148 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP sale 14263 transaction was not compiled: compile failed 
+2026-10-25 02:42:40,171 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_grade_id_does_not_classify_or_contaminate_a_shared_product ... 
+2026-10-25 02:42:40,337 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_historical_documents_stay_draft_with_no_settlement_entries ... 
+2026-10-25 02:42:40,842 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_import_leaves_tax_configuration_alone_and_imports_without_taxes ... 
+2026-10-25 02:42:41,363 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_inventory_inbound_keeps_the_purchase_and_the_selected_site_without_a_sale ... 
+2026-10-25 02:42:41,712 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_inventory_marker_follows_a_corrected_site_and_a_sale_only_line_is_rejected ... 
+2026-10-25 02:42:41,748 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_native_import_normalizes_materials_and_replays ... 
+2026-10-25 02:42:41,981 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_no_link_worksheet_quarantines_every_source_payable ... 
+2026-10-25 02:42:41,985 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined ... 
+2026-10-25 02:42:42,487 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 58001 was not written: purchase.order 7400 has no partner 
+2026-10-25 02:42:42,531 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 58001 was not written: purchase.order 7400 has no partner 
+2026-10-25 02:42:42,535 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_purchase_only_worksheet_carries_no_handling_or_equipment_cost ... 
+2026-10-25 02:42:42,640 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side ... 
+2026-10-25 02:42:43,267 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_rejected_worksheet_does_not_poison_the_product_cache ... 
+2026-10-25 02:42:43,294 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 58001 was not written: purchase.order 7400 has no partner 
+2026-10-25 02:42:43,424 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton ... 
+2026-10-25 02:42:43,623 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_source_amount_drift_is_reported_when_a_quantity_cannot_be_stored_exactly ... 
+2026-10-25 02:42:43,754 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_sub_cent_unit_price_keeps_the_source_amount_and_is_only_rounded_for_display ... 
+2026-10-25 02:42:43,945 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_two_worksheets_on_one_order_across_commit_batches ... 
+2026-10-25 02:42:44,535 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_two_worksheets_on_one_sale_order_compile_two_transactions_and_replay_adds_nothing ... 
+2026-10-25 02:42:45,231 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists ... 
+2026-10-25 02:42:45,441 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_unbilled_freight_row_is_not_folded_beside_freight_bills ... 
+2026-10-25 02:42:45,987 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_worksheet_53797_nets_to_zero_revenue_and_negative_margin ... 
+2026-10-25 02:42:46,252 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay ... 
+2026-10-25 02:42:46,784 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_worksheet_whose_sale_orders_have_different_customers_is_rejected ... 
+2026-10-25 02:42:46,824 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 57136 was not written: worksheet 57136 sale orders belong to 2 different customers 
+2026-10-25 02:42:46,825 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_worksheet_with_two_sale_orders_compiles_one_transaction ... 
+2026-10-25 02:42:46,964 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_erp_worksheet_import: Starting TestErpWorksheetImport.test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused ... 
+2026-10-25 02:42:47,080 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_attachment: filestore gc 0 checked, 0 removed 
+2026-10-25 02:42:47,094 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_profile_form_coexistence: Starting TestProfileFormCoexistence.test_form_change_recomputes_stored_supplier_and_buyer_links ... 
+2026-10-25 02:42:47,132 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_profile_form_coexistence: Starting TestProfileFormCoexistence.test_specified_profile_wins_over_an_earlier_unspecified_profile ... 
+2026-10-25 02:42:47,159 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_profile_form_coexistence: Starting TestProfileFormCoexistence.test_unspecified_profile_is_selected_when_it_is_the_only_row ... 
+2026-10-25 02:42:47,186 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_attachment: filestore gc 0 checked, 0 removed 
+2026-10-25 02:42:47,213 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_relationship_batch: Starting TestRelationshipBatch.test_buyer_facility_recomputes_when_the_profile_is_created ... 
+2026-10-25 02:42:47,234 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_relationship_batch: Starting TestRelationshipBatch.test_profile_refs_match_polymer_for_a_recordset ... 
+2026-10-25 02:42:47,242 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_relationship_batch: Starting TestRelationshipBatch.test_purchase_delivery_term_uses_m2m_membership ... 
+2026-10-25 02:42:47,253 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_relationship_batch: Starting TestRelationshipBatch.test_supplier_material_uses_the_first_purchase_partner_profile ... 
+2026-10-25 02:42:47,263 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_attachment: filestore gc 0 checked, 0 removed 
+2026-10-25 02:42:47,273 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_bulk_wizard_keeps_its_own_list ... 
+2026-10-25 02:42:47,276 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_default_list_is_the_transaction_list_not_the_wizard_list ... 
+2026-10-25 02:42:47,284 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_delivery_group_carries_carrier_freight_and_load ... 
+2026-10-25 02:42:47,285 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_every_form_field_exists_on_the_model ... 
+2026-10-25 02:42:47,285 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_freight_and_material_groups ... 
+2026-10-25 02:42:47,286 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_list_keeps_lifecycle_decorations_and_margin_highlight ... 
+2026-10-25 02:42:47,286 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_orders_group_puts_counterparties_and_material_first ... 
+2026-10-25 02:42:47,286 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_profit_snapshot_is_the_only_margin_presentation ... 
+2026-10-25 02:42:47,287 1 INFO odoo_test_m301_tx_10241950 odoo.addons.plasticos_transaction.tests.test_transaction_form_ui: Starting TestTransactionFormUi.test_search_keeps_negative_margin_filter_and_carrier_grouping ... 
+2026-10-25 02:42:47,287 1 INFO odoo_test_m301_tx_10241950 odoo.addons.base.models.ir_attachment: filestore gc 0 checked, 0 removed 
+2026-10-25 02:42:47,287 1 INFO odoo_test_m301_tx_10241950 odoo.service.server: 47 post-tests in 10.21s, 21227 queries 
+2026-10-25 02:42:47,288 1 INFO odoo_test_m301_tx_10241950 odoo.tests.stats: plasticos_transaction: 55 tests 10.21s 21227 queries 
+2026-10-25 02:42:47,288 1 INFO odoo_test_m301_tx_10241950 odoo.tests.result: 0 failed, 0 error(s) of 47 tests when loading database 'odoo_test_m301_tx_10241950' 
+2026-10-25 02:42:47,288 1 INFO odoo_test_m301_tx_10241950 odoo.service.server: Initiating shutdown 
+2026-10-25 02:42:47,288 1 INFO odoo_test_m301_tx_10241950 odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-10-25 02:42:47,426 1 INFO odoo_test_m301_tx_10241950 odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  

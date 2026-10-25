@@ -1,0 +1,4 @@
+odoo_test_tpl_ee_c9e8a81f52f23680 | plasticos-test-env/2 role=template state=ready parity=ee fp=c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30 builder=w2495f48767 built=2026-10-17T15:28:02Z enterprise=tree:408de1ed3345048ebc5e1b32b8c0e9bbe46cec6d8dcbe54d6f6231dcc6c292bf odoo=19.0.1.3 installed=169 country=US fiscal=US currency=USD chart=us accounts=164 plasticos_accounts=58/58 terms=9/9 journals=bank=1,general=4,purchase=1,sale=1 taxes=purchase=23,sale=23
+--- image ---
+76a97c1a274a odoo19-odoo:latest 2026-10-17 08:26:32 -0700 PDT
+dd3d3f50d3ea odoo19-odoo-test:latest 2026-10-17 08:26:32 -0700 PDT

@@ -1,19 +1,19 @@
 # Cursor delegation: full ERP import, then full VanillaSoft CRM import
 
 **Status:** Delegation instructions and private operator input data only. **No Docker import has been executed.**  
-**Revision:** `v2.2` in `CURSOR_EXECUTION_CONTRACT.md`, written against remote `Staging` `e78af874604890f8adb6b049694f93c48311eab4`. That contract is the task. This page does not override it.
+**Revision:** `v2.3` in `CURSOR_EXECUTION_CONTRACT.md`, written against checkout `607a64b897cb73b19adeea1b867990c5bf556189` and crosswalk `9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1`. That contract is the task. This page does not override it.
 
 **Why v2 exists:** The prior handoff stopped after an ERP partner import plus 763 approved CRM IDs. The Enterprise clone starts with no CRM source contacts, so that skipped the 4,876-ID import.
 
 **What v2.1 corrects:** partners-only is the first ERP write, not the whole ERP import. The second write is the existing unlimited `make import-erp` on the same pinned fixture clone, which realizes `sale.order`, `purchase.order`, `account.move`, and compiled `plasticos.transaction` rows. The CRM cohort is a `scripts/test_env.sh run <clone> -- shell --no-http` pass over `upsert_contact_external_id`, not `make import-vanillasoft`. Owner, stage, and polymer workbooks score the current importer; they are not new maps to install.
 
-**What v2.2 corrects:** `import_4876.py` keeps every warning and failure reason on the checkpoint row. An imported contact that also warned stays imported and keeps the warning. A held, failed, or skipped row with no reason is UNKNOWN and the script exits 1. The receipt `open_exceptions` is `{level, reason, count}` and cannot be empty while those counts are non-zero. Copy this script into `Current Work - IGNORE/erp-then-vs-full-crm/` before Gate C.
+**What v2.3 aligns:** the executable crosswalk is the daytime file, not the October 16 workbook and not a 702-id census. 759 VanillaSoft ids, 691 ERP `CT_ID`s, 22 blanks. Four YES ids are `duplicate_skipped`. Seven blanks are active-company placements. Fifteen blanks, including the seven still-unmapped ids, are leads. A missing ERP marker becomes a lead and keeps the warning. Do not rewrite the importer to hold those rows, and do not drop the clone because a warning fired. `import_4876.py` writes `placement`, `crosswalk_sha256`, `crosswalk_stamp.json`, and `open_exceptions.json`.
 
 ## How to run
 
 1. Read `CURSOR_EXECUTION_CONTRACT.md`. Run it only on one owned disposable clone of `config/test_env_fixture.conf` (`odoo_test_tpl_ee_c9e8a81f52f23680`).
 2. This directory is untracked and is not gitignored. Do not `git add` it. Copy the crosswalk and a no-PII ID census into gitignored `Current Work - IGNORE/erp-then-vs-full-crm/` so the container can read them at `/mnt/extra-addons/Current Work - IGNORE/erp-then-vs-full-crm/`. Do not copy raw inputs to `docs/reports/`.
-3. Verify the SHA256 values and row counts in `INPUT_MANIFEST.json` before any database write. The crosswalk must equal `9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1`.
+3. Verify the SHA256 values and row counts in `INPUT_MANIFEST.json` before any database write. The crosswalk must equal `9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1` (759 VanillaSoft ids, 691 ERP `CT_ID`s, 22 blanks). Copy that file, not an older 763-id copy. Gate C starts with no `crm_checkpoint.jsonl`.
 4. Order: empty-CRM proof, active-only partners, commercial documents, 4,876-ID VanillaSoft import, reconciliation. The historical CSV is an ID census, not an importer.
 5. Fill `REPORT_TEMPLATE.md` and `RECEIPT_TEMPLATE.json` from the run. Save sanitized copies under `docs/reports/evidence/erp-then-vanillasoft-full-crm-<date>/`. One `make pr` only if addon code changed.
 

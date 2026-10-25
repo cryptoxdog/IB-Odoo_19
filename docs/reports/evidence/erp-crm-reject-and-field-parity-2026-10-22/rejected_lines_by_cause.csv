@@ -1,0 +1,5 @@
+population,line_cause,lines,also_neither_side,on_missing_worksheet,in_863_rejected_total
+rejected_transaction_lines,neither_side_link,732,732,201,yes
+rejected_transaction_lines,worksheet_rolled_back,131,4,131,yes
+rejected_transaction_lines,other,0,0,0,yes
+not_in_863,purchase_line_on_transaction_rejected_worksheet,636,0,636,no

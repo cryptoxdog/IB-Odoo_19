@@ -1,0 +1,89 @@
+{
+  "schema": "plasticos.evidence_receipt/v1",
+  "subject": "existing-night-clone-reject-and-field-parity",
+  "recorded_at": "2026-10-22T17:40:00Z",
+  "verdict": "PARTIAL",
+  "mode": "read_only",
+  "repo": {
+    "commit_sha_under_test": "607a64b897cb73b19adeea1b867990c5bf556189",
+    "origin_staging_sha": "e78af874604890f8adb6b049694f93c48311eab4",
+    "commits_ahead_of_origin_staging": 13,
+    "sha_contained_by_any_remote_branch": false,
+    "importer_blobs_match_commit": true,
+    "cohort_runner_worktree_blob": "60d92f76ead4296aeef77ebae015e78aac2f7c5b",
+    "cohort_runner_commit_blob": "5a9b8606bea1ea1fde8b8af4ee6e5dfd72119bba"
+  },
+  "clone": {
+    "name": "odoo_test_night1021",
+    "template": "odoo_test_tpl_ee_c9e8a81f52f23680",
+    "fingerprint": "c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30",
+    "assert_clone": "pass",
+    "writes": 0
+  },
+  "source_query": {
+    "mechanism": "plasticos_partner_import/erp/reader.py load_payload on projection scripts",
+    "label": "host.docker.internal/cieTrade_SM",
+    "statements": "SELECT only",
+    "api_calls": 0
+  },
+  "commercial": {
+    "source_worksheets": 8373,
+    "source_lines": 11441,
+    "compiled_transactions": 7728,
+    "missing_transactions": 645,
+    "equation": "8373 - 7728 = 645",
+    "primary_cause": {
+      "purchase_only_no_sale": 465,
+      "no_both_links": 92,
+      "savepoint_exception": 88,
+      "sale_confirmation_blocked": 0,
+      "sale_compiled_elsewhere_or_identity_collision": 0,
+      "confirmed_but_not_compiled": 0,
+      "other": 0,
+      "unknown": 0
+    },
+    "year": {
+      "pre-2020": 62,
+      "2020-2023": 263,
+      "2024": 152,
+      "2025": 133,
+      "2026": 35,
+      "unknown": 0
+    },
+    "rejected_lines": {
+      "neither_side_link": 732,
+      "worksheet_rolled_back": 131,
+      "rolled_back_also_neither_side": 4,
+      "other": 0,
+      "equation": "732 + 131 = 863"
+    },
+    "line_total_equation": "10525 + 53 + 863 = 11441",
+    "purchase_lines_on_rejected_transactions_not_in_863": 636,
+    "quarantine_candidates_pending_acceptance": 17,
+    "quarantine_accepted": 0,
+    "source_po_status": "not_projected_by_22_po.sql"
+  },
+  "crm": {
+    "checkpoint_ids": 4876,
+    "crosswalk_sha256": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
+    "leads": 4123,
+    "person_refs_without_lead": 744,
+    "owner_empty": 4123,
+    "owner_exact": 0,
+    "stage_exact_versus_installed_mapping": 4123,
+    "working_with_is_won_true": 290,
+    "unqualified_landed_dead": 996,
+    "cold_or_open_landed_warm": 853,
+    "material_signals": 4002,
+    "material_source_ids": 3009,
+    "polymer_alias_and_deferred_token_lists": "UNKNOWN",
+    "mobile_live_api": "not_called"
+  },
+  "unknowns": [
+    "source purchase-order status is not in 22_po.sql",
+    "named list of 3 polymer aliases was not in the checkout",
+    "named list of 11 deferred material tokens was not in the checkout",
+    "live provider payloads for the five mobile failures were not reread",
+    "369 material profiles on the clone are not attributed to this run"
+  ]
+}

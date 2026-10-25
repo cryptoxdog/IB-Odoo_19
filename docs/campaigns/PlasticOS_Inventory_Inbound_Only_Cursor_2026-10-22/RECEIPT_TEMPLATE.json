@@ -1,0 +1,45 @@
+{
+  "subject": "ERP-INVENTORY-INBOUND-001",
+  "verdict": "UNKNOWN_PENDING_EXECUTION",
+  "repo": "cryptoxdog/IB-Odoo_19",
+  "baseline_sha": null,
+  "tested_sha": null,
+  "source_reader": "existing_read_only_restored_sql",
+  "source_writes": 0,
+  "warehouse_link": {
+    "status": "UNKNOWN",
+    "source_table": null,
+    "source_column": null,
+    "source_key_shape": null,
+    "worksheet_60403_selected_warehouse": "GREENVIEW WASHINGTON WAREHOUSE",
+    "worksheet_60403_address_id_candidate": "404812",
+    "verified_address_id": null,
+    "odoo_location_identity": null,
+    "site_uniqueness_proved": false
+  },
+  "sample_baseline": {
+    "recent_inbound_2025_2026": 138,
+    "not_cancelled": 135,
+    "noncancelled_with_purchase_link": 119,
+    "noncancelled_without_purchase_link": 16,
+    "cancelled": 3
+  },
+  "after": {
+    "inbound_classified": null,
+    "inbound_with_verified_destination": null,
+    "inbound_held_missing_destination": null,
+    "inbound_held_missing_purchase": null,
+    "source_rows_reconciled": null,
+    "new_sale_orders_for_inv": null,
+    "new_customer_invoices_for_inv": null,
+    "unexpected_new_on_hand": null,
+    "unexpected_valuation_delta": null,
+    "duplicate_source_markers_on_replay": null
+  },
+  "tests": [],
+  "outbound_regression": "UNKNOWN",
+  "ordinary_sale_regression": "UNKNOWN",
+  "untouched_concerns": ["vendor_bills", "customer_invoices", "payment_terms", "salesperson", "crm", "outbound_inventory"],
+  "external_publication": "NONE",
+  "unresolved_unknowns": ["Exact source column joining 60403 to warehouse site", "Permitted historical stock/valuation treatment"]
+}

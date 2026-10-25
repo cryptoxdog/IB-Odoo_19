@@ -4,7 +4,7 @@
 **Revision:** `daytime-v2`  
 **Target:** https://github.com/cryptoxdog/IB-Odoo_19  
 **Runner:** Cursor, existing Odoo 19 Enterprise Docker fixture, restored ERP SQL database (read-only), authorized VanillaSoft API access.  
-**Does not replace:** `PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21` revision `v2.1`. That pack remains the overnight end-to-end test: partners, commercial documents, then all 4,876 VanillaSoft IDs. Run this pack on a different clone.
+**Does not replace:** `PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21` revision `v2.3`. That pack remains the overnight end-to-end test: partners, commercial documents, then all 4,876 VanillaSoft IDs. Run this pack on a different clone. The executable crosswalk is the same pinned file.
 
 Rebind to the checkout SHA before any write and record it. If addon code and this contract disagree about active-contact selection or the crosswalk pin, stop and reconcile before the import.
 

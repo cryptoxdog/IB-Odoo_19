@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+collecting ... collected 3 items
+
+tests/test_erp_native_orders.py::test_matched_term_applies_only_to_a_dated_bill PASSED [ 33%]
+tests/test_erp_native_orders.py::test_unmatched_term_uses_the_header_due_date_and_clears_the_default_term PASSED [ 66%]
+tests/test_erp_source_layer.py::test_trade_date_is_the_earliest_ledger_date PASSED [100%]
+
+=============================== warnings summary ===============================
+../IB-Odoo_19/.venv/lib/python3.12/site-packages/pythonjsonlogger/jsonlogger.py:11
+  /Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/.venv/lib/python3.12/site-packages/pythonjsonlogger/jsonlogger.py:11: DeprecationWarning: pythonjsonlogger.jsonlogger has been moved to pythonjsonlogger.json
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 3 passed, 1 warning in 0.21s =========================
+EXIT:0

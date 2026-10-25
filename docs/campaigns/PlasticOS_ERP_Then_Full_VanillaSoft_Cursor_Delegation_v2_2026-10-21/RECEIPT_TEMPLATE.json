@@ -1,13 +1,13 @@
 {
   "schema": "plasticos.evidence_receipt/v1",
   "subject": "erp-partners-then-commercial-then-vanillasoft-4876",
-  "contract_revision": "v2.2",
+  "contract_revision": "v2.3",
   "recorded_at": null,
   "verdict": "NOT_RUN",
   "repo": {
     "url": "https://github.com/cryptoxdog/IB-Odoo_19",
     "branch_under_test": "Staging",
-    "commit_sha_expected_when_authored": "e78af874604890f8adb6b049694f93c48311eab4",
+    "commit_sha_expected_when_authored": "607a64b897cb73b19adeea1b867990c5bf556189",
     "commit_sha_under_test": null,
     "pr_url_if_any": null
   },
@@ -37,7 +37,41 @@
     "operator_unreviewed": 4095,
     "loaded_crosswalk_vs_ids": 759,
     "distinct_approved_erp_ct_ids": 691,
-    "duplicate_yes_ids_not_fetched": 4,
+    "rows_with_erp_ct_id": 737,
+    "blank_erp_ct_id_rows": 22,
+    "shared_erp_ct_ids": 44,
+    "vs_ids_on_shared_erp_ct": 90,
+    "duplicate_yes_ids_not_fetched": ["1045036935", "1179868294", "584402429", "585278462"],
+    "active_company_cp_by_vs": {
+      "572647290": "399",
+      "573474286": "1405",
+      "579156006": "1484",
+      "609608749": "2461",
+      "683417624": "1380",
+      "700174793": "1257",
+      "715993397": "2076"
+    },
+    "retargeted_vs_to_ct": {
+      "619579299": "148650001",
+      "625031140": "9500001"
+    },
+    "blank_lead_only_vs_ids": [
+      "572647389",
+      "572647457",
+      "572648070",
+      "572648259",
+      "573474338",
+      "576092568",
+      "579155547",
+      "580439040",
+      "580439043",
+      "580439230",
+      "581463517",
+      "658176498",
+      "933860677",
+      "940320088",
+      "1085161977"
+    ],
     "sha256_verified_on_runtime_host": null,
     "source_contact_id_census_verified_on_runtime_host": null
   },
@@ -169,7 +203,7 @@
     "authority": "https://github.com/Quantum-L9/.github/blob/main/docs/ADVISORY.md",
     "unknown_outcome": "https://github.com/Quantum-L9/.github/blob/main/semantics/error_taxonomy.yaml",
     "runner": "import_4876.py",
-    "rule": "A finding without its reason is absent. UNKNOWN is not collapsed into imported or into an explained failure. Each open_exceptions item is {level, reason, count}. A non-zero held, genuine_failed, duplicate_skipped, or warning count with an empty open_exceptions array does not pass. The runner exits 1 when a checkpoint row has no signals key or a non-imported row has no source reason."
+    "rule": "A finding without its reason is absent. UNKNOWN is not collapsed into imported or into an explained failure. Each open_exceptions item is {level, reason, count} copied from open_exceptions.json, including warnings on imported rows. A non-zero held, genuine_failed, duplicate_skipped, or warning count with an empty open_exceptions array does not pass. The runner exits 1 when a checkpoint row has no signals, no placement, or a non-imported row has no source reason. placement is erp_person, active_company, crm_lead, duplicate_skipped, not_fetched, held, or genuine_failed. A crm_lead placement for a blank or a missing marker is the result. Do not rerun the clone to remove it. The checkpoint jsonl is the authority if the terminal log is truncated."
   },
   "limitations": [],
   "operator_acceptance": "NOT_RUN"
