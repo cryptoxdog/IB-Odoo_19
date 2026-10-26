@@ -19,8 +19,10 @@ Counter semantics (documented, honest accounting):
   here and does not increment ``records_rejected``: the contact still counts
   as created, updated, or unchanged.
 * ``final_status`` — ``failed`` on any failed row or a failed run status,
-  ``partial`` on a census gap, identity conflicts, deferred calls, a required
-  mapping error, or an informational notice, else ``success``.
+  ``partial`` on a census gap, identity conflicts, deferred calls, a row whose
+  ``category`` is ``required_mapping``, or an informational notice, else
+  ``success``. An optional contact fallback (non-US mobile, unresolved
+  country or state) stays on the row and does not change this status.
 
 Reconciliation: ``seen == created + updated + unchanged + rejected``. Every
 seen call is represented exactly once: a call buffered as an orphan is
@@ -36,6 +38,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 __all__ = [
+    "OPTIONAL_CONTEXT",
+    "REQUIRED_MAPPING",
     "build_run_summary",
     "business_acceptance",
     "informational_notices",
@@ -44,6 +48,8 @@ __all__ = [
 ]
 
 SUMMARY_SOURCE = "vanillasoft"
+REQUIRED_MAPPING = "required_mapping"
+OPTIONAL_CONTEXT = "optional_context"
 
 
 def is_informational_notice(row: dict) -> bool:
@@ -52,12 +58,16 @@ def is_informational_notice(row: dict) -> bool:
 
 
 def required_mapping_errors(error_rows: list[dict] | None) -> list[dict]:
-    """Rows whose message is a required mapping that did not land."""
+    """Rows the producer marked as a required mapping that did not land.
+
+    The category is explicit. A message alone is not a required mapping:
+    optional contact fallbacks and identity conflicts are other categories.
+    """
     rows = []
     for row in error_rows or []:
-        if not str(row.get("message") or "").strip():
+        if row.get("category") != REQUIRED_MAPPING:
             continue
-        if is_informational_notice(row):
+        if not str(row.get("message") or "").strip():
             continue
         rows.append(row)
     return rows

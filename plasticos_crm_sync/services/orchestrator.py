@@ -16,7 +16,7 @@ from .approved_identity import (
     phone_identity_key,
     xmlid_name,
 )
-from .import_summary import informational_notices, required_mapping_errors
+from .import_summary import OPTIONAL_CONTEXT, REQUIRED_MAPPING, informational_notices, required_mapping_errors
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
 
 _logger = logging.getLogger(__name__)
@@ -1299,11 +1299,10 @@ class SyncOrchestrator:
                 self._apply_resolved_approved_materials(lead, *field_maps)
         except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
             _logger.warning("Approved material normalization failed for lead %s: %s", lead.id, exc)
-            self.error_rows.append(
-                {
-                    "record_ref": lead.vanillasoft_id or str(lead.id or ""),
-                    "message": f"material normalization failed: {exc}",
-                }
+            self._append_classified_error(
+                lead.vanillasoft_id or str(lead.id or ""),
+                f"material normalization failed: {exc}",
+                REQUIRED_MAPPING,
             )
 
     def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
@@ -1327,18 +1326,19 @@ class SyncOrchestrator:
         partner, reason = _facility_for_material(lead)
         if partner is None:
             for text in texts:
-                self.error_rows.append(
-                    {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id),
+                    f"{reason}: {text}",
+                    REQUIRED_MAPPING,
                 )
             return
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
         if len(profiles) != 1:
             for text in texts:
-                self.error_rows.append(
-                    {
-                        "record_ref": lead.vanillasoft_id or str(lead.id),
-                        "message": f"facility unresolved: {len(profiles)} profiles: {text}",
-                    }
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id),
+                    f"facility unresolved: {len(profiles)} profiles: {text}",
+                    REQUIRED_MAPPING,
                 )
             return
         self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
@@ -1471,6 +1471,10 @@ class SyncOrchestrator:
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
             self._apply_contact_materials(lead, dto.custom_fields)
         return lead
+
+    def _append_classified_error(self, record_ref: str, message: str, category: str) -> None:
+        """Record one typed row. Status reads ``category``, never the message text."""
+        self.error_rows.append({"record_ref": record_ref, "message": message, "category": category})
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
         """Record a classified outcome + error detail (duplicate/failed rows).
@@ -1612,21 +1616,26 @@ class SyncOrchestrator:
             if _phone_line(kind, number) not in stored:
                 lines.append(f"VanillaSoft phone ({label}): {number}")
         if dto.mobile and "mobile" in vals and not _us_mobile(dto.mobile):
-            self.error_rows.append(
-                {
-                    "record_ref": ref,
-                    "message": "primary mobile is not a 10-digit US number; kept in the lead description",
-                }
+            self._append_classified_error(
+                ref,
+                "primary mobile is not a 10-digit US number; kept in the lead description",
+                OPTIONAL_CONTEXT,
             )
         country = _collapse_ws(dto.country_code)
         if country and "country_id" in vals and not vals["country_id"]:
             lines.append(f"VanillaSoft Country (unresolved): {country}")
-            self.error_rows.append({"record_ref": ref, "message": "country did not resolve; kept in the description"})
+            self._append_classified_error(
+                ref,
+                "country did not resolve; kept in the description",
+                OPTIONAL_CONTEXT,
+            )
         state = _collapse_ws(dto.state_code)
         if state and "state_id" in vals and not vals["state_id"]:
             lines.append(f"VanillaSoft State (unresolved): {state}")
-            self.error_rows.append(
-                {"record_ref": ref, "message": "state did not resolve in the country; kept in the description"}
+            self._append_classified_error(
+                ref,
+                "state did not resolve in the country; kept in the description",
+                OPTIONAL_CONTEXT,
             )
         raw_source = (dto.lead_source_raw or "").strip()
         if raw_source and "source_id" in vals and self._lead_source_is_fallback(raw_source):
@@ -1800,8 +1809,10 @@ class SyncOrchestrator:
                 self._apply_resolved_materials(lead, *field_maps)
         except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
             _logger.warning("Material normalization failed for lead %s: %s", lead.id, exc)
-            self.error_rows.append(
-                {"record_ref": str(lead.id or ""), "message": f"material normalization failed: {exc}"}
+            self._append_classified_error(
+                str(lead.id or ""),
+                f"material normalization failed: {exc}",
+                REQUIRED_MAPPING,
             )
 
     def _apply_resolved_materials(self, lead, *field_maps) -> None:
@@ -1828,8 +1839,10 @@ class SyncOrchestrator:
             partner, reason = _facility_for_material(lead)
             if partner is None:
                 for text in texts:
-                    self.error_rows.append(
-                        {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
+                    self._append_classified_error(
+                        lead.vanillasoft_id or str(lead.id),
+                        f"{reason}: {text}",
+                        REQUIRED_MAPPING,
                     )
                 return
         owned = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)], limit=1)
@@ -1858,11 +1871,10 @@ class SyncOrchestrator:
             normalized = normalize_material(self.env, text, structured=plain_hints)
             if normalized.unresolved or not normalized.polymer:
                 detail = ", ".join(normalized.unresolved) or "unresolved material"
-                self.error_rows.append(
-                    {
-                        "record_ref": lead.vanillasoft_id or str(lead.id),
-                        "message": f"{detail}: {normalized.source_description}",
-                    }
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id),
+                    f"{detail}: {normalized.source_description}",
+                    REQUIRED_MAPPING,
                 )
                 continue
             if partner is not None:
@@ -1888,14 +1900,13 @@ class SyncOrchestrator:
         if normalized.grade:
             current = (profile.sub_grade or "").strip()
             if current and current != normalized.grade:
-                self.error_rows.append(
-                    {
-                        "record_ref": str(profile.id),
-                        "message": (
-                            f"grade {normalized.grade} conflicts with stored grade {current} "
-                            f"on profile {profile.id}; attributes unchanged"
-                        ),
-                    }
+                self._append_classified_error(
+                    str(profile.id),
+                    (
+                        f"grade {normalized.grade} conflicts with stored grade {current} "
+                        f"on profile {profile.id}; attributes unchanged"
+                    ),
+                    REQUIRED_MAPPING,
                 )
                 return
             if not current:

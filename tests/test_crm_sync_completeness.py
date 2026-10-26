@@ -43,7 +43,13 @@ from plasticos_crm_sync.adapters.base import CrmAdapterError  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft import client as vs_client  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft.adapter import VanillaSoftAdapter  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft.client import VanillaSoftClient  # noqa: E402
-from plasticos_crm_sync.services.import_summary import build_run_summary, business_acceptance  # noqa: E402
+from plasticos_crm_sync.services.import_summary import (  # noqa: E402
+    OPTIONAL_CONTEXT,
+    REQUIRED_MAPPING,
+    build_run_summary,
+    business_acceptance,
+    required_mapping_errors,
+)
 from plasticos_crm_sync.services.orchestrator import (  # noqa: E402
     INCREMENTAL_CONTACT_LOOKBACK_DAYS,
     completion_notice,
@@ -221,6 +227,7 @@ def test_a_material_only_error_is_partial_and_replay_does_not_hide_it():
         {
             "record_ref": "vs-mat-1",
             "message": "material normalization failed: mystery fluff is not a polymer",
+            "category": REQUIRED_MAPPING,
         }
     ]
     run = _CounterRun()
@@ -254,11 +261,113 @@ def test_summary_rejects_success_when_material_errors_exist_and_contact_failures
     run.status = "success"
     summary = build_run_summary(
         run,
-        error_rows=[{"record_ref": "vs-mat-1", "message": "not a polymer: mystery fluff"}],
+        error_rows=[
+            {
+                "record_ref": "vs-mat-1",
+                "message": "not a polymer: mystery fluff",
+                "category": REQUIRED_MAPPING,
+            }
+        ],
     )
     assert summary["final_status"] == "partial"
     assert summary["errors"][0]["record_ref"] == "vs-mat-1"
     assert business_acceptance(summary) == "FAIL"
+    untyped = build_run_summary(
+        run,
+        error_rows=[{"record_ref": "vs-mat-1", "message": "not a polymer: mystery fluff"}],
+    )
+    assert untyped["final_status"] == "success"
+    assert business_acceptance(untyped) == "PASS"
+
+
+def test_optional_contact_context_does_not_become_a_required_mapping():
+    """A non-US mobile or unresolved country is kept. It is not a failed mapping."""
+    orch, _connection, _env = _harness(_Adapter())
+    orch.error_rows = [
+        {
+            "record_ref": "vs-opt",
+            "message": "primary mobile is not a 10-digit US number; kept in the lead description",
+            "category": OPTIONAL_CONTEXT,
+        },
+        {
+            "record_ref": "vs-opt",
+            "message": "country did not resolve; kept in the description",
+            "category": OPTIONAL_CONTEXT,
+        },
+    ]
+    run = _CounterRun()
+    status, excerpt = orch._completion(run, [])
+    assert status == "success"
+    assert not excerpt
+    summary = build_run_summary(run, error_rows=orch.error_rows)
+    assert summary["final_status"] == "success"
+    assert business_acceptance(summary) == "PASS"
+    assert required_mapping_errors(orch.error_rows) == []
+
+
+def test_run_connection_optional_context_stays_success_and_material_stays_partial():
+    """The production entrypoint writes both outcomes. Replay does not invert them."""
+    optional = replace(
+        _lead("c-opt"),
+        mobile="+44 7700 900123",
+        country_code="Narnia",
+        state_code="Atlantis",
+    )
+    adapter = _Adapter(contact_passes=[_one_page([optional], RECENT_Z)], call_passes=[[]])
+    orch, connection, env = _harness(adapter)
+
+    def vals(dto):
+        return {
+            "name": dto.company or dto.external_id,
+            "vanillasoft_id": dto.external_id,
+            "mobile": False,
+            "country_id": False,
+            "state_id": False,
+        }
+
+    orch._lead_vals_from_dto = vals
+    run = env["plasticos.crm.sync.run"].browse(orch.run_connection(connection).id)
+    assert run.status == "success"
+    assert connection.last_success_at is not None
+    assert orch.error_rows
+    assert all(row["category"] == OPTIONAL_CONTEXT for row in orch.error_rows)
+    assert required_mapping_errors(orch.error_rows) == []
+    assert "required mapping" not in (run.error_excerpt or "")
+    stored = env["crm.lead"].search([("vanillasoft_id", "=", "c-opt")])
+    assert len(stored) == 1
+    assert "Narnia" in (stored[0].description or "")
+    assert "+44 7700 900123" in (stored[0].description or "")
+    summary = build_run_summary(run, error_rows=orch.error_rows)
+    assert summary["final_status"] == "success"
+    assert business_acceptance(summary) == "PASS"
+
+    replay_orch = _Orchestrator(env, _Adapter(contact_passes=[_one_page([optional], RECENT_Z)], call_passes=[[]]))
+    replay_orch._lead_vals_from_dto = vals
+    replay = env["plasticos.crm.sync.run"].browse(replay_orch.run_connection(connection).id)
+    assert replay.status == "success"
+    assert len(env["crm.lead"].search([("vanillasoft_id", "=", "c-opt")])) == 1
+    assert run.status == "success"
+
+    material = replace(_lead("c-mat"), custom_fields={"Materials": "not a polymer"})
+    mat_adapter = _Adapter(contact_passes=[_one_page([material], RECENT_Z)], call_passes=[[]])
+    mat_orch, mat_connection, mat_env = _harness(mat_adapter)
+    mat_run = mat_env["plasticos.crm.sync.run"].browse(mat_orch.run_connection(mat_connection).id)
+    assert mat_run.contacts_failed == 0
+    assert mat_run.status == "partial"
+    assert mat_connection.last_success_at is None
+    assert any(
+        row["category"] == REQUIRED_MAPPING and "material normalization failed" in row["message"]
+        for row in mat_orch.error_rows
+    )
+    mat_summary = build_run_summary(mat_run, error_rows=mat_orch.error_rows)
+    assert mat_summary["final_status"] == "partial"
+    assert mat_summary["records_rejected"] == 0
+    assert business_acceptance(mat_summary) == "FAIL"
+    replay_mat = _Orchestrator(mat_env, _Adapter(contact_passes=[_one_page([material], RECENT_Z)], call_passes=[[]]))
+    replay_mat_run = mat_env["plasticos.crm.sync.run"].browse(replay_mat.run_connection(mat_connection).id)
+    assert replay_mat_run.status == "partial"
+    assert mat_run.status == "partial"
+    assert len(mat_env["crm.lead"].search([("vanillasoft_id", "=", "c-mat")])) == 1
 
 
 def test_an_informational_notice_stays_partial_without_claiming_a_required_mapping():
