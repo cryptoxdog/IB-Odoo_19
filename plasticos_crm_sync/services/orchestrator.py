@@ -16,6 +16,7 @@ from .approved_identity import (
     phone_identity_key,
     xmlid_name,
 )
+from .import_summary import informational_notices, required_mapping_errors
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
 
 _logger = logging.getLogger(__name__)
@@ -423,7 +424,7 @@ class SyncOrchestrator:
                     }
                 )
                 connection_vals: dict[str, Any] = {"last_error": excerpt}
-                if status != "failed":
+                if status == "success":
                     connection_vals["last_success_at"] = datetime.now(UTC).replace(tzinfo=None)
                 connection.write(connection_vals)
                 # Land this connection's outcome before the caller (cron) moves
@@ -567,7 +568,7 @@ class SyncOrchestrator:
                     }
                 )
                 connection_vals: dict[str, Any] = {"last_error": excerpt}
-                if status != "failed":
+                if status == "success":
                     connection_vals["last_success_at"] = datetime.now(UTC).replace(tzinfo=None)
                 connection.write(connection_vals)
                 self.env.cr.commit()
@@ -698,20 +699,28 @@ class SyncOrchestrator:
     def _completion(self, run, notes: list[str]) -> tuple[str, str | bool]:
         """Classify a run that finished without raising, from what it recorded.
 
-        Mirrors ``import_summary.build_run_summary``: a per-record write
-        failure is ``failed``; an identity conflict, a buffered orphan call or
-        a named scope limitation is ``partial``; only a run with none of those
-        is ``success``. The run row is what the operator sees first, so it must
-        never read greener than the shared summary built from the same counters.
+        Mirrors ``import_summary.build_run_summary``. A per-record write
+        failure is ``failed``. A required mapping that did not land, including
+        a material error while the contact itself persisted, is ``partial``.
+        An informational notice is also ``partial``, and its excerpt does not
+        claim a required mapping failed. An identity conflict, a buffered
+        orphan call, or a named scope limitation is ``partial``. Only a run
+        with none of those is ``success``. Contact and call counters stay as
+        recorded. ``last_success_at`` advances only for ``success``.
         """
 
         def count(name: str) -> int:
             return getattr(run, name, 0) or 0
 
+        def line(row: dict) -> str:
+            return f"  - {row.get('record_ref')}: {str(row.get('message'))[:200]}"
+
         failed_contacts = count("contacts_failed")
         failed_calls = count("calls_failed")
         duplicates = count("contacts_duplicate_rejected")
         deferred = count("orphans_buffered")
+        mapping_errors = required_mapping_errors(self.error_rows)
+        notices = informational_notices(self.error_rows)
         lines = list(notes)
         if failed_contacts or failed_calls:
             lines.append(
@@ -719,7 +728,17 @@ class SyncOrchestrator:
                 "each failure is counted on this run, none was dropped."
             )
             for row in self.error_rows[:5]:
-                lines.append(f"  - {row.get('record_ref')}: {str(row.get('message'))[:200]}")
+                lines.append(line(row))
+        else:
+            if mapping_errors:
+                lines.append(
+                    f"{len(mapping_errors)} required mapping(s) incomplete; "
+                    "the contact and call counters are unchanged."
+                )
+                for row in mapping_errors[:5]:
+                    lines.append(line(row))
+            for row in notices[:5]:
+                lines.append(line(row))
         if duplicates:
             lines.append(f"{duplicates} contact(s) rejected as identity conflicts (duplicate_rejected).")
         if deferred:
@@ -1289,6 +1308,8 @@ class SyncOrchestrator:
 
     def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
         phrases, hints, weak = _material_inputs(*field_maps)
+        if not phrases and not hints and not weak:
+            return
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
             normalize_material,
         )
@@ -1784,12 +1805,14 @@ class SyncOrchestrator:
             )
 
     def _apply_resolved_materials(self, lead, *field_maps) -> None:
+        phrases, hints, weak = _material_inputs(*field_maps)
+        if not phrases and not hints and not weak:
+            return
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
             normalize_material,
         )
         from odoo.exceptions import ValidationError  # noqa: PLC0415
 
-        phrases, hints, weak = _material_inputs(*field_maps)
         candidates = list(phrases)
         plain_hints = {}
         for label, value in hints.items():

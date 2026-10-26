@@ -15,9 +15,12 @@ Counter semantics (documented, honest accounting):
 * ``duplicates`` — contact identity conflicts (duplicate_rejected).
 * ``errors`` — per-record failures plus identity-conflict rows; never secrets.
   Deferred calls carry no error row: their durable trace is the orphan record.
+  A required material mapping that failed after the contact landed is listed
+  here and does not increment ``records_rejected``: the contact still counts
+  as created, updated, or unchanged.
 * ``final_status`` — ``failed`` on any failed row or a failed run status,
-  ``partial`` on a census gap, identity conflicts or deferred calls, else
-  ``success``.
+  ``partial`` on a census gap, identity conflicts, deferred calls, a required
+  mapping error, or an informational notice, else ``success``.
 
 Reconciliation: ``seen == created + updated + unchanged + rejected``. Every
 seen call is represented exactly once: a call buffered as an orphan is
@@ -32,9 +35,50 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-__all__ = ["build_run_summary", "utc_now"]
+__all__ = [
+    "build_run_summary",
+    "business_acceptance",
+    "informational_notices",
+    "required_mapping_errors",
+    "utc_now",
+]
 
 SUMMARY_SOURCE = "vanillasoft"
+
+
+def is_informational_notice(row: dict) -> bool:
+    """A notice explains scope. It is not a required mapping failure."""
+    return row.get("informational") is True
+
+
+def required_mapping_errors(error_rows: list[dict] | None) -> list[dict]:
+    """Rows whose message is a required mapping that did not land."""
+    rows = []
+    for row in error_rows or []:
+        if not str(row.get("message") or "").strip():
+            continue
+        if is_informational_notice(row):
+            continue
+        rows.append(row)
+    return rows
+
+
+def informational_notices(error_rows: list[dict] | None) -> list[dict]:
+    return [row for row in error_rows or [] if str(row.get("message") or "").strip() and is_informational_notice(row)]
+
+
+def business_acceptance(summary: dict) -> str:
+    """FAIL unless the shared summary is a complete success.
+
+    ``import_vanillasoft_shell`` may exit 0 on ``partial``. Business acceptance
+    does not. A required mapping error is FAIL even if ``final_status`` was
+    left at ``success``.
+    """
+    if summary.get("final_status") != "success":
+        return "FAIL"
+    if required_mapping_errors(summary.get("errors")):
+        return "FAIL"
+    return "PASS"
 
 
 def utc_now() -> str:
@@ -62,10 +106,12 @@ def build_run_summary(
     updated = (run.contacts_updated or 0) + (run.calls_updated or 0)
     unchanged = (run.contacts_unchanged or 0) + (run.calls_unchanged or 0)
     duplicates = run.contacts_duplicate_rejected or 0
+    mapping_errors = required_mapping_errors(error_rows)
+    notices = informational_notices(error_rows)
 
     if run.status == "failed" or (run.contacts_failed or run.calls_failed):
         final_status = "failed"
-    elif run.status == "partial" or duplicates or deferred:
+    elif run.status == "partial" or duplicates or deferred or mapping_errors or notices:
         final_status = "partial"
     else:
         final_status = "success"

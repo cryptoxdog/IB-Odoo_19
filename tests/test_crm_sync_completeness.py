@@ -43,7 +43,7 @@ from plasticos_crm_sync.adapters.base import CrmAdapterError  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft import client as vs_client  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft.adapter import VanillaSoftAdapter  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft.client import VanillaSoftClient  # noqa: E402
-from plasticos_crm_sync.services.import_summary import build_run_summary  # noqa: E402
+from plasticos_crm_sync.services.import_summary import build_run_summary, business_acceptance  # noqa: E402
 from plasticos_crm_sync.services.orchestrator import (  # noqa: E402
     INCREMENTAL_CONTACT_LOOKBACK_DAYS,
     completion_notice,
@@ -70,6 +70,25 @@ SHELL = ROOT / "plasticos_crm_sync" / "scripts" / "import_vanillasoft_shell.py"
 
 def _parse(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+class _CounterRun:
+    """Counters a material-only gap leaves behind: the contact landed."""
+
+    status = "running"
+    contacts_seen = 1
+    calls_seen = 0
+    contacts_created = 1
+    contacts_updated = 0
+    contacts_unchanged = 0
+    contacts_duplicate_rejected = 0
+    contacts_failed = 0
+    calls_created = 0
+    calls_updated = 0
+    calls_unchanged = 0
+    calls_failed = 0
+    orphans_buffered = 0
+    error_excerpt = False
 
 
 # ── an unrecognised payload is uncertain coverage, not an empty scope ────────
@@ -158,6 +177,8 @@ def test_a_fresh_connection_incremental_run_is_success_for_its_declared_scope_on
     assert run.kind == "incremental"
     assert _parse(run.contact_scope_from_utc) >= NOW - timedelta(days=INCREMENTAL_CONTACT_LOOKBACK_DAYS, minutes=5)
     assert not run.error_excerpt
+    assert connection.last_success_at is not None
+    assert business_acceptance(build_run_summary(run)) == "PASS"
 
 
 # ── a clamped watermark is a scope limitation, never a silent success ───────
@@ -174,6 +195,7 @@ def test_a_watermark_older_than_the_lookback_makes_the_run_partial_and_names_the
     assert run.contact_scope_from_utc == adapter.contact_calls[0], "scope records what was actually requested"
     assert _parse(run.contact_scope_from_utc) > _parse(stale)
     assert connection.last_error == run.error_excerpt
+    assert connection.last_success_at is None, "a partial run is not a full success"
     assert build_run_summary(run)["final_status"] == "partial"
 
 
@@ -187,6 +209,71 @@ def test_a_watermark_inside_the_lookback_is_not_a_gap():
 
 
 # ── per-record outcomes drive the run status, in step with the summary ──────
+
+
+def test_a_material_only_error_is_partial_and_replay_does_not_hide_it():
+    """MAT-STATUS-01. The contact persists (contacts_failed stays 0) while a
+    required material mapping does not. That run is partial, the shared summary
+    agrees, and classifying the same error again does not turn it green.
+    """
+    orch, connection, _env = _harness(_Adapter())
+    orch.error_rows = [
+        {
+            "record_ref": "vs-mat-1",
+            "message": "material normalization failed: mystery fluff is not a polymer",
+        }
+    ]
+    run = _CounterRun()
+    status, excerpt = orch._completion(run, [])
+
+    assert run.contacts_failed == 0
+    assert run.calls_failed == 0
+    assert status == "partial"
+    assert "required mapping" in excerpt
+    assert "material normalization failed" in excerpt
+    run.status = status
+    run.error_excerpt = excerpt
+    summary = build_run_summary(run, error_rows=orch.error_rows)
+    assert summary["final_status"] == "partial"
+    assert summary["final_status"] == run.status
+    assert summary["records_rejected"] == 0
+    assert summary["records_created"] == 1
+    assert summary["errors"] == orch.error_rows
+    assert business_acceptance(summary) == "FAIL"
+
+    status_again, excerpt_again = orch._completion(run, [])
+    assert status_again == "partial"
+    assert "material normalization failed" in excerpt_again
+    assert run.status == "partial"
+    assert connection.last_success_at is None
+
+
+def test_summary_rejects_success_when_material_errors_exist_and_contact_failures_do_not():
+    """The falsifier: one material error, zero contact failures, status still success."""
+    run = _CounterRun()
+    run.status = "success"
+    summary = build_run_summary(
+        run,
+        error_rows=[{"record_ref": "vs-mat-1", "message": "not a polymer: mystery fluff"}],
+    )
+    assert summary["final_status"] == "partial"
+    assert summary["errors"][0]["record_ref"] == "vs-mat-1"
+    assert business_acceptance(summary) == "FAIL"
+
+
+def test_an_informational_notice_stays_partial_without_claiming_a_required_mapping():
+    orch, _connection, _env = _harness(_Adapter())
+    orch.error_rows = [
+        {
+            "record_ref": "scope",
+            "message": "Contact scope limited: lookback clamped the requested floor",
+            "informational": True,
+        }
+    ]
+    status, excerpt = orch._completion(_CounterRun(), [])
+    assert status == "partial"
+    assert "lookback" in excerpt
+    assert "required mapping" not in excerpt
 
 
 def test_a_failed_lead_write_makes_the_run_failed_not_success():
@@ -299,6 +386,18 @@ def test_shell_import_refuses_a_blank_call_floor(monkeypatch, capsys):
 
     assert shell.main() == 2
     assert "VANILLASOFT_CALL_FLOOR" in capsys.readouterr().out
+
+
+def test_shell_still_exits_zero_on_partial_while_acceptance_fails():
+    """The importer CLI is unchanged. Business acceptance rejects partial."""
+    source = SHELL.read_text(encoding="utf-8")
+    assert 'if summary["final_status"] == "failed"' in source
+    assert source.strip().endswith("return 0") or "\n    return 0\n" in source
+    partial = {
+        "final_status": "partial",
+        "errors": [{"record_ref": "vs-mat-1", "message": "material normalization failed: missing profile"}],
+    }
+    assert business_acceptance(partial) == "FAIL"
 
 
 def test_shell_driver_imports_through_odoo_addons():
