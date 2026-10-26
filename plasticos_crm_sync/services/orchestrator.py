@@ -6,7 +6,13 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ..adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError
+from ..adapters.base import (
+    CanonicalCall,
+    CanonicalLead,
+    CrmAdapterError,
+    is_excluded_source_field,
+    omit_excluded_source_fields,
+)
 from ..adapters.registry import get_adapter
 from .approved_identity import (
     XMLID_MODULE,
@@ -33,7 +39,6 @@ LEAD_CONTEXT_FIELDS = (
     "Company Type",
     "Location Type",
     "Location",
-    "Load Ready",
     "Last Result Code",
     "Last Call Date",
 )
@@ -170,7 +175,7 @@ def _material_inputs(*field_maps):
     hints = {}
     weak = []
     for fields in field_maps:
-        for key, value in (fields or {}).items():
+        for key, value in omit_excluded_source_fields(fields).items():
             label = _collapse_ws(key).casefold()
             parts = _split_material_values(value)
             kind = _material_field_kind(label)
@@ -273,6 +278,8 @@ def _approved_context_lines(dto: CanonicalLead) -> list[str]:
     custom = dto.custom_fields or {}
     lines = []
     for name in LEAD_CONTEXT_FIELDS:
+        if is_excluded_source_field(name):
+            continue
         value = _collapse_ws(custom.get(name))
         if value:
             lines.append(f"VanillaSoft ContactID {dto.external_id} {name}: {value}")
@@ -1583,6 +1590,8 @@ class SyncOrchestrator:
         if dto.contact_note:
             lines.append(f"VanillaSoft Notes: {dto.contact_note}")
         for name in LEAD_CONTEXT_FIELDS:
+            if is_excluded_source_field(name):
+                continue
             value = _collapse_ws(custom.get(name))
             if value:
                 lines.append(f"VanillaSoft {name}: {value}")
@@ -1723,7 +1732,7 @@ class SyncOrchestrator:
                             "table_id": dto.table_id,
                             "table_name": dto.table_name,
                             "external_row_id": dto.external_row_id,
-                            "fields": dto.fields,
+                            "fields": omit_excluded_source_fields(dto.fields),
                         },
                     }
                 )
@@ -1745,7 +1754,7 @@ class SyncOrchestrator:
                 "table_id": dto.table_id,
                 "table_name": dto.table_name or False,
                 "external_row_id": dto.external_row_id,
-                "fields_json": dto.fields,
+                "fields_json": omit_excluded_source_fields(dto.fields),
             }
             if existing:
                 changed = {k: v for k, v in vals.items() if _differs(existing, k, v)}
@@ -1757,7 +1766,7 @@ class SyncOrchestrator:
                 Row.create(vals)
                 if outcomes is not None:
                     outcomes["table_rows"] += 1
-            landed_fields.append(dto.fields)
+            landed_fields.append(omit_excluded_source_fields(dto.fields))
         if lead and landed_fields:
             if person_ref or self._approved_ct_id(contact_external_id):
                 self._apply_approved_materials(lead, *landed_fields)
@@ -1945,7 +1954,7 @@ class SyncOrchestrator:
                     "table_id": payload.get("table_id"),
                     "table_name": payload.get("table_name") or False,
                     "external_row_id": payload.get("external_row_id"),
-                    "fields_json": payload.get("fields") or {},
+                    "fields_json": omit_excluded_source_fields(payload.get("fields") or {}),
                 }
                 if existing:
                     existing.write(vals)

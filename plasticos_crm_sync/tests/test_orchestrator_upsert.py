@@ -1203,6 +1203,204 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         stored = profiles.search([("partner_id", "=", facility.id)])
         self.assertEqual(stored.mapped("polymer_id.code"), ["PP"])
 
+    def test_excluded_source_columns_stay_out_of_every_persisted_path(self):
+        """Approved data lands. The 35 excluded columns do not, on any write path."""
+        tokens = (
+            "EXCL-LOAD-READY",
+            "EXCL-FOB",
+            "EXCL-MELT",
+            "EXCL-DENSITY",
+            "EXCL-EQUIPMENT",
+            "EXCL-PRICE",
+            "EXCL-NAICS",
+        )
+        custom = {
+            "Notes": "operator wrote that the melt looked high",
+            "Buyer/Supplier": "Supplier",
+            "Last Result Code": "LM",
+            "Load Ready": "EXCL-LOAD-READY",
+            "FOB/FAS (MRP)": "EXCL-FOB",
+            "Melt (LDPE)": "EXCL-MELT",
+            "Density (HDPE)": "EXCL-DENSITY",
+            "Equipment": "EXCL-EQUIPMENT",
+            "Price Quoted (PP)": "EXCL-PRICE",
+            "NAICS Code  Description": "EXCL-NAICS",
+            "Materials": "HDPE Drums",
+        }
+        dto = contact_to_canonical(
+            {
+                "contact_id": "vs-excl-1",
+                "company": "Exclusion Co",
+                "first_name": "Ada",
+                "last_name": "Lovelace",
+                "email": "ada-excl@example.test",
+                "phone": "215-555-0199",
+                "Address 1": "12 Dock St",
+                "Zip Code": "19103",
+                "zip": "19019",
+                "custom_fields": [{"name": key, "value": value} for key, value in custom.items()],
+            }
+        )
+        self.assertEqual(dto.street, "12 Dock St")
+        self.assertEqual(dto.zip, "19019")
+        self.assertNotIn("Load Ready", dto.custom_fields)
+
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, dto)
+        lead.delivery_term = "fcfs"
+        again = orch._upsert_lead(self.connection, dto)
+        self.assertEqual(again, lead)
+        text = lead.description or ""
+        self.assertIn("operator wrote that the melt looked high", text)
+        self.assertIn("VanillaSoft Buyer/Supplier: Supplier", text)
+        self.assertIn("VanillaSoft Last Result Code: LM", text)
+        self.assertEqual(lead.email_from, "ada-excl@example.test")
+        self.assertEqual(lead.phone, "215-555-0199")
+        self.assertEqual(lead.street, "12 Dock St")
+        self.assertEqual(lead.zip, "19019")
+        self.assertEqual(lead.delivery_term, "fcfs")
+        self._assert_tokens_absent(tokens, text)
+        self._assert_tokens_absent(tokens, self._profile_notes(lead))
+
+        class Adapter:
+            def iter_table_rows(self, contact_id):
+                yield CanonicalTableRow(
+                    provider="vanillasoft",
+                    contact_external_id=contact_id,
+                    table_id="9",
+                    table_name="Materials",
+                    external_row_id="excl-row",
+                    fields={
+                        "Material": "HDPE Drums",
+                        "Notes": "ordinary notes mention Load Ready",
+                        "FOB/FAS (HDPE)": "EXCL-FOB",
+                        "Equipment": "EXCL-EQUIPMENT",
+                        "Load Ready": "EXCL-LOAD-READY",
+                    },
+                )
+
+        row_model = self.env["plasticos.crm.external.table.row"]
+        dirty = row_model.create(
+            {
+                "provider": "vanillasoft",
+                "lead_id": lead.id,
+                "contact_external_id": "vs-excl-1",
+                "table_id": "9",
+                "table_name": "Materials",
+                "external_row_id": "excl-row",
+                "fields_json": {"Material": "HDPE Drums", "FOB/FAS (HDPE)": "EXCL-FOB"},
+            }
+        )
+        orch._sync_tables_for_lead(self.connection, Adapter(), "vs-excl-1", lead)
+        orch._sync_tables_for_lead(self.connection, Adapter(), "vs-excl-1", lead)
+        self.assertEqual(row_model.search_count([("external_row_id", "=", "excl-row")]), 1)
+        stored = dirty.fields_json
+        self.assertEqual(stored.get("Material"), "HDPE Drums")
+        self.assertIn("ordinary notes mention Load Ready", stored.get("Notes") or "")
+        self.assertNotIn("FOB/FAS (HDPE)", stored)
+        self._assert_tokens_absent(tokens, str(stored))
+        self._assert_tokens_absent(tokens, self._profile_notes(lead))
+
+        orphan_model = self.env["plasticos.crm.sync.orphan"]
+        orch._sync_tables_for_lead(self.connection, Adapter(), "vs-excl-orphan", None)
+        buffered = orphan_model.search([("contact_external_id", "=", "vs-excl-orphan"), ("kind", "=", "table_row")])
+        self.assertEqual(len(buffered), 1)
+        self._assert_tokens_absent(tokens, str(buffered.payload_json))
+        dirty_orphan = orphan_model.create(
+            {
+                "connection_id": self.connection.id,
+                "provider": "vanillasoft",
+                "kind": "table_row",
+                "contact_external_id": "vs-excl-1",
+                "external_id": "excl-dirty-orphan",
+                "payload_json": {
+                    "provider": "vanillasoft",
+                    "contact_external_id": "vs-excl-1",
+                    "table_id": "8",
+                    "table_name": "Materials",
+                    "external_row_id": "excl-dirty-orphan",
+                    "fields": {
+                        "Material": "Pallets",
+                        "Melt (LDPE)": "EXCL-MELT",
+                        "Load Ready": "EXCL-LOAD-READY",
+                    },
+                },
+            }
+        )
+        orch._resolve_orphans(self.connection, Adapter(), None)
+        landed = row_model.search([("external_row_id", "=", "excl-dirty-orphan")])
+        self.assertEqual(len(landed), 1)
+        self.assertEqual(landed.fields_json.get("Material"), "Pallets")
+        self._assert_tokens_absent(tokens, str(landed.fields_json))
+        self.assertTrue(dirty_orphan.resolved)
+        self._assert_tokens_absent(tokens, self._profile_notes(lead))
+
+        person = self.env["res.partner"].create(
+            {
+                "name": "ERP Exclusion Person",
+                "phone": "555-0100",
+                "street": "ERP DOCK",
+                "comment": "ERP-OWNED sentinel",
+            }
+        )
+        self._erp_marker(person, "8801")
+        approved = SyncOrchestrator(self.env)
+        approved._crosswalk = {"vs-excl-person": "8801"}
+        approved._crosswalk_ready = True
+        approved.outcomes = _new_outcomes()
+        person_dto = contact_to_canonical(
+            {
+                "contact_id": "vs-excl-person",
+                "email": "person@example.test",
+                "phone": "215-555-0188",
+                "Address 1": "SHOULD NOT REPLACE",
+                "custom_fields": [
+                    {"name": "Notes", "value": "approved history"},
+                    {"name": "Buyer/Supplier", "value": "Buyer"},
+                    {"name": "Load Ready", "value": "EXCL-LOAD-READY"},
+                    {"name": "Equipment", "value": "EXCL-EQUIPMENT"},
+                ],
+            }
+        )
+        approved._upsert_lead(self.connection, person_dto)
+        approved._upsert_lead(self.connection, person_dto)
+        comment = str(person.comment)
+        self.assertIn("ERP-OWNED sentinel", comment)
+        self.assertIn("approved history", comment)
+        self.assertIn("Buyer/Supplier", comment)
+        self.assertNotIn("EXCL-LOAD-READY", comment)
+        self.assertNotIn("EXCL-EQUIPMENT", comment)
+        self.assertEqual(person.street, "ERP DOCK")
+        self.assertEqual(person.phone, "555-0100")
+        leads = self.env["crm.lead"].with_context(active_test=False)
+        self.assertFalse(leads.search([("vanillasoft_id", "=", "vs-excl-person")]))
+
+        call = CanonicalCall(
+            provider="vanillasoft",
+            external_id="call-excl-1",
+            contact_external_id="vs-excl-1",
+            call_datetime_utc="2024-03-05T14:10:00Z",
+            comment="discussed melt index; Load Ready was said in the call",
+            result_code="LM",
+        )
+        orch._upsert_calls(self.connection, [call], None)
+        orch._upsert_calls(self.connection, [call], None)
+        events = self.env["plasticos.crm.call.event"].search([("external_id", "=", "call-excl-1")])
+        self.assertEqual(len(events), 1)
+        self.assertIn("discussed melt index", events.comment)
+        self.assertIn("Load Ready was said in the call", events.comment)
+
+    def _profile_notes(self, lead):
+        profiles = self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
+        facilities = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)])
+        return " ".join(
+            [*(profile.freeform_notes or "" for profile in profiles), *(fac.freeform_notes or "" for fac in facilities)]
+        )
+
+    def _assert_tokens_absent(self, tokens, text):
+        for token in tokens:
+            self.assertNotIn(token, text or "")
+
 
 @tagged("post_install", "-at_install", "-standard", "crm_sync_semantic_kernel")
 class TestCrmSyncSemanticKernelCollision(CrmSyncOrchestratorCase):
