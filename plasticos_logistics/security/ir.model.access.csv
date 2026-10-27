@@ -22,3 +22,7 @@ access_dispatch_manager,plasticos.dispatch.manager,plasticos_logistics.model_pla
 access_load_bulk_wizard_user,plasticos.load.bulk.update.wizard.user,model_plasticos_load_bulk_update_wizard,base.group_user,1,1,1,1
 access_freight_actual_correction_wizard_user,plasticos.freight.actual.correction.wizard.user,model_plasticos_freight_actual_correction_wizard,base.group_user,1,1,1,1
 access_load_dashboard_user,plasticos.load.dashboard.user,model_plasticos_load_dashboard,base.group_user,1,0,0,0
+access_logistics_request_user,plasticos.logistics.request.user,model_plasticos_logistics_request,base.group_user,1,0,0,0
+access_logistics_request_purchase,plasticos.logistics.request.purchase,model_plasticos_logistics_request,purchase.group_purchase_user,1,1,1,0
+access_logistics_request_manager,plasticos.logistics.request.manager,model_plasticos_logistics_request,base.group_system,1,1,1,0
+access_logistics_response_user,plasticos.logistics.response.user,model_plasticos_logistics_response,base.group_user,1,0,0,0

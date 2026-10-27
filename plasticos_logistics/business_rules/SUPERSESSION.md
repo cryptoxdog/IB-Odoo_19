@@ -42,6 +42,32 @@ These deadlines are business requirements, **not optional example configuration*
 - `BRS-02-R062` remains **deferred** for optional free-form LLM extraction under decision D-05: deterministic reply validation and automatic clarification are the implemented-plan path. Deferral does not erase the candidate clause.
 - Unknown native Odoo/transport capabilities remain implementation facts for WP00, not permissions to invent a new approval engine or new transaction type.
 
+## Operator decision 2026-10-24: cancellation notice and post-cancellation release cycle
+
+**Source:** explicit operator decision of October 24, 2026 (contract `LINDA.PR304.CANCEL_REOPEN_LIFECYCLE.2026-10-24`). It amends only the cancellation and re-confirmation behavior of the per-order issue below; same-cycle replay deduplication is unchanged. This is an implementation target with runtime test evidence on PR #304, not a production-readiness claim: live Gmail delivery, the Enterprise runtime and the legacy-to-Linda cutover (WP10) remain unproven.
+
+| Rule ID | Amended interpretation (2026-10-24) |
+| --- | --- |
+| `BRS-01-R001` | A real, successful native cancellation of a PO or SO whose issue was `sent`, or was `unknown` after an actual transport attempt, queues **one** cancellation notice to that issue's own recorded audience. An issue still queued and never attempted is withdrawn instead, and nothing is sent. Blocked, shadow and proven-undelivered `exception` issues are not retracted. Draft/RFQ cancellations notify nobody. |
+| `BRS-01-R065` | Native cancel, then reset to draft, then a new native confirmation (`purchase` / `sale`) is a **new release cycle**: it issues a new revision even when the commercial fingerprint is identical. Reset to draft alone is inert. A repeated approval or confirmation inside an open cycle still issues nothing. |
+| `BRS-02-R010` | `po_cancel` / `so_cancel` are order-scoped request purposes on the same exact source order as their issue, linked to the issue they follow up on. They need no counterpart order, transaction or load. |
+| `BRS-02-R013` | Issue identity stays company + order + party + purpose + revision. A native cancellation closes the current cycle on its issues. A notice is unique per canceled issue; a repeated cancel of the same episode creates no second notice. |
+| `BRS-05-R029` | A cancellation notice goes only to the historical issue recipient (party + address), never to a current-but-unnotified contact, followers, CC or the opposite side. It names only the canceled order, carries no PDF, and uses the logistics2 sender and the native mail queue. |
+| `BRS-05-R034` | A notice is `sent` only after native transport reports it. A reissue mail for the same party is held in the queue while an earlier notice to that party is still pending, so a new issue never overtakes its cancellation. |
+| `BRS-05-R035` | An in-flight issue (attempted, outcome not recorded) is settled as `unknown` at cancellation, never relabeled `sent`, and counts as communicated. Notice transport failures follow the same `exception` / `unknown` discrimination, with no automatic retry. |
+
+## Operator decision 2026-10-24: D-05 native AI interpretation and the WP02 reply slice
+
+**Source:** explicit operator decision of October 24, 2026 (contract `LINDA.WP02.NATIVE_INBOUND.2026-10-24`) and the operator's 2026-10-25 instruction to publish the slice as **PARTIAL / AI NOT RUN**. D-05's prohibition on every LLM interpretation is superseded **only this far**: free-form candidate extraction may use one native Odoo 19 AI server action with one candidate-recording tool, once that Enterprise capability is verified on the actual runtime. No custom LLM client, provider abstraction, Gate route or substitute inference is authorized. The capability was **not** available to verify, so no AI action is defined yet and free-form replies stay unresolved. This is not a production-readiness claim.
+
+| Rule ID | Amended interpretation (2026-10-24) |
+| --- | --- |
+| `BRS-02-R009` | Replies arrive only through native Odoo Mail. The native Keep Original copy (`original_email.eml`) on the incoming message is the retained raw evidence and the sole source of its `In-Reply-To` / `References` ancestry. Without it, a reply stays unbound. |
+| `BRS-02-R011` | A reply binds to the exact Linda request whose outgoing Message-ID it names, never to the latest request on the order thread. A From address that differs from the request's recorded recipient, or a forwarded message, is unattributed. Because no provider-authenticated sender evidence exists, a matching reply is at most `identity_unverified` and never an accepted commitment. |
+| `BRS-02-R012` | Only an explicitly standardized reply (`CONFIRMED` / `CONFIRM` or `NOT READY` as the whole unquoted text) is interpreted, deterministically, as candidate evidence. Any other text is recorded `unresolved` (`ai_not_run`) until the native AI action is verified. Automatic clarification is a later bounded follow-on and sends nothing in this slice. |
+| `BRS-02-R014` | A reply to a canceled cycle's issue, or to a cancellation notice, is recorded as stale against that historical request and never rebinds to the current revision. |
+| `BRS-02-R062` | Native AI output, once available, is candidate evidence only. Neither it nor any reply changes an order, load, picking, appointment, carrier, mail queue or transaction. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.

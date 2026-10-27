@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Linda supplier PO issuance message (WP01b; BRS-01-R001, BRS-05-R029, plan A19).
+    Supplier-only content: no buyer, sale order or destination identity.
+    A PO with no dropship address attaches the native purchase order PDF.
+    A dropship PO attaches the supplier copy, which omits dest_address_id.
+    Recipients are set by plasticos.logistics.request, never from followers or CC.
+-->
+<odoo noupdate="1">
+    <record id="mail_template_linda_po_issue" model="mail.template">
+        <field name="name">Linda: Purchase Order to Supplier</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="email_from">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="reply_to">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="subject">Purchase Order {{ object.name }} - please confirm and advise pickup readiness</field>
+        <field name="lang">{{ object.partner_id.lang }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="report_template_ids" eval="[(6, 0, [ref('purchase.action_report_purchase_order')])]"/>
+        <field name="description">Initial supplier issue of a confirmed purchase order, sent by Linda in live mode.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello <t t-out="object.partner_id.name or ''">Supplier</t>,</p>
+    <p>
+        Please find attached purchase order <strong t-out="object.name or ''">P00001</strong>
+        <t t-if="object.partner_ref">(your reference <t t-out="object.partner_ref or ''">REF</t>)</t>.
+    </p>
+    <ul>
+        <t t-foreach="object.order_line.filtered(lambda line: not line.display_type)" t-as="line">
+            <li>
+                <t t-out="line.product_id.display_name or line.name or ''">Material</t>:
+                <t t-out="line.product_qty">1.0</t> <t t-out="line.product_uom_id.name or ''">lb</t>
+            </li>
+        </t>
+    </ul>
+    <p>Please reply to confirm this order and tell us whether the material is ready for pickup:</p>
+    <ul>
+        <li>Ready now, or the date it will be ready</li>
+        <li>Pickup address, loading hours and any appointment requirement</li>
+        <li>Pickup contact name and phone</li>
+    </ul>
+    <p>Thank you,<br/>Scrap Management Logistics</p>
+</div>
+        </field>
+    </record>
+
+    <record id="mail_template_linda_po_issue_dropship" model="mail.template">
+        <field name="name">Linda: Dropship Purchase Order to Supplier</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="email_from">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="reply_to">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="subject">Purchase Order {{ object.name }} - please confirm and advise pickup readiness</field>
+        <field name="lang">{{ object.partner_id.lang }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="report_template_ids" eval="[(6, 0, [ref('action_report_purchase_order_supplier')])]"/>
+        <field name="description">Supplier issue of a confirmed dropship purchase order. The attached PDF omits the buyer delivery address.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello <t t-out="object.partner_id.name or ''">Supplier</t>,</p>
+    <p>
+        Please find attached purchase order <strong t-out="object.name or ''">P00001</strong>
+        <t t-if="object.partner_ref">(your reference <t t-out="object.partner_ref or ''">REF</t>)</t>.
+    </p>
+    <ul>
+        <t t-foreach="object.order_line.filtered(lambda line: not line.display_type)" t-as="line">
+            <li>
+                <t t-out="line.product_id.display_name or line.name or ''">Material</t>:
+                <t t-out="line.product_qty">1.0</t> <t t-out="line.product_uom_id.name or ''">lb</t>
+            </li>
+        </t>
+    </ul>
+    <p>Please reply to confirm this order and tell us whether the material is ready for pickup:</p>
+    <ul>
+        <li>Ready now, or the date it will be ready</li>
+        <li>Pickup address, loading hours and any appointment requirement</li>
+        <li>Pickup contact name and phone</li>
+    </ul>
+    <p>Thank you,<br/>Scrap Management Logistics</p>
+</div>
+        </field>
+    </record>
+</odoo>
