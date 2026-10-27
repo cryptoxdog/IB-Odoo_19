@@ -20,6 +20,7 @@ from plasticos_crm_sync.services.approved_identity import (
     phone_match_key,
     validate_crosswalk,
 )
+from plasticos_crm_sync.services.import_summary import REQUIRED_MAPPING
 from tests.test_crm_sync_classification import _harness, _lead, _Model, _outcomes
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -188,7 +189,13 @@ def test_approved_material_failure_rolls_back_and_is_recorded():
     orch._apply_resolved_approved_materials = boom
     orch._apply_approved_materials(lead, {"Materials": "HDPE"})
     assert [r.vanillasoft_id for r in leads.rows.values()] == ["m1"]
-    assert orch.error_rows == [{"record_ref": "m1", "message": "material normalization failed: material constraint"}]
+    assert orch.error_rows == [
+        {
+            "record_ref": "m1",
+            "message": "material normalization failed: material constraint",
+            "category": REQUIRED_MAPPING,
+        }
+    ]
 
 
 # ── approved ERP person: additive phone lines, ERP fields untouched ─────────
