@@ -197,37 +197,13 @@ else:
          From linda_logistics_v6
          ═══════════════════════════════════════════ -->
 
-    <!-- Action: Auto Dispatch to Carrier -->
+    <!-- Retired: reservation is not authority to dispatch. Guarded physical
+         dispatch belongs to plasticos_logistics/Linda after real load checks. -->
     <record id="action_auto_dispatch_carrier" model="ir.actions.server">
-        <field name="name">Auto Dispatch to Carrier</field>
+        <field name="name">Retired: Carrier Dispatch on Reservation</field>
         <field name="model_id" ref="stock.model_stock_picking"/>
         <field name="state">code</field>
-        <field name="code">
-# Skip during imports or when automations disabled
-if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
-    pass
-else:
-    Load = env['plasticos.load']
-    for picking in records.filtered(lambda p: p.state == 'assigned' and p.carrier_id):
-        # Find linked load via shared sale order
-        load = Load.search([('sale_order_id', '=', picking.sale_id.id)], limit=1) if picking.sale_id else Load
-        # Check if load already dispatched
-        if load and load.dispatch_sent:
-            continue
-
-        # Duplicate guard via chatter
-        if picking.message_ids.filtered(lambda m: 'Dispatch sent to carrier' in (m.body or '')):
-            continue
-
-        # Send dispatch email via template
-        template = env.ref('plasticos_automation.email_template_trucker_followup', raise_if_not_found=False)
-        if template and picking.carrier_id.email:
-            template.send_mail(picking.id, force_send=False)
-            picking.message_post(body=f"Dispatch sent to carrier {picking.carrier_id.name}")
-            # Stamp dispatch_sent on the load for tracking
-            if load:
-                load.write({'dispatch_sent': fields.Datetime.now()})
-        </field>
+        <field name="code">pass</field>
     </record>
 
     <!-- Rule: Trigger Carrier Dispatch on DO Ready -->
@@ -238,7 +214,7 @@ else:
         <field name="filter_pre_domain">[('state', '!=', 'assigned')]</field>
         <field name="filter_domain">[('state', '=', 'assigned'), ('carrier_id', '!=', False)]</field>
         <field name="action_server_ids" eval="[(4, ref('action_auto_dispatch_carrier'))]"/>
-        <field name="active" eval="True"/>
+        <field name="active" eval="False"/>
     </record>
 
     <!-- Action: Auto Calculate Invoice Penalties -->
