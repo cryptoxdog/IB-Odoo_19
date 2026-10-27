@@ -2,6 +2,14 @@
 
 from unittest.mock import patch
 
+from psycopg2 import IntegrityError
+
+from odoo.addons.plasticos_crm_bridge.models.crm_mapping import COMPANY_TYPE_MAPPING, UNAPPROVED_LEAD_STATUSES
+from odoo.addons.plasticos_crm_sync.services.import_summary import (
+    REQUIRED_MAPPING,
+    build_run_summary,
+    business_acceptance,
+)
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
 from odoo.exceptions import UserError
 from odoo.tests import tagged
@@ -25,12 +33,17 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertIn("BLOCKED_STAGE_APPROVAL: 2c=Qualified/COLD", self._messages(orch))
         self.assertIn("VanillaSoft ContactID crm45-cold Lead Status: 2c=Qualified/COLD", cold.description or "")
 
-        mail_before = self.env["mail.mail"].search_count([])
+        queued = self.env["mail.mail"]
+        before_approved = queued.search([])
+        orch._upsert_lead(self.connection, self._lead("crm45-mail-new", lead_status_raw="New"))
+        approved_mails = queued.search([]) - before_approved
+        before_dnc = queued.search([])
         dnc = orch._upsert_lead(self.connection, self._lead("crm45-dnc", lead_status_raw="7=Do Not Call"))
         self.assertNotEqual(dnc.stage_id, self.env.ref("plasticos_crm_bridge.stage_dead_lead"))
         self.assertFalse(dnc.stage_id.is_won)
-        self.assertEqual(self.env["mail.mail"].search_count([]), mail_before)
-        self.assertFalse(self.env["mail.mail"].search([("model", "=", "crm.lead"), ("res_id", "=", dnc.id)]))
+        dnc_mails = queued.search([]) - before_dnc
+        self.assertEqual(len(dnc_mails), len(approved_mails))
+        self.assertFalse(any("blacklist" in (mail.subject or "").casefold() for mail in dnc_mails))
 
         hot = orch._upsert_lead(self.connection, self._lead("crm45-hot", lead_status_raw="2a=Qualified/HOT"))
         self.assertEqual(hot.stage_id, self.env.ref("plasticos_crm_bridge.stage_qualified_hot"))
@@ -199,10 +212,11 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertEqual(same_profile.polymer_id.code, "LDPE")
         self.assertEqual(same_profile.form_id.code, "FILM")
 
-    def test_existing_buyer_tag_is_reused_when_names_collide(self):
+    def test_existing_buyer_tag_is_reused_and_a_second_name_is_rejected(self):
         adopted = self.env.ref("plasticos_crm_bridge.crm_tag_buyer")
-        self.env["crm.tag"].create({"name": "Buyer"})
-        before = self.env["crm.tag"].search_count([("name", "=", "Buyer")])
+        with self.assertRaises(Exception), self.env.cr.savepoint():
+            self.env["crm.tag"].create({"name": "Buyer"})
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
         company = self.env["res.partner"].create({"name": "CRM45 Tag Maker", "is_company": True})
         ranks = (company.supplier_rank, company.customer_rank, company.category_id.ids)
         orch = SyncOrchestrator(self.env)
@@ -210,12 +224,12 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
             self.connection,
             self._lead("crm45-tag-replay", company="CRM45 Tag Maker", custom_fields={"Buyer/Supplier": "Buyer"}),
         )
-        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), before)
         self.assertEqual(lead.tag_ids.filtered(lambda tag: tag.name == "Buyer"), adopted)
         orch._upsert_lead(
             self.connection,
             self._lead("crm45-tag-replay", company="CRM45 Tag Maker", custom_fields={"Buyer/Supplier": "Buyer"}),
         )
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
         self.assertEqual(lead.tag_ids.filtered(lambda tag: tag.name == "Buyer"), adopted)
         self.assertEqual((company.supplier_rank, company.customer_rank, company.category_id.ids), ranks)
 
@@ -317,3 +331,284 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertIn("VanillaSoft ContactID crm45-pps-bound Size (PPS): 48 inch", notes)
         self.assertIn("VanillaSoft ContactID crm45-pps-bound Notes (PPS): lined only", notes)
         self.assertNotIn("lined only", bound.description or "")
+
+        replay = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-pps-generic",
+                custom_fields={"Material (PPS)": "PP Supersacs", "Notes (PPS)": "PPS-PROFILE-ONLY"},
+            ),
+        )
+        replay_notes = self._profiles(replay).freeform_notes or ""
+        self.assertNotIn("PPS-PROFILE-ONLY", replay_notes)
+        self.assertIn("BLOCKED_PPS_PROFILE_IDENTITY", self._messages(orch))
+
+    def test_exact_pe_and_one_seven_survive_case_replay_and_unknown_does_not_guess(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("crm45-pe-case", custom_fields={"Materials": "  PE  "}))
+        profile = self._profiles(lead)
+        self.assertEqual(profile.polymer_id.code, "HDPE")
+        self.assertFalse(profile.form_id)
+        self.assertFalse(profile.source_type_id)
+        orch._upsert_lead(self.connection, self._lead("crm45-pe-case", custom_fields={"Materials": "PE"}))
+        self.assertEqual(len(self._profiles(lead)), 1)
+
+        bottles = orch._upsert_lead(
+            self.connection, self._lead("crm45-17-case", custom_fields={"Materials": "  1-7  "})
+        )
+        bottle = self._profiles(bottles)
+        self.assertEqual(bottle.polymer_id.code, "1_7_COMMINGLED_BOTTLES")
+        self.assertEqual(bottle.form_id.code, "BOTTLES")
+        self.assertEqual(bottle.source_type_id.code, "POST_CONSUMER")
+        attributes_before = self.env["plasticos.material.attribute"].search_count([])
+        unknown = orch._upsert_lead(
+            self.connection, self._lead("crm45-unknown", custom_fields={"Materials": "mystery fluff"})
+        )
+        self.assertFalse(self._profiles(unknown))
+        self.assertEqual(self.env["plasticos.material.attribute"].search_count([]), attributes_before)
+        self.assertTrue(any(row["category"] == REQUIRED_MAPPING for row in orch.error_rows))
+
+        facility = self._facility("CRM45 PE Facility")
+        self.env["plasticos.facility.profile"].create({"partner_id": facility.id})
+        person = self.env["res.partner"].create({"name": "CRM45 PE Person", "parent_id": facility.id})
+        self._erp_marker(person, "4517")
+        person_orch = SyncOrchestrator(self.env)
+        person_orch._crosswalk = {"crm45-pe-person": "4517"}
+        person_orch._crosswalk_ready = True
+        person_orch._upsert_lead(self.connection, self._lead("crm45-pe-person", custom_fields={"Materials": "PE"}))
+        owned = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        self.assertEqual(owned.polymer_id.code, "HDPE")
+        self.assertFalse(owned.form_id)
+
+    def test_same_section_contradiction_is_not_stored_by_dropping_the_hint(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-conflict",
+                custom_fields={"Material (HDPE)": "HDPE Drums", "Type (HDPE)": "LDPE Film"},
+            ),
+        )
+        self.assertFalse(self._profiles(lead))
+        self.assertTrue(any("conflicting material evidence" in message for message in self._messages(orch)))
+        self.assertTrue(any(row["category"] == REQUIRED_MAPPING for row in orch.error_rows))
+        orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-conflict",
+                custom_fields={"Material (HDPE)": "HDPE Drums", "Type (HDPE)": "LDPE Film"},
+            ),
+        )
+        self.assertFalse(self._profiles(lead))
+
+        supported = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-unsupported-hint",
+                custom_fields={"Material (HDPE)": "HDPE Drums", "Type (HDPE)": "not a resin"},
+            ),
+        )
+        profile = self._profiles(supported)
+        self.assertEqual(profile.polymer_id.code, "HDPE")
+        self.assertEqual(profile.form_id.code, "DRUMS")
+        self.assertTrue(any("unsupported type hint" in message for message in self._messages(orch)))
+        self.assertFalse(
+            any(
+                "conflicting material evidence" in row["message"] and row["record_ref"] == "crm45-unsupported-hint"
+                for row in orch.error_rows
+            )
+        )
+
+    def test_cross_section_unknown_resin_does_not_borrow_hdpe(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-cross-unknown",
+                custom_fields={"Material (LDPE)": "unknown resin", "Type (HDPE)": "HDPE Drums"},
+            ),
+        )
+        self.assertFalse(self._profiles(lead).filtered(lambda profile: profile.polymer_id.code == "HDPE"))
+
+    def test_stored_source_conflict_is_kept_and_reported(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("crm45-source", custom_fields={"Materials": "1-7"}))
+        profile = self._profiles(lead)
+        industrial = self.env["plasticos.source.type"].search([("code", "=", "POST_INDUSTRIAL")], limit=1)
+        profile.source_type_id = industrial
+        orch.error_rows.clear()
+        orch._upsert_lead(self.connection, self._lead("crm45-source", custom_fields={"Materials": "1-7"}))
+        self.assertEqual(profile.source_type_id, industrial)
+        self.assertTrue(
+            any(row["category"] == REQUIRED_MAPPING and "source unchanged" in row["message"] for row in orch.error_rows)
+        )
+        summary = build_run_summary(
+            type(
+                "Run",
+                (),
+                {
+                    "contacts_seen": 1,
+                    "calls_seen": 0,
+                    "contacts_created": 1,
+                    "contacts_updated": 0,
+                    "contacts_unchanged": 0,
+                    "contacts_duplicate_rejected": 0,
+                    "contacts_failed": 0,
+                    "calls_created": 0,
+                    "calls_updated": 0,
+                    "calls_unchanged": 0,
+                    "calls_failed": 0,
+                    "status": "success",
+                    "orphans_buffered": 0,
+                },
+            )(),
+            error_rows=orch.error_rows,
+        )
+        self.assertEqual(summary["final_status"], "partial")
+        self.assertEqual(business_acceptance(summary), "FAIL")
+        self.assertIn("category", summary["errors"][0])
+
+    def test_unapproved_statuses_do_not_move_stage_or_send_mail(self):
+        self.assertEqual(len(UNAPPROVED_LEAD_STATUSES), 8)
+        orch = SyncOrchestrator(self.env)
+        new_stage = self.env.ref("plasticos_crm_bridge.stage_new")
+        warm = self.env.ref("plasticos_crm_bridge.stage_qualified_warm")
+        dead = self.env.ref("plasticos_crm_bridge.stage_dead_lead")
+        won = self.env.ref("plasticos_crm_bridge.stage_active_supplier")
+        queued = self.env["mail.mail"]
+        before_fresh = queued.search([])
+        fresh = orch._upsert_lead(self.connection, self._lead("crm45-default-new", lead_status_raw="New"))
+        self.assertEqual(fresh.stage_id, new_stage)
+        fresh_mails = len(queued.search([]) - before_fresh)
+        for index, raw in enumerate(UNAPPROVED_LEAD_STATUSES):
+            before_created = queued.search([])
+            created = orch._upsert_lead(self.connection, self._lead(f"crm45-new-{index}", lead_status_raw=raw))
+            self.assertEqual(created.stage_id, new_stage)
+            self.assertFalse(created.stage_id.is_won)
+            self.assertNotEqual(created.stage_id, warm)
+            self.assertNotEqual(created.stage_id, dead)
+            self.assertIn(raw, created.description or "")
+            created_mails = queued.search([]) - before_created
+            self.assertEqual(len(created_mails), fresh_mails)
+            self.assertFalse(any("blacklist" in (mail.subject or "").casefold() for mail in created_mails))
+
+        existing = orch._upsert_lead(self.connection, self._lead("crm45-existing", lead_status_raw="2a=Qualified/HOT"))
+        hot = existing.stage_id
+        for raw in UNAPPROVED_LEAD_STATUSES:
+            orch._upsert_lead(self.connection, self._lead("crm45-existing", lead_status_raw=raw))
+            self.assertEqual(existing.stage_id, hot)
+        existing.stage_id = won
+        for raw in UNAPPROVED_LEAD_STATUSES:
+            orch._upsert_lead(self.connection, self._lead("crm45-existing", lead_status_raw=raw))
+            self.assertEqual(existing.stage_id, won)
+        existing.write({"active": False})
+        for raw in UNAPPROVED_LEAD_STATUSES:
+            orch._upsert_lead(self.connection, self._lead("crm45-existing", lead_status_raw=raw))
+            self.assertFalse(existing.active)
+            self.assertEqual(existing.stage_id, won)
+
+    def test_category_failure_rolls_back_the_tag_and_the_cursor_continues(self):
+        company = self.env["res.partner"].create({"name": "CRM45 Rollback", "is_company": True})
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(self.connection, self._lead("crm45-rollback", company="CRM45 Rollback"))
+        lead.partner_id = company
+        real_write = type(company).write
+
+        def fail_category(records, vals):
+            if records._name == "res.partner" and "category_id" in vals:
+                raise IntegrityError("category constraint")
+            return real_write(records, vals)
+
+        with patch.object(type(company), "write", fail_category):
+            orch._upsert_lead(
+                self.connection,
+                self._lead(
+                    "crm45-rollback",
+                    company="CRM45 Rollback",
+                    custom_fields={"Buyer/Supplier": "Buyer", "Company Type": "Manufacturer"},
+                ),
+            )
+        self.assertFalse(lead.tag_ids)
+        self.assertNotIn(self.env.ref("plasticos_crm_bridge.categ_manufacturer"), company.category_id)
+        self.assertEqual(orch.last_lead_outcome, "updated")
+        self.assertTrue(
+            any(
+                row["category"] == REQUIRED_MAPPING and "classification failed" in row["message"]
+                for row in orch.error_rows
+            )
+        )
+        nxt = orch._upsert_lead(self.connection, self._lead("crm45-after-rollback"))
+        self.assertTrue(nxt)
+        self.assertEqual(orch.last_lead_outcome, "created")
+
+    def test_person_material_constraint_failure_keeps_the_person(self):
+        facility = self._facility("CRM45 Person Constraint")
+        self.env["plasticos.facility.profile"].create({"partner_id": facility.id})
+        person = self.env["res.partner"].create({"name": "CRM45 Constrained", "parent_id": facility.id})
+        self._erp_marker(person, "4599")
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"crm45-person-fail": "4599"}
+        orch._crosswalk_ready = True
+        before = self.env["plasticos.material.profile"].search_count([("partner_id", "=", facility.id)])
+        real = type(self.env["plasticos.material.profile"]).reuse_lead_facility_material
+
+        def fail_after(records, facility_profile, polymer, forms, note_line=None):
+            real(records, facility_profile, polymer, forms, note_line=note_line)
+            raise IntegrityError("person material constraint")
+
+        with patch.object(type(self.env["plasticos.material.profile"]), "reuse_lead_facility_material", fail_after):
+            orch._upsert_lead(
+                self.connection,
+                self._lead("crm45-person-fail", custom_fields={"Materials": "HDPE Drums"}),
+            )
+        self.assertEqual(
+            self.env["plasticos.material.profile"].search_count([("partner_id", "=", facility.id)]), before
+        )
+        self.assertTrue(person.exists())
+        self.assertTrue(any("material normalization failed" in message for message in self._messages(orch)))
+        orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-person-fail", custom_fields={"Materials": "HDPE Drums"}),
+        )
+        self.assertEqual(
+            self.env["plasticos.material.profile"].search_count([("partner_id", "=", facility.id)]), before + 1
+        )
+
+    def test_company_types_land_on_registered_categories_only(self):
+        self.assertEqual(len(COMPANY_TYPE_MAPPING), 10)
+        orch = SyncOrchestrator(self.env)
+        for label, xmlid in COMPANY_TYPE_MAPPING.items():
+            company = self.env["res.partner"].create({"name": f"CRM45 {label}", "is_company": True})
+            external = f"crm45-type-{label}"
+            lead = orch._upsert_lead(self.connection, self._lead(external, company=company.name))
+            lead.partner_id = company
+            ranks = (company.supplier_rank, company.customer_rank, company.company_role)
+            orch._upsert_lead(
+                self.connection,
+                self._lead(
+                    external, company=company.name, custom_fields={"Company Type": label, "Buyer/Supplier": "Buyer"}
+                ),
+            )
+            self.assertIn(self.env.ref(xmlid), company.category_id)
+            self.assertNotIn(self.env.ref("plasticos_crm_bridge.categ_buyer"), company.category_id)
+            self.assertEqual((company.supplier_rank, company.customer_rank, company.company_role), ranks)
+            orch._upsert_lead(
+                self.connection,
+                self._lead(external, company=company.name, custom_fields={"Company Type": label}),
+            )
+            self.assertEqual(
+                company.category_id.filtered(lambda category, xmlid=xmlid: category == self.env.ref(xmlid)),
+                self.env.ref(xmlid),
+            )
+        unknown = self.env["res.partner"].create({"name": "CRM45 Unknown Type", "is_company": True})
+        lead = orch._upsert_lead(self.connection, self._lead("crm45-type-unknown", company=unknown.name))
+        lead.partner_id = unknown
+        before = unknown.category_id.ids
+        orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-type-unknown", company=unknown.name, custom_fields={"Company Type": "Not Registered"}),
+        )
+        self.assertEqual(unknown.category_id.ids, before)
+        self.assertTrue(
+            any("BLOCKED_COMPANY_TYPE_VALUE: Not Registered" in message for message in self._messages(orch))
+        )

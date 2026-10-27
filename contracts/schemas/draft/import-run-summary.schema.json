@@ -80,6 +80,20 @@
           "message": {
             "type": "string",
             "maxLength": 2000
+          },
+          "category": {
+            "type": "string",
+            "enum": ["required_mapping", "optional_context"],
+            "description": "Typed producer classification. Absent on rows that are not a mapping outcome."
+          },
+          "error_type": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Exception class recorded for a contained per-record failure."
+          },
+          "informational": {
+            "type": "boolean",
+            "description": "True when the row is a scope notice rather than a mapping failure."
           }
         }
       }

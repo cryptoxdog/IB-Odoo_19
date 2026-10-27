@@ -448,6 +448,26 @@ def provenance_line(external_id: str, field_name: str, value: str) -> str:
     return f"VanillaSoft ContactID {external_id} {field_name}: {value}"
 
 
+# Exact lines this importer appends from the approved "pp supersacs" phrase.
+# They are not prior identity. A longer preexisting supersac note still is.
+_IMPORTER_SUPERSAC_LINES = frozenset({"pp supersacs"})
+
+
+def _preexisting_supersac_profile(profile) -> bool:
+    """True when supersac identity was already on the profile, not written by this importer."""
+    if "supersac" in (profile.sub_grade or "").casefold():
+        return True
+    for raw in (profile.freeform_notes or "").splitlines():
+        line = " ".join(raw.split())
+        folded = line.casefold()
+        if "supersac" not in folded:
+            continue
+        if folded in _IMPORTER_SUPERSAC_LINES or folded.startswith("vanillasoft contactid "):
+            continue
+        return True
+    return False
+
+
 def provenance_already_recorded(
     current, external_id: str, field_name: str, value: str, *, shared_owner: bool = False
 ) -> bool:
@@ -2203,10 +2223,15 @@ class SyncOrchestrator:
             normalize_material,
         )
 
-        normalized = normalize_material(self.env, phrase, structured=structured)
-        if structured and (normalized.unresolved or not normalized.polymer):
-            return normalize_material(self.env, phrase), True
-        return normalized, False
+        combined = normalize_material(self.env, phrase, structured=structured)
+        if "conflicting material evidence" in combined.unresolved:
+            return combined, "conflict"
+        hint = structured.get("type") if isinstance(structured, dict) else None
+        if hint:
+            hint_result = normalize_material(self.env, hint)
+            if "unresolved material" in hint_result.unresolved:
+                return combined, "unsupported"
+        return combined, None
 
     def _store_normalized_materials(
         self, lead, texts, partner=None, facility_profile=None, structured=None, external_id=None
@@ -2217,9 +2242,14 @@ class SyncOrchestrator:
         ref = self._material_ref(lead, external_id)
         use_structured = structured if structured and len(texts) == 1 else None
         for text in texts:
-            normalized, dropped_hint = self._resolve_material(text, use_structured)
-            if dropped_hint:
-                self._append_classified_error(ref, f"BLOCKED_UNRESOLVED: {text}", OPTIONAL_CONTEXT)
+            normalized, hint_status = self._resolve_material(text, use_structured)
+            if hint_status == "conflict" or "conflicting material evidence" in normalized.unresolved:
+                self._append_classified_error(ref, f"conflicting material evidence: {text}", REQUIRED_MAPPING)
+                continue
+            if hint_status == "unsupported":
+                self._append_classified_error(
+                    ref, f"BLOCKED_UNRESOLVED: unsupported type hint for {text}", OPTIONAL_CONTEXT
+                )
             if normalized.unresolved or not normalized.polymer:
                 detail = ", ".join(normalized.unresolved) or "unresolved material"
                 self._append_classified_error(
@@ -2255,14 +2285,7 @@ class SyncOrchestrator:
             return
         ref = self._material_ref(lead, external_id)
         existing = self._profiles_for_material(partner, facility_profile)
-        distinguished_ids = set(
-            existing.filtered(
-                lambda profile: (
-                    "supersac" in (profile.freeform_notes or "").casefold()
-                    or "supersac" in (profile.sub_grade or "").casefold()
-                )
-            ).ids
-        )
+        distinguished_ids = set(existing.filtered(_preexisting_supersac_profile).ids)
         for _section, slot in sections.items():
             phrases = list(slot["phrases"])
             hints = list(slot["hints"])
@@ -2446,7 +2469,7 @@ class SyncOrchestrator:
                 self._apply_crm_classification_body(lead, dto, partner=partner)
         except Exception as exc:  # noqa: BLE001 - classification must not drop the admitted contact
             _logger.warning("CRM classification failed for %s: %s", dto.external_id, exc)
-            self._append_classified_error(dto.external_id, f"classification failed: {exc}", OPTIONAL_CONTEXT)
+            self._append_classified_error(dto.external_id, f"classification failed: {exc}", REQUIRED_MAPPING)
 
     def _apply_crm_classification_body(self, lead, dto, partner=None) -> None:
         from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
@@ -2533,6 +2556,16 @@ class SyncOrchestrator:
                 profile.sub_grade = normalized.grade
         if normalized.source_type and not profile.source_type_id:
             profile.source_type_id = normalized.source_type
+        elif normalized.source_type and profile.source_type_id and profile.source_type_id != normalized.source_type:
+            self._append_classified_error(
+                str(profile.id),
+                (
+                    f"source {normalized.source_type.code} conflicts with stored source "
+                    f"{profile.source_type_id.code} on profile {profile.id}; source unchanged"
+                ),
+                REQUIRED_MAPPING,
+            )
+            return
         if not normalized.attributes:
             return
         missing = normalized.attributes - profile.material_attribute_ids

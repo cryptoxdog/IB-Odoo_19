@@ -102,35 +102,14 @@ class CrmLeadPlastOS(models.Model):
 
     @api.model
     def _plasticos_adopt_crm_role_tag(self, name, xmlid):
-        """Bind the role-tag XML id to an existing crm.tag, or create the only one.
+        """Bind the role-tag XML id to one existing crm.tag, or create the only one.
 
-        Module data calls this instead of inserting Buyer and Supplier by XML
-        id. A database that already has those names keeps its row.
+        Module data and the upgrade pre-migrate call this before any seed
+        record. A stale or wrong-model XML id is not rebound.
         """
-        module, xml_name = xmlid.split(".", 1)
-        existing_data = (
-            self.env["ir.model.data"]
-            .sudo()
-            .search(  # installer owns ir.model.data, not a CRM user
-                [("module", "=", module), ("name", "=", xml_name), ("model", "=", "crm.tag")],
-                limit=1,
-            )
-        )
-        if existing_data:
-            return True
-        tag = self.env["crm.tag"].sudo().search([("name", "=", name)], order="id", limit=1)  # module data, no CRM user
-        if not tag:
-            tag = self.env["crm.tag"].sudo().create({"name": name})  # module data creates the only role tag
-        self.env["ir.model.data"].sudo().create(  # installer binds the XML id to that tag
-            {
-                "module": module,
-                "name": xml_name,
-                "model": "crm.tag",
-                "res_id": tag.id,
-                "noupdate": True,
-            }
-        )
-        return True
+        from .crm_tag_adoption import adopt_role_tag  # noqa: PLC0415
+
+        return adopt_role_tag(self.env, name, xmlid)
 
     @api.depends("web_lead_ids")
     def _compute_web_lead_count(self):
