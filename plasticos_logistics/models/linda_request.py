@@ -240,7 +240,11 @@ class PlasticosLogisticsRequest(models.Model):
         ondelete="set null",
         help="Native mail.mail carrying the party message.",
     )
-    send_attempt_count = fields.Integer(readonly=True, help="Native send attempts started for this mail.")
+    send_attempt_count = fields.Integer(
+        default=0,
+        readonly=True,
+        help="Native send attempts started for this mail. Empty stored values count as zero.",
+    )
     origin_request_id = fields.Many2one(
         "plasticos.logistics.request",
         string="Canceled Issue",
@@ -780,13 +784,26 @@ class PlasticosLogisticsRequest(models.Model):
     # ── Queue protection and reconciliation ──────────────────
 
     def _cancel_queued(self, reason):
-        """Cancel queued requests and their unsent mail. Sent history is never touched."""
+        """Cancel queued requests that were never handed to SMTP.
+
+        An attempt whose outcome is still open is ``unknown``, not ``canceled``:
+        the message may have reached the party. Native cancellation reads that
+        unknown row and queues the notice. A raw state write does not.
+        Sent history is never touched.
+        """
         # sudo: mail.mail is readable and writable only by system users, and the caller may be
         # any user editing or canceling the PO. Only Linda's own unsent mail is touched.
         queued = self.sudo().filtered(lambda request: request.state == "queued")
-        outgoing = queued.mail_id.filtered(lambda mail: mail.state == "outgoing")
+        uncertain = queued.filtered(lambda request: request.send_attempt_count)
+        fresh = queued - uncertain
+        if uncertain:
+            uncertain.mail_id.filtered(lambda mail: mail.state == "outgoing").write(
+                {"state": "cancel", "failure_reason": "linda:prior_send_outcome_unknown"}
+            )
+            uncertain.write({"state": "unknown", "state_reason": "prior_send_outcome_unknown"})
+        outgoing = fresh.mail_id.filtered(lambda mail: mail.state == "outgoing")
         outgoing.write({"state": "cancel", "failure_reason": f"linda:{reason}"})
-        queued.write({"state": "canceled", "state_reason": reason})
+        fresh.write({"state": "canceled", "state_reason": reason})
 
     def _current_block_reason(self):
         """Why this queued request may no longer be delivered, or ``False``."""
@@ -824,11 +841,10 @@ class PlasticosLogisticsRequest(models.Model):
         """Recheck each Linda mail at send time.
 
         Returns ``(withheld, sendable, held)``: Linda mails that must not reach
-        native sending (now canceled), Linda mails cleared to send, and issue
-        mails held back this run because an earlier cancellation notice to the
-        same party is still pending (they stay queued for the next run). A mail
-        whose request already recorded an attempt without an outcome is
-        uncertain: it may have reached the party, so it is not sent again.
+        native sending, Linda mails cleared to send, and issue mails held back
+        because an earlier cancellation notice to the same party is not yet
+        confirmed sent. Same-batch selection is not delivery. Unknown, failed,
+        and blocked notices keep the hold, and an uncertain notice is not retried.
         """
         withheld = sendable = held = self.env[MAIL_MAIL]
         # Ascending mail id, the order native sending uses, so a notice clears before its reissue.
@@ -843,17 +859,17 @@ class PlasticosLogisticsRequest(models.Model):
                 mail.write({"state": "cancel", "failure_reason": "linda:prior_send_outcome_unknown"})
                 request.write({"state": "unknown", "state_reason": "prior_send_outcome_unknown"})
                 withheld |= mail
+            elif request.state in ("unknown", "exception"):
+                # Do not auto-retry, and do not cancel the mail: that reconcile
+                # path would relabel the request and drop the reissue hold.
+                withheld |= mail
             elif reason := request._current_block_reason():
                 request.write({"state": "queued"})
                 request._cancel_queued(reason)
                 withheld |= mail
-            elif (
-                request._pending_cancellation_notices().mail_id.filtered(
-                    lambda notice_mail: notice_mail.state == "outgoing"
-                )
-                - sendable
-            ):
-                # A reissue never overtakes the cancellation notice owed to the same party.
+            elif request._pending_cancellation_notices():
+                # Confirmed delivery releases the reissue. Being selected beside
+                # the notice in this batch does not.
                 held |= mail
             else:
                 # First attempt, or a person explicitly retried a failed/unknown delivery.
@@ -862,7 +878,11 @@ class PlasticosLogisticsRequest(models.Model):
         return withheld, sendable, held
 
     def _pending_cancellation_notices(self):
-        """Queued cancellation notices this issue's party must receive before it."""
+        """Notices this issue must not overtake until one is confirmed sent.
+
+        Shadow notices are not a delivery obligation. Queued, unknown, failed,
+        and blocked notices are. A later queue run does not treat them as done.
+        """
         self.ensure_one()
         cancel_purpose = CANCEL_PURPOSE_BY_ISSUE.get(self.purpose)
         if not cancel_purpose:
@@ -872,7 +892,7 @@ class PlasticosLogisticsRequest(models.Model):
             [
                 ("purpose", "=", cancel_purpose),
                 (order_field, "=", self._source_order().id),
-                ("state", "=", "queued"),
+                ("state", "in", ("queued", "unknown", "exception", "blocked")),
                 ("id", "<", self.id),
                 "|",
                 ("partner_id", "=", self.partner_id.id),

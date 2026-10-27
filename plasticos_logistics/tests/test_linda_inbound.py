@@ -241,6 +241,7 @@ class TestLindaInbound(PlasticosTestCase):
         po.button_confirm()
         with self._mail_sink():
             self.env["mail.mail"].process_email_queue()
+            self.env["mail.mail"].process_email_queue()
         second = self._issues(po) - first
         self.assertEqual((second.revision, second.state, notice.state), (2, "sent", "sent"))
 
@@ -265,6 +266,7 @@ class TestLindaInbound(PlasticosTestCase):
         po.button_draft()
         po.button_confirm()
         with self._mail_sink():
+            self.env["mail.mail"].process_email_queue()
             self.env["mail.mail"].process_email_queue()
         second = self._issues(po) - first
         refs = f"{first.mail_id.message_id} {second.mail_id.message_id}"

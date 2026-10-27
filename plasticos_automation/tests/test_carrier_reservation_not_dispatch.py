@@ -36,7 +36,6 @@ class TestCarrierReservationIsNotDispatch(TransactionCase):
                         0,
                         0,
                         {
-                            "name": product.name,
                             "product_id": product.id,
                             "product_uom": product.uom_id.id,
                             "product_uom_qty": 1,

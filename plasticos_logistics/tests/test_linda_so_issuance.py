@@ -86,7 +86,8 @@ class TestLindaSoIssuance(PlasticosTestCase):
         return so, first
 
     def _to_buyer(self, sink):
-        return [message for message in sink if message["To"] == BUYER_EMAIL]
+        """Messages addressed to the buyer, including Odoo's formatted ``Name <email>`` header."""
+        return [message for message in sink if BUYER_EMAIL in (message["To"] or "")]
 
     def _legacy_mails(self, so):
         return self.env["mail.mail"].search(
@@ -99,7 +100,7 @@ class TestLindaSoIssuance(PlasticosTestCase):
 
     def _reopen(self, so):
         """Native cancel then reset to quotation; a later confirmation is a new release."""
-        so._action_cancel()
+        so.action_cancel()
         so.action_draft()
 
     @contextmanager
@@ -640,10 +641,14 @@ class TestLindaSoIssuance(PlasticosTestCase):
         with self._mail_sink() as sink:
             self.env["mail.mail"].process_email_queue()
         delivered = self._to_buyer(sink)
-        self.assertEqual(
-            [message["Subject"] for message in delivered],
-            [f"CANCELED: Sales Order {so.name}", second.mail_id.subject],
-        )
+        self.assertEqual([message["Subject"] for message in delivered], [f"CANCELED: Sales Order {so.name}"])
+        (notice | second).invalidate_recordset()
+        self.assertEqual((notice.state, second.state, second.send_attempt_count), ("sent", "queued", 0))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        delivered = self._to_buyer(sink)
+        self.assertEqual([message["Subject"] for message in delivered], [second.mail_id.subject])
         (notice | second).invalidate_recordset()
         self.assertEqual((notice.state, second.state), ("sent", "sent"))
 
@@ -670,6 +675,7 @@ class TestLindaSoIssuance(PlasticosTestCase):
         self._reopen(so)
         so.action_confirm()
         with self._mail_sink():
+            self.env["mail.mail"].process_email_queue()
             self.env["mail.mail"].process_email_queue()
         second = self._requests(so) - first
         self.assertEqual(second.state, "sent")
@@ -763,3 +769,83 @@ class TestLindaSoIssuance(PlasticosTestCase):
                     "origin_request_id": first.id,
                 }
             )
+
+    def test_raw_state_write_does_not_authorize_an_attempted_cancellation(self):
+        """A raw cancel write keeps the uncertain attempt and does not queue a notice."""
+        self._set_mode("live")
+        so = self._new_so()
+        so.action_confirm()
+        request = self._requests(so)
+        request.write({"send_attempt_count": 1})
+        mail_count = self.env["mail.mail"].search_count([])
+
+        so.write({"state": "cancel"})
+
+        self.assertEqual(so.state, "cancel")
+        self.assertFalse(self._notices(so))
+        self.assertFalse(request.cycle_closed)
+        self.assertEqual((request.state, request.state_reason), ("unknown", "prior_send_outcome_unknown"))
+        self.assertEqual(request.mail_id.state, "cancel")
+        self.assertEqual(self.env["mail.mail"].search_count([]), mail_count)
+
+    def test_same_batch_notice_failure_leaves_the_reissue_unattempted(self):
+        """A notice that fails in the shared queue run must not hand the reissue to SMTP."""
+        so, first = self._sent_so()
+        self._reopen(so)
+        notice = self._notices(so)
+        so.action_confirm()
+        second = self._requests(so) - first
+
+        def refuse(*args, **kwargs):
+            raise ConnectionRefusedError("smtp down")
+
+        with self._mail_sink(), patch.object(type(self.env["ir.mail_server"]), "_connect__", refuse):
+            self.env["mail.mail"].process_email_queue()
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "exception")
+        self.assertEqual((second.state, second.send_attempt_count, second.mail_id.state), ("queued", 0, "outgoing"))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_buyer(sink))
+        second.invalidate_recordset()
+        self.assertEqual(second.send_attempt_count, 0)
+
+    def test_same_batch_unknown_notice_leaves_the_reissue_unattempted(self):
+        """A same-batch unknown notice is not retried and does not release the reissue."""
+        so, first = self._sent_so()
+        self._reopen(so)
+        notice = self._notices(so)
+        so.action_confirm()
+        second = self._requests(so) - first
+
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self.env["mail.mail"].process_email_queue()
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "unknown")
+        self.assertEqual((second.state, second.send_attempt_count, second.mail_id.state), ("queued", 0, "outgoing"))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_buyer(sink))
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "unknown")
+        self.assertEqual(second.send_attempt_count, 0)
+
+    def test_unknown_notice_from_an_earlier_batch_holds_the_reissue(self):
+        """A previous unknown notice still gates the replacement order."""
+        so, first = self._sent_so()
+        so.action_cancel()
+        notice = self._notices(so)
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self._process_queue(notice)
+        self.assertEqual(notice.state, "unknown")
+        so.action_draft()
+        so.action_confirm()
+        second = self._requests(so) - first
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_buyer(sink))
+        second.invalidate_recordset()
+        self.assertEqual((second.state, second.send_attempt_count), ("queued", 0))

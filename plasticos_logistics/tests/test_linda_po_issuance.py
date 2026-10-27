@@ -7,9 +7,13 @@ controlled sink patched onto ir.mail_server: no message leaves the test
 database.
 """
 
+import re
 import smtplib
+import subprocess
+import tempfile
 import zlib
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import patch
 
 from odoo import fields
@@ -148,6 +152,37 @@ class TestLindaPoIssuance(PlasticosTestCase):
             if len(text) >= 4:
                 markers.append(text)
         return markers
+
+    def _pdf_of_report_html(self, html):
+        """Convert queued report HTML locally, without calling back into this test transaction.
+
+        Odoo skips wkhtmltopdf during tests unless ``force_report_rendering`` is set.
+        That flag makes wkhtmltopdf fetch report CSS from this process, and the request
+        waits on the open test transaction. The bytes Linda queues here are the QWeb
+        document. This conversion is how those bytes are inspected as a PDF.
+        """
+        text = html.decode("utf-8", "replace") if isinstance(html, (bytes, bytearray)) else str(html)
+        text = re.sub(r"<link\b[^>]*>", "", text, flags=re.I)
+        text = re.sub(r"<script\b.*?</script>", "", text, flags=re.I | re.S)
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "report.html"
+            target = Path(tmp) / "report.pdf"
+            source.write_text(text, encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    "/usr/local/bin/wkhtmltopdf",
+                    "--disable-external-links",
+                    "--disable-javascript",
+                    "--quiet",
+                    str(source),
+                    str(target),
+                ],
+                check=False,
+                timeout=60,
+                capture_output=True,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            return target.read_bytes()
 
     def _pdf_text(self, raw):
         """Latin-1 PDF bytes plus any FlateDecode streams wkhtmltopdf emitted."""
@@ -616,7 +651,7 @@ class TestLindaPoIssuance(PlasticosTestCase):
             return content, report_format
 
         with patch.object(report_model, "_render_qweb_pdf", spy):
-            po.with_context(force_report_rendering=True).button_confirm()
+            po.button_confirm()
 
         request = self._requests(po)
         self.assertEqual(request.state, "queued")
@@ -628,13 +663,14 @@ class TestLindaPoIssuance(PlasticosTestCase):
         attachment = mail.attachment_ids
         self.assertEqual(len(attachment), 1)
         self.assertTrue(attachment.name.startswith(f"Purchase Order - {po.name}."))
-        pdf = bytes(attachment.raw)
-        self.assertTrue(pdf.startswith(b"%PDF"))
+        document = bytes(attachment.raw)
         supplier_renders = [item for item in captured if item[0] == SUPPLIER_PO_REPORT]
-        self.assertEqual(supplier_renders, [(SUPPLIER_PO_REPORT, pdf, "pdf")])
+        self.assertEqual([item[1] for item in supplier_renders], [document])
         self.assertFalse([item for item in captured if item[0] == "purchase.report_purchaseorder"])
 
         supplier_html = self.env["ir.actions.report"]._render_qweb_html(SUPPLIER_PO_REPORT, po.ids)[0].decode()
+        pdf = self._pdf_of_report_html(document)
+        self.assertTrue(pdf.startswith(b"%PDF"))
         pdf_text = self._pdf_text(pdf)
         for marker in self._buyer_markers(buyer):
             self.assertNotIn(marker, mail.body_html or "")
@@ -646,7 +682,7 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self.assertEqual(len(sink), 1)
         self.assertEqual(sink[0]["To"], SUPPLIER_EMAIL)
         self.assertNotIn(buyer.email, sink[0].as_string())
-        self.assertIn(pdf, self._mime_payloads(sink[0]))
+        self.assertIn(document, self._mime_payloads(sink[0]))
         self.assertEqual(request.state, "sent")
 
         other = self.env["res.partner"].create(
@@ -660,12 +696,11 @@ class TestLindaPoIssuance(PlasticosTestCase):
             }
         )
         second = self._new_po(dest_address_id=other.id)
-        second.with_context(force_report_rendering=True).button_confirm()
+        second.button_confirm()
         second_request = self._requests(second)
         self.assertEqual(second_request.state, "queued")
-        second_pdf = bytes(second_request.mail_id.attachment_ids.raw)
-        self.assertTrue(second_pdf.startswith(b"%PDF"))
-        second_text = self._pdf_text(second_pdf)
+        second_document = bytes(second_request.mail_id.attachment_ids.raw)
+        second_text = self._pdf_text(self._pdf_of_report_html(second_document))
         for marker in self._buyer_markers(other):
             self.assertNotIn(marker, second_text)
 
@@ -687,13 +722,22 @@ class TestLindaPoIssuance(PlasticosTestCase):
             }
         )
         self.assertEqual(report.retrieve_attachment(po), cached)
-        po.with_context(force_report_rendering=True).button_confirm()
+        seen = {}
+        report_model = type(self.env["ir.actions.report"])
+        original = report_model._render_qweb_pdf
+
+        def spy(self_report, report_ref, res_ids=None, data=None):
+            seen["no_cache"] = bool(self_report.env.context.get("report_pdf_no_attachment"))
+            return original(self_report, report_ref, res_ids=res_ids, data=data)
+
+        with patch.object(report_model, "_render_qweb_pdf", spy):
+            po.button_confirm()
+        self.assertTrue(seen.get("no_cache"))
         attachment = self._requests(po).mail_id.attachment_ids
         self.assertEqual(len(attachment), 1)
-        pdf = bytes(attachment.raw)
-        self.assertNotEqual(pdf, poison)
-        self.assertTrue(pdf.startswith(b"%PDF"))
-        pdf_text = self._pdf_text(pdf)
+        document = bytes(attachment.raw)
+        self.assertNotEqual(document, poison)
+        pdf_text = self._pdf_text(self._pdf_of_report_html(document))
         for marker in self._buyer_markers(buyer):
             self.assertNotIn(marker, pdf_text)
 
@@ -702,7 +746,7 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self._set_mode("live")
         buyer = self._dropship_buyer()
         po = self._new_po(dest_address_id=buyer.id)
-        po.with_context(force_report_rendering=True).button_confirm()
+        po.button_confirm()
         request = self._requests(po)
         self.assertEqual(request.state, "queued")
         buyer.street = "44 Changed Wharf"
@@ -1074,8 +1118,14 @@ class TestLindaPoIssuance(PlasticosTestCase):
         with self._mail_sink() as sink:
             self.env["mail.mail"].process_email_queue()
         delivered = self._to_supplier(sink)
-        self.assertEqual([message["Subject"] for message in delivered][0], f"CANCELED: Purchase Order {po.name}")
-        self.assertEqual(len(delivered), 2)
+        self.assertEqual([message["Subject"] for message in delivered], [f"CANCELED: Purchase Order {po.name}"])
+        (notice | second).invalidate_recordset()
+        self.assertEqual((notice.state, second.state, second.send_attempt_count), ("sent", "queued", 0))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        delivered = self._to_supplier(sink)
+        self.assertEqual(len(delivered), 1)
         (notice | second).invalidate_recordset()
         self.assertEqual((notice.state, second.state), ("sent", "sent"))
 
@@ -1113,6 +1163,7 @@ class TestLindaPoIssuance(PlasticosTestCase):
         po.button_draft()
         po.button_confirm()
         with self._mail_sink():
+            self.env["mail.mail"].process_email_queue()
             self.env["mail.mail"].process_email_queue()
         second = self._requests(po) - first
         self.assertEqual(second.state, "sent")
@@ -1275,3 +1326,85 @@ class TestLindaPoIssuance(PlasticosTestCase):
         with self.assertRaises(UserError):
             as_user.unlink()
         self.assertEqual(notice.state, "queued")
+
+    def test_raw_state_write_does_not_authorize_an_attempted_cancellation(self):
+        """A raw cancel write keeps the uncertain attempt and does not queue a notice."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        request = self._requests(po)
+        request.write({"send_attempt_count": 1})
+        mail_count = self.env["mail.mail"].search_count([])
+
+        po.write({"state": "cancel"})
+
+        self.assertEqual(po.state, "cancel")
+        self.assertFalse(self._notices(po))
+        self.assertFalse(request.cycle_closed)
+        self.assertEqual((request.state, request.state_reason), ("unknown", "prior_send_outcome_unknown"))
+        self.assertEqual(request.mail_id.state, "cancel")
+        self.assertEqual(self.env["mail.mail"].search_count([]), mail_count)
+
+    def test_same_batch_notice_failure_leaves_the_reissue_unattempted(self):
+        """A notice that fails in the shared queue run must not hand the reissue to SMTP."""
+        po, first = self._sent_po()
+        po.button_cancel()
+        notice = self._notices(po)
+        po.button_draft()
+        po.button_confirm()
+        second = self._requests(po) - first
+
+        def refuse(*args, **kwargs):
+            raise ConnectionRefusedError("smtp down")
+
+        with self._mail_sink(), patch.object(type(self.env["ir.mail_server"]), "_connect__", refuse):
+            self.env["mail.mail"].process_email_queue()
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "exception")
+        self.assertEqual((second.state, second.send_attempt_count, second.mail_id.state), ("queued", 0, "outgoing"))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_supplier(sink))
+        second.invalidate_recordset()
+        self.assertEqual(second.send_attempt_count, 0)
+
+    def test_same_batch_unknown_notice_leaves_the_reissue_unattempted(self):
+        """A same-batch unknown notice is not retried and does not release the reissue."""
+        po, first = self._sent_po()
+        po.button_cancel()
+        notice = self._notices(po)
+        po.button_draft()
+        po.button_confirm()
+        second = self._requests(po) - first
+
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self.env["mail.mail"].process_email_queue()
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "unknown")
+        self.assertEqual((second.state, second.send_attempt_count, second.mail_id.state), ("queued", 0, "outgoing"))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_supplier(sink))
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "unknown")
+        self.assertEqual(second.send_attempt_count, 0)
+
+    def test_unknown_notice_from_an_earlier_batch_holds_the_reissue(self):
+        """A previous unknown notice still gates the replacement order."""
+        po, first = self._sent_po()
+        po.button_cancel()
+        notice = self._notices(po)
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self._process_queue(notice)
+        self.assertEqual(notice.state, "unknown")
+        po.button_draft()
+        po.button_confirm()
+        second = self._requests(po) - first
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_supplier(sink))
+        second.invalidate_recordset()
+        self.assertEqual((second.state, second.send_attempt_count), ("queued", 0))
