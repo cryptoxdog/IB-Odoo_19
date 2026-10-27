@@ -14,7 +14,7 @@ from unittest.mock import patch
 from odoo import fields
 from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import new_test_user, tagged
 from odoo.tools import mute_logger
 
@@ -549,6 +549,112 @@ class TestLindaPoIssuance(PlasticosTestCase):
         with self._mail_sink() as sink:
             self._process_queue(request)
         self.assertFalse(sink, "an unknown outcome is never retried by the queue")
+
+    def test_personal_server_throttling_is_not_an_attempt(self):
+        """Native personal-server deferral must not create false transport evidence."""
+        from datetime import datetime, timedelta
+
+        self._set_mode("live")
+        # Native Odoo permits personal SMTP only to the creating user of the
+        # outgoing mail message. A dedicated user avoids ownership false-positives.
+        owner = new_test_user(
+            self.env,
+            login="linda_throttle_owner",
+            groups="purchase.group_purchase_manager",
+            email="linda-owner@example.com",
+        )
+        po = self._new_po()
+        po.with_user(owner).button_confirm()
+        request = self._requests(po)
+        personal = (
+            self.env["ir.mail_server"]
+            .sudo()
+            .create(
+                {
+                    "name": "Linda isolated throttle test server",
+                    "smtp_host": "127.0.0.1",
+                    "smtp_port": 25,
+                    "owner_user_id": owner.id,
+                }
+            )
+        )
+        self.assertEqual(request.mail_id.mail_message_id.create_uid, owner)
+        request.mail_id.write({"mail_server_id": personal.id})
+        # Odoo's throttle uses server-local datetime.now(), not fields.Datetime.now().
+        personal.write(
+            {
+                "owner_limit_time": datetime.now().replace(second=0, microsecond=0),
+                "owner_limit_count": personal._get_personal_mail_servers_limit(),
+            }
+        )
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertFalse(sink)
+        self.assertEqual((request.state, request.send_attempt_count), ("queued", 0))
+        self.assertEqual(request.mail_id.state, "outgoing")
+        self.assertTrue(request.mail_id.scheduled_date, "native personal-server throttle deferred it")
+
+        personal.write(
+            {
+                "owner_limit_time": datetime.now() - timedelta(minutes=2),
+                "owner_limit_count": 0,
+            }
+        )
+        request.mail_id.scheduled_date = False
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertEqual(len(sink), 1)
+        self.assertEqual((request.state, request.send_attempt_count), ("sent", 1))
+
+    def test_personal_server_wrong_owner_is_rejected(self):
+        """Native ACL refuses a personal SMTP server owned by another user."""
+        self._set_mode("live")
+        owner = new_test_user(
+            self.env,
+            login="linda_mail_owner",
+            groups="purchase.group_purchase_manager",
+            email="linda-mail-owner@example.com",
+        )
+        stranger = new_test_user(
+            self.env,
+            login="linda_mail_stranger",
+            groups="base.group_user",
+            email="linda-stranger@example.com",
+        )
+        po = self._new_po()
+        po.with_user(owner).button_confirm()
+        request = self._requests(po)
+        personal = (
+            self.env["ir.mail_server"]
+            .sudo()
+            .create(
+                {
+                    "name": "Linda wrong-owner server",
+                    "smtp_host": "127.0.0.1",
+                    "smtp_port": 25,
+                    "owner_user_id": stranger.id,
+                }
+            )
+        )
+        with self.assertRaises(ValidationError):
+            request.mail_id.write({"mail_server_id": personal.id})
+        self.assertEqual((request.state, request.send_attempt_count), ("queued", 0))
+        self.assertFalse(request.mail_id.mail_server_id)
+
+    def test_second_claim_does_not_send(self):
+        """The worker that loses the request-row claim does not open SMTP."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        request = self._requests(po)
+        mail = request.mail_id
+        self.assertEqual(mail._linda_claim_outgoing(mail), "claimed")
+        with self._mail_sink() as sink:
+            mail._send(auto_commit=False)
+        self.assertFalse(sink)
+        self.assertEqual(request.send_attempt_count, 1)
+        self.assertEqual(mail.state, "outgoing")
+        self.assertEqual(mail._linda_claim_outgoing(mail), "skip")
 
     def test_abort_mid_batch_leaves_unattempted_mail_queued(self):
         """A14: a disconnect on one mail does not mark later, never-attempted mails as uncertain."""
