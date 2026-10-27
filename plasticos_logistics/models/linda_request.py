@@ -35,6 +35,8 @@ LINDA_MODE_SHADOW = "shadow"
 LINDA_MODE_LIVE = "live"
 LINDA_MODES = (LINDA_MODE_OFF, LINDA_MODE_SHADOW, LINDA_MODE_LIVE)
 PO_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_po_issue"
+PO_ISSUE_DROPSHIP_TEMPLATE = "plasticos_logistics.mail_template_linda_po_issue_dropship"
+SUPPLIER_PO_REPORT = "plasticos_logistics.report_purchaseorder_supplier"
 SO_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_so_issue"
 PO_CANCEL_TEMPLATE = "plasticos_logistics.mail_template_linda_po_cancel"
 SO_CANCEL_TEMPLATE = "plasticos_logistics.mail_template_linda_so_cancel"
@@ -387,6 +389,7 @@ class PlasticosLogisticsRequest(models.Model):
             address(partner),
             address(warehouse_partner),
             order.dest_address_id.id,
+            address(order.dest_address_id),
             order.picking_type_id.id if "picking_type_id" in order._fields else False,
             order.partner_ref or "",
             order.amount_untaxed,
@@ -397,27 +400,30 @@ class PlasticosLogisticsRequest(models.Model):
         return hashlib.sha256(json.dumps(payload, default=str).encode()).hexdigest()
 
     @api.model
-    def _supplier_dropship_report_reason(self, order):
-        """Why this dropship PO's supplier report is unsafe, or ``False``.
+    def _po_issue_template_xmlid(self, order):
+        """Dropship issues attach the supplier copy. Every other PO keeps the native report."""
+        if order.dest_address_id:
+            return PO_ISSUE_DROPSHIP_TEMPLATE
+        return PO_ISSUE_TEMPLATE
 
-        Native ``purchase.report_purchaseorder`` prints ``dest_address_id`` as
-        the shipping address. Linda issues the PO only when that rendered
-        report does not contain the buyer delivery identity. A report that
-        cannot be inspected fails this one send closed. Presence of
-        ``dest_address_id`` alone is not a route ban.
+    @api.model
+    def _supplier_dropship_report_reason(self, order):
+        """Why this dropship PO's attached report is unsafe, or ``False``.
+
+        The native purchase report prints ``dest_address_id`` as the shipping
+        address, so a dropship issue may attach only
+        ``plasticos_logistics.report_purchaseorder_supplier``. Linda renders
+        that report and blocks this send when the buyer delivery identity is
+        present or the report cannot be read. Presence of ``dest_address_id``
+        alone is not a route ban.
         """
         dest = order.dest_address_id
         if not dest:
             return False
-        report = self.env.ref("purchase.action_report_purchase_order", raise_if_not_found=False)
-        if not report:
+        template = self.env.ref(PO_ISSUE_DROPSHIP_TEMPLATE, raise_if_not_found=False)
+        reports = template.report_template_ids if template else self.env["ir.actions.report"]
+        if not reports:
             return "dropship_report_unproven"
-        try:
-            rendered, _report_type = self.env["ir.actions.report"]._render_qweb_html(report.report_name, order.ids)
-        except Exception:  # noqa: BLE001 - an unreadable report fails this send closed
-            _logger.exception("Linda could not render the supplier PO report for %s", order.name)
-            return "dropship_report_unproven"
-        html = rendered.decode("utf-8", "replace") if isinstance(rendered, bytes) else str(rendered)
         markers = []
         for value in (dest.name, dest.street, dest.street2, dest.city, dest.zip, dest.phone):
             text = (value or "").strip()
@@ -425,8 +431,17 @@ class PlasticosLogisticsRequest(models.Model):
                 markers.append(text)
         if not markers:
             return "dropship_report_unproven"
-        if any(marker in html for marker in markers):
-            return "dropship_report_discloses_buyer_delivery"
+        for report in reports:
+            if report.report_name != SUPPLIER_PO_REPORT:
+                return "dropship_report_discloses_buyer_delivery"
+            try:
+                rendered, _report_type = self.env["ir.actions.report"]._render_qweb_html(report.report_name, order.ids)
+            except Exception:  # noqa: BLE001 - an unreadable report fails this send closed
+                _logger.exception("Linda could not render the supplier PO report for %s", order.name)
+                return "dropship_report_unproven"
+            html = rendered.decode("utf-8", "replace") if isinstance(rendered, bytes) else str(rendered)
+            if any(marker in html for marker in markers):
+                return "dropship_report_discloses_buyer_delivery"
         return False
 
     @api.model
@@ -448,7 +463,7 @@ class PlasticosLogisticsRequest(models.Model):
             return dropship_reason
         if not order.order_line.filtered(lambda line: not line.display_type):
             return "order_lines_missing"
-        if not self.env.ref(PO_ISSUE_TEMPLATE, raise_if_not_found=False):
+        if not self.env.ref(self._po_issue_template_xmlid(order), raise_if_not_found=False):
             return "template_missing"
         return False
 
@@ -632,13 +647,15 @@ class PlasticosLogisticsRequest(models.Model):
         request = self.create(values)
         # Rendered and queued as the releasing user (order.env), not as superuser.
         # Presence was checked by the purpose's block reason ("template_missing").
-        template = order.env.ref(spec.template, raise_if_not_found=False)
+        template_xmlid = self._po_issue_template_xmlid(order) if purpose == "po_issue" else spec.template
+        template = order.env.ref(template_xmlid, raise_if_not_found=False)
         mail_id = False
         try:
             with self.env.cr.savepoint():
                 subject = template._render_field("subject", order.ids)[order.id]
                 if outcome == "queued":
-                    mail_id = template.send_mail(
+                    # report_pdf_no_attachment: a PDF cached on the order is not this revision.
+                    mail_id = template.with_context(report_pdf_no_attachment=True).send_mail(
                         order.id,
                         force_send=False,
                         email_values={
@@ -742,7 +759,7 @@ class PlasticosLogisticsRequest(models.Model):
             with self.env.cr.savepoint():
                 subject = template._render_field("subject", order.ids)[order.id]
                 if outcome == "queued":
-                    mail_id = template.send_mail(
+                    mail_id = template.with_context(report_pdf_no_attachment=True).send_mail(
                         order.id,
                         force_send=False,
                         email_values={
