@@ -1405,6 +1405,33 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(orch.outcomes["unchanged"], 2)
         self.assertEqual(person.comment, stored)
 
+    def test_approved_person_keeps_the_erp_phone_and_drops_disabled_numbers(self):
+        person = self.env["res.partner"].create({"name": "ERP Person", "phone": "215-555-0101"})
+        self._erp_marker(person, "91")
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-ph": "91"}
+        orch._crosswalk_ready = True
+        dto = contact_to_canonical(
+            {
+                "contact_id": "vs-ph",
+                "phone_numbers": [
+                    {"name": "Direct", "number": "(215) 555-0101"},
+                    {"name": "Mobile 1", "number": "215-555-0102"},
+                    {"name": "Fax", "number": "215-555-0101"},
+                    {"name": "Home", "number": "215-555-0106", "disabled": True},
+                ],
+            }
+        )
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual(person.phone, "215-555-0101")
+        lines = [(line.label, line.number) for line in person.phone_line_ids]
+        self.assertEqual(lines, [("mobile", "215-555-0102"), ("fax", "215-555-0101")])
+        self.assertNotIn("215-555-0106", [number for _label, number in lines])
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual([(line.label, line.number) for line in person.phone_line_ids], lines)
+
     def _erp_marker(self, partner, ct_id):
         self.env["ir.model.data"].create(
             {
