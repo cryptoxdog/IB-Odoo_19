@@ -135,7 +135,11 @@ case "$MODE" in
       "") log "→ pytest skipped: no test module is touched by or reads the changed paths" ;;
       *) export TEST_PATHS="$scope_tests"; targets+=(test-scoped) ;;
     esac
-    run_wave "${targets[@]}"
+    # macOS bash 3.2 with set -u treats "${targets[@]}" as unbound when the
+    # array is empty. A documentation-only change has no collector targets.
+    if [ "${#targets[@]}" -gt 0 ]; then
+      run_wave "${targets[@]}"
+    fi
     # Wave 2: local Odoo load (not in GHA), only when an addon or installer input changed.
     if [ "$scope_smoke" = "0" ]; then
       SMOKE_SKIP=1
