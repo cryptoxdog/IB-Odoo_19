@@ -44,3 +44,9 @@ compliance
 
 - `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
 - `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...
+
+<!-- PLASTICOS_DOCUMENTS_BRS_NATIVE_FIRST_20261026_BEGIN -->
+## Shared module-local Documents BRS (2026-10-26)
+
+The canonical rules live in [`plasticos_documents/business_rules/`](../plasticos_documents/business_rules/README.md). This module consumes original-file ownership, internal folder aliases/Requests, versions/shortcuts and projection boundaries. `AGENTS.md` binds the same 44 rule IDs and acceptance requirements. Native business verification remains in `plasticos_documents`, and Linda remains the sole authorized external document-reminder sender. No independent BRS copy is installed here.
+<!-- PLASTICOS_DOCUMENTS_BRS_NATIVE_FIRST_20261026_END -->
