@@ -23,6 +23,7 @@ from .approved_identity import (
     without_excluded_source_paragraphs,
     xmlid_name,
 )
+from .import_summary import OPTIONAL_CONTEXT, REQUIRED_MAPPING, informational_notices, required_mapping_errors
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
 
 _logger = logging.getLogger(__name__)
@@ -513,7 +514,7 @@ class SyncOrchestrator:
                     }
                 )
                 connection_vals: dict[str, Any] = {"last_error": excerpt}
-                if status != "failed":
+                if status == "success":
                     connection_vals["last_success_at"] = datetime.now(UTC).replace(tzinfo=None)
                 connection.write(connection_vals)
                 # Land this connection's outcome before the caller (cron) moves
@@ -657,7 +658,7 @@ class SyncOrchestrator:
                     }
                 )
                 connection_vals: dict[str, Any] = {"last_error": excerpt}
-                if status != "failed":
+                if status == "success":
                     connection_vals["last_success_at"] = datetime.now(UTC).replace(tzinfo=None)
                 connection.write(connection_vals)
                 self.env.cr.commit()
@@ -788,20 +789,28 @@ class SyncOrchestrator:
     def _completion(self, run, notes: list[str]) -> tuple[str, str | bool]:
         """Classify a run that finished without raising, from what it recorded.
 
-        Mirrors ``import_summary.build_run_summary``: a per-record write
-        failure is ``failed``; an identity conflict, a buffered orphan call or
-        a named scope limitation is ``partial``; only a run with none of those
-        is ``success``. The run row is what the operator sees first, so it must
-        never read greener than the shared summary built from the same counters.
+        Mirrors ``import_summary.build_run_summary``. A per-record write
+        failure is ``failed``. A required mapping that did not land, including
+        a material error while the contact itself persisted, is ``partial``.
+        An informational notice is also ``partial``, and its excerpt does not
+        claim a required mapping failed. An identity conflict, a buffered
+        orphan call, or a named scope limitation is ``partial``. Only a run
+        with none of those is ``success``. Contact and call counters stay as
+        recorded. ``last_success_at`` advances only for ``success``.
         """
 
         def count(name: str) -> int:
             return getattr(run, name, 0) or 0
 
+        def line(row: dict) -> str:
+            return f"  - {row.get('record_ref')}: {str(row.get('message'))[:200]}"
+
         failed_contacts = count("contacts_failed")
         failed_calls = count("calls_failed")
         duplicates = count("contacts_duplicate_rejected")
         deferred = count("orphans_buffered")
+        mapping_errors = required_mapping_errors(self.error_rows)
+        notices = informational_notices(self.error_rows)
         lines = list(notes)
         if failed_contacts or failed_calls:
             lines.append(
@@ -809,7 +818,17 @@ class SyncOrchestrator:
                 "each failure is counted on this run, none was dropped."
             )
             for row in self.error_rows[:5]:
-                lines.append(f"  - {row.get('record_ref')}: {str(row.get('message'))[:200]}")
+                lines.append(line(row))
+        else:
+            if mapping_errors:
+                lines.append(
+                    f"{len(mapping_errors)} required mapping(s) incomplete; "
+                    "the contact and call counters are unchanged."
+                )
+                for row in mapping_errors[:5]:
+                    lines.append(line(row))
+            for row in notices[:5]:
+                lines.append(line(row))
         if duplicates:
             lines.append(f"{duplicates} contact(s) rejected as identity conflicts (duplicate_rejected).")
         if deferred:
@@ -1370,15 +1389,16 @@ class SyncOrchestrator:
                 self._apply_resolved_approved_materials(lead, *field_maps)
         except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
             _logger.warning("Approved material normalization failed for lead %s: %s", lead.id, exc)
-            self.error_rows.append(
-                {
-                    "record_ref": lead.vanillasoft_id or str(lead.id or ""),
-                    "message": f"material normalization failed: {exc}",
-                }
+            self._append_classified_error(
+                lead.vanillasoft_id or str(lead.id or ""),
+                f"material normalization failed: {exc}",
+                REQUIRED_MAPPING,
             )
 
     def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
         phrases, hints, weak = _material_inputs(*field_maps)
+        if not phrases and not hints and not weak:
+            return
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
             normalize_material,
         )
@@ -1396,18 +1416,19 @@ class SyncOrchestrator:
         partner, reason = _facility_for_material(lead)
         if partner is None:
             for text in texts:
-                self.error_rows.append(
-                    {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id),
+                    f"{reason}: {text}",
+                    REQUIRED_MAPPING,
                 )
             return
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
         if len(profiles) != 1:
             for text in texts:
-                self.error_rows.append(
-                    {
-                        "record_ref": lead.vanillasoft_id or str(lead.id),
-                        "message": f"facility unresolved: {len(profiles)} profiles: {text}",
-                    }
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id),
+                    f"facility unresolved: {len(profiles)} profiles: {text}",
+                    REQUIRED_MAPPING,
                 )
             return
         self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
@@ -1540,6 +1561,10 @@ class SyncOrchestrator:
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
             self._apply_contact_materials(lead, dto.custom_fields)
         return lead
+
+    def _append_classified_error(self, record_ref: str, message: str, category: str) -> None:
+        """Record one typed row. Status reads ``category``, never the message text."""
+        self.error_rows.append({"record_ref": record_ref, "message": message, "category": category})
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
         """Record a classified outcome + error detail (duplicate/failed rows).
@@ -1683,21 +1708,26 @@ class SyncOrchestrator:
             if _phone_line(kind, number) not in stored:
                 lines.append(f"VanillaSoft phone ({label}): {number}")
         if dto.mobile and "mobile" in vals and not _us_mobile(dto.mobile):
-            self.error_rows.append(
-                {
-                    "record_ref": ref,
-                    "message": "primary mobile is not a 10-digit US number; kept in the lead description",
-                }
+            self._append_classified_error(
+                ref,
+                "primary mobile is not a 10-digit US number; kept in the lead description",
+                OPTIONAL_CONTEXT,
             )
         country = _collapse_ws(dto.country_code)
         if country and "country_id" in vals and not vals["country_id"]:
             lines.append(f"VanillaSoft Country (unresolved): {country}")
-            self.error_rows.append({"record_ref": ref, "message": "country did not resolve; kept in the description"})
+            self._append_classified_error(
+                ref,
+                "country did not resolve; kept in the description",
+                OPTIONAL_CONTEXT,
+            )
         state = _collapse_ws(dto.state_code)
         if state and "state_id" in vals and not vals["state_id"]:
             lines.append(f"VanillaSoft State (unresolved): {state}")
-            self.error_rows.append(
-                {"record_ref": ref, "message": "state did not resolve in the country; kept in the description"}
+            self._append_classified_error(
+                ref,
+                "state did not resolve in the country; kept in the description",
+                OPTIONAL_CONTEXT,
             )
         raw_source = (dto.lead_source_raw or "").strip()
         if raw_source and "source_id" in vals and self._lead_source_is_fallback(raw_source):
@@ -1871,17 +1901,21 @@ class SyncOrchestrator:
                 self._apply_resolved_materials(lead, *field_maps)
         except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
             _logger.warning("Material normalization failed for lead %s: %s", lead.id, exc)
-            self.error_rows.append(
-                {"record_ref": str(lead.id or ""), "message": f"material normalization failed: {exc}"}
+            self._append_classified_error(
+                str(lead.id or ""),
+                f"material normalization failed: {exc}",
+                REQUIRED_MAPPING,
             )
 
     def _apply_resolved_materials(self, lead, *field_maps) -> None:
+        phrases, hints, weak = _material_inputs(*field_maps)
+        if not phrases and not hints and not weak:
+            return
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
             normalize_material,
         )
         from odoo.exceptions import ValidationError  # noqa: PLC0415
 
-        phrases, hints, weak = _material_inputs(*field_maps)
         candidates = list(phrases)
         plain_hints = {}
         for label, value in hints.items():
@@ -1897,8 +1931,10 @@ class SyncOrchestrator:
             partner, reason = _facility_for_material(lead)
             if partner is None:
                 for text in texts:
-                    self.error_rows.append(
-                        {"record_ref": lead.vanillasoft_id or str(lead.id), "message": f"{reason}: {text}"}
+                    self._append_classified_error(
+                        lead.vanillasoft_id or str(lead.id),
+                        f"{reason}: {text}",
+                        REQUIRED_MAPPING,
                     )
                 return
         owned = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)], limit=1)
@@ -1927,11 +1963,10 @@ class SyncOrchestrator:
             normalized = normalize_material(self.env, text, structured=plain_hints)
             if normalized.unresolved or not normalized.polymer:
                 detail = ", ".join(normalized.unresolved) or "unresolved material"
-                self.error_rows.append(
-                    {
-                        "record_ref": lead.vanillasoft_id or str(lead.id),
-                        "message": f"{detail}: {normalized.source_description}",
-                    }
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id),
+                    f"{detail}: {normalized.source_description}",
+                    REQUIRED_MAPPING,
                 )
                 continue
             if partner is not None:
@@ -1957,14 +1992,13 @@ class SyncOrchestrator:
         if normalized.grade:
             current = (profile.sub_grade or "").strip()
             if current and current != normalized.grade:
-                self.error_rows.append(
-                    {
-                        "record_ref": str(profile.id),
-                        "message": (
-                            f"grade {normalized.grade} conflicts with stored grade {current} "
-                            f"on profile {profile.id}; attributes unchanged"
-                        ),
-                    }
+                self._append_classified_error(
+                    str(profile.id),
+                    (
+                        f"grade {normalized.grade} conflicts with stored grade {current} "
+                        f"on profile {profile.id}; attributes unchanged"
+                    ),
+                    REQUIRED_MAPPING,
                 )
                 return
             if not current:

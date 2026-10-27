@@ -6,7 +6,7 @@ import inspect
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from odoo import Command
+from odoo import Command, fields
 from odoo.addons.plasticos_crm_sync.adapters.base import (
     EXCLUDED_SOURCE_FIELDS,
     CanonicalCall,
@@ -14,6 +14,12 @@ from odoo.addons.plasticos_crm_sync.adapters.base import (
     CanonicalTableRow,
 )
 from odoo.addons.plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
+from odoo.addons.plasticos_crm_sync.services.import_summary import (
+    OPTIONAL_CONTEXT,
+    REQUIRED_MAPPING,
+    build_run_summary,
+    business_acceptance,
+)
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator, _new_outcomes
 from odoo.addons.plasticos_crm_sync.services.owner_crosswalk import BLANK_OWNER_LOGIN, OWNER_LOGIN_BY_SOURCE
 from odoo.exceptions import UserError
@@ -455,6 +461,205 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertTrue(any("not a polymer" in row["message"] for row in orch.error_rows))
         self.assertEqual(orch.outcomes["failed"], 0)
         self.assertEqual(lead.vanillasoft_id, "vs-mat-unknown")
+        status, excerpt = orch._completion(
+            self.env["plasticos.crm.sync.run"].new(
+                {
+                    "connection_id": self.connection.id,
+                    "contacts_seen": 1,
+                    "contacts_created": 1,
+                    "contacts_failed": 0,
+                    "calls_failed": 0,
+                }
+            ),
+            [],
+        )
+        self.assertEqual(status, "partial")
+        self.assertIn("not a polymer", excerpt)
+        self.assertIn("required mapping", excerpt)
+
+    def test_material_only_failure_is_persisted_partial_and_replay_preserves_erp_values(self):
+        """MAT-STATUS-01. The contact and the recognized profile stay. The unresolved
+        material keeps the stored run partial, and a second import does not hide that.
+        """
+        facility = self._facility("Status Mill")
+        facility.comment = "ERP-OWNED-SENTINEL"
+        other = self._facility("Untouched Mill")
+        other.comment = "ERP-OTHER"
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, self._lead("vs-status-mat"))
+        lead.partner_id = facility
+        orch._upsert_lead(
+            self.connection,
+            self._lead("vs-status-mat", custom_fields={"Materials": "Pallets\nnot a polymer"}),
+        )
+        self.assertEqual(orch.outcomes["failed"], 0)
+        profiles = self._profiles(facility)
+        self.assertEqual(profiles.polymer_id.code, "PLASTIC_PALLETS")
+        profile_id = profiles.id
+        self.assertIn("ERP-OWNED-SENTINEL", facility.comment or "")
+        self.assertIn("ERP-OTHER", other.comment or "")
+        self.assertFalse(self.connection.last_success_at)
+
+        run = self.env["plasticos.crm.sync.run"].create(
+            {
+                "connection_id": self.connection.id,
+                "kind": "incremental",
+                "contacts_seen": 1,
+                "contacts_created": 1,
+                "contacts_upserted": 1,
+                "contacts_failed": 0,
+                "calls_failed": 0,
+            }
+        )
+        status, excerpt = orch._completion(run, [])
+        self.assertEqual(status, "partial")
+        run.write({"status": status, "error_excerpt": excerpt or False, "finished_at": fields.Datetime.now()})
+        stored = self.env["plasticos.crm.sync.run"].browse(run.id)
+        stored.invalidate_recordset()
+        self.assertEqual(stored.status, "partial")
+        self.assertIn("not a polymer", stored.error_excerpt)
+        self.assertEqual(stored.contacts_failed, 0)
+        summary = build_run_summary(stored, error_rows=[dict(row) for row in orch.error_rows])
+        self.assertEqual(summary["final_status"], stored.status)
+        self.assertTrue(summary["errors"])
+        self.assertEqual(business_acceptance(summary), "FAIL")
+
+        leads_before = self.env["crm.lead"].search_count([("vanillasoft_id", "=", "vs-status-mat")])
+        replay = SyncOrchestrator(self.env)
+        replay.outcomes = _new_outcomes()
+        again = replay._upsert_lead(
+            self.connection,
+            self._lead("vs-status-mat", custom_fields={"Materials": "Pallets\nnot a polymer"}),
+        )
+        self.assertEqual(again, lead)
+        self.assertEqual(self.env["crm.lead"].search_count([("vanillasoft_id", "=", "vs-status-mat")]), leads_before)
+        self.assertEqual(self._profiles(facility).id, profile_id)
+        self.assertIn("ERP-OWNED-SENTINEL", facility.comment or "")
+        self.assertIn("ERP-OTHER", other.comment or "")
+        self.assertTrue(any("not a polymer" in row["message"] for row in replay.error_rows))
+        status_again, excerpt_again = replay._completion(stored, [])
+        self.assertEqual(status_again, "partial")
+        self.assertIn("not a polymer", excerpt_again)
+        self.assertEqual(stored.status, "partial")
+        replay_summary = build_run_summary(stored, error_rows=[dict(row) for row in replay.error_rows])
+        self.assertEqual(replay_summary["final_status"], "partial")
+        self.assertEqual(business_acceptance(replay_summary), "FAIL")
+
+    def _run_connection(self, connection, leads):
+        """Production ``run_connection`` against this test cursor.
+
+        The durable second cursor and ``commit`` are redirected so the audit
+        row and ``last_success_at`` stay inside the test transaction. The
+        completion write itself is the production method.
+        """
+        from datetime import UTC, datetime
+
+        recent = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        class _Adapter:
+            def healthcheck(self):
+                return True
+
+            def iter_contacts(self, **_kwargs):
+                yield leads, recent, False
+
+            def iter_calls(self, **_kwargs):
+                return iter(())
+
+            def iter_table_rows(self, _contact_external_id):
+                return iter(())
+
+        self.env["ir.config_parameter"].sudo().set_param("plasticos_crm_sync.approved_contact_crosswalk", "")
+        orch = SyncOrchestrator(self.env)
+        orch._build_adapter = lambda _connection: _Adapter()
+        orch._try_advisory_lock = lambda _key: True
+        orch._advisory_unlock = lambda _key: None
+
+        def create_run(connection_id, vals=None):
+            run = self.env["plasticos.crm.sync.run"].create(
+                {
+                    "connection_id": connection_id,
+                    "status": "running",
+                    "started_at": fields.Datetime.now(),
+                    **(vals or {}),
+                }
+            )
+            return run.id
+
+        orch._create_sync_run_durable = create_run
+        original_commit = self.env.cr.commit
+        self.env.cr.commit = lambda: None
+        try:
+            run = orch.run_connection(connection)
+        finally:
+            self.env.cr.commit = original_commit
+        run.invalidate_recordset()
+        connection.invalidate_recordset()
+        return orch, run
+
+    def test_run_connection_optional_context_succeeds_and_material_stays_partial(self):
+        """F-310-01/02. The persisted run comes from ``run_connection``, not a manual write."""
+        untouched = self.env["res.partner"].create(
+            {"name": "ERP Untouched", "is_company": True, "comment": "ERP-OWNED"}
+        )
+        optional = self.env["plasticos.crm.connection"].create(
+            {"name": "Optional VS", "provider": "vanillasoft", "project_id": "139705", "enabled": False}
+        )
+        lead = self._lead(
+            "vs-opt-status",
+            mobile="+44 7700 900123",
+            country_code="Narnia",
+            state_code="Atlantis",
+            modified_utc="2026-10-26T12:00:00Z",
+        )
+        orch, run = self._run_connection(optional, [lead])
+        self.assertEqual(run.status, "success")
+        self.assertTrue(optional.last_success_at)
+        self.assertTrue(orch.error_rows)
+        self.assertTrue(all(row["category"] == OPTIONAL_CONTEXT for row in orch.error_rows))
+        self.assertNotIn("required mapping", run.error_excerpt or "")
+        stored_lead = self.env["crm.lead"].search([("vanillasoft_id", "=", "vs-opt-status")])
+        self.assertEqual(len(stored_lead), 1)
+        self.assertIn("Narnia", stored_lead.description or "")
+        self.assertIn("+44 7700 900123", stored_lead.description or "")
+        summary = build_run_summary(run, error_rows=[dict(row) for row in orch.error_rows])
+        self.assertEqual(summary["final_status"], "success")
+        self.assertEqual(business_acceptance(summary), "PASS")
+        replay_orch, replay = self._run_connection(optional, [lead])
+        self.assertEqual(replay.status, "success")
+        self.assertEqual(self.env["crm.lead"].search_count([("vanillasoft_id", "=", "vs-opt-status")]), 1)
+        self.assertTrue(all(row["category"] == OPTIONAL_CONTEXT for row in replay_orch.error_rows))
+        self.assertEqual(run.status, "success")
+
+        material = self.env["plasticos.crm.connection"].create(
+            {"name": "Material VS", "provider": "vanillasoft", "project_id": "139706", "enabled": False}
+        )
+        missing = self._lead(
+            "vs-mat-status-run",
+            custom_fields={"Materials": "not a polymer"},
+            modified_utc="2026-10-26T12:00:00Z",
+        )
+        mat_orch, mat_run = self._run_connection(material, [missing])
+        self.assertEqual(mat_run.contacts_failed, 0)
+        self.assertEqual(mat_run.status, "partial")
+        self.assertFalse(material.last_success_at)
+        self.assertTrue(
+            any(
+                row["category"] == REQUIRED_MAPPING and "not a polymer" in row["message"] for row in mat_orch.error_rows
+            )
+        )
+        mat_summary = build_run_summary(mat_run, error_rows=[dict(row) for row in mat_orch.error_rows])
+        self.assertEqual(mat_summary["final_status"], "partial")
+        self.assertEqual(mat_summary["records_rejected"], 0)
+        self.assertEqual(business_acceptance(mat_summary), "FAIL")
+        self.assertIn("ERP-OWNED", untouched.comment or "")
+        _replay_orch, replay_mat = self._run_connection(material, [missing])
+        self.assertEqual(replay_mat.status, "partial")
+        self.assertEqual(mat_run.status, "partial")
+        self.assertFalse(material.last_success_at)
+        self.assertEqual(self.env["crm.lead"].search_count([("vanillasoft_id", "=", "vs-mat-status-run")]), 1)
+        self.assertIn("ERP-OWNED", untouched.comment or "")
 
     def test_ambiguous_facility_is_not_invented(self):
         parent = self.env["res.partner"].create({"name": "Ambiguous Parent", "is_company": True})
