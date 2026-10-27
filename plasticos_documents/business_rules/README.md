@@ -25,4 +25,4 @@ Every Documents code PR must cite affected `BRS-POS-XX-RNNN` IDs and paired posi
 
 ## Adoption boundary
 
-No silent migration from the older `Documents_Build_Pack_v1.0.0`. It is historical only. This package uses the *new* `BRS-POS` IDs and exact rule statements; supersession requires operator acceptance and a dated recorded change. Runtime tests and integration remain **NOT_RUN**.
+No silent migration from the older `Documents_Build_Pack_v1.0.0`. It is historical only. This package uses the *new* `BRS-POS` IDs and exact rule statements; supersession requires operator acceptance and a dated recorded change. Runtime tests and integration remain **NOT_RUN**. The 2026-10-27 reconciliation makes every non-documentation blob match #316 head `53b18fd90046696e946a0d8e1e60e88595a5e143` and leaves this BRS a candidate. It does not admit the rules, prove Enterprise Documents or AI, or activate mail, cron, or finance.
