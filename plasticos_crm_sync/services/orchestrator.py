@@ -15,6 +15,7 @@ from ..adapters.base import (
 )
 from ..adapters.registry import get_adapter
 from .approved_identity import (
+    CONTACT_NOTE_KEY,
     XMLID_MODULE,
     CrosswalkError,
     comment_holds,
@@ -302,7 +303,7 @@ def provenance_already_recorded(current, external_id: str, field_name: str, valu
         return True
     if comment_holds(current, f"VanillaSoft {field_name}: {text}"):
         return True
-    return field_name == "Notes" and comment_holds(current, text)
+    return field_name == CONTACT_NOTE_KEY and comment_holds(current, text)
 
 
 def _queue_provenance(lines: list[str], current, external_id: str, field_name: str, value: str) -> None:
