@@ -15,7 +15,6 @@ from ..adapters.base import (
 )
 from ..adapters.registry import get_adapter
 from .approved_identity import (
-    CONTACT_NOTE_KEY,
     XMLID_MODULE,
     CrosswalkError,
     comment_holds,
@@ -289,26 +288,32 @@ def provenance_line(external_id: str, field_name: str, value: str) -> str:
     return f"VanillaSoft ContactID {external_id} {field_name}: {value}"
 
 
-def provenance_already_recorded(current, external_id: str, field_name: str, value: str) -> bool:
-    """True when this value is already stored, including a predecessor line.
+def provenance_already_recorded(
+    current, external_id: str, field_name: str, value: str, *, shared_owner: bool = False
+) -> bool:
+    """True only when this ContactID already has its own provenance line.
 
-    A historic unlabelled importer paragraph, or a raw ``Notes`` paragraph from
-    before ContactID labelling, stays as it was. A second labelled copy is not
-    written, and the old paragraph is not rewritten with an invented ContactID.
+    Text equality is not an import. An ERP paragraph, or another contact's
+    unlabelled ``VanillaSoft {field}:`` line, stays in the comment and does not
+    count as this ContactID. A lead has one source contact, so its historic
+    unlabelled predecessor is left as written instead of being copied again
+    under a ContactID label.
     """
     text = str(value or "").strip()
     if not text:
         return True
     if comment_holds(current, provenance_line(external_id, field_name, text)):
         return True
-    if comment_holds(current, f"VanillaSoft {field_name}: {text}"):
-        return True
-    return field_name == CONTACT_NOTE_KEY and comment_holds(current, text)
+    if shared_owner:
+        return False
+    return comment_holds(current, f"VanillaSoft {field_name}: {text}")
 
 
-def _queue_provenance(lines: list[str], current, external_id: str, field_name: str, value: str) -> None:
+def _queue_provenance(
+    lines: list[str], current, external_id: str, field_name: str, value: str, *, shared_owner: bool = False
+) -> None:
     text = str(value or "").strip()
-    if not text or provenance_already_recorded(current, external_id, field_name, text):
+    if not text or provenance_already_recorded(current, external_id, field_name, text, shared_owner=shared_owner):
         return
     lines.append(provenance_line(external_id, field_name, text))
 
@@ -318,7 +323,8 @@ def _approved_context_lines(dto: CanonicalLead, current=None) -> list[str]:
 
     Several ContactIDs can share one ERP person, so every line says which
     source contact it came from. Only fields the payload carries are kept.
-    ``Notes`` is queued by the binder so a historic raw note is not copied again.
+    ``Notes`` is queued by the binder. A raw or unlabelled paragraph on this
+    shared person is kept and is not this ContactID's import.
     """
     custom = dto.custom_fields or {}
     lines: list[str] = []
@@ -329,7 +335,7 @@ def _approved_context_lines(dto: CanonicalLead, current=None) -> list[str]:
         if not value:
             continue
         if name in CONTACT_PROVENANCE_FIELDS:
-            _queue_provenance(lines, current, dto.external_id, name, value)
+            _queue_provenance(lines, current, dto.external_id, name, value, shared_owner=True)
         else:
             lines.append(provenance_line(dto.external_id, name, value))
     return lines
@@ -1370,7 +1376,9 @@ class SyncOrchestrator:
                     lead.write({"active": True, "vanillasoft_sync_archived": False})
                     wrote = True
                 note_lines: list[str] = []
-                _queue_provenance(note_lines, partner.comment, dto.external_id, "Notes", dto.contact_note)
+                _queue_provenance(
+                    note_lines, partner.comment, dto.external_id, "Notes", dto.contact_note, shared_owner=True
+                )
                 comment = _description_with(
                     partner.comment, [*note_lines, *_approved_context_lines(dto, partner.comment)]
                 )

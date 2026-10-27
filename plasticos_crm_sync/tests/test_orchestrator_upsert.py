@@ -1335,6 +1335,69 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.phone, "555-0100")
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
 
+    def test_shared_person_attributes_colliding_notes_and_keeps_erp_text(self):
+        person = self.env["res.partner"].create(
+            {
+                "name": "ERP Person",
+                "email": "erp-person@example.test",
+                "phone": "555-0100",
+                "street": "1 ERP Way",
+                "city": "Philadelphia",
+                "zip": "19103",
+                "comment": "<p>ERP manual</p><p>shared history</p>",
+            }
+        )
+        self._erp_marker(person, "88")
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-a": "88", "vs-b": "88"}
+        orch._crosswalk_ready = True
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+        contact_a = self._lead(
+            "vs-a",
+            contact_note="shared history",
+            custom_fields={
+                "Notes (MRP)": "mrp note",
+                "Notes (LDPE)": "ldpe note",
+                "Notes (HDPE)": "hdpe note",
+                "Notes (PP)": "pp note",
+                "Notes (PPS)": "PPS-PROFILE-ONLY",
+                "Last Result Code": "LM",
+                "Last Call Date": "2024-03-05 14:10",
+            },
+        )
+        contact_b = self._lead("vs-b", contact_note="shared history")
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, contact_a)
+        orch._upsert_lead(self.connection, contact_b)
+        comment = person.comment or ""
+        for line in (
+            "ERP manual",
+            ">shared history<",
+            "VanillaSoft ContactID vs-a Notes: shared history",
+            "VanillaSoft ContactID vs-a Notes (MRP): mrp note",
+            "VanillaSoft ContactID vs-a Notes (LDPE): ldpe note",
+            "VanillaSoft ContactID vs-a Notes (HDPE): hdpe note",
+            "VanillaSoft ContactID vs-a Notes (PP): pp note",
+            "VanillaSoft ContactID vs-a Last Result Code: LM",
+            "VanillaSoft ContactID vs-a Last Call Date: 2024-03-05 14:10",
+            "VanillaSoft ContactID vs-b Notes: shared history",
+        ):
+            self.assertIn(line, comment)
+        self.assertNotIn("PPS-PROFILE-ONLY", comment)
+        self.assertEqual(person.name, "ERP Person")
+        self.assertEqual(person.email, "erp-person@example.test")
+        self.assertEqual(person.phone, "555-0100")
+        self.assertEqual(person.street, "1 ERP Way")
+        self.assertEqual(person.city, "Philadelphia")
+        self.assertEqual(person.zip, "19103")
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+        stored = person.comment
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, contact_a)
+        orch._upsert_lead(self.connection, contact_b)
+        self.assertEqual(orch.outcomes["unchanged"], 2)
+        self.assertEqual(person.comment, stored)
+
     def _erp_marker(self, partner, ct_id):
         self.env["ir.model.data"].create(
             {

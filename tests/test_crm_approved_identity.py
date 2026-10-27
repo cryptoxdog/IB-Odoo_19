@@ -355,14 +355,68 @@ def test_approved_person_replay_adds_no_line_and_no_repeated_note():
     assert comment_blocks(comment) == ("ERP notes", "VanillaSoft ContactID 9001 Notes: CRM history")
 
 
-def test_approved_person_keeps_a_historic_raw_note_without_a_second_copy():
+def test_approved_person_keeps_the_raw_paragraph_and_records_contact_provenance():
     person = _Person(47, comment="<p>ERP notes</p><p>CRM history</p>")
     orch, connection, leads, _refs = _approved_harness(person)
-    before = comment_blocks(person.comment)
     orch._upsert_lead(connection, _approved_dto())
-    assert comment_blocks(person.comment) == before
+    assert comment_blocks(person.comment) == (
+        "ERP notes",
+        "CRM history",
+        "VanillaSoft ContactID 9001 Notes: CRM history",
+    )
     assert leads.rows == {}
-    assert "ContactID 9001 Notes" not in (person.comment or "")
+    stored = person.comment
+    orch._upsert_lead(connection, _approved_dto())
+    assert person.comment == stored
+
+
+def test_erp_authored_paragraph_is_not_this_contacts_imported_note():
+    """An ERP paragraph that equals the new source note is not that ContactID's import."""
+    person = _Person(48, phone="215-555-0199", comment="<p>ERP notes</p><p>shared history</p>")
+    orch, connection, leads, _refs = _approved_harness(person)
+    dto = _approved_dto(phones=[], note="shared history")
+    orch._upsert_lead(connection, dto)
+    assert comment_blocks(person.comment) == (
+        "ERP notes",
+        "shared history",
+        "VanillaSoft ContactID 9001 Notes: shared history",
+    )
+    assert (person.name, person.email, person.phone) == ("ERP Person", "erp@example.test", "215-555-0199")
+    assert leads.rows == {}
+    stored = person.comment
+    outcomes = _outcomes(orch)
+    orch._upsert_lead(connection, dto)
+    assert outcomes["unchanged"] == 1
+    assert person.comment == stored
+
+
+def test_legacy_generic_note_does_not_hide_a_second_contact():
+    """A's unlabelled predecessor note must not count as B's import, and is not rewritten."""
+    person = _Person(49, comment="<p>VanillaSoft Notes: shared history</p>")
+    orch, connection, leads, _refs = _approved_harness(person)
+    orch._crosswalk["9002"] = "5001"
+    legacy = person.comment
+    contact_b = _approved_dto(phones=[], note="shared history", vs="9002")
+    orch._upsert_lead(connection, contact_b)
+    assert legacy in (person.comment or "")
+    assert comment_blocks(person.comment) == (
+        "VanillaSoft Notes: shared history",
+        "VanillaSoft ContactID 9002 Notes: shared history",
+    )
+    contact_a = _approved_dto(phones=[], note="shared history", vs="9001")
+    orch._upsert_lead(connection, contact_a)
+    assert comment_blocks(person.comment) == (
+        "VanillaSoft Notes: shared history",
+        "VanillaSoft ContactID 9002 Notes: shared history",
+        "VanillaSoft ContactID 9001 Notes: shared history",
+    )
+    assert leads.rows == {}
+    stored = person.comment
+    outcomes = _outcomes(orch)
+    orch._upsert_lead(connection, contact_a)
+    orch._upsert_lead(connection, contact_b)
+    assert outcomes["unchanged"] == 2
+    assert person.comment == stored
 
 
 def test_approved_contact_without_an_erp_person_fails_with_its_reason_and_creates_nothing():

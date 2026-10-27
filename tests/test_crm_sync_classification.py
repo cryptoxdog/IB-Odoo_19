@@ -743,6 +743,24 @@ def test_call_and_load_context_is_kept_as_labelled_notes_only_when_present(lead_
     assert not other.description
 
 
+def test_human_paragraph_equal_to_the_note_is_kept_and_still_labelled(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    dto = _contact(
+        custom_fields=[{"name": "Notes", "value": "called twice; wants film"}],
+        phone_numbers=[],
+    )
+    lead = orch._upsert_lead(connection, dto)
+    lead.description = "<p>called twice; wants film</p>"
+    again = orch._upsert_lead(connection, dto)
+    assert _paragraphs(again) == (
+        "called twice; wants film",
+        "VanillaSoft ContactID vs-9001 Notes: called twice; wants film",
+    )
+    stored = again.description
+    third = orch._upsert_lead(connection, dto)
+    assert third.id == lead.id and third.description == stored
+
+
 def test_historic_unlabelled_note_is_not_copied_with_a_contact_id(lead_harness):
     orch, connection, _leads, _refs = lead_harness
     dto = _contact()
