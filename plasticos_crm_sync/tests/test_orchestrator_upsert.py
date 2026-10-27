@@ -343,7 +343,11 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             }
         )
         lead = SyncOrchestrator(self.env)._upsert_lead(self.connection, dto)
+        self.assertEqual(lead.name, "Alias Co — Ada Lovelace")
+        self.assertEqual(lead.partner_name, "Alias Co")
+        self.assertEqual(lead.contact_name, "Ada Lovelace")
         self.assertEqual(lead.street, "9 Observed St")
+        self.assertEqual(lead.city, "Atlanta")
         self.assertEqual(lead.zip, "30301")
         self.assertEqual(lead.phone, "555-100-0001")
         self.assertEqual(lead.mobile, "555-100-0002")
@@ -1336,6 +1340,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
 
     def test_shared_person_attributes_colliding_notes_and_keeps_erp_text(self):
+        company = self.env["res.partner"].create({"name": "ERP Company", "is_company": True})
         person = self.env["res.partner"].create(
             {
                 "name": "ERP Person",
@@ -1344,6 +1349,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
                 "street": "1 ERP Way",
                 "city": "Philadelphia",
                 "zip": "19103",
+                "parent_id": company.id,
                 "comment": "<p>ERP manual</p><p>shared history</p>",
             }
         )
@@ -1385,6 +1391,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             self.assertIn(line, comment)
         self.assertNotIn("PPS-PROFILE-ONLY", comment)
         self.assertEqual(person.name, "ERP Person")
+        self.assertEqual(person.parent_id, company)
         self.assertEqual(person.email, "erp-person@example.test")
         self.assertEqual(person.phone, "555-0100")
         self.assertEqual(person.street, "1 ERP Way")
