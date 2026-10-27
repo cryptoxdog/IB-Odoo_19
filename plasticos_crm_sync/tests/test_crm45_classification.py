@@ -1,6 +1,9 @@
 """CRM-4 material sections and CRM-5 classification. Synthetic ORM readback."""
 
+from unittest.mock import patch
+
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
+from odoo.exceptions import UserError
 from odoo.tests import tagged
 
 from .test_orchestrator_upsert import CrmSyncOrchestratorCase
@@ -22,9 +25,12 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertIn("BLOCKED_STAGE_APPROVAL: 2c=Qualified/COLD", self._messages(orch))
         self.assertIn("VanillaSoft ContactID crm45-cold Lead Status: 2c=Qualified/COLD", cold.description or "")
 
+        mail_before = self.env["mail.mail"].search_count([])
         dnc = orch._upsert_lead(self.connection, self._lead("crm45-dnc", lead_status_raw="7=Do Not Call"))
         self.assertNotEqual(dnc.stage_id, self.env.ref("plasticos_crm_bridge.stage_dead_lead"))
         self.assertFalse(dnc.stage_id.is_won)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mail_before)
+        self.assertFalse(self.env["mail.mail"].search([("model", "=", "crm.lead"), ("res_id", "=", dnc.id)]))
 
         hot = orch._upsert_lead(self.connection, self._lead("crm45-hot", lead_status_raw="2a=Qualified/HOT"))
         self.assertEqual(hot.stage_id, self.env.ref("plasticos_crm_bridge.stage_qualified_hot"))
@@ -149,11 +155,88 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertTrue(any("type hint is not contact-unique" in message for message in self._messages(orch)))
         bare = orch._upsert_lead(
             self.connection,
-            self._lead("crm45-pe", custom_fields={"Materials": "PE\n1-7"}),
+            self._lead("crm45-pe", custom_fields={"Materials": "PE"}),
         )
-        self.assertFalse(self._profiles(bare))
-        self.assertTrue(any("BLOCKED_UNRESOLVED: PE" in message for message in self._messages(orch)))
-        self.assertTrue(any("BLOCKED_UNRESOLVED: 1-7" in message for message in self._messages(orch)))
+        pe_profile = self._profiles(bare)
+        self.assertEqual(pe_profile.polymer_id.code, "HDPE")
+        self.assertFalse(pe_profile.form_id)
+        bottles = orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-bottles", custom_fields={"Materials": "1-7"}),
+        )
+        bottle_profile = self._profiles(bottles)
+        self.assertEqual(bottle_profile.polymer_id.code, "1_7_COMMINGLED_BOTTLES")
+        self.assertEqual(bottle_profile.form_id.code, "BOTTLES")
+        self.assertEqual(bottle_profile.source_type_id.code, "POST_CONSUMER")
+
+    def test_type_hint_from_another_section_is_not_applied(self):
+        orch = SyncOrchestrator(self.env)
+        crossed = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-cross",
+                custom_fields={
+                    "Materials (MRF's)": "Gaylord Boxes",
+                    "Type (LDPE)": "LDPE Film",
+                },
+            ),
+        )
+        profiles = self._profiles(crossed)
+        self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE"))
+        self.assertFalse(profiles.filtered(lambda profile: profile.form_id.code == "FILM"))
+
+        same = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-same-section",
+                custom_fields={
+                    "Materials (LDPE)": "Gaylord Boxes",
+                    "Type (LDPE)": "LDPE Film",
+                },
+            ),
+        )
+        same_profile = self._profiles(same)
+        self.assertEqual(same_profile.polymer_id.code, "LDPE")
+        self.assertEqual(same_profile.form_id.code, "FILM")
+
+    def test_existing_buyer_tag_is_reused_when_names_collide(self):
+        adopted = self.env.ref("plasticos_crm_bridge.crm_tag_buyer")
+        self.env["crm.tag"].create({"name": "Buyer"})
+        before = self.env["crm.tag"].search_count([("name", "=", "Buyer")])
+        company = self.env["res.partner"].create({"name": "CRM45 Tag Maker", "is_company": True})
+        ranks = (company.supplier_rank, company.customer_rank, company.category_id.ids)
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-tag-replay", company="CRM45 Tag Maker", custom_fields={"Buyer/Supplier": "Buyer"}),
+        )
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), before)
+        self.assertEqual(lead.tag_ids.filtered(lambda tag: tag.name == "Buyer"), adopted)
+        orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-tag-replay", company="CRM45 Tag Maker", custom_fields={"Buyer/Supplier": "Buyer"}),
+        )
+        self.assertEqual(lead.tag_ids.filtered(lambda tag: tag.name == "Buyer"), adopted)
+        self.assertEqual((company.supplier_rank, company.customer_rank, company.category_id.ids), ranks)
+
+    def test_failed_tag_write_keeps_the_admitted_lead(self):
+        orch = SyncOrchestrator(self.env)
+        real_write = type(self.env["crm.lead"]).write
+
+        def fail_tags(records, vals):
+            if "tag_ids" in vals:
+                raise UserError("tag write failed")
+            return real_write(records, vals)
+
+        with patch.object(type(self.env["crm.lead"]), "write", fail_tags):
+            lead = orch._upsert_lead(
+                self.connection,
+                self._lead("crm45-tag-fail", custom_fields={"Buyer/Supplier": "Buyer"}),
+            )
+        self.assertTrue(lead)
+        self.assertEqual(orch.last_lead_outcome, "created")
+        self.assertFalse(lead.tag_ids)
+        self.assertTrue(any("classification failed" in message for message in self._messages(orch)))
 
     def test_weight_loads_and_color_are_section_bound(self):
         orch = SyncOrchestrator(self.env)

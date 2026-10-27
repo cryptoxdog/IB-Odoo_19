@@ -215,8 +215,6 @@ def _dedupe_phrases(phrases) -> list[str]:
     return kept
 
 
-# Bare tokens the shared normalizer would silently retarget. CRM ingress keeps them unresolved.
-_AMBIGUOUS_MATERIAL_PHRASES = frozenset({"pe", "1-7"})
 _POUNDS_RE = re.compile(r"^([0-9][0-9,]*(?:\.[0-9]+)?)\s*(?:lbs?|pounds?)?$", re.IGNORECASE)
 _SECTION_ALIASES = {
     "mrf": "mrf",
@@ -2219,9 +2217,6 @@ class SyncOrchestrator:
         ref = self._material_ref(lead, external_id)
         use_structured = structured if structured and len(texts) == 1 else None
         for text in texts:
-            if _collapse_ws(text).casefold() in _AMBIGUOUS_MATERIAL_PHRASES:
-                self._append_classified_error(ref, f"BLOCKED_UNRESOLVED: {text}", REQUIRED_MAPPING)
-                continue
             normalized, dropped_hint = self._resolve_material(text, use_structured)
             if dropped_hint:
                 self._append_classified_error(ref, f"BLOCKED_UNRESOLVED: {text}", OPTIONAL_CONTEXT)
@@ -2259,26 +2254,6 @@ class SyncOrchestrator:
         if not sections:
             return
         ref = self._material_ref(lead, external_id)
-        phrases = _dedupe_phrases(phrase for section in sections.values() for phrase in section["phrases"])
-        hints = _dedupe_phrases(hint for section in sections.values() for hint in section["hints"])
-        accepted = []
-        for phrase in phrases:
-            if _collapse_ws(phrase).casefold() in _AMBIGUOUS_MATERIAL_PHRASES:
-                self._append_classified_error(ref, f"BLOCKED_UNRESOLVED: {phrase}", REQUIRED_MAPPING)
-                continue
-            accepted.append(phrase)
-        if hints and len(accepted) != 1:
-            detail = ", ".join(hints)
-            message = (
-                f"BLOCKED_UNRESOLVED: {detail}"
-                if not accepted
-                else "BLOCKED_UNRESOLVED: type hint is not contact-unique"
-            )
-            category = REQUIRED_MAPPING if not accepted else OPTIONAL_CONTEXT
-            self._append_classified_error(ref, message, category)
-        structured = None
-        if len(accepted) == 1 and len(hints) == 1 and hints[0].casefold() not in _AMBIGUOUS_MATERIAL_PHRASES:
-            structured = {"type": hints[0]}
         existing = self._profiles_for_material(partner, facility_profile)
         distinguished_ids = set(
             existing.filtered(
@@ -2288,18 +2263,31 @@ class SyncOrchestrator:
                 )
             ).ids
         )
-        if accepted:
-            self._store_normalized_materials(
-                lead,
-                accepted,
-                partner=partner,
-                facility_profile=facility_profile,
-                structured=structured,
-                external_id=ref,
-            )
+        for _section, slot in sections.items():
+            phrases = list(slot["phrases"])
+            hints = list(slot["hints"])
+            structured = {"type": hints[0]} if len(phrases) == 1 and len(hints) == 1 else None
+            if hints and structured is None:
+                detail = ", ".join(hints)
+                message = (
+                    f"BLOCKED_UNRESOLVED: {detail}"
+                    if not phrases
+                    else "BLOCKED_UNRESOLVED: type hint is not contact-unique"
+                )
+                category = REQUIRED_MAPPING if not phrases else OPTIONAL_CONTEXT
+                self._append_classified_error(ref, message, category)
+            if phrases:
+                self._store_normalized_materials(
+                    lead,
+                    phrases,
+                    partner=partner,
+                    facility_profile=facility_profile,
+                    structured=structured,
+                    external_id=ref,
+                )
         profiles = self._profiles_for_material(partner, facility_profile)
         for section, slot in sections.items():
-            self._apply_section_specs(profiles, slot, structured, ref, section)
+            self._apply_section_specs(profiles, slot, ref, section)
         pps_notes = sections.get("pps", {}).get("notes") or []
         if pps_notes:
             distinguished = profiles.filtered(lambda profile: profile.id in distinguished_ids)
@@ -2309,10 +2297,9 @@ class SyncOrchestrator:
             else:
                 self._append_classified_error(ref, "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING)
 
-    def _apply_section_specs(self, profiles, slot, structured, ref, section) -> None:
-        phrases = [
-            phrase for phrase in slot["phrases"] if _collapse_ws(phrase).casefold() not in _AMBIGUOUS_MATERIAL_PHRASES
-        ]
+    def _apply_section_specs(self, profiles, slot, ref, section) -> None:
+        phrases = list(slot["phrases"])
+        structured = {"type": slot["hints"][0]} if len(phrases) == 1 and len(slot["hints"]) == 1 else None
         identities = []
         for phrase in phrases:
             normalized, _dropped = self._resolve_material(phrase, structured if len(phrases) == 1 else None)
@@ -2453,6 +2440,15 @@ class SyncOrchestrator:
         self._append_classified_error(dto.external_id, f"BLOCKED_STAGE_APPROVAL: {raw}", OPTIONAL_CONTEXT)
 
     def _apply_crm_classification(self, lead, dto, partner=None) -> None:
+        """Keep a failed tag or category write inside this contact's savepoint."""
+        try:
+            with self.env.cr.savepoint():
+                self._apply_crm_classification_body(lead, dto, partner=partner)
+        except Exception as exc:  # noqa: BLE001 - classification must not drop the admitted contact
+            _logger.warning("CRM classification failed for %s: %s", dto.external_id, exc)
+            self._append_classified_error(dto.external_id, f"classification failed: {exc}", OPTIONAL_CONTEXT)
+
+    def _apply_crm_classification_body(self, lead, dto, partner=None) -> None:
         from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
         from odoo.addons.plasticos_crm_bridge.models.crm_mapping import (  # noqa: PLC0415
             COMPANY_TYPE_ALIASES,
@@ -2485,13 +2481,12 @@ class SyncOrchestrator:
                 lead.write({"tag_ids": [command.link(tag.id)]})
 
     def _crm_role_tag(self, role_name, mapping):
+        """Reuse one Buyer or Supplier tag. A second row of the same name is not created."""
         xmlid = mapping[role_name]
-        by_name = self.env["crm.tag"].search([("name", "=", role_name)])
-        if len(by_name) > 1:
-            return self.env["crm.tag"].browse()
-        if len(by_name) == 1:
-            return by_name
-        return self.env.ref(xmlid, raise_if_not_found=False) or self.env["crm.tag"].browse()
+        adopted = self.env.ref(xmlid, raise_if_not_found=False)
+        if adopted:
+            return adopted
+        return self.env["crm.tag"].search([("name", "=", role_name)], order="id", limit=1)
 
     def _apply_company_type(self, lead, dto, partner, custom, command, mapping, aliases) -> None:
         raw = _collapse_ws(custom.get("Company Type"))

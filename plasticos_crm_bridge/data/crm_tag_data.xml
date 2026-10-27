@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo noupdate="1">
-    <record id="crm_tag_buyer" model="crm.tag">
-        <field name="name">Buyer</field>
-    </record>
-    <record id="crm_tag_supplier" model="crm.tag">
-        <field name="name">Supplier</field>
-    </record>
+<odoo>
+    <!-- Adopt an existing crm.tag of this name. Do not insert a second Buyer or Supplier. -->
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Buyer</value>
+        <value>plasticos_crm_bridge.crm_tag_buyer</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Supplier</value>
+        <value>plasticos_crm_bridge.crm_tag_supplier</value>
+    </function>
 </odoo>
