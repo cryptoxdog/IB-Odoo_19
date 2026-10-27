@@ -13,7 +13,11 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from plasticos_crm_sync.adapters.base import CrmAdapterError  # noqa: E402
+from plasticos_crm_sync.adapters.base import (  # noqa: E402
+    EXCLUDED_SOURCE_FIELDS,
+    CrmAdapterError,
+    source_field_key,
+)
 from plasticos_crm_sync.adapters.registry import LIVE_PROVIDERS, get_adapter  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft.adapter import (  # noqa: E402
     VanillaSoftAdapter,
@@ -319,6 +323,21 @@ def test_observed_payload_keys_fill_only_when_the_accepted_key_is_absent():
     assert observed.owner_name == "Observed Owner"
 
 
+def test_address_1_uses_the_same_label_family_as_address_2():
+    """``Address 2`` is already an adapter alias. ``Address 1`` is that same label."""
+    contact = contact_to_canonical({"contact_id": 11, "Address 1": "12 Dock St", "Address 2": "Suite 4"})
+    assert contact.street == "12 Dock St"
+    assert contact.street2 == "Suite 4"
+
+
+def test_zip_code_is_not_mapped_until_a_payload_uses_that_key():
+    """Observed zip aliases are zip, Zip, zip_code and postal_code. ``Zip Code`` is not one of them."""
+    unproven = contact_to_canonical({"contact_id": 12, "Zip Code": "19103"})
+    assert unproven.zip == ""
+    mapped = contact_to_canonical({"contact_id": 13, "zip_code": "19104"})
+    assert mapped.zip == "19104"
+
+
 def test_blank_address_does_not_hide_address1_and_text_is_stripped():
     contact = contact_to_canonical(
         {
@@ -373,6 +392,88 @@ def test_rows_from_two_contacts_cannot_collide_via_array_position():
     payload = {"rows": [{"grade": "HDPE"}]}
     assert _rows_for("42", payload) == []
     assert _rows_for("77", payload) == []
+
+
+def test_excluded_source_columns_never_enter_a_custom_table_row():
+    rows = _rows_for(
+        "42",
+        {
+            "rows": [
+                {
+                    "data_id": 9001,
+                    "Material": "HDPE Drums",
+                    "Notes": "Load Ready is mentioned in ordinary notes",
+                    "FOB/FAS (HDPE)": "EXCL-FOB-HDPE",
+                    "Melt (LDPE)": "EXCL-MELT",
+                    "Density (PP)": "EXCL-DENSITY",
+                    "Equipment": "EXCL-EQUIPMENT",
+                    "Price Quoted (MRP)": "EXCL-PRICE",
+                    "Load Ready": "EXCL-LOAD",
+                    "NAICS Code  Description": "EXCL-NAICS",
+                }
+            ]
+        },
+    )
+    assert rows[0].fields["Material"] == "HDPE Drums"
+    assert rows[0].fields["Notes"] == "Load Ready is mentioned in ordinary notes"
+    blob = " ".join(value for key, value in rows[0].fields.items() if key != "Notes")
+    for token in (
+        "EXCL-FOB-HDPE",
+        "EXCL-MELT",
+        "EXCL-DENSITY",
+        "EXCL-EQUIPMENT",
+        "EXCL-PRICE",
+        "EXCL-LOAD",
+        "EXCL-NAICS",
+    ):
+        assert token not in blob
+
+
+# Exact v1.4 EXCLUDE_NO_ODOO_PERSISTENCE labels. The double space in the NAICS
+# description is the workbook spelling.
+_EXCLUDED_BY_SPEC = (
+    "Load Ready",
+    "ClosedFlag",
+    "Team",
+    "Call Back Date",
+    "Call Back Time",
+    "Scheduled Call User",
+    "SIC Code",
+    "SIC Code Description",
+    "NAICS Code",
+    "NAICS Code  Description",
+    "Sales Volume Range",
+    "Sales Volume",
+    "Employees",
+    "Square Footage",
+    "Fleet Size",
+    "Product (MFR)",
+    "Truck Size (E)",
+    "Equipment",
+    "Price Quoted (MRP)",
+    "FOB/FAS (MRP)",
+    "Price Quoted (PPS)",
+    "FOB/FAS (PPS)",
+    "Melt (LDPE)",
+    "Density (LDPE)",
+    "Price Quoted (LDPE)",
+    "FOB/FAS (LDPE)",
+    "Melt (HDPE)",
+    "Density (HDPE)",
+    "Load Ready (HDPE)",
+    "Price Quoted (HDPE)",
+    "FOB/FAS (HDPE)",
+    "Melt (PP)",
+    "Density (PP)",
+    "Price Quoted (PP)",
+    "FOB/FAS (PP)",
+)
+
+
+def test_excluded_labels_match_the_v1_4_matrix():
+    assert len(_EXCLUDED_BY_SPEC) == 35
+    assert tuple(EXCLUDED_SOURCE_FIELDS) == _EXCLUDED_BY_SPEC
+    assert len({source_field_key(name) for name in _EXCLUDED_BY_SPEC}) == 35
 
 
 def test_an_identified_row_still_persists_alongside_a_skipped_one():

@@ -6,7 +6,13 @@ import logging
 from collections.abc import Iterator
 from typing import Any
 
-from ..base import CanonicalCall, CanonicalLead, CanonicalTableRow, CrmAdapterError
+from ..base import (
+    CanonicalCall,
+    CanonicalLead,
+    CanonicalTableRow,
+    CrmAdapterError,
+    omit_excluded_source_fields,
+)
 from .client import VanillaSoftClient
 
 _logger = logging.getLogger(__name__)
@@ -134,7 +140,7 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         read_phones,
     )
 
-    custom = _cf_map(raw.get("custom_fields"))
+    custom = omit_excluded_source_fields(_cf_map(raw.get("custom_fields")))
     contact_id = raw.get("contact_id") or raw.get("ContactID") or raw.get("id")
     if contact_id is None:
         raise CrmAdapterError("Contact payload missing contact_id")
@@ -173,7 +179,7 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         phone=primary_number(enabled, PRIMARY_PHONE_NAMES) or _top_level_number(raw, ("phone", "Direct"), disabled),
         mobile=primary_number(enabled, PRIMARY_MOBILE_NAMES)
         or _top_level_number(raw, ("mobile", "Mobile 1"), disabled),
-        street=_payload_text(raw, "address", "Address", "street", "address1"),
+        street=_payload_text(raw, "address", "Address", "street", "address1", "Address 1"),
         street2=_payload_text(raw, "address_2", "Address 2", "street2"),
         city=_payload_text(raw, "city", "City"),
         state_code=_payload_text(raw, "state", "State"),
@@ -494,7 +500,9 @@ class VanillaSoftAdapter:
                     sorted(row.keys()),
                 )
                 continue
-            fields = {k: str(v) for k, v in row.items() if v is not None and k not in ("data_id", "id", "DataID")}
+            fields = omit_excluded_source_fields(
+                {k: str(v) for k, v in row.items() if v is not None and k not in ("data_id", "id", "DataID")}
+            )
             yield CanonicalTableRow(
                 provider=PROVIDER,
                 contact_external_id=str(contact_external_id),

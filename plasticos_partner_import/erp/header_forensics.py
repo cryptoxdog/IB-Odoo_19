@@ -62,6 +62,7 @@ __all__ = [
     "TransactionHeader",
     "reconstruct_transaction_header",
     "reconstruct_all_headers",
+    "trade_date",
 ]
 
 # Historical states this reconstruction can emit, in settlement order.
@@ -185,6 +186,11 @@ def _resolve_trade_date(index: SourceIndex, buysell_no: str) -> tuple[datetime |
         anomalies.append("no GPLedger trade date")
         return None, anomalies
     return min(dates), anomalies
+
+
+def trade_date(index: SourceIndex, buysell_no: str) -> tuple[datetime | None, list[str]]:
+    """Earliest ``GPLedger.TradeDt`` of the worksheet, or ``None``, with the reasons it is missing."""
+    return _resolve_trade_date(index, buysell_no)
 
 
 def _derive_state(index: SourceIndex, buysell_no: str) -> str:

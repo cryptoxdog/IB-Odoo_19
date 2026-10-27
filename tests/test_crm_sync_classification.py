@@ -703,6 +703,27 @@ def test_a_same_number_fax_stays_visible_beside_the_lead_phone(lead_harness):
     )
 
 
+def test_excluded_columns_stay_out_of_the_lead_while_notes_and_context_remain(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    custom = [
+        {"name": "Notes", "value": "operator wrote that the melt looked high"},
+        {"name": "Buyer/Supplier", "value": "Supplier"},
+        {"name": "Load Ready", "value": "EXCL-LOAD-READY"},
+        {"name": "FOB/FAS (MRP)", "value": "EXCL-FOB-MRP"},
+        {"name": "Equipment", "value": "EXCL-EQUIPMENT"},
+    ]
+    lead = orch._upsert_lead(connection, _contact(custom_fields=custom, phone_numbers=[]))
+    text = lead.description or ""
+    assert "operator wrote that the melt looked high" in text
+    assert "VanillaSoft Buyer/Supplier: Supplier" in text
+    assert "EXCL-LOAD-READY" not in text
+    assert "EXCL-FOB-MRP" not in text
+    assert "EXCL-EQUIPMENT" not in text
+    again = orch._upsert_lead(connection, _contact(custom_fields=custom, phone_numbers=[]))
+    assert again.id == lead.id
+    assert (again.description or "").count("operator wrote that the melt looked high") == 1
+
+
 def test_call_and_load_context_is_kept_as_labelled_notes_only_when_present(lead_harness):
     orch, connection, _leads, _refs = lead_harness
     custom = [
@@ -712,10 +733,10 @@ def test_call_and_load_context_is_kept_as_labelled_notes_only_when_present(lead_
     ]
     lead = orch._upsert_lead(connection, _contact(custom_fields=custom, phone_numbers=[]))
     assert _paragraphs(lead) == (
-        "VanillaSoft Load Ready: Yes - 2 loads",
         "VanillaSoft Last Result Code: LM",
         "VanillaSoft Last Call Date: 2024-03-05 14:10",
     )
+    assert "Yes - 2 loads" not in (lead.description or "")
     assert "plasticos.crm.call.event" not in orch.env, "a note, never a synthesized call"
     blank = [{"name": "Last Result Code", "value": "  "}]
     other = orch._upsert_lead(connection, _contact(contact_id="vs-9010", custom_fields=blank, phone_numbers=[]))

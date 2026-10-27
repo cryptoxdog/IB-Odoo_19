@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from plasticos_crm_sync.adapters.base import EXCLUDED_SOURCE_FIELDS
 from plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
 from plasticos_crm_sync.services.approved_identity import (
     PINNED_ERP_COUNT,
@@ -19,7 +20,9 @@ from plasticos_crm_sync.services.approved_identity import (
     phone_kinds,
     phone_match_key,
     validate_crosswalk,
+    without_excluded_source_paragraphs,
 )
+from plasticos_crm_sync.services.import_summary import REQUIRED_MAPPING
 from tests.test_crm_sync_classification import _harness, _lead, _Model, _outcomes
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -188,7 +191,13 @@ def test_approved_material_failure_rolls_back_and_is_recorded():
     orch._apply_resolved_approved_materials = boom
     orch._apply_approved_materials(lead, {"Materials": "HDPE"})
     assert [r.vanillasoft_id for r in leads.rows.values()] == ["m1"]
-    assert orch.error_rows == [{"record_ref": "m1", "message": "material normalization failed: material constraint"}]
+    assert orch.error_rows == [
+        {
+            "record_ref": "m1",
+            "message": "material normalization failed: material constraint",
+            "category": REQUIRED_MAPPING,
+        }
+    ]
 
 
 # ── approved ERP person: additive phone lines, ERP fields untouched ─────────
@@ -432,3 +441,25 @@ def test_approved_person_context_names_each_vanillasoft_contact_and_replays_once
         ("res.partner", "9001"),
         ("res.partner", "9002"),
     ]
+
+
+def test_legacy_importer_paragraphs_drop_every_excluded_label_and_keep_human_notes():
+    """A stored Html comment keeps every node that is not an importer field paragraph."""
+    keepers = (
+        "<p>ERP-OWNED sentinel</p>",
+        "<p>operator wrote that the melt looked high</p>",
+        "<p>Load Ready is mentioned in ordinary notes</p>",
+        "<p>VanillaSoft Buyer/Supplier: Supplier</p>",
+        "<p>VanillaSoft Notes: FOB was a word in the note</p>",
+        "<div>VanillaSoft Load Ready: not a paragraph node</div>",
+    )
+    excluded = "".join(
+        f"<p>VanillaSoft {name}: EXCL-{index}</p><p>VanillaSoft ContactID 900{index} {name}: EXCL-PERSON-{index}</p>"
+        for index, name in enumerate(EXCLUDED_SOURCE_FIELDS)
+    )
+    original = "".join(keepers) + excluded
+    cleaned = without_excluded_source_paragraphs(original)
+    assert cleaned == "".join(keepers)
+    assert without_excluded_source_paragraphs(cleaned) == cleaned
+    assert "EXCL-" not in cleaned
+    assert "not a paragraph node" in cleaned

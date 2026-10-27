@@ -12,8 +12,15 @@ class PlasticosComplianceService(models.AbstractModel):
     _name = "plasticos.compliance.service"
     _description = "Compliance Service"
 
-    def get_missing_documents(self, res_model, res_id):
-        rules = self.env["plasticos.document.rule"].search([("res_model", "=", res_model), ("active", "=", True)])
+    # Gates name the rule flag that scopes them: a rule required for close only must
+    # not block invoice posting (plasticos.document.rule required_for_*).
+    _PURPOSE_FLAGS = {"invoice": "required_for_invoice", "close": "required_for_close"}
+
+    def get_missing_documents(self, res_model, res_id, purpose=None):
+        domain = [("res_model", "=", res_model), ("active", "=", True)]
+        if purpose is not None:
+            domain.append((self._PURPOSE_FLAGS[purpose], "=", True))
+        rules = self.env["plasticos.document.rule"].search(domain)
 
         missing = []
 
@@ -51,6 +58,6 @@ class PlasticosComplianceService(models.AbstractModel):
 
         return missing
 
-    def is_compliant(self, res_model, res_id):
-        missing = self.get_missing_documents(res_model, res_id)
+    def is_compliant(self, res_model, res_id, purpose=None):
+        missing = self.get_missing_documents(res_model, res_id, purpose=purpose)
         return len(missing) == 0

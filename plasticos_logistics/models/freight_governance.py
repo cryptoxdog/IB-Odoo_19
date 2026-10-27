@@ -41,8 +41,10 @@ class PlasticosFreightEvent(models.Model):
     outcome_code = fields.Char(required=True, index=True)
     correlation_id = fields.Char(index=True)
     policy_version = fields.Char()
-    facts = fields.Json(required=True, default=dict)
-    unknowns = fields.Json(required=True, default=list)
+    # Not required: Odoo stores an empty Json value ({} / []) as SQL NULL, so a NOT NULL
+    # column rejects every event that records no facts or no unknowns.
+    facts = fields.Json(default=dict)
+    unknowns = fields.Json(default=list)
     occurred_at = fields.Datetime(required=True, default=fields.Datetime.now, index=True)
 
     @api.constrains("load_id", "transaction_id", "company_id")
@@ -54,7 +56,9 @@ class PlasticosFreightEvent(models.Model):
                 )
                 if load_company and load_company != record.company_id:
                     raise ValidationError("Freight event company must match its load company.")
-            if record.transaction_id and record.transaction_id.company_id != record.company_id:
+            # plasticos.transaction has no company_id; its company is its sale order's.
+            tx_company = record.transaction_id.sale_order_id.company_id
+            if tx_company and tx_company != record.company_id:
                 raise ValidationError("Freight event company must match its transaction company.")
 
     def write(self, vals):

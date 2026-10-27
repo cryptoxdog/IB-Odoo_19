@@ -50,5 +50,5 @@ def action_view_supplier(self):
 
 ## References
 
-- `tests/test_action_methods.py` — action method coverage
+- `plasticos_security_base/tests/test_action_methods.py` — action method coverage
 - [84-ci-odoo19-patterns](../../.cursor/rules/84-ci-odoo19-patterns.mdc) — `view_mode` uses `list`
