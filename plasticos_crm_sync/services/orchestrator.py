@@ -1562,7 +1562,7 @@ class SyncOrchestrator:
                 self._apply_approved_materials(lead, dto.custom_fields)
             elif "plasticos.material.profile" in self.env:
                 self._apply_person_materials(partner, dto)
-            if "crm.tag" in self.env:
+            if self._env_has_model("crm.tag"):
                 self._apply_crm_classification(lead, dto, partner=partner)
         return lead or Lead.browse()
 
@@ -1782,9 +1782,17 @@ class SyncOrchestrator:
         self.last_lead_outcome = outcome
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
             self._apply_contact_materials(lead, dto.custom_fields)
-            if "crm.tag" in self.env:
+            if self._env_has_model("crm.tag"):
                 self._apply_crm_classification(lead, dto)
         return lead
+
+    def _env_has_model(self, model_name: str) -> bool:
+        """True when the model is installed. A pure-Python fake env raises KeyError."""
+        try:
+            self.env[model_name]
+        except KeyError:
+            return False
+        return True
 
     def _append_classified_error(self, record_ref: str, message: str, category: str) -> None:
         """Record one typed row. Status reads ``category``, never the message text."""
