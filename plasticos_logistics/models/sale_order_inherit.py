@@ -43,6 +43,23 @@ class SaleOrderInherit(models.Model):
             self.env[LOGISTICS_REQUEST]._issue_sale_orders(released)
         return res
 
+    def _send_order_confirmation_mail(self):
+        """Choose one buyer confirmation writer per order, including mixed sets.
+
+        Native Sales owns send_email in off/shadow; Linda owns it in live.
+        ``plasticos_logistics.linda_mode`` is one database parameter, not a
+        per-company flag: live mode suppresses native confirmation for every
+        company until an operator splits that owner. Payment-success mail is a
+        different method and is not suppressed. Import, install, and skip
+        contexts send nothing.
+        """
+        if any(self.env.context.get(key) for key in ("import_mode", "install_mode", "skip_automations")):
+            return None
+        native_owned = self.filtered(lambda so: not so._linda_owns_so_issuance())
+        if native_owned:
+            return super(SaleOrderInherit, native_owned)._send_order_confirmation_mail()
+        return None
+
     def write(self, vals):
         # A real cancellation is a successful move into ``cancel``. Native cancel refuses
         # locked or invoiced orders before writing, and a later failure rolls this back too.

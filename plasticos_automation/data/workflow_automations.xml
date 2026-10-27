@@ -61,6 +61,10 @@ else:
         # in off and shadow modes this legacy send is unchanged.
         if so._linda_owns_so_issuance():
             continue
+        # When Odoo core is explicitly issuing the confirmation, do not send a
+        # second legacy message in off/shadow. Live was already excluded above.
+        if env.context.get('send_email'):
+            continue
 
         # Duplicate guard: check if already sent
         if so.message_ids.filtered(lambda m: 'Sales order confirmation sent to buyer' in (m.body or '')):
