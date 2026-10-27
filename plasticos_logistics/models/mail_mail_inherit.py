@@ -11,9 +11,9 @@ and the queued request row is claimed so a second worker cannot send it too.
 Only the queue path (``auto_commit=True``) makes that claim durable before
 SMTP; a manual "Send Now" keeps native transactional semantics.
 
-An issue mail is held, untouched and still outgoing, while an earlier
-cancellation notice to the same party is pending outside this batch, so a
-reissue never overtakes the notice; the next queue run picks it up.
+An issue mail is held, untouched and still outgoing, until an earlier
+cancellation notice to the same party is confirmed sent. Selection in the
+same batch is not delivery. Unknown and failed notices keep the hold.
 """
 
 import smtplib
@@ -92,7 +92,7 @@ class MailMailInherit(models.Model):
         requests.flush_model()
         self.env.cr.execute(
             """
-            SELECT id, send_attempt_count
+            SELECT id, COALESCE(send_attempt_count, 0)
               FROM plasticos_logistics_request
              WHERE mail_id = %s
                AND state = %s
@@ -183,6 +183,13 @@ class MailMailInherit(models.Model):
             failure_reason=failure_reason,
             failure_type=failure_type,
         )
-        # sudo: same bookkeeping scope as send(); mirrors only the native outcome of these mails.
-        self.env[LOGISTICS_REQUEST].sudo()._reconcile_mails(self.exists(), failure_type=failure_type)
+        # sudo: same bookkeeping scope as send(); mirrors only Linda mail.
+        # The id lookup is raw SQL, so an ordinary message does not flush the request table.
+        existing = self.exists()
+        linda_ids = self._linda_request_mail_ids(existing)
+        if linda_ids:
+            self.env[LOGISTICS_REQUEST].sudo()._reconcile_mails(
+                existing.filtered(lambda mail: mail.id in linda_ids),
+                failure_type=failure_type,
+            )
         return res
