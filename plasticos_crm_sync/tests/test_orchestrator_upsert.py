@@ -268,7 +268,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(lead.mobile, "555-100-0002", "the valid second mobile fills the field the first cannot")
         self.assertEqual(lead.state_id.code, "PA")
         for line in (
-            "VanillaSoft Notes: synthetic note",
+            "VanillaSoft ContactID vs-phone-fidelity Notes: synthetic note",
             "VanillaSoft phone (mobile 1): +44 7700 900123",
             "VanillaSoft phone (fax): 555-100-0003",
         ):
@@ -343,7 +343,11 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             }
         )
         lead = SyncOrchestrator(self.env)._upsert_lead(self.connection, dto)
+        self.assertEqual(lead.name, "Alias Co — Ada Lovelace")
+        self.assertEqual(lead.partner_name, "Alias Co")
+        self.assertEqual(lead.contact_name, "Ada Lovelace")
         self.assertEqual(lead.street, "9 Observed St")
+        self.assertEqual(lead.city, "Atlanta")
         self.assertEqual(lead.zip, "30301")
         self.assertEqual(lead.phone, "555-100-0001")
         self.assertEqual(lead.mobile, "555-100-0002")
@@ -1323,7 +1327,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(orch.outcomes["updated"], 2)
         appended = person.comment
         self.assertTrue(appended.startswith(erp_comment))
-        self.assertIn("<p>CRM history &amp; terms</p>", appended)
+        self.assertIn("<p>VanillaSoft ContactID vs-n1 Notes: CRM history &amp; terms</p>", appended)
         self.assertIn("second contact", appended)
 
         orch.outcomes = _new_outcomes()
@@ -1334,6 +1338,227 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.comment, appended)
         self.assertEqual(person.phone, "555-0100")
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+
+    def test_shared_person_attributes_colliding_notes_and_keeps_erp_text(self):
+        company = self.env["res.partner"].create({"name": "ERP Company", "is_company": True})
+        country = self.env.ref("base.us")
+        state = self.env["res.country.state"].search([("country_id", "=", country.id), ("code", "=", "PA")], limit=1)
+        self.assertTrue(state)
+        person = self.env["res.partner"].create(
+            {
+                "name": "ERP Person",
+                "email": "erp-person@example.test",
+                "phone": "555-0100",
+                "mobile": "215-555-0140",
+                "street": "1 ERP Way",
+                "city": "Philadelphia",
+                "zip": "19103",
+                "state_id": state.id,
+                "country_id": country.id,
+                "parent_id": company.id,
+                "comment": "<p>ERP manual</p><p>shared history</p>",
+            }
+        )
+        self._erp_marker(person, "88")
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-a": "88", "vs-b": "88"}
+        orch._crosswalk_ready = True
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+        contact_a = self._lead(
+            "vs-a",
+            contact_note="shared history",
+            email="crm@example.test",
+            phone="999-555-0199",
+            mobile="999-555-0188",
+            street="9 CRM St",
+            city="CRM City",
+            zip="00000",
+            state_code="NY",
+            country_code="CA",
+            owner_name="sa@scrapmanagement.com",
+            lead_source_raw="Google",
+            custom_fields={
+                "Notes (MRP)": "mrp note",
+                "Notes (LDPE)": "ldpe note",
+                "Notes (HDPE)": "hdpe note",
+                "Notes (PP)": "pp note",
+                "Notes (PPS)": "PPS-PROFILE-ONLY",
+                "Last Result Code": "LM",
+                "Last Call Date": "2024-03-05 14:10",
+            },
+        )
+        contact_b = self._lead("vs-b", contact_note="shared history")
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, contact_a)
+        orch._upsert_lead(self.connection, contact_b)
+        comment = person.comment or ""
+        for line in (
+            "ERP manual",
+            ">shared history<",
+            "VanillaSoft ContactID vs-a Notes: shared history",
+            "VanillaSoft ContactID vs-a Notes (MRP): mrp note",
+            "VanillaSoft ContactID vs-a Notes (LDPE): ldpe note",
+            "VanillaSoft ContactID vs-a Notes (HDPE): hdpe note",
+            "VanillaSoft ContactID vs-a Notes (PP): pp note",
+            "VanillaSoft ContactID vs-a Last Result Code: LM",
+            "VanillaSoft ContactID vs-a Last Call Date: 2024-03-05 14:10",
+            "VanillaSoft ContactID vs-b Notes: shared history",
+        ):
+            self.assertIn(line, comment)
+        self.assertNotIn("PPS-PROFILE-ONLY", comment)
+        self.assertNotIn("Contact Owner", comment)
+        self.assertNotIn("Lead Source", comment)
+        self.assertNotIn("sa@scrapmanagement.com", comment)
+        self.assertEqual(person.name, "ERP Person")
+        self.assertEqual(person.parent_id, company)
+        self.assertEqual(person.email, "erp-person@example.test")
+        self.assertEqual(person.phone, "555-0100")
+        self.assertEqual(person.mobile, "215-555-0140")
+        self.assertEqual(person.street, "1 ERP Way")
+        self.assertEqual(person.city, "Philadelphia")
+        self.assertEqual(person.zip, "19103")
+        self.assertEqual(person.state_id, state)
+        self.assertEqual(person.country_id, country)
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+        stored = person.comment
+        orch.outcomes = _new_outcomes()
+        orch._upsert_lead(self.connection, contact_a)
+        orch._upsert_lead(self.connection, contact_b)
+        self.assertEqual(orch.outcomes["unchanged"], 2)
+        self.assertEqual(person.comment, stored)
+
+    def test_approved_person_keeps_the_erp_phone_and_drops_disabled_numbers(self):
+        person = self.env["res.partner"].create({"name": "ERP Person", "phone": "215-555-0101"})
+        self._erp_marker(person, "91")
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-ph": "91"}
+        orch._crosswalk_ready = True
+        dto = contact_to_canonical(
+            {
+                "contact_id": "vs-ph",
+                "phone_numbers": [
+                    {"name": "Direct", "number": "(215) 555-0101"},
+                    {"name": "Mobile 1", "number": "215-555-0102"},
+                    {"name": "Fax", "number": "215-555-0101"},
+                    {"name": "Home", "number": "215-555-0106", "disabled": True},
+                ],
+            }
+        )
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual(person.phone, "215-555-0101")
+        lines = [(line.label, line.number) for line in person.phone_line_ids]
+        self.assertEqual(lines, [("mobile", "215-555-0102"), ("fax", "215-555-0101")])
+        self.assertNotIn("215-555-0106", [number for _label, number in lines])
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+        orch._upsert_lead(self.connection, dto)
+        self.assertEqual([(line.label, line.number) for line in person.phone_line_ids], lines)
+
+    def test_approved_person_without_a_lead_keeps_provider_calls(self):
+        person = self.env["res.partner"].create(
+            {
+                "name": "ERP Person",
+                "phone": "215-555-0101",
+                "comment": "<p>ERP manual</p>",
+            }
+        )
+        self._erp_marker(person, "77")
+        partners_before = self.env["res.partner"].with_context(active_test=False).search_count([])
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+        run = self.env["plasticos.crm.sync.run"].create({"connection_id": self.connection.id, "kind": "incremental"})
+        orch = SyncOrchestrator(self.env)
+        early = CanonicalCall(
+            provider="vanillasoft",
+            external_id="call-person-early",
+            contact_external_id="vs-person-1",
+            call_datetime_utc="2024-03-05T14:10:00Z",
+            duration_seconds=45,
+            user_name="Rep",
+            result_code="LM",
+            comment="left a message",
+        )
+        orch._upsert_calls(self.connection, [early], run)
+        self.assertEqual(run.orphans_buffered, 1)
+        self.assertFalse(self.env["plasticos.crm.call.event"].search([("external_id", "=", "call-person-early")]))
+        pending = self.env["plasticos.crm.sync.orphan"].search(
+            [
+                ("connection_id", "=", self.connection.id),
+                ("external_id", "=", "call-person-early"),
+                ("kind", "=", "call"),
+                ("resolved", "=", False),
+            ]
+        )
+        self.assertEqual(len(pending), 1)
+
+        orch._crosswalk = {"vs-person-1": "77"}
+        orch._crosswalk_ready = True
+        bound = orch._upsert_lead(self.connection, self._lead("vs-person-1", contact_note="CRM history"))
+        self.assertFalse(bound)
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+        self.assertEqual(self.env["res.partner"].with_context(active_test=False).search_count([]), partners_before)
+        self.assertEqual(person.phone, "215-555-0101")
+        self.assertIn("ERP manual", person.comment or "")
+
+        resolved = orch._resolve_orphans(self.connection, MagicMock(), run)
+        self.assertEqual(resolved, 1)
+        self.assertEqual(run.orphans_resolved, 1)
+        self.assertTrue(pending.resolved)
+        event = self.env["plasticos.crm.call.event"].search(
+            [("provider", "=", "vanillasoft"), ("external_id", "=", "call-person-early")]
+        )
+        self.assertEqual(len(event), 1)
+        self.assertEqual(event.partner_id, person)
+        self.assertFalse(event.lead_id)
+        self.assertEqual(event.contact_external_id, "vs-person-1")
+        self.assertEqual(event.result_code, "LM")
+        self.assertEqual(event.comment, "left a message")
+        self.assertEqual(event.duration_seconds, 45)
+        self.assertEqual(event.user_name, "Rep")
+        self.assertEqual(fields.Datetime.to_string(event.call_datetime_utc), "2024-03-05 14:10:00")
+
+        direct = CanonicalCall(
+            provider="vanillasoft",
+            external_id="call-person-direct",
+            contact_external_id="vs-person-1",
+            call_datetime_utc="2024-03-06T09:00:00Z",
+            duration_seconds=12,
+            user_name="Rep",
+            result_code="NA",
+            comment="no answer",
+        )
+        self.assertEqual(orch._upsert_calls(self.connection, [direct], run), 1)
+        self.assertEqual(run.orphans_buffered, 1)
+        landed = self.env["plasticos.crm.call.event"].search(
+            [("provider", "=", "vanillasoft"), ("external_id", "=", "call-person-direct")]
+        )
+        self.assertEqual(len(landed), 1)
+        self.assertEqual(landed.partner_id, person)
+        self.assertFalse(landed.lead_id)
+        self.assertEqual(landed.contact_external_id, "vs-person-1")
+        self.assertEqual(landed.result_code, "NA")
+        self.assertEqual(landed.comment, "no answer")
+        self.assertEqual(fields.Datetime.to_string(landed.call_datetime_utc), "2024-03-06 09:00:00")
+
+        refs = self.env["plasticos.crm.external.ref"].search(
+            [("provider", "=", "vanillasoft"), ("external_id", "=", "vs-person-1")]
+        )
+        self.assertEqual(len(refs), 1)
+        self.assertEqual(refs.res_model, "res.partner")
+        self.assertEqual(refs.res_id, person.id)
+        self.assertFalse(refs.lead_id)
+        stored_comment = person.comment
+        stored_phone = person.phone
+        self.assertEqual(orch._upsert_calls(self.connection, [early, direct], run), 0)
+        self.assertEqual(
+            self.env["plasticos.crm.call.event"].search_count([("contact_external_id", "=", "vs-person-1")]),
+            2,
+        )
+        self.assertEqual(person.comment, stored_comment)
+        self.assertEqual(person.phone, stored_phone)
+        self.assertEqual(event.partner_id, person)
+        self.assertFalse(event.lead_id)
+        self.assertEqual(landed.partner_id, person)
+        self.assertFalse(landed.lead_id)
 
     def _erp_marker(self, partner, ct_id):
         self.env["ir.model.data"].create(
@@ -1465,7 +1690,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         text = lead.description or ""
         self.assertIn("operator wrote that the melt looked high", text)
         self.assertIn("VanillaSoft Buyer/Supplier: Supplier", text)
-        self.assertIn("VanillaSoft Last Result Code: LM", text)
+        self.assertIn("VanillaSoft ContactID vs-excl-1 Last Result Code: LM", text)
         self.assertEqual(lead.email_from, "ada-excl@example.test")
         self.assertEqual(lead.phone, "215-555-0199")
         self.assertEqual(lead.street, "12 Dock St")

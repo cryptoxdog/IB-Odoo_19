@@ -577,7 +577,7 @@ def test_standalone_lead_keeps_every_other_number_and_note_in_the_description(le
     orch, connection, _leads, _refs = lead_harness
     lead = orch._upsert_lead(connection, _contact())
     assert _paragraphs(lead) == (
-        "VanillaSoft Notes: called twice; wants film",
+        "VanillaSoft ContactID vs-9001 Notes: called twice; wants film",
         "VanillaSoft Buyer/Supplier: Supplier",
         "VanillaSoft Company Type: Recycler",
         "VanillaSoft Location Type: Facility",
@@ -609,8 +609,8 @@ def test_standalone_lead_appends_new_notes_after_existing_ones(lead_harness):
     orch._upsert_lead(connection, _contact(custom_fields=custom))
     paragraphs = _paragraphs(lead)
     assert paragraphs[0] == "written by a salesperson"
-    assert "VanillaSoft Notes: called twice; wants film" in paragraphs
-    assert paragraphs[-1] == "VanillaSoft Notes: second note"
+    assert "VanillaSoft ContactID vs-9001 Notes: called twice; wants film" in paragraphs
+    assert paragraphs[-1] == "VanillaSoft ContactID vs-9001 Notes: second note"
     assert len(leads.rows) == 1
 
 
@@ -733,11 +733,66 @@ def test_call_and_load_context_is_kept_as_labelled_notes_only_when_present(lead_
     ]
     lead = orch._upsert_lead(connection, _contact(custom_fields=custom, phone_numbers=[]))
     assert _paragraphs(lead) == (
-        "VanillaSoft Last Result Code: LM",
-        "VanillaSoft Last Call Date: 2024-03-05 14:10",
+        "VanillaSoft ContactID vs-9001 Last Result Code: LM",
+        "VanillaSoft ContactID vs-9001 Last Call Date: 2024-03-05 14:10",
     )
     assert "Yes - 2 loads" not in (lead.description or "")
     assert "plasticos.crm.call.event" not in orch.env, "a note, never a synthesized call"
     blank = [{"name": "Last Result Code", "value": "  "}]
     other = orch._upsert_lead(connection, _contact(contact_id="vs-9010", custom_fields=blank, phone_numbers=[]))
     assert not other.description
+
+
+def test_human_paragraph_equal_to_the_note_is_kept_and_still_labelled(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    dto = _contact(
+        custom_fields=[{"name": "Notes", "value": "called twice; wants film"}],
+        phone_numbers=[],
+    )
+    lead = orch._upsert_lead(connection, dto)
+    lead.description = "<p>called twice; wants film</p>"
+    again = orch._upsert_lead(connection, dto)
+    assert _paragraphs(again) == (
+        "called twice; wants film",
+        "VanillaSoft ContactID vs-9001 Notes: called twice; wants film",
+    )
+    stored = again.description
+    third = orch._upsert_lead(connection, dto)
+    assert third.id == lead.id and third.description == stored
+
+
+def test_historic_unlabelled_note_is_not_copied_with_a_contact_id(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    dto = _contact()
+    lead = orch._upsert_lead(connection, dto)
+    lead.description = (lead.description or "").replace(
+        "VanillaSoft ContactID vs-9001 Notes: called twice; wants film",
+        "VanillaSoft Notes: called twice; wants film",
+    )
+    before = _paragraphs(lead)
+    again = orch._upsert_lead(connection, dto)
+    assert again.id == lead.id
+    assert _paragraphs(again) == before
+    assert "VanillaSoft ContactID vs-9001 Notes:" not in (again.description or "")
+
+
+def test_contact_section_notes_are_labelled_and_pps_notes_stay_off_the_contact(lead_harness):
+    orch, connection, _leads, _refs = lead_harness
+    custom = [
+        {"name": "Notes (MRP)", "value": "mrp note"},
+        {"name": "Notes (LDPE)", "value": "ldpe note"},
+        {"name": "Notes (HDPE)", "value": "hdpe note"},
+        {"name": "Notes (PP)", "value": "pp note"},
+        {"name": "Notes (PPS)", "value": "PPS-PROFILE-ONLY"},
+    ]
+    dto = _contact(custom_fields=custom, phone_numbers=[])
+    lead = orch._upsert_lead(connection, dto)
+    assert _paragraphs(lead) == (
+        "VanillaSoft ContactID vs-9001 Notes (MRP): mrp note",
+        "VanillaSoft ContactID vs-9001 Notes (LDPE): ldpe note",
+        "VanillaSoft ContactID vs-9001 Notes (HDPE): hdpe note",
+        "VanillaSoft ContactID vs-9001 Notes (PP): pp note",
+    )
+    assert "PPS-PROFILE-ONLY" not in (lead.description or "")
+    again = orch._upsert_lead(connection, dto)
+    assert again.id == lead.id and _paragraphs(again) == _paragraphs(lead)

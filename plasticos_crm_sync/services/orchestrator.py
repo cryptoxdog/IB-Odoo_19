@@ -17,6 +17,7 @@ from ..adapters.registry import get_adapter
 from .approved_identity import (
     XMLID_MODULE,
     CrosswalkError,
+    comment_holds,
     comment_with_note,
     load_crosswalk_map,
     phone_identity_key,
@@ -44,6 +45,17 @@ LEAD_CONTEXT_FIELDS = (
     "Last Result Code",
     "Last Call Date",
 )
+
+# Contact-owned notes whose approved destination is the lead description or the
+# ERP person's comment. ``Notes (PPS)`` belongs on a material profile and is
+# intentionally absent: a contact note must not count as that import.
+CONTACT_SECTION_NOTE_FIELDS = (
+    "Notes (MRP)",
+    "Notes (LDPE)",
+    "Notes (HDPE)",
+    "Notes (PP)",
+)
+CONTACT_PROVENANCE_FIELDS = ("Notes", "Last Result Code", "Last Call Date", *CONTACT_SECTION_NOTE_FIELDS)
 
 # The Contacts list endpoint accepts `modified_after` only within this lookback.
 # Incremental runs clamp to it. The full import deliberately does not, and
@@ -271,20 +283,61 @@ def _lead_mobile(dto: CanonicalLead) -> str | bool:
     return next((number for number in candidates if number and _us_mobile(number)), False)
 
 
-def _approved_context_lines(dto: CanonicalLead) -> list[str]:
+def provenance_line(external_id: str, field_name: str, value: str) -> str:
+    """One source paragraph naming the ContactID and the exact source field."""
+    return f"VanillaSoft ContactID {external_id} {field_name}: {value}"
+
+
+def provenance_already_recorded(
+    current, external_id: str, field_name: str, value: str, *, shared_owner: bool = False
+) -> bool:
+    """True only when this ContactID already has its own provenance line.
+
+    Text equality is not an import. An ERP paragraph, or another contact's
+    unlabelled ``VanillaSoft {field}:`` line, stays in the comment and does not
+    count as this ContactID. A lead has one source contact, so its historic
+    unlabelled predecessor is left as written instead of being copied again
+    under a ContactID label.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return True
+    if comment_holds(current, provenance_line(external_id, field_name, text)):
+        return True
+    if shared_owner:
+        return False
+    return comment_holds(current, f"VanillaSoft {field_name}: {text}")
+
+
+def _queue_provenance(
+    lines: list[str], current, external_id: str, field_name: str, value: str, *, shared_owner: bool = False
+) -> None:
+    text = str(value or "").strip()
+    if not text or provenance_already_recorded(current, external_id, field_name, text, shared_owner=shared_owner):
+        return
+    lines.append(provenance_line(external_id, field_name, text))
+
+
+def _approved_context_lines(dto: CanonicalLead, current=None) -> list[str]:
     """Context paragraphs for an approved ERP person, each naming its VanillaSoft ContactID.
 
     Several ContactIDs can share one ERP person, so every line says which
     source contact it came from. Only fields the payload carries are kept.
+    ``Notes`` is queued by the binder. A raw or unlabelled paragraph on this
+    shared person is kept and is not this ContactID's import.
     """
     custom = dto.custom_fields or {}
-    lines = []
-    for name in LEAD_CONTEXT_FIELDS:
+    lines: list[str] = []
+    for name in (*LEAD_CONTEXT_FIELDS, *CONTACT_SECTION_NOTE_FIELDS):
         if is_excluded_source_field(name):
             continue
         value = _collapse_ws(custom.get(name))
-        if value:
-            lines.append(f"VanillaSoft ContactID {dto.external_id} {name}: {value}")
+        if not value:
+            continue
+        if name in CONTACT_PROVENANCE_FIELDS:
+            _queue_provenance(lines, current, dto.external_id, name, value, shared_owner=True)
+        else:
+            lines.append(provenance_line(dto.external_id, name, value))
     return lines
 
 
@@ -1322,11 +1375,13 @@ class SyncOrchestrator:
                 elif lead and getattr(lead, "vanillasoft_sync_archived", False) and not dto.deleted:
                     lead.write({"active": True, "vanillasoft_sync_archived": False})
                     wrote = True
-                comment = comment_with_note(partner.comment, dto.contact_note)
-                current = comment if comment is not None else partner.comment
-                context = _description_with(current, _approved_context_lines(dto))
-                if context is not None:
-                    comment = context
+                note_lines: list[str] = []
+                _queue_provenance(
+                    note_lines, partner.comment, dto.external_id, "Notes", dto.contact_note, shared_owner=True
+                )
+                comment = _description_with(
+                    partner.comment, [*note_lines, *_approved_context_lines(dto, partner.comment)]
+                )
                 if comment is not None:
                     partner.write({"comment": comment})
                     wrote = True
@@ -1506,7 +1561,7 @@ class SyncOrchestrator:
             # Source data with no native lead field is appended to the
             # description once; a replay finds every paragraph and adds nothing.
             current = getattr(lead, "description", False) if lead else False
-            description = _description_with(current, self._lead_evidence(dto, vals))
+            description = _description_with(current, self._lead_evidence(dto, vals, current))
             if description is not None:
                 vals["description"] = description
             # Archival provenance, not a mirror of the provider flag. `active` is
@@ -1684,24 +1739,28 @@ class SyncOrchestrator:
             "vanillasoft_id": dto.external_id,
         }
 
-    def _lead_evidence(self, dto: CanonicalLead, vals: dict[str, Any]) -> list[str]:
+    def _lead_evidence(self, dto: CanonicalLead, vals: dict[str, Any], current=None) -> list[str]:
         """Source-labelled paragraphs for data the lead has no native field for.
 
-        The VanillaSoft ``Notes`` field, the contact context fields, every
-        enabled number not stored in ``phone``/``mobile``, and a country,
-        state or lead source that did not resolve. Each unresolved value is
-        also reported on ``error_rows``; nothing is guessed.
+        ``Notes``, the call summaries and the contact-level section notes name
+        the ContactID. Company-classification context stays on its existing
+        label. Every enabled number not stored in ``phone``/``mobile``, and a
+        country, state or lead source that did not resolve, is kept too. Each
+        unresolved value is also reported on ``error_rows``; nothing is guessed.
         """
         ref = dto.external_id
         custom = dto.custom_fields or {}
         lines: list[str] = []
-        if dto.contact_note:
-            lines.append(f"VanillaSoft Notes: {dto.contact_note}")
-        for name in LEAD_CONTEXT_FIELDS:
+        _queue_provenance(lines, current, ref, "Notes", dto.contact_note)
+        for name in (*LEAD_CONTEXT_FIELDS, *CONTACT_SECTION_NOTE_FIELDS):
             if is_excluded_source_field(name):
                 continue
             value = _collapse_ws(custom.get(name))
-            if value:
+            if not value:
+                continue
+            if name in CONTACT_PROVENANCE_FIELDS:
+                _queue_provenance(lines, current, ref, name, value)
+            else:
                 lines.append(f"VanillaSoft {name}: {value}")
         stored = {_phone_line("other", vals.get("phone")), _phone_line("mobile", vals.get("mobile"))}
         for label, kind, number in _source_phones(dto):
