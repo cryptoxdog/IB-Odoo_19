@@ -6,7 +6,7 @@ Synthetic Enterprise readback on the runtime commit. This is not a 96-field hist
 
 | Item | Value |
 | --- | --- |
-| Runtime commit | `28af585274cdfdf62170f3c532dd8499092cdb67` |
+| Runtime commit | `55f9189d09c83b3079822c490865e8f8279fd507` |
 | Stack ancestor (PR #312 head) | `2fe9627c14da680d3ca1eae258aebf9ab69b5c91` |
 | Branch | `feat/crm-45-materials-and-crm-classification` |
 | Modules | `plasticos_crm_sync` `19.0.1.9.7`, `plasticos_crm_bridge` `19.0.3.4.11` |
@@ -18,7 +18,7 @@ Synthetic Enterprise readback on the runtime commit. This is not a 96-field hist
 | Tree | `dirty: false` at the runtime commit |
 | Enterprise ORM | 75 tests, 0 failed, 0 errors. Scope `plasticos_crm_bridge,plasticos_crm_sync`. |
 | Receipt | `.l9/runtime/test-env/odoo_test_w6cb014f012.test-receipt.json` |
-| Pure classification | `tests/test_crm_sync_classification.py`: 25 passed |
+| Pure tests | 151 passed across classification, completeness, full-import, and phantom-enum, including the 25 classification tests. |
 
 The worktree has no `odoo-enterprise` symlink. The run set `ODOO_ENTERPRISE_PATH` to the admitted checkout `/Users/ib-mac/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise`. The fixture was not rebuilt.
 
