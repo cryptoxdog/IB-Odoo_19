@@ -180,6 +180,19 @@ class TestLindaInbound(PlasticosTestCase):
         self.assertEqual(self.env["plasticos.load"].search_count([]), load_count)
         self.assertEqual(self.env["mail.mail"].search_count([("email_from", "ilike", "logistics2@")]), outgoing_before)
 
+    def test_outgoing_template_message_is_not_reply_evidence(self):
+        """Native template mail is email_outgoing and does not become a Linda response.
+
+        A composer path that posts message_type email for Linda's own send was
+        not reproduced. This locks the observed Odoo 19 boundary.
+        """
+        _po, issue = self._sent_po()
+        message = issue.mail_id.mail_message_id
+        self.assertEqual(message.message_type, "email_outgoing")
+        self.assertFalse(self.Response.search([("mail_message_id", "=", message.id)]))
+        self.Response._record_incoming(message)
+        self.assertFalse(self.Response.search([("mail_message_id", "=", message.id)]))
+
     # ── IN-02: SO-only reply ─────────────────────────────────
 
     def test_so_only_reply_binds_its_own_issue(self):

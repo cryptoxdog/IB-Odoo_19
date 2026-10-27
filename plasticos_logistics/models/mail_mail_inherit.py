@@ -53,6 +53,29 @@ class MailMailInherit(models.Model):
                 raise
         return res
 
+    def _linda_request_mail_ids(self, mails):
+        """Mail ids that already have a Linda request row.
+
+        This is a read of flushed rows only. It does not flush the request
+        model and it does not take the row lock. ``_linda_claim_outgoing``
+        remains the only path that does either, and only for these ids.
+        """
+        mail_ids = tuple(mails.ids)
+        if not mail_ids:
+            return set()
+        requests = self.env[LOGISTICS_REQUEST].sudo()
+        if requests._table != REQUEST_TABLE:
+            raise RuntimeError("Linda request storage name drifted")
+        self.env.cr.execute(
+            """
+            SELECT mail_id
+              FROM plasticos_logistics_request
+             WHERE mail_id IN %s
+            """,
+            (mail_ids,),
+        )
+        return {row[0] for row in self.env.cr.fetchall() if row[0]}
+
     def _linda_claim_outgoing(self, mail):
         """Decide whether this worker may hand one outgoing mail to native SMTP.
 
@@ -125,9 +148,12 @@ class MailMailInherit(models.Model):
                 post_send_callback=post_send_callback,
             )
 
+        outgoing = self.filtered(lambda mail: mail.state == "outgoing")
+        linda_mail_ids = self._linda_request_mail_ids(outgoing)
         allowed = self.browse()
         for mail in self:
-            if mail.state != "outgoing":
+            if mail.state != "outgoing" or mail.id not in linda_mail_ids:
+                # Ordinary mail never flushes or locks the Linda request table.
                 allowed |= mail
                 continue
             decision = self._linda_claim_outgoing(mail)

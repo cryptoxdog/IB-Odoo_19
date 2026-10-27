@@ -60,17 +60,21 @@ class SaleOrderInherit(models.Model):
             return super(SaleOrderInherit, native_owned)._send_order_confirmation_mail()
         return None
 
+    def action_cancel(self):
+        """Notice the buyer only after native cancel guards have succeeded.
+
+        ``action_cancel`` refuses a locked order before ``_action_cancel``
+        writes the state. A raw ``write({'state': 'cancel'})`` does not pass
+        that guard and must not queue a cancellation notice.
+        """
+        res = super().action_cancel()
+        cancelled = self.filtered(lambda order: order.state == ORDER_CANCEL)
+        if cancelled:
+            self.env[LOGISTICS_REQUEST]._record_cancellations(cancelled)
+        return res
+
     def write(self, vals):
-        # A real cancellation is a successful move into ``cancel``. Native cancel refuses
-        # locked or invoiced orders before writing, and a later failure rolls this back too.
-        canceling = (
-            self.filtered(lambda order: order.state != ORDER_CANCEL) if vals.get("state") == ORDER_CANCEL else ()
-        )
         res = super().write(vals)
-        if canceling:
-            # Before the stale-queue sweep below: an issue that may already have reached the
-            # party is settled first, so the sweep only cancels mail nobody ever received.
-            self.env[LOGISTICS_REQUEST]._record_cancellations(canceling)
         if MATERIAL_SO_FIELDS.intersection(vals) and self.ids:
             self.env[LOGISTICS_REQUEST]._cancel_stale_for_orders(self)
         return res

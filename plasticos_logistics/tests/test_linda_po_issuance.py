@@ -502,13 +502,52 @@ class TestLindaPoIssuance(PlasticosTestCase):
         for secret in (self.buyer.name, self.buyer.email, so.name):
             self.assertNotIn(secret, rendered)
 
-    def test_dropship_destination_is_blocked(self):
-        """G-18: the native PO PDF prints the dropship address, so such a PO is not auto-issued."""
+    def test_dropship_report_that_prints_the_buyer_fails_closed(self):
+        """The native PO report's shipping block discloses the buyer, so this send fails closed."""
         self._set_mode("live")
+        self.buyer.write({"street": "900 Hidden Pier", "city": "Sealport", "zip": "99501"})
         po = self._new_po(dest_address_id=self.buyer.id)
         po.button_confirm()
+        report_html = self.env["ir.actions.report"]._render_qweb_html("purchase.report_purchaseorder", po.ids)[0]
+        rendered = report_html.decode()
+        self.assertIn("Shipping address", rendered)
+        self.assertIn("900 Hidden Pier", rendered)
+        self.assertIn(self.buyer.name, rendered)
         request = self._requests(po)
-        self.assertEqual((request.state, request.state_reason), ("blocked", "dropship_destination_disclosed"))
+        self.assertEqual(
+            (request.state, request.state_reason),
+            ("blocked", "dropship_report_discloses_buyer_delivery"),
+        )
+        self.assertFalse(request.mail_id)
+
+    def test_dropship_with_an_audience_safe_report_is_issued(self):
+        """A dropship PO is not banned when the rendered supplier report omits the buyer."""
+        self._set_mode("live")
+        self.buyer.write({"street": "900 Hidden Pier", "city": "Sealport", "zip": "99501"})
+        po = self._new_po(dest_address_id=self.buyer.id)
+
+        def safe_html(self_report, report_name, res_ids, data=None):
+            return b"<div>Purchase Order supplier copy</div>", "html"
+
+        with patch.object(type(self.env["ir.actions.report"]), "_render_qweb_html", safe_html):
+            po.button_confirm()
+        request = self._requests(po)
+        self.assertEqual(request.state, "queued")
+        self.assertFalse(request.state_reason)
+        self.assertTrue(request.mail_id)
+
+    def test_dropship_report_that_cannot_be_proven_fails_closed(self):
+        """One unreadable supplier report blocks that send and does not ban every dropship PO."""
+        self._set_mode("live")
+        po = self._new_po(dest_address_id=self.buyer.id)
+
+        def unreadable(self_report, report_name, res_ids, data=None):
+            raise RuntimeError("report renderer unavailable")
+
+        with patch.object(type(self.env["ir.actions.report"]), "_render_qweb_html", unreadable):
+            po.button_confirm()
+        request = self._requests(po)
+        self.assertEqual((request.state, request.state_reason), ("blocked", "dropship_report_unproven"))
         self.assertFalse(request.mail_id)
 
     # ── delivery outcomes ────────────────────────────────────
@@ -775,6 +814,60 @@ class TestLindaPoIssuance(PlasticosTestCase):
         with self._mail_sink() as sink:
             self.env["mail.mail"].process_email_queue()
         self.assertFalse(self._to_supplier(sink), "AC-18: a sent notice is never replayed")
+
+    def test_raw_cancel_write_does_not_queue_a_notice(self):
+        """A state write skips native cancel guards and must not synthesize a notice."""
+        po, first = self._sent_po()
+        mail_count = self.env["mail.mail"].search_count([])
+
+        po.write({"state": "cancel"})
+
+        self.assertEqual(po.state, "cancel")
+        self.assertFalse(self._notices(po))
+        self.assertFalse(first.cycle_closed)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mail_count)
+
+    def test_ordinary_outgoing_mail_does_not_lock_linda_requests(self):
+        """Non-Linda mail is sent without flushing or locking the request table."""
+        mail = (
+            self.env["mail.mail"]
+            .sudo()
+            .create(
+                {
+                    "subject": "Ordinary warehouse note",
+                    "email_from": "warehouse@example.com",
+                    "email_to": "dock@example.com",
+                    "body_html": "<p>not linda</p>",
+                }
+            )
+        )
+        statements = []
+        cursor = self.env.cr
+        original_execute = cursor.execute
+
+        def record_execute(self_cursor, query, params=None, *args, **kwargs):
+            statements.append(query if isinstance(query, str) else "")
+            return original_execute(query, params, *args, **kwargs)
+
+        flushed = []
+        request_model = type(self.env[LOGISTICS_REQUEST])
+        original_flush = request_model.flush_model
+
+        def record_flush(records, fnames=None):
+            if records._name == LOGISTICS_REQUEST:
+                flushed.append(records._name)
+            return original_flush(records, fnames)
+
+        with (
+            patch.object(type(cursor), "execute", record_execute),
+            patch.object(request_model, "flush_model", record_flush),
+            self._mail_sink() as sink,
+        ):
+            mail._send(auto_commit=False)
+        self.assertFalse(flushed)
+        self.assertFalse(any("FOR UPDATE" in sql and "plasticos_logistics_request" in sql for sql in statements))
+        self.assertEqual(len(sink), 1)
+        self.assertEqual(mail.state, "sent")
 
     def test_unchanged_reconfirm_after_cancel_is_a_new_cycle(self):
         """AC-09/AC-17/probes 3, 6, 7: notice first, then a new issue revision, each delivered once."""

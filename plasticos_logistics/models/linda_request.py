@@ -397,6 +397,39 @@ class PlasticosLogisticsRequest(models.Model):
         return hashlib.sha256(json.dumps(payload, default=str).encode()).hexdigest()
 
     @api.model
+    def _supplier_dropship_report_reason(self, order):
+        """Why this dropship PO's supplier report is unsafe, or ``False``.
+
+        Native ``purchase.report_purchaseorder`` prints ``dest_address_id`` as
+        the shipping address. Linda issues the PO only when that rendered
+        report does not contain the buyer delivery identity. A report that
+        cannot be inspected fails this one send closed. Presence of
+        ``dest_address_id`` alone is not a route ban.
+        """
+        dest = order.dest_address_id
+        if not dest:
+            return False
+        report = self.env.ref("purchase.action_report_purchase_order", raise_if_not_found=False)
+        if not report:
+            return "dropship_report_unproven"
+        try:
+            rendered, _report_type = self.env["ir.actions.report"]._render_qweb_html(report.report_name, order.ids)
+        except Exception:  # noqa: BLE001 - an unreadable report fails this send closed
+            _logger.exception("Linda could not render the supplier PO report for %s", order.name)
+            return "dropship_report_unproven"
+        html = rendered.decode("utf-8", "replace") if isinstance(rendered, bytes) else str(rendered)
+        markers = []
+        for value in (dest.name, dest.street, dest.street2, dest.city, dest.zip, dest.phone):
+            text = (value or "").strip()
+            if len(text) >= 4:
+                markers.append(text)
+        if not markers:
+            return "dropship_report_unproven"
+        if any(marker in html for marker in markers):
+            return "dropship_report_discloses_buyer_delivery"
+        return False
+
+    @api.model
     def _po_block_reason(self, order):
         """Why this exact order may not be issued now, or ``False``. Blocks only this order."""
         if order.state != "purchase":
@@ -410,9 +443,9 @@ class PlasticosLogisticsRequest(models.Model):
             return "supplier_company_mismatch"
         if not email_normalize(partner.email or ""):
             return "supplier_email_invalid"
-        if order.dest_address_id:
-            # The native PO PDF prints the dropship address, which is buyer-side identity.
-            return "dropship_destination_disclosed"
+        dropship_reason = self._supplier_dropship_report_reason(order)
+        if dropship_reason:
+            return dropship_reason
         if not order.order_line.filtered(lambda line: not line.display_type):
             return "order_lines_missing"
         if not self.env.ref(PO_ISSUE_TEMPLATE, raise_if_not_found=False):

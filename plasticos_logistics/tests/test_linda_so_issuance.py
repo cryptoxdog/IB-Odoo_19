@@ -601,6 +601,18 @@ class TestLindaSoIssuance(PlasticosTestCase):
         self.assertEqual(notice.state, "sent")
         self.assertEqual(first.state, "sent")
 
+    def test_raw_cancel_write_does_not_queue_a_notice(self):
+        """A state write skips native cancel guards and must not synthesize a notice."""
+        so, first = self._sent_so()
+        mail_count = self.env["mail.mail"].search_count([])
+
+        so.write({"state": "cancel"})
+
+        self.assertEqual(so.state, "cancel")
+        self.assertFalse(self._notices(so))
+        self.assertFalse(first.cycle_closed)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mail_count)
+
     def test_unchanged_reconfirm_after_cancel_is_a_new_cycle(self):
         """AC-08/AC-17/AC-21/probes 3, 6, 7: notice first, then revision 2, each delivered once."""
         so, first = self._sent_so()
