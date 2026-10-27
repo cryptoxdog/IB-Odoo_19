@@ -43,8 +43,8 @@ QUICKBOOKS_OWNS = "QuickBooks owns settlement. Do not write account.payment."
 SOURCE_CONTROL = "Source control. Read by source_index.payables_batch_census; no Odoo field is written from it."
 READ_NOT_WRITTEN = "Read but not yet written. Projected by 25_payablesbatch.sql; no Odoo field is written from it."
 UNRESOLVED_TARGET = (
-    "Unresolved target. The bill owner (PayablesBatch header or one bill per PayableID) is unproven; "
-    "no Odoo field is written from it."
+    "Unresolved target. Bills stay one per PayableID (operator decision 2026-10-24); "
+    "no Odoo field is written from this header column."
 )
 NOT_PROJECTED = "Not projected by 25_payablesbatch.sql."
 
@@ -714,9 +714,8 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "TradeDt": {
             "status": VERIFIED,
             "target_model": "purchase.order",
-            "target_field": "date_approve (PO issued / transaction approved; persisted by historical PO "
-            "realization, not yet implemented — mapping doc §8)",
-            "transformation": "earliest GPLedger.TradeDt per BuySellNo (min, deterministic)",
+            "target_field": "date_approve (PO issued / transaction approved); the order stays a draft",
+            "transformation": "earliest GPLedger.TradeDt per BuySellNo; a PO serving several worksheets keeps the earliest",
             "required": False,
             "null_behavior": "unparsable -> anomaly; none -> anomaly",
             "identity_role": "none",
@@ -836,13 +835,21 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "identity_role": "none",
         },
         "InvoiceNo": {
-            "status": UNMAPPED,
-            "reason": "payable invoice number; no header/lines field consumed by this import",
+            "status": VERIFIED,
+            "target_model": "account.move",
+            "target_field": "ref (when the PayablesBatch header carries no InvoiceNo)",
+            "transformation": "strip; header InvoiceNo, else this, else PayableID",
+            "required": False,
+            "null_behavior": "blank -> PayableID",
             "identity_role": "none",
         },
         "InvoiceDt": {
-            "status": UNMAPPED,
-            "reason": "payable invoice date; trade date comes from GPLedger.TradeDt (earliest booked)",
+            "status": VERIFIED,
+            "target_model": "account.move",
+            "target_field": "invoice_date (when the PayablesBatch header carries no InvoiceDt)",
+            "transformation": "header InvoiceDt, else this; date part; no order-date fallback",
+            "required": False,
+            "null_behavior": "blank -> undated draft + anomaly",
             "identity_role": "none",
         },
         "RcvDt": {
@@ -907,21 +914,21 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "identity_role": "none",
         },
         "InvoiceNo": {
-            "status": NEEDS_CORRECTION,
-            "target_model": "account.move (owner unresolved)",
-            "target_field": "unresolved (candidate ref)",
-            "reason": UNRESOLVED_TARGET,
+            "status": VERIFIED,
+            "target_model": "account.move",
+            "target_field": "ref (vendor invoice number of every bill in the batch)",
+            "transformation": "strip; native_orders.vendor_bill_header_facts",
             "required": False,
-            "null_behavior": "not written",
+            "null_behavior": "blank -> Payables.InvoiceNo, else PayableID",
             "identity_role": "none",
         },
         "InvoiceDt": {
-            "status": NEEDS_CORRECTION,
-            "target_model": "account.move (owner unresolved)",
-            "target_field": "unresolved (candidate invoice_date)",
-            "reason": UNRESOLVED_TARGET,
+            "status": VERIFIED,
+            "target_model": "account.move",
+            "target_field": "invoice_date",
+            "transformation": "date part; native_orders.vendor_bill_header_facts",
             "required": False,
-            "null_behavior": "not written",
+            "null_behavior": "blank -> Payables.InvoiceDt, else undated draft + anomaly",
             "identity_role": "none",
         },
         "PostingDt": {
@@ -934,21 +941,21 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "identity_role": "none",
         },
         "DueDate": {
-            "status": NEEDS_CORRECTION,
-            "target_model": "account.move (owner unresolved)",
-            "target_field": "unresolved (candidate invoice_date_due)",
-            "reason": UNRESOLVED_TARGET,
+            "status": VERIFIED,
+            "target_model": "account.move",
+            "target_field": "invoice_date_due, with invoice_payment_term_id cleared (when APTerms names no term)",
+            "transformation": "date part",
             "required": False,
-            "null_behavior": "not written",
+            "null_behavior": "blank -> Odoo default term and due date",
             "identity_role": "none",
         },
         "APTerms": {
-            "status": NEEDS_CORRECTION,
-            "target_model": "account.move (owner unresolved)",
-            "target_field": "unresolved (candidate invoice_payment_term_id)",
-            "reason": UNRESOLVED_TARGET,
+            "status": VERIFIED,
+            "target_model": "account.payment.term",
+            "target_field": "invoice_payment_term_id",
+            "transformation": "lookup by exact name; never created; unmatched name reported once",
             "required": False,
-            "null_behavior": "not written",
+            "null_behavior": "blank/no match -> DueDate is the due date",
             "identity_role": "none",
         },
         "COID": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},

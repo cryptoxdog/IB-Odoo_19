@@ -33,17 +33,21 @@ class PurchaseOrderInherit(models.Model):
             self.env[LOGISTICS_REQUEST]._issue_purchase_orders(released)
         return res
 
+    def button_cancel(self):
+        """Notice the supplier only after native cancel guards have succeeded.
+
+        ``button_cancel`` refuses locked and invoiced orders before it writes.
+        A raw ``write({'state': 'cancel'})`` does not pass those guards and
+        must not queue a cancellation notice.
+        """
+        res = super().button_cancel()
+        cancelled = self.filtered(lambda order: order.state == ORDER_CANCEL)
+        if cancelled:
+            self.env[LOGISTICS_REQUEST]._record_cancellations(cancelled)
+        return res
+
     def write(self, vals):
-        # A real cancellation is a successful move into ``cancel``. Native cancel refuses
-        # locked or invoiced orders before writing, and a later failure rolls this back too.
-        canceling = (
-            self.filtered(lambda order: order.state != ORDER_CANCEL) if vals.get("state") == ORDER_CANCEL else ()
-        )
         res = super().write(vals)
-        if canceling:
-            # Before the stale-queue sweep below: an issue that may already have reached the
-            # party is settled first, so the sweep only cancels mail nobody ever received.
-            self.env[LOGISTICS_REQUEST]._record_cancellations(canceling)
         if MATERIAL_PO_FIELDS.intersection(vals) and self.ids:
             self.env[LOGISTICS_REQUEST]._cancel_stale_for_orders(self)
         return res

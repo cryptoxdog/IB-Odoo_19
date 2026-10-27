@@ -8,13 +8,14 @@ database.
 """
 
 import smtplib
+import zlib
 from contextlib import contextmanager
 from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import new_test_user, tagged
 from odoo.tools import mute_logger
 
@@ -26,6 +27,7 @@ LEGACY_SUBJECT = "Ready for Pickup Confirmation Required"
 PO_ISSUE = "po_issue"
 PO_CANCEL = "po_cancel"
 SUPPLIER_EMAIL = "sales@acme-regrind.example"
+SUPPLIER_PO_REPORT = "plasticos_logistics.report_purchaseorder_supplier"
 MAIL_LOGGER = "odoo.addons.mail.models.mail_mail"
 
 
@@ -53,6 +55,17 @@ class TestLindaPoIssuance(PlasticosTestCase):
         cls.product = cls.env["product.product"].create(
             {"name": "LDPE Film Bales", "type": "consu", "purchase_ok": True, "sale_ok": True}
         )
+        warehouse = cls.env["stock.warehouse"].search([("company_id", "=", cls.company.id)], limit=1)
+        cls.dropship_type = cls.env["stock.picking.type"].create(
+            {
+                "name": "Linda Dropship",
+                "code": "incoming",
+                "sequence_code": "LDS",
+                "warehouse_id": warehouse.id,
+            }
+        )
+        # The incoming compute points at stock. A customer destination keeps dest_address_id.
+        cls.dropship_type.default_location_dest_id = cls.env.ref("stock.stock_location_customers")
 
     # ── helpers ──────────────────────────────────────────────
 
@@ -60,6 +73,8 @@ class TestLindaPoIssuance(PlasticosTestCase):
         self.env["ir.config_parameter"].sudo().set_param(LINDA_MODE_PARAM, mode)
 
     def _new_po(self, partner=None, price=0.12, qty=40000.0, **values):
+        if values.get("dest_address_id") and "picking_type_id" not in values:
+            values["picking_type_id"] = self.dropship_type.id
         return self.env[PURCHASE_ORDER].create(
             {
                 "partner_id": (partner or self.supplier).id,
@@ -125,6 +140,45 @@ class TestLindaPoIssuance(PlasticosTestCase):
     def _process_queue(self, request):
         self.env["mail.mail"].process_email_queue(email_ids=request.mail_id.ids)
         request.invalidate_recordset()
+
+    def _buyer_markers(self, buyer):
+        markers = []
+        for value in (buyer.name, buyer.street, buyer.street2, buyer.city, buyer.zip, buyer.phone):
+            text = (value or "").strip()
+            if len(text) >= 4:
+                markers.append(text)
+        return markers
+
+    def _pdf_text(self, raw):
+        """Latin-1 PDF bytes plus any FlateDecode streams wkhtmltopdf emitted."""
+        raw = bytes(raw or b"")
+        parts = [raw.decode("latin-1", "replace")]
+        cursor = 0
+        while True:
+            start = raw.find(b"stream", cursor)
+            if start < 0:
+                break
+            newline = raw.find(b"\n", start)
+            end = raw.find(b"endstream", start)
+            if newline < 0 or end < 0 or newline > end:
+                break
+            data = raw[newline + 1 : end].strip(b"\r\n")
+            try:
+                parts.append(zlib.decompress(data).decode("latin-1", "replace"))
+            except zlib.error:
+                pass
+            cursor = end + len(b"endstream")
+        return "\n".join(parts)
+
+    def _mime_payloads(self, message):
+        payloads = []
+        for part in message.walk():
+            if part.get_content_maintype() == "multipart":
+                continue
+            payload = part.get_payload(decode=True)
+            if payload:
+                payloads.append(payload)
+        return payloads
 
     # ── release paths ────────────────────────────────────────
 
@@ -502,14 +556,180 @@ class TestLindaPoIssuance(PlasticosTestCase):
         for secret in (self.buyer.name, self.buyer.email, so.name):
             self.assertNotIn(secret, rendered)
 
-    def test_dropship_destination_is_blocked(self):
-        """G-18: the native PO PDF prints the dropship address, so such a PO is not auto-issued."""
+    def _dropship_buyer(self):
+        self.buyer.write({"street": "900 Hidden Pier", "city": "Sealport", "zip": "99501", "phone": "907-555-0148"})
+        return self.buyer
+
+    def test_dropship_template_using_the_native_report_fails_closed(self):
+        """Retargeting the dropship template at the native report blocks that send only."""
         self._set_mode("live")
-        po = self._new_po(dest_address_id=self.buyer.id)
+        buyer = self._dropship_buyer()
+        template = self.env.ref("plasticos_logistics.mail_template_linda_po_issue_dropship")
+        template.report_template_ids = self.env.ref("purchase.action_report_purchase_order")
+        po = self._new_po(dest_address_id=buyer.id)
+        native_html = self.env["ir.actions.report"]._render_qweb_html("purchase.report_purchaseorder", po.ids)[0]
+        native_text = native_html.decode()
+        self.assertIn("Shipping address", native_text)
+        for marker in self._buyer_markers(buyer):
+            self.assertIn(marker, native_text)
         po.button_confirm()
         request = self._requests(po)
-        self.assertEqual((request.state, request.state_reason), ("blocked", "dropship_destination_disclosed"))
+        self.assertEqual(
+            (request.state, request.state_reason),
+            ("blocked", "dropship_report_discloses_buyer_delivery"),
+        )
         self.assertFalse(request.mail_id)
+
+        template.report_template_ids = self.env.ref("plasticos_logistics.action_report_purchase_order_supplier")
+        other = self.env["res.partner"].create(
+            {
+                "name": "Second Drop Buyer",
+                "is_company": True,
+                "street": "12 Other Dock",
+                "city": "Harbor",
+                "zip": "99502",
+                "phone": "907-555-0199",
+            }
+        )
+        second = self._new_po(dest_address_id=other.id)
+        second.button_confirm()
+        self.assertEqual(self._requests(second).state, "queued")
+
+    def test_dropship_with_an_audience_safe_report_is_issued(self):
+        """A dropship PO queues a real supplier-copy PDF, and the sink sends those bytes."""
+        self._set_mode("live")
+        self.env["res.lang"]._activate_lang("fr_FR")
+        self.supplier.lang = "fr_FR"
+        buyer = self._dropship_buyer()
+        po = self._new_po(dest_address_id=buyer.id)
+        self.assertEqual(po.dest_address_id, buyer)
+        self.assertEqual(po.partner_id.lang, "fr_FR")
+
+        captured = []
+        report_model = type(self.env["ir.actions.report"])
+        original = report_model._render_qweb_pdf
+
+        def spy(self_report, report_ref, res_ids=None, data=None):
+            content, report_format = original(self_report, report_ref, res_ids=res_ids, data=data)
+            report = report_ref if getattr(report_ref, "report_name", None) else self_report._get_report(report_ref)
+            captured.append((report.report_name, content, report_format))
+            return content, report_format
+
+        with patch.object(report_model, "_render_qweb_pdf", spy):
+            po.with_context(force_report_rendering=True).button_confirm()
+
+        request = self._requests(po)
+        self.assertEqual(request.state, "queued")
+        self.assertFalse(request.state_reason)
+        mail = request.mail_id
+        self.assertEqual(mail.email_to, SUPPLIER_EMAIL)
+        self.assertFalse(mail.recipient_ids)
+        self.assertFalse(mail.email_cc)
+        attachment = mail.attachment_ids
+        self.assertEqual(len(attachment), 1)
+        self.assertTrue(attachment.name.startswith(f"Purchase Order - {po.name}."))
+        pdf = bytes(attachment.raw)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        supplier_renders = [item for item in captured if item[0] == SUPPLIER_PO_REPORT]
+        self.assertEqual(supplier_renders, [(SUPPLIER_PO_REPORT, pdf, "pdf")])
+        self.assertFalse([item for item in captured if item[0] == "purchase.report_purchaseorder"])
+
+        supplier_html = self.env["ir.actions.report"]._render_qweb_html(SUPPLIER_PO_REPORT, po.ids)[0].decode()
+        pdf_text = self._pdf_text(pdf)
+        for marker in self._buyer_markers(buyer):
+            self.assertNotIn(marker, mail.body_html or "")
+            self.assertNotIn(marker, supplier_html)
+            self.assertNotIn(marker, pdf_text)
+
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertEqual(len(sink), 1)
+        self.assertEqual(sink[0]["To"], SUPPLIER_EMAIL)
+        self.assertNotIn(buyer.email, sink[0].as_string())
+        self.assertIn(pdf, self._mime_payloads(sink[0]))
+        self.assertEqual(request.state, "sent")
+
+        other = self.env["res.partner"].create(
+            {
+                "name": "Other Drop Buyer",
+                "is_company": True,
+                "street": "44 North Wharf",
+                "city": "Coldport",
+                "zip": "99601",
+                "phone": "907-555-0177",
+            }
+        )
+        second = self._new_po(dest_address_id=other.id)
+        second.with_context(force_report_rendering=True).button_confirm()
+        second_request = self._requests(second)
+        self.assertEqual(second_request.state, "queued")
+        second_pdf = bytes(second_request.mail_id.attachment_ids.raw)
+        self.assertTrue(second_pdf.startswith(b"%PDF"))
+        second_text = self._pdf_text(second_pdf)
+        for marker in self._buyer_markers(other):
+            self.assertNotIn(marker, second_text)
+
+    def test_dropship_send_ignores_a_cached_report(self):
+        """A PDF already stored on the PO is not the attachment Linda queues."""
+        self._set_mode("live")
+        buyer = self._dropship_buyer()
+        report = self.env.ref("plasticos_logistics.action_report_purchase_order_supplier")
+        report.attachment = "'Linda-PO-%s.pdf' % object.name"
+        po = self._new_po(dest_address_id=buyer.id)
+        poison = b"%PDF-1.4\n900 Hidden Pier Secret Buyer Holdings 99501 907-555-0148\n"
+        cached = self.env["ir.attachment"].create(
+            {
+                "name": f"Linda-PO-{po.name}.pdf",
+                "res_model": PURCHASE_ORDER,
+                "res_id": po.id,
+                "raw": poison,
+                "mimetype": "application/pdf",
+            }
+        )
+        self.assertEqual(report.retrieve_attachment(po), cached)
+        po.with_context(force_report_rendering=True).button_confirm()
+        attachment = self._requests(po).mail_id.attachment_ids
+        self.assertEqual(len(attachment), 1)
+        pdf = bytes(attachment.raw)
+        self.assertNotEqual(pdf, poison)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        pdf_text = self._pdf_text(pdf)
+        for marker in self._buyer_markers(buyer):
+            self.assertNotIn(marker, pdf_text)
+
+    def test_dropship_address_change_blocks_the_queued_send(self):
+        """A buyer street change after queue cancels that send."""
+        self._set_mode("live")
+        buyer = self._dropship_buyer()
+        po = self._new_po(dest_address_id=buyer.id)
+        po.with_context(force_report_rendering=True).button_confirm()
+        request = self._requests(po)
+        self.assertEqual(request.state, "queued")
+        buyer.street = "44 Changed Wharf"
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertFalse(sink)
+        self.assertEqual((request.state, request.state_reason), ("canceled", "payload_changed"))
+
+    def test_dropship_report_that_cannot_be_proven_fails_closed(self):
+        """One unreadable supplier report blocks that send and does not ban every dropship PO."""
+        self._set_mode("live")
+        self._dropship_buyer()
+        po = self._new_po(dest_address_id=self.buyer.id)
+
+        def unreadable(self_report, report_name, res_ids, data=None):
+            raise RuntimeError("report renderer unavailable")
+
+        with patch.object(type(self.env["ir.actions.report"]), "_render_qweb_html", unreadable):
+            po.button_confirm()
+        request = self._requests(po)
+        self.assertEqual((request.state, request.state_reason), ("blocked", "dropship_report_unproven"))
+        self.assertFalse(request.mail_id)
+
+        second = self._new_po(dest_address_id=self.buyer.id)
+        second.button_confirm()
+        self.assertEqual(self._requests(second).state, "queued")
+        self.assertTrue(self._requests(second).mail_id)
 
     # ── delivery outcomes ────────────────────────────────────
 
@@ -549,6 +769,112 @@ class TestLindaPoIssuance(PlasticosTestCase):
         with self._mail_sink() as sink:
             self._process_queue(request)
         self.assertFalse(sink, "an unknown outcome is never retried by the queue")
+
+    def test_personal_server_throttling_is_not_an_attempt(self):
+        """Native personal-server deferral must not create false transport evidence."""
+        from datetime import datetime, timedelta
+
+        self._set_mode("live")
+        # Native Odoo permits personal SMTP only to the creating user of the
+        # outgoing mail message. A dedicated user avoids ownership false-positives.
+        owner = new_test_user(
+            self.env,
+            login="linda_throttle_owner",
+            groups="purchase.group_purchase_manager",
+            email="linda-owner@example.com",
+        )
+        po = self._new_po()
+        po.with_user(owner).button_confirm()
+        request = self._requests(po)
+        personal = (
+            self.env["ir.mail_server"]
+            .sudo()
+            .create(
+                {
+                    "name": "Linda isolated throttle test server",
+                    "smtp_host": "127.0.0.1",
+                    "smtp_port": 25,
+                    "owner_user_id": owner.id,
+                }
+            )
+        )
+        self.assertEqual(request.mail_id.mail_message_id.create_uid, owner)
+        request.mail_id.write({"mail_server_id": personal.id})
+        # Odoo's throttle uses server-local datetime.now(), not fields.Datetime.now().
+        personal.write(
+            {
+                "owner_limit_time": datetime.now().replace(second=0, microsecond=0),
+                "owner_limit_count": personal._get_personal_mail_servers_limit(),
+            }
+        )
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertFalse(sink)
+        self.assertEqual((request.state, request.send_attempt_count), ("queued", 0))
+        self.assertEqual(request.mail_id.state, "outgoing")
+        self.assertTrue(request.mail_id.scheduled_date, "native personal-server throttle deferred it")
+
+        personal.write(
+            {
+                "owner_limit_time": datetime.now() - timedelta(minutes=2),
+                "owner_limit_count": 0,
+            }
+        )
+        request.mail_id.scheduled_date = False
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertEqual(len(sink), 1)
+        self.assertEqual((request.state, request.send_attempt_count), ("sent", 1))
+
+    def test_personal_server_wrong_owner_is_rejected(self):
+        """Native ACL refuses a personal SMTP server owned by another user."""
+        self._set_mode("live")
+        owner = new_test_user(
+            self.env,
+            login="linda_mail_owner",
+            groups="purchase.group_purchase_manager",
+            email="linda-mail-owner@example.com",
+        )
+        stranger = new_test_user(
+            self.env,
+            login="linda_mail_stranger",
+            groups="base.group_user",
+            email="linda-stranger@example.com",
+        )
+        po = self._new_po()
+        po.with_user(owner).button_confirm()
+        request = self._requests(po)
+        personal = (
+            self.env["ir.mail_server"]
+            .sudo()
+            .create(
+                {
+                    "name": "Linda wrong-owner server",
+                    "smtp_host": "127.0.0.1",
+                    "smtp_port": 25,
+                    "owner_user_id": stranger.id,
+                }
+            )
+        )
+        with self.assertRaises(ValidationError):
+            request.mail_id.write({"mail_server_id": personal.id})
+        self.assertEqual((request.state, request.send_attempt_count), ("queued", 0))
+        self.assertFalse(request.mail_id.mail_server_id)
+
+    def test_second_claim_does_not_send(self):
+        """The worker that loses the request-row claim does not open SMTP."""
+        self._set_mode("live")
+        po = self._new_po()
+        po.button_confirm()
+        request = self._requests(po)
+        mail = request.mail_id
+        self.assertEqual(mail._linda_claim_outgoing(mail), "claimed")
+        with self._mail_sink() as sink:
+            mail._send(auto_commit=False)
+        self.assertFalse(sink)
+        self.assertEqual(request.send_attempt_count, 1)
+        self.assertEqual(mail.state, "outgoing")
+        self.assertEqual(mail._linda_claim_outgoing(mail), "skip")
 
     def test_abort_mid_batch_leaves_unattempted_mail_queued(self):
         """A14: a disconnect on one mail does not mark later, never-attempted mails as uncertain."""
@@ -669,6 +995,60 @@ class TestLindaPoIssuance(PlasticosTestCase):
         with self._mail_sink() as sink:
             self.env["mail.mail"].process_email_queue()
         self.assertFalse(self._to_supplier(sink), "AC-18: a sent notice is never replayed")
+
+    def test_raw_cancel_write_does_not_queue_a_notice(self):
+        """A state write skips native cancel guards and must not synthesize a notice."""
+        po, first = self._sent_po()
+        mail_count = self.env["mail.mail"].search_count([])
+
+        po.write({"state": "cancel"})
+
+        self.assertEqual(po.state, "cancel")
+        self.assertFalse(self._notices(po))
+        self.assertFalse(first.cycle_closed)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mail_count)
+
+    def test_ordinary_outgoing_mail_does_not_lock_linda_requests(self):
+        """Non-Linda mail is sent without flushing or locking the request table."""
+        mail = (
+            self.env["mail.mail"]
+            .sudo()
+            .create(
+                {
+                    "subject": "Ordinary warehouse note",
+                    "email_from": "warehouse@example.com",
+                    "email_to": "dock@example.com",
+                    "body_html": "<p>not linda</p>",
+                }
+            )
+        )
+        statements = []
+        cursor = self.env.cr
+        original_execute = cursor.execute
+
+        def record_execute(self_cursor, query, params=None, *args, **kwargs):
+            statements.append(query if isinstance(query, str) else "")
+            return original_execute(query, params, *args, **kwargs)
+
+        flushed = []
+        request_model = type(self.env[LOGISTICS_REQUEST])
+        original_flush = request_model.flush_model
+
+        def record_flush(records, fnames=None):
+            if records._name == LOGISTICS_REQUEST:
+                flushed.append(records._name)
+            return original_flush(records, fnames)
+
+        with (
+            patch.object(type(cursor), "execute", record_execute),
+            patch.object(request_model, "flush_model", record_flush),
+            self._mail_sink() as sink,
+        ):
+            mail._send(auto_commit=False)
+        self.assertFalse(flushed)
+        self.assertFalse(any("FOR UPDATE" in sql and "plasticos_logistics_request" in sql for sql in statements))
+        self.assertEqual(len(sink), 1)
+        self.assertEqual(mail.state, "sent")
 
     def test_unchanged_reconfirm_after_cancel_is_a_new_cycle(self):
         """AC-09/AC-17/probes 3, 6, 7: notice first, then a new issue revision, each delivered once."""

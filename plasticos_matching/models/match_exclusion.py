@@ -4,6 +4,7 @@ Buyer-supplier exclusion list with expiry for QC disputes, legal holds, declined
 """
 
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class PlasticosMatchExclusion(models.Model):
@@ -91,13 +92,13 @@ class PlasticosMatchExclusion(models.Model):
     def _check_expiry_date(self):
         for rec in self:
             if rec.exclusion_type == "temporary" and not rec.expiry_date:
-                raise models.ValidationError("Temporary exclusions require an expiry date.")
+                raise ValidationError("Temporary exclusions require an expiry date.")
 
     @api.constrains("supplier_partner_id", "buyer_partner_id")
     def _check_different_partners(self):
         for rec in self:
             if rec.supplier_partner_id == rec.buyer_partner_id:
-                raise models.ValidationError("Supplier and buyer must be different partners.")
+                raise ValidationError("Supplier and buyer must be different partners.")
 
     # ═════════════════════════════════════════════════════════
     # Business Logic

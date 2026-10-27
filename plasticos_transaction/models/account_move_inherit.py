@@ -66,7 +66,10 @@ class AccountMove(models.Model):
             if rec.move_type == "out_invoice" and rec.invoice_origin:
                 so = so_by_name.get(rec.invoice_origin)
                 if so and so.transaction_id:
-                    if service and not service.is_compliant("plasticos.transaction", so.transaction_id.id):
+                    # An empty AbstractModel recordset is falsy: test for None, not truthiness.
+                    if service is not None and not service.is_compliant(
+                        "plasticos.transaction", so.transaction_id.id, purpose="invoice"
+                    ):
                         raise UserError("Missing required documents for invoice posting.")
 
             # Block credit note post when reversed move is linked to closed transaction

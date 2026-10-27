@@ -6,6 +6,62 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+# Operator-excluded VanillaSoft columns (v1.4). Match is the collapsed label,
+# so a double space in "NAICS Code  Description" cannot sneak through.
+EXCLUDED_SOURCE_FIELDS = (
+    "Load Ready",
+    "ClosedFlag",
+    "Team",
+    "Call Back Date",
+    "Call Back Time",
+    "Scheduled Call User",
+    "SIC Code",
+    "SIC Code Description",
+    "NAICS Code",
+    "NAICS Code  Description",
+    "Sales Volume Range",
+    "Sales Volume",
+    "Employees",
+    "Square Footage",
+    "Fleet Size",
+    "Product (MFR)",
+    "Truck Size (E)",
+    "Equipment",
+    "Price Quoted (MRP)",
+    "FOB/FAS (MRP)",
+    "Price Quoted (PPS)",
+    "FOB/FAS (PPS)",
+    "Melt (LDPE)",
+    "Density (LDPE)",
+    "Price Quoted (LDPE)",
+    "FOB/FAS (LDPE)",
+    "Melt (HDPE)",
+    "Density (HDPE)",
+    "Load Ready (HDPE)",
+    "Price Quoted (HDPE)",
+    "FOB/FAS (HDPE)",
+    "Melt (PP)",
+    "Density (PP)",
+    "Price Quoted (PP)",
+    "FOB/FAS (PP)",
+)
+
+
+def source_field_key(name: str) -> str:
+    return " ".join(str(name or "").split()).casefold()
+
+
+_EXCLUDED_SOURCE_KEYS = frozenset(source_field_key(name) for name in EXCLUDED_SOURCE_FIELDS)
+
+
+def is_excluded_source_field(name: str) -> bool:
+    return source_field_key(name) in _EXCLUDED_SOURCE_KEYS
+
+
+def omit_excluded_source_fields(fields: dict | None) -> dict:
+    """Drop excluded source columns. Free-text values of other fields stay."""
+    return {key: value for key, value in (fields or {}).items() if not is_excluded_source_field(str(key))}
+
 
 class CrmAdapterError(Exception):
     """Adapter/client failure (HTTP, auth, parse)."""

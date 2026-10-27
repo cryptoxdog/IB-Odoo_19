@@ -6,7 +6,7 @@ the legacy CSV import has no UI entry point left (Settings block, wizard action
 that every wizard execution action is closed behind the retirement guard, that
 the upgrade migration matches the manifest version, and that the importer
 code the UI used to drive is preserved. The Odoo-runtime twin is
-``tests/test_partner_import_csv_paths.py``.
+``plasticos_partner_import/tests/test_partner_import_csv_paths.py``.
 """
 
 from __future__ import annotations

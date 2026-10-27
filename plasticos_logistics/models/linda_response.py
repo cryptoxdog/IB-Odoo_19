@@ -196,6 +196,12 @@ class PlasticosLogisticsResponse(models.Model):
         """
         if self.env[LOGISTICS_REQUEST]._linda_mode() == LINDA_MODE_OFF:
             return self.browse()
+        # Native Odoo 19 template mail uses message_type ``email_outgoing``.
+        # The automation domain and the predicate below keep that outgoing
+        # message out of reply evidence. An inbound ``email`` row that lacks
+        # the original MIME copy stays unbound (``original_not_retained``).
+        # A composer path that posts message_type ``email`` for mail Linda
+        # itself sent was not reproduced on this head, so that case stays Unknown.
         # sudo: evidence bookkeeping only. The gateway runs as OdooBot and an order's
         # followers may lack rights on requests; nothing but this evidence is written.
         evidence = self.sudo()

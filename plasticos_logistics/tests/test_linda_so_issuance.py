@@ -195,6 +195,51 @@ class TestLindaSoIssuance(PlasticosTestCase):
         self.assertFalse(sink)
         self.assertEqual((refused.state, generic.state), ("exception", "unknown"))
 
+    def test_native_send_email_does_not_duplicate_linda_in_live_mode(self):
+        """Odoo's portal/payment confirmation must not send alongside Linda."""
+        self.env["ir.config_parameter"].sudo().set_param("sale.async_emails", "False")
+        self._set_mode("live")
+        so = self._new_so()
+        with self._mail_sink() as immediate:
+            so.with_context(send_email=True).action_confirm()
+        self.assertFalse(immediate, "native immediate confirmation was suppressed")
+        self.assertFalse(so.pending_email_template_id, "native async confirmation was suppressed")
+        request = self._requests(so)
+        self.assertEqual((len(request), request.state), (1, "queued"))
+        with self._mail_sink() as sink:
+            self._process_queue(request)
+        self.assertEqual(len(sink), 1, "Linda delivers the one buyer issue")
+
+    def test_off_shadow_send_email_uses_native_once_not_legacy(self):
+        """Off/shadow keep native Sales confirmation and do not duplicate it."""
+        self.env["ir.config_parameter"].sudo().set_param("sale.async_emails", "False")
+        for mode in ("off", "shadow"):
+            self._set_mode(mode)
+            so = self._new_so()
+            with self._mail_sink() as sent:
+                so.with_context(send_email=True).action_confirm()
+            self.assertEqual(len(self._to_buyer(sent)), 1, f"native send in {mode}")
+            self.assertFalse(self._legacy_mails(so), f"no duplicate legacy mail in {mode}")
+            requests = self._requests(so)
+            if mode == "off":
+                self.assertFalse(requests)
+            else:
+                self.assertEqual((len(requests), requests.state), (1, "shadow"))
+
+    def test_import_context_sends_no_confirmation(self):
+        """Import, install, and skip contexts emit no buyer confirmation."""
+        self.env["ir.config_parameter"].sudo().set_param("sale.async_emails", "False")
+        for mode in ("off", "shadow", "live"):
+            for key in ("import_mode", "install_mode", "skip_automations"):
+                self._set_mode(mode)
+                so = self._new_so()
+                with self._mail_sink() as sent:
+                    so.with_context(send_email=True, **{key: True}).action_confirm()
+                self.assertFalse(self._to_buyer(sent), f"{mode} {key}")
+                self.assertFalse(self._legacy_mails(so), f"no legacy mail in {mode} {key}")
+                if mode != "off":
+                    self.assertFalse(self._requests(so), f"no Linda issue in {mode} {key}")
+
     def test_interrupted_send_is_unknown(self):
         """SO-06: a disconnect mid-send may have delivered; it is never marked sent or resent."""
         self._set_mode("live")
@@ -555,6 +600,18 @@ class TestLindaSoIssuance(PlasticosTestCase):
         self.assertEqual([message["To"] for message in sink], [BUYER_EMAIL])
         self.assertEqual(notice.state, "sent")
         self.assertEqual(first.state, "sent")
+
+    def test_raw_cancel_write_does_not_queue_a_notice(self):
+        """A state write skips native cancel guards and must not synthesize a notice."""
+        so, first = self._sent_so()
+        mail_count = self.env["mail.mail"].search_count([])
+
+        so.write({"state": "cancel"})
+
+        self.assertEqual(so.state, "cancel")
+        self.assertFalse(self._notices(so))
+        self.assertFalse(first.cycle_closed)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mail_count)
 
     def test_unchanged_reconfirm_after_cancel_is_a_new_cycle(self):
         """AC-08/AC-17/AC-21/probes 3, 6, 7: notice first, then revision 2, each delivered once."""
