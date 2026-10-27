@@ -374,23 +374,23 @@ def purge_legacy_excluded_persistence(env) -> dict[str, int]:
     Archived records stay archived. A second call changes nothing.
     """
     counts = {
-        "leads": 0,
-        "partners": 0,
+        "lead_rows": 0,
+        "partner_rows": 0,
         "table_rows": 0,
-        "orphans": 0,
+        "orphan_rows": 0,
         "skipped_non_dict": 0,
     }
     leads = env["crm.lead"].with_context(active_test=False).search([("vanillasoft_id", "!=", False)])
     for lead in leads:
         if _write_html_without_excluded_paragraphs(lead, "description"):
-            counts["leads"] += 1
+            counts["lead_rows"] += 1
     refs = env["plasticos.crm.external.ref"].search(
         [("provider", "=", "vanillasoft"), ("res_model", "=", "res.partner")]
     )
     partners = env["res.partner"].with_context(active_test=False).browse(refs.mapped("res_id")).exists()
     for partner in partners:
         if _write_html_without_excluded_paragraphs(partner, "comment"):
-            counts["partners"] += 1
+            counts["partner_rows"] += 1
     rows = env["plasticos.crm.external.table.row"].search([("provider", "=", "vanillasoft")])
     for row in rows:
         raw = row.fields_json
@@ -412,7 +412,7 @@ def purge_legacy_excluded_persistence(env) -> dict[str, int]:
         cleaned = retained_table_orphan_payload(payload)
         if cleaned is not payload:
             orphan.write({"payload_json": cleaned})
-            counts["orphans"] += 1
+            counts["orphan_rows"] += 1
     return counts
 
 

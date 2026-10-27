@@ -19,10 +19,11 @@ def migrate(cr, version):
     env = api.Environment(cr, SUPERUSER_ID, {})
     counts = purge_legacy_excluded_persistence(env)
     _logger.info(
-        "plasticos_crm_sync 19.0.1.9.4 excluded-source cleanup: leads=%s partners=%s table_rows=%s orphans=%s skipped_non_dict=%s",
-        counts["leads"],
-        counts["partners"],
+        "plasticos_crm_sync 19.0.1.9.4 excluded-source cleanup: "
+        "lead_rows=%s partner_rows=%s table_rows=%s orphan_rows=%s skipped_non_dict=%s",
+        counts["lead_rows"],
+        counts["partner_rows"],
         counts["table_rows"],
-        counts["orphans"],
+        counts["orphan_rows"],
         counts["skipped_non_dict"],
     )
