@@ -268,7 +268,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(lead.mobile, "555-100-0002", "the valid second mobile fills the field the first cannot")
         self.assertEqual(lead.state_id.code, "PA")
         for line in (
-            "VanillaSoft Notes: synthetic note",
+            "VanillaSoft ContactID vs-phone-fidelity Notes: synthetic note",
             "VanillaSoft phone (mobile 1): +44 7700 900123",
             "VanillaSoft phone (fax): 555-100-0003",
         ):
@@ -1323,7 +1323,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(orch.outcomes["updated"], 2)
         appended = person.comment
         self.assertTrue(appended.startswith(erp_comment))
-        self.assertIn("<p>CRM history &amp; terms</p>", appended)
+        self.assertIn("<p>VanillaSoft ContactID vs-n1 Notes: CRM history &amp; terms</p>", appended)
         self.assertIn("second contact", appended)
 
         orch.outcomes = _new_outcomes()
@@ -1465,7 +1465,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         text = lead.description or ""
         self.assertIn("operator wrote that the melt looked high", text)
         self.assertIn("VanillaSoft Buyer/Supplier: Supplier", text)
-        self.assertIn("VanillaSoft Last Result Code: LM", text)
+        self.assertIn("VanillaSoft ContactID vs-excl-1 Last Result Code: LM", text)
         self.assertEqual(lead.email_from, "ada-excl@example.test")
         self.assertEqual(lead.phone, "215-555-0199")
         self.assertEqual(lead.street, "12 Dock St")

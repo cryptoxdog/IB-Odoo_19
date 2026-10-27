@@ -352,7 +352,17 @@ def test_approved_person_replay_adds_no_line_and_no_repeated_note():
     orch._upsert_lead(connection, _approved_dto())
     assert outcomes["unchanged"] == 1 and orch.last_lead_outcome == "unchanged"
     assert _lines(person) == lines and person.comment == comment
-    assert comment_blocks(comment) == ("ERP notes", "CRM history")
+    assert comment_blocks(comment) == ("ERP notes", "VanillaSoft ContactID 9001 Notes: CRM history")
+
+
+def test_approved_person_keeps_a_historic_raw_note_without_a_second_copy():
+    person = _Person(47, comment="<p>ERP notes</p><p>CRM history</p>")
+    orch, connection, leads, _refs = _approved_harness(person)
+    before = comment_blocks(person.comment)
+    orch._upsert_lead(connection, _approved_dto())
+    assert comment_blocks(person.comment) == before
+    assert leads.rows == {}
+    assert "ContactID 9001 Notes" not in (person.comment or "")
 
 
 def test_approved_contact_without_an_erp_person_fails_with_its_reason_and_creates_nothing():
@@ -423,7 +433,7 @@ def test_approved_person_context_names_each_vanillasoft_contact_and_replays_once
     orch._upsert_lead(connection, second)
     expected = (
         "ERP notes",
-        "CRM history",
+        "VanillaSoft ContactID 9001 Notes: CRM history",
         "VanillaSoft ContactID 9001 Buyer/Supplier: Supplier",
         "VanillaSoft ContactID 9001 Last Result Code: LM",
         "VanillaSoft ContactID 9001 Last Call Date: 2024-03-05 14:10",
