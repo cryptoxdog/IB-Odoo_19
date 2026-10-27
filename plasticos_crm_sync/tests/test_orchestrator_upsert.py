@@ -1,11 +1,18 @@
 """TransactionCase: lead upsert idempotency + orphan resolve (requires Odoo runtime)."""
 
 import base64
+import importlib.util
 import inspect
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from odoo import Command
-from odoo.addons.plasticos_crm_sync.adapters.base import CanonicalCall, CanonicalLead, CanonicalTableRow
+from odoo.addons.plasticos_crm_sync.adapters.base import (
+    EXCLUDED_SOURCE_FIELDS,
+    CanonicalCall,
+    CanonicalLead,
+    CanonicalTableRow,
+)
 from odoo.addons.plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator, _new_outcomes
 from odoo.addons.plasticos_crm_sync.services.owner_crosswalk import BLANK_OWNER_LOGIN, OWNER_LOGIN_BY_SOURCE
@@ -1333,6 +1340,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(landed.fields_json.get("Material"), "Pallets")
         self._assert_tokens_absent(tokens, str(landed.fields_json))
         self.assertTrue(dirty_orphan.resolved)
+        self.assertEqual(dirty_orphan.payload_json["fields"].get("Material"), "Pallets")
+        self.assertNotIn("Melt (LDPE)", dirty_orphan.payload_json["fields"])
+        self.assertNotIn("Load Ready", dirty_orphan.payload_json["fields"])
         self._assert_tokens_absent(tokens, self._profile_notes(lead))
 
         person = self.env["res.partner"].create(
@@ -1400,6 +1410,157 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
     def _assert_tokens_absent(self, tokens, text):
         for token in tokens:
             self.assertNotIn(token, text or "")
+
+    def test_upgrade_removes_importer_owned_legacy_exclusions_only(self):
+        """An installed database keeps human notes and loses labelled excluded columns."""
+        excluded_html = "".join(
+            f"<p>VanillaSoft {name}: EXCL-{index}</p><p>VanillaSoft ContactID 42 {name}: EXCL-PERSON-{index}</p>"
+            for index, name in enumerate(EXCLUDED_SOURCE_FIELDS)
+        )
+        kept_html = (
+            "<p>ERP-OWNED sentinel</p>"
+            "<p>operator wrote that the melt looked high</p>"
+            "<p>VanillaSoft Buyer/Supplier: Supplier</p>"
+            "<p>VanillaSoft Notes: FOB was a word in the note</p>"
+        )
+        lead = self.env["crm.lead"].create(
+            {
+                "name": "Legacy Lead",
+                "vanillasoft_id": "vs-legacy-lead",
+                "description": kept_html + excluded_html,
+                "delivery_term": "fcfs",
+            }
+        )
+        person = (
+            self.env["res.partner"]
+            .with_context(active_test=False)
+            .create(
+                {
+                    "name": "Legacy ERP Person",
+                    "active": False,
+                    "street": "ERP DOCK",
+                    "phone": "555-0100",
+                    "comment": kept_html + excluded_html,
+                }
+            )
+        )
+        self.env["plasticos.crm.external.ref"].create(
+            {
+                "provider": "vanillasoft",
+                "external_id": "vs-legacy-person",
+                "res_model": "res.partner",
+                "res_id": person.id,
+            }
+        )
+        fields = {name: f"EXCL-{index}" for index, name in enumerate(EXCLUDED_SOURCE_FIELDS)}
+        fields["Material"] = "HDPE Drums"
+        fields["Notes"] = "Load Ready is mentioned in ordinary notes"
+        row = self.env["plasticos.crm.external.table.row"].create(
+            {
+                "provider": "vanillasoft",
+                "lead_id": lead.id,
+                "contact_external_id": "vs-legacy-lead",
+                "table_id": "9",
+                "external_row_id": "legacy-row",
+                "fields_json": dict(fields),
+            }
+        )
+        other = self.env["plasticos.crm.external.table.row"].create(
+            {
+                "provider": "other",
+                "contact_external_id": "other-1",
+                "table_id": "9",
+                "external_row_id": "other-row",
+                "fields_json": {"Load Ready": "KEEP-OTHER", "Material": "HDPE Drums"},
+            }
+        )
+        unresolved = self.env["plasticos.crm.sync.orphan"].create(
+            {
+                "connection_id": self.connection.id,
+                "provider": "vanillasoft",
+                "kind": "table_row",
+                "contact_external_id": "vs-legacy-lead",
+                "external_id": "legacy-orphan",
+                "resolved": False,
+                "payload_json": {
+                    "provider": "vanillasoft",
+                    "fields": dict(fields),
+                    "comment": "discussed melt index; Load Ready was said in the call",
+                },
+            }
+        )
+        resolved = self.env["plasticos.crm.sync.orphan"].create(
+            {
+                "connection_id": self.connection.id,
+                "provider": "vanillasoft",
+                "kind": "table_row",
+                "contact_external_id": "vs-legacy-lead",
+                "external_id": "legacy-orphan-resolved",
+                "resolved": True,
+                "payload_json": {"provider": "vanillasoft", "fields": dict(fields)},
+            }
+        )
+        call = self.env["plasticos.crm.call.event"].create(
+            {
+                "provider": "vanillasoft",
+                "external_id": "legacy-call",
+                "contact_external_id": "vs-legacy-lead",
+                "lead_id": lead.id,
+                "comment": "discussed melt index; Load Ready was said in the call",
+            }
+        )
+        location = self._facility("Legacy Notes")
+        facility = self.env["plasticos.facility.profile"].create(
+            {
+                "partner_id": location.id,
+                "freeform_notes": "Load Ready was discussed by the operator",
+            }
+        )
+        migration = self._load_exclusion_migration()
+        migration.migrate(self.env.cr, None)
+        self.assertIn("EXCL-0", lead.description)
+        migration.migrate(self.env.cr, "19.0.1.9.1")
+        lead.invalidate_recordset()
+        person.invalidate_recordset()
+        row.invalidate_recordset()
+        other.invalidate_recordset()
+        unresolved.invalidate_recordset()
+        resolved.invalidate_recordset()
+        self.assertEqual(lead.description, kept_html)
+        self.assertEqual(str(person.comment), kept_html)
+        self.assertFalse(person.active)
+        self.assertEqual(person.street, "ERP DOCK")
+        self.assertEqual(person.phone, "555-0100")
+        self.assertEqual(lead.delivery_term, "fcfs")
+        self.assertEqual(set(row.fields_json), {"Material", "Notes"})
+        self.assertEqual(row.fields_json["Notes"], "Load Ready is mentioned in ordinary notes")
+        self.assertEqual(other.fields_json["Load Ready"], "KEEP-OTHER")
+        self.assertEqual(set(unresolved.payload_json["fields"]), {"Material", "Notes"})
+        self.assertEqual(unresolved.payload_json["comment"], "discussed melt index; Load Ready was said in the call")
+        self.assertFalse(unresolved.resolved)
+        self.assertEqual(set(resolved.payload_json["fields"]), {"Material", "Notes"})
+        self.assertTrue(resolved.resolved)
+        self.assertEqual(call.comment, "discussed melt index; Load Ready was said in the call")
+        self.assertEqual(facility.freeform_notes, "Load Ready was discussed by the operator")
+        again_lead = lead.description
+        again_comment = str(person.comment)
+        migration.migrate(self.env.cr, "19.0.1.9.1")
+        lead.invalidate_recordset()
+        person.invalidate_recordset()
+        self.assertEqual(lead.description, again_lead)
+        self.assertEqual(str(person.comment), again_comment)
+
+    def _load_exclusion_migration(self):
+        path = (
+            Path(inspect.getfile(SyncOrchestrator)).resolve().parents[1]
+            / "migrations"
+            / "19.0.1.9.4"
+            / "post-migrate.py"
+        )
+        spec = importlib.util.spec_from_file_location("plasticos_crm_sync_migrate_190194", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
 
 @tagged("post_install", "-at_install", "-standard", "crm_sync_semantic_kernel")

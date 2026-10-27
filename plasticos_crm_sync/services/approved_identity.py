@@ -12,7 +12,7 @@ import csv
 import hashlib
 import io
 import re
-from html import escape
+from html import escape, unescape
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -198,6 +198,46 @@ def comment_holds(comment: str | None, note: str) -> bool:
             if len(joined) >= len(text):
                 break
     return False
+
+
+_IMPORTER_PARAGRAPH = re.compile(r"<p>([^<]*)</p>", re.IGNORECASE)
+_LABELLED_SOURCE_PARAGRAPH = re.compile(r"^VanillaSoft (?:ContactID \S+ )?(.+?): (.+)$")
+
+
+def _excluded_importer_paragraph(text: str) -> bool:
+    """True only for a full importer line naming an excluded source column."""
+    match = _LABELLED_SOURCE_PARAGRAPH.match(" ".join(str(text or "").split()))
+    if match is None:
+        return False
+    from ..adapters.base import is_excluded_source_field
+
+    return is_excluded_source_field(match.group(1))
+
+
+def without_excluded_source_paragraphs(html: str | None) -> str:
+    """Drop ``<p>VanillaSoft … excluded label: …</p>`` nodes. Every other byte stays.
+
+    The match is the paragraph the importer writes, including the ContactID form.
+    A note that merely mentions an excluded word is not a match. Nested or
+    attributed markup is not a match, so it is not rewritten.
+    """
+    source = "" if html is None else str(html)
+    if not source:
+        return source
+    pieces: list[str] = []
+    last = 0
+    changed = False
+    for match in _IMPORTER_PARAGRAPH.finditer(source):
+        text = unescape(match.group(1))
+        if not _excluded_importer_paragraph(text):
+            continue
+        pieces.append(source[last : match.start()])
+        last = match.end()
+        changed = True
+    if not changed:
+        return source
+    pieces.append(source[last:])
+    return "".join(pieces)
 
 
 def comment_with_note(comment: str | None, note: str) -> str | None:

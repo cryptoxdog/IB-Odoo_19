@@ -20,6 +20,7 @@ from .approved_identity import (
     comment_with_note,
     load_crosswalk_map,
     phone_identity_key,
+    without_excluded_source_paragraphs,
     xmlid_name,
 )
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
@@ -331,6 +332,88 @@ def _write_call_counters(run, seen: int, outcomes: dict[str, int], base: dict[st
     run.calls_updated = (base.get("updated", 0) if base else 0) + outcomes["updated"]
     run.calls_unchanged = (base.get("unchanged", 0) if base else 0) + outcomes["unchanged"]
     run.calls_failed = (base.get("failed", 0) if base else 0) + outcomes["failed"]
+
+
+def retained_table_orphan_payload(payload):
+    """The same orphan payload with excluded source keys removed from ``fields`` only.
+
+    A call payload, a non-dict, or a payload whose ``fields`` are already clean
+    is returned unchanged. Other keys, including a call comment, are not read.
+    """
+    if not isinstance(payload, dict):
+        return payload
+    fields = payload.get("fields")
+    if not isinstance(fields, dict):
+        return payload
+    cleaned = omit_excluded_source_fields(fields)
+    if cleaned == fields:
+        return payload
+    updated = dict(payload)
+    updated["fields"] = cleaned
+    return updated
+
+
+def _write_html_without_excluded_paragraphs(record, field_name: str) -> bool:
+    current = record[field_name] or ""
+    cleaned = without_excluded_source_paragraphs(current)
+    if cleaned == str(current or ""):
+        return False
+    record.write({field_name: cleaned or False})
+    return True
+
+
+def purge_legacy_excluded_persistence(env) -> dict[str, int]:
+    """Remove importer-owned excluded data already stored by an older sync.
+
+    Leads are limited to those carrying a VanillaSoft id. Partner comments are
+    limited to partners named by a VanillaSoft external ref. Table rows and
+    table-row orphans are limited to provider ``vanillasoft``. Material and
+    facility notes are not touched: they have no importer field label to prove
+    the text was an excluded column.
+
+    Archived records stay archived. A second call changes nothing.
+    """
+    counts = {
+        "leads": 0,
+        "partners": 0,
+        "table_rows": 0,
+        "orphans": 0,
+        "skipped_non_dict": 0,
+    }
+    leads = env["crm.lead"].with_context(active_test=False).search([("vanillasoft_id", "!=", False)])
+    for lead in leads:
+        if _write_html_without_excluded_paragraphs(lead, "description"):
+            counts["leads"] += 1
+    refs = env["plasticos.crm.external.ref"].search(
+        [("provider", "=", "vanillasoft"), ("res_model", "=", "res.partner")]
+    )
+    partners = env["res.partner"].with_context(active_test=False).browse(refs.mapped("res_id")).exists()
+    for partner in partners:
+        if _write_html_without_excluded_paragraphs(partner, "comment"):
+            counts["partners"] += 1
+    rows = env["plasticos.crm.external.table.row"].search([("provider", "=", "vanillasoft")])
+    for row in rows:
+        raw = row.fields_json
+        if not isinstance(raw, dict):
+            if raw:
+                counts["skipped_non_dict"] += 1
+            continue
+        cleaned = omit_excluded_source_fields(raw)
+        if cleaned != raw:
+            row.write({"fields_json": cleaned})
+            counts["table_rows"] += 1
+    orphans = env["plasticos.crm.sync.orphan"].search([("provider", "=", "vanillasoft"), ("kind", "=", "table_row")])
+    for orphan in orphans:
+        payload = orphan.payload_json
+        if not isinstance(payload, dict):
+            if payload:
+                counts["skipped_non_dict"] += 1
+            continue
+        cleaned = retained_table_orphan_payload(payload)
+        if cleaned is not payload:
+            orphan.write({"payload_json": cleaned})
+            counts["orphans"] += 1
+    return counts
 
 
 def _differs(record, field_name: str, value) -> bool:
@@ -1912,6 +1995,11 @@ class SyncOrchestrator:
             if not lead and not person_ref:
                 continue
             payload = orphan.payload_json or {}
+            if orphan.kind == "table_row":
+                cleaned_payload = retained_table_orphan_payload(payload)
+                if cleaned_payload is not payload:
+                    orphan.payload_json = cleaned_payload
+                    payload = cleaned_payload
             lead_id, partner_id = self._history_links(person_ref, lead)
             if orphan.kind == "call":
                 existing = Call.search(
