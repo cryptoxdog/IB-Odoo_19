@@ -624,4 +624,3 @@ Legacy imported and historically unverified evidence cannot start external Linda
 *Cross-domain boundaries:* `BRS-POS-05-R010`, `BRS-POS-08-R014`, `BRS-POS-09-R014`.
 
 *Validation:* original IDs AC-V73, AC-V62, AC-V05 plus mapped cross-domain negatives; runtime NOT_RUN.
-

@@ -321,4 +321,3 @@
 **Counterexample:** Reject stale parent, altered old source, wrong branch.
 
 *Runtime proof:* NOT_RUN.
-
