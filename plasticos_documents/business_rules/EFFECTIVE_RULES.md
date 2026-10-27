@@ -317,4 +317,3 @@ Acceptance: AC-POS-09-016 · Runtime: **NOT_RUN**
 The exact installed time-trigger cron frequency, last-run window semantics and historical-run behavior SHALL be inspected before relying on native timed automation for 2-hour/4-hour Linda obligations.
 
 Acceptance: AC-POS-09-017 · Runtime: **NOT_RUN**
-
