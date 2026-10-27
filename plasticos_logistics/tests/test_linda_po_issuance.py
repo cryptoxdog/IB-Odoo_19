@@ -1369,6 +1369,28 @@ class TestLindaPoIssuance(PlasticosTestCase):
         second.invalidate_recordset()
         self.assertEqual(second.send_attempt_count, 0)
 
+    def test_same_batch_unknown_notice_leaves_the_reissue_unattempted(self):
+        """A same-batch unknown notice is not retried and does not release the reissue."""
+        po, first = self._sent_po()
+        po.button_cancel()
+        notice = self._notices(po)
+        po.button_draft()
+        po.button_confirm()
+        second = self._requests(po) - first
+
+        with self.assertLogs(MAIL_LOGGER, level="ERROR"), self._mail_sink(error=MailDeliveryException("timeout")):
+            self.env["mail.mail"].process_email_queue()
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "unknown")
+        self.assertEqual((second.state, second.send_attempt_count, second.mail_id.state), ("queued", 0, "outgoing"))
+
+        with self._mail_sink() as sink:
+            self.env["mail.mail"].process_email_queue()
+        self.assertFalse(self._to_supplier(sink))
+        (notice | second).invalidate_recordset()
+        self.assertEqual(notice.state, "unknown")
+        self.assertEqual(second.send_attempt_count, 0)
+
     def test_unknown_notice_from_an_earlier_batch_holds_the_reissue(self):
         """A previous unknown notice still gates the replacement order."""
         po, first = self._sent_po()
