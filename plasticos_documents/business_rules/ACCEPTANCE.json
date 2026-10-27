@@ -1,0 +1,447 @@
+{
+  "schema": "plasticos.documents.brs-acceptance/v1",
+  "source_acceptance_id_count": 44,
+  "runtime": "NOT_RUN",
+  "cases": [
+    {
+      "id": "AC-POS-02-001",
+      "rule_id": "BRS-POS-02-R001",
+      "scenario": "Native original custody",
+      "positive_expected": "Two linked loads refer to one attachment and maintain independent evidence meaning.",
+      "negative_control_must_fail": "Two cloned BOL PDFs are stored to satisfy one original.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-002",
+      "rule_id": "BRS-POS-02-R002",
+      "scenario": "Native internal folder structure",
+      "positive_expected": "A received BOL is browsable in its intended native folder without a second file system.",
+      "negative_control_must_fail": "PlasticOS creates a parallel custom directory or binary table.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-003",
+      "rule_id": "BRS-POS-02-R003",
+      "scenario": "External inbound by alias",
+      "positive_expected": "Carrier email produces internal Inbox file(s) without portal permission.",
+      "negative_control_must_fail": "Supplier receives an editor or viewer invitation as a side effect.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-004",
+      "rule_id": "BRS-POS-02-R004",
+      "scenario": "Internal request placeholders",
+      "positive_expected": "The missing buyer report is visible as a single internal Requested Document activity.",
+      "negative_control_must_fail": "An external customer is sent a native Documents upload link.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-005",
+      "rule_id": "BRS-POS-02-R005",
+      "scenario": "Native request fulfillment requires verification",
+      "positive_expected": "An unverified attachment remains pending.",
+      "negative_control_must_fail": "Merely attaching a PDF clears invoice compliance.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-006",
+      "rule_id": "BRS-POS-02-R006",
+      "scenario": "Native email alias triage",
+      "positive_expected": "Same supplier with two open POs produces an ambiguous Inbox task.",
+      "negative_control_must_fail": "A latest-created transaction is selected without proof.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-007",
+      "rule_id": "BRS-POS-02-R007",
+      "scenario": "Versions and supersession",
+      "positive_expected": "An old scale certificate remains inspectable after a corrected one replaces it.",
+      "negative_control_must_fail": "Uploading a replacement erases the previous original and verification trail.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-008",
+      "rule_id": "BRS-POS-02-R008",
+      "scenario": "Native shortcuts before duplicating",
+      "positive_expected": "The same BOL can be reached from a second folder without duplicate attachment bytes.",
+      "negative_control_must_fail": "Folder convenience creates another authoritative document file.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-009",
+      "rule_id": "BRS-POS-02-R009",
+      "scenario": "Native file actions only when fit",
+      "positive_expected": "A split PDF retains the immutable original as evidence.",
+      "negative_control_must_fail": "A split page silently replaces a signed full BOL without reference.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-010",
+      "rule_id": "BRS-POS-02-R010",
+      "scenario": "AI classification without authority",
+      "positive_expected": "Auto-tagged file waits for authorized verification.",
+      "negative_control_must_fail": "OCR-generated weight is posted as buyer settlement truth.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-011",
+      "rule_id": "BRS-POS-02-R011",
+      "scenario": "No external Documents sharing",
+      "positive_expected": "An ordinary email reply succeeds with no external Documents ACL grant.",
+      "negative_control_must_fail": "An external portal user opens the internal load folder.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-012",
+      "rule_id": "BRS-POS-02-R012",
+      "scenario": "Document journal intake",
+      "positive_expected": "A vendor invoice creates a draft vendor bill through the native intake path.",
+      "negative_control_must_fail": "The uploaded supplier PDF becomes an auto-posted bill merely because it arrived.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-02-013",
+      "rule_id": "BRS-POS-02-R013",
+      "scenario": "No mandatory digitization charges",
+      "positive_expected": "A manual draft bill path operates with OCR unavailable.",
+      "negative_control_must_fail": "Vendor bill processing blocks because a digitization token subscription was not purchased.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-001",
+      "rule_id": "BRS-POS-03-R001",
+      "scenario": "One canonical business classification",
+      "positive_expected": "Native class display and business evidence agree.",
+      "negative_control_must_fail": "A native AI tag independently marks required paperwork compliant.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-002",
+      "rule_id": "BRS-POS-03-R002",
+      "scenario": "Typed exact association",
+      "positive_expected": "One file attaches to the correct PO-only inbound and later receipt without dummy load.",
+      "negative_control_must_fail": "The same vendor name links a file to an arbitrary open SO.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-003",
+      "rule_id": "BRS-POS-03-R003",
+      "scenario": "Multi-record original reuse",
+      "positive_expected": "Shared signed freight BOL maps to both legitimate transaction associations with separate references.",
+      "negative_control_must_fail": "One uncertain BOL is marked as proof of every partner load.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-004",
+      "rule_id": "BRS-POS-03-R004",
+      "scenario": "Authoritative verification writer",
+      "positive_expected": "A native verify action produces one authorized business verification record.",
+      "negative_control_must_fail": "Sync writes verified independently after an OCR event.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-005",
+      "rule_id": "BRS-POS-03-R005",
+      "scenario": "Verification is attributable",
+      "positive_expected": "A revoked document can be traced to its original approval.",
+      "negative_control_must_fail": "An admin changes verification invisibly with no recorded reason.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-006",
+      "rule_id": "BRS-POS-03-R006",
+      "scenario": "Expired, inactive or superseded evidence",
+      "positive_expected": "Expiring the sole insurance certificate restores the missing-document obligation.",
+      "negative_control_must_fail": "An old inactive scale file still passes close validation.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-007",
+      "rule_id": "BRS-POS-03-R007",
+      "scenario": "Operation-scoped compliance",
+      "positive_expected": "A missing CST is tracked while verified buyer Receiving permits invoice posting.",
+      "negative_control_must_fail": "A required-for-dispatch document is treated as a buyer-AR block.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-008",
+      "rule_id": "BRS-POS-03-R008",
+      "scenario": "No financial side effect from recompute",
+      "positive_expected": "A verified buyer report leaves draft invoices draft until authorized posting.",
+      "negative_control_must_fail": "Document verification posts all draft vendor and freight bills.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-009",
+      "rule_id": "BRS-POS-03-R009",
+      "scenario": "Buyer receiving authority",
+      "positive_expected": "The right verified report permits the correct invoice action.",
+      "negative_control_must_fail": "An unverified supplier BOL substitutes for buyer receiving.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-010",
+      "rule_id": "BRS-POS-03-R010",
+      "scenario": "Partial receiving attribution",
+      "positive_expected": "A 20,000-lb verified receipt cannot prove a different 44,000-lb delivered quantity.",
+      "negative_control_must_fail": "One partial report is treated as proof of a whole consolidated shipment.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-011",
+      "rule_id": "BRS-POS-03-R011",
+      "scenario": "CST is a distinct carrier obligation",
+      "positive_expected": "Close with verified Receiving while a missing-CST follow-up remains outstanding.",
+      "negative_control_must_fail": "CST XML required_for_close forces the load to remain open.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-012",
+      "rule_id": "BRS-POS-03-R012",
+      "scenario": "Receipt versus certified proof",
+      "positive_expected": "A photo lacking certification remains a pending evidence issue.",
+      "negative_control_must_fail": "A generic SCALE tag meets carrier certification without inspection.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-013",
+      "rule_id": "BRS-POS-03-R013",
+      "scenario": "Human weight capture until extraction admission",
+      "positive_expected": "AI-unavailable intake still permits manual verified weight entry.",
+      "negative_control_must_fail": "An OCR guess overwrites buyer_weight at document upload.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-03-014",
+      "rule_id": "BRS-POS-03-R014",
+      "scenario": "Company-aware evidence controls",
+      "positive_expected": "Different companies with same PO name cannot share document evidence without authorization.",
+      "negative_control_must_fail": "A cross-company document auto-link grants unauthorized visibility.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-001",
+      "rule_id": "BRS-POS-09-R001",
+      "scenario": "Use all applicable native primitives",
+      "positive_expected": "Every automation design identifies the native primitive used.",
+      "negative_control_must_fail": "A new Celery/cron service duplicates base.automation and ir.cron.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-002",
+      "rule_id": "BRS-POS-09-R002",
+      "scenario": "Internal Documents Request purpose",
+      "positive_expected": "Document obligation visible in native Documents Activity view.",
+      "negative_control_must_fail": "Supplier receives a Documents Request portal/share link.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-003",
+      "rule_id": "BRS-POS-09-R003",
+      "scenario": "One internal Activity per unresolved obligation",
+      "positive_expected": "Six cron runs maintain one current missing-CST escalation Activity.",
+      "negative_control_must_fail": "Each tick creates another unresolved activity.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-004",
+      "rule_id": "BRS-POS-09-R004",
+      "scenario": "Simple event trigger on native automation",
+      "positive_expected": "A new inbound message is handed to one Linda response handler.",
+      "negative_control_must_fail": "Two automated actions independently dispatch carrier packets.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-005",
+      "rule_id": "BRS-POS-09-R005",
+      "scenario": "Native scheduler is the only job platform",
+      "positive_expected": "A Documents due check and Linda transport tick coexist without duplicate sends.",
+      "negative_control_must_fail": "A custom external timer races two Odoo crons.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-006",
+      "rule_id": "BRS-POS-09-R006",
+      "scenario": "Only one external reminder writer",
+      "positive_expected": "Carrier receives at most one scheduled CST reminder in the daily window.",
+      "negative_control_must_fail": "Documents cron plus Linda both email the same attachment request.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-007",
+      "rule_id": "BRS-POS-09-R007",
+      "scenario": "Supplier document business clock",
+      "positive_expected": "Friday pickup produces Monday supplier due date under stated work calendar.",
+      "negative_control_must_fail": "An old transaction create_date triggers reminders months early.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-008",
+      "rule_id": "BRS-POS-09-R008",
+      "scenario": "Carrier document business clock",
+      "positive_expected": "Friday pickup yields Tuesday carrier first due date under Mon-Fri.",
+      "negative_control_must_fail": "Scale tag receipt clears a required certified CST without verification.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-009",
+      "rule_id": "BRS-POS-09-R009",
+      "scenario": "Buyer document business clock",
+      "positive_expected": "Verified buyer report terminates the outstanding chase.",
+      "negative_control_must_fail": "Supplier pickup timestamp is used to calculate buyer reminder due date.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-010",
+      "rule_id": "BRS-POS-09-R010",
+      "scenario": "No duplicate daily touch",
+      "positive_expected": "Two overlapping ticks yield one sent/unknown intent.",
+      "negative_control_must_fail": "Two crons each send a separate carrier reminder.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-011",
+      "rule_id": "BRS-POS-09-R011",
+      "scenario": "Quiet hours and locale aware deadlines",
+      "positive_expected": "A quiet-hours routine notice is delayed without deleting the obligation.",
+      "negative_control_must_fail": "UTC midnight sends a routine local 2AM message contrary to schedule.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-012",
+      "rule_id": "BRS-POS-09-R012",
+      "scenario": "Stop on verified or inapplicable",
+      "positive_expected": "A fulfilled CST halts subsequent overdue outgoing mail.",
+      "negative_control_must_fail": "A canceled PO continues daily supplier chasers.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-013",
+      "rule_id": "BRS-POS-09-R013",
+      "scenario": "No hidden financial triggers",
+      "positive_expected": "A compliance auto action updates readiness status only.",
+      "negative_control_must_fail": "A document received event invokes account.move.action_post.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-014",
+      "rule_id": "BRS-POS-09-R014",
+      "scenario": "Automation last live stage",
+      "positive_expected": "Planned XML actions exist but produce no external mail before go-live gate.",
+      "negative_control_must_fail": "A newly installed addon enables active carrier emails by default.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-015",
+      "rule_id": "BRS-POS-09-R015",
+      "scenario": "Accounting follow-ups later than operational automation",
+      "positive_expected": "Operational supplier notice can be live while customer dunning remains off pre-cutover.",
+      "negative_control_must_fail": "Odoo collection letters send against unverified historical QB AR.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-016",
+      "rule_id": "BRS-POS-09-R016",
+      "scenario": "Optional Studio or AI costs",
+      "positive_expected": "An existing XML base.automation works without new custom Studio subscription.",
+      "negative_control_must_fail": "A developer assumes all Studio/AI paid services are free and deployed.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    },
+    {
+      "id": "AC-POS-09-017",
+      "rule_id": "BRS-POS-09-R017",
+      "scenario": "Time-based native engine limitations",
+      "positive_expected": "An overdue timer replays safely without retroactively sending historical mail.",
+      "negative_control_must_fail": "A default four-hour periodic check is assumed to meet a strict two-hour SLA.",
+      "execution_status": "NOT_RUN",
+      "evidence_status": "PROPOSED_ACCEPTANCE_ONLY",
+      "requires_separate_test_authorization": true
+    }
+  ]
+}
