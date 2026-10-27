@@ -451,6 +451,7 @@ def provenance_line(external_id: str, field_name: str, value: str) -> str:
 # Exact lines this importer appends from the approved "pp supersacs" phrase.
 # They are not prior identity. A longer preexisting supersac note still is.
 _IMPORTER_SUPERSAC_LINES = frozenset({"pp supersacs"})
+_HINT_STATUS_UNSUPPORTED = "unsupported"
 
 
 def _preexisting_supersac_profile(profile) -> bool:
@@ -2230,7 +2231,7 @@ class SyncOrchestrator:
         if hint:
             hint_result = normalize_material(self.env, hint)
             if "unresolved material" in hint_result.unresolved:
-                return combined, "unsupported"
+                return combined, _HINT_STATUS_UNSUPPORTED
         return combined, None
 
     def _store_normalized_materials(
@@ -2246,7 +2247,7 @@ class SyncOrchestrator:
             if hint_status == "conflict" or "conflicting material evidence" in normalized.unresolved:
                 self._append_classified_error(ref, f"conflicting material evidence: {text}", REQUIRED_MAPPING)
                 continue
-            if hint_status == "unsupported":
+            if hint_status == _HINT_STATUS_UNSUPPORTED:
                 self._append_classified_error(
                     ref, f"BLOCKED_UNRESOLVED: unsupported type hint for {text}", OPTIONAL_CONTEXT
                 )
