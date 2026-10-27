@@ -24,6 +24,7 @@
 ./plasticos_crm_sync/views/crm_sync_run_views.xml
 ./plasticos_crm_sync/views/menu.xml
 ./plasticos_crm_sync/views/res_config_settings_views.xml
+./plasticos_crm_sync/views/res_partner_sync_views.xml
 ./plasticos_documents/views/document_extension_views.xml
 ./plasticos_documents/views/document_rule_views.xml
 ./plasticos_documents/views/document_tag_views.xml
