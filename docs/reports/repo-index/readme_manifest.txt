@@ -26,6 +26,7 @@
 ./plasticos_intake/README.md:139:# Offer creation per selected match line:
 ./plasticos_intake_normalizer/README.md:1:# plasticos_intake_normalizer
 ./plasticos_logistics/README.md:13:# Plasticos Logistics
+./plasticos_logistics/business_rules/README.md:1:# Linda Logistics business requirements (BRS)
 ./plasticos_matching/README.md:13:# Plasticos Matching
 ./plasticos_material_profile/README.md:1:# plasticos_material_profile
 ./plasticos_offer/README.md:1:# plasticos_offer
@@ -51,13 +52,14 @@
 ./skills/plasticos-static-audit-kernel/SKILL.md:15:# Static Audit Kernel
 ./skills/plasticos-xml-view/SKILL.md:15:# XML View Development
 ./tests/README.md:1:# PlastOS Test Pack — Odoo 19.0
-./tests/README.md:63:# Partner/Polymer/Form creation (with deduplication)
-./tests/README.md:68:# Model-specific factories
-./tests/README.md:77:# Skip helper
-./tests/README.md:94:# All PlastOS tests
-./tests/README.md:97:# By category
-./tests/README.md:106:# Pure Python tests (no Odoo required)
-./tests/README.md:111:# Meta tests (validate test suite structure)
+./tests/README.md:74:# Partner/Polymer/Form creation (with deduplication)
+./tests/README.md:79:# Model-specific factories
+./tests/README.md:88:# Skip helper
+./tests/README.md:107:# One addon's tests (Docker fixture DB; runs at_install + post_install of that addon)
+./tests/README.md:110:# All PlastOS tests
+./tests/README.md:113:# By category
+./tests/README.md:122:# Pure Python tests (no Odoo required)
+./tests/README.md:127:# Meta tests (validate test suite structure)
 ./tests/e2e/four_repo/README.md:1:# Four-repo end-to-end: IB-Odoo_19 -> Gate_SDK -> Constellation.Gate -> EIE
 ./tests/e2e/four_repo/README.md:22:# 1. EIE worker (registers itself with Gate; re-registers every 60 s)
 ./tests/e2e/four_repo/README.md:31:# 2. Gate (static registry pre-declares the worker; health re-probe every 15 s)
