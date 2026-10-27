@@ -220,7 +220,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
     def test_dead_lead_uses_the_existing_stage(self):
         orch = SyncOrchestrator(self.env)
         vals = orch._lead_vals_from_dto(self._lead("vs-dead", lead_status_raw="5=Dead Lead"))
-        self.assertEqual(vals["stage_id"], self.env.ref("plasticos_crm_bridge.stage_dead_lead").id)
+        self.assertEqual(vals["stage_id"], self.env.ref("plasticos_crm_bridge.stage_new").id)
 
     def test_contact_name_collapses_whitespace(self):
         orch = SyncOrchestrator(self.env)
@@ -353,7 +353,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(lead.mobile, "555-100-0002")
         self.assertEqual(lead.country_id.code, "US")
         self.assertEqual(lead.state_id.code, "GA")
-        self.assertEqual(lead.stage_id, self.env.ref("plasticos_crm_bridge.stage_dead_lead"))
+        self.assertEqual(lead.stage_id, self.env.ref("plasticos_crm_bridge.stage_new"))
+        self.assertIn("VanillaSoft ContactID vs-alias-land Lead Status: 5=Dead Lead", lead.description or "")
         self.assertEqual(lead.source_id, self.env.ref("plasticos_crm_bridge.utm_source_google"))
         self.assertEqual(lead.user_id.login, "ib@scrapmanagement.com")
         self.assertEqual(

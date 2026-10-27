@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="crm_tag_buyer" model="crm.tag">
+        <field name="name">Buyer</field>
+    </record>
+    <record id="crm_tag_supplier" model="crm.tag">
+        <field name="name">Supplier</field>
+    </record>
+</odoo>
