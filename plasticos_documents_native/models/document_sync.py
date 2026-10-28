@@ -144,11 +144,14 @@ class DocumentSyncService(models.AbstractModel):
             ]
         ):
             return
+        todo = self.env.ref("mail.mail_activity_data_todo", raise_if_not_found=False)
+        if not todo:
+            return
         activity.with_context(mail_activity_quick_update=True).create(
             {
                 "res_model_id": self.env["ir.model"]._get_id("documents.document"),
                 "res_id": native_doc.id,
-                "activity_type_id": self.env.ref("mail.mail_activity_data_todo").id,
+                "activity_type_id": todo.id,
                 "summary": summary,
                 "note": native_doc.plasticos_doc_id.pending_reason or self._navigation_reason(native_doc),
                 "user_id": native_doc.owner_id.id,

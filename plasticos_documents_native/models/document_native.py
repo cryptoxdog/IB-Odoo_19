@@ -417,6 +417,9 @@ def _snapshot_value(snapshot, key):
     return value
 
 
+_BOOLEAN_SNAPSHOT_KEYS = frozenset({"verified", "override"})
+
+
 def _snapshot_conflicts(snapshot, legacy):
     if not isinstance(snapshot, dict):
         return False
@@ -433,7 +436,7 @@ def _snapshot_conflicts(snapshot, legacy):
     )
     for key, current in pairs:
         historical = _snapshot_value(snapshot, key)
-        if key in ("verified", "override"):
+        if key in _BOOLEAN_SNAPSHOT_KEYS:
             historical = bool(historical)
         if historical != current:
             return True
