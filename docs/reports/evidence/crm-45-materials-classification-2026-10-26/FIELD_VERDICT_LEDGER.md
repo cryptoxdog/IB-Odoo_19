@@ -21,6 +21,7 @@ Current runtime proof is the closure commit below. The earlier 75-test receipt s
 | Tree | `dirty: false` |
 | Scoped Enterprise ORM | 95 tests, 0 failed, 0 errors. Scope `plasticos_crm_sync,plasticos_crm_bridge`. |
 | Full roster on this commit | 987 tests, 7 failed, 0 errors. Same seven names as clean Staging (960 tests, 7 failed) on clone `odoo_test_w4e6d4f9890`. Pre-existing claims, commission, and security failures. No CRM failure. |
+| Install-smoke | PASSED on this runtime commit. Database `odoo_install_smoke`. xmlsec 1.3.16. |
 | Prior receipt | `55f9189d09c83b3079822c490865e8f8279fd507` on `odoo_test_w6cb014f012`: 75 tests, 0 failed. Superseded for this head. |
 
 The fixture was not rebuilt. This ledger update does not change module Python. A docs-only commit of this file may sit on the runtime commit above.
