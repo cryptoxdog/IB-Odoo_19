@@ -5,7 +5,7 @@ from unittest.mock import patch
 from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_crm_bridge.models.crm_mapping import COMPANY_TYPE_MAPPING, UNAPPROVED_LEAD_STATUSES
-from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import role_tag_binding
+from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import MISSING_ROLE_TAG_BINDING, role_tag_binding
 from odoo.addons.plasticos_crm_sync.services.import_summary import (
     REQUIRED_MAPPING,
     build_run_summary,
@@ -263,9 +263,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
 
         data.write({"model": "res.partner", "res_id": buyer.id})
         self.env.registry.clear_cache()
-        state, tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
-        self.assertEqual(state, "invalid")
-        self.assertFalse(tag)
+        self.assertIsNone(role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer"))
         orch, lead = self._import_buyer("crm45-wrong-model")
         self.assertNotIn(buyer, lead.tag_ids)
         self.assertFalse(lead.tag_ids.filtered(lambda row: row.id == buyer.id))
@@ -277,9 +275,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
 
         data.write({"model": "crm.tag", "res_id": 0})
         self.env.registry.clear_cache()
-        state, tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
-        self.assertEqual(state, "invalid")
-        self.assertFalse(tag)
+        self.assertIsNone(role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer"))
         orch, lead = self._import_buyer("crm45-stale-tag")
         self.assertNotIn(buyer, lead.tag_ids)
         self.assertIn("BLOCKED_DESTINATION: Buyer", self._messages(orch))
@@ -297,8 +293,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         other = self.env["crm.tag"].create({"name": "CRM45 Other Role"})
         data.write({"model": "crm.tag", "res_id": other.id})
         self.env.registry.clear_cache()
-        state, tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
-        self.assertEqual(state, "invalid")
+        self.assertIsNone(role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer"))
         orch, lead = self._import_buyer("crm45-wrong-name")
         self.assertNotIn(other, lead.tag_ids)
         self.assertNotIn(buyer, lead.tag_ids)
@@ -318,8 +313,10 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         data = self._buyer_binding()
         data.unlink()
         self.env.registry.clear_cache()
-        state, _tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
-        self.assertEqual(state, "absent")
+        self.assertIs(
+            role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer"),
+            MISSING_ROLE_TAG_BINDING,
+        )
         orch, lead = self._import_buyer("crm45-missing-xmlid")
         self.assertEqual(lead.tag_ids, buyer)
         orch._upsert_lead(
@@ -338,9 +335,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
 
     def test_valid_supplier_binding_replays_without_a_second_tag(self):
         supplier = self.env.ref("plasticos_crm_bridge.crm_tag_supplier")
-        state, tag = role_tag_binding(self.env, "Supplier", "plasticos_crm_bridge.crm_tag_supplier")
-        self.assertEqual(state, "bound")
-        self.assertEqual(tag, supplier)
+        self.assertEqual(role_tag_binding(self.env, "Supplier", "plasticos_crm_bridge.crm_tag_supplier"), supplier)
         orch = SyncOrchestrator(self.env)
         lead = orch._upsert_lead(
             self.connection,

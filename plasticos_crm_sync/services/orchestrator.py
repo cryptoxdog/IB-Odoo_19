@@ -2519,15 +2519,16 @@ class SyncOrchestrator:
         use the one exact native tag. Any other count fails closed.
         """
         from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import (  # noqa: PLC0415
+            MISSING_ROLE_TAG_BINDING,
             role_tag_binding,
         )
 
         xmlid = mapping[role_name]
-        state, tag = role_tag_binding(self.env, role_name, xmlid)
-        if state == "bound":
-            return tag
-        if state != "absent":
+        found = role_tag_binding(self.env, role_name, xmlid)
+        if found is None:
             return None
+        if found is not MISSING_ROLE_TAG_BINDING:
+            return found
         found = self.env["crm.tag"].search([("name", "=", role_name)])
         if len(found) != 1 or found._name != "crm.tag" or found.name != role_name:
             return None
