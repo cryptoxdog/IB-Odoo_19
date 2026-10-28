@@ -846,6 +846,9 @@ GLOBAL_ALLOWLIST = frozenset(
         "size",
         "phrases",
         "hints",
+        # Linda outgoing-claim decisions in mail.mail._send. Not Selection values.
+        "claimed",
+        "skip",
     }
 )
 

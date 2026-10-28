@@ -140,7 +140,8 @@ case "$MODE" in
     # empty: both collectors are skipped, and that is a successful gate.
     if [ "$scope_audit" = "0" ] && [ -z "$scope_tests" ]; then
       log "→ no local collector: documentation-only change"
-    else
+    fi
+    if [ "${#targets[@]}" -gt 0 ]; then
       run_wave "${targets[@]}"
     fi
     # Wave 2: local Odoo load (not in GHA), only when an addon or installer input changed.

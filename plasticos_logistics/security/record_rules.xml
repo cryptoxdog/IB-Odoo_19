@@ -43,4 +43,14 @@
         <field name="model_id" ref="model_plasticos_rate_memory_reconciliation"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <record id="rule_logistics_request_company" model="ir.rule">
+        <field name="name">Linda logistics request company isolation</field>
+        <field name="model_id" ref="model_plasticos_logistics_request"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_logistics_response_company" model="ir.rule">
+        <field name="name">Linda logistics response company isolation</field>
+        <field name="model_id" ref="model_plasticos_logistics_response"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

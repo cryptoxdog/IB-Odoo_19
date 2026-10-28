@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Linda cancellation notices (BRS-01-R001, BRS-02-R010, BRS-05-R029; SUPERSESSION 2026-10-24).
+    Sent only after a real native cancellation of an order whose issue was, or may have
+    been, delivered. The notice names only the canceled order number: no party name,
+    pricing, lines, counterpart identity or PDF. Recipients are set by
+    plasticos.logistics.request from the original issue, never from followers or CC.
+-->
+<odoo noupdate="1">
+    <record id="mail_template_linda_po_cancel" model="mail.template">
+        <field name="name">Linda: Purchase Order Cancellation to Supplier</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="email_from">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="reply_to">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="subject">CANCELED: Purchase Order {{ object.name }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="description">Supplier notice that a previously issued purchase order was canceled.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello,</p>
+    <p>
+        Purchase order <strong t-out="object.name or ''">P00001</strong>, which we sent you earlier,
+        has been canceled. Please disregard it and do not ship against it.
+    </p>
+    <p>If anything changes we will send you a new purchase order.</p>
+    <p>Thank you,<br/>Scrap Management Logistics</p>
+</div>
+        </field>
+    </record>
+
+    <record id="mail_template_linda_so_cancel" model="mail.template">
+        <field name="name">Linda: Sale Order Cancellation to Buyer</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="email_from">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="reply_to">Scrap Management Logistics &lt;logistics2@scrapmanagement.com&gt;</field>
+        <field name="subject">CANCELED: Sales Order {{ object.name }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="description">Buyer notice that a previously issued sales order was canceled.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello,</p>
+    <p>
+        Sales order <strong t-out="object.name or ''">S00001</strong>, which we sent you earlier,
+        has been canceled. Please disregard it.
+    </p>
+    <p>If anything changes we will send you a new sales order.</p>
+    <p>Thank you,<br/>Scrap Management Logistics</p>
+</div>
+        </field>
+    </record>
+</odoo>

@@ -30,3 +30,13 @@
 **Companions:** `rules.json` (all 60 historical source assertions), `OWNER_INDEX.json` (seven source concern owners), `BUSINESS_RULE_TRACEABILITY.csv`, `REGISTRY.json` (source hashes and rule inventory), `operator_intent.json` and `policy_resolution.json` (source provenance), and [SUPERSESSION.md](SUPERSESSION.md) (current operator amendments).
 
 **Precedence:** explicit later operator decision > earlier contradictory candidate requirement; applicable canonical organizational law and Accepted architecture ADRs retain their own authority and must be reconciled if they conflict. Neither a draft build-plan statement nor a stale agent prompt can silently overwrite a registered requirement. Every materially superseded BRS clause must be cited by stable ID.
+
+<!-- LINDA_BRS_NATIVE_ALIGNMENT_20261026_BEGIN -->
+## 2026-10-26 effective native-first logistics ↔ Documents alignment
+
+**Proposed for repository admission, not an implemented/live workflow.** The 2026-10-27 reconciliation keeps these alignment files and matches every non-documentation blob to #316 head `53b18fd90046696e946a0d8e1e60e88595a5e143`. That match is not runtime acceptance. Read `EFFECTIVE_RULES.md` (all 60 current interpretations), `EFFECTIVE_RULES.json` (machine form), `NATIVE_DOCUMENTS_INTEROP.md` (one-owner architecture and exact native feature boundaries), `BRS_POS_CROSSWALK.csv` (cross-domain references), and `ALIGNMENT_ACCEPTANCE.md` (positive and adversarial tests). `OPEN_DECISIONS_AND_PROOFS.md` keeps unverified Odoo Enterprise capabilities and business disputes open.
+
+The seven original `BRS-01..07.md`, 60 historical `rules.json`, `REGISTRY.json`, owner index and provenance remain **byte-for-byte unchanged**. The current `SUPERSESSION.md` including October 24 cancellation and October 25 inbound AI amendments is **preserved**, with one 2026-10-26 additive alignment section. These effective specs use immutable source IDs and do not create new duplicate BRS IDs. `BRS-POS-*` refers to the exact separate PlasticOS Native-First BRS v1.0.0 working artifact; the full cross-domain pack is **reference-only**, not a second copied authority inside this module.
+
+**Coding agents:** cite both affected `BRS-##-R###` and `BRS-POS-##-R###` where applicable. Tests must assert positive and negative outcomes on the exact installed Odoo 19 Enterprise revision. No BRS installation permits external sends, native AI activation, migration, merge or deployment. If the next code PR branches from this new BRS PR, rebind any older remediation scripts hard-pinned to PR #305; do not bypass their SHA guards.
+<!-- LINDA_BRS_NATIVE_ALIGNMENT_20261026_END -->
