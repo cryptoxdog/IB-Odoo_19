@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -24,7 +25,13 @@ from .approved_identity import (
     without_excluded_source_paragraphs,
     xmlid_name,
 )
-from .import_summary import OPTIONAL_CONTEXT, REQUIRED_MAPPING, informational_notices, required_mapping_errors
+from .import_summary import (
+    OPTIONAL_CONTEXT,
+    REQUIRED_MAPPING,
+    _public_message,
+    informational_notices,
+    required_mapping_errors,
+)
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
 
 _logger = logging.getLogger(__name__)
@@ -214,6 +221,165 @@ def _dedupe_phrases(phrases) -> list[str]:
     return kept
 
 
+_POUNDS_RE = re.compile(r"^([0-9][0-9,]*(?:\.[0-9]+)?)\s*(?:lbs?|pounds?)?$", re.IGNORECASE)
+_SECTION_ALIASES = {
+    "mrf": "mrf",
+    "mrfs": "mrf",
+    "mrp": "mrp",
+    "pps": "pps",
+    "ldpe": "ldpe",
+    "hdpe": "hdpe",
+    "pp": "pp",
+}
+
+
+def _section_key(label: str) -> str:
+    if "(" not in label or ")" not in label:
+        return ""
+    token = label.split("(", 1)[1].split(")", 1)[0].replace("'s", "").replace("'", "").strip()
+    return _SECTION_ALIASES.get(token, token)
+
+
+def _material_slot(label: str) -> str:
+    if label in {"materials", "material"} or label.startswith("material (") or label.startswith("materials ("):
+        return "phrase"
+    if label in {"material form", "material type", "form", "type"} or label.startswith(("form (", "type (")):
+        return "hint"
+    base = label.split("(", 1)[0].strip()
+    if base == "weight":
+        return "weight"
+    if base in {"loads/month", "loads per month"}:
+        return "loads"
+    if base == "color":
+        return "color"
+    if base in {"notes", "previous content", "size"}:
+        return "note"
+    return ""
+
+
+def _parse_material_sections(*field_maps) -> dict[str, dict]:
+    """Group material evidence by source section. Hints never leave their section."""
+    sections: dict[str, dict] = {}
+
+    def bucket(key: str) -> dict:
+        return sections.setdefault(
+            key,
+            {"phrases": [], "hints": [], "weights": [], "loads": [], "colors": [], "notes": []},
+        )
+
+    for fields in field_maps:
+        if not isinstance(fields, dict):
+            continue
+        for key, value in omit_excluded_source_fields(fields).items():
+            label = _collapse_ws(key).casefold()
+            kind = _material_slot(label)
+            if not kind:
+                continue
+            text = _collapse_ws(value)
+            if not text:
+                continue
+            slot = bucket(_section_key(label))
+            parts = _split_material_values(value)
+            if kind == "phrase":
+                slot["phrases"].extend(parts)
+            elif kind == "hint":
+                slot["hints"].append(parts[0] if parts else text)
+            elif kind == "weight":
+                slot["weights"].append(text)
+            elif kind == "loads":
+                slot["loads"].append(text)
+            elif kind == "color":
+                slot["colors"].extend(parts or [text])
+            elif kind == "note":
+                slot["notes"].append((str(key), text))
+    for slot in sections.values():
+        slot["phrases"] = _dedupe_phrases(slot["phrases"])
+    return sections
+
+
+def _pounds(value: str):
+    match = _POUNDS_RE.fullmatch(_collapse_ws(value))
+    if not match:
+        return None
+    number = float(match.group(1).replace(",", ""))
+    if number <= 0:
+        return None
+    return number
+
+
+def _loads_count(value: str):
+    text = _collapse_ws(value)
+    if not text.isdigit():
+        return None
+    return int(text)
+
+
+def _facility_partner_for_person(partner):
+    """An existing facility linked to this person. Nothing is created."""
+    if not partner:
+        return None, "facility unresolved"
+    if partner.is_facility:
+        return partner, ""
+    parent = partner.parent_id
+    if parent and parent.is_facility:
+        return parent, ""
+    children = partner.child_ids.filtered(lambda child: child.is_facility)
+    if len(children) == 1:
+        return children, ""
+    if len(children) > 1:
+        return None, "facility unresolved: ambiguous child facilities"
+    return None, "facility unresolved"
+
+
+def _selection_label(record, field_name: str) -> str:
+    if field_name not in record._fields:
+        return ""
+    value = record[field_name]
+    if not value:
+        return ""
+    selection = record._fields[field_name].selection
+    if callable(selection):
+        selection = selection(record)
+    return str(dict(selection).get(value, ""))
+
+
+def _company_type_overlaps(company, category_name: str) -> bool:
+    """True when the descriptive category repeats an ERP role already stored."""
+    target = _collapse_ws(category_name).casefold()
+    if not target:
+        return False
+    for field_name in ("company_role", "facility_role"):
+        label = _selection_label(company, field_name)
+        if label and label.casefold() == target:
+            return True
+    partner_type = getattr(company, "partner_type_id", False)
+    type_name = _collapse_ws(getattr(partner_type, "name", "") if partner_type else "")
+    return bool(type_name) and type_name.casefold() == target
+
+
+def _notes_only_sections(*field_maps) -> bool:
+    sections = _parse_material_sections(*field_maps)
+    if not sections:
+        return False
+    return not any(section["phrases"] or section["hints"] for section in sections.values())
+
+
+def _verified_company(lead, partner):
+    """The one company this source may classify, or None."""
+    found = []
+    if lead and getattr(lead, "id", False) and lead.partner_id:
+        company = lead.partner_id if lead.partner_id.is_company else lead.partner_id.parent_id
+        if company and company.is_company:
+            found.append(company)
+    if partner:
+        company = partner if partner.is_company else partner.parent_id
+        if company and company.is_company and all(company.id != item.id for item in found):
+            found.append(company)
+    if len(found) == 1:
+        return found[0]
+    return None
+
+
 def _facility_for_material(lead):
     """Existing facility only. A missing or ambiguous facility is not created.
 
@@ -286,6 +452,27 @@ def _lead_mobile(dto: CanonicalLead) -> str | bool:
 def provenance_line(external_id: str, field_name: str, value: str) -> str:
     """One source paragraph naming the ContactID and the exact source field."""
     return f"VanillaSoft ContactID {external_id} {field_name}: {value}"
+
+
+# Exact lines this importer appends from the approved "pp supersacs" phrase.
+# They are not prior identity. A longer preexisting supersac note still is.
+_IMPORTER_SUPERSAC_LINES = frozenset({"pp supersacs"})
+_HINT_STATUS_UNSUPPORTED = "unsupported"
+
+
+def _preexisting_supersac_profile(profile) -> bool:
+    """True when supersac identity was already on the profile, not written by this importer."""
+    if "supersac" in (profile.sub_grade or "").casefold():
+        return True
+    for raw in (profile.freeform_notes or "").splitlines():
+        line = " ".join(raw.split())
+        folded = line.casefold()
+        if "supersac" not in folded:
+            continue
+        if folded in _IMPORTER_SUPERSAC_LINES or folded.startswith("vanillasoft contactid "):
+            continue
+        return True
+    return False
 
 
 def provenance_already_recorded(
@@ -580,7 +767,7 @@ class SyncOrchestrator:
                 # `_sync_contacts`/`_sync_calls` may leave an uncommitted write
                 # on the sync-run row; a second cursor updating that same row
                 # would wait on transaction A and hang the RPC.
-                excerpt = str(exc)[:2000]
+                excerpt = _public_message(exc)
                 _logger.exception("CRM sync failed connection=%s", connection_id)
                 self.env.cr.rollback()
                 # Recordset state from before the rollback is not trustworthy —
@@ -730,7 +917,7 @@ class SyncOrchestrator:
             except (CrmAdapterError, Exception) as exc:
                 # I3 — identical ordering to run_connection: roll back this
                 # transaction's rows before the failure cursor touches them.
-                excerpt = str(exc)[:2000]
+                excerpt = _public_message(exc)
                 _logger.exception("CRM full import failed connection=%s", connection_id)
                 self.env.cr.rollback()
                 self._persist_sync_failure_durable(connection_id, run_id, excerpt)
@@ -856,7 +1043,7 @@ class SyncOrchestrator:
             return getattr(run, name, 0) or 0
 
         def line(row: dict) -> str:
-            return f"  - {row.get('record_ref')}: {str(row.get('message'))[:200]}"
+            return f"  - {row.get('record_ref')}: {_public_message(row.get('message'))[:200]}"
 
         failed_contacts = count("contacts_failed")
         failed_calls = count("calls_failed")
@@ -1395,8 +1582,13 @@ class SyncOrchestrator:
         if outcomes is not None:
             outcomes[outcome] += 1
         self.last_lead_outcome = outcome
-        if lead and outcome in ADMITTED_OUTCOMES and not dto.deleted:
-            self._apply_approved_materials(lead, dto.custom_fields)
+        if outcome in ADMITTED_OUTCOMES and not dto.deleted:
+            if lead:
+                self._apply_approved_materials(lead, dto.custom_fields)
+            elif "plasticos.material.profile" in self.env:
+                self._apply_person_materials(partner, dto)
+            if self._env_has_model("crm.tag"):
+                self._apply_crm_classification(lead, dto, partner=partner)
         return lead or Lead.browse()
 
     def _keep_person_binding(self, dto: CanonicalLead, person_ref):
@@ -1451,42 +1643,41 @@ class SyncOrchestrator:
             )
 
     def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
-        phrases, hints, weak = _material_inputs(*field_maps)
-        if not phrases and not hints and not weak:
+        sections = _parse_material_sections(*field_maps)
+        if not sections or not lead.partner_id:
             return
-        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
-            normalize_material,
-        )
-
-        candidates = list(phrases)
-        plain_hints = {}
-        for label, value in hints.items():
-            if normalize_material(self.env, value).polymer:
-                candidates.append(value)
-            else:
-                plain_hints[label] = value
-        texts = _dedupe_phrases(candidates) or list(weak)
-        if not texts or not lead.partner_id:
-            return
+        if _notes_only_sections(*field_maps):
+            partner, _reason = _facility_for_material(lead)
+            located = (
+                self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
+                if partner is not None
+                else self.env["plasticos.facility.profile"].browse()
+            )
+            if partner is None or len(located) != 1:
+                if sections.get("pps", {}).get("notes"):
+                    self._append_classified_error(
+                        lead.vanillasoft_id or str(lead.id), "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING
+                    )
+                return
+        phrases = _dedupe_phrases(phrase for section in sections.values() for phrase in section["phrases"])
+        detail = ", ".join(phrases) or "material evidence"
         partner, reason = _facility_for_material(lead)
         if partner is None:
-            for text in texts:
-                self._append_classified_error(
-                    lead.vanillasoft_id or str(lead.id),
-                    f"{reason}: {text}",
-                    REQUIRED_MAPPING,
-                )
+            self._append_classified_error(
+                lead.vanillasoft_id or str(lead.id),
+                f"{reason}: {detail}",
+                REQUIRED_MAPPING,
+            )
             return
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
         if len(profiles) != 1:
-            for text in texts:
-                self._append_classified_error(
-                    lead.vanillasoft_id or str(lead.id),
-                    f"facility unresolved: {len(profiles)} profiles: {text}",
-                    REQUIRED_MAPPING,
-                )
+            self._append_classified_error(
+                lead.vanillasoft_id or str(lead.id),
+                f"facility unresolved: {len(profiles)} profiles: {detail}",
+                REQUIRED_MAPPING,
+            )
             return
-        self._store_normalized_materials(lead, texts, plain_hints, partner=partner)
+        self._import_section_materials(lead, field_maps, partner=partner, facility_profile=profiles)
 
     def _upsert_lead(self, connection, dto: CanonicalLead, adapter=None):
         """Identity-resolved lead upsert with deterministic classification.
@@ -1558,6 +1749,7 @@ class SyncOrchestrator:
         prior_lead_id = lead.id if lead else False
         try:
             vals = self._lead_vals_from_dto(dto)
+            self._guard_unapproved_stage(dto, lead, vals)
             # Source data with no native lead field is appended to the
             # description once; a replay finds every paragraph and adds nothing.
             current = getattr(lead, "description", False) if lead else False
@@ -1615,7 +1807,17 @@ class SyncOrchestrator:
         self.last_lead_outcome = outcome
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
             self._apply_contact_materials(lead, dto.custom_fields)
+            if self._env_has_model("crm.tag"):
+                self._apply_crm_classification(lead, dto)
         return lead
+
+    def _env_has_model(self, model_name: str) -> bool:
+        """True when the model is installed. A pure-Python fake env raises KeyError."""
+        try:
+            self.env[model_name]
+        except KeyError:
+            return False
+        return True
 
     def _append_classified_error(self, record_ref: str, message: str, category: str) -> None:
         """Record one typed row. Status reads ``category``, never the message text."""
@@ -1791,6 +1993,9 @@ class SyncOrchestrator:
         raw_source = (dto.lead_source_raw or "").strip()
         if raw_source and "source_id" in vals and self._lead_source_is_fallback(raw_source):
             lines.append(f"VanillaSoft Lead Source: {raw_source}")
+        status = _collapse_ws(dto.lead_status_raw)
+        if status:
+            _queue_provenance(lines, current, ref, "Lead Status", status)
         return lines
 
     def _lead_source_is_fallback(self, raw_source: str) -> bool:
@@ -1967,41 +2172,34 @@ class SyncOrchestrator:
             )
 
     def _apply_resolved_materials(self, lead, *field_maps) -> None:
-        phrases, hints, weak = _material_inputs(*field_maps)
-        if not phrases and not hints and not weak:
+        if not _parse_material_sections(*field_maps):
             return
-        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
-            normalize_material,
-        )
+        if _notes_only_sections(*field_maps) and not lead.partner_id:
+            owned = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)], limit=1)
+            if not owned:
+                if _parse_material_sections(*field_maps).get("pps", {}).get("notes"):
+                    self._append_classified_error(
+                        lead.vanillasoft_id or str(lead.id), "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING
+                    )
+                return
         from odoo.exceptions import ValidationError  # noqa: PLC0415
 
-        candidates = list(phrases)
-        plain_hints = {}
-        for label, value in hints.items():
-            if normalize_material(self.env, value).polymer:
-                candidates.append(value)
-            else:
-                plain_hints[label] = value
-        texts = _dedupe_phrases(candidates) or list(weak)
-        if not texts:
-            return
         partner = None
         if lead.partner_id:
             partner, reason = _facility_for_material(lead)
             if partner is None:
-                for text in texts:
-                    self._append_classified_error(
-                        lead.vanillasoft_id or str(lead.id),
-                        f"{reason}: {text}",
-                        REQUIRED_MAPPING,
-                    )
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id),
+                    reason,
+                    REQUIRED_MAPPING,
+                )
                 return
         owned = self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", lead.id)], limit=1)
         if not owned and lead.facility_profile_id and lead.facility_profile_id.partner_id == partner:
             owned = lead.facility_profile_id
         if partner is not None and not owned:
             located = self.env["plasticos.facility.profile"].ensure_canonical_facility(partner, lead)
-            self._store_normalized_materials(lead, texts, plain_hints, facility_profile=located)
+            self._import_section_materials(lead, field_maps, partner=partner, facility_profile=located)
             return
         if owned and partner is not None and owned.partner_id and owned.partner_id != partner:
             raise ValidationError("This lead is already associated with a different facility.")
@@ -2010,25 +2208,71 @@ class SyncOrchestrator:
         elif not owned:
             owned = self.env["plasticos.facility.profile"].create({"crm_lead_id": lead.id})
         owned._remember_lead(lead)
-        self._store_normalized_materials(lead, texts, plain_hints, facility_profile=owned)
+        self._import_section_materials(lead, field_maps, partner=partner, facility_profile=owned)
 
-    def _store_normalized_materials(self, lead, texts, plain_hints, partner=None, facility_profile=None) -> None:
+    def _material_ref(self, lead, external_id=None) -> str:
+        if external_id:
+            return str(external_id)
+        if lead and getattr(lead, "id", False):
+            return str(lead.vanillasoft_id or lead.id)
+        return ""
+
+    def _profiles_for_material(self, partner, facility_profile):
+        Profile = self.env["plasticos.material.profile"]
+        if partner is not None:
+            return Profile.search([("partner_id", "=", partner.id)])
+        if facility_profile is not None and getattr(facility_profile, "id", False):
+            return Profile.search([("facility_profile_id", "=", facility_profile.id)])
+        return Profile.browse()
+
+    def _resolve_material(self, phrase, structured=None):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
             normalize_material,
         )
 
+        combined = normalize_material(self.env, phrase, structured=structured)
+        if "conflicting material evidence" in combined.unresolved:
+            return combined, "conflict"
+        hint = structured.get("type") if isinstance(structured, dict) else None
+        if hint:
+            hint_result = normalize_material(self.env, hint)
+            if "unresolved material" in hint_result.unresolved:
+                return combined, _HINT_STATUS_UNSUPPORTED
+        return combined, None
+
+    def _store_normalized_materials(
+        self, lead, texts, partner=None, facility_profile=None, structured=None, external_id=None
+    ) -> None:
+        from odoo.exceptions import ValidationError  # noqa: PLC0415
+
         profiles = self.env["plasticos.material.profile"]
+        ref = self._material_ref(lead, external_id)
+        use_structured = structured if structured and len(texts) == 1 else None
         for text in texts:
-            normalized = normalize_material(self.env, text, structured=plain_hints)
+            normalized, hint_status = self._resolve_material(text, use_structured)
+            if hint_status == "conflict" or "conflicting material evidence" in normalized.unresolved:
+                self._append_classified_error(ref, f"conflicting material evidence: {text}", REQUIRED_MAPPING)
+                continue
+            if hint_status == _HINT_STATUS_UNSUPPORTED:
+                self._append_classified_error(
+                    ref, f"BLOCKED_UNRESOLVED: unsupported type hint for {text}", OPTIONAL_CONTEXT
+                )
             if normalized.unresolved or not normalized.polymer:
                 detail = ", ".join(normalized.unresolved) or "unresolved material"
                 self._append_classified_error(
-                    lead.vanillasoft_id or str(lead.id),
+                    ref,
                     f"{detail}: {normalized.source_description}",
                     REQUIRED_MAPPING,
                 )
                 continue
-            if partner is not None:
+            if facility_profile is not None and getattr(facility_profile, "id", False):
+                profile = profiles.reuse_lead_facility_material(
+                    facility_profile,
+                    normalized.polymer,
+                    normalized.form,
+                    note_line=normalized.source_description,
+                )
+            elif partner is not None:
                 profile = profiles.reuse_facility_polymer_profile(
                     partner,
                     normalized.polymer,
@@ -2036,13 +2280,284 @@ class SyncOrchestrator:
                     note_line=normalized.source_description,
                 )
             else:
-                profile = profiles.reuse_lead_facility_material(
-                    facility_profile,
-                    normalized.polymer,
-                    normalized.form,
-                    note_line=normalized.source_description,
-                )
+                raise ValidationError("A facility profile is required.")
             self._write_profile_classification(profile, normalized)
+
+    def _import_section_materials(
+        self, lead, field_maps, partner=None, facility_profile=None, external_id=None
+    ) -> None:
+        """Store section phrases without broadcasting another section's type or form."""
+        sections = _parse_material_sections(*field_maps)
+        if not sections:
+            return
+        ref = self._material_ref(lead, external_id)
+        existing = self._profiles_for_material(partner, facility_profile)
+        distinguished_ids = set(existing.filtered(_preexisting_supersac_profile).ids)
+        for _section, slot in sections.items():
+            phrases = list(slot["phrases"])
+            hints = list(slot["hints"])
+            structured = {"type": hints[0]} if len(phrases) == 1 and len(hints) == 1 else None
+            if hints and structured is None:
+                detail = ", ".join(hints)
+                message = (
+                    f"BLOCKED_UNRESOLVED: {detail}"
+                    if not phrases
+                    else "BLOCKED_UNRESOLVED: type hint is not contact-unique"
+                )
+                category = REQUIRED_MAPPING if not phrases else OPTIONAL_CONTEXT
+                self._append_classified_error(ref, message, category)
+            if phrases:
+                self._store_normalized_materials(
+                    lead,
+                    phrases,
+                    partner=partner,
+                    facility_profile=facility_profile,
+                    structured=structured,
+                    external_id=ref,
+                )
+        profiles = self._profiles_for_material(partner, facility_profile)
+        for section, slot in sections.items():
+            self._apply_section_specs(profiles, slot, ref, section)
+        pps_notes = sections.get("pps", {}).get("notes") or []
+        if pps_notes:
+            distinguished = profiles.filtered(lambda profile: profile.id in distinguished_ids)
+            if len(distinguished) == 1:
+                for field_name, value in pps_notes:
+                    self._append_labelled_note(distinguished, ref, field_name, value)
+            else:
+                self._append_classified_error(ref, "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING)
+
+    def _apply_section_specs(self, profiles, slot, ref, section) -> None:
+        phrases = list(slot["phrases"])
+        structured = {"type": slot["hints"][0]} if len(phrases) == 1 and len(slot["hints"]) == 1 else None
+        identities = []
+        for phrase in phrases:
+            normalized, _dropped = self._resolve_material(phrase, structured if len(phrases) == 1 else None)
+            if normalized.unresolved or not normalized.polymer:
+                continue
+            form_id = normalized.form.id if len(normalized.form) == 1 else False
+            identities.append((normalized.polymer.id, form_id))
+        chosen = profiles.browse()
+        if len(set(identities)) == 1 and identities:
+            polymer_id, form_id = identities[0]
+            chosen = profiles.filtered(
+                lambda profile, polymer_id=polymer_id, form_id=form_id: (
+                    profile.polymer_id.id == polymer_id and (profile.form_id.id or False) == form_id
+                )
+            )
+        if len(chosen) != 1:
+            if slot["weights"] or slot["loads"] or slot["colors"] or (section != "pps" and slot["notes"]):
+                self._append_classified_error(
+                    ref, f"APPROVED_SKIP: {section or 'general'} spec is not profile-unique", OPTIONAL_CONTEXT
+                )
+            return
+        self._fill_profile_specs(chosen, slot, ref)
+        if section != "pps":
+            for field_name, value in slot["notes"]:
+                self._append_labelled_note(chosen, ref, field_name, value)
+
+    def _fill_profile_specs(self, profile, slot, ref) -> None:
+        if slot["weights"]:
+            parsed = [_pounds(value) for value in slot["weights"]]
+            if any(item is None for item in parsed) or len(set(parsed)) != 1:
+                self._append_classified_error(ref, "APPROVED_SKIP: quantity_per_load_lbs", OPTIONAL_CONTEXT)
+            elif not profile.quantity_per_load_lbs:
+                profile.quantity_per_load_lbs = parsed[0]
+            elif abs(profile.quantity_per_load_lbs - parsed[0]) > 0.001:
+                self._append_classified_error(ref, "APPROVED_SKIP: quantity_per_load_lbs already set", OPTIONAL_CONTEXT)
+        if slot["loads"]:
+            parsed = [_loads_count(value) for value in slot["loads"]]
+            if any(item is None for item in parsed) or len(set(parsed)) != 1:
+                self._append_classified_error(ref, "APPROVED_SKIP: loads_per_month", OPTIONAL_CONTEXT)
+            elif not profile.loads_per_month:
+                profile.loads_per_month = parsed[0]
+            elif profile.loads_per_month != parsed[0]:
+                self._append_classified_error(ref, "APPROVED_SKIP: loads_per_month already set", OPTIONAL_CONTEXT)
+        if slot["colors"]:
+            color = self._exact_color(slot["colors"])
+            if not color:
+                self._append_classified_error(ref, "APPROVED_SKIP: color_id", OPTIONAL_CONTEXT)
+            elif not profile.color_id:
+                profile.color_id = color
+            elif profile.color_id != color:
+                self._append_classified_error(ref, "APPROVED_SKIP: color_id already set", OPTIONAL_CONTEXT)
+
+    def _exact_color(self, values):
+        Color = self.env["plasticos.material.color"]
+        colors = Color.search([])
+        found = []
+        for value in values:
+            text = _collapse_ws(value)
+            if not text or "," in text or ";" in text:
+                return Color.browse()
+            exact = colors.filtered(
+                lambda color, text=text: (
+                    color.name.casefold() == text.casefold() or (color.code or "").casefold() == text.casefold()
+                )
+            )
+            if len(exact) != 1:
+                return Color.browse()
+            found.append(exact.id)
+        if len(set(found)) != 1:
+            return Color.browse()
+        return Color.browse(found[0])
+
+    def _append_labelled_note(self, profile, external_id, field_name, value) -> None:
+        line = provenance_line(external_id, field_name, value)
+        existing = (profile.freeform_notes or "").splitlines()
+        if line in existing:
+            return
+        notes = profile.freeform_notes or ""
+        profile.freeform_notes = f"{notes}\n{line}" if notes else line
+
+    def _apply_person_materials(self, partner, dto) -> None:
+        if not _parse_material_sections(dto.custom_fields):
+            return
+        if _notes_only_sections(dto.custom_fields):
+            facility, _reason = _facility_partner_for_person(partner)
+            located = (
+                self.env["plasticos.facility.profile"].search([("partner_id", "=", facility.id)])
+                if facility is not None
+                else self.env["plasticos.facility.profile"].browse()
+            )
+            if facility is None or len(located) != 1:
+                if _parse_material_sections(dto.custom_fields).get("pps", {}).get("notes"):
+                    self._append_classified_error(dto.external_id, "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING)
+                return
+        facility, reason = _facility_partner_for_person(partner)
+        if facility is None:
+            self._append_classified_error(dto.external_id, reason, REQUIRED_MAPPING)
+            return
+        profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", facility.id)])
+        if len(profiles) != 1:
+            self._append_classified_error(
+                dto.external_id,
+                f"facility unresolved: {len(profiles)} profiles",
+                REQUIRED_MAPPING,
+            )
+            return
+        try:
+            with self.env.cr.savepoint():
+                self._import_section_materials(
+                    self.env[CRM_LEAD].browse(),
+                    (dto.custom_fields,),
+                    partner=facility,
+                    facility_profile=profiles,
+                    external_id=dto.external_id,
+                )
+        except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted person
+            _logger.warning("Person material normalization failed for %s: %s", dto.external_id, exc)
+            self._append_classified_error(
+                dto.external_id,
+                f"material normalization failed: {exc}",
+                REQUIRED_MAPPING,
+            )
+
+    def _guard_unapproved_stage(self, dto, lead, vals) -> None:
+        if "stage_id" not in vals:
+            return
+        raw = _collapse_ws(dto.lead_status_raw)
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING  # noqa: PLC0415
+
+        won = lead and getattr(getattr(lead, "stage_id", None), "is_won", False)
+        if won or (raw and raw not in STAGE_MAPPING and lead and getattr(lead, "id", False)):
+            vals.pop("stage_id", None)
+        if not raw or raw in STAGE_MAPPING:
+            return
+        current = getattr(lead, "description", False) if lead and getattr(lead, "id", False) else False
+        if provenance_already_recorded(current, dto.external_id, "Lead Status", raw):
+            return
+        self._append_classified_error(dto.external_id, f"BLOCKED_STAGE_APPROVAL: {raw}", OPTIONAL_CONTEXT)
+
+    def _apply_crm_classification(self, lead, dto, partner=None) -> None:
+        """Keep a failed tag or category write inside this contact's savepoint."""
+        try:
+            with self.env.cr.savepoint():
+                self._apply_crm_classification_body(lead, dto, partner=partner)
+        except Exception as exc:  # noqa: BLE001 - classification must not drop the admitted contact
+            _logger.warning("CRM classification failed for %s: %s", dto.external_id, exc)
+            self._append_classified_error(dto.external_id, f"classification failed: {exc}", REQUIRED_MAPPING)
+
+    def _apply_crm_classification_body(self, lead, dto, partner=None) -> None:
+        from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import (  # noqa: PLC0415
+            COMPANY_TYPE_ALIASES,
+            COMPANY_TYPE_MAPPING,
+            CRM_ROLE_TAG_MAPPING,
+        )
+
+        custom = dto.custom_fields or {}
+        self._apply_crm_role_tags(lead, dto, custom, Command, CRM_ROLE_TAG_MAPPING)
+        self._apply_company_type(lead, dto, partner, custom, Command, COMPANY_TYPE_MAPPING, COMPANY_TYPE_ALIASES)
+
+    def _apply_crm_role_tags(self, lead, dto, custom, command, mapping) -> None:
+        raw = _collapse_ws(custom.get("Buyer/Supplier"))
+        if not raw:
+            return
+        has_lead = bool(lead and getattr(lead, "id", False))
+        for token in _split_material_values(raw.replace(";", ",").replace(",", "\n")):
+            role = {"buyer": "Buyer", "supplier": "Supplier"}.get(token.casefold())
+            if not role:
+                self._append_classified_error(dto.external_id, f"BLOCKED_ROLE_TOKEN: {token}", OPTIONAL_CONTEXT)
+                continue
+            if not has_lead:
+                self._append_classified_error(dto.external_id, "BLOCKED_NO_CRM_LEAD", OPTIONAL_CONTEXT)
+                continue
+            tag = self._crm_role_tag(role, mapping)
+            if not tag:
+                self._append_classified_error(dto.external_id, f"BLOCKED_DESTINATION: {role}", OPTIONAL_CONTEXT)
+                continue
+            if tag not in lead.tag_ids:
+                lead.write({"tag_ids": [command.link(tag.id)]})
+
+    def _crm_role_tag(self, role_name, mapping):
+        """Return the one verified Buyer or Supplier tag, or nothing.
+
+        A present XML id that does not name that live ``crm.tag`` is corrupt.
+        Corrupt metadata does not fall through to another row of the same name,
+        and this sync does not repair ``ir.model.data``. A missing XML id may
+        use the one exact native tag. Any other count fails closed.
+        """
+        from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import (  # noqa: PLC0415
+            MISSING_ROLE_TAG_BINDING,
+            role_tag_binding,
+        )
+
+        xmlid = mapping[role_name]
+        found = role_tag_binding(self.env, role_name, xmlid)
+        if found is None:
+            return None
+        if found is not MISSING_ROLE_TAG_BINDING:
+            return found
+        found = self.env["crm.tag"].search([("name", "=", role_name)])
+        if len(found) != 1 or found._name != "crm.tag" or found.name != role_name:
+            return None
+        return found
+
+    def _apply_company_type(self, lead, dto, partner, custom, command, mapping, aliases) -> None:
+        raw = _collapse_ws(custom.get("Company Type"))
+        if not raw:
+            return
+        canonical = aliases.get(raw, raw)
+        xmlid = mapping.get(canonical)
+        if not xmlid:
+            self._append_classified_error(dto.external_id, f"BLOCKED_COMPANY_TYPE_VALUE: {raw}", OPTIONAL_CONTEXT)
+            return
+        company = _verified_company(lead, partner)
+        if company is None:
+            self._append_classified_error(dto.external_id, f"BLOCKED_COMPANY_TYPE_VALUE: {raw}", OPTIONAL_CONTEXT)
+            return
+        category = self.env.ref(xmlid, raise_if_not_found=False)
+        if not category:
+            self._append_classified_error(dto.external_id, f"BLOCKED_COMPANY_TYPE_VALUE: {raw}", OPTIONAL_CONTEXT)
+            return
+        if _company_type_overlaps(company, category.name):
+            self._append_classified_error(
+                dto.external_id, f"BLOCKED_COMPANY_TYPE_SEMANTIC_OVERLAP: {canonical}", OPTIONAL_CONTEXT
+            )
+            return
+        if category not in company.category_id:
+            company.write({"category_id": [command.link(category.id)]})
 
     def _write_profile_classification(self, profile, normalized) -> None:
         """Fill empty grade, source, and attributes. A second grade is not merged."""
@@ -2064,6 +2579,16 @@ class SyncOrchestrator:
                 profile.sub_grade = normalized.grade
         if normalized.source_type and not profile.source_type_id:
             profile.source_type_id = normalized.source_type
+        elif normalized.source_type and profile.source_type_id and profile.source_type_id != normalized.source_type:
+            self._append_classified_error(
+                str(profile.id),
+                (
+                    f"source {normalized.source_type.code} conflicts with stored source "
+                    f"{profile.source_type_id.code} on profile {profile.id}; source unchanged"
+                ),
+                REQUIRED_MAPPING,
+            )
+            return
         if not normalized.attributes:
             return
         missing = normalized.attributes - profile.material_attribute_ids

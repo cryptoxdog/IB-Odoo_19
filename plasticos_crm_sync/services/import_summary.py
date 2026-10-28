@@ -35,6 +35,7 @@ therefore outside this run's seen equation).
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 
 __all__ = [
@@ -50,6 +51,23 @@ __all__ = [
 SUMMARY_SOURCE = "vanillasoft"
 REQUIRED_MAPPING = "required_mapping"
 OPTIONAL_CONTEXT = "optional_context"
+ERROR_ROW_LIMIT = 1000
+ERROR_MESSAGE_LIMIT = 2000
+ERROR_TYPE_LIMIT = 200
+_ERROR_CATEGORIES = frozenset({REQUIRED_MAPPING, OPTIONAL_CONTEXT})
+# Quoted values, then an unquoted token that stops at whitespace and the usual
+# assignment delimiters. The key and the value are both removed.
+_QUOTED_VALUE = r'"[^"]*"|\'[^\']*\''
+_BARE_VALUE = r"[^\s,;&)\]}>]+"
+_ASSIGNED_VALUE = rf"(?:{_QUOTED_VALUE}|{_BARE_VALUE})"
+_KEY_PATTERN = r"api[ _-]?key|apikey|password|token|bearer"
+_SECRET_ASSIGNMENT = re.compile(rf"(?i)(?<![A-Za-z0-9])[\"']?(?:{_KEY_PATTERN})[\"']?\s*[:=]\s*{_ASSIGNED_VALUE}")
+_AUTH_HEADER = re.compile(
+    rf"(?i)(?<![A-Za-z0-9])authorization\s*[:=]\s*"
+    rf"(?:(?:bearer|basic)\s+)?"
+    rf"(?:(?:api[ _-]?key|apikey)\s*[:=]\s*)?"
+    rf"{_ASSIGNED_VALUE}"
+)
 
 
 def is_informational_notice(row: dict) -> bool:
@@ -75,6 +93,61 @@ def required_mapping_errors(error_rows: list[dict] | None) -> list[dict]:
 
 def informational_notices(error_rows: list[dict] | None) -> list[dict]:
     return [row for row in error_rows or [] if str(row.get("message") or "").strip() and is_informational_notice(row)]
+
+
+def _redact_secret_values(text: str) -> str:
+    """Remove secret-bearing assignments and auth headers, not diagnostic words."""
+    previous = None
+    while previous != text:
+        previous = text
+        text = _AUTH_HEADER.sub("[redacted]", text)
+        text = _SECRET_ASSIGNMENT.sub("[redacted]", text)
+    return text
+
+
+def _public_message(message: object) -> str:
+    """Drop credential values, then cap the public error string.
+
+    Marker-only substitution left ``[redacted]=<secret>``. The whole assigned
+    value is removed first. Truncation happens after that, so a value past the
+    cap cannot survive as a fragment and a short status code in front of a
+    secret is not cut away before the secret is recognized.
+    """
+    text = _redact_secret_values(str(message or ""))
+    if len(text) > ERROR_MESSAGE_LIMIT:
+        text = text[: ERROR_MESSAGE_LIMIT - 3] + "..."
+    return text
+
+
+def project_error_row(row: dict) -> dict:
+    """Keep the typed fields the schema and business acceptance both read."""
+    projected = {
+        "record_ref": str(row.get("record_ref") or ""),
+        "message": _public_message(row.get("message")),
+    }
+    category = row.get("category")
+    if category in _ERROR_CATEGORIES:
+        projected["category"] = category
+    error_type = row.get("error_type")
+    if isinstance(error_type, str) and error_type.strip():
+        projected["error_type"] = error_type[:ERROR_TYPE_LIMIT]
+    if row.get("informational") is True:
+        projected["informational"] = True
+    return projected
+
+
+def project_error_rows(error_rows: list[dict] | None) -> list[dict]:
+    """Project internal rows onto the strict summary. Required mappings survive a cap."""
+    projected = [
+        project_error_row(row)
+        for row in error_rows or []
+        if str(row.get("message") or "").strip() or str(row.get("record_ref") or "").strip()
+    ]
+    if len(projected) <= ERROR_ROW_LIMIT:
+        return projected
+    required = [row for row in projected if row.get("category") == REQUIRED_MAPPING]
+    others = [row for row in projected if row.get("category") != REQUIRED_MAPPING]
+    return (required + others)[:ERROR_ROW_LIMIT]
 
 
 def business_acceptance(summary: dict) -> str:
@@ -137,6 +210,6 @@ def build_run_summary(
         "records_updated": updated,
         "records_unchanged": unchanged,
         "duplicates": duplicates,
-        "errors": [dict(row) for row in error_rows],
+        "errors": project_error_rows(error_rows),
         "final_status": final_status,
     }

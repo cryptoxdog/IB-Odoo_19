@@ -1,22 +1,29 @@
 """Shared VanillaSoft → Odoo CRM mapping constants (SSOT for sync + CSV import)."""
 
-# VanillaSoft Lead Status → crm.stage XML ID
+# Approved VanillaSoft Lead Status → crm.stage XML ID.
+# COLD, Open, Current Working With, Unqualified, Dead, DNC, Duplicate and
+# Wrong # are intentionally absent: those destinations are not approved, and
+# the sync must not coerce them onto WARM, Won, or Dead.
 STAGE_MAPPING = {
     "2a=Qualified/HOT": "plasticos_crm_bridge.stage_qualified_hot",
     "2b=Qualified/WARM": "plasticos_crm_bridge.stage_qualified_warm",
-    "2c=Qualified/COLD": "plasticos_crm_bridge.stage_qualified_warm",
-    "2=Qualified/Open": "plasticos_crm_bridge.stage_qualified_warm",
     "3=Qualified/Resist": "plasticos_crm_bridge.stage_resistant",
-    "1= Currently Working With": "plasticos_crm_bridge.stage_active_supplier",
-    "4=Unqualified": "plasticos_crm_bridge.stage_dead_lead",
-    "5=Dead Lead": "plasticos_crm_bridge.stage_dead_lead",
-    "7=Do Not Call": "plasticos_crm_bridge.stage_dead_lead",
-    "8=Duplicate": "plasticos_crm_bridge.stage_dead_lead",
-    "6=Wrong #": "plasticos_crm_bridge.stage_dead_lead",
     "New": "plasticos_crm_bridge.stage_new",
 }
 
-# VanillaSoft Company Type → res.partner.category XML ID
+UNAPPROVED_LEAD_STATUSES = (
+    "2c=Qualified/COLD",
+    "2=Qualified/Open",
+    "1= Currently Working With",
+    "4=Unqualified",
+    "5=Dead Lead",
+    "7=Do Not Call",
+    "8=Duplicate",
+    "6=Wrong #",
+)
+
+# VanillaSoft Company Type → res.partner.category XML ID.
+# Descriptive classifications only. Not a Buyer/Supplier trade role.
 COMPANY_TYPE_MAPPING = {
     "Distribution Center": "plasticos_crm_bridge.categ_distribution_center",
     "Commercial Recycler": "plasticos_crm_bridge.categ_commercial_recycler",
@@ -30,7 +37,18 @@ COMPANY_TYPE_MAPPING = {
     "Carrier": "plasticos_crm_bridge.categ_carrier",
 }
 
+COMPANY_TYPE_ALIASES = {
+    "Grinder_Processor": "Grinder/Processor",
+}
+
+# ERP partner categories. VanillaSoft Buyer/Supplier must not write these.
 ROLE_TAG_MAPPING = {
     "Buyer": "plasticos_crm_bridge.categ_buyer",
     "Supplier": "plasticos_crm_bridge.categ_supplier",
+}
+
+# Native CRM tags. The only approved destination for VanillaSoft Buyer/Supplier.
+CRM_ROLE_TAG_MAPPING = {
+    "Buyer": "plasticos_crm_bridge.crm_tag_buyer",
+    "Supplier": "plasticos_crm_bridge.crm_tag_supplier",
 }

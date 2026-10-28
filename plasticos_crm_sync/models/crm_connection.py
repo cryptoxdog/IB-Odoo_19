@@ -104,8 +104,11 @@ class PlasticosCrmConnection(models.Model):
             )
             adapter.healthcheck()
         except (CrmAdapterError, ValueError) as exc:
-            self.last_error = str(exc)
-            raise UserError(_("Connection test failed: %s") % exc) from exc
+            from ..services.import_summary import _public_message  # noqa: PLC0415
+
+            safe = _public_message(exc)
+            self.last_error = safe
+            raise UserError(_("Connection test failed: %s") % safe) from exc
         self.last_error = False
         return {
             "type": "ir.actions.client",
@@ -128,7 +131,9 @@ class PlasticosCrmConnection(models.Model):
         except CrmSyncLockedError as exc:
             raise UserError(_("A sync is already running for this connection: %s") % exc) from exc
         except CrmAdapterError as exc:
-            raise UserError(_("Sync failed: %s") % exc) from exc
+            from ..services.import_summary import _public_message  # noqa: PLC0415
+
+            raise UserError(_("Sync failed: %s") % _public_message(exc)) from exc
         # A run that finished without raising may still be `failed` (per-record
         # write failures) or `partial` (scope limitation, identity conflicts,
         # buffered orphans). The toast must say what the run row says.

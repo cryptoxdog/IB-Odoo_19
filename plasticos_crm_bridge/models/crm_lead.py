@@ -100,6 +100,17 @@ class CrmLeadPlastOS(models.Model):
         compute="_compute_profile_summary",
     )
 
+    @api.model
+    def _plasticos_adopt_crm_role_tag(self, name, xmlid):
+        """Bind the role-tag XML id to one existing crm.tag, or create the only one.
+
+        Module data and the upgrade pre-migrate call this before any seed
+        record. A stale or wrong-model XML id is not rebound.
+        """
+        from .crm_tag_adoption import adopt_role_tag  # noqa: PLC0415
+
+        return adopt_role_tag(self.env, name, xmlid)
+
     @api.depends("web_lead_ids")
     def _compute_web_lead_count(self):
         for rec in self:
