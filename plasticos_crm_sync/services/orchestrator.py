@@ -25,7 +25,13 @@ from .approved_identity import (
     without_excluded_source_paragraphs,
     xmlid_name,
 )
-from .import_summary import OPTIONAL_CONTEXT, REQUIRED_MAPPING, informational_notices, required_mapping_errors
+from .import_summary import (
+    OPTIONAL_CONTEXT,
+    REQUIRED_MAPPING,
+    _public_message,
+    informational_notices,
+    required_mapping_errors,
+)
 from .owner_crosswalk import OwnerResolutionError, resolve_salesperson
 
 _logger = logging.getLogger(__name__)
@@ -761,7 +767,7 @@ class SyncOrchestrator:
                 # `_sync_contacts`/`_sync_calls` may leave an uncommitted write
                 # on the sync-run row; a second cursor updating that same row
                 # would wait on transaction A and hang the RPC.
-                excerpt = str(exc)[:2000]
+                excerpt = _public_message(exc)
                 _logger.exception("CRM sync failed connection=%s", connection_id)
                 self.env.cr.rollback()
                 # Recordset state from before the rollback is not trustworthy —
@@ -911,7 +917,7 @@ class SyncOrchestrator:
             except (CrmAdapterError, Exception) as exc:
                 # I3 — identical ordering to run_connection: roll back this
                 # transaction's rows before the failure cursor touches them.
-                excerpt = str(exc)[:2000]
+                excerpt = _public_message(exc)
                 _logger.exception("CRM full import failed connection=%s", connection_id)
                 self.env.cr.rollback()
                 self._persist_sync_failure_durable(connection_id, run_id, excerpt)
@@ -1037,7 +1043,7 @@ class SyncOrchestrator:
             return getattr(run, name, 0) or 0
 
         def line(row: dict) -> str:
-            return f"  - {row.get('record_ref')}: {str(row.get('message'))[:200]}"
+            return f"  - {row.get('record_ref')}: {_public_message(row.get('message'))[:200]}"
 
         failed_contacts = count("contacts_failed")
         failed_calls = count("calls_failed")
@@ -2505,12 +2511,27 @@ class SyncOrchestrator:
                 lead.write({"tag_ids": [command.link(tag.id)]})
 
     def _crm_role_tag(self, role_name, mapping):
-        """Reuse one Buyer or Supplier tag. A second row of the same name is not created."""
+        """Return the one verified Buyer or Supplier tag, or nothing.
+
+        A present XML id that does not name that live ``crm.tag`` is corrupt.
+        Corrupt metadata does not fall through to another row of the same name,
+        and this sync does not repair ``ir.model.data``. A missing XML id may
+        use the one exact native tag. Any other count fails closed.
+        """
+        from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import (  # noqa: PLC0415
+            role_tag_binding,
+        )
+
         xmlid = mapping[role_name]
-        adopted = self.env.ref(xmlid, raise_if_not_found=False)
-        if adopted:
-            return adopted
-        return self.env["crm.tag"].search([("name", "=", role_name)], order="id", limit=1)
+        state, tag = role_tag_binding(self.env, role_name, xmlid)
+        if state == "bound":
+            return tag
+        if state != "absent":
+            return None
+        found = self.env["crm.tag"].search([("name", "=", role_name)])
+        if len(found) != 1 or found._name != "crm.tag" or found.name != role_name:
+            return None
+        return found
 
     def _apply_company_type(self, lead, dto, partner, custom, command, mapping, aliases) -> None:
         raw = _collapse_ws(custom.get("Company Type"))

@@ -35,6 +35,7 @@ therefore outside this run's seen equation).
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 
 __all__ = [
@@ -54,7 +55,19 @@ ERROR_ROW_LIMIT = 1000
 ERROR_MESSAGE_LIMIT = 2000
 ERROR_TYPE_LIMIT = 200
 _ERROR_CATEGORIES = frozenset({REQUIRED_MAPPING, OPTIONAL_CONTEXT})
-_SECRET_MARKERS = ("api_key", "apikey", "authorization", "password", "token", "bearer")
+# Quoted values, then an unquoted token that stops at whitespace and the usual
+# assignment delimiters. The key and the value are both removed.
+_QUOTED_VALUE = r'"[^"]*"|\'[^\']*\''
+_BARE_VALUE = r"[^\s,;&)\]}>]+"
+_ASSIGNED_VALUE = rf"(?:{_QUOTED_VALUE}|{_BARE_VALUE})"
+_KEY_PATTERN = r"api[ _-]?key|apikey|password|token|bearer"
+_SECRET_ASSIGNMENT = re.compile(rf"(?i)(?<![A-Za-z0-9])[\"']?(?:{_KEY_PATTERN})[\"']?\s*[:=]\s*{_ASSIGNED_VALUE}")
+_AUTH_HEADER = re.compile(
+    rf"(?i)(?<![A-Za-z0-9])authorization\s*[:=]\s*"
+    rf"(?:(?:bearer|basic)\s+)?"
+    rf"(?:(?:api[ _-]?key|apikey)\s*[:=]\s*)?"
+    rf"{_ASSIGNED_VALUE}"
+)
 
 
 def is_informational_notice(row: dict) -> bool:
@@ -82,16 +95,25 @@ def informational_notices(error_rows: list[dict] | None) -> list[dict]:
     return [row for row in error_rows or [] if str(row.get("message") or "").strip() and is_informational_notice(row)]
 
 
+def _redact_secret_values(text: str) -> str:
+    """Remove secret-bearing assignments and auth headers, not diagnostic words."""
+    previous = None
+    while previous != text:
+        previous = text
+        text = _AUTH_HEADER.sub("[redacted]", text)
+        text = _SECRET_ASSIGNMENT.sub("[redacted]", text)
+    return text
+
+
 def _public_message(message: object) -> str:
-    text = str(message or "")
-    for marker in _SECRET_MARKERS:
-        lowered = text.casefold()
-        start = 0
-        while marker in lowered[start:]:
-            index = lowered.find(marker, start)
-            text = text[:index] + "[redacted]" + text[index + len(marker) :]
-            lowered = text.casefold()
-            start = index + len("[redacted]")
+    """Drop credential values, then cap the public error string.
+
+    Marker-only substitution left ``[redacted]=<secret>``. The whole assigned
+    value is removed first. Truncation happens after that, so a value past the
+    cap cannot survive as a fragment and a short status code in front of a
+    secret is not cut away before the secret is recognized.
+    """
+    text = _redact_secret_values(str(message or ""))
     if len(text) > ERROR_MESSAGE_LIMIT:
         text = text[: ERROR_MESSAGE_LIMIT - 3] + "..."
     return text

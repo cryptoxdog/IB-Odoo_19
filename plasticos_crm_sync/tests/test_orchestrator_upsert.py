@@ -482,6 +482,32 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertIn("not a polymer", excerpt)
         self.assertIn("required mapping", excerpt)
 
+    def test_completion_excerpt_drops_credential_values(self):
+        orch = SyncOrchestrator(self.env)
+        orch.error_rows.append(
+            {
+                "record_ref": "vs-secret",
+                "message": "VanillaSoft HTTP 401 password=hunter2",
+                "category": "required_mapping",
+            }
+        )
+        status, excerpt = orch._completion(
+            self.env["plasticos.crm.sync.run"].new(
+                {
+                    "connection_id": self.connection.id,
+                    "contacts_seen": 1,
+                    "contacts_failed": 1,
+                    "calls_failed": 0,
+                }
+            ),
+            [],
+        )
+        self.assertEqual(status, "failed")
+        self.assertIn("vs-secret", excerpt)
+        self.assertIn("HTTP 401", excerpt)
+        self.assertNotIn("hunter2", excerpt)
+        self.assertNotIn("password=", excerpt.casefold())
+
     def test_material_only_failure_is_persisted_partial_and_replay_preserves_erp_values(self):
         """MAT-STATUS-01. The contact and the recognized profile stay. The unresolved
         material keeps the stored run partial, and a second import does not hide that.

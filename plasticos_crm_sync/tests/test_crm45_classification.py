@@ -5,6 +5,7 @@ from unittest.mock import patch
 from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_crm_bridge.models.crm_mapping import COMPANY_TYPE_MAPPING, UNAPPROVED_LEAD_STATUSES
+from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import role_tag_binding
 from odoo.addons.plasticos_crm_sync.services.import_summary import (
     REQUIRED_MAPPING,
     build_run_summary,
@@ -39,8 +40,14 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         approved_mails = queued.search([]) - before_approved
         before_dnc = queued.search([])
         dnc = orch._upsert_lead(self.connection, self._lead("crm45-dnc", lead_status_raw="7=Do Not Call"))
+        self.assertEqual(dnc.stage_id, self.env.ref("plasticos_crm_bridge.stage_new"))
         self.assertNotEqual(dnc.stage_id, self.env.ref("plasticos_crm_bridge.stage_dead_lead"))
         self.assertFalse(dnc.stage_id.is_won)
+        self.assertTrue(dnc.active)
+        self.assertFalse(dnc.vanillasoft_sync_archived)
+        self.assertEqual(dnc.vanillasoft_id, "crm45-dnc")
+        self.assertIn("7=Do Not Call", dnc.description or "")
+        self.assertIn("crm45-dnc", dnc.description or "")
         dnc_mails = queued.search([]) - before_dnc
         self.assertEqual(len(dnc_mails), len(approved_mails))
         self.assertFalse(any("blacklist" in (mail.subject or "").casefold() for mail in dnc_mails))
@@ -232,6 +239,121 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
         self.assertEqual(lead.tag_ids.filtered(lambda tag: tag.name == "Buyer"), adopted)
         self.assertEqual((company.supplier_rank, company.customer_rank, company.category_id.ids), ranks)
+
+    def _buyer_binding(self):
+        return self.env["ir.model.data"].search(
+            [("module", "=", "plasticos_crm_bridge"), ("name", "=", "crm_tag_buyer")]
+        )
+
+    def _import_buyer(self, external_id):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead(external_id, custom_fields={"Buyer/Supplier": "Buyer"}),
+        )
+        return orch, lead
+
+    def test_corrupt_role_tag_binding_does_not_link_another_buyer(self):
+        buyer = self.env.ref("plasticos_crm_bridge.crm_tag_buyer")
+        supplier = self.env.ref("plasticos_crm_bridge.crm_tag_supplier")
+        data = self._buyer_binding()
+        stage_before = self.env.ref("plasticos_crm_bridge.stage_new")
+        partner = self.env["res.partner"].create({"name": "CRM45 Foreign Model", "is_company": True})
+        categories = partner.category_id.ids
+
+        data.write({"model": "res.partner", "res_id": buyer.id})
+        self.env.registry.clear_cache()
+        state, tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
+        self.assertEqual(state, "invalid")
+        self.assertFalse(tag)
+        orch, lead = self._import_buyer("crm45-wrong-model")
+        self.assertNotIn(buyer, lead.tag_ids)
+        self.assertFalse(lead.tag_ids.filtered(lambda row: row.id == buyer.id))
+        self.assertIn("BLOCKED_DESTINATION: Buyer", self._messages(orch))
+        self.assertEqual(lead.stage_id, stage_before)
+        self.assertEqual(partner.category_id.ids, categories)
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
+        self.assertEqual(data.model, "res.partner")
+
+        data.write({"model": "crm.tag", "res_id": 0})
+        self.env.registry.clear_cache()
+        state, tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
+        self.assertEqual(state, "invalid")
+        self.assertFalse(tag)
+        orch, lead = self._import_buyer("crm45-stale-tag")
+        self.assertNotIn(buyer, lead.tag_ids)
+        self.assertIn("BLOCKED_DESTINATION: Buyer", self._messages(orch))
+
+        gone = self.env["crm.tag"].create({"name": "CRM45 Gone Role"})
+        gone_id = gone.id
+        gone.unlink()
+        data.write({"model": "crm.tag", "res_id": gone_id})
+        self.env.registry.clear_cache()
+        orch, lead = self._import_buyer("crm45-deleted-tag")
+        self.assertNotIn(buyer, lead.tag_ids)
+        self.assertFalse(lead.tag_ids)
+        self.assertIn("BLOCKED_DESTINATION: Buyer", self._messages(orch))
+
+        other = self.env["crm.tag"].create({"name": "CRM45 Other Role"})
+        data.write({"model": "crm.tag", "res_id": other.id})
+        self.env.registry.clear_cache()
+        state, tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
+        self.assertEqual(state, "invalid")
+        orch, lead = self._import_buyer("crm45-wrong-name")
+        self.assertNotIn(other, lead.tag_ids)
+        self.assertNotIn(buyer, lead.tag_ids)
+        self.assertNotIn(supplier, lead.tag_ids)
+        self.assertIn("BLOCKED_DESTINATION: Buyer", self._messages(orch))
+
+        data.write({"model": "res.partner", "res_id": partner.id})
+        self.env.registry.clear_cache()
+        orch, lead = self._import_buyer("crm45-foreign-live")
+        self.assertNotIn(buyer, lead.tag_ids)
+        self.assertFalse(any(row.id == partner.id for row in lead.tag_ids))
+        self.assertIn("BLOCKED_DESTINATION: Buyer", self._messages(orch))
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
+
+    def test_missing_role_tag_binding_uses_only_one_exact_tag(self):
+        buyer = self.env.ref("plasticos_crm_bridge.crm_tag_buyer")
+        data = self._buyer_binding()
+        data.unlink()
+        self.env.registry.clear_cache()
+        state, _tag = role_tag_binding(self.env, "Buyer", "plasticos_crm_bridge.crm_tag_buyer")
+        self.assertEqual(state, "absent")
+        orch, lead = self._import_buyer("crm45-missing-xmlid")
+        self.assertEqual(lead.tag_ids, buyer)
+        orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-missing-xmlid", custom_fields={"Buyer/Supplier": "Buyer"}),
+        )
+        self.assertEqual(lead.tag_ids, buyer)
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
+        self.assertFalse(self._buyer_binding())
+
+        buyer.write({"name": "CRM45 Retired Buyer"})
+        orch, lead = self._import_buyer("crm45-no-tag")
+        self.assertFalse(lead.tag_ids.filtered(lambda row: row.name == "Buyer"))
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 0)
+        self.assertIn("BLOCKED_DESTINATION: Buyer", self._messages(orch))
+
+    def test_valid_supplier_binding_replays_without_a_second_tag(self):
+        supplier = self.env.ref("plasticos_crm_bridge.crm_tag_supplier")
+        state, tag = role_tag_binding(self.env, "Supplier", "plasticos_crm_bridge.crm_tag_supplier")
+        self.assertEqual(state, "bound")
+        self.assertEqual(tag, supplier)
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-supplier", custom_fields={"Buyer/Supplier": "Supplier"}),
+        )
+        self.assertEqual(lead.tag_ids, supplier)
+        orch._upsert_lead(
+            self.connection,
+            self._lead("crm45-supplier", custom_fields={"Buyer/Supplier": "Supplier"}),
+        )
+        self.assertEqual(lead.tag_ids, supplier)
+        self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Supplier")]), 1)
+        self.assertFalse(any("BLOCKED_DESTINATION" in message for message in self._messages(orch)))
 
     def test_failed_tag_write_keeps_the_admitted_lead(self):
         orch = SyncOrchestrator(self.env)
