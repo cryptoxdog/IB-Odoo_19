@@ -1,5 +1,9 @@
 # 05 — Extraction reconciliation
 
+**Current reading (2026-10-28):** The Gate C text below is the state before the live-server extract. It stays here as history. The manifest reconciled to 111,010 images, a 20-file stream verified, and the full extract is running. This correction does not change that extractor. The locked import scope is `11_IMPORT_SCOPE.md`.
+
+The server extract stays on `\\ucsservers01\home\ibeylin\Desktop\SQL 10-28-26\extract`. The expanded copy on this Mac lands in `/Users/ib-mac/Odoo-ERP-Files`, the renamed folder that also holds `cieTrade_SM_2026-10-03.bak`.
+
 **Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
 **Gate C:** NOT RUN
 

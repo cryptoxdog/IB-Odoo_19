@@ -1,9 +1,31 @@
 # 09 — Operator handoff
 
 **Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
-**Status:** `RECOVERED_IMPORT_BLOCKED`  
+**Status:** Live-server extract in progress. Import scope locked. Importer not started.  
 **Census baseline:** 2026-10-28T16:06:07-04:00 on `UCSCIETRADE`  
-**Updated:** 2026-10-28T20:09:00Z
+**Updated:** 2026-10-28T21:05:00Z
+
+## Current status
+
+This section is the current reading. It supersedes the opening gate table, the readiness line that the work is blocked on a `cieTrade_Documents` backup, and any later sentence that says the manifest or the file extract has not been run. Those passages stay in this file with their original timestamps.
+
+The source is the live `UCSCIETRADE` databases `cieTrade_Documents` and `cieTrade_SM`. No backup was taken. The manifest reconciled to 111,010 `CIETRADE_SM` images at 2026-10-28T16:23:04-04:00. A 20-file stream verified. The full extract through ImageID 721202 is running and is not changed by this correction. The Odoo importer has not been implemented and has not been run.
+
+The locked import rule is `11_IMPORT_SCOPE.md`. Every `W` and `#` image is eligible. `P`, `E`, and `B` stay outside Odoo, with their originals kept in the private archive.
+
+## Mac landing folder
+
+The expanded files land on this Mac in `/Users/ib-mac/Odoo-ERP-Files`. That folder was `Odoo-BAK-Files` until 2026-10-28. The same folder holds `cieTrade_SM_2026-10-03.bak` (97,973,248 bytes). The running extractor still writes on the server share `\\ucsservers01\home\ibeylin\Desktop\SQL 10-28-26\extract`. This folder is the copy destination after that extract, not a change to the extractor.
+
+Inside the IB-PC Remote Desktop session the copy path is `\\tsclient\Odoo-ERP-Files`. Windows App still has the IB-PC folder redirect saved as `Odoo-BAK-Files` → `/Users/ib-mac/Odoo-BAK-Files`, and that path no longer exists. Re-add `/Users/ib-mac/Odoo-ERP-Files` on the IB-PC connection before copying. The Admin-PC connection does not redirect this folder.
+
+## Go-live ERP source
+
+`12_GO_LIVE_SOURCE_CHAIN.md` is the chain for go-live day. A new full backup of live `cieTrade_SM`, current as of that day, is placed in `/Users/ib-mac/Odoo-ERP-Files/`. That file is the restore input. `make import-erp` then reads the database restored from it.
+
+`docs/campaigns/PlasticOS_Plan_Graph` is tracked and published with this pack. It is planning only.
+
+The October 3 restore below is the historical proof. Its restore input was `/Users/ib-mac/sql-backup-proof/cieTrade_SM_2026-10-03.bak`. Worksheet activity in that database stops at 2026-10-02.
 
 ## Source truth
 
@@ -143,8 +165,12 @@ Same live databases. `buysell_hit` is an exact trimmed `BuySellNo` match.
 
 All five stay linked `W` images. The manifest ceiling for extraction is ImageID 721202.
 
-## Import scope revised 2026-10-28
+## Locked import scope — 2026-10-28
 
-Odoo import is worksheet evidence only. Eligible rows are 97,328 `W` plus 18 `#`. Match `RefID` exactly to one `plasticos.transaction.name`. `P` (13,077) stays in the archive and is excluded from Odoo import. `E` (586) and `B` (1) stay unattached. Generated PO and SO PDFs are skipped only when equivalence is positively proved. The repo statement is section 8 of `docs/campaigns/10-27-26/Cursor_Runbook_CieTrade_Documents_to_Odoo.md`.
+Every `RefType` `W` image (97,328) and every `RefType` `#` image (18) is eligible. Content, filename, and document type do not remove one. A file is imported only onto the single `plasticos.transaction` whose `name` equals its complete worksheet `RefID`.
 
-Next action remains the full file extract through ImageID 721202. The crosswalk and the importer wait until that journal has 111,010 rows.
+`P` (13,077), `E` (586), and `B` (1) stay outside Odoo. Their originals stay in `/Users/ib-mac/Odoo-ERP-Files`, the same folder as `cieTrade_SM_2026-10-03.bak`.
+
+Disposition counts for the eligible images are: eligible, unique Odoo match, missing transaction, ambiguous transaction, integrity failure, successfully imported, and import failure. `eligible = unique Odoo match + missing transaction + ambiguous transaction + integrity failure`. `unique Odoo match = successfully imported + import failure`.
+
+The repo statement is section 8 of `docs/campaigns/10-27-26/Cursor_Runbook_CieTrade_Documents_to_Odoo.md`. The full extract through ImageID 721202 is the running step. The crosswalk and the importer wait until `journal.csv` has 111,010 rows.

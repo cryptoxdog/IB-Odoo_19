@@ -1,5 +1,11 @@
 # 01 — Source discovery
 
+**Current reading (2026-10-28):** The Gate A FAIL below is the 19:33Z local-backup inspection. It stays here as history. The live `cieTrade_Documents` database on `UCSCIETRADE` is the source. No backup was taken. The locked import scope is `11_IMPORT_SCOPE.md`.
+
+On 2026-10-28 the home folder `Odoo-BAK-Files` was renamed to `/Users/ib-mac/Odoo-ERP-Files`. The backup row below was the path at inspection time. That same `cieTrade_SM_2026-10-03.bak` now lives in the renamed folder. Expanded extract copies land in that folder. The other three backup copies were not moved.
+
+Go-live does not reuse this October 3 file. `12_GO_LIVE_SOURCE_CHAIN.md` names the chain: a new `cieTrade_SM` backup, current as of that day, is placed in `/Users/ib-mac/Odoo-ERP-Files/` and is the restore input for that day's `make import-erp`.
+
 **Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
 **Observation time:** 2026-10-28T19:33:11Z  
 **Gate A:** FAIL

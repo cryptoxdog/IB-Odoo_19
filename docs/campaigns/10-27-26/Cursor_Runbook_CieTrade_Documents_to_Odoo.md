@@ -13,7 +13,7 @@ repository_access:
 **Working target:** `cryptoxdog/IB-Odoo_19`, integration branch `Staging`. A source inspection on 2026-10-28 observed `Staging@04bd0594a7c9dcad53d9c45fc65276d76817c112`; resolve and record the **actual** HEAD at run start.  
 **Operator intent:** Recover the original documents from CieTrade and import worksheet evidence onto the matching `plasticos.transaction`.
 
-**Effective import scope (2026-10-28):** section 8 below supersedes any earlier instruction to import `RefType = P` purchase-order files, to reimport purchase orders or sales orders, or to attach a document by partner, recency, sales order, or purchase order. Worksheet `RefID` matched to `plasticos.transaction.name` is the association.
+**Effective import scope (2026-10-28, locked):** section 8 below is the import rule. It supersedes any earlier instruction to import `RefType = P`, to leave a `W` or `#` image out because of filename, document type, or generated purchase-order or sales-order content, or to attach a document by partner, recency, sales order, purchase order, or numeric similarity.
 
 ## Start here: autonomous execution instruction
 
@@ -204,57 +204,58 @@ Ask for a **SQL Server database backup of `cieTrade_Documents`** including `dbo.
 
 **Hard stop:** Never claim source missing after inspecting only one `.bak`; never claim a worksheet join until a source witness proves it; never claim importer production-ready from a static test or synthetic fixture; never create guessed links. Continue autonomously on all safe unaffected work and deliver the strongest truthful result available in this run.
 
-## 8. Revised import scope — 2026-10-28
+## 8. Locked import scope — 2026-10-28
 
 **Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
-**Objective:** Import original historical evidence attached to CieTrade worksheets into the corresponding `plasticos.transaction` records.
+**Objective:** Import every CieTrade worksheet image into the one `plasticos.transaction` whose `name` equals that image's complete worksheet `RefID`.
 
-Odoo already owns the commercial purchase orders and sales orders. This migration does not reimport those generated documents.
+This section supersedes Gate F language that would import a `P` file onto a purchase order, and it supersedes any rule that would drop a `W` or `#` image for redundancy, generated purchase-order or sales-order content, filename, document type, or classification. Those earlier sentences stay in this runbook as the record of the original plan.
 
-The source census is the live `UCSCIETRADE` pair `cieTrade_Documents` and `cieTrade_SM`, manifest ceiling ImageID 721202, 111,010 `CIETRADE_SM` images. No database backup is part of this scope. Extraction of that manifest completes before any Odoo load.
+Odoo already owns the purchase orders and sales orders. This migration does not reimport those commercial documents. Every `W` and `#` image is still eligible.
+
+The source is the live `UCSCIETRADE` pair `cieTrade_Documents` and `cieTrade_SM`, manifest ceiling ImageID 721202, 111,010 `CIETRADE_SM` images. No database backup is part of this scope. The running extractor is left unchanged. Extraction of that manifest completes before any Odoo load. The importer is not implemented and is not run by this correction.
 
 ### Source selection
 
-| `RefType` | Images | Odoo import |
+| `RefType` | Images | Disposition |
 |---|---:|---|
-| `W` | 97,328 | Eligible. Worksheet evidence. |
-| `#` | 18 | Eligible. Container photos on a worksheet. |
-| `P` | 13,077 | Excluded from Odoo import. |
-| `E` | 586 | Leave unattached. |
-| `B` | 1 | Leave unattached. |
+| `W` | 97,328 | Eligible. Every image. |
+| `#` | 18 | Eligible. Every image. |
+| `P` | 13,077 | Outside Odoo. Originals stay in the private archive. |
+| `E` | 586 | Outside Odoo. Originals stay in the private archive. |
+| `B` | 1 | Outside Odoo. Originals stay in the private archive. |
 
-Eligible images are 97,346. The private recovery archive keeps every extracted original and its source metadata, including the excluded `P`, `E`, and `B` files.
+Eligible images are 97,346.
 
 ### Exact association
 
-`RefID` is the complete CieTrade worksheet number, including suffixes. Match it to `plasticos.transaction.name` by exact source identity. Attach the file only when exactly one transaction has that name.
+`RefID` is the complete CieTrade worksheet number, including suffixes. Match it to `plasticos.transaction.name`. Attach the file only when exactly one transaction has that name.
 
 One sales order may serve multiple worksheets. Each worksheet's documents stay on that worksheet's own `plasticos.transaction`.
 
-### Document selection
-
-Import the original worksheet evidence: scale tickets, proof of delivery, bills of lading, packing lists, loading photographs, signed documents, certificates, relevant correspondence, and other actual worksheet attachments.
-
-A generated purchase-order or sales-order PDF is skipped only when its equivalence to the Odoo commercial document is positively established. A `.pdf` extension, or an empty `DocName` / `DocType`, does not establish that. Uncertain originals stay in the eligible set. If a later classification pass is required, report those rows separately.
-
 ### Destination and integrity
 
-Use the existing Enterprise Documents model and `plasticos_documents_native`. One original per `ImageID`, with source provenance and SHA-256 hashes. Set `transaction_id` to the unique matched transaction. Leave `verified` false. Do not add a verification writer. Do not call the partner recency auto-link.
+Use the existing Enterprise Documents model and `plasticos_documents_native`. One original per `ImageID`, with source provenance and SHA-256 hashes. Set `transaction_id` to the unique matched transaction. Leave `verified` false. Do not add a verification writer. Do not associate by partner, transaction recency, sales order, purchase order, or numeric similarity.
 
 Creating the document does not post accounting, move stock, send mail, or write the transaction.
 
-### Crosswalk before import
+### Disposition counts
 
-Produce the crosswalk before any create. Report these counts:
+Each eligible image has one disposition:
 
 - eligible
-- unique transaction match
+- unique Odoo match
 - missing transaction
 - ambiguous transaction
-- proven redundant
-- unresolved classification
+- integrity failure
+- successfully imported
+- import failure
 
-Proven redundant starts at zero until a positive equivalence exists.
+`eligible = unique Odoo match + missing transaction + ambiguous transaction + integrity failure`
+
+`unique Odoo match = successfully imported + import failure`
+
+An integrity failure is an eligible image whose extracted bytes do not reconcile to the source hash or declared size. `P`, `E`, and `B` stay outside these counts.
 
 ### Test
 

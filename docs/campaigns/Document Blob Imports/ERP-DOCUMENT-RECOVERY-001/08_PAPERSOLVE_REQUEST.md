@@ -1,5 +1,7 @@
 # PaperSolve request — not sent
 
+**Current reading (2026-10-28):** This request was not sent. It stays here as history. The operator directed the recovery to use the live `cieTrade_Documents` database and not to take a backup. The locked import scope is `11_IMPORT_SCOPE.md`.
+
 **Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
 **Status:** Ready for the operator to send. This file was not emailed.
 

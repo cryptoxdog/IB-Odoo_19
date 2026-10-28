@@ -1,5 +1,7 @@
 # 07 — Test evidence
 
+**Current reading (2026-10-28):** The Gate F table below is the plan from before the locked scope. It stays here as history. A `P` file is not an Odoo import. Every `W` and `#` image is eligible, and the only target is one `plasticos.transaction` named with the complete worksheet `RefID`. The locked import scope is `11_IMPORT_SCOPE.md`.
+
 **Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
 **Gate F:** NOT RUN  
 **Code revision:** no importer commit. Repo `Staging` remains `04bd0594a7c9dcad53d9c45fc65276d76817c112`.
