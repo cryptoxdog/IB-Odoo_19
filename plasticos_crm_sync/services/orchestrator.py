@@ -201,12 +201,23 @@ def _material_inputs(*field_maps):
             parts = _split_material_values(value)
             kind = _material_field_kind(label)
             if kind == "phrase":
-                phrases.extend(parts)
+                phrases.extend(_split_commas(parts))
             elif kind == "hint":
                 if parts:
                     hints[label] = parts[0]
                 weak.extend(parts)
     return _dedupe_phrases(phrases), hints, _dedupe_phrases(weak)
+
+
+def _split_commas(parts) -> list[str]:
+    """Split phrase pieces on ASCII commas. Hint values never reach this."""
+    pieces = []
+    for part in parts:
+        for piece in part.split(","):
+            collapsed = _collapse_ws(piece)
+            if collapsed:
+                pieces.append(collapsed)
+    return pieces
 
 
 def _dedupe_phrases(phrases) -> list[str]:
@@ -2227,10 +2238,11 @@ class SyncOrchestrator:
 
     def _resolve_material(self, phrase, structured=None):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+            normalize_crm_material,
             normalize_material,
         )
 
-        combined = normalize_material(self.env, phrase, structured=structured)
+        combined = normalize_crm_material(self.env, phrase, structured=structured)
         if "conflicting material evidence" in combined.unresolved:
             return combined, "conflict"
         hint = structured.get("type") if isinstance(structured, dict) else None

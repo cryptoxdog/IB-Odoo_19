@@ -36,6 +36,38 @@ _SPECS = {
     "pp supersacs": ("PP", None, None, (), None),
 }
 
+# CRM lead phrases that are not worksheet phrases. The whole collapsed
+# description must match. A hit in ``_SPECS`` wins and never reaches this table.
+# Bare LDPE is film. A trailing hyphen on HDPE- stays HDPE, distinct from HDPE-HMW.
+_CRM_EXACT = {
+    key: (polymer, form, None, (), None)
+    for key, polymer, form in (
+        ("ldpe", "LDPE", "FILM"),
+        ("nylon", "NYLON", None),
+        ("metal", "METAL", None),
+        ("e-waste", "EWASTE", None),
+        ("hdpe-", "HDPE", None),
+        ("hdpe-hmw", "HDPE_HMW", None),
+        ("plastic pallets", "PLASTIC_PALLETS", None),
+        ("gaylord boxes", "GAYLORD_BOXES", None),
+        ("hdpe", "HDPE", None),
+        ("pp", "PP", None),
+        ("mrp", "MRP", None),
+        ("pet", "PET", None),
+        ("abs", "ABS", None),
+        ("pc", "PC", None),
+        ("ps", "PS", None),
+        ("hips", "HIPS", None),
+        ("pvc", "PVC", None),
+        ("eps", "EPS", None),
+        ("bopp", "BOPP", None),
+        ("tpo", "TPO", None),
+        ("tpe", "TPE", None),
+        ("pbt", "PBT", None),
+        ("lldpe", "LLDPE", None),
+    )
+}
+
 
 class MaterialNormalization:
     """One material phrase resolved to existing masters, or left unresolved."""
@@ -72,8 +104,44 @@ def normalize_material(env, description, grade_evidence=None, structured=None):
             ("unresolved material",) if source or _phrase(grade_evidence) or _structured_phrases(structured) else ()
         )
         return _empty(env, source, reason)
+    return _realize(env, source, specs[0])
 
-    polymer_code, form_code, source_code, attribute_codes, grade = specs[0]
+
+def normalize_crm_material(env, description, grade_evidence=None, structured=None):
+    """Resolve one CRM material phrase.
+
+    A description that is already a worksheet phrase uses
+    :func:`normalize_material`. Any other description may match ``_CRM_EXACT``.
+    Grade evidence and structured hints still match ``_SPECS`` only, so a hint
+    that is only a CRM identity does not add a second material. Two different
+    specs conflict.
+    """
+    text = _phrase(description)
+    if text in _SPECS:
+        return normalize_material(env, description, grade_evidence=grade_evidence, structured=structured)
+    source = _collapse(description)
+    if not source:
+        source = _collapse(grade_evidence)
+    specs = []
+    exact = _CRM_EXACT.get(text)
+    if exact is not None:
+        specs.append(exact)
+    for hint in (_phrase(grade_evidence), *_structured_phrases(structured)):
+        spec = _SPECS.get(hint)
+        if spec is not None:
+            specs.append(spec)
+    if len(set(specs)) > 1:
+        return _empty(env, source, ("conflicting material evidence",))
+    if not specs:
+        reason = (
+            ("unresolved material",) if source or _phrase(grade_evidence) or _structured_phrases(structured) else ()
+        )
+        return _empty(env, source, reason)
+    return _realize(env, source, specs[0])
+
+
+def _realize(env, source, spec):
+    polymer_code, form_code, source_code, attribute_codes, grade = spec
     polymer, polymer_missing = _master(env, "plasticos.polymer", polymer_code)
     form, form_missing = _master(env, "plasticos.material.form", form_code)
     source_type, source_missing = _master(env, "plasticos.source.type", source_code)

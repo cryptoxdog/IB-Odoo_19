@@ -20,7 +20,11 @@ from odoo.addons.plasticos_crm_sync.services.import_summary import (
     build_run_summary,
     business_acceptance,
 )
-from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator, _new_outcomes
+from odoo.addons.plasticos_crm_sync.services.orchestrator import (
+    SyncOrchestrator,
+    _material_inputs,
+    _new_outcomes,
+)
 from odoo.addons.plasticos_crm_sync.services.owner_crosswalk import BLANK_OWNER_LOGIN, OWNER_LOGIN_BY_SOURCE
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
@@ -368,6 +372,11 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
 
     def _profiles(self, facility):
         return self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+
+    def test_comma_separated_material_phrases_split_and_hints_do_not(self):
+        phrases, hints, _weak = _material_inputs({"Materials": "LDPE, HDPE Drums", "Material Form": "Roll, Film"})
+        self.assertEqual(phrases, ["LDPE", "HDPE Drums"])
+        self.assertEqual(hints["material form"], "Roll, Film")
 
     def test_admitted_contact_normalizes_each_material_and_replays(self):
         from odoo.addons.plasticos_material_profile.models import material_normalizer
