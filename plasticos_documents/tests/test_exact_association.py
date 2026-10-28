@@ -2,6 +2,7 @@
 
 import base64
 import importlib.util
+import inspect
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -401,3 +402,50 @@ class TestExactAssociation(PlasticosTestCase):
         self.assertEqual(row.association_state, "accepted")
         self.assertEqual(row.verified_at, verified_at)
         self.assertTrue(row.verified)
+
+    def test_projected_verification_search_stays_on_the_exact_row(self):
+        from odoo.addons.plasticos_documents_native.models.document_native import DocumentNative
+
+        tx = self.env["plasticos.transaction"].create(
+            {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "quantity": 1000}
+        )
+        native = self._native("search.pdf")
+        pending = self._native("pending-search.pdf")
+        row = native.with_user(self.clerk).action_associate_exact(
+            "plasticos.transaction", tx.id, source_reference="desk"
+        )
+        row.with_user(self.clerk).action_verify()
+        native.invalidate_recordset()
+        self.assertEqual(row.res_model, "plasticos.transaction")
+        self.assertTrue(row.verified)
+        self.assertEqual(
+            self.env["plasticos.document"].search_count([("attachment_id", "=", native.attachment_id.id)]),
+            1,
+        )
+        self.assertEqual(native.plasticos_doc_id, row)
+        self.assertEqual(native.verification_binding(), "exact")
+        self.assertTrue(native.verified)
+        rows = native._exact_projected_rows([("verified", "=", True)])
+        self.assertIn(row, rows)
+        documents = self.env["documents.document"]
+        pair = [("id", "in", [native.id, pending.id])]
+        self.assertEqual(documents.search([("verified", "=", True), *pair]), native)
+        self.assertEqual(documents.search([("verified_by", "=", self.clerk.id), *pair]), native)
+        self.assertEqual(documents.search([("verified", "=", False), *pair]), pending)
+        self.assertEqual(documents.search([("verified_by", "=", False), *pair]), pending)
+        self.assertEqual(documents.search([("verified_by", "!=", False), *pair]), native)
+        self.assertNotIn(native, documents.search([("verified_by", "!=", self.clerk.id), *pair]))
+        self.assertIn(pending, documents.search([("verified_by", "!=", self.clerk.id), *pair]))
+
+        shared = self._native("shared-search.pdf")
+        load_a = self.env["plasticos.load"].create({})
+        load_b = self.env["plasticos.load"].create({})
+        shared.with_user(self.clerk).action_associate_exact("plasticos.load", load_a.id, source_reference="a")
+        shared.with_user(self.clerk).action_associate_exact("plasticos.load", load_b.id, source_reference="b")
+        shared.invalidate_recordset()
+        self.assertFalse(shared.verified)
+        self.assertFalse(documents.search([("verified", "=", True), ("id", "=", shared.id)]))
+
+        source = inspect.getsource(DocumentNative._search_projected_boolean)
+        source += inspect.getsource(DocumentNative._search_verified_by)
+        self.assertNotIn('self.search([("type", "=", "binary")])', source)

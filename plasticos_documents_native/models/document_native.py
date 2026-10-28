@@ -153,6 +153,7 @@ class DocumentNative(models.Model):
         "plasticos.document",
         string="Plasticos Document",
         readonly=True,
+        index=True,
         help="Navigation to one business row. It is not the only association and it is not verification.",
         ondelete="restrict",
     )
@@ -289,13 +290,65 @@ class DocumentNative(models.Model):
                 rec.override = False
                 rec.override_reason = False
 
+    def _exact_projected_rows(self, predicate):
+        """Accepted domain rows that are the only row on their original."""
+        document = self.env["plasticos.document"]
+        excluded = list(self._excluded_evidence_models())
+        matched = document.search(
+            [
+                *predicate,
+                ("association_state", "=", "accepted"),
+                ("res_id", "!=", 0),
+                ("res_model", "not in", excluded),
+            ]
+        )
+        if not matched:
+            return document.browse()
+        siblings = document.search([("attachment_id", "in", matched.attachment_id.ids)])
+        counts = {}
+        for row in siblings:
+            counts[row.attachment_id.id] = counts.get(row.attachment_id.id, 0) + 1
+        return matched.filtered(lambda row: counts.get(row.attachment_id.id) == 1)
+
+    def _exact_pair_domain(self, rows):
+        """Indexed native domain: one business row and the same original."""
+        linked = rows.filtered("attachment_id")
+        if not linked:
+            return fields.Domain(False)
+        return fields.Domain.OR(
+            fields.Domain("plasticos_doc_id", "=", row.id) & fields.Domain("attachment_id", "=", row.attachment_id.id)
+            for row in linked
+        )
+
+    def _positive_projection_domain(self, rows):
+        return (
+            fields.Domain("type", "=", "binary")
+            & fields.Domain("verification_review_required", "=", False)
+            & fields.Domain("shortcut_document_id", "=", False)
+            & self._exact_pair_domain(rows)
+        )
+
+    def _negative_projection_domain(self, rows):
+        """Binary files that do not project this exact set."""
+        narrowed = (
+            fields.Domain("verification_review_required", "=", False)
+            & fields.Domain("shortcut_document_id", "=", False)
+            & self._exact_pair_domain(rows)
+        )
+        return fields.Domain("type", "=", "binary") & ~narrowed
+
     def _search_projected_boolean(self, fname, operator, value):
-        if operator not in ("=", "!=") or not isinstance(value, bool):
+        # Odoo rewrites "=" into "in" before the search method. Refuse that form
+        # so the framework calls this method again with "=" or "!=".
+        if operator not in ("=", "!="):
+            raise NotImplementedError
+        if not isinstance(value, bool):
             return [("id", "in", [])]
         want = value if operator == "=" else not value
-        candidates = self.search([("type", "=", "binary")])
-        ids = [rec.id for rec in candidates if bool(rec[fname]) is want]
-        return [("id", "in", ids)]
+        rows = self._exact_projected_rows([(fname, "=", True)])
+        if want:
+            return self._positive_projection_domain(rows)
+        return self._negative_projection_domain(rows)
 
     def _search_verified(self, operator, value):
         return self._search_projected_boolean("verified", operator, value)
@@ -305,16 +358,26 @@ class DocumentNative(models.Model):
 
     def _search_verified_by(self, operator, value):
         if operator not in ("=", "in", "!="):
-            return [("id", "in", [])]
-        candidates = self.search([("type", "=", "binary")])
+            raise NotImplementedError
         if operator == "in":
-            wanted = set(value or [])
-            ids = [rec.id for rec in candidates if rec.verified_by.id in wanted]
-        elif operator == "!=":
-            ids = [rec.id for rec in candidates if rec.verified_by.id != value]
-        else:
-            ids = [rec.id for rec in candidates if rec.verified_by.id == value]
-        return [("id", "in", ids)]
+            wanted = list(value or [])
+            users = [item for item in wanted if item]
+            matched = (
+                self._positive_projection_domain(self._exact_projected_rows([("verified_by", "in", users)]))
+                if users
+                else fields.Domain(False)
+            )
+            if any(not item for item in wanted):
+                assigned = self._exact_projected_rows([("verified_by", "!=", False)])
+                return matched | self._negative_projection_domain(assigned)
+            return matched
+        if operator == "!=":
+            if not value:
+                return self._positive_projection_domain(self._exact_projected_rows([("verified_by", "!=", False)]))
+            return self._negative_projection_domain(self._exact_projected_rows([("verified_by", "=", value)]))
+        if not value:
+            return self._negative_projection_domain(self._exact_projected_rows([("verified_by", "!=", False)]))
+        return self._positive_projection_domain(self._exact_projected_rows([("verified_by", "=", value)]))
 
     def _require_exact_domain(self):
         legacy = self.env["plasticos.document"]
