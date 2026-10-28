@@ -35,6 +35,32 @@ odoo-enterprise
 
 Current Work - IGNORE/
 current work - ib/
+# CieTrade recovery contract is tracked. Customer bytes and row-level inventories are not.
+docs/campaigns/Document Blob Imports/**/*.bin
+docs/campaigns/Document Blob Imports/**/*.pdf
+docs/campaigns/Document Blob Imports/**/*.msg
+docs/campaigns/Document Blob Imports/**/*.jpg
+docs/campaigns/Document Blob Imports/**/*.jpeg
+docs/campaigns/Document Blob Imports/**/*.png
+docs/campaigns/Document Blob Imports/**/*.heic
+docs/campaigns/Document Blob Imports/**/*.eml
+docs/campaigns/Document Blob Imports/**/*.zip
+docs/campaigns/Document Blob Imports/**/*.rpt
+docs/campaigns/Document Blob Imports/**/*.doc
+docs/campaigns/Document Blob Imports/**/*.docx
+docs/campaigns/Document Blob Imports/**/*.xls
+docs/campaigns/Document Blob Imports/**/*.xlsx
+docs/campaigns/Document Blob Imports/**/*.tif
+docs/campaigns/Document Blob Imports/**/*.tiff
+docs/campaigns/Document Blob Imports/**/*.mov
+docs/campaigns/Document Blob Imports/**/*.mp4
+docs/campaigns/Document Blob Imports/**/*.gif
+docs/campaigns/Document Blob Imports/**/*.bmp
+docs/campaigns/Document Blob Imports/**/*.htm
+docs/campaigns/Document Blob Imports/**/*.html
+docs/campaigns/Document Blob Imports/**/*.rtf
+docs/campaigns/Document Blob Imports/**/journal.csv
+docs/campaigns/Document Blob Imports/**/pilot_manifest.csv
 # Governance commands/skills — symlink to Dropbox SSOT; pushed via separate repo, not IB-Odoo_19
 .cursor-commands
 
