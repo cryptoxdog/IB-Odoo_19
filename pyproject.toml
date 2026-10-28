@@ -56,6 +56,7 @@ exclude = [
     "current work - ib",
     "Current Work - IGNORE",
     "*.md",  # ruff 0.16 formats fenced Python in markdown; docs stay human-owned
+    "docs",  # campaign evidence and Odoo shell probes; `env` is injected, not imported
 ]
 
 [tool.ruff.lint]
