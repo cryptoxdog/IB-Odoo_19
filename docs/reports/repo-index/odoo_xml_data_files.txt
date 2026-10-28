@@ -30,6 +30,7 @@
 ./plasticos_commission/security/commission_group.xml
 ./plasticos_commission/security/record_rules.xml
 ./plasticos_crm_bridge/data/crm_stage_data.xml
+./plasticos_crm_bridge/data/crm_tag_data.xml
 ./plasticos_crm_bridge/data/lead_source_data.xml
 ./plasticos_crm_bridge/data/partner_category_data.xml
 ./plasticos_crm_bridge/data/utm_source_deactivate.xml
@@ -57,6 +58,10 @@
 ./plasticos_intake_normalizer/data/normalizer_config_data.xml
 ./plasticos_logistics/data/cron.xml
 ./plasticos_logistics/data/incoterms.xml
+./plasticos_logistics/data/linda_inbound_ai.xml
+./plasticos_logistics/data/linda_order_cancel_mail_templates.xml
+./plasticos_logistics/data/linda_po_mail_template.xml
+./plasticos_logistics/data/linda_so_mail_template.xml
 ./plasticos_logistics/data/sequence.xml
 ./plasticos_logistics/security/record_rules.xml
 ./plasticos_material_profile/data/filler_type_data.xml
