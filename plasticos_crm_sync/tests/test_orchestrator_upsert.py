@@ -24,6 +24,7 @@ from odoo.addons.plasticos_crm_sync.services.orchestrator import (
     SyncOrchestrator,
     _material_inputs,
     _new_outcomes,
+    _parse_material_sections,
 )
 from odoo.addons.plasticos_crm_sync.services.owner_crosswalk import BLANK_OWNER_LOGIN, OWNER_LOGIN_BY_SOURCE
 from odoo.exceptions import UserError
@@ -2015,6 +2016,214 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         person.invalidate_recordset()
         self.assertEqual(lead.description, again_lead)
         self.assertEqual(str(person.comment), again_comment)
+
+    def _lead_profiles(self, lead):
+        return self.env["plasticos.material.profile"].search([("facility_profile_id.crm_lead_id", "=", lead.id)])
+
+    def test_production_section_parser_splits_phrases_not_hints(self):
+        sections = _parse_material_sections(
+            {
+                "Materials": "LDPE, HDPE Drums",
+                "Material Form": "Roll, Film",
+                "Notes": "keep, this note",
+            }
+        )
+        slot = sections[""]
+        self.assertEqual(slot["phrases"], ["LDPE", "HDPE Drums"])
+        self.assertEqual(slot["hints"], ["Roll, Film"])
+        self.assertEqual(slot["notes"], [("Notes", "keep, this note")])
+        self.assertIn("_split_commas", inspect.getsource(_parse_material_sections))
+
+    def test_upsert_lead_splits_comma_phrases_and_replays(self):
+        orch = SyncOrchestrator(self.env)
+        dto = self._lead("vs-comma-prod", custom_fields={"Materials": "LDPE, HDPE Drums"})
+        lead = orch._upsert_lead(self.connection, dto)
+        profiles = self._lead_profiles(lead)
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        ids = {code: profile.id for code, profile in by_polymer.items()}
+        orch._upsert_lead(self.connection, dto)
+        replayed = self._lead_profiles(lead)
+        self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
+        self.assertEqual(len(replayed), 2)
+
+    def test_form_hint_comma_stays_one_hint(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "vs-comma-hint",
+                custom_fields={
+                    "Materials": "LDPE, HDPE Drums",
+                    "Material Form": "Roll, Film",
+                    "Notes": "buyer said roll, film in passing",
+                },
+            ),
+        )
+        profiles = self._lead_profiles(lead)
+        self.assertEqual(set(profiles.mapped("polymer_id.code")), {"LDPE", "HDPE"})
+        self.assertEqual(len(profiles), 2)
+        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE").form_id.code, "FILM")
+        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").form_id.code, "DRUMS")
+        self.assertTrue(any("type hint is not contact-unique" in row["message"] for row in orch.error_rows))
+        self.assertFalse(any("Roll" == row["message"] or "Film" == row["message"] for row in orch.error_rows))
+
+    def test_section_hint_does_not_broadcast_across_comma_phrases(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "vs-comma-section",
+                custom_fields={
+                    "Materials": "HDPE Drums, PP",
+                    "Type (LDPE)": "Roll, Film",
+                    "Notes (MRF's)": "see, later",
+                },
+            ),
+        )
+        profiles = self._lead_profiles(lead)
+        self.assertEqual(set(profiles.mapped("polymer_id.code")), {"HDPE", "PP"})
+        self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE"))
+        self.assertFalse(profiles.filtered(lambda profile: profile.form_id.code == "FILM"))
+        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").form_id.code, "DRUMS")
+        self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "PP").form_id)
+
+    def test_mixed_delimiters_and_repeated_phrases_stay_unique(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "vs-comma-mix",
+                custom_fields={"Materials": "LDPE,  HDPE Drums; LDPE | PP\nHDPE Drums"},
+            ),
+        )
+        profiles = self._lead_profiles(lead)
+        self.assertEqual(set(profiles.mapped("polymer_id.code")), {"LDPE", "HDPE", "PP"})
+        self.assertEqual(len(profiles), 3)
+        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE").form_id.code, "FILM")
+        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").form_id.code, "DRUMS")
+        self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "PP").form_id)
+
+    def test_unknown_comma_phrase_stays_unresolved(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead("vs-comma-unknown", custom_fields={"Materials": "LDPE, not a polymer"}),
+        )
+        profiles = self._lead_profiles(lead)
+        self.assertEqual(profiles.mapped("polymer_id.code"), ["LDPE"])
+        self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "OTHER"))
+        self.assertTrue(any("not a polymer" in row["message"] for row in orch.error_rows))
+        self.assertEqual(orch.last_lead_outcome, "created")
+
+    def test_hint_only_and_notes_only_create_no_polymer(self):
+        orch = SyncOrchestrator(self.env)
+        hinted = orch._upsert_lead(
+            self.connection,
+            self._lead("vs-comma-hint-only", custom_fields={"Material Form": "Roll, Film"}),
+        )
+        self.assertFalse(self._lead_profiles(hinted))
+        self.assertTrue(any("BLOCKED_UNRESOLVED: Roll, Film" in row["message"] for row in orch.error_rows))
+        noted = orch._upsert_lead(
+            self.connection,
+            self._lead("vs-comma-notes-only", custom_fields={"Notes": "roll, film was mentioned"}),
+        )
+        self.assertFalse(self._lead_profiles(noted))
+        self.assertFalse(self.env["plasticos.facility.profile"].search([("crm_lead_id", "=", noted.id)]))
+
+    def test_run_connection_persists_comma_split_profiles(self):
+        connection = self.env["plasticos.crm.connection"].create(
+            {"name": "Comma VS", "provider": "vanillasoft", "project_id": "139707", "enabled": False}
+        )
+        dto = self._lead(
+            "vs-comma-run",
+            custom_fields={"Materials": "LDPE, HDPE Drums"},
+            modified_utc="2026-10-26T12:00:00Z",
+        )
+        _orch, run = self._run_connection(connection, [dto])
+        stored = self.env["crm.lead"].search([("vanillasoft_id", "=", "vs-comma-run")])
+        self.assertEqual(len(stored), 1)
+        profiles = self._lead_profiles(stored)
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(run.contacts_failed, 0)
+        ids = {code: profile.id for code, profile in by_polymer.items()}
+        self._run_connection(connection, [dto])
+        replayed = self._lead_profiles(stored)
+        self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
+
+    def test_approved_lead_splits_comma_phrases(self):
+        facility = self._facility("Comma Approved Mill")
+        self.env["plasticos.facility.profile"].create({"partner_id": facility.id})
+        person = self.env["res.partner"].create({"name": "Comma Buyer", "parent_id": facility.id})
+        self._erp_marker(person, "3231")
+        lead = self.env["crm.lead"].create(
+            {"name": "Comma Approved", "vanillasoft_id": "vs-comma-appr", "partner_id": person.id}
+        )
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-comma-appr": "3231"}
+        orch._crosswalk_ready = True
+        returned = orch._upsert_lead(
+            self.connection,
+            self._lead("vs-comma-appr", custom_fields={"Materials": "LDPE, HDPE Drums"}),
+        )
+        self.assertEqual(returned, lead)
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(
+            self.env["plasticos.facility.profile"].search_count([("partner_id", "=", facility.id)]),
+            1,
+        )
+        ids = {code: profile.id for code, profile in by_polymer.items()}
+        orch._upsert_lead(
+            self.connection,
+            self._lead("vs-comma-appr", custom_fields={"Materials": "LDPE, HDPE Drums"}),
+        )
+        replayed = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
+
+    def test_person_path_splits_commas_without_a_new_facility(self):
+        facility = self._facility("Comma Person Facility")
+        self.env["plasticos.facility.profile"].create({"partner_id": facility.id})
+        person = self.env["res.partner"].create({"name": "Comma Person", "parent_id": facility.id})
+        self._erp_marker(person, "3232")
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"vs-comma-person": "3232"}
+        orch._crosswalk_ready = True
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+        orch._upsert_lead(
+            self.connection,
+            self._lead("vs-comma-person", custom_fields={"Materials": "LDPE, HDPE Drums"}),
+        )
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+        self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", facility.id)]), 1)
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        by_polymer = {profile.polymer_id.code: profile for profile in profiles}
+        self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
+        self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
+        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+
+    def test_worksheet_normalizer_rejects_bare_ldpe_and_conflicts(self):
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
+
+        bare = normalize_material(self.env, "LDPE")
+        self.assertEqual(bare.unresolved, ("unresolved material",))
+        self.assertFalse(bare.polymer)
+        conflict = normalize_material(self.env, "HDPE Drums", structured={"type": "LDPE Film"})
+        self.assertEqual(conflict.unresolved, ("conflicting material evidence",))
+        self.assertFalse(conflict.polymer)
+        source = (
+            Path(__file__).resolve().parents[2] / "plasticos_transaction/models/native_document_import.py"
+        ).read_text()
+        self.assertIn("normalize_material(", source)
+        self.assertNotIn("normalize_crm_material", source)
 
     def _load_exclusion_migration(self):
         path = (

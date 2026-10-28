@@ -292,7 +292,7 @@ def _parse_material_sections(*field_maps) -> dict[str, dict]:
             slot = bucket(_section_key(label))
             parts = _split_material_values(value)
             if kind == "phrase":
-                slot["phrases"].extend(parts)
+                slot["phrases"].extend(_split_commas(parts))
             elif kind == "hint":
                 slot["hints"].append(parts[0] if parts else text)
             elif kind == "weight":

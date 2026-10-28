@@ -202,8 +202,9 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
             ),
         )
         profiles = self._profiles(crossed)
+        self.assertEqual(profiles.mapped("polymer_id.code"), ["GAYLORD_BOXES"])
+        self.assertFalse(profiles.form_id)
         self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE"))
-        self.assertFalse(profiles.filtered(lambda profile: profile.form_id.code == "FILM"))
 
         same = orch._upsert_lead(
             self.connection,
@@ -215,9 +216,13 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
                 },
             ),
         )
-        same_profile = self._profiles(same)
-        self.assertEqual(same_profile.polymer_id.code, "LDPE")
-        self.assertEqual(same_profile.form_id.code, "FILM")
+        self.assertFalse(self._profiles(same))
+        self.assertTrue(
+            any(
+                "conflicting material evidence" in row["message"] and row["record_ref"] == "crm45-same-section"
+                for row in orch.error_rows
+            )
+        )
 
     def test_existing_buyer_tag_is_reused_and_a_second_name_is_rejected(self):
         adopted = self.env.ref("plasticos_crm_bridge.crm_tag_buyer")
