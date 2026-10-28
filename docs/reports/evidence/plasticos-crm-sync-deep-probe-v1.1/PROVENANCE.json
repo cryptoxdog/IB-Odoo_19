@@ -1,0 +1,15 @@
+{
+  "git_sha": "83f6ff9516e99fd8d2f864dab16078103e231e42",
+  "source_digest": "5a4189b42f13ffb5ce61fda0cf667d982b717277b46ee1650702ac848abb1dbc",
+  "image_before": "sha256:46557fe1dc4be888abbabb69e10d4cfbc800ddedbb2c0d0d131e61285135475c content:aea60f938586e37745d83a5a65eddefb63c18ede38058272cfeef5f539ab73cb",
+  "image_after": "sha256:a1f9d4cf055108964c04af2105e1126e682394861e398cbad95736159a8d92f4 content:aea60f938586e37745d83a5a65eddefb63c18ede38058272cfeef5f539ab73cb",
+  "template_before": "odoo_test_tpl_ee_c9e8a81f52f23680 fp=c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30 state=ready parity=ee",
+  "template_after": "odoo_test_tpl_ee_c9e8a81f52f23680 fp=c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30 state=ready parity=ee unchanged",
+  "postgres_identity": "odoo19-db-1 postgres 15.19 volume odoo19_odoo_pgdata",
+  "enterprise_revision": "tree:408de1ed3345048ebc5e1b32b8c0e9bbe46cec6d8dcbe54d6f6231dcc6c292bf",
+  "worktree": "wt-crm-deep-probe-v11",
+  "clone": "odoo_test_w9c463fadbf",
+  "pure_pytest": "208 passed, 1 skipped",
+  "enterprise_tests": "105 passed, 0 failed, 0 errors, exit 0, dirty false",
+  "image_note": "Index digest changed on cached build. Content identity did not."
+}

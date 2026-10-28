@@ -16,7 +16,6 @@
 |---|---|
 | [LOCAL_DEV_SETUP.md](LOCAL_DEV_SETUP.md) | Fresh clone: venv, Odoo source for Pylance, Cursor, two-machine parity |
 | [adr/ADR-002-gate-hub-phased-autonomy.md](adr/ADR-002-gate-hub-phased-autonomy.md) | Hub topology and phased human checkpoints |
-| [roadmap/README.md](roadmap/README.md) | Hand-authored strategic roadmap |
 
 ## Module README Locations
 

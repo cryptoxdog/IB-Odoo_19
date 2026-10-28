@@ -1,0 +1,3 @@
+image_id_before sha256:a1f9d4cf055108964c04af2105e1126e682394861e398cbad95736159a8d92f4
+content_before aea60f938586e37745d83a5a65eddefb63c18ede38058272cfeef5f539ab73cb
+template_before plasticos-test-env/2 role=template state=ready parity=ee fp=c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30 builder=w2495f48767 built=2026-10-17T15:28:02Z enterprise=tree:408de1ed3345048ebc5e1b32b8c0e9bbe46cec6d8dcbe54d6f6231dcc6c292bf odoo=19.0.1.3 installed=169 country=US fiscal=US currency=USD chart=us accounts=164 plasticos_accounts=58/58 terms=9/9 journals=bank=1,general=4,purchase=1,sale=1 taxes=purchase=23,sale=23

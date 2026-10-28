@@ -21,3 +21,8 @@
 ## v1.1.2 evidence location
 
 15. **Results are tracked campaign files.** The evidence directory is `docs/reports/evidence/plasticos-crm-sync-deep-probe-v1.1/`. `git add` covers every file in it, including native `.test.log` files. Repo `.gitignore` negates the global `*.log` exclude for `docs/reports/evidence/**/*.log`. `.DS_Store` stays ignored. `validate_results.py` rejects any other directory and any non-`.DS_Store` file that is not in `git ls-files`.
+
+## v1.1.3 probe repair
+
+16. **Git worktree discovery.** `validate_results.py` no longer assumes `pack.parents[4]`. The repository root is `git rev-parse --show-toplevel` from the pack directory, so a detached worktree resolves to that worktree and the evidence directory must be `docs/reports/evidence/<campaign>/` inside it. The 43-row catalog and the other structural checks are unchanged.
+17. **Ordinary image build is authorized.** Item 3's cache-only stop is superseded for this revision. `scripts/test_env.sh` may run `docker compose build --quiet odoo`. Record image ID and content identity before that build and again before tests. A changed content identity stops the lane before tests. The admitted template `odoo_test_tpl_ee_c9e8a81f52f23680` is not created, rebuilt, renamed, or replaced. A re-stamp of that template remains a stop.

@@ -1,0 +1,87 @@
+{
+  "schema": "plasticos.domestic-multiload.execution-receipt/v1",
+  "contract_id": "PLASTICOS.DOMESTIC.MULTILOAD.ONE_PR.2026-10-28",
+  "execution_status": "NOT_STARTED",
+  "predecessor": {
+    "documents_pr_number": null,
+    "merged_into_staging": null,
+    "merge_sha": null,
+    "status": "UNKNOWN"
+  },
+  "repository": {
+    "url": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "observed_source_sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+    "actual_post_merge_base_sha": null,
+    "branch": null,
+    "committed_head_sha": null,
+    "validated_tree_sha": null
+  },
+  "authority": {
+    "mode": null,
+    "current_repo_invariants_ref": null,
+    "L9_three_projection_binding": "UNKNOWN",
+    "deviations": []
+  },
+  "source_inventory": {
+    "status": "NOT_RUN",
+    "artifact": null,
+    "consumer_count": null,
+    "unknowns": []
+  },
+  "historical": {
+    "source_kind": null,
+    "dataset_fingerprint": null,
+    "authorized": null,
+    "before_census": null,
+    "after_census": null,
+    "mapping_ledger": null,
+    "unresolved_rows": null,
+    "status": "NOT_RUN"
+  },
+  "upgrade": {
+    "enterprise_version": null,
+    "template_id": null,
+    "fresh_install": "NOT_RUN",
+    "versioned_upgrade": "NOT_RUN",
+    "second_upgrade_zero_diff": "NOT_RUN",
+    "failure_rollback": "NOT_RUN",
+    "evidence_ref": null
+  },
+  "invariants": {
+    "physical_load_owner": "NOT_RUN",
+    "zero_one_many": "NOT_RUN",
+    "no_arbitrary_singleton": "NOT_RUN",
+    "company_isolation": "NOT_RUN",
+    "doc_claim_freight_finance_preservation": "NOT_RUN"
+  },
+  "tests": {
+    "total_required": 32,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "not_run": 32,
+    "unknown": 0,
+    "artifact": null,
+    "logs": []
+  },
+  "local_checks": {
+    "make_test_odoo": "NOT_RUN",
+    "make_install_smoke": "NOT_RUN",
+    "make_pr_check": "NOT_RUN",
+    "precommit": "NOT_RUN",
+    "ruff": "NOT_RUN"
+  },
+  "publication": {
+    "make_pr_invoked": false,
+    "pr_url": null,
+    "base": "Staging",
+    "delivered_head_sha": null,
+    "remote_required_checks": "NOT_RUN",
+    "merged": false,
+    "deployed": false
+  },
+  "findings": [],
+  "blockers": [],
+  "final_state": "NOT_STARTED",
+  "signed_off_by": null
+}

@@ -1,0 +1,268 @@
+{
+  "schema": "plasticos.evidence_receipt/v1",
+  "subject": "erp-contacts-then-vanillasoft-crosswalk-759",
+  "contract_revision": "daytime-v2",
+  "recorded_at": "2026-10-28T21:51:00Z",
+  "verdict": "FAIL",
+  "repo": {
+    "url": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "branch_under_test": "feat/crm-lead-material-identity",
+    "commit_sha_under_test": "9ce3a302cc472c8865d4b40235efbd24e1f9a4f1",
+    "worktree_dirty": true,
+    "pr_url_if_any": null
+  },
+  "scope": {
+    "order": [
+      "verified_empty_enterprise_clone",
+      "erp_active_contacts",
+      "vanillasoft_crosswalk_759",
+      "independent_reconciliation"
+    ],
+    "overnight_pack": "PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21",
+    "overnight_pack_replaced": false,
+    "erp_partners_only": true,
+    "erp_commercial_documents": false,
+    "erp_limit": null,
+    "crm_method": "test_env_sh_run_shell_upsert_contact_external_id",
+    "crm_cohort": "pinned_crosswalk_only",
+    "crm_method_forbidden": [
+      "make import-vanillasoft",
+      "upsert of the 4876 census",
+      "csv load into crm.lead"
+    ],
+    "erp_inactive_contacts_allowed": false,
+    "financial_transactions_allowed": false,
+    "hand_built_transactions_allowed": false,
+    "fuzzy_erp_person_matching_allowed": false,
+    "hosted_writes_allowed": false,
+    "single_protected_clone_required": true,
+    "crm_source_ids_expected": 759,
+    "crm_source_ids_in_contract_prose": 763,
+    "crm_leads_expected_created": 0
+  },
+  "inputs": {
+    "approved_crosswalk_sha256_expected": "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1",
+    "operator_approved_yes": 759,
+    "distinct_approved_erp_ct_ids": 691,
+    "blank_erp_ct_ids": 22,
+    "shared_erp_people": 44,
+    "shared_source_ids": 90,
+    "operator_rejected_not_in_this_run": 18,
+    "operator_unreviewed_not_in_this_run": 4095,
+    "sha256_verified_on_runtime_host": true
+  },
+  "environment": {
+    "enterprise_parity_verified": true,
+    "fixture_identifier": "odoo_test_tpl_ee_c9e8a81f52f23680",
+    "fixture_fingerprint": "840872d079d2c0ef99771994de01ceb64e7c05388edc04fb52a722ee83e41c02",
+    "addon_source": "e18acebd4dd931d5223177bd6a49948e8d984a76e11bbee8a4e0c21ca5bb852a",
+    "crosswalk_container_path": "/mnt/extra-addons/plasticos_crm_sync/data/approved_contact_crosswalk.csv",
+    "owned_disposable_clone": "odoo_test_day1028",
+    "module_test_clone": "odoo_test_sync1028",
+    "clone_guard_passed": true,
+    "sql_source_read_only_verified": true,
+    "sql_database": "cieTrade_SM",
+    "provider_project_id_verified": "139705",
+    "before_import_crm_lead_count": 0,
+    "before_import_crm_provider_ref_count": 0,
+    "before_import_sale_order_count": 0,
+    "before_import_purchase_order_count": 0,
+    "before_import_account_move_count": 0,
+    "before_import_plasticos_transaction_count": 0,
+    "hosted_write_count": 0,
+    "source_sql_write_count": 0
+  },
+  "erp_contacts": {
+    "status": "PASS",
+    "started_at": "2026-10-28T21:34:53Z",
+    "finished_at": "2026-10-28T21:35:20Z",
+    "erp_partners_only": true,
+    "erp_limit": null,
+    "final_status": "partial",
+    "equation_closed": true,
+    "records_seen": 12518,
+    "records_created": 7679,
+    "records_updated": 2211,
+    "records_unchanged": 1337,
+    "records_rejected": 1291,
+    "duplicates": 0,
+    "counterparties": {
+      "created": 1300,
+      "updated": 0,
+      "unchanged": 0,
+      "rejected": 0
+    },
+    "addresses": {
+      "created": 1266,
+      "updated": 1297,
+      "unchanged": 39,
+      "rejected": 0
+    },
+    "contacts": {
+      "created": 2615,
+      "updated": 0,
+      "unchanged": 1116,
+      "rejected": 0
+    },
+    "roles": {
+      "created": 2498,
+      "updated": 0,
+      "unchanged": 180,
+      "rejected": 0
+    },
+    "salespersons": {
+      "created": 0,
+      "updated": 914,
+      "unchanged": 2,
+      "rejected": 0
+    },
+    "distinct_contact_partners": null,
+    "contact_xmlids": 3734,
+    "inactive_contact_xmlids": 0,
+    "five_layer_validators": {
+      "database": "PASS",
+      "counterparties": "PASS",
+      "addresses": "PASS",
+      "contacts": "PASS",
+      "roles": "PASS",
+      "salesreps": "PASS"
+    },
+    "sale_order_after": 0,
+    "purchase_order_after": 0,
+    "account_move_after": 0,
+    "plasticos_transaction_after": 0,
+    "commercial_documents_unchanged_vs_gate_a": true,
+    "exit_code": 0
+  },
+  "vanillasoft_crosswalk": {
+    "status": "FAIL",
+    "started_at": "2026-10-28T21:36:55Z",
+    "finished_at": "2026-10-28T21:49:45Z",
+    "method_verified": "upsert_contact_external_id",
+    "import_vanillasoft_used": false,
+    "ids_outside_crosswalk_fetched": 0,
+    "source_ids_expected": 759,
+    "bound_to_approved_erp_person": 737,
+    "active_company_placements": 7,
+    "held_target_excluded_or_missing": 0,
+    "genuine_failed": 15,
+    "imported_plus_held_plus_failed": 759,
+    "reconciled_once": true,
+    "incorrect_partner_bindings": 0,
+    "new_partners_created_from_approved": 7,
+    "crm_lead_delta": 15,
+    "provider_refs_on_res_partner": 744,
+    "provider_refs_on_crm_lead": 15,
+    "call_event_count": 52156,
+    "custom_table_row_count": 0,
+    "contact_id_duplicates": 0,
+    "provider_api_limitations": [],
+    "checkpoint_rows_missing_signals": 0,
+    "ids_with_signals": 22,
+    "imported_ids_that_also_warned": 7,
+    "exit_code": 0,
+    "discarded_stale_checkpoint_pass": true
+  },
+  "tests": {
+    "pure_python_passed": 471,
+    "pure_python_failed": 0,
+    "odoo_runtime_database": "odoo_test_sync1028",
+    "odoo_runtime_tests": 73,
+    "odoo_runtime_failed": 0,
+    "odoo_runtime_errors": 0,
+    "odoo_runtime_exit": 0,
+    "contract_file_not_collected": "tests/contracts/test_crm_lead_contracts.py"
+  },
+  "historical_baseline": {
+    "prior_approved_bound": 735,
+    "prior_approved_missing_person": 28,
+    "prior_missing_distinct_ct_ids": 27,
+    "prior_file": "763 VanillaSoft IDs, not this pin"
+  },
+  "sanitized_evidence_sha256": {
+    "README.md": "a0e1e18c364676615edc8e77d5c38da2eebe05c8a7e09d3be2a82d24229d6018",
+    "erp_contact_census.csv": "c143e27d94d19c019dea295980fa01d7f8e2ef6f6660ffe94b2edb136162c63c",
+    "crosswalk_763_disposition.csv": "4afbb1cfb1e8fb9184a4ce706480a3d1e6b960f3cf36b26fe5fc46bd53dbbcbe",
+    "pure-python-junit.xml": "565418a59d795e31f994a2a97576978744b2c30efb0fc2fa270a0ba8e07e31c8"
+  },
+  "source_artifacts_excluded_from_publication": [
+    ".l9/pr/erp-contacts-day1028-summary.json",
+    "Current Work - IGNORE/erp-contacts-vs-crosswalk/crm_checkpoint.jsonl",
+    "Current Work - IGNORE/erp-contacts-vs-crosswalk/crm_checkpoint.prior-unrelated.jsonl"
+  ],
+  "observed_exit_codes": [
+    {
+      "step": "pure_python_pytest",
+      "exit": 0
+    },
+    {
+      "step": "clone_odoo_test_day1028",
+      "exit": 0
+    },
+    {
+      "step": "gate_a_baseline",
+      "exit": 0
+    },
+    {
+      "step": "import_erp_partners_only",
+      "exit": 0
+    },
+    {
+      "step": "after_erp_census",
+      "exit": 0
+    },
+    {
+      "step": "stale_checkpoint_shell_discarded",
+      "exit": 0
+    },
+    {
+      "step": "crosswalk_live",
+      "exit": 0
+    },
+    {
+      "step": "after_crm_census",
+      "exit": 0
+    },
+    {
+      "step": "odoo_module_tests",
+      "exit": 0
+    }
+  ],
+  "open_exceptions": [
+    {
+      "level": "ERROR",
+      "reason": "crm.lead grew by 15. Blank CT_ID rows were imported as leads. The daytime gate requires those rows to be held with no lead.",
+      "count": 15
+    },
+    {
+      "level": "WARNING",
+      "reason": "Contract prose still says 763 IDs and 716 distinct ERP targets. The pinned file is 759 VanillaSoft IDs and 691 distinct ERP CT_IDs. This run followed the pin.",
+      "count": 1
+    },
+    {
+      "level": "WARNING",
+      "reason": "res.partner grew by 7 during the crosswalk pass, matching the seven active-company placements.",
+      "count": 7
+    },
+    {
+      "level": "WARNING",
+      "reason": "Shared groups in the pinned file are 44 ERP people and 90 source IDs. The receipt template says 45 and 92.",
+      "count": 1
+    }
+  ],
+  "signal_policy": {
+    "authority": "https://github.com/Quantum-L9/.github/blob/main/docs/ADVISORY.md",
+    "unknown_outcome": "https://github.com/Quantum-L9/.github/blob/main/semantics/error_taxonomy.yaml",
+    "rule": "A finding without its reason is absent. UNKNOWN is not collapsed into imported or into an explained failure. Each open_exceptions item is {level, reason, count}."
+  },
+  "limitations": [
+    "18 rejected links and 4095 pending VanillaSoft IDs are not part of this run.",
+    "Commercial documents are not part of this run.",
+    "The importer did not split the 1116 contact skips or the 39 address skips into the finer alias and fold buckets.",
+    "291 of 1291 ERP rejections are outside the 1000-row error sample, so their reason mix is not in this pack.",
+    "Notes appended and phone lines added were not measured.",
+    "Unresolved-material phrases were withheld from the disposition file because they include a personal name and note text.",
+    "tests/contracts/test_crm_lead_contracts.py was not collected by either runner."
+  ],
+  "operator_acceptance": "pending_operator"
+}

@@ -1,0 +1,806 @@
+time="2026-10-24T22:17:37-07:00" level=warning msg="Found orphan containers (odoo19-install-smoke-86940-12567) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container odoo19-odoo-run-78f8bf132d04 Creating 
+ Container odoo19-odoo-run-78f8bf132d04 Created 
+2026-10-25 05:17:37,700 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0 
+2026-10-25 05:17:37,700 1 INFO ? odoo: Odoo version 19.0-20261015 
+2026-10-25 05:17:37,700 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf 
+2026-10-25 05:17:37,700 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons']) 
+2026-10-25 05:17:37,700 1 INFO ? odoo: database: odoo@db:5432 
+2026-10-25 05:17:37,820 1 INFO ? odoo.service.server: HTTP service (werkzeug) running on ffde7466412c:8069 
+2026-10-25 05:17:37,826 1 INFO odoo_test_wdb953dba3a odoo.tests.common: Importing test framework 
+2026-10-25 05:17:37,836 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading 1 modules... 
+2026-10-25 05:17:37,837 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-10-25 05:17:37,847 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: updating modules list 
+2026-10-25 05:17:37,848 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-10-25 05:17:38,911 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a 
+2026-10-25 05:17:38,912 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a 
+2026-10-25 05:17:39,733 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
+2026-10-25 05:17:39,770 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading 169 modules... 
+2026-10-25 05:17:40,090 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_accounting (87/169) 
+2026-10-25 05:17:40,175 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_accounting/data/payment_terms.xml 
+2026-10-25 05:17:40,177 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_accounting/data/accounts.xml 
+2026-10-25 05:17:40,407 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_accounting loaded in 0.32s, 807 queries (+807 other) 
+2026-10-25 05:17:40,631 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_base (146/169) 
+2026-10-25 05:17:40,691 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_base: creating or updating database tables 
+2026-10-25 05:17:40,730 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/security/ir.model.access.csv 
+2026-10-25 05:17:40,734 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/views/menu.xml 
+2026-10-25 05:17:40,736 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/company.xml 
+2026-10-25 05:17:40,738 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/service_user.xml 
+2026-10-25 05:17:40,739 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/admin_users.xml 
+2026-10-25 05:17:40,740 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/partner_tags.xml 
+2026-10-25 05:17:40,751 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/material_taxonomy.xml 
+2026-10-25 05:17:40,806 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/sales_reps.xml 
+2026-10-25 05:17:40,809 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/attachment_maintenance_cron.xml 
+2026-10-25 05:17:40,818 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/midnight_recompute_cron.xml 
+2026-10-25 05:17:40,823 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_base/data/uom_defaults.xml 
+2026-10-25 05:17:40,825 1 INFO odoo_test_wdb953dba3a odoo.modules.migration: module plasticos_base: Running upgrade [19.0.1.1.9>] post-migrate 
+2026-10-25 05:17:40,827 1 INFO odoo_test_wdb953dba3a odoo.upgrade.plasticos_base.19.0.1.1.9.post-migrate: plasticos_base 19.0.1.1.9: Tiffany login tw@scrapmanagement.com -> sa@scrapmanagement.com 
+2026-10-25 05:17:40,838 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_base loaded in 0.21s, 792 queries (+792 other) 
+2026-10-25 05:17:40,838 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_gate (147/169) 
+2026-10-25 05:17:40,869 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_gate/data/gate_icp_seed.xml 
+2026-10-25 05:17:40,875 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_gate loaded in 0.04s, 45 queries (+45 other) 
+2026-10-25 05:17:40,875 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_material_profile (148/169) 
+2026-10-25 05:17:40,896 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_material_profile: creating or updating database tables 
+2026-10-25 05:17:40,945 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/security/ir.model.access.csv 
+2026-10-25 05:17:40,953 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/filler_type_data.xml 
+2026-10-25 05:17:40,958 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/material_attribute_data.xml 
+2026-10-25 05:17:40,968 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/packaging_type_data.xml 
+2026-10-25 05:17:40,972 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/polymer_data.xml 
+2026-10-25 05:17:40,993 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/material_form_data.xml 
+2026-10-25 05:17:41,009 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/material_color_data.xml 
+2026-10-25 05:17:41,017 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/source_type_data.xml 
+2026-10-25 05:17:41,022 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/process_type_data.xml 
+2026-10-25 05:17:41,027 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/data/grade_template_data.xml 
+2026-10-25 05:17:41,034 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/polymer_views.xml 
+2026-10-25 05:17:41,049 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/grade_template_views.xml 
+2026-10-25 05:17:41,057 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/material_form_views.xml 
+2026-10-25 05:17:41,061 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/material_color_views.xml 
+2026-10-25 05:17:41,064 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/source_type_views.xml 
+2026-10-25 05:17:41,067 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/process_type_views.xml 
+2026-10-25 05:17:41,070 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/material_profile_views.xml 
+2026-10-25 05:17:41,095 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/material_profile_ux.xml 
+2026-10-25 05:17:41,103 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_material_profile/views/partner_material_ux.xml 
+2026-10-25 05:17:41,135 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_material_profile loaded in 0.26s, 1073 queries (+1073 other) 
+2026-10-25 05:17:41,135 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_enrichment (149/169) 
+2026-10-25 05:17:41,156 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_enrichment: creating or updating database tables 
+2026-10-25 05:17:41,199 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_enrichment/security/security.xml 
+2026-10-25 05:17:41,201 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_enrichment/security/ir.model.access.csv 
+2026-10-25 05:17:41,207 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_enrichment/data/sequence.xml 
+2026-10-25 05:17:41,208 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_enrichment/data/cron.xml 
+2026-10-25 05:17:41,210 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_enrichment/views/enrichment_run_views.xml 
+2026-10-25 05:17:41,233 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_enrichment/views/enrichment_source_views.xml 
+2026-10-25 05:17:41,241 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_enrichment/views/res_partner_enrichment.xml 
+2026-10-25 05:17:41,281 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_enrichment loaded in 0.15s, 270 queries (+270 other) 
+2026-10-25 05:17:41,281 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_facility_profile (150/169) 
+2026-10-25 05:17:41,304 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_facility_profile: creating or updating database tables 
+2026-10-25 05:17:41,314 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 05:17:41,314 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 05:17:41,352 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/security/ir.model.access.csv 
+2026-10-25 05:17:41,358 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/data/equipment_type_data.xml 
+2026-10-25 05:17:41,369 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/data/utm_source_data.xml 
+2026-10-25 05:17:41,370 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/data/partner_type_data.xml 
+2026-10-25 05:17:41,377 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/data/facility_template_data.xml 
+2026-10-25 05:17:41,382 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/views/partner_type_views.xml 
+2026-10-25 05:17:41,390 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/views/facility_template_views.xml 
+2026-10-25 05:17:41,397 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_views.xml 
+2026-10-25 05:17:41,405 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 05:17:41,418 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 05:17:41,427 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_ux.xml 
+2026-10-25 05:17:41,437 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_facility_profile/views/partner_ux.xml 
+2026-10-25 05:17:41,439 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 05:17:41,448 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes 
+2026-10-25 05:17:41,477 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_facility_profile loaded in 0.20s, 534 queries (+534 other) 
+2026-10-25 05:17:41,477 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_product (151/169) 
+2026-10-25 05:17:41,492 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_product: creating or updating database tables 
+2026-10-25 05:17:41,524 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_product/security/ir.model.access.csv 
+2026-10-25 05:17:41,527 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_product/data/product_category_data.xml 
+2026-10-25 05:17:41,540 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_product/data/product_data.xml 
+2026-10-25 05:17:41,541 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_product/views/polymer_views.xml 
+2026-10-25 05:17:41,563 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_product loaded in 0.09s, 216 queries (+216 other) 
+2026-10-25 05:17:41,563 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_intake (152/169) 
+2026-10-25 05:17:41,584 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_intake: creating or updating database tables 
+2026-10-25 05:17:41,606 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 05:17:41,606 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 05:17:41,641 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake/security/ir.model.access.csv 
+2026-10-25 05:17:41,644 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake/data/sequence.xml 
+2026-10-25 05:17:41,646 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake/views/intake_views.xml 
+2026-10-25 05:17:41,668 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake/views/material_profile_intake_views.xml 
+2026-10-25 05:17:41,697 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake/views/intake_ux.xml 
+2026-10-25 05:17:41,716 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_intake loaded in 0.15s, 321 queries (+321 other) 
+2026-10-25 05:17:41,716 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_order_lines (153/169) 
+2026-10-25 05:17:41,728 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_order_lines: creating or updating database tables 
+2026-10-25 05:17:41,756 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_order_lines/security/ir.model.access.csv 
+2026-10-25 05:17:41,756 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_order_lines/views/purchase_order_views.xml 
+2026-10-25 05:17:41,780 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_order_lines/views/sale_order_views.xml 
+2026-10-25 05:17:41,810 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_order_lines loaded in 0.09s, 178 queries (+178 other) 
+2026-10-25 05:17:41,810 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_geolocalize (154/169) 
+2026-10-25 05:17:41,828 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_geolocalize: creating or updating database tables 
+2026-10-25 05:17:41,848 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 05:17:41,848 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 05:17:41,882 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_geolocalize/security/ir.model.access.csv 
+2026-10-25 05:17:41,883 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_geolocalize/data/geolocalize_config_params.xml 
+2026-10-25 05:17:41,884 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_geolocalize/data/cron_geo_backfill.xml 
+2026-10-25 05:17:41,885 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_geolocalize/views/intake_geo_views.xml 
+2026-10-25 05:17:41,915 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_geolocalize loaded in 0.11s, 169 queries (+169 other) 
+2026-10-25 05:17:41,915 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_intake_normalizer (155/169) 
+2026-10-25 05:17:41,927 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_intake_normalizer: creating or updating database tables 
+2026-10-25 05:17:41,952 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake_normalizer/security/ir.model.access.csv 
+2026-10-25 05:17:41,955 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake_normalizer/data/normalizer_config_data.xml 
+2026-10-25 05:17:41,956 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake_normalizer/data/cron_batch_normalize.xml 
+2026-10-25 05:17:41,964 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake_normalizer/views/normalizer_config_views.xml 
+2026-10-25 05:17:41,970 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_intake_normalizer/views/intake_normalizer_views.xml 
+2026-10-25 05:17:41,990 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_intake_normalizer loaded in 0.07s, 142 queries (+142 other) 
+2026-10-25 05:17:41,990 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_matching (156/169) 
+2026-10-25 05:17:42,004 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_matching: creating or updating database tables 
+2026-10-25 05:17:42,032 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_matching/security/ir.model.access.csv 
+2026-10-25 05:17:42,036 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_matching/views/match_result_views.xml 
+2026-10-25 05:17:42,050 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_matching/views/match_run_views.xml 
+2026-10-25 05:17:42,055 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_matching/views/match_exclusion_views.xml 
+2026-10-25 05:17:42,071 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_matching loaded in 0.08s, 227 queries (+227 other) 
+2026-10-25 05:17:42,072 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_offer (157/169) 
+2026-10-25 05:17:42,085 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_offer: creating or updating database tables 
+2026-10-25 05:17:42,112 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_offer/security/ir.model.access.csv 
+2026-10-25 05:17:42,115 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_offer/data/sequence.xml 
+2026-10-25 05:17:42,116 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_offer/data/offer_cron.xml 
+2026-10-25 05:17:42,124 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_offer/views/offer_views.xml 
+2026-10-25 05:17:42,145 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_offer/views/offer_bulk_action_wizard_views.xml 
+2026-10-25 05:17:42,148 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_offer/views/offer_ux.xml 
+2026-10-25 05:17:42,168 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_offer loaded in 0.10s, 259 queries (+259 other) 
+2026-10-25 05:17:42,168 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_partner_import (158/169) 
+2026-10-25 05:17:42,186 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_partner_import: creating or updating database tables 
+2026-10-25 05:17:42,207 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_partner_import/security/ir.model.access.csv 
+2026-10-25 05:17:42,211 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_partner_import/views/partner_bulk_update_wizard_views.xml 
+2026-10-25 05:17:42,225 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_partner_import loaded in 0.06s, 97 queries (+97 other) 
+2026-10-25 05:17:42,225 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_web_leads (159/169) 
+2026-10-25 05:17:42,248 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_web_leads: creating or updating database tables 
+2026-10-25 05:17:42,252 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (anthropic_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 05:17:42,252 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (anthropic_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 05:17:42,252 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (anthropic_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 05:17:42,252 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (mistral_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 05:17:42,252 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (mistral_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 05:17:42,252 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (mistral_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
+2026-10-25 05:17:42,274 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/security/ir.model.access.csv 
+2026-10-25 05:17:42,278 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/data/web_lead_config_data.xml 
+2026-10-25 05:17:42,280 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/data/logistics_ir_rules.xml 
+2026-10-25 05:17:42,287 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/views/web_lead_views.xml 
+2026-10-25 05:17:42,303 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/views/web_lead_review_snapshot_views.xml 
+2026-10-25 05:17:42,307 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/views/web_lead_config_views.xml 
+2026-10-25 05:17:42,312 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/views/web_lead_api_key_wizard_views.xml 
+2026-10-25 05:17:42,315 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/views/lead_bulk_action_wizard_views.xml 
+2026-10-25 05:17:42,318 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/views/web_lead_ux.xml 
+2026-10-25 05:17:42,327 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_web_leads/views/web_lead_bridge_views.xml 
+2026-10-25 05:17:42,339 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_web_leads loaded in 0.11s, 281 queries (+281 other) 
+2026-10-25 05:17:42,339 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_transaction (160/169) 
+2026-10-25 05:17:42,378 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_transaction: creating or updating database tables 
+2026-10-25 05:17:42,398 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 05:17:42,398 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 05:17:42,454 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/security/security_hardening.xml 
+2026-10-25 05:17:42,458 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/security/ir.model.access.csv 
+2026-10-25 05:17:42,463 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/data/sequence.xml 
+2026-10-25 05:17:42,464 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/data/res.groups.csv 
+2026-10-25 05:17:42,475 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/data/audit_cron.xml 
+2026-10-25 05:17:42,483 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/transaction_views.xml 
+2026-10-25 05:17:42,499 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/sale_quotation_scope.xml 
+2026-10-25 05:17:42,501 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_update_wizard_views.xml 
+2026-10-25 05:17:42,506 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml 
+2026-10-25 05:17:42,509 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/transaction_import_wizard_views.xml 
+2026-10-25 05:17:42,515 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/transaction_ux.xml 
+2026-10-25 05:17:42,526 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/transaction_bridge_views.xml 
+2026-10-25 05:17:42,531 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/intake_bridge_views.xml 
+2026-10-25 05:17:42,539 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/partner_bridge_views.xml 
+2026-10-25 05:17:42,563 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_transaction/views/offer_bridge_views.xml 
+2026-10-25 05:17:42,593 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_transaction loaded in 0.25s, 671 queries (+671 other) 
+2026-10-25 05:17:42,593 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_logistics (161/169) 
+2026-10-25 05:17:42,620 1 WARNING odoo_test_wdb953dba3a odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 05:17:42,620 1 WARNING odoo_test_wdb953dba3a odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 05:17:42,622 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_logistics: creating or updating database tables 
+2026-10-25 05:17:42,698 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/security/ir.model.access.csv 
+2026-10-25 05:17:42,707 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/security/record_rules.xml 
+2026-10-25 05:17:42,716 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/data/incoterms.xml 
+2026-10-25 05:17:42,718 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/data/sequence.xml 
+2026-10-25 05:17:42,720 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/data/cron.xml 
+2026-10-25 05:17:42,740 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/data/linda_po_mail_template.xml 
+2026-10-25 05:17:42,744 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/data/linda_so_mail_template.xml 
+2026-10-25 05:17:42,747 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/data/linda_order_cancel_mail_templates.xml 
+2026-10-25 05:17:42,750 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/load_views.xml 
+2026-10-25 05:17:42,771 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/freight_views.xml 
+2026-10-25 05:17:42,786 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/freight_actual_correction_wizard_views.xml 
+2026-10-25 05:17:42,789 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/load_dashboard_views.xml 
+2026-10-25 05:17:42,813 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/sale_order_button.xml 
+2026-10-25 05:17:42,834 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/load_bulk_update_wizard_views.xml 
+2026-10-25 05:17:42,837 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/load_ux.xml 
+2026-10-25 05:17:42,848 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/views/transaction_load_views.xml 
+2026-10-25 05:17:42,868 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/report/load_reports.xml 
+2026-10-25 05:17:42,870 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/report/report_bol_pickup.xml 
+2026-10-25 05:17:42,874 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/report/report_bol_delivery.xml 
+2026-10-25 05:17:42,877 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_logistics/report/report_delivery_order.xml 
+2026-10-25 05:17:42,903 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_logistics loaded in 0.31s, 899 queries (+899 other) 
+2026-10-25 05:17:42,903 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_documents (162/169) 
+2026-10-25 05:17:42,919 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_documents: creating or updating database tables 
+2026-10-25 05:17:42,953 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/security/security.xml 
+2026-10-25 05:17:42,967 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/security/ir.model.access.csv 
+2026-10-25 05:17:42,972 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/data/cron.xml 
+2026-10-25 05:17:42,980 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/data/document_tags_data.xml 
+2026-10-25 05:17:42,984 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/data/cron_missing_docs.xml 
+2026-10-25 05:17:42,989 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/data/scale_ticket_rule.xml 
+2026-10-25 05:17:42,995 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/document_tag_views.xml 
+2026-10-25 05:17:43,001 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/document_rule_views.xml 
+2026-10-25 05:17:43,004 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/document_views.xml 
+2026-10-25 05:17:43,014 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/document_extension_views.xml 
+2026-10-25 05:17:43,017 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/validation_matrix_views.xml 
+2026-10-25 05:17:43,023 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/transaction_docs_views.xml 
+2026-10-25 05:17:43,030 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/transaction_docs_bridge_views.xml 
+2026-10-25 05:17:43,035 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_documents/views/load_docs_bridge_views.xml 
+2026-10-25 05:17:43,055 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_documents loaded in 0.15s, 444 queries (+444 other) 
+2026-10-25 05:17:43,055 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_claims (163/169) 
+2026-10-25 05:17:43,069 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_claims: creating or updating database tables 
+2026-10-25 05:17:43,099 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/security/claims_security.xml 
+2026-10-25 05:17:43,111 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/security/ir.model.access.csv 
+2026-10-25 05:17:43,114 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/data/claim_sequence.xml 
+2026-10-25 05:17:43,116 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/data/claim_cron.xml 
+2026-10-25 05:17:43,123 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/data/email_templates.xml 
+2026-10-25 05:17:43,127 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/views/claim_views.xml 
+2026-10-25 05:17:43,140 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/views/claim_menus.xml 
+2026-10-25 05:17:43,142 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/views/claim_bulk_update_wizard_views.xml 
+2026-10-25 05:17:43,145 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/views/claim_ux.xml 
+2026-10-25 05:17:43,156 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_claims/views/transaction_claims_bridge_views.xml 
+2026-10-25 05:17:43,173 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_claims loaded in 0.12s, 324 queries (+324 other) 
+2026-10-25 05:17:43,173 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_automation (164/169) 
+2026-10-25 05:17:43,207 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_automation: creating or updating database tables 
+2026-10-25 05:17:43,227 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 05:17:43,227 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 05:17:43,278 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/security/security.xml 
+2026-10-25 05:17:43,281 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/security/ir.model.access.csv 
+2026-10-25 05:17:43,285 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/automation_config_data.xml 
+2026-10-25 05:17:43,286 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/config_parameters.xml 
+2026-10-25 05:17:43,289 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/email_templates.xml 
+2026-10-25 05:17:43,304 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/sale_approval_cron.xml 
+2026-10-25 05:17:43,311 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/invoice_reminder_cron.xml 
+2026-10-25 05:17:43,316 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/contract_renewal_cron.xml 
+2026-10-25 05:17:43,320 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/stock_alert_cron.xml 
+2026-10-25 05:17:43,325 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/cron_supplier_followup.xml 
+2026-10-25 05:17:43,330 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/cron_trucker_followup.xml 
+2026-10-25 05:17:43,335 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/cron_load_sla.xml 
+2026-10-25 05:17:43,340 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/data/workflow_automations.xml 
+2026-10-25 05:17:43,385 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/views/automation_config_views.xml 
+2026-10-25 05:17:43,394 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/views/automation_log_views.xml 
+2026-10-25 05:17:43,399 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/views/purchase_order_views.xml 
+2026-10-25 05:17:43,418 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/views/sale_order_views.xml 
+2026-10-25 05:17:43,438 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/views/stock_picking_views.xml 
+2026-10-25 05:17:43,452 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_automation/views/penalty_rule_views.xml 
+2026-10-25 05:17:43,509 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_automation loaded in 0.34s, 975 queries (+975 other) 
+2026-10-25 05:17:43,509 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_security_base (165/169) 
+2026-10-25 05:17:43,528 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_security_base: creating or updating database tables 
+2026-10-25 05:17:43,533 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 05:17:43,533 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 05:17:43,565 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_security_base/security/security_groups.xml 
+2026-10-25 05:17:43,619 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_security_base/security/record_rules.xml 
+2026-10-25 05:17:43,639 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_security_base/security/ir.model.access.csv 
+2026-10-25 05:17:43,659 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_security_base/views/res_partner_views.xml 
+2026-10-25 05:17:43,814 1 INFO odoo_test_wdb953dba3a odoo.modules.migration: module plasticos_security_base: Running upgrade [19.0.1.2.21>] post-migrate 
+2026-10-25 05:17:43,814 1 INFO odoo_test_wdb953dba3a odoo.upgrade.plasticos_security_base.19.0.1.2.21.post-migrate: plasticos_security_base 19.0.1.2.21: grant seed salesperson groups, including Mack 
+2026-10-25 05:17:43,816 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_system', 'base.group_no_one', 'base.group_erp_manager', 'base.group_user', 'base.group_partner_manager', 'plasticos_security_base.group_system_admin', 'plasticos_security_base.group_sales_rep', 'plasticos_security_base.group_operations_manager'] to user plasticos_base.user_admin_ib. 
+2026-10-25 05:17:43,817 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_system', 'base.group_no_one', 'base.group_erp_manager', 'base.group_user', 'base.group_partner_manager', 'plasticos_security_base.group_system_admin', 'plasticos_security_base.group_sales_rep', 'plasticos_security_base.group_operations_manager'] to user plasticos_base.user_admin_ab. 
+2026-10-25 05:17:43,818 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_lm. 
+2026-10-25 05:17:43,818 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_rp. 
+2026-10-25 05:17:43,819 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_aa. 
+2026-10-25 05:17:43,819 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_tw. 
+2026-10-25 05:17:43,820 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_security_base.hooks: grant_seed_user_groups [plasticos_security_base]: granted groups ['base.group_user', 'plasticos_security_base.group_sales_rep'] to user plasticos_base.user_sales_rep_mm. 
+2026-10-25 05:17:43,828 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_security_base loaded in 0.32s, 659 queries (+659 other) 
+2026-10-25 05:17:43,828 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_commission (166/169) 
+2026-10-25 05:17:43,842 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_commission: creating or updating database tables 
+<string>:22: (WARNING/2) Line block ends without a blank line.
+<string>:38: (WARNING/2) Line block ends without a blank line.
+<string>:53: (WARNING/2) Line block ends without a blank line.
+<string>:111: (ERROR/3) Unexpected indentation.
+<string>:109: (WARNING/2) Inline literal start-string without end-string.
+<string>:109: (WARNING/2) Inline interpreted text or phrase reference start-string without end-string.
+<string>:113: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+<string>:113: (WARNING/2) Inline literal start-string without end-string.
+<string>:113: (WARNING/2) Inline interpreted text or phrase reference start-string without end-string.
+<string>:128: (WARNING/2) Line block ends without a blank line.
+<string>:137: (WARNING/2) Line block ends without a blank line.
+<string>:22: (ERROR/3) Undefined substitution referenced: "---".
+<string>:22: (ERROR/3) Undefined substitution referenced: "---".
+<string>:38: (ERROR/3) Undefined substitution referenced: "---".
+<string>:38: (ERROR/3) Undefined substitution referenced: "---".
+<string>:53: (ERROR/3) Undefined substitution referenced: "---".
+<string>:53: (ERROR/3) Undefined substitution referenced: "---".
+<string>:128: (ERROR/3) Undefined substitution referenced: "---".
+<string>:128: (ERROR/3) Undefined substitution referenced: "---".
+<string>:137: (ERROR/3) Undefined substitution referenced: "---".
+2026-10-25 05:17:43,884 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/security/commission_group.xml 
+2026-10-25 05:17:43,886 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/security/ir.model.access.csv 
+2026-10-25 05:17:43,892 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/security/record_rules.xml 
+2026-10-25 05:17:43,899 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/data/commission_payout_sequence.xml 
+2026-10-25 05:17:43,900 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/views/commission_rule_views.xml 
+2026-10-25 05:17:43,911 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/views/commission_payout_views.xml 
+2026-10-25 05:17:43,919 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/views/sales_dashboard_views.xml 
+2026-10-25 05:17:43,998 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_commission/views/transaction_commission_views.xml 
+2026-10-25 05:17:44,016 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_commission loaded in 0.19s, 314 queries (+314 other) 
+2026-10-25 05:17:44,016 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_crm_bridge (167/169) 
+2026-10-25 05:17:44,031 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_crm_bridge: creating or updating database tables 
+2026-10-25 05:17:44,067 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_bridge/security/crm_group_imply.xml 
+2026-10-25 05:17:44,099 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_bridge/security/ir.model.access.csv 
+2026-10-25 05:17:44,105 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_bridge/data/crm_stage_data.xml 
+2026-10-25 05:17:44,108 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_bridge/data/partner_category_data.xml 
+2026-10-25 05:17:44,112 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_bridge/data/lead_source_data.xml 
+2026-10-25 05:17:44,115 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_bridge/views/crm_lead_views.xml 
+2026-10-25 05:17:44,148 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_bridge/views/crm_facility_ownership_views.xml 
+2026-10-25 05:17:44,168 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_crm_bridge loaded in 0.15s, 445 queries (+445 other) 
+2026-10-25 05:17:44,168 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_admin_dashboard (168/169) 
+2026-10-25 05:17:44,179 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_admin_dashboard: creating or updating database tables 
+2026-10-25 05:17:44,205 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_admin_dashboard/security/ir.model.access.csv 
+2026-10-25 05:17:44,208 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_admin_dashboard/views/admin_dashboard_views.xml 
+2026-10-25 05:17:44,224 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_admin_dashboard/data/cron_refresh_dashboard.xml 
+2026-10-25 05:17:44,230 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_admin_dashboard loaded in 0.06s, 129 queries (+129 other) 
+2026-10-25 05:17:44,230 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Loading module plasticos_crm_sync (169/169) 
+2026-10-25 05:17:44,255 1 INFO odoo_test_wdb953dba3a odoo.registry: module plasticos_crm_sync: creating or updating database tables 
+2026-10-25 05:17:44,269 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
+2026-10-25 05:17:44,269 1 WARNING odoo_test_wdb953dba3a odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
+2026-10-25 05:17:44,318 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/security/ir.model.access.csv 
+2026-10-25 05:17:44,323 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/data/ir_cron_data.xml 
+2026-10-25 05:17:44,324 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/views/crm_connection_views.xml 
+2026-10-25 05:17:44,333 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/views/crm_sync_run_views.xml 
+2026-10-25 05:17:44,336 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/views/crm_call_event_views.xml 
+2026-10-25 05:17:44,339 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/views/res_partner_sync_views.xml 
+2026-10-25 05:17:44,354 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/views/crm_lead_sync_views.xml 
+2026-10-25 05:17:44,368 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/views/res_config_settings_views.xml 
+2026-10-25 05:17:44,406 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: loading plasticos_crm_sync/views/menu.xml 
+2026-10-25 05:17:44,414 1 INFO odoo_test_wdb953dba3a odoo.modules.migration: module plasticos_crm_sync: Running upgrade [19.0.1.9.0>] post-migrate 
+2026-10-25 05:17:44,451 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Module plasticos_crm_sync loaded in 0.22s, 473 queries (+473 other) 
+2026-10-25 05:17:44,451 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: 169 modules loaded in 4.68s, 10744 queries (+10744 extra) 
+2026-10-25 05:17:44,517 1 WARNING odoo_test_wdb953dba3a odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 05:17:44,518 1 WARNING odoo_test_wdb953dba3a odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-25 05:17:44,871 1 INFO odoo_test_wdb953dba3a odoo.modules.loading: Modules loaded. 
+2026-10-25 05:17:44,883 1 INFO odoo_test_wdb953dba3a odoo.registry: Registry changed, signaling through the database 
+2026-10-25 05:17:44,884 1 INFO odoo_test_wdb953dba3a odoo.registry: Registry loaded in 7.063s 
+2026-10-25 05:17:44,884 1 INFO odoo_test_wdb953dba3a odoo.service.server: Starting post tests 
+2026-10-25 05:17:44,990 1 INFO odoo_test_wdb953dba3a odoo.addons.auth_signup.models.res_users: Signup email sent for user <linda_po_manager> to <mgr@example.com> 
+2026-10-25 05:17:45,033 1 INFO odoo_test_wdb953dba3a odoo.addons.auth_signup.models.res_users: Signup email sent for user <linda_po_user> to <clerk@example.com> 
+2026-10-25 05:17:45,058 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_abort_mid_batch_leaves_unattempted_mail_queued ... 
+2026-10-25 05:17:45,211 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:45,276 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:45,280 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_amendment_after_cancel_issues_the_new_terms ... 
+2026-10-25 05:17:45,404 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:45,424 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:45,430 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [3] 
+2026-10-25 05:17:45,498 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:45,504 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_attachment_is_the_native_po_report ... 
+2026-10-25 05:17:45,626 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:45,648 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_attempt_rolled_back_to_outgoing_is_not_resent ... 
+2026-10-25 05:17:45,777 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:45,798 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:45,800 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_below_threshold_user_confirmation_is_a_native_release ... 
+2026-10-25 05:17:45,941 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:45,961 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_cancel_before_send_cancels_the_unsent_issue ... 
+2026-10-25 05:17:46,089 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,113 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [8] 
+2026-10-25 05:17:46,124 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:46,166 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,171 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_cancel_modes_and_contexts_send_no_notice ... 
+2026-10-25 05:17:46,295 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,315 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,320 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [10] 
+2026-10-25 05:17:46,393 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,403 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,408 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [11] 
+2026-10-25 05:17:46,477 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,486 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,492 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [12] 
+2026-10-25 05:17:46,561 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,571 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,576 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [13] 
+2026-10-25 05:17:46,634 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,639 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,643 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [14] 
+2026-10-25 05:17:46,702 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,707 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,712 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [15] 
+2026-10-25 05:17:46,723 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_connection_failure_is_undelivered_and_not_retried ... 
+2026-10-25 05:17:46,844 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:46,865 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,867 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:46,868 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_draft_and_rfq_states_issue_nothing ... 
+2026-10-25 05:17:46,886 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_dropship_destination_is_blocked ... 
+2026-10-25 05:17:46,935 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.models.linda_request: Linda po_issue blocked for P00016: dropship_destination_disclosed 
+2026-10-25 05:17:46,936 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_failed_vs_uncertain_issue_on_cancel ... 
+2026-10-25 05:17:47,070 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:47,154 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:47,162 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [18, 19, 20] 
+2026-10-25 05:17:47,195 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_generic_send_failure_is_unknown_not_failed ... 
+2026-10-25 05:17:47,316 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:47,340 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:47,341 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_identity_is_unique_and_immutable ... 
+2026-10-25 05:17:47,462 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:47,485 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_invalid_supplier_contact_blocks_only_that_order ... 
+2026-10-25 05:17:47,545 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.models.linda_request: Linda po_issue blocked for P00022: supplier_email_invalid 
+2026-10-25 05:17:47,638 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:47,656 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_material_change_cancels_unsent_and_new_release_is_new_revision ... 
+2026-10-25 05:17:47,783 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:47,807 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:47,812 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [25] 
+2026-10-25 05:17:47,865 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:47,870 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_mode_switched_off_before_send_cancels_queue ... 
+2026-10-25 05:17:47,993 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:48,013 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,015 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_non_release_contexts_issue_nothing ... 
+2026-10-25 05:17:48,102 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_notice_goes_only_to_the_historical_audience ... 
+2026-10-25 05:17:48,223 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:48,243 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,261 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [31] 
+2026-10-25 05:17:48,288 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:48,291 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_notice_render_failure_keeps_native_cancel ... 
+2026-10-25 05:17:48,412 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:48,434 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,439 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [32] 
+2026-10-25 05:17:48,463 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_notice_transport_outcomes_are_not_retried ... 
+2026-10-25 05:17:48,589 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:48,610 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,652 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,657 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [33, 34] 
+2026-10-25 05:17:48,688 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,692 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,692 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:48,693 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_off_mode_keeps_legacy_and_records_nothing ... 
+2026-10-25 05:17:48,746 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_order_date_change_is_material ... 
+2026-10-25 05:17:48,901 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:48,927 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_po_only_live_issue_reaches_sink_once ... 
+2026-10-25 05:17:49,085 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:49,110 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:49,116 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_printed_terms_change_is_material ... 
+2026-10-25 05:17:49,297 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:49,322 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_purchase_user_cancel_records_notice_but_cannot_forge_one ... 
+2026-10-25 05:17:49,465 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:49,489 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:49,499 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #14 deleted stock.move.line records with IDs: [39] 
+2026-10-25 05:17:49,536 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_purchase_users_can_cancel_and_edit_a_queued_po ... 
+2026-10-25 05:17:49,761 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:49,897 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #13 deleted stock.move.line records with IDs: [41] 
+2026-10-25 05:17:50,034 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:50,121 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #14 deleted stock.move.line records with IDs: [43] 
+2026-10-25 05:17:50,149 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_recipient_change_is_caught_at_send_time ... 
+2026-10-25 05:17:50,309 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:50,334 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:50,336 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_rejected_native_cancel_creates_nothing ... 
+2026-10-25 05:17:50,480 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:50,505 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:50,514 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [45] 
+2026-10-25 05:17:50,528 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_render_failure_blocks_only_the_issue ... 
+2026-10-25 05:17:50,589 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_replay_and_later_so_link_do_not_reissue ... 
+2026-10-25 05:17:50,726 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:50,768 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:50,777 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:50,778 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_request_dates_are_recorded ... 
+2026-10-25 05:17:50,907 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:50,927 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_roles_without_request_rights_still_release_natively ... 
+2026-10-25 05:17:50,983 1 INFO odoo_test_wdb953dba3a odoo.addons.auth_signup.models.res_users: Signup email sent for user <linda_po_confirmer> to <c@example.com> 
+2026-10-25 05:17:51,132 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:51,155 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_sent_history_is_kept_when_order_is_amended ... 
+2026-10-25 05:17:51,286 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:51,306 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:51,311 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [50] 
+2026-10-25 05:17:51,379 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:51,385 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_sent_po_cancel_notifies_supplier_once ... 
+2026-10-25 05:17:51,519 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: _read_file reading /var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_attachment.py", line 152, in _file_read
+    with open(full_path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/odoo/.local/share/Odoo/filestore/odoo_test_wdb953dba3a/1f/1fd21bb695b92439ea61c76efc32672373066a1f'
+2026-10-25 05:17:51,540 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:51,545 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [52] 
+2026-10-25 05:17:51,577 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:51,581 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:51,582 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_shadow_records_evidence_without_mail ... 
+2026-10-25 05:17:51,650 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_supplier_company_mismatch_blocks ... 
+2026-10-25 05:17:51,956 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:51,958 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_supplier_message_has_no_buyer_identity ... 
+2026-10-25 05:17:52,132 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_two_cancellation_cycles_create_two_notices ... 
+2026-10-25 05:17:52,283 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:52,288 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [56] 
+2026-10-25 05:17:52,359 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:52,366 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [57] 
+2026-10-25 05:17:52,389 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:52,392 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_two_step_reapproval_after_cancel_issues_once ... 
+2026-10-25 05:17:52,560 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:52,566 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #13 deleted stock.move.line records with IDs: [58] 
+2026-10-25 05:17:52,655 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_two_step_sends_only_after_manager_approval ... 
+2026-10-25 05:17:52,826 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_uncertain_delivery_becomes_unknown_and_is_not_resent ... 
+2026-10-25 05:17:52,978 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:52,979 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_unchanged_reconfirm_after_cancel_is_a_new_cycle ... 
+2026-10-25 05:17:53,130 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:53,135 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [62] 
+2026-10-25 05:17:53,200 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:53,201 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:53,212 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:53,213 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_po_issuance: Starting TestLindaPoIssuance.test_unknown_mode_fails_closed ... 
+2026-10-25 05:17:53,268 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: filestore gc 57 checked, 54 removed 
+2026-10-25 05:17:53,324 1 INFO odoo_test_wdb953dba3a odoo.addons.auth_signup.models.res_users: Signup email sent for user <linda_so_sales> to <sales@example.com> 
+2026-10-25 05:17:53,345 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_approval_gate_blocks_then_authorized_confirm_issues_once ... 
+2026-10-25 05:17:53,547 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_buyer_company_mismatch_blocks ... 
+2026-10-25 05:17:53,865 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:53,867 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_buyer_email_and_address_changes_are_caught_at_send_time ... 
+2026-10-25 05:17:54,039 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:54,090 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:54,092 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_buyer_message_has_no_supplier_identity ... 
+2026-10-25 05:17:54,346 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_cancel_before_send_cancels_the_unsent_issue ... 
+2026-10-25 05:17:54,524 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [71] 
+2026-10-25 05:17:54,536 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:54,537 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_cancel_modes_and_contexts_send_no_notice ... 
+2026-10-25 05:17:54,713 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:54,719 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [72] 
+2026-10-25 05:17:54,818 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:54,823 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [73] 
+2026-10-25 05:17:54,915 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:54,920 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [74] 
+2026-10-25 05:17:54,993 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:54,998 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [75] 
+2026-10-25 05:17:55,073 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:55,078 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [76] 
+2026-10-25 05:17:55,091 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_draft_cancel_and_bad_contact_block_only_that_order ... 
+2026-10-25 05:17:55,203 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.models.linda_request: Linda so_issue blocked for S00016: buyer_email_invalid 
+2026-10-25 05:17:55,323 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_failed_vs_uncertain_issue_on_cancel ... 
+2026-10-25 05:17:55,529 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:55,537 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [79, 80] 
+2026-10-25 05:17:55,567 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_interrupted_send_is_unknown ... 
+2026-10-25 05:17:55,744 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:55,745 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_known_failure_and_unknown_outcome_are_not_resent ... 
+2026-10-25 05:17:55,947 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:55,956 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:55,956 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:55,957 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_material_edits_cancel_unsent_and_new_release_is_new_revision ... 
+2026-10-25 05:17:56,124 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:56,203 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move records with IDs: [86] 
+2026-10-25 05:17:56,215 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:56,281 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:56,334 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:56,337 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [87] 
+2026-10-25 05:17:56,396 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_non_release_contexts_issue_nothing ... 
+2026-10-25 05:17:56,510 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_notice_goes_only_to_the_historical_address ... 
+2026-10-25 05:17:56,675 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:56,682 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [92] 
+2026-10-25 05:17:56,714 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:56,718 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_off_and_shadow_keep_legacy_and_send_nothing_from_linda ... 
+2026-10-25 05:17:56,940 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_po_issue_still_uses_its_own_identity ... 
+2026-10-25 05:17:57,083 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_reconfirm_after_cancel_still_needs_approval ... 
+2026-10-25 05:17:57,249 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:57,254 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [96] 
+2026-10-25 05:17:57,334 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_rejected_native_cancel_creates_nothing ... 
+2026-10-25 05:17:57,497 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:57,506 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_replay_po_link_and_mode_toggle_do_not_reissue ... 
+2026-10-25 05:17:57,768 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:57,778 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:57,786 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_sales_user_cancel_records_notice_but_cannot_forge_one ... 
+2026-10-25 05:17:57,976 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:57,983 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #16 deleted stock.move.line records with IDs: [101] 
+2026-10-25 05:17:58,020 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_sent_history_is_kept_when_order_is_amended ... 
+2026-10-25 05:17:58,182 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:58,188 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [102] 
+2026-10-25 05:17:58,262 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_sent_so_cancel_notifies_buyer_once ... 
+2026-10-25 05:17:58,432 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:58,438 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [104] 
+2026-10-25 05:17:58,470 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:58,473 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_so_only_live_issue_reaches_sink_once ... 
+2026-10-25 05:17:58,670 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:58,674 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_sql_identity_and_source_constraints ... 
+2026-10-25 05:17:58,996 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_two_cancellation_cycles_create_two_notices ... 
+2026-10-25 05:17:59,160 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:59,165 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [107] 
+2026-10-25 05:17:59,240 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:59,247 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [108] 
+2026-10-25 05:17:59,271 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:59,274 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_unchanged_reconfirm_after_cancel_is_a_new_cycle ... 
+2026-10-25 05:17:59,441 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:59,447 1 INFO odoo_test_wdb953dba3a odoo.models.unlink: User #1 deleted stock.move.line records with IDs: [109] 
+2026-10-25 05:17:59,516 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '10000' (with forced 'email_ids') 
+2026-10-25 05:17:59,518 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:59,523 1 INFO odoo_test_wdb953dba3a odoo.addons.mail.models.mail_mail: Processing email queue with send limit of '1000' 
+2026-10-25 05:17:59,524 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_linda_so_issuance: Starting TestLindaSoIssuance.test_users_cannot_forge_or_edit_evidence ... 
+2026-10-25 05:17:59,736 1 INFO odoo_test_wdb953dba3a odoo.addons.auth_signup.models.res_users: Signup email sent for user <linda_evidence_probe> to <p@example.com> 
+2026-10-25 05:17:59,743 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: filestore gc 42 checked, 42 removed 
+2026-10-25 05:17:59,759 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_load_cardinality: Starting TestLoadCardinality.test_a_second_transaction_cannot_take_the_same_load ... 
+2026-10-25 05:17:59,789 1 ERROR odoo_test_wdb953dba3a odoo.sql_db: bad query: b' UPDATE "plasticos_transaction"\n                    SET "load_id" = "__tmp"."load_id"::int4, "write_date" = "__tmp"."write_date"::timestamp, "write_uid" = "__tmp"."write_uid"::int4\n                    FROM (VALUES (40, 1, \'2026-10-25T05:17:59.743752\'::timestamp, 1)) AS "__tmp"("id", "load_id", "write_date", "write_uid")\n                    WHERE "plasticos_transaction"."id" = "__tmp"."id"\n                '
+ERROR: duplicate key value violates unique constraint "plasticos_transaction_unique_load_id"
+DETAIL:  Key (load_id)=(1) already exists.
+ 
+2026-10-25 05:17:59,790 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_load_cardinality: Starting TestLoadCardinality.test_close_posts_one_chatter_message ... 
+2026-10-25 05:17:59,815 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_load_cardinality: Starting TestLoadCardinality.test_create_links_the_sale_order_transaction_once ... 
+2026-10-25 05:17:59,837 1 INFO odoo_test_wdb953dba3a odoo.addons.plasticos_logistics.tests.test_load_cardinality: Starting TestLoadCardinality.test_delivery_term_override_reads_the_linked_transaction ... 
+2026-10-25 05:17:59,860 1 INFO odoo_test_wdb953dba3a odoo.addons.base.models.ir_attachment: filestore gc 0 checked, 0 removed 
+2026-10-25 05:17:59,860 1 INFO odoo_test_wdb953dba3a odoo.service.server: 73 post-tests in 14.98s, 30547 queries 
+2026-10-25 05:17:59,860 1 INFO odoo_test_wdb953dba3a odoo.tests.stats: plasticos_logistics: 79 tests 14.97s 30547 queries 
+2026-10-25 05:17:59,860 1 INFO odoo_test_wdb953dba3a odoo.tests.result: 0 failed, 0 error(s) of 73 tests when loading database 'odoo_test_wdb953dba3a' 
+2026-10-25 05:17:59,860 1 INFO odoo_test_wdb953dba3a odoo.service.server: Initiating shutdown 
+2026-10-25 05:17:59,860 1 INFO odoo_test_wdb953dba3a odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-10-25 05:17:59,924 1 INFO odoo_test_wdb953dba3a odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  

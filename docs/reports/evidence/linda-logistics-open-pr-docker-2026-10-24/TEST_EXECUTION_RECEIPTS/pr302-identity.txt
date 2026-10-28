@@ -1,0 +1,3 @@
+head=c3eaed74671092cc68b07cc54d793993d5952fb8
+dirty=0
+clone=odoo_test_w40b4c4db7a

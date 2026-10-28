@@ -1,0 +1,20 @@
+{
+  "schema": "plasticos.daytime_run_manifest/v1",
+  "recorded_at": "2026-10-28T21:51:00Z",
+  "verdict": "FAIL",
+  "clone": "odoo_test_day1028",
+  "template": "odoo_test_tpl_ee_c9e8a81f52f23680",
+  "module_test_clone": "odoo_test_sync1028",
+  "branch": "feat/crm-lead-material-identity",
+  "commit": "9ce3a302cc472c8865d4b40235efbd24e1f9a4f1",
+  "worktree_dirty": true,
+  "overnight_4876_import": "NOT_RUN",
+  "make_import_vanillasoft": "NOT_RUN",
+  "files": {
+    "README.md": "a0e1e18c364676615edc8e77d5c38da2eebe05c8a7e09d3be2a82d24229d6018",
+    "erp_contact_census.csv": "c143e27d94d19c019dea295980fa01d7f8e2ef6f6660ffe94b2edb136162c63c",
+    "crosswalk_763_disposition.csv": "4afbb1cfb1e8fb9184a4ce706480a3d1e6b960f3cf36b26fe5fc46bd53dbbcbe",
+    "pure-python-junit.xml": "565418a59d795e31f994a2a97576978744b2c30efb0fc2fa270a0ba8e07e31c8",
+    "receipt.json": "4e58cd69355964758351c337b5cd7639f99c38024d6b006b7fe96fbcde77892a"
+  }
+}

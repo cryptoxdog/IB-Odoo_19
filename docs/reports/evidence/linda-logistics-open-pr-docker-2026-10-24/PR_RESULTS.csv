@@ -1,0 +1,4 @@
+pr,head,clone,tests,failed,errors,exit,classes_run,not_collected,merge
+302,c3eaed74671092cc68b07cc54d793993d5952fb8,odoo_test_w40b4c4db7a,4,0,0,0,TestLoadCardinality,PO issuance tests at tests/test_linda_po_issuance.py; freight tests at tests/integration/test_linda_freight_models.py,CONFLICTING version 19.0.1.11.0 vs Staging 19.0.1.10.4
+304,e6e463f5031d3b011986444a8ae59d3b4fdc630f,odoo_test_wdb953dba3a,73,0,0,0,TestLindaPoIssuance=43; TestLindaSoIssuance=26; TestLoadCardinality=4,freight tests at tests/integration/test_linda_freight_models.py,CONFLICTING version 19.0.1.13.0 vs Staging 19.0.1.10.4
+305,cfffe4527948b9ba77c09bc18d1026252300b86b,odoo_test_w4382288706,87,0,0,0,TestLindaInbound=14; TestLindaPoIssuance=43; TestLindaSoIssuance=26; TestLoadCardinality=4,freight tests at tests/integration/test_linda_freight_models.py; native AI not executed,CONFLICTING version 19.0.1.14.0 vs Staging 19.0.1.10.4

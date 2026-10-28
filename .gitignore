@@ -94,8 +94,11 @@ AUDIT_REPORT.md
 # Root reports/ is retired. Indexes live under docs/reports/repo-index/.
 # GMP execution reports are committed under docs/reports/gmp-reports/.
 # Do not recreate the root directory.
+# Campaign test results live under docs/reports/evidence/ and are tracked.
+# A global *.log exclude must not drop those logs.
 # ═══════════════════════════════════════════════════════════
 /reports/
+!docs/reports/evidence/**/*.log
 
 # Explicit override: memory-bank/ is excluded by this machine's global
 # gitignore (~/.gitignore_global) but must be tracked in THIS repo so a fresh

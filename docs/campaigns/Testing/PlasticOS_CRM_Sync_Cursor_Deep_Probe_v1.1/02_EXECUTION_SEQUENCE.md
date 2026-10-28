@@ -12,7 +12,7 @@ Execute `01_SAFETY_AND_PREFLIGHT.md`. Inventory all reachable CRM execution entr
 
 ## Phase 2 | one combined Enterprise ORM lane
 
-Subject to proven no-repair fixture/image gates, one *new* owned clone, one combined module test scope:
+Subject to the admitted Enterprise fixture and an unchanged image content identity around the runner's ordinary `compose build`, one *new* owned clone, one combined module test scope:
 
 `plasticos_crm_sync,plasticos_crm_bridge,plasticos_material_profile,plasticos_facility_profile,plasticos_partner_import`
 

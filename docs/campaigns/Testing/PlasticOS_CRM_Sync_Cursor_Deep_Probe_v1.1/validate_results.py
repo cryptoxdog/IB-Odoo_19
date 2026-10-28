@@ -97,13 +97,44 @@ def resolve_token(evidence: Path, token: str) -> bool:
     return (evidence / token).is_file()
 
 
-def repo_root(pack: Path) -> Path:
-    return pack.parents[4]
+def git_toplevel(start: Path) -> tuple[Path | None, str]:
+    """Worktree root of *start*, including a detached worktree.
+
+    ``git rev-parse --show-toplevel`` follows the checkout that contains
+    *start*. A linked worktree returns its own root, not the main checkout.
+    """
+    listed = subprocess.run(  # noqa: S603
+        ["git", "-C", str(start), "rev-parse", "--show-toplevel"],  # noqa: S607
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if listed.returncode != 0:
+        detail = (listed.stderr or listed.stdout or "git rev-parse --show-toplevel failed").strip()
+        return None, detail
+    text = listed.stdout.strip()
+    if not text:
+        return None, "git rev-parse --show-toplevel returned an empty path"
+    return Path(text).resolve(), ""
+
+
+def repo_root(pack: Path) -> Path | None:
+    found, _detail = git_toplevel(pack)
+    return found
 
 
 def evidence_location_errors(evidence: Path, pack: Path) -> list[str]:
-    root = (repo_root(pack) / "docs" / "reports" / "evidence").resolve()
+    found, detail = git_toplevel(pack)
+    if found is None:
+        return ["cannot resolve the Git worktree that contains the pack: " + detail]
+    root = (found / "docs" / "reports" / "evidence").resolve()
+    if not root.is_dir():
+        return ["this worktree has no docs/reports/evidence directory: " + root.as_posix()]
     resolved = evidence.resolve()
+    try:
+        resolved.relative_to(found)
+    except ValueError:
+        return ["evidence directory is not inside the Git worktree " + found.as_posix()]
     if resolved.parent != root:
         return ["evidence directory must be a campaign folder directly inside docs/reports/evidence"]
     return []
@@ -111,9 +142,11 @@ def evidence_location_errors(evidence: Path, pack: Path) -> list[str]:
 
 def untracked_evidence_files(evidence: Path, pack: Path) -> list[str]:
     repo = repo_root(pack)
+    if repo is None:
+        return ["cannot resolve the Git worktree for evidence tracking"]
     relative = evidence.resolve().relative_to(repo.resolve()).as_posix()
-    listed = subprocess.run(
-        ["git", "-C", str(repo), "ls-files", "-z", "--", relative],
+    listed = subprocess.run(  # noqa: S603
+        ["git", "-C", str(repo), "ls-files", "-z", "--", relative],  # noqa: S607
         check=False,
         capture_output=True,
     )
@@ -130,7 +163,7 @@ def untracked_evidence_files(evidence: Path, pack: Path) -> list[str]:
     return missing
 
 
-def main() -> int:
+def main() -> int:  # noqa: C901
     if len(sys.argv) != 2:
         print("usage: python3 validate_results.py <evidence-directory>", file=sys.stderr)
         return 2
@@ -179,7 +212,9 @@ def main() -> int:
         if len(diagnostics) != 1:
             errors.append(f"SESSION_SUMMARY.md must contain exactly one DIAGNOSTIC= verdict (found {len(diagnostics)})")
         if len(promotions) != 1:
-            errors.append(f"SESSION_SUMMARY.md must contain exactly one CRM_PROMOTION= verdict (found {len(promotions)})")
+            errors.append(
+                f"SESSION_SUMMARY.md must contain exactly one CRM_PROMOTION= verdict (found {len(promotions)})"
+            )
     else:
         diagnostics, promotions = [], []
 
@@ -211,7 +246,9 @@ def main() -> int:
             enterprise_pass = True
             tokens = path_tokens(row.get("evidence_ref", ""))
             if not any(resolve_token(evidence, token) for token in tokens):
-                errors.append(behavior_id + ": enterprise/clone PASS evidence_ref names no file in the evidence directory")
+                errors.append(
+                    behavior_id + ": enterprise/clone PASS evidence_ref names no file in the evidence directory"
+                )
         if behavior_id == "SRC-01" and technical == "PASS":
             src01_pass = True
         if promotions == ["PASS"] and priority(row, catalog_row) == "GATE":
@@ -242,7 +279,9 @@ def main() -> int:
             disposition = (field.get("approved_disposition") or "").strip()
             decision = (field.get("approved_decision_source") or "").strip()
             if not source_field or not provider_path or not decision:
-                errors.append(f"SOURCE_FIELD_LEDGER row {index}: source_field, raw_provider_path, and approved_decision_source are required")
+                errors.append(
+                    f"SOURCE_FIELD_LEDGER row {index}: source_field, raw_provider_path, and approved_decision_source are required"
+                )
             if source_field and PLACEHOLDER.match(source_field):
                 errors.append(f"SOURCE_FIELD_LEDGER row {index}: placeholder source_field {source_field!r}")
             if disposition not in DISPOSITIONS:

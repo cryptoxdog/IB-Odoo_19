@@ -1,6 +1,6 @@
 # PlasticOS CRM Sync | Cursor diagnostic campaign v1.1
 
-**Pack revision:** 1.1.2. `MANIFEST.json` hashes every file in this directory, including `PlasticOS_CRM_Cursor_Execution_Contract_v1.1.md`. Test results go in `docs/reports/evidence/plasticos-crm-sync-deep-probe-v1.1/` and every file in that directory is git-tracked.
+**Pack revision:** 1.1.3. `MANIFEST.json` hashes every file in this directory, including `PlasticOS_CRM_Cursor_Execution_Contract_v1.1.md`. Test results go in `docs/reports/evidence/plasticos-crm-sync-deep-probe-v1.1/` and every file in that directory is git-tracked. The results validator discovers its Git worktree with `git rev-parse --show-toplevel`. The Enterprise runner's implicit image build is authorized initialization; a changed image content identity stops the lane before tests.
 
 **Bottom line:** Diagnose the entire CRM sync vertical and **only its directly exercised dependencies** against exact `cryptoxdog/IB-Odoo_19` `Staging`, inside the already-admitted Odoo 19 **Enterprise** Docker environment. This is **Step 1: probe and report**, never fix, merge, publish, or deploy.
 

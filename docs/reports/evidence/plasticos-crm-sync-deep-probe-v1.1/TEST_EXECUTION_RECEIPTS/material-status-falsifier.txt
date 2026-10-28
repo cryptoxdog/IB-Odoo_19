@@ -1,0 +1,6 @@
+build_run_summary.final_status success
+build_run_summary.errors 1
+build_run_summary.records_rejected 0
+_completion.status success
+_completion.excerpt_empty True
+contacts_failed 0

@@ -26,7 +26,7 @@ When docs conflict, prefer in this order:
 4. **ADR-002 §3, ADR-016, ADR-018** — phase criteria and human checkpoints
 5. `ARCHITECTURE.md`, `AGENTS.md`, `CLAUDE.md` — narrative indexes (must be updated to match ADRs)
 
-`docs/track_b/` and `docs/handoffs/` were removed. Consumer and worker rules stay in ADR-003-single, ADR-009 through ADR-018, and `plasticos_gate`. `docs/roadmap/` is hand-authored; no script writes it.
+`docs/track_b/` and `docs/handoffs/` were removed. Consumer and worker rules stay in ADR-003-single, ADR-009 through ADR-018, and `plasticos_gate`. `docs/roadmap/` is empty; no script writes it.
 
 ### 2. Supersession / refresh map
 
@@ -35,7 +35,7 @@ When docs conflict, prefer in this order:
 | `ARCHITECTURE.md` | Refresh Gate/matching/enrichment to ADR-003 + ADR-009–015; remove local-engine authority |
 | `AGENTS.md` / `CLAUDE.md` | Load ADR-003-single + ADR-009–013 for intelligence tasks |
 | `docs/track_b/` and `docs/handoffs/` | Removed. Do not restore the local-fallback briefs. ADR-013 is the fail-closed rule. |
-| Gate roadmap generator | Removed 2026-10-21. `docs/roadmap/` stays as hand-authored strategy. Phase criteria are ADR-002 §3, ADR-016, and ADR-018. |
+| Gate roadmap generator | Removed 2026-10-21. `docs/roadmap/` is empty. Phase criteria are ADR-002 §3, ADR-016, and ADR-018. |
 | `ADR-002` | Banner: §2 superseded by ADR-003-single + ADR-013 |
 | Module READMEs (`plasticos_matching`, `plasticos_enrichment`) | Retitle to Gate orchestrator / result store (ADR-015) |
 | Pre-mothball prompts under `Current Work - IGNORE/` | Non-authoritative; do not apply Phase-3 Gate triage |

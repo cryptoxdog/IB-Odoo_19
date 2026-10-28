@@ -1,0 +1,42 @@
+MAIN_TOPLEVEL /Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19
+WORKTREE_TOPLEVEL /Users/ib-mac/IB-Odoo_19 (LOCAL)/wt-crm-deep-probe-v11
+MAIN_LOCATION accepted
+DETACHED_LOCATION ['evidence directory is not inside the Git worktree /Users/ib-mac/IB-Odoo_19 (LOCAL)/wt-crm-deep-probe-v11']
+REAL_EVIDENCE_RC 1
+WARNING: only 1 field identities; explicit FIELD_INVENTORY_NOT_PROVEN blocker preserved (no source-fidelity PASS)
+CRM evidence structural check: 43 frozen behaviors, 43 output rows, 1 issue(s)
+ - untracked evidence file docs/reports/evidence/plasticos-crm-sync-deep-probe-v1.1/TEST_EXECUTION_RECEIPTS/validator-proof.txt
+Note: even 0 issues does NOT establish source completeness, ORM execution or promotion acceptance.
+OUTSIDE_RC 1
+evidence directory is not inside the Git worktree /Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19
+missing SESSION_SUMMARY.md
+missing COVERAGE_MATRIX.csv
+missing SOURCE_FIELD_LEDGER.csv
+missing SOURCE_CONTACT_CENSUS.csv
+missing ROOT_CAUSE_FINDINGS.md
+missing OPERATOR_DECISIONS.md
+missing BLOCKERS.md
+missing PROVENANCE.json
+missing NEXT_CODING_CONTRACT_CANDIDATES.md
+missing TEST_EXECUTION_RECEIPTS/
+TEMP_GOOD_RC 0
+WARNING: only 1 field identities; explicit FIELD_INVENTORY_NOT_PROVEN blocker preserved (no source-fidelity PASS)
+CRM evidence structural check: 43 frozen behaviors, 43 output rows, 0 issue(s)
+Note: even 0 issues does NOT establish source completeness, ORM execution or promotion acceptance.
+BAD_SHA_RC 1
+WARNING: only 1 field identities; explicit FIELD_INVENTORY_NOT_PROVEN blocker preserved (no source-fidelity PASS)
+CRM evidence structural check: 43 frozen behaviors, 43 output rows, 1 issue(s)
+ - PROVENANCE git_sha must be 40 lowercase hex characters
+Note: even 0 issues does NOT establish source completeness, ORM execution or promotion acceptance.
+BAD_VERDICT_RC 1
+WARNING: only 1 field identities; explicit FIELD_INVENTORY_NOT_PROVEN blocker preserved (no source-fidelity PASS)
+CRM evidence structural check: 43 frozen behaviors, 43 output rows, 1 issue(s)
+ - SRC-01: invalid technical_verdict 'BOGUS'
+Note: even 0 issues does NOT establish source completeness, ORM execution or promotion acceptance.
+MISSING_SUMMARY_RC 1
+WARNING: only 1 field identities; explicit FIELD_INVENTORY_NOT_PROVEN blocker preserved (no source-fidelity PASS)
+CRM evidence structural check: 43 frozen behaviors, 43 output rows, 2 issue(s)
+ - missing SESSION_SUMMARY.md
+ - SRC-01: invalid technical_verdict 'BOGUS'
+Note: even 0 issues does NOT establish source completeness, ORM execution or promotion acceptance.
+TEMP_REPO /var/folders/3m/0j6pb5k50k79kt8zpbwryf3c0000gn/T/crm-validator-proof-27oyhj5n

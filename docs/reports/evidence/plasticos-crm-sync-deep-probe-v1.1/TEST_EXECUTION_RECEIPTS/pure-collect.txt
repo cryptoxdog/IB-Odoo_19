@@ -1,0 +1,5 @@
+ERROR: usage: pytest [options] [file_or_dir] [file_or_dir] [...]
+pytest: error: unrecognized arguments: --cache-clear
+  inifile: /Users/ib-mac/IB-Odoo_19 (LOCAL)/wt-crm-deep-probe-v11/pyproject.toml
+  rootdir: /Users/ib-mac/IB-Odoo_19 (LOCAL)/wt-crm-deep-probe-v11
+
