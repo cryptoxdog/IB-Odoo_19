@@ -65,11 +65,22 @@ class TestNativeVerificationDelegation(PlasticosTestCase):
         legacy = self.env["plasticos.document.sync"].sync_native_to_legacy(native)
         self.assertTrue(legacy)
         self.assertFalse(legacy.verified)
+        self.assertEqual(legacy.res_model, "documents.document")
+        self.assertFalse(legacy.transaction_id)
+        self.assertEqual(native.transaction_id, self.tx)
+        row = native.with_user(self.manager).action_associate_exact(
+            "plasticos.transaction",
+            self.tx.id,
+            source_reference="desk request",
+        )
+        self.assertEqual(row.association_state, "accepted")
+        self.assertFalse(row.verified)
         self.assertFalse(native.verified)
         native.with_user(self.manager).action_verify()
         legacy.invalidate_recordset()
         native.invalidate_recordset()
-        self.assertTrue(legacy.verified)
+        row.invalidate_recordset()
+        self.assertTrue(row.verified)
         self.assertEqual(legacy.verified_by, self.manager)
         self.assertEqual(native.verified_by, legacy.verified_by)
         self.assertEqual(native.verified_at, legacy.verified_at)
@@ -163,22 +174,20 @@ class TestNativeVerificationDelegation(PlasticosTestCase):
 
     def test_ambiguous_native_file_stays_pending(self):
         native = self._native("ambiguous.pdf")
-        legacy = self.env["plasticos.document.sync"].sync_native_to_legacy(native)
-        tag = legacy.tag_id
-        other = self.env["plasticos.document"].create(
-            {
-                "name": "second association",
-                "tag_id": tag.id,
-                "res_model": "plasticos.transaction",
-                "res_id": self.tx.id,
-                "transaction_id": self.tx.id,
-                "attachment_id": native.attachment_id.id,
-            }
+        self.env["plasticos.document.sync"].sync_native_to_legacy(native)
+        load_a = self.env["plasticos.load"].create({})
+        load_b = self.env["plasticos.load"].create({})
+        first = native.with_user(self.manager).action_associate_exact(
+            "plasticos.load", load_a.id, source_reference="load a"
+        )
+        second = native.with_user(self.manager).action_associate_exact(
+            "plasticos.load", load_b.id, source_reference="load b"
         )
         native.invalidate_recordset()
         self.assertEqual(native.verification_binding(), "ambiguous")
         self.assertFalse(native.verified)
         with self.assertRaisesRegex(UserError, "UNRESOLVED"):
             native.with_user(self.manager).action_verify()
-        self.assertFalse(legacy.verified)
-        self.assertFalse(other.verified)
+        self.assertFalse(first.verified)
+        self.assertFalse(second.verified)
+        self.assertEqual(first.attachment_id, second.attachment_id)

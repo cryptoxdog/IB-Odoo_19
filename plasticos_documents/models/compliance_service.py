@@ -32,6 +32,7 @@ class PlasticosComplianceService(models.AbstractModel):
                     ("res_model", "=", res_model),
                     ("res_id", "=", res_id),
                     ("tag_id", "in", tag_ids),
+                    ("association_state", "=", "accepted"),
                     "|",
                     ("verified", "=", True),
                     ("override", "=", True),

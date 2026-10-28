@@ -13,7 +13,7 @@ Enterprise module.
 
 import logging
 
-from odoo import api, models
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -59,17 +59,25 @@ class DocumentSyncService(models.AbstractModel):
             The created or updated ``plasticos.document`` record.
         """
         PlasticosDoc = self.env["plasticos.document"]
-        PlasticosTag = self.env["plasticos.document.tag"]
 
         # Skip if no attachment (empty/url-only documents)
         if not native_doc.attachment_id:
             return PlasticosDoc
 
-        # Already linked?
+        # Already linked? Do not retarget that pointer or erase other evidence rows.
         if native_doc.plasticos_doc_id:
-            return self._update_legacy(native_doc)
+            legacy = self._update_legacy(native_doc)
+        else:
+            legacy = self._create_pending_shell(native_doc)
+        if legacy and legacy.association_state != "accepted":
+            self._schedule_review_once(native_doc)
+        return legacy
 
-        # Resolve the tag
+    @api.model
+    def _create_pending_shell(self, native_doc):
+        """Unassigned classification. Native navigation is not copied as evidence."""
+        PlasticosDoc = self.env["plasticos.document"]
+        PlasticosTag = self.env["plasticos.document.tag"]
         tag_code = self.DOC_TYPE_TAG_MAP.get(native_doc.doc_type, "OTHER")
         tag = PlasticosTag.search([("code", "=", tag_code)], limit=1)
         if not tag:
@@ -81,27 +89,72 @@ class DocumentSyncService(models.AbstractModel):
                 native_doc.id,
             )
             return PlasticosDoc
-
-        # Determine res_model / res_id for the legacy record
-        res_model, res_id = self._resolve_business_link(native_doc)
-
-        vals = {
-            "name": native_doc.name or "Untitled",
-            "res_model": res_model,
-            "res_id": res_id,
-            "attachment_id": native_doc.attachment_id.id,
-            "tag_id": tag.id,
-        }
-
-        legacy_doc = PlasticosDoc.create(vals)
+        existing = PlasticosDoc.search(
+            [
+                ("attachment_id", "=", native_doc.attachment_id.id),
+                ("res_model", "=", "documents.document"),
+                ("res_id", "=", native_doc.id),
+                ("association_state", "=", "pending"),
+            ],
+            limit=1,
+        )
+        if existing:
+            native_doc.write({"plasticos_doc_id": existing.id})
+            return existing
+        legacy_doc = PlasticosDoc.create(
+            {
+                "name": native_doc.name or "Untitled",
+                "res_model": "documents.document",
+                "res_id": native_doc.id,
+                "attachment_id": native_doc.attachment_id.id,
+                "tag_id": tag.id,
+                "association_state": "pending",
+                "candidate_partner_id": native_doc.partner_id.id,
+                "pending_reason": self._navigation_reason(native_doc),
+            }
+        )
         native_doc.write({"plasticos_doc_id": legacy_doc.id})
-
         _logger.info(
-            "Synced native document %s → legacy plasticos.document %s",
+            "Held native document %s as unverified pending plasticos.document %s",
             native_doc.id,
             legacy_doc.id,
         )
         return legacy_doc
+
+    @api.model
+    def _navigation_reason(self, native_doc):
+        if native_doc.transaction_id and native_doc.load_id:
+            return "Native transaction and load were not accepted; they disagree as evidence."
+        if native_doc.transaction_id or native_doc.load_id or native_doc.intake_id or native_doc.partner_id:
+            return "Native navigation was not accepted as evidence."
+        return "Original is unassigned."
+
+    @api.model
+    def _schedule_review_once(self, native_doc):
+        """At most one internal activity. No recipient is invented when the file has no owner."""
+        if not native_doc.owner_id:
+            return
+        summary = "Document association needs review"
+        activity = self.env["mail.activity"]
+        if activity.search_count(
+            [
+                ("res_model", "=", "documents.document"),
+                ("res_id", "=", native_doc.id),
+                ("summary", "=", summary),
+            ]
+        ):
+            return
+        activity.with_context(mail_activity_quick_update=True).create(
+            {
+                "res_model_id": self.env["ir.model"]._get_id("documents.document"),
+                "res_id": native_doc.id,
+                "activity_type_id": self.env.ref("mail.mail_activity_data_todo").id,
+                "summary": summary,
+                "note": native_doc.plasticos_doc_id.pending_reason or self._navigation_reason(native_doc),
+                "user_id": native_doc.owner_id.id,
+                "date_deadline": fields.Date.context_today(native_doc),
+            }
+        )
 
     @api.model
     def _update_legacy(self, native_doc):
@@ -117,19 +170,11 @@ class DocumentSyncService(models.AbstractModel):
 
     @api.model
     def _resolve_business_link(self, native_doc):
-        """Determine the best ``res_model`` / ``res_id`` pair for the legacy
-        record based on the plastics domain links.
+        """Native attributes are not an accepted association.
 
-        Priority: transaction > load > intake > partner.
+        Transaction, load, intake, and partner stay navigation. The pending
+        shell points at the native original itself.
         """
-        if native_doc.transaction_id:
-            return "plasticos.transaction", native_doc.transaction_id.id
-        if native_doc.load_id:
-            return "plasticos.load", native_doc.load_id.id
-        if native_doc.intake_id:
-            return "plasticos.intake", native_doc.intake_id.id
-        if native_doc.partner_id:
-            return "res.partner", native_doc.partner_id.id
         return "documents.document", native_doc.id
 
     @api.model

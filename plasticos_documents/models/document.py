@@ -9,6 +9,16 @@ _logger = logging.getLogger(__name__)
 # native document pointing at itself are not verification targets.
 EXCLUDED_EVIDENCE_MODELS = frozenset({"res.partner", "documents.document"})
 
+ALLOWED_SUBJECT_SELECTION = [
+    ("plasticos.transaction", "Transaction"),
+    ("plasticos.load", "Load"),
+    ("purchase.order", "Purchase Order"),
+    ("sale.order", "Sales Order"),
+    ("stock.picking", "Transfer"),
+]
+ALLOWED_SUBJECTS = frozenset(item[0] for item in ALLOWED_SUBJECT_SELECTION)
+ASSOCIATION_GRANT_KEY = "plasticos_document_association_grant"
+
 DECISION_FIELDS = frozenset(
     {
         "verified",
@@ -26,6 +36,15 @@ DECISION_FIELDS = frozenset(
 VERIFICATION_GRANT_KEY = "plasticos_document_verification_grant"
 VERIFIER_GROUP = "plasticos_documents.group_documents_user"
 OVERRIDE_GROUP = "plasticos_documents.group_documents_manager"
+
+
+class AssociationGrant:
+    """In-process capability for an exact association. RPC JSON cannot carry it."""
+
+    __slots__ = ("uid",)
+
+    def __init__(self, uid):
+        self.uid = uid
 
 
 class VerificationGrant:
@@ -129,6 +148,59 @@ class PlasticosDocument(models.Model):
         help="Load this document is attached to (BOL, weight ticket, etc.).",
     )
 
+    association_state = fields.Selection(
+        [("pending", "Pending"), ("accepted", "Accepted"), ("review", "Review")],
+        string="Association",
+        default="pending",
+        required=True,
+        index=True,
+        readonly=True,
+        help="Accepted only by the exact association command. Pending and review are not evidence.",
+    )
+    associated_by = fields.Many2one(
+        "res.users",
+        string="Associated By",
+        readonly=True,
+        ondelete="restrict",
+    )
+    associated_at = fields.Datetime(string="Associated At", readonly=True)
+    source_reference = fields.Char(
+        string="Source Reference",
+        readonly=True,
+        help="Attributable request, message, or on-screen selection recorded with the association.",
+    )
+    source_revision = fields.Char(
+        string="Source Revision",
+        readonly=True,
+        help="Attachment checksum at the time the association was accepted.",
+    )
+    covered_quantity = fields.Float(
+        string="Covered Quantity",
+        readonly=True,
+        help="Quantity this evidence row covers. It does not cover sibling loads or the rest of a shipment.",
+    )
+    subject_company_id = fields.Many2one(
+        "res.company",
+        string="Subject Company",
+        readonly=True,
+        ondelete="restrict",
+    )
+    candidate_partner_id = fields.Many2one(
+        "res.partner",
+        string="Candidate Partner",
+        ondelete="set null",
+        help="Navigation hint only. It is not an accepted association.",
+    )
+    pending_reason = fields.Text(string="Pending Reason", readonly=True)
+    association_review_required = fields.Boolean(string="Association Review", readonly=True)
+    association_subject_model = fields.Selection(
+        ALLOWED_SUBJECT_SELECTION,
+        string="Subject",
+    )
+    association_subject_id = fields.Integer(string="Subject Record")
+    association_source_reference = fields.Char(string="Source Reference Draft")
+    association_covered_quantity = fields.Float(string="Covered Quantity Draft")
+
     # ── Document Category ──────────────────────────────────────────
     doc_category = fields.Selection(
         [
@@ -158,6 +230,32 @@ class PlasticosDocument(models.Model):
         if not isinstance(grant, VerificationGrant) or grant.uid != self.env.uid or not touched <= grant.fields:
             raise AccessError("Business verification cannot be written directly.")
 
+    def _association_vals_need_grant(self, vals):
+        if vals.get("association_state") == "accepted":
+            return True
+        if vals.get("res_model") in ALLOWED_SUBJECTS:
+            return True
+        if vals.get("transaction_id") or vals.get("load_id"):
+            return True
+        return any(
+            vals.get(name)
+            for name in (
+                "associated_by",
+                "associated_at",
+                "source_reference",
+                "source_revision",
+                "subject_company_id",
+                "association_review_required",
+            )
+        )
+
+    def _refuse_direct_association_write(self, vals):
+        if not self._association_vals_need_grant(vals):
+            return
+        grant = self.env.context.get(ASSOCIATION_GRANT_KEY)
+        if not isinstance(grant, AssociationGrant) or grant.uid != self.env.uid:
+            raise AccessError("Exact evidence association cannot be written directly.")
+
     def _decision_write(self, vals):
         grant = VerificationGrant(self.env.uid, DECISION_FIELDS)
         return self.with_context(**{VERIFICATION_GRANT_KEY: grant}).write(vals)
@@ -166,6 +264,7 @@ class PlasticosDocument(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             self._refuse_direct_decision_write(vals)
+            self._refuse_direct_association_write(vals)
         records = super().create(vals_list)
         records._invalidate_native_projection()
         self._trigger_transaction_recompute(records)
@@ -173,6 +272,7 @@ class PlasticosDocument(models.Model):
 
     def write(self, vals):
         self._refuse_direct_decision_write(vals)
+        self._refuse_direct_association_write(vals)
         result = super().write(vals)
         # Recompute if any compliance-affecting field changed
         compliance_fields = {"tag_id", "active", "transaction_id", "verified", "override", "is_current", "expiry_date"}
@@ -282,6 +382,10 @@ class PlasticosDocument(models.Model):
             raise UserError("UNRESOLVED: the evidence target record is missing.")
         if not self.active or not self.is_current or self.superseded_by or self.is_expired:
             raise UserError("UNRESOLVED: expired, inactive, or superseded evidence cannot be accepted.")
+        if self.association_state != "accepted":
+            raise UserError("UNRESOLVED: the evidence is not an accepted exact association.")
+        if self.source_revision and attachment.checksum != self.source_revision:
+            raise UserError("UNRESOLVED: the approved original was replaced. A new version is required.")
 
     def _currently_eligible(self):
         """Current compliance use of a historical decision. Does not erase the decision."""
@@ -297,7 +401,117 @@ class PlasticosDocument(models.Model):
             return False
         if not self.res_model or self.res_model in EXCLUDED_EVIDENCE_MODELS or not self.res_id:
             return False
+        if self.association_state != "accepted":
+            return False
+        if self.source_revision and attachment.checksum != self.source_revision:
+            return False
         return True
+
+    def _association_write(self, vals):
+        grant = AssociationGrant(self.env.uid)
+        return self.with_context(**{ASSOCIATION_GRANT_KEY: grant}).write(vals)
+
+    def _subject_parties(self, target):
+        parties = self.env["res.partner"]
+        for fname in ("partner_id", "supplier_id", "buyer_id", "carrier_id"):
+            if fname in target._fields and target[fname]:
+                parties |= target[fname]
+        return parties
+
+    def _lock_association(self, attachment, res_model, res_id, digest):
+        self.env.cr.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(%s))",
+            [f"plasticos.document.associate:{attachment.id}:{res_model}:{res_id}:{digest}"],
+        )
+
+    def action_associate(self, res_model, res_id, source_reference, covered_quantity=0.0):
+        """Accept one exact subject for this original. Does not verify it."""
+        self.ensure_one()
+        self._require_verifier()
+        reference = (source_reference or "").strip()
+        if not reference:
+            raise UserError("UNRESOLVED: an attributable source reference is required.")
+        if res_model not in ALLOWED_SUBJECTS or not res_id:
+            raise UserError("UNRESOLVED: that record is not an exact evidence subject.")
+        attachment = self.attachment_id.sudo()  # checksum only; actor already passed the command check
+        if (
+            not attachment
+            or not attachment.exists()
+            or attachment.type != "binary"
+            or not attachment.checksum
+            or not attachment.file_size
+        ):
+            raise UserError("UNRESOLVED: the original file is missing.")
+        target = self.env[res_model].browse(int(res_id)).exists()
+        if not target:
+            raise UserError("UNRESOLVED: the evidence target record is missing.")
+        company = target.company_id if "company_id" in target._fields and target.company_id else False
+        if company and company not in self.env.user.company_ids:
+            raise UserError("UNRESOLVED: the subject belongs to another company.")
+        if self.candidate_partner_id and self.candidate_partner_id not in self._subject_parties(target):
+            raise UserError("UNRESOLVED: the subject party does not match the stated counterparty.")
+        digest = attachment.checksum
+        subject_id = int(res_id)
+        self._lock_association(attachment, res_model, subject_id, digest)
+        existing = self.search(
+            [
+                ("attachment_id", "=", attachment.id),
+                ("res_model", "=", res_model),
+                ("res_id", "=", subject_id),
+                ("source_revision", "=", digest),
+                ("association_state", "=", "accepted"),
+            ],
+            limit=1,
+        )
+        if existing:
+            return existing
+        vals = {
+            "res_model": res_model,
+            "res_id": subject_id,
+            "association_state": "accepted",
+            "associated_by": self.env.uid,
+            "associated_at": fields.Datetime.now(),
+            "source_reference": reference,
+            "source_revision": digest,
+            "covered_quantity": covered_quantity or 0.0,
+            "subject_company_id": company.id if company else False,
+            "pending_reason": False,
+            "transaction_id": target.id if res_model == "plasticos.transaction" else False,
+            "load_id": target.id if res_model == "plasticos.load" else False,
+        }
+        placeholder = (
+            self.association_state == "pending"
+            and self.res_model in EXCLUDED_EVIDENCE_MODELS
+            and not self.verified
+            and not self.override
+        )
+        if placeholder:
+            self._association_write(vals)
+            return self
+        grant = AssociationGrant(self.env.uid)
+        return self.with_context(**{ASSOCIATION_GRANT_KEY: grant}).create(
+            [
+                {
+                    "name": self.name,
+                    "tag_id": self.tag_id.id,
+                    "attachment_id": attachment.id,
+                    "candidate_partner_id": self.candidate_partner_id.id,
+                    "doc_category": self.doc_category,
+                    **vals,
+                }
+            ]
+        )
+
+    def action_associate_from_form(self):
+        """Form command. Draft fields are not the association until this runs."""
+        self.ensure_one()
+        row = self.action_associate(
+            self.association_subject_model,
+            self.association_subject_id,
+            self.association_source_reference or "",
+            self.association_covered_quantity,
+        )
+        return row
 
     def action_verify(self):
         """Record one verification decision for this evidence scope."""

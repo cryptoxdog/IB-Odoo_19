@@ -61,16 +61,26 @@ class TestVerificationWriter(PlasticosTestCase):
         )
 
     def _document(self, **extra):
+        accept = extra.pop("accept", "res_model" not in extra)
         vals = {
             "name": "BOL",
             "tag_id": self.tag.id,
-            "res_model": "plasticos.transaction",
-            "res_id": self.tx.id,
-            "transaction_id": self.tx.id,
+            "res_model": "documents.document",
+            "res_id": 0,
             "attachment_id": self._attachment().id,
         }
         vals.update(extra)
-        return self.env["plasticos.document"].create(vals)
+        vals.pop("transaction_id", None)
+        vals.pop("load_id", None)
+        doc = self.env["plasticos.document"].create(vals)
+        if not accept:
+            return doc
+        row = doc.with_user(self.verifier).action_associate(
+            "plasticos.transaction",
+            self.tx.id,
+            source_reference="phase-a-fixture",
+        )
+        return self.env["plasticos.document"].browse(row.id)
 
     def test_verifier_command_records_one_provenance_and_refuses_direct_writes(self):
         doc = self._document()

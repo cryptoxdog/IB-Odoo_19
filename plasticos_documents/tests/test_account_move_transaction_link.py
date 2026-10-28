@@ -558,14 +558,18 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
             {
                 "name": tag.code,
                 "tag_id": tag.id,
-                "res_model": "plasticos.transaction",
-                "res_id": tx.id,
-                "transaction_id": tx.id,
+                "res_model": "documents.document",
+                "res_id": 0,
                 "attachment_id": attachment.id,
             }
         )
-        doc.with_user(self.doc_manager).action_verify()
-        return doc
+        row = doc.with_user(self.doc_manager).action_associate(
+            "plasticos.transaction",
+            tx.id,
+            source_reference="historical-fixture",
+        )
+        self.env["plasticos.document"].browse(row.id).with_user(self.doc_manager).action_verify()
+        return self.env["plasticos.document"].browse(row.id)
 
     def test_historical_markers_stay_draft_when_compliance_is_satisfied(self):
         """A marked invoice and an undated marked bill stay draft across missing -> compliant."""

@@ -51,6 +51,7 @@
                 <field name="res_id"/>
                 <field name="tag_id"/>
                 <field name="verified" widget="boolean" readonly="1"/>
+                <field name="association_state" optional="show" readonly="1"/>
                 <field name="verified_by" optional="show" widget="many2one_avatar_user" readonly="1"/>
                 <field name="verified_at" optional="hide" readonly="1"/>
                 <field name="override" widget="boolean" readonly="1"/>
@@ -65,6 +66,8 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_associate_from_form" string="Associate" type="object"
+                            groups="plasticos_documents.group_documents_user"/>
                     <button name="action_verify" string="Verify" type="object"
                             class="btn-primary" invisible="verified"
                             groups="plasticos_documents.group_documents_user"/>
@@ -80,9 +83,27 @@
                             <field name="attachment_id"/>
                         </group>
                         <group>
-                            <field name="res_model"/>
-                            <field name="res_id"/>
+                            <field name="res_model" readonly="1"/>
+                            <field name="res_id" readonly="1"/>
+                            <field name="association_state" readonly="1"/>
                             <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Exact Association" name="association">
+                        <group>
+                            <field name="association_subject_model"/>
+                            <field name="association_subject_id"/>
+                            <field name="association_source_reference"/>
+                            <field name="association_covered_quantity"/>
+                        </group>
+                        <group>
+                            <field name="source_reference" readonly="1"/>
+                            <field name="source_revision" readonly="1"/>
+                            <field name="covered_quantity" readonly="1"/>
+                            <field name="associated_by" readonly="1"/>
+                            <field name="associated_at" readonly="1"/>
+                            <field name="subject_company_id" readonly="1"/>
+                            <field name="pending_reason" readonly="1"/>
                         </group>
                     </group>
                     <group string="Verification" name="verification">

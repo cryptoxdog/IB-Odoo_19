@@ -14,6 +14,8 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_associate_from_form" type="object" string="Associate"
+                            groups="plasticos_documents.group_documents_user"/>
                     <button name="action_verify" type="object" string="Verify"
                             invisible="verified"
                             groups="plasticos_documents.group_documents_user"/>
@@ -25,6 +27,17 @@
                 <div class="alert alert-warning" role="alert" invisible="not verification_review_required">
                     Historical native verification disagrees with the business record and stays in review.
                 </div>
+                <div class="alert alert-info" role="alert" invisible="not transaction_id and not load_id">
+                    Transaction, load, and contact are navigation only. Associate accepts an exact record.
+                </div>
+                <group string="Exact Association">
+                    <group>
+                        <field name="association_subject_model"/>
+                        <field name="association_subject_id"/>
+                        <field name="association_source_reference"/>
+                        <field name="association_covered_quantity"/>
+                    </group>
+                </group>
                 <group string="Plasticos Classification">
                     <group>
                         <field name="doc_type"/>

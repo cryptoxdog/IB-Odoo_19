@@ -153,9 +153,22 @@ class DocumentNative(models.Model):
         "plasticos.document",
         string="Plasticos Document",
         readonly=True,
-        help="Link to the legacy plasticos.document record for backward compatibility.",
+        help="Navigation to one business row. It is not the only association and it is not verification.",
         ondelete="restrict",
     )
+    association_subject_model = fields.Selection(
+        [
+            ("plasticos.transaction", "Transaction"),
+            ("plasticos.load", "Load"),
+            ("purchase.order", "Purchase Order"),
+            ("sale.order", "Sales Order"),
+            ("stock.picking", "Transfer"),
+        ],
+        string="Subject",
+    )
+    association_subject_id = fields.Integer(string="Subject Record")
+    association_source_reference = fields.Char(string="Source Reference")
+    association_covered_quantity = fields.Float(string="Covered Quantity")
 
     # ── Actions ──────────────────────────────────────────────
     @api.model_create_multi
@@ -217,7 +230,7 @@ class DocumentNative(models.Model):
         legacy = self.plasticos_doc_id
         if legacy.attachment_id != self.attachment_id or legacy.res_model in self._excluded_evidence_models():
             return "unresolved"
-        if not legacy.res_id:
+        if not legacy.res_id or legacy.association_state != "accepted":
             return "unresolved"
         return "exact"
 
@@ -237,6 +250,7 @@ class DocumentNative(models.Model):
         "plasticos_doc_id.attachment_id",
         "plasticos_doc_id.res_model",
         "plasticos_doc_id.res_id",
+        "plasticos_doc_id.association_state",
         "attachment_id",
         "verification_review_required",
         "shortcut_document_id",
@@ -260,6 +274,7 @@ class DocumentNative(models.Model):
                 and legacy.attachment_id == rec.attachment_id
                 and legacy.res_model not in excluded
                 and legacy.res_id
+                and legacy.association_state == "accepted"
             )
             if exact:
                 rec.verified = bool(legacy.verified)
@@ -312,6 +327,8 @@ class DocumentNative(models.Model):
 
     def action_verify(self):
         """Delegate verification to plasticos.document. Does not author a native decision."""
+        if not self.env.user.has_group("plasticos_documents.group_documents_user"):
+            raise AccessError("Not authorized to verify documents.")
         legacy = self._require_exact_domain()
         legacy.action_verify()
         self.invalidate_recordset(list(PROJECTION_FIELDS))
@@ -320,6 +337,8 @@ class DocumentNative(models.Model):
 
     def action_override(self, reason=None):
         """Delegate override to plasticos.document. Reason is taken at decision time."""
+        if not self.env.user.has_group("plasticos_documents.group_documents_manager"):
+            raise AccessError("Not authorized to override.")
         if len(self) != 1 and reason is None:
             raise UserError("Override reason is required at decision time.")
         text = reason if isinstance(reason, str) else (self.override_reason_draft or "")
@@ -330,6 +349,25 @@ class DocumentNative(models.Model):
             drafts.write({"override_reason_draft": False})
         self.invalidate_recordset(list(PROJECTION_FIELDS))
         return True
+
+    def action_associate_exact(self, res_model, res_id, source_reference, covered_quantity=0.0):
+        """Delegate an exact association. Does not verify and does not copy the original."""
+        self.ensure_one()
+        shell = self.env["plasticos.document.sync"].sync_native_to_legacy(self)
+        if not shell:
+            raise UserError("UNRESOLVED: the original file is missing.")
+        row = shell.action_associate(res_model, res_id, source_reference, covered_quantity)
+        self.invalidate_recordset(list(PROJECTION_FIELDS))
+        return row
+
+    def action_associate_from_form(self):
+        self.ensure_one()
+        return self.action_associate_exact(
+            self.association_subject_model,
+            self.association_subject_id,
+            self.association_source_reference or "",
+            self.association_covered_quantity,
+        )
 
     def preserve_historical_native_verification(self, snapshot):
         """Record a historical native decision without copying it onto the business document.
