@@ -233,10 +233,6 @@ class PlasticosDocument(models.Model):
     def _association_vals_need_grant(self, vals):
         if vals.get("association_state") == "accepted":
             return True
-        if vals.get("res_model") in ALLOWED_SUBJECTS:
-            return True
-        if vals.get("transaction_id") or vals.get("load_id"):
-            return True
         return any(
             vals.get(name)
             for name in (
