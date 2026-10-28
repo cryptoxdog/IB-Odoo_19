@@ -4,25 +4,26 @@ Synthetic Enterprise readback on the runtime commit. This is not a 96-field hist
 
 ## Receipt
 
+Current runtime proof is the closure commit below. The earlier 75-test receipt stays historical and is not proof for this head.
+
 | Item | Value |
 | --- | --- |
-| Runtime commit | `55f9189d09c83b3079822c490865e8f8279fd507` |
-| Stack ancestor (PR #312 head) | `2fe9627c14da680d3ca1eae258aebf9ab69b5c91` |
+| Runtime commit | `e91a671782a5e6c35a84ecd4db67879a6a297048` |
+| Integration base | `3e21b79a48122d07b4a94444d5a0a588b543c8da` (`origin/Staging`) |
+| Stack ancestor (CRM-3, already in Staging) | `2fe9627c14da680d3ca1eae258aebf9ab69b5c91` |
 | Branch | `feat/crm-45-materials-and-crm-classification` |
-| Modules | `plasticos_crm_sync` `19.0.1.9.7`, `plasticos_crm_bridge` `19.0.3.4.11` |
-| Database | `odoo_test_w6cb014f012` |
+| Modules | `plasticos_crm_sync` `19.0.1.9.10`, `plasticos_crm_bridge` `19.0.3.4.14` |
+| Scoped database | `odoo_test_w480f0a27f0` |
 | Template | `odoo_test_tpl_ee_c9e8a81f52f23680` |
-| Fingerprint | `c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30` |
+| Fingerprint | `840872d079d2c0ef99771994de01ceb64e7c05388edc04fb52a722ee83e41c02` |
 | Odoo | `19.0-20261015` |
 | PostgreSQL | `15.19` (Debian 15.19-1.pgdg13+2). Not PostgreSQL 16. |
-| Tree | `dirty: false` at the runtime commit |
-| Enterprise ORM | 75 tests, 0 failed, 0 errors. Scope `plasticos_crm_bridge,plasticos_crm_sync`. |
-| Receipt | `.l9/runtime/test-env/odoo_test_w6cb014f012.test-receipt.json` |
-| Pure tests | 151 passed across classification, completeness, full-import, and phantom-enum, including the 25 classification tests. |
+| Tree | `dirty: false` |
+| Scoped Enterprise ORM | 95 tests, 0 failed, 0 errors. Scope `plasticos_crm_sync,plasticos_crm_bridge`. |
+| Full roster on this commit | 987 tests, 7 failed, 0 errors. Same seven names as clean Staging (960 tests, 7 failed) on clone `odoo_test_w4e6d4f9890`. Pre-existing claims, commission, and security failures. No CRM failure. |
+| Prior receipt | `55f9189d09c83b3079822c490865e8f8279fd507` on `odoo_test_w6cb014f012`: 75 tests, 0 failed. Superseded for this head. |
 
-The worktree has no `odoo-enterprise` symlink. The run set `ODOO_ENTERPRISE_PATH` to the admitted checkout `/Users/ib-mac/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise`. The fixture was not rebuilt.
-
-A docs-only commit may follow this file. It does not change the modules under test. The receipt head stays the runtime commit above.
+The fixture was not rebuilt. This ledger update does not change module Python. A docs-only commit of this file may sit on the runtime commit above.
 
 ## What the synthetic run read back
 
@@ -50,13 +51,13 @@ These classes cover source fields 1–96 from the CRM-4/CRM-5 disposition sheet.
 | Weight, loads, color | Weight and Loads/Month or Loads Per Month for MRP, PPS, LDPE, HDPE, and PP; Color for PPS, LDPE, HDPE, and PP | Synthetic HDPE fill-blank and non-overwrite. Other sections use the same section bucket. Contradictions and inexact values are `APPROVED_SKIP`. |
 | PPS context | Previous Content (PPS), Size (PPS), Notes (PPS) | `BLOCKED_PPS_PROFILE_IDENTITY` unless one profile already said supersac. Not copied onto the lead or person comment. |
 | Other section notes | Notes (MRP), Notes (LDPE), Notes (HDPE), Notes (PP) | Attached to the one profile of that section when the section has one identity. Contact-description placement is not claimed. |
-| Exclusions | Load Ready, ClosedFlag, Team, Call Back Date, Call Back Time, Scheduled Call User, SIC Code, SIC Code Description, NAICS Code, NAICS Code Description, Sales Volume Range, Sales Volume, Employees, Square Footage, Fleet Size, Product (MFR), Truck Size (E), Equipment, Price Quoted and FOB/FAS for MRP, PPS, LDPE, HDPE, and PP, Melt and Density for LDPE, HDPE, and PP, Load Ready (HDPE) | Existing exclusion tests in the 75-test run passed. That is a regression witness for the current filter, not a historical negative readback of every source key. |
+| Exclusions | Load Ready, ClosedFlag, Team, Call Back Date, Call Back Time, Scheduled Call User, SIC Code, SIC Code Description, NAICS Code, NAICS Code Description, Sales Volume Range, Sales Volume, Employees, Square Footage, Fleet Size, Product (MFR), Truck Size (E), Equipment, Price Quoted and FOB/FAS for MRP, PPS, LDPE, HDPE, and PP, Melt and Density for LDPE, HDPE, and PP, Load Ready (HDPE) | Existing exclusion tests in the 95-test scoped run passed. That is a regression witness for the current filter, not a historical negative readback of every source key. |
 
 ## Still blocked
 
 - Private 763:716 mapping, historical API, custom-table, and call census.
 - Full 96-field business acceptance and the 43-obligation integration stage.
-- Unapproved stage destinations. No new stage was created for them.
+- Unapproved stage destinations. No new stage was created for them. `7=Do Not Call` stays in the cohort on stage New. Contact suppression is `DNC_ENFORCEMENT_POLICY_UNKNOWN`: this change does not blacklist, archive, or send.
 - Company-type values outside the ten existing categories, and any category that repeats `company_role`, `facility_role`, or `partner_type_id`.
 - PPS context without a pre-existing supersac profile.
 - Production import, merge, and deploy. None of those were run.
