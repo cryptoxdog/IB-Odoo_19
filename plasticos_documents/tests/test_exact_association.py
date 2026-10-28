@@ -248,7 +248,13 @@ class TestExactAssociation(PlasticosTestCase):
         self.assertTrue(row.verified)
         self.assertEqual(row.verified_at, stamp)
         self.assertEqual(row.association_state, "accepted")
+        self.assertTrue(row.association_review_required)
         self.assertFalse(row._currently_eligible())
+        with self.assertRaises(AccessError):
+            row.with_user(self.clerk).write({"res_model": "plasticos.transaction", "res_id": 1})
+        with self.assertRaises(AccessError):
+            row.with_user(self.clerk).write({"associated_by": False, "association_state": "pending"})
+        self.assertEqual(row.res_model, "purchase.order")
         with self.assertRaisesRegex(UserError, "UNRESOLVED"):
             row.with_user(self.clerk).action_verify()
         with self.assertRaises(AccessError):

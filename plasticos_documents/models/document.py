@@ -18,6 +18,18 @@ ALLOWED_SUBJECT_SELECTION = [
 ]
 ALLOWED_SUBJECTS = frozenset(item[0] for item in ALLOWED_SUBJECT_SELECTION)
 ASSOCIATION_GRANT_KEY = "plasticos_document_association_grant"
+ASSOCIATION_PROVENANCE = frozenset(
+    {
+        "associated_by",
+        "associated_at",
+        "source_reference",
+        "source_revision",
+        "subject_company_id",
+        "association_review_required",
+        "covered_quantity",
+    }
+)
+ASSOCIATION_IDENTITY = frozenset({"res_model", "res_id", "transaction_id", "load_id"})
 
 DECISION_FIELDS = frozenset(
     {
@@ -231,19 +243,21 @@ class PlasticosDocument(models.Model):
             raise AccessError("Business verification cannot be written directly.")
 
     def _association_vals_need_grant(self, vals):
+        """Accepted evidence cannot be retargeted or stripped by a plain write.
+
+        A pending row may still store a subject pointer. That pointer is not
+        evidence until the association command sets the accepted state.
+        """
         if vals.get("association_state") == "accepted":
             return True
-        return any(
-            vals.get(name)
-            for name in (
-                "associated_by",
-                "associated_at",
-                "source_reference",
-                "source_revision",
-                "subject_company_id",
-                "association_review_required",
-            )
-        )
+        if any(vals.get(name) for name in ASSOCIATION_PROVENANCE):
+            return True
+        accepted = any(rec.association_state == "accepted" for rec in self)
+        if not accepted:
+            return False
+        if "association_state" in vals or ASSOCIATION_PROVENANCE.intersection(vals):
+            return True
+        return bool(ASSOCIATION_IDENTITY.intersection(vals))
 
     def _refuse_direct_association_write(self, vals):
         if not self._association_vals_need_grant(vals):
@@ -271,7 +285,21 @@ class PlasticosDocument(models.Model):
         self._refuse_direct_association_write(vals)
         result = super().write(vals)
         # Recompute if any compliance-affecting field changed
-        compliance_fields = {"tag_id", "active", "transaction_id", "verified", "override", "is_current", "expiry_date"}
+        compliance_fields = {
+            "tag_id",
+            "active",
+            "transaction_id",
+            "load_id",
+            "res_model",
+            "res_id",
+            "verified",
+            "override",
+            "is_current",
+            "expiry_date",
+            "association_state",
+            "source_revision",
+            "evidence_digest",
+        }
         if compliance_fields.intersection(vals.keys()):
             self._invalidate_native_projection()
             self._trigger_transaction_recompute(self)
@@ -414,6 +442,13 @@ class PlasticosDocument(models.Model):
                 parties |= target[fname]
         return parties
 
+    def _lock_original(self, attachment):
+        """One lock per original so two subjects cannot both fill the same shell."""
+        self.env.cr.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(%s))",
+            [f"plasticos.document.original:{attachment.id}"],
+        )
+
     def _lock_association(self, attachment, res_model, res_id, digest):
         self.env.cr.execute(
             "SELECT pg_advisory_xact_lock(hashtext(%s))",
@@ -448,7 +483,9 @@ class PlasticosDocument(models.Model):
             raise UserError("UNRESOLVED: the subject party does not match the stated counterparty.")
         digest = attachment.checksum
         subject_id = int(res_id)
+        self._lock_original(attachment)
         self._lock_association(attachment, res_model, subject_id, digest)
+        self.invalidate_recordset()
         existing = self.search(
             [
                 ("attachment_id", "=", attachment.id),
@@ -608,3 +645,28 @@ class PlasticosDocument(models.Model):
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_documents.cron_document_compliance_check"]
             )
+
+
+class IrAttachmentEvidenceRevision(models.Model):
+    """A replaced original does not keep the previous version's current eligibility."""
+
+    _inherit = "ir.attachment"
+
+    def write(self, vals):
+        result = super().write(vals)
+        if not {"datas", "raw"}.intersection(vals):
+            return result
+        documents = self.env["plasticos.document"].search([("attachment_id", "in", self.ids)])
+        replaced = documents.filtered(_replaced_accepted_evidence)
+        if replaced:
+            replaced._association_write({"association_review_required": True})
+        if documents:
+            documents._invalidate_native_projection()
+            documents._trigger_transaction_recompute(documents)
+        return result
+
+
+def _replaced_accepted_evidence(row):
+    if row.association_state != "accepted" or not row.source_revision or not row.attachment_id:
+        return False
+    return row.attachment_id.checksum != row.source_revision
