@@ -50,10 +50,10 @@
                 <field name="res_model"/>
                 <field name="res_id"/>
                 <field name="tag_id"/>
-                <field name="verified" widget="boolean"/>
-                <field name="verified_by" optional="show" widget="many2one_avatar_user"/>
-                <field name="verified_at" optional="hide"/>
-                <field name="override" widget="boolean"/>
+                <field name="verified" widget="boolean" readonly="1"/>
+                <field name="verified_by" optional="show" widget="many2one_avatar_user" readonly="1"/>
+                <field name="verified_at" optional="hide" readonly="1"/>
+                <field name="override" widget="boolean" readonly="1"/>
                 <field name="active" invisible="1"/>
             </list>
         </field>
@@ -66,7 +66,11 @@
             <form>
                 <header>
                     <button name="action_verify" string="Verify" type="object"
-                            class="btn-primary" invisible="verified"/>
+                            class="btn-primary" invisible="verified"
+                            groups="plasticos_documents.group_documents_user"/>
+                    <button name="action_override" string="Override" type="object"
+                            invisible="override"
+                            groups="plasticos_documents.group_documents_manager"/>
                 </header>
                 <sheet>
                     <group>
@@ -83,13 +87,17 @@
                     </group>
                     <group string="Verification" name="verification">
                         <group>
-                            <field name="verified"/>
-                            <field name="verified_by"/>
-                            <field name="verified_at"/>
+                            <field name="verified" readonly="1"/>
+                            <field name="verified_by" readonly="1"/>
+                            <field name="verified_at" readonly="1"/>
+                            <field name="evidence_digest" readonly="1"/>
                         </group>
                         <group>
-                            <field name="override"/>
-                            <field name="override_reason"/>
+                            <field name="override" readonly="1"/>
+                            <field name="override_reason" readonly="1"/>
+                            <field name="override_by" readonly="1"/>
+                            <field name="override_at" readonly="1"/>
+                            <field name="override_reason_draft" invisible="override"/>
                         </group>
                     </group>
                 </sheet>

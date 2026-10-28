@@ -1,9 +1,41 @@
 import logging
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 _logger = logging.getLogger(__name__)
+
+# Identity that is not an exact business evidence scope. Partner recency and a
+# native document pointing at itself are not verification targets.
+EXCLUDED_EVIDENCE_MODELS = frozenset({"res.partner", "documents.document"})
+
+DECISION_FIELDS = frozenset(
+    {
+        "verified",
+        "verified_by",
+        "verified_at",
+        "override",
+        "override_reason",
+        "override_by",
+        "override_at",
+        "evidence_digest",
+        "evidence_attachment_id",
+    }
+)
+
+VERIFICATION_GRANT_KEY = "plasticos_document_verification_grant"
+VERIFIER_GROUP = "plasticos_documents.group_documents_user"
+OVERRIDE_GROUP = "plasticos_documents.group_documents_manager"
+
+
+class VerificationGrant:
+    """In-process write capability. RPC context is JSON and cannot carry this instance."""
+
+    __slots__ = ("uid", "fields")
+
+    def __init__(self, uid, fields):
+        self.uid = uid
+        self.fields = frozenset(fields)
 
 
 class PlasticosDocument(models.Model):
@@ -24,6 +56,30 @@ class PlasticosDocument(models.Model):
 
     override = fields.Boolean(default=False)
     override_reason = fields.Text()
+    override_by = fields.Many2one(
+        "res.users",
+        string="Override By",
+        ondelete="restrict",
+        help="Manager who recorded the override. Set only by the override command.",
+    )
+    override_at = fields.Datetime(
+        string="Override At",
+        help="When the override was recorded. Set only by the override command.",
+    )
+    override_reason_draft = fields.Text(
+        string="Override Reason",
+        help="Reason typed before the override command. It is not the recorded decision.",
+    )
+    evidence_digest = fields.Char(
+        string="Evidence Digest",
+        help="Attachment checksum accepted by the verification or override command.",
+    )
+    evidence_attachment_id = fields.Many2one(
+        "ir.attachment",
+        string="Evidence Attachment",
+        ondelete="restrict",
+        help="Attachment accepted by the verification or override command.",
+    )
 
     active = fields.Boolean(default=True)
 
@@ -94,30 +150,61 @@ class PlasticosDocument(models.Model):
             else:
                 rec.is_expired = False
 
+    def _refuse_direct_decision_write(self, vals):
+        touched = DECISION_FIELDS.intersection(vals)
+        if not touched:
+            return
+        grant = self.env.context.get(VERIFICATION_GRANT_KEY)
+        if not isinstance(grant, VerificationGrant) or grant.uid != self.env.uid or not touched <= grant.fields:
+            raise AccessError("Business verification cannot be written directly.")
+
+    def _decision_write(self, vals):
+        grant = VerificationGrant(self.env.uid, DECISION_FIELDS)
+        return self.with_context(**{VERIFICATION_GRANT_KEY: grant}).write(vals)
+
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            self._refuse_direct_decision_write(vals)
         records = super().create(vals_list)
+        records._invalidate_native_projection()
         self._trigger_transaction_recompute(records)
         return records
 
     def write(self, vals):
+        self._refuse_direct_decision_write(vals)
         result = super().write(vals)
         # Recompute if any compliance-affecting field changed
-        compliance_fields = {"tag_id", "active", "transaction_id", "verified", "override"}
+        compliance_fields = {"tag_id", "active", "transaction_id", "verified", "override", "is_current", "expiry_date"}
         if compliance_fields.intersection(vals.keys()):
+            self._invalidate_native_projection()
             self._trigger_transaction_recompute(self)
         return result
 
     def unlink(self):
         # Capture transactions before delete
         transactions = self._get_related_transactions(self)
+        attachments = self.attachment_id
         result = super().unlink()
+        if "documents.document" in self.env and attachments:
+            native = self.env["documents.document"].search([("attachment_id", "in", attachments.ids)])
+            native.invalidate_recordset(["verified", "verified_by", "verified_at", "override", "override_reason"])
         # Trigger recompute after delete (both flags AND compliance)
         if transactions:
             transactions._compute_missing_doc_flags()
             if hasattr(transactions, "_compute_compliance"):
                 transactions._compute_compliance()
         return result
+
+    def _invalidate_native_projection(self):
+        """Drop cached native projections. Does not write a verification decision."""
+        if "documents.document" not in self.env:
+            return
+        attachments = self.mapped("attachment_id")
+        if not attachments:
+            return
+        native = self.env["documents.document"].search([("attachment_id", "in", attachments.ids)])
+        native.invalidate_recordset(["verified", "verified_by", "verified_at", "override", "override_reason"])
 
     def _trigger_transaction_recompute(self, records):
         """Trigger recomputation of doc-related fields on related transactions.
@@ -163,26 +250,106 @@ class PlasticosDocument(models.Model):
 
         return tx_model.browse(list(tx_ids)) if tx_ids else tx_model
 
+    def _require_verifier(self):
+        if not self.env.user.has_group(VERIFIER_GROUP):
+            raise AccessError("Not authorized to verify documents.")
+
+    def _require_override_manager(self):
+        if not self.env.user.has_group(OVERRIDE_GROUP):
+            raise AccessError("Not authorized to override.")
+
+    def _require_exact_current_scope(self):
+        """Refuse a decision whose file or business target is not exact and current."""
+        self.ensure_one()
+        # The command already checked the actor. ir.attachment rules hide an
+        # original with no res_id from anyone but its author; the checksum read
+        # is the evidence identity, not a second verification writer.
+        attachment = self.attachment_id.sudo()  # checksum only; actor already passed the command check
+        if (
+            not attachment
+            or not attachment.exists()
+            or attachment.type != "binary"
+            or not attachment.checksum
+            or not attachment.file_size
+        ):
+            raise UserError("UNRESOLVED: the original file is missing.")
+        if not self.res_model or not self.res_id or self.res_model in EXCLUDED_EVIDENCE_MODELS:
+            raise UserError("UNRESOLVED: the evidence is not bound to an exact business record.")
+        if self.res_model not in self.env:
+            raise UserError("UNRESOLVED: the evidence target model is missing.")
+        target = self.env[self.res_model].browse(self.res_id).exists()
+        if not target:
+            raise UserError("UNRESOLVED: the evidence target record is missing.")
+        if not self.active or not self.is_current or self.superseded_by or self.is_expired:
+            raise UserError("UNRESOLVED: expired, inactive, or superseded evidence cannot be accepted.")
+
+    def _currently_eligible(self):
+        """Current compliance use of a historical decision. Does not erase the decision."""
+        self.ensure_one()
+        if not (self.verified or self.override):
+            return False
+        if not self.active or not self.is_current or self.superseded_by or self.is_expired:
+            return False
+        attachment = self.attachment_id.sudo()  # checksum only; actor already passed the command check
+        if not self.evidence_digest or not attachment or attachment.checksum != self.evidence_digest:
+            return False
+        if self.evidence_attachment_id and self.evidence_attachment_id != attachment:
+            return False
+        if not self.res_model or self.res_model in EXCLUDED_EVIDENCE_MODELS or not self.res_id:
+            return False
+        return True
+
     def action_verify(self):
+        """Record one verification decision for this evidence scope."""
+        self._require_verifier()
+        now = fields.Datetime.now()
         for rec in self:
-            rec.verified = True
-            rec.verified_by = self.env.user.id
-            rec.verified_at = fields.Datetime.now()
+            if rec.verified:
+                digest = rec.attachment_id.sudo().checksum if rec.attachment_id else False  # same identity read
+                if rec.evidence_digest and digest != rec.evidence_digest:
+                    raise UserError("UNRESOLVED: the approved original was replaced. A new version is required.")
+                continue
+            rec._require_exact_current_scope()
+            rec._decision_write(
+                {
+                    "verified": True,
+                    "verified_by": self.env.uid,
+                    "verified_at": now,
+                    "evidence_digest": rec.attachment_id.sudo().checksum,  # same identity read
+                    "evidence_attachment_id": rec.attachment_id.id,
+                }
+            )
+        return True
 
     def action_override(self, reason=None):
-        """Override document verification.
-
-        Args:
-            reason: Optional override reason string. When called from a
-                    button action (no positional args), the reason can be
-                    set later via the ``override_reason`` field.
-        """
-        if not self.env.user.has_group("plasticos_documents.group_documents_manager"):
-            raise UserError("Not authorized to override.")
+        """Record a manager override. The reason is fixed at decision time."""
+        self._require_override_manager()
+        text = reason if isinstance(reason, str) else ""
+        if reason is None and len(self) == 1:
+            text = self.override_reason_draft or ""
+        text = text.strip()
+        if not text:
+            raise UserError("Override reason is required at decision time.")
+        now = fields.Datetime.now()
         for rec in self:
-            rec.override = True
-            if reason:
-                rec.override_reason = reason
+            if rec.override:
+                if (rec.override_reason or "").strip() != text:
+                    raise UserError("Override reason cannot be changed after the decision.")
+                continue
+            rec._require_exact_current_scope()
+            vals = {
+                "override": True,
+                "override_reason": text,
+                "override_by": self.env.uid,
+                "override_at": now,
+            }
+            if not rec.evidence_digest:
+                vals["evidence_digest"] = rec.attachment_id.sudo().checksum  # same identity read
+                vals["evidence_attachment_id"] = rec.attachment_id.id
+            rec._decision_write(vals)
+            if rec.override_reason_draft:
+                rec.write({"override_reason_draft": False})
+        return True
 
     def action_supersede(self, new_doc_id):
         """Mark this document as superseded by a newer version."""
@@ -198,11 +365,11 @@ class PlasticosDocument(models.Model):
 
     @api.model
     def _cron_compliance_audit(self):
-        """Batch compliance audit: flag verified documents that have expired.
+        """Report expired historical approvals. Does not erase them.
 
         Called by the scheduled action ``cron_document_compliance_check``.
-        Resets ``verified`` on any document whose ``is_expired`` is True
-        so that the compliance service no longer considers them valid.
+        Expiry removes current eligibility inside the compliance service.
+        The original ``verified`` decision and its actor/time stay in place.
         """
         self.env.cr.execute(
             "SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_documents.cron_document_compliance_check"]
@@ -222,11 +389,11 @@ class PlasticosDocument(models.Model):
                 order="write_date ASC, id ASC",
                 limit=500,
             )
-            if expired:
-                expired.write({"verified": False})
-                _logger.info("Compliance audit: reset verified flag on %d expired documents.", len(expired))
-            else:
-                _logger.info("Compliance audit: no expired verified documents found.")
+            _logger.info(
+                "Compliance audit: %s historically verified documents are expired and "
+                "excluded from current eligibility.",
+                len(expired),
+            )
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_documents.cron_document_compliance_check"]

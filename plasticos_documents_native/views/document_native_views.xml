@@ -13,7 +13,18 @@
         <field name="priority">64</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <button name="action_verify" type="object" string="Verify"
+                            invisible="verified"
+                            groups="plasticos_documents.group_documents_user"/>
+                    <button name="action_override" type="object" string="Override"
+                            invisible="override"
+                            groups="plasticos_documents.group_documents_manager"/>
+                </header>
                 <sheet>
+                <div class="alert alert-warning" role="alert" invisible="not verification_review_required">
+                    Historical native verification disagrees with the business record and stays in review.
+                </div>
                 <group string="Plasticos Classification">
                     <group>
                         <field name="doc_type"/>
@@ -27,15 +38,17 @@
                 </group>
                 <group string="Verification">
                     <group>
-                        <field name="verified"/>
-                        <field name="verified_by"
+                        <field name="verified" readonly="1"/>
+                        <field name="verified_by" readonly="1"
                                invisible="not verified"/>
-                        <field name="verified_at"
+                        <field name="verified_at" readonly="1"
                                invisible="not verified"/>
+                        <field name="verification_review_required" readonly="1"/>
                     </group>
                     <group>
-                        <field name="override"/>
-                        <field name="override_reason"
+                        <field name="override_reason_draft" invisible="override"/>
+                        <field name="override" readonly="1"/>
+                        <field name="override_reason" readonly="1"
                                invisible="not override"/>
                     </group>
                 </group>
@@ -61,7 +74,7 @@
                 <field name="doc_type" optional="show"/>
                 <field name="polymer_id" optional="show"/>
                 <field name="transaction_id" optional="hide"/>
-                <field name="verified" optional="show"/>
+                <field name="verified" optional="show" readonly="1"/>
             </xpath>
         </field>
     </record>

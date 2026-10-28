@@ -50,8 +50,10 @@ class PlasticosComplianceService(models.AbstractModel):
 
         for rule in rules:
             docs = docs_by_tag.get(rule.tag_id.id, self.env["plasticos.document"])
-            # Filter out expired documents so they no longer satisfy compliance
-            valid_docs = docs.filtered(lambda d: not d.is_expired)
+            # Historical approval is not current eligibility. Expired, inactive,
+            # superseded, replaced, or unbound evidence stays on the record and
+            # does not satisfy the rule.
+            valid_docs = docs.filtered(lambda d: d._currently_eligible())
 
             if not valid_docs:
                 missing.append(rule.tag_id.code)

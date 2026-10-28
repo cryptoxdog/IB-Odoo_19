@@ -91,11 +91,6 @@ class DocumentSyncService(models.AbstractModel):
             "res_id": res_id,
             "attachment_id": native_doc.attachment_id.id,
             "tag_id": tag.id,
-            "verified": native_doc.verified,
-            "verified_by": native_doc.verified_by.id if native_doc.verified_by else False,
-            "verified_at": native_doc.verified_at,
-            "override": native_doc.override,
-            "override_reason": native_doc.override_reason,
         }
 
         legacy_doc = PlasticosDoc.create(vals)
@@ -110,21 +105,14 @@ class DocumentSyncService(models.AbstractModel):
 
     @api.model
     def _update_legacy(self, native_doc):
-        """Push verification/override state changes to the linked legacy
-        record."""
+        """Return the linked business document without writing verification.
+
+        Repeated sync is idempotent. A native flag, tag change, or auto-sort
+        cannot accept evidence or revive a stale approval.
+        """
         legacy = native_doc.plasticos_doc_id
         if not legacy:
             return self.env["plasticos.document"]
-
-        legacy.write(
-            {
-                "verified": native_doc.verified,
-                "verified_by": native_doc.verified_by.id if native_doc.verified_by else False,
-                "verified_at": native_doc.verified_at,
-                "override": native_doc.override,
-                "override_reason": native_doc.override_reason,
-            }
-        )
         return legacy
 
     @api.model
