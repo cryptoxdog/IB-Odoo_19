@@ -158,6 +158,7 @@ class TestVerificationWriter(PlasticosTestCase):
         stamp = old.verified_at
         actor = old.verified_by
         self.assertTrue(service.is_compliant("plasticos.transaction", self.tx.id))
+        self.assertEqual(self.tx.compliance_status, "compliant")
 
         old.expiry_date = fields.Date.today() - timedelta(days=1)
         self.assertTrue(old.verified)
@@ -174,6 +175,12 @@ class TestVerificationWriter(PlasticosTestCase):
         self.assertTrue(old.verified)
         self.assertEqual(old.verified_at, stamp)
         self.assertFalse(old._currently_eligible())
+        self.env.flush_all()
+        self.env.cr.execute(
+            "SELECT compliance_status FROM plasticos_transaction WHERE id = %s",
+            (self.tx.id,),
+        )
+        self.assertEqual(self.env.cr.fetchone()[0], "missing")
         with self.assertRaisesRegex(UserError, "UNRESOLVED"):
             old.with_user(self.verifier).action_verify()
         self.assertEqual(old.verified_at, stamp)
