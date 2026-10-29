@@ -72,20 +72,18 @@ class PlasticosLoadDashboard(models.Model):
     # ── SQL VIEW ──────────────────────────────────────────────────────────
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
-        # plasticos_transaction.load_id is injected by transaction_inherit.py in this same
-        # module. On a fresh-DB install the column can be absent the first time this VIEW is
-        # built (registry crashed here with "column t.load_id does not exist"). Probe for it
-        # and fall back to a transaction-less view in that window; the next module update
-        # rebuilds the full view once the column exists.
+        # The parent is plasticos_load.transaction_id, one row per load. Probe for that
+        # column and fall back to a transaction-less view if this module's table is not
+        # ready yet; the next module update rebuilds the full view.
         # nosemgrep: odoo-raw-sql -- static information_schema probe, no interpolation
         self.env.cr.execute("""
             SELECT 1 FROM information_schema.columns
-            WHERE table_name = 'plasticos_transaction' AND column_name = 'load_id'
+            WHERE table_name = 'plasticos_load' AND column_name = 'transaction_id'
         """)
         has_tx_link = bool(self.env.cr.fetchone())
         # Two fully-static VIEW definitions instead of f-string interpolation: the
         # transaction-linked variant and the fresh-install fallback (column
-        # plasticos_transaction.load_id may not exist yet on the first build).
+        # plasticos_load.transaction_id may not exist yet on the first build).
         # Static literals keep this free of any SQL-injection surface and mirror the
         # convention used by the admin/sales dashboard VIEWs.
         if has_tx_link:
@@ -115,14 +113,14 @@ class PlasticosLoadDashboard(models.Model):
                     l.bol_delivery_attached     AS bol_delivery_attached,
                     l.write_date                AS write_date
                 FROM plasticos_load l
-                LEFT JOIN plasticos_transaction t ON t.load_id = l.id
+                LEFT JOIN plasticos_transaction t ON t.id = l.transaction_id
                 LEFT JOIN res_partner rp_carrier ON rp_carrier.id = l.carrier_id
                 WHERE l.state != 'closed'
                    OR l.write_date >= date_trunc('month', NOW())
             """)
         else:
             _logger.warning(
-                "plasticos_load_dashboard: plasticos_transaction.load_id not present yet — "
+                "plasticos_load_dashboard: plasticos_load.transaction_id not present yet — "
                 "building transaction-less view; it rebuilds fully on the next module update."
             )
             self.env.cr.execute("""
@@ -175,10 +173,7 @@ class PlasticosLoadDashboard(models.Model):
     def action_view_transaction(self):
         """Open the linked transaction."""
         self.ensure_one()
-        tx = self.env["plasticos.transaction"].search(
-            [("load_id", "=", self.load_id.id)],
-            limit=1,
-        )
+        tx = self.load_id.transaction_id
         if not tx:
             return {
                 "type": "ir.actions.client",
@@ -199,21 +194,28 @@ class PlasticosLoadDashboard(models.Model):
         }
 
     def action_view_documents(self):
-        """Open documents for the linked transaction."""
+        """Open documents attached to this dashboard row's own load."""
         self.ensure_one()
-        tx = self.env["plasticos.transaction"].search(
-            [("load_id", "=", self.load_id.id)],
-            limit=1,
-        )
-        if not tx:
+        if not self.load_id:
             return False
         doc_model = "documents.document" if "documents.document" in self.env else "plasticos.document"
+        load_id = self.load_id.id
+        domain = [("load_id", "=", load_id)]
+        doc_fields = self.env[doc_model]._fields
+        if "res_model" in doc_fields and "res_id" in doc_fields:
+            domain = [
+                "|",
+                ("load_id", "=", load_id),
+                "&",
+                ("res_model", "=", "plasticos.load"),
+                ("res_id", "=", load_id),
+            ]
         return {
             "type": "ir.actions.act_window",
             "name": f"Documents — {self.load_ref}",
             "res_model": doc_model,
             "view_mode": "list,form",
-            "domain": [("transaction_id", "=", tx.id)],
+            "domain": domain,
             "context": {"create": False},
         }
 

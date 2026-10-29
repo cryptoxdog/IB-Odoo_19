@@ -87,7 +87,6 @@ class TestLindaFreightModels(PlasticosTestCase):
                 "supplier_id": self.origin.id,
                 "buyer_id": self.destination.id,
                 "intake_id": intake.id,
-                "load_id": load.id,
             }
         )
         load.invalidate_recordset()

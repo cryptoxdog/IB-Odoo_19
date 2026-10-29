@@ -197,6 +197,9 @@ GLOBAL_ALLOWLIST = frozenset(
         "company",
         "person",
         # ─────────────────────────────────────────────────────────────────────
+        # SQL table names for the load row lock, not Selection values
+        "sale_order",
+        "plasticos_load",
         # ODOO MANIFEST KEYS — standard __manifest__.py dict keys
         # ─────────────────────────────────────────────────────────────────────
         "name",

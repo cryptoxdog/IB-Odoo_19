@@ -783,6 +783,26 @@
       "model": null,
       "field": null,
       "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "8e1992604279258f",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 438,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "c45c2c4ad7188980",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_documents/models/document.py",
+      "line": 513,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
     }
   ]
 }
