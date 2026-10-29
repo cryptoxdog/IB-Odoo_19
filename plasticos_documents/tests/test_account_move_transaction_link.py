@@ -17,7 +17,7 @@ import logging
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
 
 _logger = logging.getLogger(__name__)
@@ -475,13 +475,29 @@ class TestAccountMoveComplianceGate(PlasticosTestCase):
 
 @tagged("post_install", "-at_install", "accounting", "critical")
 class TestHistoricalAutopostGuard(PlasticosTestCase):
-    """Compliance may not post ERP historical drafts. Operational drafts still post."""
+    """Document compliance updates readiness only. Explicit action_post still posts."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.partner = cls.env["res.partner"].create(
             {"name": "Historical Autopost Partner", "is_company": True, "customer_rank": 1, "supplier_rank": 1}
+        )
+        cls.doc_manager = cls.env["res.users"].create(
+            {
+                "name": "Historical Docs Manager",
+                "login": "hist_docs_manager_phase_a",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            cls.env.ref("base.group_user").id,
+                            cls.env.ref("plasticos_documents.group_documents_manager").id,
+                        ],
+                    )
+                ],
+            }
         )
 
     def _tx(self):
@@ -538,17 +554,22 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
                 "res_id": 0,
             }
         )
-        return self.env["plasticos.document"].create(
+        doc = self.env["plasticos.document"].create(
             {
                 "name": tag.code,
                 "tag_id": tag.id,
-                "res_model": "plasticos.transaction",
-                "res_id": tx.id,
-                "transaction_id": tx.id,
+                "res_model": "documents.document",
+                "res_id": 0,
                 "attachment_id": attachment.id,
-                "verified": True,
             }
         )
+        row = doc.with_user(self.doc_manager).action_associate(
+            "plasticos.transaction",
+            tx.id,
+            source_reference="historical-fixture",
+        )
+        self.env["plasticos.document"].browse(row.id).with_user(self.doc_manager).action_verify()
+        return self.env["plasticos.document"].browse(row.id)
 
     def test_historical_markers_stay_draft_when_compliance_is_satisfied(self):
         """A marked invoice and an undated marked bill stay draft across missing -> compliant."""
@@ -568,7 +589,8 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         self.assertEqual(tx.compliance_status, "compliant")
         self.assertEqual(invoice.state, "draft")
         self.assertEqual(bill.state, "draft")
-        doc.write({"verified": True})
+        with self.assertRaises(AccessError):
+            doc.write({"verified": True})
         self.assertEqual(invoice.state, "draft")
         self.assertEqual(bill.state, "draft")
 
@@ -589,8 +611,8 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         self._mark(sale, "legacy_erp_outinv_not_a_move", model="sale.order")
         self.assertFalse(self.env["plasticos.transaction"]._historical_erp_moves(invoice))
 
-    def test_operational_sale_origin_invoice_still_autoposts(self):
-        """An unmarked sale-origin invoice posts when the invoice document arrives."""
+    def test_operational_sale_origin_invoice_stays_draft_until_explicit_post(self):
+        """A verified document leaves the sale-origin invoice draft. Explicit posting still posts it."""
         tag = self._isolate_invoice_rule("hist_autopost_operational")
         tx = self._tx()
         sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
@@ -600,10 +622,12 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         tx.invalidate_recordset()
         invoice.invalidate_recordset()
         self.assertEqual(tx.compliance_status, "compliant")
+        self.assertEqual(invoice.state, "draft")
+        invoice.action_post()
         self.assertEqual(invoice.state, "posted")
 
-    def test_mixed_set_posts_only_the_unmarked_move(self):
-        """The operational invoice posts. The marked bill stays draft."""
+    def test_mixed_set_stays_draft_until_explicit_post(self):
+        """Neither the operational invoice nor the marked bill posts from the document."""
         tag = self._isolate_invoice_rule("hist_autopost_mixed")
         tx = self._tx()
         sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
@@ -616,12 +640,15 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         tx.invalidate_recordset()
         invoice.invalidate_recordset()
         bill.invalidate_recordset()
-        self.assertEqual(invoice.state, "posted")
+        self.assertEqual(invoice.state, "draft")
         self.assertEqual(bill.state, "draft")
         self.assertEqual(tx.compliance_status, "compliant")
+        invoice.action_post()
+        self.assertEqual(invoice.state, "posted")
+        self.assertEqual(bill.state, "draft")
 
-    def test_lookalike_origin_and_xmlid_do_not_block_autopost(self):
-        """A worksheet-shaped origin and a non-qualifying xmlid still post."""
+    def test_lookalike_origin_stays_draft_until_explicit_post(self):
+        """A worksheet-shaped origin does not post from document compliance."""
         tag = self._isolate_invoice_rule("hist_autopost_lookalike")
         tx = self._tx()
         invoice = self._move("out_invoice", origin="54839", invoice_date="2022-04-01")
@@ -630,8 +657,10 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         self._satisfy(tx, tag)
         tx.invalidate_recordset()
         invoice.invalidate_recordset()
-        self.assertEqual(invoice.state, "posted")
+        self.assertEqual(invoice.state, "draft")
         self.assertEqual(tx.compliance_status, "compliant")
+        invoice.action_post()
+        self.assertEqual(invoice.state, "posted")
 
     def test_direct_post_of_a_historical_draft_uses_normal_accounting(self):
         """Explicit action_post still posts a dated historical draft and rejects an undated bill."""
@@ -657,8 +686,8 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
             invoice.action_post()
         self.assertEqual(invoice.state, "draft")
 
-    def test_operational_undated_bill_rolls_back_and_retries(self):
-        """An unmarked undated bill aborts the transition. Dating it lets the next document post both."""
+    def test_document_transition_does_not_post_or_roll_back_on_an_undated_bill(self):
+        """Verifying the document leaves both moves draft. Explicit posting still enforces the bill date."""
         tag = self._isolate_invoice_rule("hist_autopost_retry")
         tx = self._tx()
         sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
@@ -667,20 +696,16 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         tx.customer_invoice_id = invoice
         tx.vendor_bill_ids = [(4, bill.id)]
         self.assertEqual(tx.compliance_status, "missing")
-        with self.assertRaisesRegex(UserError, "The Bill/Refund date is required to validate this document."):
-            with self.env.cr.savepoint():
-                self._satisfy(tx, tag)
+        self._satisfy(tx, tag)
         tx.invalidate_recordset()
         invoice.invalidate_recordset()
         bill.invalidate_recordset()
-        self.assertEqual(tx.compliance_status, "missing")
+        self.assertEqual(tx.compliance_status, "compliant")
         self.assertEqual(invoice.state, "draft")
         self.assertEqual(bill.state, "draft")
-        self.assertFalse(
-            self.env["plasticos.document"].search([("res_model", "=", "plasticos.transaction"), ("res_id", "=", tx.id)])
-        )
-        bill.invoice_date = "2022-03-15"
-        self._satisfy(tx, tag)
-        self.assertEqual(tx.compliance_status, "compliant")
+        with self.assertRaisesRegex(UserError, "The Bill/Refund date is required to validate this document."):
+            bill.action_post()
+        self.assertEqual(bill.state, "draft")
+        invoice.action_post()
         self.assertEqual(invoice.state, "posted")
-        self.assertEqual(bill.state, "posted")
+        self.assertEqual(bill.state, "draft")
