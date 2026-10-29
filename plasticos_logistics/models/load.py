@@ -314,6 +314,10 @@ class PlasticosLoad(models.Model):
                         "Freight provenance may only be set through a validated freight command: "
                         f"{', '.join(sorted(protected))}"
                     )
+        # The insert's foreign key takes a shared lock on the sale order.
+        # Taking the exclusive lock first keeps two creates from deadlocking
+        # when both later try to upgrade that shared lock.
+        self._lock_rows("sale_order", [vals.get("sale_order_id") for vals in vals_list])
         records = super().create(vals_list)
         for rec in records:
             if rec.transaction_id:

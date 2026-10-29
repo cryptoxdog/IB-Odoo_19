@@ -1,14 +1,17 @@
 """A transaction has zero or more loads. Each load has one stored parent."""
 
 import importlib.util
+import threading
 
-from odoo import fields
+from odoo import api, fields
 from odoo.addons.plasticos_logistics.models.load import (
     _FREIGHT_INTERNAL_WRITE,
     _FREIGHT_INTERNAL_WRITE_TOKEN,
 )
 from odoo.exceptions import UserError, ValidationError
 from odoo.modules.module import get_module_path
+from odoo.orm.environments import Transaction
+from odoo.sql_db import db_connect
 from odoo.tests import TransactionCase, tagged
 
 
@@ -331,3 +334,231 @@ class TestLoadCardinality(TransactionCase):
         finally:
             other.close()
         self.assertTrue(self.env.company.exists())
+
+    def _real_cursor(self):
+        """Open a database connection the test transaction does not wrap.
+
+        ``registry.cursor()`` is patched during tests to a cursor whose
+        ``commit()`` only closes a savepoint. Another session cannot see those
+        rows, and the test transaction keeps the sequence locks they took.
+        """
+        cursor = db_connect(self.env.cr.dbname).cursor()
+        cursor.execute("SET lock_timeout = '8s'")
+        return cursor
+
+    def _commit_in_new_session(self, build):
+        """Run ORM writes on a second connection and commit them."""
+        cursor = self._real_cursor()
+        try:
+            env = api.Environment(cursor, self.env.uid, {})
+            result = build(env)
+            cursor.commit()
+            return result
+        except Exception:
+            cursor.rollback()
+            raise
+        finally:
+            cursor.close()
+
+    def _read_committed(self, query, params):
+        cursor = self._real_cursor()
+        try:
+            cursor.execute(query, params)
+            return cursor.fetchall()
+        finally:
+            cursor.rollback()
+            cursor.close()
+
+    def _erase_committed(self, ids):
+        if not ids:
+            return
+
+        def erase(env):
+            loads = env["plasticos.load"].browse(ids.get("loads", [])).exists()
+            loads.write({"notes": False})
+            loads.unlink()
+            env["plasticos.transaction"].browse(ids.get("transactions", [])).exists().unlink()
+            env["sale.order"].browse(ids.get("orders", [])).exists().unlink()
+            env["res.partner"].browse(ids.get("partners", [])).exists().unlink()
+            keys = ids.get("parameters", [])
+            if keys:
+                env["ir.config_parameter"].sudo().search([("key", "in", keys)]).unlink()
+
+        self._commit_in_new_session(erase)
+
+    def _start_session(self, work):
+        outcome = {}
+        # The test runner holds Registry._lock for the whole suite. A worker
+        # that constructs Registry() blocks until the suite ends. Reuse the
+        # registry already loaded on this thread.
+        registry = self.env.registry
+
+        def run():
+            cursor = self._real_cursor()
+            try:
+                cursor.transaction = Transaction(registry)
+                env = api.Environment(cursor, self.env.uid, {})
+                outcome["result"] = work(env)
+                cursor.commit()
+                outcome["committed"] = True
+            except Exception as exc:
+                cursor.rollback()
+                outcome["committed"] = False
+                outcome["error"] = f"{type(exc).__name__}: {exc}"
+            finally:
+                cursor.close()
+
+        thread = threading.Thread(target=run)
+        thread.start()
+        return thread, outcome
+
+    def _wait_sessions(self, sessions):
+        for thread, _outcome in sessions:
+            thread.join(20)
+            self.assertFalse(thread.is_alive(), "a database session was still running after 20s")
+
+    def test_two_sessions_commit_distinct_loads_under_one_transaction(self):
+        """Two committed sessions can each add a different load to one transaction."""
+        created = {"loads": [], "transactions": [], "orders": [], "partners": [], "parameters": []}
+        self.addCleanup(lambda: self._erase_committed(created))
+
+        def build(env):
+            buyer = env["res.partner"].create({"name": "Concurrent Buyer", "is_company": True, "customer_rank": 1})
+            supplier = env["res.partner"].create(
+                {"name": "Concurrent Supplier", "is_company": True, "supplier_rank": 1}
+            )
+            order = env["sale.order"].create({"partner_id": buyer.id})
+            transaction = env["plasticos.transaction"].create(
+                {
+                    "name": "TX-CONCURRENT-LOADS",
+                    "supplier_id": supplier.id,
+                    "buyer_id": buyer.id,
+                    "delivery_term": "appointment",
+                    "sale_order_id": order.id,
+                }
+            )
+            created["partners"].extend([buyer.id, supplier.id])
+            created["orders"].append(order.id)
+            created["transactions"].append(transaction.id)
+            return order.id, transaction.id
+
+        order_id, transaction_id = self._commit_in_new_session(build)
+
+        def add_load(marker):
+            def work(env):
+                load = env["plasticos.load"].create({"name": marker, "sale_order_id": order_id, "notes": marker})
+                return load.id
+
+            return work
+
+        first = self._start_session(add_load("session-load-a"))
+        second = self._start_session(add_load("session-load-b"))
+        self._wait_sessions([first, second])
+        for outcome in (first[1], second[1]):
+            if outcome.get("result"):
+                created["loads"].append(outcome["result"])
+        self.assertTrue(first[1].get("committed"), first[1].get("error"))
+        self.assertTrue(second[1].get("committed"), second[1].get("error"))
+
+        rows = self._read_committed(
+            """
+            SELECT id, transaction_id, notes
+              FROM plasticos_load
+             WHERE id IN %s
+             ORDER BY notes
+            """,
+            (tuple(created["loads"]),),
+        )
+        self.assertEqual(
+            [(row[1], row[2]) for row in rows],
+            [(transaction_id, "session-load-a"), (transaction_id, "session-load-b")],
+        )
+        parents = self._read_committed(
+            "SELECT COUNT(*) FROM plasticos_load WHERE transaction_id = %s",
+            (transaction_id,),
+        )
+        self.assertEqual(parents[0][0], 2)
+
+    def test_two_sessions_cannot_both_commit_competing_load_ownership(self):
+        """One load accepts one committed parent. The losing session rolls back completely."""
+        created = {"loads": [], "transactions": [], "orders": [], "partners": [], "parameters": []}
+        self.addCleanup(lambda: self._erase_committed(created))
+
+        def build(env):
+            buyer = env["res.partner"].create({"name": "Ownership Buyer", "is_company": True, "customer_rank": 1})
+            supplier = env["res.partner"].create({"name": "Ownership Supplier", "is_company": True, "supplier_rank": 1})
+            order = env["sale.order"].create({"partner_id": buyer.id})
+            values = {
+                "supplier_id": supplier.id,
+                "buyer_id": buyer.id,
+                "delivery_term": "appointment",
+                "sale_order_id": order.id,
+            }
+            first_tx = env["plasticos.transaction"].create({**values, "name": "TX-OWNERSHIP-A"})
+            second_tx = env["plasticos.transaction"].create({**values, "name": "TX-OWNERSHIP-B"})
+            load = (
+                env["plasticos.load"]
+                .with_context(plasticos_skip_load_parent_link=True)
+                .create({"sale_order_id": order.id})
+            )
+            created["partners"].extend([buyer.id, supplier.id])
+            created["orders"].append(order.id)
+            created["transactions"].extend([first_tx.id, second_tx.id])
+            created["loads"].append(load.id)
+            return load.id, first_tx.id, second_tx.id
+
+        load_id, first_tx_id, second_tx_id = self._commit_in_new_session(build)
+        created["parameters"].extend(
+            [f"plasticos.concurrency.{load_id}.owner-a", f"plasticos.concurrency.{load_id}.owner-b"]
+        )
+        unlinked = self._read_committed("SELECT transaction_id FROM plasticos_load WHERE id = %s", (load_id,))
+        self.assertIsNone(unlinked[0][0])
+
+        def assign(transaction_id, marker):
+            def work(env):
+                env["ir.config_parameter"].sudo().create(
+                    {"key": f"plasticos.concurrency.{load_id}.{marker}", "value": marker}
+                )
+                env["plasticos.load"].browse(load_id).write({"transaction_id": transaction_id, "notes": marker})
+                return marker
+
+            return work
+
+        first = self._start_session(assign(first_tx_id, "owner-a"))
+        second = self._start_session(assign(second_tx_id, "owner-b"))
+        self._wait_sessions([first, second])
+        outcomes = [first[1], second[1]]
+        committed = [item for item in outcomes if item.get("committed")]
+        rolled_back = [item for item in outcomes if not item.get("committed")]
+        self.assertEqual(len(committed), 1, outcomes)
+        self.assertEqual(len(rolled_back), 1, outcomes)
+        loser = rolled_back[0].get("error", "")
+        self.assertTrue(
+            "ValidationError" in loser or "SerializationFailure" in loser,
+            loser,
+        )
+        winner = committed[0]["result"]
+
+        rows = self._read_committed(
+            "SELECT transaction_id, sale_order_id, notes FROM plasticos_load WHERE id = %s",
+            (load_id,),
+        )
+        parent_id, _sale_order_id, notes = rows[0]
+        self.assertIn(parent_id, {first_tx_id, second_tx_id})
+        self.assertEqual(notes, winner)
+        self.assertEqual(parent_id, first_tx_id if winner == "owner-a" else second_tx_id)
+        evidence = self._read_committed(
+            "SELECT key, value FROM ir_config_parameter WHERE key LIKE %s ORDER BY key",
+            (f"plasticos.concurrency.{load_id}.%",),
+        )
+        self.assertEqual(evidence, [(f"plasticos.concurrency.{load_id}.{winner}", winner)])
+        owner_counts = self._read_committed(
+            """
+            SELECT transaction_id, COUNT(*)
+              FROM plasticos_load
+             WHERE id = %s
+             GROUP BY transaction_id
+            """,
+            (load_id,),
+        )
+        self.assertEqual(owner_counts, [(parent_id, 1)])
