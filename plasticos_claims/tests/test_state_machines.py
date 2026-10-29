@@ -71,6 +71,7 @@ class TestLoadStateMachineConsolidated(PlasticosTestCase):
                 "supplier_id": cls.supplier.id,
                 "buyer_id": cls.buyer.id,
                 "intake_id": cls.intake.id,
+                "sale_order_id": cls.sale_order.id,
             }
         )
 

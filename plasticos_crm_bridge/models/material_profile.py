@@ -98,8 +98,8 @@ class MaterialProfileCRMBridge(models.Model):
             rec.transaction_count = len(txs)
             rec.total_revenue = sum(txs.mapped("revenue_total"))
 
-            # Last load shipped — traverse tx → load_id → pickup_datetime
-            loads = txs.mapped("load_id").filtered(
+            # Last load shipped — every load on the transaction, through its stored parent.
+            loads = txs.mapped("load_ids").filtered(
                 lambda load: load.pickup_datetime and load.state in ("picked_up", "delivered", "closed")
             )
             if loads:

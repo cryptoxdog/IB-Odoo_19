@@ -453,34 +453,69 @@ class PlasticosDocument(models.Model):
             if hasattr(transactions, "_compute_compliance"):
                 transactions._compute_compliance()
 
-    def _get_related_transactions(self, records):
-        """Find all transactions related to the given document records.
+    def _association_conflict_reason(self):
+        """A stored transaction pointer must agree with the accepted load's parent."""
+        self.ensure_one()
+        if self.load_id and self.transaction_id and self.load_id.transaction_id != self.transaction_id:
+            return "The stored transaction does not match the load's transaction."
+        if self.res_model == "plasticos.load" and self.load_id and self.res_id and self.res_id != self.load_id.id:
+            return "The accepted load does not match the stored load."
+        if self.res_model == "plasticos.load" and self.res_id and self.transaction_id:
+            load = self.env["plasticos.load"].browse(self.res_id).exists()
+            if load and load.transaction_id != self.transaction_id:
+                return "The load parent does not match the stored transaction."
+        if (
+            self.res_model == "plasticos.transaction"
+            and self.transaction_id
+            and self.res_id
+            and self.res_id != self.transaction_id.id
+        ):
+            return "The accepted transaction does not match the stored transaction."
+        return False
 
-        Handles both direct link (transaction_id) and polymorphic link (res_model/res_id).
+    def _route_association_conflict(self):
+        """Keep the original and ask for review. Do not rewrite the pointers."""
+        self.ensure_one()
+        reason = self._association_conflict_reason()
+        if not reason:
+            return
+        marker = "Conflicting association withheld from evidence."
+        if any(marker in (message.body or "") for message in self.message_ids):
+            return
+        self.message_post(
+            body=f"{marker} {reason}",
+            message_type="notification",
+            subtype_xmlid="mail.mt_note",
+        )
+
+    def _get_related_transactions(self, records):
+        """Find transactions related to documents whose pointers agree.
+
+        A conflicting load and transaction pointer invalidates neither side.
         """
         tx_model = self.env["plasticos.transaction"]
         tx_ids = set()
 
         for record in records:
-            # Direct link
+            if record._association_conflict_reason():
+                record._route_association_conflict()
+                continue
             if record.transaction_id:
                 tx_ids.add(record.transaction_id.id)
 
-            # Polymorphic link: document on transaction directly
             if record.res_model == "plasticos.transaction":
                 tx_ids.add(record.res_id)
-
-            # Polymorphic link: document on load -> find transaction
             elif record.res_model == "plasticos.load":
-                tx = tx_model.search([("load_id", "=", record.res_id)], limit=1)
-                if tx:
-                    tx_ids.add(tx.id)
-
-            # Polymorphic link: document on sale order -> find transaction
+                load = self.env["plasticos.load"].browse(record.res_id).exists()
+                if load.transaction_id:
+                    tx_ids.add(load.transaction_id.id)
             elif record.res_model == "sale.order":
-                tx = tx_model.search([("sale_order_id", "=", record.res_id)], limit=1)
-                if tx:
-                    tx_ids.add(tx.id)
+                txs = tx_model.search([("sale_order_id", "=", record.res_id)])
+                if len(txs) == 1:
+                    tx_ids.add(txs.id)
+
+            if record.load_id.transaction_id:
+                tx_ids.add(record.load_id.transaction_id.id)
 
         return tx_model.browse(list(tx_ids)) if tx_ids else tx_model
 
@@ -524,6 +559,8 @@ class PlasticosDocument(models.Model):
     def _currently_eligible(self):
         """Current compliance use of a historical decision. Does not erase the decision."""
         self.ensure_one()
+        if self._association_conflict_reason():
+            return False
         if not (self.verified or self.override):
             return False
         if not self.active or not self.is_current or self.superseded_by or self._expiry_elapsed():

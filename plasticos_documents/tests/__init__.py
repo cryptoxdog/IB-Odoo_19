@@ -4,4 +4,5 @@ from . import test_exact_association
 from . import test_expiry_final_gate
 from . import test_native_verification_delegation
 from . import test_pr322_findings
+from . import test_scale_ticket_cardinality
 from . import test_verification_writer

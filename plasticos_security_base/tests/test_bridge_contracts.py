@@ -316,13 +316,14 @@ class TestTransactionModelContract(PlasticosTestCase):
 
     # ── Logistics Bridge Contract ────────────────────────────────────────
 
-    def test_transaction_has_load_id(self):
-        """load_id added by plasticos_logistics: one load per transaction
-        (plasticos_logistics/models/transaction_inherit.py:10-22, UNIQUE(load_id))."""
-        field = self.fields.get("load_id")
-        self.assertIsNotNone(field, "load_id field missing — logistics not installed?")
-        self.assertEqual(field.type, "many2one")
+    def test_transaction_has_load_ids(self):
+        """load_ids added by plasticos_logistics. The stored parent is load.transaction_id."""
+        self.assertIsNone(self.fields.get("load_id"))
+        field = self.fields.get("load_ids")
+        self.assertIsNotNone(field, "load_ids field missing — logistics not installed?")
+        self.assertEqual(field.type, "one2many")
         self.assertEqual(field.comodel_name, "plasticos.load")
+        self.assertEqual(field.inverse_name, "transaction_id")
 
     # ── Documents Bridge Contract ────────────────────────────────────────
 

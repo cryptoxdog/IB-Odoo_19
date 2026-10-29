@@ -12,7 +12,10 @@ Validates:
   - Document validation matrix model exists
 """
 
+import inspect
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_documents.models.compliance_service import PlasticosComplianceService
 from odoo.tests.common import tagged
 
 
@@ -85,6 +88,11 @@ class TestDocumentRuleModel(PlasticosTestCase):
         self.assertEqual(Rule._fields["res_model"].type, "char")
         self.assertEqual(Rule._fields["tag_id"].comodel_name, "plasticos.document.tag")
         self.assertTrue(Rule._fields["tag_id"].required)
+
+    def test_receiving_policy_does_not_sum_partial_rows(self):
+        source = inspect.getsource(PlasticosComplianceService._quantity_covers_subject)
+        self.assertIn("Partial rows are not summed", source)
+        self.assertIn("RECEIVING_TAG_CODE", source)
 
 
 @tagged("post_install", "-at_install", "documents")

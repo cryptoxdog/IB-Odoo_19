@@ -934,7 +934,10 @@ class PlasticosTransaction(models.Model):
             name = vals.get("name")
             if name and name != "New" and self.search([("name", "=", name)], limit=1):
                 raise ValidationError(f"Transaction reference '{name}' already exists.")
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        if "plasticos.load" in self.env:
+            self.env["plasticos.load"]._reconcile_unlinked_for_transactions(records)
+        return records
 
     def write(self, vals):
         name = vals.get("name")
@@ -948,7 +951,10 @@ class PlasticosTransaction(models.Model):
             self._validate_write_immutability(rec, vals)
             self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
             self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
-        return super().write(vals)
+        res = super().write(vals)
+        if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
+            self.env["plasticos.load"]._reconcile_unlinked_for_transactions(self)
+        return res
 
     def _validate_state_transition(self, rec, vals):
         """Enforce that state changes only happen via dedicated action methods.
@@ -1022,6 +1028,8 @@ class PlasticosTransaction(models.Model):
                 raise UserError("Cannot delete transaction linked to accounting records.")
             if rec.state == "closed":
                 raise UserError("Closed transactions cannot be deleted.")
+            if "load_ids" in rec._fields and rec.load_ids:
+                raise UserError("Cannot delete a transaction that still has loads.")
         return super().unlink()
 
     def action_activate(self):
@@ -1052,6 +1060,18 @@ class PlasticosTransaction(models.Model):
                     [f"plasticos_transaction.close_{rec.id}"],
                 )
 
+    def _refuse_lagging_loads(self, rec, milestone, message):
+        """A transaction milestone requires every linked load to have reached it.
+
+        A transaction with no loads keeps its existing workflow, including a PO-only deal.
+        """
+        if "load_ids" not in rec._fields or not rec.load_ids or "plasticos.load" not in self.env:
+            return
+        blocking = self.env["plasticos.load"]._loads_blocking_milestone(rec.load_ids, milestone)
+        if blocking:
+            names = ", ".join(blocking.mapped("name"))
+            raise UserError(f"{message} Still open: {names}.")
+
     def _validate_close_preconditions(self, rec, service_docs):
         """Guard all business rules that must pass before a transaction can be closed.
 
@@ -1067,9 +1087,7 @@ class PlasticosTransaction(models.Model):
             raise UserError("Customer invoice must be posted.")
         if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
             raise UserError("Vendor bills must be posted.")
-        load = getattr(rec, "load_id", False)
-        if load and load.state != "closed":
-            raise UserError("Logistics must be closed.")
+        self._refuse_lagging_loads(rec, "closed", "Logistics must be closed.")
         # An empty AbstractModel recordset is falsy: test for None, not truthiness.
         if service_docs is not None and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id, purpose="close"):
             raise UserError("Required documents missing.")
@@ -1111,9 +1129,11 @@ class PlasticosTransaction(models.Model):
                     f"Cannot mark dispatched: transaction must be in 'DO Created' or "
                     f"'Supplier Ready' state (current: {rec.state})."
                 )
-            load = getattr(rec, "load_id", False)
-            if load and load.state not in ("dispatched", "picked_up", "delivered", "closed"):
-                raise UserError("Cannot mark dispatched: load has not been dispatched yet.")
+            self._refuse_lagging_loads(
+                rec,
+                "dispatched",
+                "Cannot mark dispatched: a load has not been dispatched yet.",
+            )
             rec.with_context(bypass_state_guard=True).write({"state": "dispatched"})
 
     def action_mark_in_transit(self):
@@ -1125,6 +1145,11 @@ class PlasticosTransaction(models.Model):
         for rec in self:
             if rec.state not in ("dispatched", "do_created", "in_progress"):
                 raise UserError(f"Cannot mark in transit: invalid current state (current: {rec.state}).")
+            self._refuse_lagging_loads(
+                rec,
+                "in_transit",
+                "Cannot mark in transit: a load has not been picked up yet.",
+            )
             rec.with_context(bypass_state_guard=True).write({"state": "in_transit"})
 
     def action_mark_delivered(self):
@@ -1138,6 +1163,11 @@ class PlasticosTransaction(models.Model):
                 raise UserError(
                     f"Cannot mark delivered: transaction must be in 'In Transit' state (current: {rec.state})."
                 )
+            self._refuse_lagging_loads(
+                rec,
+                "delivered",
+                "Cannot mark delivered: a load has not been delivered yet.",
+            )
             rec.with_context(bypass_state_guard=True).write({"state": "delivered"})
 
     def action_mark_supplier_not_ready(self, reason=None):

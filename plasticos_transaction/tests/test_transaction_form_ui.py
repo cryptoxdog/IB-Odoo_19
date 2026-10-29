@@ -102,8 +102,9 @@ class TestTransactionFormUi(TransactionCase):
         self.assertEqual(names[:3], ["carrier_id", "freight_actual", "delivery_order_id"])
         self.assertEqual(len(self.form.xpath("//field[@name='carrier_id']")), 1)
         if self._installed("plasticos_logistics"):
-            self.assertEqual(names[3], "load_id")
-            self.assertEqual(len(self.form.xpath("//field[@name='load_id']")), 1)
+            self.assertEqual(names[3], "load_count")
+            self.assertEqual(names[4], "load_ids")
+            self.assertFalse(self.form.xpath("//field[@name='load_id']"))
         self.assertEqual(names[-1], "do_number")
 
     def test_every_form_field_exists_on_the_model(self):

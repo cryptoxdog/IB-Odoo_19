@@ -5,7 +5,7 @@ SQL constraints, @api.onchange auto-population, and computed field edge cases.
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import tagged
 
 
@@ -235,3 +235,138 @@ class TestTransactionComputesConsolidated(PlasticosTestCase):
     def test_light_weight_deduction_above_min(self):
         tx = self._tx(scale_weight=45000, minimum_net_weight=40000, light_weight_deduction_rate=0.01, unit_count=0)
         self.assertEqual(tx.light_weight_deduction, 0)
+
+
+@tagged("post_install", "-at_install", "plasticos", "constraint", "claims")
+class TestClaimLoadSelection(PlasticosTestCase):
+    """A claim load is chosen. It is never the transaction's first load."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.supplier = cls.env["res.partner"].create(
+            {"name": "Claim Load Supplier", "is_company": True, "supplier_rank": 1}
+        )
+        cls.buyer = cls.env["res.partner"].create({"name": "Claim Load Buyer", "is_company": True, "customer_rank": 1})
+        order = cls.env["sale.order"].create({"partner_id": cls.buyer.id})
+        other_order = cls.env["sale.order"].create({"partner_id": cls.buyer.id})
+        cls.tx = cls.env["plasticos.transaction"].create(
+            {
+                "name": "TX-CLAIM-LOADS",
+                "supplier_id": cls.supplier.id,
+                "buyer_id": cls.buyer.id,
+                "sale_order_id": order.id,
+            }
+        )
+        cls.first = cls.env["plasticos.load"].create({"sale_order_id": order.id, "transaction_id": cls.tx.id})
+        cls.second = cls.env["plasticos.load"].create({"sale_order_id": order.id, "transaction_id": cls.tx.id})
+        cls.other_tx = cls.env["plasticos.transaction"].create(
+            {
+                "name": "TX-CLAIM-OTHER",
+                "supplier_id": cls.supplier.id,
+                "buyer_id": cls.buyer.id,
+                "sale_order_id": other_order.id,
+            }
+        )
+        cls.other_load = cls.env["plasticos.load"].create(
+            {"sale_order_id": other_order.id, "transaction_id": cls.other_tx.id}
+        )
+
+    def test_claim_does_not_default_to_the_first_load(self):
+        claim = self.env["plasticos.claim"].create(
+            {"transaction_id": self.tx.id, "case_type": "buyer_claim", "severity": "medium"}
+        )
+        self.assertFalse(claim.load_id)
+        chosen = self.env["plasticos.claim"].create(
+            {
+                "transaction_id": self.tx.id,
+                "case_type": "buyer_claim",
+                "severity": "low",
+                "load_id": self.second.id,
+            }
+        )
+        self.assertEqual(chosen.load_id, self.second)
+
+    def test_cross_transaction_load_is_rejected_on_create_and_write(self):
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env["plasticos.claim"].create(
+                {
+                    "transaction_id": self.tx.id,
+                    "case_type": "buyer_claim",
+                    "severity": "medium",
+                    "load_id": self.other_load.id,
+                }
+            )
+        claim = self.env["plasticos.claim"].create(
+            {
+                "transaction_id": self.tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
+                "load_id": self.first.id,
+            }
+        )
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            claim.load_id = self.other_load
+        self.assertEqual(claim.load_id, self.first)
+
+    def test_claim_pictures_keep_the_exact_subject(self):
+        tag = self.env["plasticos.document.tag"].search([("code", "=", "claim_pics")], limit=1)
+        if not tag:
+            tag = self.env["plasticos.document.tag"].create({"name": "Claim Pics", "code": "claim_pics"})
+        attachment = self.env["ir.attachment"].create(
+            {"name": "pic.txt", "datas": "cGlj", "res_model": "plasticos.document", "res_id": 0}
+        )
+        load_doc = self.env["plasticos.document"].create(
+            {
+                "name": "Load pic",
+                "tag_id": tag.id,
+                "res_model": "plasticos.load",
+                "res_id": self.first.id,
+                "load_id": self.first.id,
+                "attachment_id": attachment.id,
+            }
+        )
+        claim = self.env["plasticos.claim"].search([("source_document_id", "=", load_doc.id)])
+        self.assertEqual(claim.transaction_id, self.tx)
+        self.assertEqual(claim.load_id, self.first)
+        from odoo.addons.plasticos_documents.models.document import ASSOCIATION_GRANT_KEY, AssociationGrant
+
+        with self.assertRaises(AccessError):
+            load_doc.write({"association_state": "accepted"})
+        grant = {ASSOCIATION_GRANT_KEY: AssociationGrant(self.env.uid)}
+        load_doc.with_context(**grant).write({"association_state": "accepted"})
+        self.assertEqual(self.env["plasticos.claim"].search_count([("source_document_id", "=", load_doc.id)]), 1)
+
+        tx_attachment = self.env["ir.attachment"].create(
+            {"name": "tx.txt", "datas": "dHg=", "res_model": "plasticos.document", "res_id": 0}
+        )
+        tx_doc = self.env["plasticos.document"].create(
+            {
+                "name": "Transaction pic",
+                "tag_id": tag.id,
+                "res_model": "plasticos.transaction",
+                "res_id": self.tx.id,
+                "transaction_id": self.tx.id,
+                "attachment_id": tx_attachment.id,
+            }
+        )
+        tx_claim = self.env["plasticos.claim"].search([("source_document_id", "=", tx_doc.id)])
+        self.assertEqual(tx_claim.transaction_id, self.tx)
+        self.assertFalse(tx_claim.load_id)
+
+        conflict_attachment = self.env["ir.attachment"].create(
+            {"name": "bad.txt", "datas": "YmFk", "res_model": "plasticos.document", "res_id": 0}
+        )
+        conflict = self.env["plasticos.document"].create(
+            {
+                "name": "Conflict pic",
+                "tag_id": tag.id,
+                "res_model": "plasticos.load",
+                "res_id": self.first.id,
+                "load_id": self.first.id,
+                "transaction_id": self.other_tx.id,
+                "attachment_id": conflict_attachment.id,
+            }
+        )
+        self.assertFalse(self.env["plasticos.claim"].search([("source_document_id", "=", conflict.id)]))
+        self.assertFalse(conflict._get_related_transactions(conflict))
