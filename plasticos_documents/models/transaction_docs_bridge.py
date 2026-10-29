@@ -50,7 +50,8 @@ class PlasticosTransactionDocsBridge(models.Model):
             parsed = Domain(domain)
         except (TypeError, ValueError):
             return False
-        return any(condition.field_expr == "compliance_status" for condition in parsed.iter_conditions())
+        needle = self._fields["compliance_status"].name
+        return any(condition.field_expr == needle for condition in parsed.iter_conditions())
 
     def _refresh_elapsed_expiry_compliance(self):
         """Stored compliance follows expiry without waiting for a document write."""
