@@ -1,6 +1,12 @@
 """Approved material phrases resolve to existing masters and nothing else."""
 
-from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
+from pathlib import Path
+from unittest.mock import patch
+
+from odoo.addons.plasticos_material_profile.models.material_normalizer import (
+    normalize_crm_material,
+    normalize_material,
+)
 from odoo.tests import TransactionCase, tagged
 
 
@@ -93,3 +99,77 @@ class TestMaterialNormalizer(TransactionCase):
         bottles = self.env["plasticos.polymer"].search([("code", "=", "3_7_COMMINGLED_BOTTLES")], limit=1)
         other = self.env["plasticos.material.profile"].create({"partner_id": self.partner.id, "polymer_id": bottles.id})
         self.assertEqual(other.polymer, "3_7_COMMINGLED_BOTTLES")
+
+    def test_bare_ldpe_stays_unresolved_for_the_worksheet_resolver(self):
+        with patch(
+            "odoo.addons.plasticos_material_profile.models.material_normalizer._master",
+        ) as lookup:
+            result = normalize_material(self.env, "LDPE")
+        self.assertFalse(lookup.called)
+        self.assertEqual(result.unresolved, ("unresolved material",))
+        self.assertFalse(result.polymer)
+        self.assertFalse(result.form)
+
+    def test_crm_exact_identities_do_not_change_worksheet_phrases(self):
+        bare = normalize_crm_material(self.env, "  LDPE  ")
+        self.assertFalse(bare.unresolved)
+        self.assertEqual(bare.polymer.code, "LDPE")
+        self.assertEqual(bare.form.code, "FILM")
+        self.assertFalse(bare.grade)
+        self.assertFalse(bare.attributes)
+        self.assertFalse(bare.source_type)
+
+        film = normalize_crm_material(self.env, "LDPE Film")
+        self.assertEqual(film.polymer.code, "LDPE")
+        self.assertEqual(film.form.code, "FILM")
+        self.assertFalse(film.grade)
+
+        drums = normalize_crm_material(self.env, "HDPE Drums")
+        self.assertEqual((drums.polymer.code, drums.form.code), ("HDPE", "DRUMS"))
+        alloy = normalize_crm_material(self.env, "PC/ABS")
+        self.assertEqual(alloy.polymer.code, "PC_ABS")
+        self.assertFalse(alloy.form)
+
+        self.assertEqual(normalize_crm_material(self.env, "Nylon").polymer.code, "NYLON")
+        self.assertEqual(normalize_crm_material(self.env, "Metal").polymer.code, "METAL")
+        self.assertEqual(normalize_crm_material(self.env, "E-Waste").polymer.code, "EWASTE")
+        hdpe = normalize_crm_material(self.env, "HDPE-")
+        hmw = normalize_crm_material(self.env, "HDPE-HMW")
+        self.assertEqual(hdpe.polymer.code, "HDPE")
+        self.assertFalse(hdpe.form)
+        self.assertEqual(hmw.polymer.code, "HDPE_HMW")
+        self.assertFalse(hmw.form)
+        self.assertNotEqual(hdpe.polymer, hmw.polymer)
+
+        for phrase, code in (
+            ("HDPE", "HDPE"),
+            ("HDPE-HMW", "HDPE_HMW"),
+            ("BOPP", "BOPP"),
+            ("LLDPE", "LLDPE"),
+            ("Plastic Pallets", "PLASTIC_PALLETS"),
+            ("Gaylord Boxes", "GAYLORD_BOXES"),
+        ):
+            with self.subTest(phrase=phrase):
+                result = normalize_crm_material(self.env, phrase)
+                self.assertFalse(result.unresolved)
+                self.assertEqual(result.polymer.code, code)
+                self.assertFalse(result.form)
+
+        prefixed = normalize_crm_material(self.env, "LDPE fluff")
+        self.assertEqual(prefixed.unresolved, ("unresolved material",))
+        self.assertFalse(prefixed.polymer)
+
+        hinted = normalize_crm_material(self.env, "Nylon", structured={"Material Form": "LDPE"})
+        self.assertEqual(hinted.polymer.code, "NYLON")
+        self.assertFalse(hinted.form)
+
+        conflict = normalize_crm_material(self.env, "HDPE", structured={"Material Form": "HDPE Drums"})
+        self.assertEqual(conflict.unresolved, ("conflicting material evidence",))
+        self.assertFalse(conflict.polymer)
+
+    def test_worksheet_import_still_calls_normalize_material(self):
+        source = (
+            Path(__file__).resolve().parents[2] / "plasticos_transaction/models/native_document_import.py"
+        ).read_text()
+        self.assertIn("normalize_material(", source)
+        self.assertNotIn("normalize_crm_material", source)
