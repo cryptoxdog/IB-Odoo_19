@@ -42,7 +42,7 @@
 - Odoo.sh native backups remain enabled and separate; this runbook does not need vendor access at *restore time*.
 - `backup.daily` timestamps and source data are not guaranteed fresh at four weekday times; use recorded source time.
 - Object Lock protects locked S3 object versions against deletion/overwriting but not KMS key deletion, account closure, poisoning of new uploads or loss of independent software/licensing access.
-- Historical CieTrade extraction files not yet imported into Odoo are not part of an Odoo filestore restore. Preserve their private archive under its separate owner.
+- Historical ERP extraction files not yet imported into Odoo are not part of an Odoo filestore restore. Preserve their private archive under its separate owner.
 
 ## Proof record (fill on actual run)
 

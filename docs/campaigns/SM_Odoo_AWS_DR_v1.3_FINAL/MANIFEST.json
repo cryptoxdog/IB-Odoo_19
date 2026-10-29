@@ -13,13 +13,13 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 7841,
-      "sha256": "c5e4b1eec66ac39217d7aefd2d8ff639f66c5c5de31f8127ab2d74a482af0627"
+      "bytes": 7836,
+      "sha256": "8c2287ebd40d4ddc293a6c037c6e273116f94da2df580785111e21d465fdfd1a"
     },
     {
       "path": "architecture/STORAGE_AND_BLAST_RADIUS.md",
-      "bytes": 21373,
-      "sha256": "e20a9450b78420d83265a375ca659e4bea3994e6a605a87b4b31a1f41bc025df"
+      "bytes": 21353,
+      "sha256": "755a8a6c346f0cbc9163b500f68c79cbfd8f274eabad4078170cd7854b3246c4"
     },
     {
       "path": "contracts/00_FEASIBILITY_AND_BLAST_RADIUS.md",
@@ -63,8 +63,8 @@
     },
     {
       "path": "coordination/CURSOR_START.md",
-      "bytes": 5429,
-      "sha256": "df2945b1689c4cb62180e14210a73aebf8ddb0dc7777883769da73f5a9754eab"
+      "bytes": 5424,
+      "sha256": "87402b37141661f88d0391cff56ed0d645bd50b619cc4ee41c1aaf9bc60ed1c3"
     },
     {
       "path": "coordination/DEFINITION_OF_DONE.md",
@@ -73,8 +73,8 @@
     },
     {
       "path": "coordination/INVARIANT_TRACEABILITY.csv",
-      "bytes": 17298,
-      "sha256": "f2ae45f6b3a05288e025f1a93a53a9e623ffcdffbc4ea61e9ba6e8cdcb603fea"
+      "bytes": 17293,
+      "sha256": "71b95b27296f7225bd59b0be79ba51d68eb00c15988610704dd944cac76c4231"
     },
     {
       "path": "coordination/SLICE_RECEIPT_TEMPLATE.yaml",
@@ -88,13 +88,13 @@
     },
     {
       "path": "evidence/COMPLETENESS_AND_ALIGNMENT_AUDIT.md",
-      "bytes": 5903,
-      "sha256": "2db5f4f678cc5126dc47673739471e18b87942201676d73f3651e702e8c074ad"
+      "bytes": 5898,
+      "sha256": "ca974cc38344648f51c2d4e2e33d74db73e0bde1d997ce801068ea41ee2a924d"
     },
     {
       "path": "evidence/INVARIANT_TEST_WITNESSES.md",
-      "bytes": 31058,
-      "sha256": "e03f5ec7a82e1f851ed8e70305ad0921b1c89e76143e4c0c2d3d81f4440411f4"
+      "bytes": 31053,
+      "sha256": "d1581b7c72e5f435ca2c722e33e345cb56dc12fa048dd7878139bb70cd057671"
     },
     {
       "path": "evidence/PACK_VALIDATION.md",
@@ -113,18 +113,18 @@
     },
     {
       "path": "operations/INDEPENDENT_RESTORE.md",
-      "bytes": 9600,
-      "sha256": "26f2aaa5e61198baf5de2ca3f7eed3484755778bdc182bada79780af4093b1ab"
+      "bytes": 9595,
+      "sha256": "790933b5c65a69019fe84183c0f40dc5a6fedc28f7a75e753e73cdaa2491bb63"
     },
     {
       "path": "policy/INVARIANTS.md",
-      "bytes": 20185,
-      "sha256": "db6260f5cda7afce7abe1e2b8762d31d46f081b41fd525c77c9fd4542460bdea"
+      "bytes": 20175,
+      "sha256": "7209fe5470499cf360a11b86b853dd5cbc416d4371bb07724ae107e539f7a59c"
     },
     {
       "path": "policy/LOCKED_POLICY.yaml",
-      "bytes": 7632,
-      "sha256": "cb20d4ebec31c892163ddc83608afab58d85ea6a42441e68d2b2c0e869f13dc7"
+      "bytes": 7627,
+      "sha256": "9b8a61104d9d64288bc6e2427c72c119a83c5087529b69ab0fbe764736676784"
     },
     {
       "path": "security/INFISICAL_1PASSWORD_AND_CONFIG.md",
@@ -133,23 +133,23 @@
     },
     {
       "path": "tests/test_pack_validator.py",
-      "bytes": 2794,
-      "sha256": "06fecab90beff26574dbb004a3e3cad597f63b24a4a72437a039f883ea171c3e"
+      "bytes": 2983,
+      "sha256": "e18cdca5e09b41dcec4e9bdc9df222430038be4452651d59d5507d1da0f183fd"
     },
     {
       "path": "tests/test_slice_receipt_validation.py",
-      "bytes": 2272,
-      "sha256": "a3e1179364529f92f73177a4eabc744263109374d0eadc82edace92160aa879f"
+      "bytes": 2456,
+      "sha256": "694e93558aa5927bef5da15a6a085c7e4517ffcdfdec46ea6b1d0fb5ee80bdf7"
     },
     {
       "path": "tools/validate_campaign_pack.py",
-      "bytes": 8014,
-      "sha256": "422f5860b8ce7108bd20c10bf25329d6c2f9e532c72bec84c1ebc556c525bd19"
+      "bytes": 8752,
+      "sha256": "305a1290a102b9e72813d16c6d020013d9117f6d521be3acaf42675c3ff62fbb"
     },
     {
       "path": "tools/validate_slice_receipt.py",
-      "bytes": 5308,
-      "sha256": "7f0ec5b9ccca32d988e6e3564063109c01c4290fbd6aa71d4df0a4ec584fe8fc"
+      "bytes": 5846,
+      "sha256": "3a901716bd9d63a50ba6504db77ee418de236ae07f9b318b092119bca9c6cde9"
     }
   ]
 }

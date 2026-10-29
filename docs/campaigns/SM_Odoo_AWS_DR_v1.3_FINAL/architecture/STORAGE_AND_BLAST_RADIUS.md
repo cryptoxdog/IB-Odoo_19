@@ -87,8 +87,8 @@ The exact minimum service choices (for worker and dedup engine) are implementati
 | Code and policy | `cryptoxdog/IB-Odoo_19` | `AGENTS.md`, `INVARIANTS.md`, `.cursor` rules, existing `ops/` and infra files at exact HEAD | Prefer *new* `ops/independent_dr/` subtree; minimal pointer in `AGENTS.md`/root invariants if needed | `plasticos_*` addons, account rules, native Documents owners, unrelated CI, sweeping refactors |
 | Automated tests | DR-subtree tests + disposable Odoo 19 Enterprise | Current fixture, Odoo.sh download format, actual test access | DR-scoped smoke, unit, integration, independent restore tests | Production restore or sending external mail/webhooks during tests |
 | Enterprise / PostgreSQL restore | Isolated AWS restore + license owner | Enterprise source access, Odoo.sh production DB naming, required PostgreSQL compatibility, subscriptions, secrets | Only isolated restore environment | Duplicate live ERP, production failover or Enterprise subscription move now |
-| Independent recovery source archives | Odoo.sh-native backup only | Native archive freshness and integrity | Private export and vault upload | CieTrade SQL backup attempts or git upload of source data |
-| CieTrade historical extraction | Separate document migration campaign | Out of scope | None | Combining source CieTrade `.bak` or raw document corpus into Odoo.sh system backup as if already imported |
+| Independent recovery source archives | Odoo.sh-native backup only | Native archive freshness and integrity | Private export and vault upload | ERP SQL backup attempts or git upload of source data |
+| ERP historical extraction | Separate document migration campaign | Out of scope | None | Combining source ERP `.bak` or raw document corpus into Odoo.sh system backup as if already imported |
 
 **No code until matrix resolution:** Cursor must name every specific file/addition, cloud resource, permission, caller/consumer, migration, monitoring path and rollback plan under these owners. It may refine *implementation details*, but it cannot silently expand the protected business or source-owner scope.
 
@@ -134,7 +134,7 @@ The independent source must be **complete** and consistent at every admitted che
 | Operator ownership and DR packet refresh | `05` + `06` periodic maintainer | Who updates when key/role/license/backup revision changes; verify trusted independent operator access | Quarterly readback/drill and changed-value refresh |
 | Final acceptance closure | `06` independent review | Every prior receipt and specific source/permissions/code checked; zero in-scope TODOs; provider unsupported method is blocked, not green | Off-vendor full restore with Infisical and worker unavailable, measured RPO/RTO |
 
-All additions are within the same bounded recovery objective. Each explicit exclusion (PlasticOS addon mutation, permanent ERP, Odoo provider override, CieTrade import) is justified by existing ownership. All changes to exact file inventory after a discovered new ripple require `00` plan reassessment before coding resumes.
+All additions are within the same bounded recovery objective. Each explicit exclusion (PlasticOS addon mutation, permanent ERP, Odoo provider override, ERP import) is justified by existing ownership. All changes to exact file inventory after a discovered new ripple require `00` plan reassessment before coding resumes.
 
 ## Independent software-release escrow (post-v1.2 closure)
 

@@ -21,7 +21,7 @@
 - Native Odoo.sh production backups unchanged; separate Contract 01 exercises authentic provider-native manual backup and safe restore only.
 - Four weekday slots remain **11:00, 13:00, 15:00, 17:00 America/New_York**. Independent worker does not run night/weekend; native Odoo automatic backup continues anytime.
 - Backup is complete PostgreSQL + referenced filestore + exact tested code/dependency/secret recovery, never a partial row export; identical bytes reused only if proven.
-- S3 locked private, encrypted, separate account and IAM; no permanent standby ERP, no production Odoo write, merge, DNS, CieTrade data backup, external send or unsupported source API.
+- S3 locked private, encrypted, separate account and IAM; no permanent standby ERP, no production Odoo write, merge, DNS, ERP data backup, external send or unsupported source API.
 - New persistent runtime secrets in authorized Infisical path, nonsecret IaC in version-controlled repo, sensitive IaC state and live evidence privately encrypted. Emergency 1Password Document and minimal escrow under operator control, not a persistent Mac/Dropbox ZIP.
 - Strict PASS/FAIL/BLOCKED_EXTERNAL contract algebra: daily emergency milestone is not full two-hour campaign DONE. All blast-radius effects must be justified and planned before code.
 

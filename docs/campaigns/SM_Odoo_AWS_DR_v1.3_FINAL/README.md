@@ -48,7 +48,7 @@ Contract boundaries are **owner boundaries**, not invitations to leave pending w
 
 ## Repository and publication boundaries
 
-One writable repository: `https://github.com/cryptoxdog/IB-Odoo_19` on a scoped branch from live `Staging`. `.github` and Cursor-Governance are read-only if required for authority and publication. Most changes should live under `ops/independent_dr/`; no PlasticOS business addon rewrite. Do not modify unrelated AWS resources, Infisical secrets, Odoo records, CieTrade source, production DNS, or Enterprise subscription. Use only the validated Cursor-Governance `make pr` publisher for remote PR changes, no raw push, merge or production cutover. AWS provisioning is separately authorized *within* verified named/new DR resources, with irreversible retention budget/permission gates.
+One writable repository: `https://github.com/cryptoxdog/IB-Odoo_19` on a scoped branch from live `Staging`. `.github` and Cursor-Governance are read-only if required for authority and publication. Most changes should live under `ops/independent_dr/`; no PlasticOS business addon rewrite. Do not modify unrelated AWS resources, Infisical secrets, Odoo records, ERP source, production DNS, or Enterprise subscription. Use only the validated Cursor-Governance `make pr` publisher for remote PR changes, no raw push, merge or production cutover. AWS provisioning is separately authorized *within* verified named/new DR resources, with irreversible retention budget/permission gates.
 
 ## First execution instruction
 

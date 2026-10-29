@@ -156,7 +156,7 @@ Every case is a **required execution witness**, not an assertion that the underl
 
 ### TI-020 | DR-020 | Contract 06 | Gate C06
 
-**Required PASS witness:** Source presence, CieTrade corpus success, a ZIP, passing unit tests or an untested Terraform plan cannot substitute for observed Odoo.sh source capture + independent AWS restore.
+**Required PASS witness:** Source presence, ERP corpus success, a ZIP, passing unit tests or an untested Terraform plan cannot substitute for observed Odoo.sh source capture + independent AWS restore.
 
 **Fail if:** A delivery claims `COMPLETE` without exact dated restore evidence.
 

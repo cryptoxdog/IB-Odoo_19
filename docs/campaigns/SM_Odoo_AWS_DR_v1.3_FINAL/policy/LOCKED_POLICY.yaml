@@ -76,7 +76,7 @@ retention_and_tiering:
 boundaries:
   odoo_production_writes: operational_business_data_writes_forbidden; supported_native_backup_artifact_actions_authorized_in_contract_01
   odoo_backup_source_reads: permitted_when_authorized
-  cietrade_sql_backups: out_of_scope
+  ERP_sql_backups: out_of_scope
   enterprise_license_failover_proof: required
   aws_new_resource_creation: permitted_in_verified_company_controlled_scope
   aws_existing_unrelated_resources_mutation: forbidden
