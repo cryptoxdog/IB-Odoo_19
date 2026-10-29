@@ -1,0 +1,126 @@
+{
+  "format": "package-local-synthetic-scenario-spec/v1",
+  "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+  "scenarios": [
+    {
+      "id": "T01",
+      "input": "Observed process with cited material inputs and approved rule",
+      "proof": "P06",
+      "expected": "Inferred stream with source/rule/time and verification question; no inventory row"
+    },
+    {
+      "id": "T02",
+      "input": "Same process but explicit internal closed-loop reuse",
+      "proof": "P06",
+      "expected": "Abstain from externally available scrap; preserve contrary evidence"
+    },
+    {
+      "id": "T03",
+      "input": "Facility can process PP but has no purchasing request",
+      "proof": "P05",
+      "expected": "Capability/potential-fit only; no confirmed BuyerDemand"
+    },
+    {
+      "id": "T04",
+      "input": "Approved native opportunity, exact 40000 lb lot and valid window",
+      "proof": "P04",
+      "expected": "One current source-bound supply representation"
+    },
+    {
+      "id": "T05",
+      "input": "Same source replayed and later mapping version changed",
+      "proof": "P08",
+      "expected": "One business identity, new mapping revision only where required"
+    },
+    {
+      "id": "T06",
+      "input": "Unknown quantity reads as ORM numeric default",
+      "proof": "P07",
+      "expected": "Unknown retained; no exact zero or available tonnage invented"
+    },
+    {
+      "id": "T07",
+      "input": "One lot and two overlapping equal confirmed buyer requirements",
+      "proof": "P18",
+      "expected": "Cannot cover both in full; allocation/conflict disclosed"
+    },
+    {
+      "id": "T08",
+      "input": "Projection writes node but lacks FULFILLS_POLYMER edge",
+      "proof": "P13",
+      "expected": "No materialization success; match proof fails"
+    },
+    {
+      "id": "T09",
+      "input": "HTTP200 carrying worker failure packet",
+      "proof": "P12",
+      "expected": "Failure/unknown classified; no sync success or zero-demand claim"
+    },
+    {
+      "id": "T10",
+      "input": "Operator disables after operation queued",
+      "proof": "P03",
+      "expected": "Worker rechecks permission and does not dispatch"
+    },
+    {
+      "id": "T11",
+      "input": "Old active revision arrives after withdrawal",
+      "proof": "P13",
+      "expected": "Stale write rejected; listing not resurrected"
+    },
+    {
+      "id": "T12",
+      "input": "PO confirmed without proof of buyer allocation",
+      "proof": "P21",
+      "expected": "Won recognized by commercial owner; supply disposition not guessed"
+    },
+    {
+      "id": "T13",
+      "input": "Lost opportunity but recurring supplier material remains real",
+      "proof": "P21",
+      "expected": "Lost attempt listing closed; material profile retained and follow-up lead reused"
+    },
+    {
+      "id": "T14",
+      "input": "Prospect facility later reconciles with verified partner collision",
+      "proof": "P10",
+      "expected": "Evidence/supply/attachment/graph source lineage preserved or conflict blocks"
+    },
+    {
+      "id": "T15",
+      "input": "No graph candidates because required data absent",
+      "proof": "P17",
+      "expected": "Information/coverage gap, not global shortage"
+    },
+    {
+      "id": "T16",
+      "input": "Wrong tenant signed with a valid key",
+      "proof": "P12",
+      "expected": "Authorization denied; no source reads/writes"
+    },
+    {
+      "id": "T17",
+      "input": "Inference review accepted as plausible, not availability-confirmed",
+      "proof": "P20",
+      "expected": "Research lead allowed only on explicit action; no active offer or partner"
+    },
+    {
+      "id": "T18",
+      "input": "Supplier-only facility with perfect polymer capability",
+      "proof": "P14",
+      "expected": "Not automatically treated as a buyer"
+    },
+    {
+      "id": "T19",
+      "input": "Backfill writer throws after planned row",
+      "proof": "P08",
+      "expected": "No committed create count; checkpoint does not skip unprocessed records"
+    },
+    {
+      "id": "T20",
+      "input": "Two independently marketable lots from same company/email",
+      "proof": "P04",
+      "expected": "Distinct opportunities/source lots; never merged by contact identity alone"
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "input_filename": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0(4).zip",
+  "input_sha256": "9be3d9c5f5ba9431636e9f96eebd89f215b75567c15917230a61c4928c6e11bb",
+  "classification": "Method/kernel consumed unchanged; new case package, not a revised generic kernel.",
+  "preserved_files": 24,
+  "changed_original_members": 0,
+  "members": [
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/CORE/INVARIANT_ROUTING.md",
+      "delivered_path": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md",
+      "sha256": "9474a6a7883fc7f88abafdae215aeac1f39a3c3dc7bde75e4acb6ae4e05d1183",
+      "bytes": 6043,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/CORE/PLANNING_KERNEL.md",
+      "delivered_path": "PLANNING_KERNEL/CORE/PLANNING_KERNEL.md",
+      "sha256": "596a243d0f3c1a7e6ff6ff5dbefa5994e8a86d036191e4d43b718777f2264773",
+      "bytes": 9196,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/CORE/REPO_INSTALLATION_ROUTE.md",
+      "delivered_path": "PLANNING_KERNEL/CORE/REPO_INSTALLATION_ROUTE.md",
+      "sha256": "999726e2d7a86e6adc74b33e2e2eeba28f6449e95518133fa8299716951c1727",
+      "bytes": 2035,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/CORE/SOURCE_DISCOVERY.md",
+      "delivered_path": "PLANNING_KERNEL/CORE/SOURCE_DISCOVERY.md",
+      "sha256": "7303ea894731e54ec542678263777dd1d0770bc4c553662227e1cf67379cd5ae",
+      "bytes": 10424,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/MANIFEST.json",
+      "delivered_path": "PLANNING_KERNEL/MANIFEST.json",
+      "sha256": "a45b58e67ff658adce12f16277d56fbecb80834e00f36b0ed254cecf986c2858",
+      "bytes": 4127,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md",
+      "delivered_path": "PLANNING_KERNEL/README.md",
+      "sha256": "e0e5c292a0da03b07f6cf41612df65c883d0e40cf5f248391d34501f67608940",
+      "bytes": 5495,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SCHEMA/case.schema.json",
+      "delivered_path": "PLANNING_KERNEL/SCHEMA/case.schema.json",
+      "sha256": "a76cea89aa09bcb7f3e71596293bdf721a0e58c892949f51fe908298a33e8700",
+      "bytes": 22817,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SOURCES/EXTRACTION_MAP.md",
+      "delivered_path": "PLANNING_KERNEL/SOURCES/EXTRACTION_MAP.md",
+      "sha256": "d00191a5ea4ca4d1c324609b8e5c8514631d7e59eccf6064123a894b8d95a9ec",
+      "bytes": 2327,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "delivered_path": "PLANNING_KERNEL/SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "sha256": "5941fbd77c8d018c0f589e19cb5def111114d15d5907c30393b713cbc60f6e0a",
+      "bytes": 35774,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SOURCES/PREDECESSOR_MANIFEST_v0.1.0.json",
+      "delivered_path": "PLANNING_KERNEL/SOURCES/PREDECESSOR_MANIFEST_v0.1.0.json",
+      "sha256": "948d852a013115ad7ff0afaa20e74d296c6f91bcf5091a570fe5ee64543f6b4e",
+      "bytes": 2461,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SOURCES/RECURSIVE_ALIGNMENT_AUDIT.md",
+      "delivered_path": "PLANNING_KERNEL/SOURCES/RECURSIVE_ALIGNMENT_AUDIT.md",
+      "sha256": "a19edfd80385a58cb5d26a57e4dda78052e524d2df0f4db0f777c75663db1792",
+      "bytes": 10963,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SOURCES/REPO_MANIFEST_SNAPSHOT.json",
+      "delivered_path": "PLANNING_KERNEL/SOURCES/REPO_MANIFEST_SNAPSHOT.json",
+      "sha256": "4bd7f1531a71a7c954c58bb6df606014c89c82ff5eb41c257eee98ad23cc0bc2",
+      "bytes": 16738,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SOURCES/REPO_SOURCE_LOCK.json",
+      "delivered_path": "PLANNING_KERNEL/SOURCES/REPO_SOURCE_LOCK.json",
+      "sha256": "8bc980cd42c6702da8eb41957e922a08c04cc74d0321cc1cad13a2f8f205c25b",
+      "bytes": 4397,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/SOURCES/VERSION_TRANSITION.md",
+      "delivered_path": "PLANNING_KERNEL/SOURCES/VERSION_TRANSITION.md",
+      "sha256": "86a323e9168bf9e7a2c0ec605b2521a9c513f48047816c377b7cc9f7b6a55e60",
+      "bytes": 2237,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/TEMPLATES/CASE.template.json",
+      "delivered_path": "PLANNING_KERNEL/TEMPLATES/CASE.template.json",
+      "sha256": "b16318b4548c46fc095afa997bb43dbb6c78208ec227244880908c04a7c51e74",
+      "bytes": 5243,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/TEMPLATES/IMPLEMENTATION_HANDOFF.md",
+      "delivered_path": "PLANNING_KERNEL/TEMPLATES/IMPLEMENTATION_HANDOFF.md",
+      "sha256": "fbcff313d374b7653ae7de5a49bd35fc0a02f6fc8d222b51d410da3cd9bcf308",
+      "bytes": 2280,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/TEMPLATES/STRATEGY_INTAKE.md",
+      "delivered_path": "PLANNING_KERNEL/TEMPLATES/STRATEGY_INTAKE.md",
+      "sha256": "2152bf747455caabea052642d68b45ed199665b82f3f69beba444d83d9371d12",
+      "bytes": 1570,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/TEMPLATES/WIP_ALIGNMENT.md",
+      "delivered_path": "PLANNING_KERNEL/TEMPLATES/WIP_ALIGNMENT.md",
+      "sha256": "8b2443858a4182ae70c8d6194f2c7ef62a01d06aeef246b4e29711d8163eeca3",
+      "bytes": 1765,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/VALIDATION.json",
+      "delivered_path": "PLANNING_KERNEL/VALIDATION.json",
+      "sha256": "012f81b80e6a8a1c21daf69849ece28818f84ac76a23aeda411ebc0d11a38a0c",
+      "bytes": 1839,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py",
+      "delivered_path": "PLANNING_KERNEL/tools/impact_modules.py",
+      "sha256": "4358bb82da9c800691607a6b08859c0473c40a7e79eb6ecb5ae60340d00b0066",
+      "bytes": 891,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py",
+      "delivered_path": "PLANNING_KERNEL/tools/new_case.py",
+      "sha256": "27c30aec23954b3254efcf7759ca2cb4f0df3044030d2280b4b262bd178c0373",
+      "bytes": 883,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py",
+      "delivered_path": "PLANNING_KERNEL/tools/test_negative_controls.py",
+      "sha256": "cec79d374b8cf59bf131e0dd55a31dac9ea7b3ef084ab48aeea3781961b0c9fb",
+      "bytes": 7218,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py",
+      "delivered_path": "PLANNING_KERNEL/tools/validate_case.py",
+      "sha256": "e6abcab9f4c8252a6cc81430836091679c16145ebc7aff31a81072b14e33709f",
+      "bytes": 13460,
+      "byte_identical": true
+    },
+    {
+      "predecessor_member": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py",
+      "delivered_path": "PLANNING_KERNEL/tools/validate_pack.py",
+      "sha256": "c537672bcb921c7b36940d906f24c5f5864cba103f358686dd562c889624ed87",
+      "bytes": 2033,
+      "byte_identical": true
+    }
+  ]
+}

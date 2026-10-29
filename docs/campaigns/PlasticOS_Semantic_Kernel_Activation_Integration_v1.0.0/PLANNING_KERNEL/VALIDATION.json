@@ -1,0 +1,47 @@
+{
+  "schema": "plasticos.addon-kernel-validation/v0.2",
+  "date": "2026-10-29",
+  "source_repository": "cryptoxdog/IB-Odoo_19",
+  "source_revision": "677d734fd88615d673501d91de88734b7150ff50",
+  "observed_remote_head_at_final_check": "677d734fd88615d673501d91de88734b7150ff50",
+  "constitution": {
+    "path": "INVARIANTS.md",
+    "version": "2.2.0",
+    "git_blob_sha": "c16e99c575a262ff6279f2202e5959f777b2fc6f",
+    "status": "OBSERVED_SOURCE_NOT_RUNTIME"
+  },
+  "manifest_census": {
+    "module_count": 30,
+    "source_revision": "677d734fd88615d673501d91de88734b7150ff50",
+    "source_class": "GITHUB_SOURCE_METADATA",
+    "dependency_graph_cycle_found": false,
+    "all_manifest_blobs_recorded": true
+  },
+  "predecessor_zip_sha256": "cf268a2656ecf9e51468352d8e4b4c2d6f6374d48902588a1137f7bf5b876cb2",
+  "preserved_v34_candidate_sha256": "5941fbd77c8d018c0f589e19cb5def111114d15d5907c30393b713cbc60f6e0a",
+  "validation": {
+    "python_compile": "PASS",
+    "jsonschema": "PASS",
+    "synthetic_new_mode_declared_case": "PASS",
+    "synthetic_wip_mode_declared_case": "PASS",
+    "negative_controls_passed": 22,
+    "unfilled_new_case": "REFUSED",
+    "unfilled_wip_precode": "REFUSED",
+    "offline_self_declared_code_grant": "REFUSED",
+    "dependency_reverse_closure": "PASS",
+    "zip_manifest_hashes": "PENDING_CREATION"
+  },
+  "assurance_not_run": [
+    "installed_Enterprise_registry",
+    "live_database_automations",
+    "Odoo_module_installs",
+    "Odoo_runtime_tests",
+    "real_WIP_integration_regression",
+    "independent_behavioral_review",
+    "production_migration_and_restore",
+    "real_operator_grant"
+  ],
+  "repo_mutations": false,
+  "authority_admission": false,
+  "limitations": "Structural tests and manually observed source references do not prove full semantic or runtime alignment of any future addon."
+}

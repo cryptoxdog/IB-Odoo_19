@@ -1,0 +1,227 @@
+{
+  "schema": "plasticos.addon-planning-case/v0.2",
+  "case_id": "",
+  "mode": "new_addon",
+  "target": {
+    "repository": "cryptoxdog/IB-Odoo_19",
+    "revision": "",
+    "source_lock": "SOURCES/REPO_SOURCE_LOCK.json",
+    "constitution": {
+      "path": "INVARIANTS.md",
+      "version": "2.2.0",
+      "blob_sha": "c16e99c575a262ff6279f2202e5959f777b2fc6f",
+      "authority_class": "CONSTITUTIONAL"
+    },
+    "installed_target": {
+      "status": "UNOBSERVED",
+      "evidence": ""
+    }
+  },
+  "authority": {
+    "locked_decisions": [],
+    "open_material_decisions": [],
+    "operator_blast_radius_gate": {
+      "id": "POS-INV-26",
+      "source": "Operator instruction preserved at SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "applies": true
+    },
+    "plan_acceptance": {
+      "granted": false,
+      "digest": "",
+      "basis": ""
+    },
+    "coding_grant": {
+      "granted": false,
+      "digest": "",
+      "scope": ""
+    },
+    "source_interfaces": []
+  },
+  "strategy": {
+    "user_problem": "",
+    "outcome": "",
+    "first_proof": "",
+    "best_alternative": "",
+    "reason_selected": "",
+    "reversibility": "",
+    "future_seam": "",
+    "now_scope": [],
+    "deferred": [],
+    "non_goals": [],
+    "native_fit": []
+  },
+  "source_census": {
+    "search_scope": "",
+    "methods": [],
+    "root_modules": [],
+    "module_dispositions": [],
+    "extra_consumers": [],
+    "runtime_consumers": {
+      "status": "UNOBSERVED",
+      "evidence": ""
+    },
+    "limits": []
+  },
+  "invariants": {
+    "constitutional": [
+      {
+        "id": "ODOO-INV-01",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#1",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-02",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#2",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-03",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#3",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-04",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#4",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-05",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#5",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-06",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#6",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-07",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#7",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-08",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#8",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-09",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#9",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-10",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#10",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-11",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#11",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-12",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#12",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-13",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#13",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-14",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#14",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-15",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#15",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-16",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#16",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-17",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#17",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-18",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#18",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "ODOO-INV-19",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#19",
+        "basis": "",
+        "evidence": ""
+      },
+      {
+        "id": "BAN001",
+        "status": "UNASSESSED",
+        "source": "INVARIANTS.md#BAN001",
+        "basis": "",
+        "evidence": ""
+      }
+    ],
+    "candidate_screening": {
+      "source": "SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "status": "UNASSESSED",
+      "relevant_ids": [],
+      "basis": ""
+    }
+  },
+  "effects": [],
+  "delivery": {
+    "units": [],
+    "proofs": [],
+    "migration_plan": "",
+    "recovery_plan": "",
+    "release_boundary": ""
+  },
+  "readiness": {
+    "state": "DRAFT",
+    "notes": "Generated candidate; no source, installed Enterprise, operator acceptance, or coding permission is implied."
+  }
+}
