@@ -21,7 +21,23 @@ class CronBinding:
 CRONS: tuple[CronBinding, ...] = (
     CronBinding("plasticos_claims/data/claim_cron.xml", "plasticos.claim", "_cron_check_sla"),
     CronBinding("plasticos_logistics/data/cron.xml", "plasticos.load", "_cron_escalation_check"),
+    CronBinding(
+        "plasticos_logistics/data/cron.xml",
+        "plasticos.load",
+        "_cron_check_dispatch_acknowledgments",
+    ),
+    CronBinding(
+        "plasticos_logistics/data/cron.xml",
+        "plasticos.transaction",
+        "_cron_supplier_confirmation_followup",
+    ),
+    CronBinding(
+        "plasticos_logistics/data/cron.xml",
+        "plasticos.transaction",
+        "_cron_auto_create_delivery_orders",
+    ),
     CronBinding("plasticos_transaction/data/audit_cron.xml", "plasticos.audit.cron", "run_monthly_audit"),
+    CronBinding("plasticos_documents/data/cron.xml", "plasticos.document", "_cron_compliance_audit"),
     CronBinding(
         "plasticos_documents/data/scale_ticket_rule.xml",
         "plasticos.transaction",
@@ -48,6 +64,11 @@ CRONS: tuple[CronBinding, ...] = (
         "cron_stock_reorder_alert",
     ),
     CronBinding(
+        "plasticos_base/data/attachment_maintenance_cron.xml",
+        "ir.attachment",
+        "_cron_cleanup_missing_filestore_orphans",
+    ),
+    CronBinding(
         "plasticos_base/data/midnight_recompute_cron.xml",
         "plasticos.midnight.recompute",
         "_cron_midnight_recompute",
@@ -68,6 +89,41 @@ CRONS: tuple[CronBinding, ...] = (
         "plasticos_automation/data/cron_load_sla.xml",
         "plasticos.load",
         "cron_load_sla_check",
+    ),
+    CronBinding(
+        "plasticos_automation/data/cron_supplier_followup.xml",
+        "purchase.order",
+        "cron_supplier_followup",
+    ),
+    CronBinding(
+        "plasticos_automation/data/cron_trucker_followup.xml",
+        "stock.picking",
+        "cron_trucker_followup",
+    ),
+    CronBinding(
+        "plasticos_matching/views/match_exclusion_views.xml",
+        "plasticos.match.exclusion",
+        "_cron_expire_temporary_exclusions",
+    ),
+    CronBinding(
+        "plasticos_crm_sync/data/ir_cron_data.xml",
+        "plasticos.crm.connection",
+        "_cron_sync_all",
+    ),
+    CronBinding(
+        "plasticos_admin_dashboard/data/cron_refresh_dashboard.xml",
+        "plasticos.admin.kpi",
+        "action_refresh",
+    ),
+    CronBinding(
+        "plasticos_enrichment/data/cron.xml",
+        "plasticos.enrichment.run",
+        "action_cron_enrich_pending",
+    ),
+    CronBinding(
+        "plasticos_enrichment/data/cron.xml",
+        "plasticos.enrichment.run",
+        "action_cron_inference_only",
     ),
 )
 
