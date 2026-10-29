@@ -1,0 +1,27 @@
+{
+  "target_archive": "/mnt/data/PlasticOS_Export_Blast_Radius_Closure_v2.7.2.zip",
+  "sha256": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+  "members": 145,
+  "manifest_payload_members": 144,
+  "zip_crc": "PASS",
+  "manifest_hashes": "PASS",
+  "original_brs_rules": 120,
+  "original_acceptance_cases": 120,
+  "matrix_acceptance": "120 NOT_RUN",
+  "pack_open_frontiers": [
+    "RP-01",
+    "RP-02",
+    "RP-03",
+    "RP-04",
+    "RP-05",
+    "RP-06",
+    "RP-07"
+  ],
+  "current_staging_head": "78476ddb74861d900992f7f5ec3ec2cc2a63e8bf",
+  "pack_staging_baseline": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+  "changed_commits_since_pack": 3,
+  "changed_files_since_pack": 7,
+  "code_authorization": "NONE",
+  "assessment_status": "PARTIAL",
+  "precode_disposition": "BLOCKED"
+}

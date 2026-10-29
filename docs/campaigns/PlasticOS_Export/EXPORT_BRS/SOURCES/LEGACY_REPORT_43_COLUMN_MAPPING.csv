@@ -1,0 +1,44 @@
+column_index,legacy_header,suggested_canonical_owner,phase,readiness,source,note
+1,Container No,Logistics/Stock exact physical container,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+2,Booking No,Export booking context,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+3,Seal No,Logistics physical container,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+4,Cutoff,Export booking current cargo cutoff,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+5,POL,Export booking,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+6,POD,Export booking,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+7,PDLV,Export booking optional final delivery,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+8,Carrier,Export steamship line / exact native res.partner,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+9,Vessel,Export booking,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+10,Voyage No,Export booking,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+11,ETS,Export booking sourced estimated sailing,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+12,ETA,Export booking sourced estimated arrival,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+13,Grade,Native product / material profile,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+14,Weight LBS,Stock/Logistics verified net cargo weight,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+15,Supplier,Native Purchase partner,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+16,Location,Native Stock/Logistics pickup location,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+17,PO No,Native Purchase order,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+18,Source Wks,Legacy original provenance; verified transaction id required,P1,REQUIRES_OWNER_PROOF,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+19,Customer,Native Sale partner if assigned,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+20,SO No,Native Sale order if assigned,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+21,Invoice No,Native Accounting posted/draft invoice identity,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+22,Units,Stock verified packages/units,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+23,PRVC,Legacy column; semantic mapping unverified,P1,REQUIRES_OWNER_PROOF,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+24,Rcv Dt,Native Logistics/Stock verified receipt event,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+25,Release No,Legacy release reference; canonical target to verify,P1,REQUIRES_OWNER_PROOF,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+26,Pickup No,Logistics pickup/dispatch reference,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+27,Shipping Notes,Logistics approved instructions/document evidence,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+28,Wt (MT),Derived display from accepted weight and UOM,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+29,Ship Dt,Logistics actual pickup/shipping date; disambiguate,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+30,Ship Time,Logistics actual pickup/shipping time; disambiguate,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+31,Rcvd Wt,Stock/Logistics received weight if verified,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+32,User,Native Odoo users (actor/source),P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+33,PRA Status,Existing owner requires discovery,P1,REQUIRES_OWNER_PROOF,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+34,PRA Sent Date,Existing owner requires discovery,P1,REQUIRES_OWNER_PROOF,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+35,VGM,"Verified shipping compliance evidence, not calculated by AI",P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+36,Eq Tare Wt,Equipment physical tare evidence,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+37,BL No,Original ocean B/L from Documents,P2,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+38,Invoice-User,Native Accounting user/actor,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+39,Container-Ref,Existing exact physical container reference,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+40,Customer-Loc,Native Sale delivery location,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+41,PO-Ref,Native Purchase legacy reference,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+42,UDF-Date,Legacy freeform date - NOT mapped without evidence,P1,REQUIRES_OWNER_PROOF,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field
+43,Doc-Cutoff,Export booking separate document cutoff,P1,CANDIDATE_OWNER,booking report.xlsx / Sheet1,Schema evidence only; not permission to create a second authoritative field

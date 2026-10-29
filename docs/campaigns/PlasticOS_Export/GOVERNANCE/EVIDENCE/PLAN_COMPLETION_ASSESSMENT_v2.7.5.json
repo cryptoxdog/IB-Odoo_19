@@ -1,0 +1,98 @@
+{
+  "schema": "evidence.assessment/v1",
+  "target": {
+    "locator": "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json",
+    "artifact_type": "contract",
+    "revision": "2.7.5 at 677d734fd88615d673501d91de88734b7150ff50",
+    "sha256": "e1c8dbb143834388776983eaf1a31a40cd7843f4ead6406eff3cd0d021c78dd6"
+  },
+  "review_mode": "validation_review",
+  "authority_basis": [],
+  "adapters": [
+    "GitHub.fetch_file: pinned owner source",
+    "GitHub.compare_commits: immutable selective rebind",
+    "container: local zipfile/hashlib/json accounting and adverse fixtures"
+  ],
+  "findings": [
+    {
+      "finding_id": "F-101",
+      "finding_fingerprint": "4ba806f0461dd22c3203571aec2e08abca1e86af799ac80add108ea0ecac3eff",
+      "fingerprint_basis": {
+        "subject": "PlasticOS Export source-bound plan v2.7.5",
+        "location": "effects, file_dispositions, audit_dispositions, source_rebind",
+        "finding_type": "gap",
+        "rule_key": "task_requested_plan_accounting"
+      },
+      "title": "Original effect accounting and merged-source rebind are represented",
+      "artifact_type": "contract",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 3,
+      "blast_radius": "Unknown",
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json",
+        "location": "effects, file_dispositions, audit_dispositions, source_rebind",
+        "support_type": "tool_derived",
+        "excerpt_or_summary": "203 effects retain the original162; all19 findings and seven frontiers are mapped. The24 changed-source paths are reconciled. Original rules/cases/technical contract are byte-preserved. Twelve negative local accounting fixtures reject their invalid subjects.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Closes the enumerated planning-accounting omissions, not runtime implementation or proof that an unobserved installed caller is absent.",
+      "status": "resolved"
+    },
+    {
+      "finding_id": "F-102",
+      "finding_fingerprint": "feb34f5b0c794b5a593a8d92a64b4206f38007bd1214d35d6414aeb1125d837d",
+      "fingerprint_basis": {
+        "subject": "PlasticOS Export source-bound plan v2.7.5",
+        "location": "RP-07-E081; RP-07-E082; plan C09",
+        "finding_type": "gap",
+        "rule_key": "task_requested_plan_accounting"
+      },
+      "title": "Installed target consumer/registry closure remains unobserved",
+      "artifact_type": "contract",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": "Unknown",
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json",
+        "location": "RP-07-E081; RP-07-E082; plan C09",
+        "support_type": "tool_derived",
+        "excerpt_or_summary": "Enterprise source lookup returned404 and no connected Odoo capability was established. No exact installed registry or database-configured action census was read. Two ledger rows retain the single S1-TARGET prerequisite.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Whole installed-target blast-radius closure and code entry remain unproven; the repository-side plan cannot substitute for these observations.",
+      "status": "open"
+    }
+  ],
+  "unknowns": [
+    {
+      "item": "S1-TARGET installed consumer and native/Enterprise interface census",
+      "reason": "Exact installed module revisions/MRO/views/ACLs/aliases/automations/server actions/cron overrides and schema classes not supplied or observed.",
+      "material": true
+    },
+    {
+      "item": "Runtime, migration and restore proof",
+      "reason": "Later-stage obligations; no Odoo implementation or test/upgrade/restore was run in this planning session.",
+      "material": false
+    },
+    {
+      "item": "Independent review and technical host enforcement",
+      "reason": "Single-session evidence review and local accounting validation do not establish separate cognition or host controls.",
+      "material": false
+    }
+  ],
+  "convergence": {
+    "status": "partial",
+    "passes": 1,
+    "material_changes_after_final_pass": false,
+    "improvement_estimate_remaining_percent": "Unknown",
+    "final_confidence": "Unknown",
+    "stop_condition": "The bounded repository-source plan and local artifact checks are reported. The installed-target prerequisite remains explicit; no further product scope or unperformed runtime success is claimed."
+  },
+  "assessment_status": "partial"
+}
