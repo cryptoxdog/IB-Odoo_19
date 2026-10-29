@@ -2,7 +2,7 @@
 
 **Current reading (2026-10-28):** The dry-run block below records the state when no document rows were available. It stays here as history. Every `W` and `#` image is eligible. The importer has not been run. The locked import scope is `11_IMPORT_SCOPE.md`.
 
-**Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
+**Contract:** `SM-erp-DOCUMENT-RECOVERY-001`  
 **Gate D:** NOT RUN  
 **Gate E:** NOT RUN
 

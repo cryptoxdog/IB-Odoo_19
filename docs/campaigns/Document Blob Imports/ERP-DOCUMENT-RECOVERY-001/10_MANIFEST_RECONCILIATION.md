@@ -2,7 +2,7 @@
 
 **File:** `docs/campaigns/Document Blobs/SQL 10-28-26/3.rpt`  
 **Query completion:** 2026-10-28T16:23:04.5116003-04:00  
-**Server:** live `UCSCIETRADE`, `cieTrade_Documents.dbo.DocumentImage`, `DBName` trimmed to `CIETRADE_SM`  
+**Server:** live `UCSerp`, `erp_Documents.dbo.DocumentImage`, `DBName` trimmed to `erp_SM`  
 **Backup:** none
 
 The file is UTF-8 with BOM, fixed-width SSMS output, 111,015 lines. It is gitignored. Do not commit it.

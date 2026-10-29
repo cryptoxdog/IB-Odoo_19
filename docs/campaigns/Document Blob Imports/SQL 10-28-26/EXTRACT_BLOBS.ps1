@@ -1,5 +1,5 @@
 # Windows PowerShell 5.1 only. Do not paste this into SSMS. Use a new PowerShell window.
-# Live UCSCIETRADE. Saves every CIETRADE_SM original through ImageID 721202. No database backup.
+# Live UCSerp. Saves every erp_SM original through ImageID 721202. No database backup.
 # Odoo import later uses ImportScope=eligible only (RefType W and #).
 # P is archive_only. E and B are unattached. Those files are still extracted.
 # Full run. Resumes after the last ImageID already in journal.csv. $Limit = 0 means no cap.
@@ -45,7 +45,7 @@ Get-Content -LiteralPath $Journal | Select-Object -Skip 1 | ForEach-Object {
 }
 Write-Host "RESUME_AFTER $Last LIMIT $Limit"
 
-if (-not ('CieTrade.BlobExtractV2' -as [type])) {
+if (-not ('erp.BlobExtractV2' -as [type])) {
     Add-Type -ReferencedAssemblies @('System.Data', 'System.IO.Compression') -TypeDefinition @'
 using System;
 using System.Data;
@@ -55,7 +55,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace CieTrade
+namespace erp
 {
     public static class BlobExtractV2
     {
@@ -66,7 +66,7 @@ namespace CieTrade
             string rawDir = Path.Combine(outRoot, "raw");
             string decDir = Path.Combine(outRoot, "decoded");
             string journal = Path.Combine(outRoot, "journal.csv");
-            string cs = "Server=UCSCIETRADE;Database=cieTrade_Documents;Integrated Security=True;Packet Size=32767;Connect Timeout=60;";
+            string cs = "Server=UCSerp;Database=erp_Documents;Integrated Security=True;Packet Size=32767;Connect Timeout=60;";
             string top = limit > 0 ? "TOP (@limit) " : "";
             string sql = "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; SELECT " + top
                 + "ImageID, DocID, "
@@ -76,7 +76,7 @@ namespace CieTrade
                 + "Blob_Size, CONVERT(varchar(23), CreatedDT, 121) AS CreatedDT, Blob_Image "
                 + "FROM dbo.DocumentImage "
                 + "WHERE ImageID > @after AND ImageID <= @maxId "
-                + "AND UPPER(RTRIM(CONVERT(varchar(128), DBName))) = 'CIETRADE_SM' "
+                + "AND UPPER(RTRIM(CONVERT(varchar(128), DBName))) = 'erp_SM' "
                 + "ORDER BY ImageID";
 
             int written = 0;
@@ -273,5 +273,5 @@ namespace CieTrade
 '@
 }
 
-[CieTrade.BlobExtractV2]::Run($OutRoot, $Last, $MaxImageId, $Limit)
+[erp.BlobExtractV2]::Run($OutRoot, $Last, $MaxImageId, $Limit)
 Write-Host "JOURNAL $Journal"

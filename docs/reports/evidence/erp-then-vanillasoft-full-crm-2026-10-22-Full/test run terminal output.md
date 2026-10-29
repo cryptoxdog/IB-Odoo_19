@@ -19,9 +19,9 @@ Following the active odoo19-odoo-run container. The module upgrade exits, then t
 2026-10-21 23:47:32,088 1 WARNING odoo_test_day1021 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
 2026-10-21 23:47:32,105 1 INFO odoo_test_day1021 odoo.modules.loading: Modules loaded. 
 2026-10-21 23:47:32,134 1 INFO odoo_test_day1021 odoo.registry: Registry loaded in 0.701s 
-2026-10-21 23:47:32,252 1 INFO odoo_test_day1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/cieTrade_SM): {'Address': 2968, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'SalesReps': 1058} 
+2026-10-21 23:47:32,252 1 INFO odoo_test_day1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/erp_SM): {'Address': 2968, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'SalesReps': 1058} 
 2026-10-21 23:47:53,204 1 INFO odoo_test_day1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP import finished (partners only): {'counterparties': {'created': 1300, 'updated': 0, 'skipped': 0, 'rejected': 0}, 'locations': {'created': 1266, 'updated': 1297, 'skipped': 39, 'rejected': 0}, 'contacts': {'created': 2615, 'updated': 0, 'skipped': 1116, 'rejected': 0}, 'contact_roles': {'created': 2498, 'updated': 0, 'skipped': 180, 'rejected': 0}, 'salespersons': {'created': 0, 'updated': 818, 'skipped': 97, 'rejected': 0}, 'transactions': {'created': 0, 'updated': 0, 'skipped': 0, 'rejected': 0}, 'transaction_lines': {'created': 0, 'updated': 0, 'skipped': 0, 'rejected': 0}} 
-ERP source: direct database read (host.docker.internal/cieTrade_SM)
+ERP source: direct database read (host.docker.internal/erp_SM)
 VALIDATOR PASSED (database)
 res.partner before import: 13 (pre-existing business partners: 0)
 VALIDATOR PASSED (counterparties)
@@ -1310,9 +1310,9 @@ dispositions_without_a_source_reason=0
 2026-10-22 05:50:03,865 1 WARNING odoo_test_night1021 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
 2026-10-22 05:50:03,882 1 INFO odoo_test_night1021 odoo.modules.loading: Modules loaded. 
 2026-10-22 05:50:03,911 1 INFO odoo_test_night1021 odoo.registry: Registry loaded in 0.788s 
-2026-10-22 05:50:04,031 1 INFO odoo_test_night1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/cieTrade_SM): {'Address': 2968, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'SalesReps': 1058} 
+2026-10-22 05:50:04,031 1 INFO odoo_test_night1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/erp_SM): {'Address': 2968, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'SalesReps': 1058} 
 2026-10-22 05:50:26,089 1 INFO odoo_test_night1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP import finished (partners only): {'counterparties': {'created': 1300, 'updated': 0, 'skipped': 0, 'rejected': 0}, 'locations': {'created': 1266, 'updated': 1297, 'skipped': 39, 'rejected': 0}, 'contacts': {'created': 2615, 'updated': 0, 'skipped': 1116, 'rejected': 0}, 'contact_roles': {'created': 2498, 'updated': 0, 'skipped': 180, 'rejected': 0}, 'salespersons': {'created': 0, 'updated': 818, 'skipped': 97, 'rejected': 0}, 'transactions': {'created': 0, 'updated': 0, 'skipped': 0, 'rejected': 0}, 'transaction_lines': {'created': 0, 'updated': 0, 'skipped': 0, 'rejected': 0}} 
-ERP source: direct database read (host.docker.internal/cieTrade_SM)
+ERP source: direct database read (host.docker.internal/erp_SM)
 VALIDATOR PASSED (database)
 res.partner before import: 13 (pre-existing business partners: 0)
 VALIDATOR PASSED (counterparties)
@@ -1355,7 +1355,7 @@ errors      : 1000 (first 10 below)
 2026-10-22 05:50:34,182 1 WARNING odoo_test_night1021 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
 2026-10-22 05:50:34,200 1 INFO odoo_test_night1021 odoo.modules.loading: Modules loaded. 
 2026-10-22 05:50:34,232 1 INFO odoo_test_night1021 odoo.registry: Registry loaded in 0.878s 
-2026-10-22 05:50:35,469 1 INFO odoo_test_night1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/cieTrade_SM): {'Address': 2968, 'BuySell': 8961, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'GPLedger': 8353, 'PO': 14724, 'PODetail': 19630, 'Payables': 14649, 'PayablesBatch': 12049, 'Receipt': 7538, 'ReceiptBatch': 4615, 'SalesReps': 1058, 'WKSDetail': 11441, 'WksDelivery': 8451} 
+2026-10-22 05:50:35,469 1 INFO odoo_test_night1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/erp_SM): {'Address': 2968, 'BuySell': 8961, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'GPLedger': 8353, 'PO': 14724, 'PODetail': 19630, 'Payables': 14649, 'PayablesBatch': 12049, 'Receipt': 7538, 'ReceiptBatch': 4615, 'SalesReps': 1058, 'WKSDetail': 11441, 'WksDelivery': 8451} 
 2026-10-22 05:50:53,226 1 INFO odoo_test_night1021 odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51655 was not written: sale.order 11546 has no partner 
 2026-10-22 05:51:00,608 1 INFO odoo_test_night1021 odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51694 was not written: sale.order 11582 has no partner 
 2026-10-22 05:51:03,428 1 INFO odoo_test_night1021 odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51711 was not written: purchase.order 4725 has no partner 
@@ -1486,7 +1486,7 @@ errors      : 1000 (first 10 below)
 2026-10-22 06:21:42,427 1 INFO odoo_test_night1021 odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 8000 
 2026-10-22 06:22:33,048 1 INFO odoo_test_night1021 odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 8200 
 2026-10-22 06:23:14,368 1 INFO odoo_test_night1021 odoo.addons.plasticos_partner_import.models.erp_import_service: ERP import finished: {'counterparties': {'created': 0, 'updated': 0, 'skipped': 1300, 'rejected': 0}, 'locations': {'created': 0, 'updated': 0, 'skipped': 2602, 'rejected': 0}, 'contacts': {'created': 0, 'updated': 0, 'skipped': 3731, 'rejected': 0}, 'contact_roles': {'created': 0, 'updated': 0, 'skipped': 2678, 'rejected': 0}, 'salespersons': {'created': 0, 'updated': 0, 'skipped': 915, 'rejected': 0}, 'transactions': {'created': 7728, 'updated': 0, 'skipped': 0, 'rejected': 645}, 'transaction_lines': {'created': 10525, 'updated': 0, 'skipped': 53, 'rejected': 863}} 
-ERP source: direct database read (host.docker.internal/cieTrade_SM)
+ERP source: direct database read (host.docker.internal/erp_SM)
 VALIDATOR PASSED (database)
 VALIDATOR PASSED (counterparties)
 VALIDATOR PASSED (addresses)

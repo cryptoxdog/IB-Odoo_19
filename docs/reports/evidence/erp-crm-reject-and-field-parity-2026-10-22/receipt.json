@@ -22,7 +22,7 @@
   },
   "source_query": {
     "mechanism": "plasticos_partner_import/erp/reader.py load_payload on projection scripts",
-    "label": "host.docker.internal/cieTrade_SM",
+    "label": "host.docker.internal/erp_SM",
     "statements": "SELECT only",
     "api_calls": 0
   },

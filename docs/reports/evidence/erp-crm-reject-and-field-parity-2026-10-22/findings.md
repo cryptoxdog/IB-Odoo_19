@@ -5,7 +5,7 @@ Read-only. No second import, no database write, no provider API call, and no pub
 **Checkout:** `607a64b897cb73b19adeea1b867990c5bf556189` on local `Staging`.  
 **Remote `origin/Staging`:** `e78af874604890f8adb6b049694f93c48311eab4`. This SHA is 13 commits ahead of that remote tip, and no remote branch contains it. A GitHub lookup of this SHA against current `origin/Staging` does not resolve.  
 **Clone:** `odoo_test_night1021`, asserted clone of `odoo_test_tpl_ee_c9e8a81f52f23680`, parity ee, fingerprint `c9e8a81f52f23680595b63d3f5ce3730f95db97195384243ef2fd10b35156c30`.  
-**Source read:** `erp.reader.load_payload` executed the projection scripts on `host.docker.internal/cieTrade_SM` as `erp_reader`. SELECT only.  
+**Source read:** `erp.reader.load_payload` executed the projection scripts on `host.docker.internal/erp_SM` as `erp_reader`. SELECT only.  
 **Final verdict:** PARTIAL. The 645 and 863 reconcile. Five CRM rows did not persist. Owner assignment did not follow the locked email map. Stage landing followed the installed map, including the three collapses below.
 
 ## Checkout cleanliness

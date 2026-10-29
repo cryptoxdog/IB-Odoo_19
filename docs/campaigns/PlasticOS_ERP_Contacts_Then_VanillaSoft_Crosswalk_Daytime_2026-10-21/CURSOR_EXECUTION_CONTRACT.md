@@ -73,7 +73,7 @@ scripts/test_env.sh run <owned-clone> -- \
   ERP_SQL_SERVER=host.docker.internal \
   ERP_SQL_PORT=14330 \
   ERP_SQL_USER=erp_reader \
-  ERP_SQL_DATABASE=cieTrade_SM \
+  ERP_SQL_DATABASE=erp_SM \
   ERP_REPORT_PATH=.l9/pr/erp-contacts-summary.json
 ```
 

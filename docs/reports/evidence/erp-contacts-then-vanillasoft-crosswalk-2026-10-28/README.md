@@ -41,7 +41,7 @@ Inactive contact XMLIDs after the ERP import: 0.
 | After partners-only | 5191 | 3734 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | after-ERP shell |
 | After crosswalk pass | 5198 | 3734 | 0 | 0 | 0 | 0 | 15 | 744 | 52156 | after-CRM shell and Postgres |
 
-Commercial documents stayed at the fresh-clone zero. Fixture fingerprint `840872d079d2c0ef99771994de01ceb64e7c05388edc04fb52a722ee83e41c02`. Clone owner `w2495f48767`, parity `ee`. ERP SQL `cieTrade_SM` on `cie-sql-proof` was `READ_ONLY`. The password and the VanillaSoft key were not printed. The key was copied onto this clone's `ir.config_parameter` (length 82). Project `139705` is the connection default.
+Commercial documents stayed at the fresh-clone zero. Fixture fingerprint `840872d079d2c0ef99771994de01ceb64e7c05388edc04fb52a722ee83e41c02`. Clone owner `w2495f48767`, parity `ee`. ERP SQL `erp_SM` on `cie-sql-proof` was `READ_ONLY`. The password and the VanillaSoft key were not printed. The key was copied onto this clone's `ir.config_parameter` (length 82). Project `139705` is the connection default.
 
 An earlier checkpoint file already in `Current Work - IGNORE/erp-contacts-vs-crosswalk/` made the first shell exit 0 with `processed_this_run=0`. That file was from another run. It was moved aside. The numbers in this pack are the second shell, which started from an empty checkpoint and fetched all 759 IDs.
 

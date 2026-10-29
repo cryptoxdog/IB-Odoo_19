@@ -1,7 +1,7 @@
--- One row per CIETRADE_SM image. Metadata only.
+-- One row per erp_SM image. Metadata only.
 -- Same live databases as the census. No backup. No Blob_Image.
 -- In SSMS: Query > Results To > Results to File.
--- Save as \\ucsservers01\home\ibeylin\Desktop\SQL 10-28-26\cietrade_sm_manifest.csv
+-- Save as \\ucsservers01\home\ibeylin\Desktop\SQL 10-28-26\erp_sm_manifest.csv
 -- Do not save the file into the git repository.
 
 SET NOCOUNT ON;
@@ -27,6 +27,6 @@ SELECT
         WHEN 'B' THEN 'unassigned'
         ELSE 'excluded'
     END AS disposition
-FROM cieTrade_Documents.dbo.DocumentImage AS i
-WHERE UPPER(RTRIM(CONVERT(varchar(128), DBName))) = 'CIETRADE_SM'
+FROM erp_Documents.dbo.DocumentImage AS i
+WHERE UPPER(RTRIM(CONVERT(varchar(128), DBName))) = 'erp_SM'
 ORDER BY i.ImageID;

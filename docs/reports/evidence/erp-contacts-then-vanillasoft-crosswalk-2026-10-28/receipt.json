@@ -61,7 +61,7 @@
     "module_test_clone": "odoo_test_sync1028",
     "clone_guard_passed": true,
     "sql_source_read_only_verified": true,
-    "sql_database": "cieTrade_SM",
+    "sql_database": "erp_SM",
     "provider_project_id_verified": "139705",
     "before_import_crm_lead_count": 0,
     "before_import_crm_provider_ref_count": 0,

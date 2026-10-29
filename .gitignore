@@ -39,7 +39,7 @@ current work - ib/
 docs/campaigns/10-26-26/
 docs/campaigns/10-27-26/
 docs/campaigns/CRM_Cursor_Realignment_v1_4_2026-10-26/
-# CieTrade recovery contract is tracked. Customer bytes and row-level inventories are not.
+# erp recovery contract is tracked. Customer bytes and row-level inventories are not.
 docs/campaigns/Document Blob Imports/**/*.bin
 docs/campaigns/Document Blob Imports/**/*.pdf
 docs/campaigns/Document Blob Imports/**/*.msg

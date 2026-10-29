@@ -1,19 +1,19 @@
 -- Full-corpus identity census. Metadata only. No Blob_Image. No backup.
--- Run in the SSMS window connected to UCSCIETRADE. Paste every result grid back.
+-- Run in the SSMS window connected to UCSerp. Paste every result grid back.
 
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 SELECT '01_columns' AS result_set;
 SELECT c.column_id, c.name, ty.name AS type_name, c.max_length
-FROM cieTrade_Documents.sys.columns AS c
-JOIN cieTrade_Documents.sys.types AS ty ON ty.user_type_id = c.user_type_id
-WHERE c.object_id = OBJECT_ID(N'cieTrade_Documents.dbo.DocumentImage')
+FROM erp_Documents.sys.columns AS c
+JOIN erp_Documents.sys.types AS ty ON ty.user_type_id = c.user_type_id
+WHERE c.object_id = OBJECT_ID(N'erp_Documents.dbo.DocumentImage')
 ORDER BY c.column_id;
 
 SELECT '02_dbname_counts' AS result_set;
 SELECT UPPER(RTRIM(CONVERT(varchar(128), DBName))) AS db_name, COUNT_BIG(*) AS image_rows
-FROM cieTrade_Documents.dbo.DocumentImage
+FROM erp_Documents.dbo.DocumentImage
 GROUP BY UPPER(RTRIM(CONVERT(varchar(128), DBName)))
 ORDER BY image_rows DESC;
 
@@ -36,8 +36,8 @@ SELECT
         ELSE NULL
     END AS RefInt
 INTO #img
-FROM cieTrade_Documents.dbo.DocumentImage
-WHERE UPPER(RTRIM(CONVERT(varchar(128), DBName))) = 'CIETRADE_SM';
+FROM erp_Documents.dbo.DocumentImage
+WHERE UPPER(RTRIM(CONVERT(varchar(128), DBName))) = 'erp_SM';
 
 SELECT '03_corpus' AS result_set;
 SELECT
@@ -149,13 +149,13 @@ SELECT '09_recovery_point' AS result_set;
 SELECT 'documents.CreatedDT' AS source_col, MIN(CreatedDT) AS min_dt, MAX(CreatedDT) AS max_dt, COUNT_BIG(*) AS rows_n
 FROM #img
 UNION ALL
-SELECT 'cieTrade_SM.BuySell.OrderDt', MIN(OrderDt), MAX(OrderDt), COUNT_BIG(*) FROM cieTrade_SM.dbo.BuySell
+SELECT 'erp_SM.BuySell.OrderDt', MIN(OrderDt), MAX(OrderDt), COUNT_BIG(*) FROM erp_SM.dbo.BuySell
 UNION ALL
-SELECT 'cieTrade_SM.PO.PODate', MIN(PODate), MAX(PODate), COUNT_BIG(*) FROM cieTrade_SM.dbo.PO
+SELECT 'erp_SM.PO.PODate', MIN(PODate), MAX(PODate), COUNT_BIG(*) FROM erp_SM.dbo.PO
 UNION ALL
-SELECT 'cieTrade_SM.WksDocument.CreationDt', MIN(CreationDt), MAX(CreationDt), COUNT_BIG(*) FROM cieTrade_SM.dbo.WksDocument
+SELECT 'erp_SM.WksDocument.CreationDt', MIN(CreationDt), MAX(CreationDt), COUNT_BIG(*) FROM erp_SM.dbo.WksDocument
 UNION ALL
-SELECT 'cieTrade_SM.PODocument.CreationDt', MIN(CreationDt), MAX(CreationDt), COUNT_BIG(*) FROM cieTrade_SM.dbo.PODocument;
+SELECT 'erp_SM.PODocument.CreationDt', MIN(CreationDt), MAX(CreationDt), COUNT_BIG(*) FROM erp_SM.dbo.PODocument;
 
 IF OBJECT_ID('tempdb..#class') IS NOT NULL DROP TABLE #class;
 
@@ -178,17 +178,17 @@ INTO #class
 FROM #img AS i
 LEFT JOIN (
     SELECT DISTINCT LTRIM(RTRIM(BuySellNo)) AS k
-    FROM cieTrade_SM.dbo.BuySell
+    FROM erp_SM.dbo.BuySell
     WHERE LTRIM(RTRIM(BuySellNo)) <> ''
 ) AS b ON b.k = i.RefID AND i.RefID <> ''
 LEFT JOIN (
     SELECT DISTINCT LTRIM(RTRIM(PONumber)) AS k
-    FROM cieTrade_SM.dbo.PO
+    FROM erp_SM.dbo.PO
     WHERE LTRIM(RTRIM(PONumber)) <> ''
 ) AS p ON p.k = i.RefID AND i.RefID <> ''
 LEFT JOIN (
     SELECT DetailID
-    FROM cieTrade_SM.dbo.WKSDetail
+    FROM erp_SM.dbo.WKSDetail
     GROUP BY DetailID
 ) AS d ON d.DetailID = i.RefInt
 LEFT JOIN (
@@ -196,7 +196,7 @@ LEFT JOIN (
         LTRIM(RTRIM(RefFile)) AS RefFile,
         MIN(LTRIM(RTRIM(BuySellNo))) AS reg_parent,
         COUNT(DISTINCT LTRIM(RTRIM(BuySellNo))) AS parent_variants
-    FROM cieTrade_SM.dbo.WksDocument
+    FROM erp_SM.dbo.WksDocument
     GROUP BY LTRIM(RTRIM(RefFile))
 ) AS w ON w.RefFile = CONVERT(varchar(30), i.DocID)
 LEFT JOIN (
@@ -204,7 +204,7 @@ LEFT JOIN (
         LTRIM(RTRIM(RefFile)) AS RefFile,
         MIN(LTRIM(RTRIM(PONumber))) AS reg_parent,
         COUNT(DISTINCT LTRIM(RTRIM(PONumber))) AS parent_variants
-    FROM cieTrade_SM.dbo.PODocument
+    FROM erp_SM.dbo.PODocument
     GROUP BY LTRIM(RTRIM(RefFile))
 ) AS o ON o.RefFile = CONVERT(varchar(30), i.DocID);
 
@@ -231,14 +231,14 @@ ORDER BY RefType;
 
 SELECT '11_universe_coverage' AS result_set;
 SELECT
-    (SELECT COUNT_BIG(*) FROM cieTrade_SM.dbo.BuySell) AS buysell_rows,
+    (SELECT COUNT_BIG(*) FROM erp_SM.dbo.BuySell) AS buysell_rows,
     (SELECT COUNT_BIG(*) FROM #class WHERE RefType = 'W' AND buysell_hit = 1) AS w_images_on_buysell,
     (SELECT COUNT(DISTINCT RefID) FROM #class WHERE RefType = 'W' AND buysell_hit = 1 AND RefID <> '') AS worksheets_with_w_doc,
-    (SELECT COUNT_BIG(*) FROM (SELECT DISTINCT LTRIM(RTRIM(BuySellNo)) AS k FROM cieTrade_SM.dbo.BuySell) AS b WHERE NOT EXISTS (SELECT 1 FROM #class c WHERE c.RefType = 'W' AND c.RefID = b.k)) AS worksheets_without_w_doc,
-    (SELECT COUNT_BIG(*) FROM cieTrade_SM.dbo.PO) AS po_rows,
+    (SELECT COUNT_BIG(*) FROM (SELECT DISTINCT LTRIM(RTRIM(BuySellNo)) AS k FROM erp_SM.dbo.BuySell) AS b WHERE NOT EXISTS (SELECT 1 FROM #class c WHERE c.RefType = 'W' AND c.RefID = b.k)) AS worksheets_without_w_doc,
+    (SELECT COUNT_BIG(*) FROM erp_SM.dbo.PO) AS po_rows,
     (SELECT COUNT_BIG(*) FROM #class WHERE RefType = 'P' AND po_hit = 1) AS p_images_on_po,
     (SELECT COUNT(DISTINCT RefID) FROM #class WHERE RefType = 'P' AND po_hit = 1 AND RefID <> '') AS pos_with_p_doc,
-    (SELECT COUNT_BIG(*) FROM (SELECT DISTINCT LTRIM(RTRIM(PONumber)) AS k FROM cieTrade_SM.dbo.PO) AS p WHERE NOT EXISTS (SELECT 1 FROM #class c WHERE c.RefType = 'P' AND c.RefID = p.k)) AS pos_without_p_doc;
+    (SELECT COUNT_BIG(*) FROM (SELECT DISTINCT LTRIM(RTRIM(PONumber)) AS k FROM erp_SM.dbo.PO) AS p WHERE NOT EXISTS (SELECT 1 FROM #class c WHERE c.RefType = 'P' AND c.RefID = p.k)) AS pos_without_p_doc;
 
 SELECT '12_hash_and_b_rows' AS result_set;
 SELECT ImageID, DocID, RefType, RefID, CreatedDT, buysell_hit, po_hit, detail_hit, wks_reg_hit, wks_reg_agrees, po_reg_hit, po_reg_agrees

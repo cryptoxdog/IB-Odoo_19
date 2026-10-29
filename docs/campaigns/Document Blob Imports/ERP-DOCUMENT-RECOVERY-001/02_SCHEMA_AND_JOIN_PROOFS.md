@@ -1,14 +1,14 @@
 # 02 — Schema and join proofs
 
-**Contract:** `SM-CIETRADE-DOCUMENT-RECOVERY-001`  
+**Contract:** `SM-erp-DOCUMENT-RECOVERY-001`  
 **Observation time:** 2026-10-28T19:33:11Z  
 **Gate B:** FAIL
 
 ## PaperSolve shape (ticket #78996, 2026-10-08)
 
-Mike Russo described blob images in `cieTrade_Documents.dbo.DocumentImage`, filtered by `DBName = 'cieTrade_SM'`, with columns `ImageID`, `DocID`, `DBName`, `RefID`, `RefType`, `DocName`, `DocType`, `CreatedDT`, `Blob_Image`, `Blob_Size`. Example `RefType` values were `W`, `P`, and `E`. Some blobs were said to start `0x1F8B08`. That database is not on this machine, so those types were not verified here.
+Mike Russo described blob images in `erp_Documents.dbo.DocumentImage`, filtered by `DBName = 'erp_SM'`, with columns `ImageID`, `DocID`, `DBName`, `RefID`, `RefType`, `DocName`, `DocType`, `CreatedDT`, `Blob_Image`, `Blob_Size`. Example `RefType` values were `W`, `P`, and `E`. Some blobs were said to start `0x1F8B08`. That database is not on this machine, so those types were not verified here.
 
-## Actual `cieTrade_SM.dbo.DocumentImage`
+## Actual `erp_SM.dbo.DocumentImage`
 
 Observed on the 2026-10-03 restore. No foreign keys. Primary key `PK_DocumentImage (DocID)`. Nonunique index `IE1_DocumentImage (RefID)`.
 
@@ -49,6 +49,6 @@ This table has no `ImageID` and no `DBName`. A column search of `dbo` found `Ima
 
 ## Join proof
 
-No `RefType` cohort exists in the accessible `DocumentImage`. There is no source witness that `RefID` equals `BuySellNo`, an internal worksheet key, or a PO number. `WksDocument.BuySellNo` proves only that the worksheet registry points at worksheets. It does not prove that a missing blob’s `RefID` is that number. Numeric `RefFile` values are unique inside each registry table; whether they equal `DocID` or `ImageID` in `cieTrade_Documents` is unproven and is asked in the PaperSolve request.
+No `RefType` cohort exists in the accessible `DocumentImage`. There is no source witness that `RefID` equals `BuySellNo`, an internal worksheet key, or a PO number. `WksDocument.BuySellNo` proves only that the worksheet registry points at worksheets. It does not prove that a missing blob’s `RefID` is that number. Numeric `RefFile` values are unique inside each registry table; whether they equal `DocID` or `ImageID` in `erp_Documents` is unproven and is asked in the PaperSolve request.
 
 **Gate B result:** FAIL. No deterministic source-to-business-record join for a document image. No Odoo link was assigned.
