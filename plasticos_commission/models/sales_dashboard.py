@@ -91,6 +91,7 @@ class PlasticosSalesDashboard(models.Model):
         readonly=True,
     )
     load_id = fields.Many2one("plasticos.load", readonly=True, ondelete="cascade")
+    load_count = fields.Integer(string="Loads", readonly=True)
     pickup_datetime = fields.Datetime(string="Pickup", readonly=True)
     delivery_datetime = fields.Datetime(string="Est. Delivery", readonly=True)
     delivered_at = fields.Datetime(string="Delivered At", readonly=True)
@@ -176,6 +177,7 @@ class PlasticosSalesDashboard(models.Model):
                 0.0::double precision                         AS commission_locked_amount,
                 'unpaid'::varchar                             AS commission_payout_state,
                 l.id                                          AS load_id,
+                COALESCE(lc.load_count, 0)                    AS load_count,
                 l.state                                       AS load_state,
                 l.pickup_datetime                             AS pickup_datetime,
                 l.delivery_datetime                           AS delivery_datetime,
@@ -184,7 +186,15 @@ class PlasticosSalesDashboard(models.Model):
                 l.delivery_term                               AS delivery_term,
                 rp.name                                       AS carrier_name
             FROM plasticos_transaction t
-            LEFT JOIN plasticos_load l ON l.id = t.load_id
+            LEFT JOIN (
+                SELECT transaction_id,
+                       COUNT(*)::integer AS load_count,
+                       CASE WHEN COUNT(*) = 1 THEN MIN(id) ELSE NULL::integer END AS sole_load_id
+                  FROM plasticos_load
+                 WHERE transaction_id IS NOT NULL
+                 GROUP BY transaction_id
+            ) lc ON lc.transaction_id = t.id
+            LEFT JOIN plasticos_load l ON l.id = lc.sole_load_id
             LEFT JOIN res_partner rp ON rp.id = l.carrier_id
             WHERE t.state != 'cancelled'
         """)
@@ -317,11 +327,22 @@ class PlasticosSalesDashboard(models.Model):
         }
 
     def action_view_load(self):
-        """Open the linked load record (read-only dialog).
-        Gives rep carrier contact, pickup/delivery ETA, trailer number
-        without navigating into the full logistics module.
+        """Open the one load on this deal.
+
+        Several loads are not collapsed into a single shipment. The deal row
+        stays one financial record and the rep opens the transaction to see each load.
         """
         self.ensure_one()
+        if self.load_count > 1:
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": "Several Loads",
+                    "message": "This deal has more than one load. Open the transaction to see each load.",
+                    "type": "warning",
+                },
+            }
         if not self.load_id:
             return {
                 "type": "ir.actions.client",

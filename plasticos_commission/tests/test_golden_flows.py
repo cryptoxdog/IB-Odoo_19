@@ -116,10 +116,13 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
         # pickup/delivery partners, a positive reference weight and a transaction intake
         # (plasticos_logistics/services/freight_context.py:57-69); dispatch needs a carrier
         # (plasticos_logistics/models/load.py:1086).
+        order = tx.sale_order_id or self.env["sale.order"].create({"partner_id": self.buyer.id})
+        if not tx.sale_order_id:
+            tx.sale_order_id = order
         load = self.Load.create(
             {
                 "transaction_id": tx.id,
-                "sale_order_id": self.env["sale.order"].create({"partner_id": self.buyer.id}).id,
+                "sale_order_id": order.id,
                 "pickup_partner_id": self.partner.id,
                 "delivery_partner_id": self.buyer.id,
                 "carrier_id": self._create_partner("Golden Flow Carrier").id,

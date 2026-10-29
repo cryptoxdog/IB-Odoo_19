@@ -141,7 +141,12 @@ class TestTransactionToLoadToDelivery(PlasticosTestCase):
         # pickup/delivery partners, reference weight, transaction intake —
         # plasticos_logistics/services/freight_context.py:57-69) and a carrier (load.py:1016, 1086).
         tx = self.env["plasticos.transaction"].create(
-            {"supplier_id": self.supplier.id, "buyer_id": self.buyer.id, "intake_id": self.intake.id}
+            {
+                "supplier_id": self.supplier.id,
+                "buyer_id": self.buyer.id,
+                "intake_id": self.intake.id,
+                "sale_order_id": self.sale_order.id,
+            }
         )
         if hasattr(tx, "action_confirm"):
             tx.action_confirm()

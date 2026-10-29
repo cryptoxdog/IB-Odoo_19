@@ -65,7 +65,8 @@ def _conflicts(cr):
         SELECT l.id, l.transaction_id, t.load_id
           FROM plasticos_load l
           JOIN plasticos_transaction t ON t.id = l.transaction_id
-         WHERE t.load_id IS DISTINCT FROM l.id
+         WHERE t.load_id IS NOT NULL
+           AND t.load_id IS DISTINCT FROM l.id
          ORDER BY l.id
         """
     )
@@ -102,8 +103,75 @@ def _copy(cr):
     return cr.rowcount
 
 
+_MIGRATION_MARKER = "plasticos_logistics.load_parent_migration_done"
+
+
+def _migration_done(cr):
+    cr.execute("SELECT to_regclass('public.ir_config_parameter')")
+    if cr.fetchone()[0] is None:
+        return False
+    cr.execute("SELECT value FROM ir_config_parameter WHERE key = %s", (_MIGRATION_MARKER,))
+    row = cr.fetchone()
+    return bool(row and row[0] == "done")
+
+
+def _mark_migration_done(cr):
+    if _migration_done(cr):
+        return
+    cr.execute(
+        """
+        INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date, write_date)
+        VALUES (%s, 'done', 1, 1, NOW() AT TIME ZONE 'UTC', NOW() AT TIME ZONE 'UTC')
+        """,
+        (_MIGRATION_MARKER,),
+    )
+
+
+def _retire_singular_transaction_load_views(cr):
+    """Drop stored transaction views that still call the removed singular load link.
+
+    The form, its button, the list, and the search view are one inheritance chain.
+    Loading either new view while the other still names ``load_id`` or
+    ``action_view_load`` makes the upgrade fail. The current XML recreates them.
+    """
+    cr.execute("SELECT to_regclass('public.ir_ui_view'), to_regclass('public.ir_model_data')")
+    view_table, data_table = cr.fetchone()
+    if view_table is None or data_table is None:
+        return
+    singular_button = 'action_view_load\\"'
+    singular_field = 'name=\\"load_id\\"'
+    cr.execute(
+        """
+        SELECT v.id, d.id
+          FROM ir_ui_view v
+          JOIN ir_model_data d
+            ON d.model = 'ir.ui.view'
+           AND d.res_id = v.id
+           AND d.module = 'plasticos_logistics'
+         WHERE v.model = 'plasticos.transaction'
+           AND (
+                strpos(v.arch_db::text, %s) > 0
+                OR strpos(v.arch_db::text, %s) > 0
+           )
+        """,
+        (singular_button, singular_field),
+    )
+    rows = cr.fetchall()
+    if not rows:
+        return
+    view_ids = [view_id for view_id, _data_id in rows]
+    data_ids = [data_id for _view_id, data_id in rows]
+    cr.execute("DELETE FROM ir_model_data WHERE id = ANY(%s)", (data_ids,))
+    cr.execute("DELETE FROM ir_ui_view WHERE id = ANY(%s)", (view_ids,))
+    _logger.info("plasticos_logistics pre-migrate retired %s singular transaction load views", len(view_ids))
+
+
 def migrate(cr, version):
     if not version:
+        return
+    _retire_singular_transaction_load_views(cr)
+    if _migration_done(cr):
+        _logger.info("plasticos_logistics pre-migrate left current load parents unchanged")
         return
     cr.execute("SELECT to_regclass('public.plasticos_transaction'), to_regclass('public.plasticos_load')")
     tx_table, load_table = cr.fetchone()

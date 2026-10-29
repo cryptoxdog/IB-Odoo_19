@@ -461,9 +461,12 @@ class TestExactAssociation(PlasticosTestCase):
         parent = self.env["plasticos.transaction"].create(
             {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "sale_order_id": order.id}
         )
-        other = self.env["plasticos.transaction"].create({"supplier_id": self.vendor.id, "buyer_id": self.vendor.id})
+        other_order = self.env["sale.order"].create({"partner_id": self.vendor.id})
+        other = self.env["plasticos.transaction"].create(
+            {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "sale_order_id": other_order.id}
+        )
         load = self.env["plasticos.load"].create({"sale_order_id": order.id})
-        sibling = self.env["plasticos.load"].create({"transaction_id": other.id})
+        sibling = self.env["plasticos.load"].create({"sale_order_id": other_order.id, "transaction_id": other.id})
         self.assertEqual(load.transaction_id, parent)
         attachment = self.env["ir.attachment"].create(
             {
@@ -497,11 +500,13 @@ class TestExactAssociation(PlasticosTestCase):
         tag = self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], limit=1)
         if not tag:
             tag = self.env["plasticos.document.tag"].create({"name": "Scale Ticket", "code": "SCALE"})
+        order = self.env["sale.order"].create({"partner_id": self.vendor.id})
         tx = self.env["plasticos.transaction"].create(
-            {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "state": "delivered"}
+            {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "sale_order_id": order.id}
         )
-        load_a = self.env["plasticos.load"].create({"transaction_id": tx.id})
-        load_b = self.env["plasticos.load"].create({"transaction_id": tx.id})
+        load_a = self.env["plasticos.load"].create({"sale_order_id": order.id, "transaction_id": tx.id})
+        load_b = self.env["plasticos.load"].create({"sale_order_id": order.id, "transaction_id": tx.id})
+        tx.with_context(bypass_state_guard=True).write({"state": "delivered"})
         when = fields.Datetime.now() - timedelta(days=5)
         pickup = fields.Datetime.now() - timedelta(days=3)
         (load_a | load_b).with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
@@ -532,10 +537,16 @@ class TestExactAssociation(PlasticosTestCase):
         with patch.object(type(self.env["plasticos.document"]), "_currently_eligible", eligible):
             self.assertTrue(tx._load_has_current_scale_ticket(load_a, tag))
             self.assertFalse(tx._load_has_current_scale_ticket(load_b, tag))
+            self.env["ir.config_parameter"].set_param(
+                "plasticos_documents.scale_ticket_scan_cursor", str(load_a.id - 1)
+            )
             tx.cron_check_scale_tickets()
             self.assertFalse(load_a.scale_ticket_reminder_sent)
             self.assertTrue(load_b.scale_ticket_reminder_sent)
             self.assertTrue(any(load_b.name in (message.body or "") for message in load_b.message_ids))
             noted = len(load_b.message_ids)
+            self.env["ir.config_parameter"].set_param(
+                "plasticos_documents.scale_ticket_scan_cursor", str(load_a.id - 1)
+            )
             tx.cron_check_scale_tickets()
             self.assertEqual(len(load_b.message_ids), noted)

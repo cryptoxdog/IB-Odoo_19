@@ -19,6 +19,9 @@ def migrate(cr, version):
     if not version:
         return
     pre = _pre()
+    if pre._migration_done(cr):
+        _logger.info("plasticos_logistics post-migrate left current load parents unchanged")
+        return
     pre.migrate(cr, version)
     if not pre._has_column(cr, "plasticos_transaction", "load_id"):
         return
@@ -41,4 +44,5 @@ def migrate(cr, version):
     missing = cr.fetchall()
     if missing:
         raise RuntimeError(f"plasticos load parent migration did not preserve every transaction.load_id row: {missing}")
+    pre._mark_migration_done(cr)
     _logger.info("plasticos_logistics post-migrate confirmed load parents; copied %s", copied)

@@ -76,18 +76,13 @@ class TestTransactionBridgeWiring(PlasticosTestCase):
         )
 
     def test_logistics_bridge_fields(self):
-        """plasticos_logistics adds load_id via transaction_inherit.py.
-
-        One load belongs to one transaction: a Many2one with a UNIQUE constraint, not a load_ids
-        One2many (plasticos_logistics/models/transaction_inherit.py:10-21).
-        """
-        self.assertIn(
-            "load_id",
-            self.fields,
-            "load_id missing — is plasticos_logistics installed?",
-        )
-        self.assertEqual(self.fields["load_id"].type, "many2one")
-        self.assertEqual(self.fields["load_id"].comodel_name, "plasticos.load")
+        """plasticos_logistics adds load_ids. Each load stores its own transaction_id."""
+        self.assertNotIn("load_id", self.fields)
+        self.assertIn("load_ids", self.fields)
+        self.assertEqual(self.fields["load_ids"].type, "one2many")
+        self.assertEqual(self.fields["load_ids"].comodel_name, "plasticos.load")
+        self.assertEqual(self.fields["load_ids"].inverse_name, "transaction_id")
+        self.assertIn("load_count", self.fields)
 
     def test_documents_bridge_fields(self):
         """plasticos_documents adds document fields."""

@@ -2,6 +2,8 @@ import hashlib
 import logging
 from datetime import timedelta
 
+from psycopg2 import sql
+
 from odoo import SUPERUSER_ID, api, fields, models
 from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -31,6 +33,39 @@ _FREIGHT_PROVENANCE_FIELDS = {
 _FREIGHT_RATE_INPUT_FIELDS = {"carrier_id", "rate_amount", "rate_currency_id"}
 _FREIGHT_ACTUAL_INPUT_FIELDS = {"actual_freight_cost", "actual_freight_currency_id"}
 _PROTECTED_PARENT_STATES = ("dispatched", "picked_up", "delivered", "closed")
+_PARENT_CORRECTION = "plasticos_load_parent_correction"
+_PARENT_CORRECTION_TOKEN = object()
+_SCALE_TICKET_INTERNAL_WRITE = "plasticos_load_scale_ticket_status_write"
+_SCALE_TICKET_INTERNAL_WRITE_TOKEN = object()
+_SCALE_TICKET_STATUS_FIELDS = frozenset({"scale_ticket_reminder_sent", "scale_ticket_escalated"})
+_MILESTONE_LOAD_STATES = {
+    "dispatched": ("dispatched", "picked_up", "delivered", "closed"),
+    "in_transit": ("picked_up", "delivered", "closed"),
+    "delivered": ("delivered", "closed"),
+    "closed": ("closed",),
+}
+_TRANSACTION_JOIN_MILESTONE = {
+    "dispatched": "dispatched",
+    "in_progress": "dispatched",
+    "in_transit": "in_transit",
+    "delivered": "delivered",
+    "invoiced": "delivered",
+    "closed": "closed",
+}
+_DUPLICATE_CLEARED_FIELDS = (
+    "transaction_id",
+    "dispatched_at",
+    "delivered_at",
+    "entered_state_at",
+    "pickup_datetime",
+    "delivery_datetime",
+    "bol_pickup_attached",
+    "bol_delivery_attached",
+    "dispatch_sent",
+    "dispatch_acknowledged",
+    "scale_ticket_reminder_sent",
+    "scale_ticket_escalated",
+)
 
 
 class PlasticosLoad(models.Model):
@@ -280,41 +315,131 @@ class PlasticosLoad(models.Model):
                         f"{', '.join(sorted(protected))}"
                     )
         records = super().create(vals_list)
+        for rec in records:
+            if rec.transaction_id:
+                rec._require_join_milestone(rec.transaction_id)
         records._link_unique_sale_order_transaction()
         return records
 
-    def _transaction_company_conflicts(self, transaction):
-        """True when both sides name a company and the companies differ."""
+    def _lock_rows(self, table, ids):
+        if table not in {"sale_order", "plasticos_transaction", "plasticos_load"}:
+            raise ValidationError("Cannot lock an unexpected table while assigning a load.")
+        row_ids = tuple(sorted({row_id for row_id in ids if row_id}))
+        if not row_ids:
+            return
+        self.env.cr.execute(
+            sql.SQL("SELECT id FROM {} WHERE id IN %s ORDER BY id FOR UPDATE").format(sql.Identifier(table)),
+            [row_ids],
+        )
+
+    def _eligible_transactions(self, sale_order):
+        return self.env[PLASTICOS_TRANSACTION].search(
+            [
+                ("sale_order_id", "=", sale_order.id),
+                ("supplier_id", "!=", False),
+                ("buyer_id", "!=", False),
+            ]
+        )
+
+    def _parent_identity_error(self, transaction):
+        """Refuse a new parent whose commercial identity is missing or different."""
         self.ensure_one()
+        if not self.sale_order_id or not transaction.sale_order_id:
+            return "A load and its transaction both need a sale order."
+        if self.sale_order_id != transaction.sale_order_id:
+            return "A load must use the same sale order as its transaction."
         load_company = self.company_id
         transaction_company = transaction.sale_order_id.company_id
-        return bool(load_company and transaction_company and load_company != transaction_company)
+        if bool(load_company) != bool(transaction_company) or (
+            load_company and transaction_company and load_company != transaction_company
+        ):
+            return "A load cannot join a transaction across companies or with an unknown company."
+        if not transaction.supplier_id or not transaction.buyer_id:
+            return "Cannot link a load until the transaction has both a supplier and a buyer."
+        return None
+
+    def _join_milestone_error(self, transaction):
+        self.ensure_one()
+        milestone = _TRANSACTION_JOIN_MILESTONE.get(transaction.state)
+        if milestone and self.state not in _MILESTONE_LOAD_STATES[milestone]:
+            return (
+                f"Load {self.name} cannot join transaction {transaction.name} "
+                f"after that transaction has reached {transaction.state}."
+            )
+        return None
+
+    def _require_parent_identity(self, transaction):
+        error = self._parent_identity_error(transaction)
+        if error:
+            raise ValidationError(error)
+
+    def _require_join_milestone(self, transaction):
+        error = self._join_milestone_error(transaction)
+        if error:
+            raise ValidationError(error)
+
+    @api.model
+    def _loads_blocking_milestone(self, loads, milestone):
+        allowed = _MILESTONE_LOAD_STATES[milestone]
+        return loads.filtered(lambda load: load.state not in allowed)
+
+    def copy(self, default=None):
+        """A duplicate is a new draft. It does not inherit the source load's parent."""
+        copied = self.with_context(plasticos_skip_load_parent_link=True)
+        return super(PlasticosLoad, copied).copy(default=default)
 
     def _link_unique_sale_order_transaction(self):
         """Link a new load only when its sale order has one eligible transaction.
 
         Zero matches stay unlinked. Two or more eligible transactions are refused
         so the create rolls back instead of picking a sale order's first row.
+        The sale order row is locked and the candidate set is read again before the link.
         """
-        transactions = self.env[PLASTICOS_TRANSACTION]
+        if self.env.context.get("plasticos_skip_load_parent_link"):
+            return
         for rec in self:
             if rec.transaction_id or not rec.sale_order_id:
                 continue
-            candidates = transactions.search(
-                [
-                    ("sale_order_id", "=", rec.sale_order_id.id),
-                    ("supplier_id", "!=", False),
-                    ("buyer_id", "!=", False),
-                ]
-            )
-            candidates = candidates.filtered(lambda tx, load=rec: not load._transaction_company_conflicts(tx))
+            self._lock_rows("sale_order", [rec.sale_order_id.id])
+            candidates = self._eligible_transactions(rec.sale_order_id)
+            self._lock_rows("plasticos_transaction", candidates.ids)
+            self._lock_rows("plasticos_load", [rec.id])
+            rec.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
+            if rec.transaction_id or not rec.sale_order_id:
+                continue
+            candidates = self._eligible_transactions(rec.sale_order_id)
             if len(candidates) > 1:
                 raise ValidationError(
                     f"Sale order {rec.sale_order_id.display_name} matches {len(candidates)} transactions "
                     "with supplier and buyer. Assign the transaction explicitly."
                 )
             if len(candidates) == 1:
+                rec._require_parent_identity(candidates)
+                rec._require_join_milestone(candidates)
                 rec.transaction_id = candidates.id
+
+    @api.model
+    def _reconcile_unlinked_for_transactions(self, transactions):
+        """Link unlinked loads when a sale order later has exactly one eligible transaction."""
+        for tx in transactions:
+            if not tx.sale_order_id or not tx.supplier_id or not tx.buyer_id:
+                continue
+            self._lock_rows("sale_order", [tx.sale_order_id.id])
+            eligible = self._eligible_transactions(tx.sale_order_id)
+            self._lock_rows("plasticos_transaction", eligible.ids)
+            eligible = self._eligible_transactions(tx.sale_order_id)
+            if len(eligible) != 1 or eligible != tx:
+                continue
+            loads = self.search([("sale_order_id", "=", tx.sale_order_id.id), ("transaction_id", "=", False)])
+            self._lock_rows("plasticos_load", loads.ids)
+            loads.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
+            loads = self.search([("sale_order_id", "=", tx.sale_order_id.id), ("transaction_id", "=", False)])
+            for load in loads:
+                if load._parent_link_is_protected():
+                    continue
+                if load._parent_identity_error(tx) or load._join_milestone_error(tx):
+                    continue
+                load.transaction_id = tx.id
 
     def _has_freight_provenance(self):
         self.ensure_one()
@@ -333,10 +458,6 @@ class PlasticosLoad(models.Model):
             return True
         if self.freight_quote_request_ids:
             return True
-        if "plasticos.freight.quote" in self.env and self.env["plasticos.freight.quote"].search_count(
-            [("load_id", "=", self.id)], limit=1
-        ):
-            return True
         if "plasticos.dispatch" in self.env and self.env["plasticos.dispatch"].search_count(
             [("load_id", "=", self.id)], limit=1
         ):
@@ -350,51 +471,94 @@ class PlasticosLoad(models.Model):
         )
 
     def _guard_transaction_parent(self, new_tx_id):
-        """Keep a load on its current transaction. A failed write leaves that link."""
+        """Keep a load on its current transaction. A failed write leaves that link.
+
+        An ordinary write cannot clear or move a parent, including a two-step
+        clear followed by a new assignment. A draft correction goes through
+        ``action_correct_draft_parent`` and still cannot detach protected evidence.
+        """
         new_tx_id = new_tx_id or False
         if not self:
             return
-        self.env.cr.execute(
-            "SELECT id FROM plasticos_load WHERE id IN %s FOR UPDATE",
-            [tuple(self.ids)],
-        )
-        self.invalidate_recordset(["transaction_id"])
+        authorized = self.env.context.get(_PARENT_CORRECTION) is _PARENT_CORRECTION_TOKEN
+        sale_ids = set(self.mapped("sale_order_id").ids)
+        transaction_ids = set(self.mapped("transaction_id").ids)
+        if new_tx_id:
+            transaction_ids.add(new_tx_id)
+            target = self.env[PLASTICOS_TRANSACTION].browse(new_tx_id).exists()
+            if target.sale_order_id:
+                sale_ids.add(target.sale_order_id.id)
+        self._lock_rows("sale_order", sale_ids)
+        self._lock_rows("plasticos_transaction", transaction_ids)
+        self._lock_rows("plasticos_load", self.ids)
+        self.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
         for rec in self:
             current_id = rec.transaction_id.id
             if current_id == new_tx_id:
                 continue
-            if current_id and new_tx_id:
-                raise ValidationError(
-                    f"Load {rec.name} already belongs to a transaction and cannot be attached to another."
-                )
-            if rec._parent_link_is_protected():
+            if current_id and rec._parent_link_is_protected():
                 raise ValidationError(
                     f"Load {rec.name} is dispatched or carries freight, dispatch, or accepted evidence. "
                     "Its transaction link stays unchanged."
                 )
+            if current_id and not authorized:
+                raise ValidationError(
+                    f"Load {rec.name} stays on its transaction. Correct a draft link with an attributable reason."
+                )
+            if new_tx_id:
+                target = self.env[PLASTICOS_TRANSACTION].browse(new_tx_id).exists()
+                if not target:
+                    raise ValidationError("Cannot link a load to a missing transaction.")
+                rec._require_parent_identity(target)
+                rec._require_join_milestone(target)
+
+    def action_correct_draft_parent(self, transaction, reason):
+        """Move or clear a draft parent in one attributable write."""
+        self.ensure_one()
+        explanation = (reason or "").strip()
+        if not explanation:
+            raise UserError("A reason is required to correct a draft load's transaction.")
+        if self._parent_link_is_protected():
+            raise ValidationError(
+                f"Load {self.name} is dispatched or carries freight, dispatch, or accepted evidence. "
+                "Its transaction link stays unchanged."
+            )
+        new_id = transaction.id if transaction else False
+        self.with_context(**{_PARENT_CORRECTION: _PARENT_CORRECTION_TOKEN}).write({"transaction_id": new_id})
+        self.message_post(body=f"Draft transaction link corrected. {explanation}")
+
+    def _write_scale_ticket_status(self, values):
+        """Record reminder or escalation state without opening the load to other edits."""
+        unknown = set(values) - _SCALE_TICKET_STATUS_FIELDS
+        if unknown:
+            raise UserError(f"Scale-ticket status cannot write {', '.join(sorted(unknown))}.")
+        return self.with_context(**{_SCALE_TICKET_INTERNAL_WRITE: _SCALE_TICKET_INTERNAL_WRITE_TOKEN}).write(values)
 
     @api.constrains("transaction_id", "sale_order_id")
     def _check_transaction_parent(self):
         for rec in self:
-            tx = rec.transaction_id
-            if not tx:
-                continue
-            if not tx.supplier_id or not tx.buyer_id:
-                raise ValidationError("Cannot link a load until the transaction has both a supplier and a buyer.")
-            if rec._transaction_company_conflicts(tx):
-                raise ValidationError("Cannot link a load to a transaction in another company.")
+            if rec.transaction_id:
+                rec._require_parent_identity(rec.transaction_id)
 
     def copy_data(self, default=None):
-        """A duplicated load starts in Draft with no freight provenance.
-
-        Odoo's Duplicate action copies stored fields by default; freight state and
-        provenance are workflow-owned and must never be inherited by a new load.
-        """
+        """A duplicated load starts in Draft without a parent, dates, or evidence."""
         default = dict(default or {})
         default.setdefault("state", "draft")
         for name in _FREIGHT_PROVENANCE_FIELDS:
             default.setdefault(name, False)
+        for name in _DUPLICATE_CLEARED_FIELDS:
+            if name in self._fields:
+                default.setdefault(name, False)
         return super().copy_data(default=default)
+
+    def unlink(self):
+        for rec in self:
+            if rec._parent_link_is_protected():
+                raise UserError(
+                    f"Load {rec.name} is dispatched or carries freight, dispatch, or accepted evidence "
+                    "and cannot be deleted."
+                )
+        return super().unlink()
 
     def _compute_freight_evidence_counts(self):
         request_model = self.env["plasticos.freight.quote.request"]
@@ -431,6 +595,9 @@ class PlasticosLoad(models.Model):
         """
         freight_fields = set(vals)
         internal_freight_write = self.env.context.get(_FREIGHT_INTERNAL_WRITE) is _FREIGHT_INTERNAL_WRITE_TOKEN
+        internal_scale_ticket_write = (
+            self.env.context.get(_SCALE_TICKET_INTERNAL_WRITE) is _SCALE_TICKET_INTERNAL_WRITE_TOKEN
+        )
         if not internal_freight_write:
             if "state" in freight_fields:
                 raise UserError("Load state may only change through the validated transition workflow.")
@@ -481,6 +648,8 @@ class PlasticosLoad(models.Model):
                 }
                 if internal_freight_write:
                     allowed.update(_FREIGHT_ACTUAL_INPUT_FIELDS | {"actual_freight_recorded_at"})
+                if internal_scale_ticket_write:
+                    allowed.update(_SCALE_TICKET_STATUS_FIELDS)
                 blocked = set(vals.keys()) - allowed
                 if blocked:
                     raise UserError(f"Load locked after dispatch. Cannot modify: {', '.join(sorted(blocked))}")

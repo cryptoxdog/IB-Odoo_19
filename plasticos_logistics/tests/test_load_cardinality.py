@@ -7,7 +7,7 @@ from odoo.addons.plasticos_logistics.models.load import (
     _FREIGHT_INTERNAL_WRITE,
     _FREIGHT_INTERNAL_WRITE_TOKEN,
 )
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.modules.module import get_module_path
 from odoo.tests import TransactionCase, tagged
 
@@ -140,7 +140,7 @@ class TestLoadCardinality(TransactionCase):
             load.transaction_id = False
         self.assertEqual(load.transaction_id, tx)
 
-        draft = self.env["plasticos.load"].create({"transaction_id": tx.id})
+        draft = self.env["plasticos.load"].create({"sale_order_id": order.id, "transaction_id": tx.id})
         draft.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
             {"rate_confirmed_at": fields.Datetime.now()}
         )
@@ -150,6 +150,7 @@ class TestLoadCardinality(TransactionCase):
 
     def test_parent_migration_copies_a_null_parent_and_refuses_a_disagreement(self):
         pre = _migration("pre-migrate.py")
+        self.env.cr.execute("DELETE FROM ir_config_parameter WHERE key = %s", (pre._MIGRATION_MARKER,))
         order = self._order()
         tx = self._transaction("TX-LOAD-MIG", order)
         other = self._transaction("TX-LOAD-MIG-OTHER")
@@ -185,3 +186,148 @@ class TestLoadCardinality(TransactionCase):
                 pre.migrate(cr, "19.0.1.14.5")
             cr.execute("SELECT transaction_id FROM plasticos_load WHERE id = %s", (load.id,))
             self.assertEqual(cr.fetchone()[0], other.id)
+
+    def _set_state(self, load, state):
+        load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write({"state": state})
+
+    def test_delayed_eligibility_links_the_only_transaction(self):
+        order = self._order()
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        self.assertFalse(load.transaction_id)
+        tx = self._transaction("TX-LOAD-LATER", order)
+        self.assertEqual(load.transaction_id, tx)
+
+    def test_a_second_eligible_transaction_does_not_move_an_existing_load(self):
+        order = self._order()
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        first = self._transaction("TX-LOAD-FIRST", order)
+        second = self._transaction("TX-LOAD-SECOND", order)
+        self.assertEqual(load.transaction_id, first)
+        self.assertNotEqual(load.transaction_id, second)
+
+    def test_mismatched_sale_order_is_refused_and_the_load_stays_unlinked(self):
+        load = self.env["plasticos.load"].create({"sale_order_id": self._order().id})
+        other = self._transaction("TX-LOAD-OTHER-SO", self._order())
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.transaction_id = other
+        self.assertFalse(load.transaction_id)
+
+    def test_ordinary_clear_and_reassign_are_refused(self):
+        order = self._order()
+        tx = self._transaction("TX-LOAD-KEEP", order)
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        other = self._transaction("TX-LOAD-MOVE", order)
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.transaction_id = False
+        self.assertEqual(load.transaction_id, tx)
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.transaction_id = other
+        self.assertEqual(load.transaction_id, tx)
+        load.action_correct_draft_parent(other, "Operator corrected the draft parent.")
+        self.assertEqual(load.transaction_id, other)
+        noted = load.message_ids.filtered(lambda message: "Draft transaction link corrected." in (message.body or ""))
+        self.assertTrue(noted)
+
+    def test_duplicate_drops_parent_dates_and_evidence(self):
+        order = self._order()
+        self._transaction("TX-LOAD-COPY", order)
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        when = fields.Datetime.now()
+        self._set_state(load, "delivered")
+        load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
+            {"delivered_at": when, "dispatched_at": when}
+        )
+        duplicate = load.copy()
+        self.assertFalse(duplicate.transaction_id)
+        self.assertFalse(duplicate.delivered_at)
+        self.assertFalse(duplicate.dispatched_at)
+        self.assertEqual(duplicate.state, "draft")
+        self.assertEqual(load.transaction_id.sale_order_id, order)
+
+    def test_protected_load_and_transaction_cannot_be_removed(self):
+        order = self._order()
+        tx = self._transaction("TX-LOAD-DELETE", order)
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        self._set_state(load, "dispatched")
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            load.unlink()
+        self.assertTrue(load.exists())
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            tx.unlink()
+        self.assertTrue(tx.exists())
+
+    def test_a_draft_load_cannot_join_a_delivered_transaction(self):
+        order = self._order()
+        tx = self._transaction("TX-LOAD-LATE", order)
+        tx.with_context(bypass_state_guard=True).write({"state": "delivered"})
+        before = self.env["plasticos.load"].search_count([])
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env["plasticos.load"].create({"sale_order_id": order.id})
+        self.assertEqual(self.env["plasticos.load"].search_count([]), before)
+        self.assertFalse(tx.load_ids)
+
+    def test_transaction_milestones_wait_for_every_load(self):
+        order = self._order()
+        tx = self._transaction("TX-LOAD-MILE", order)
+        first = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        second = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        tx.with_context(bypass_state_guard=True).write({"state": "supplier_ready"})
+        self._set_state(first, "dispatched")
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            tx.action_mark_dispatched()
+        self.assertEqual(tx.state, "supplier_ready")
+        self._set_state(second, "dispatched")
+        tx.action_mark_dispatched()
+        self.assertEqual(tx.state, "dispatched")
+        self._set_state(first, "picked_up")
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            tx.action_mark_in_transit()
+        self.assertEqual(tx.state, "dispatched")
+        self._set_state(second, "picked_up")
+        tx.action_mark_in_transit()
+        self._set_state(first, "delivered")
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            tx.action_mark_delivered()
+        self.assertEqual(tx.state, "in_transit")
+        self._set_state(second, "delivered")
+        tx.action_mark_delivered()
+        self.assertEqual(tx.state, "delivered")
+
+    def test_a_transaction_without_loads_can_still_be_dispatched(self):
+        tx = self._transaction("TX-LOAD-PO")
+        tx.with_context(bypass_state_guard=True).write({"state": "supplier_ready"})
+        tx.action_mark_dispatched()
+        self.assertEqual(tx.state, "dispatched")
+
+    def test_completed_parent_migration_does_not_restore_a_cleared_link(self):
+        pre = _migration("pre-migrate.py")
+        post = _migration("post-migrate.py")
+        self.env.cr.execute("DELETE FROM ir_config_parameter WHERE key = %s", (pre._MIGRATION_MARKER,))
+        order = self._order()
+        tx = self._transaction("TX-LOAD-MARKER", order)
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        cr = self.env.cr
+        cr.execute("ALTER TABLE plasticos_transaction ADD COLUMN IF NOT EXISTS load_id integer")
+        cr.execute("UPDATE plasticos_load SET transaction_id = NULL WHERE id = %s", (load.id,))
+        cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (load.id, tx.id))
+        post.migrate(cr, "19.0.1.14.5")
+        cr.execute("SELECT transaction_id FROM plasticos_load WHERE id = %s", (load.id,))
+        self.assertEqual(cr.fetchone()[0], tx.id)
+        cr.execute("UPDATE plasticos_load SET transaction_id = NULL WHERE id = %s", (load.id,))
+        pre.migrate(cr, "19.0.1.14.5")
+        post.migrate(cr, "19.0.1.14.5")
+        cr.execute("SELECT transaction_id FROM plasticos_load WHERE id = %s", (load.id,))
+        self.assertIsNone(cr.fetchone()[0])
+
+    def test_a_second_session_blocks_on_a_held_row_lock(self):
+        company_id = self.env.company.id
+        self.env.cr.execute("SELECT id FROM res_company WHERE id = %s FOR UPDATE", (company_id,))
+        other = self.env.registry.cursor()
+        try:
+            other.execute("SET lock_timeout = '300ms'")
+            with self.assertRaises(Exception):
+                other.execute("SELECT id FROM res_company WHERE id = %s FOR UPDATE", (company_id,))
+            other.rollback()
+        finally:
+            other.close()
+        self.assertTrue(self.env.company.exists())

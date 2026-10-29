@@ -21,19 +21,59 @@ from psycopg2 import sql
 _logger = logging.getLogger(__name__)
 
 
-def _rename_columns(cr, table_name, renames):
-    """Rename columns in a table if they exist (idempotent)."""
-    for old_name, new_name in renames:
-        cr.execute(
+def _column_exists(cr, table_name, column_name):
+    cr.execute(
+        """
+        SELECT 1
+          FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = %s
+           AND column_name = %s
+        """,
+        (table_name, column_name),
+    )
+    return cr.fetchone() is not None
+
+
+def _columns_contradict(cr, table_name, old_name, new_name):
+    cr.execute(
+        sql.SQL(
             """
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = %s
-              AND column_name = %s
-            """,
-            (table_name, old_name),
+            SELECT 1
+              FROM {}
+             WHERE {} IS NOT NULL
+               AND {} IS NOT NULL
+               AND {} IS DISTINCT FROM {}
+             LIMIT 1
+            """
+        ).format(
+            sql.Identifier(table_name),
+            sql.Identifier(old_name),
+            sql.Identifier(new_name),
+            sql.Identifier(old_name),
+            sql.Identifier(new_name),
         )
-        if cr.fetchone():
+    )
+    return cr.fetchone() is not None
+
+
+def _align_columns(cr, table_name, renames):
+    """Rename, or merge when both columns exist. Refuse contradictory values first."""
+    conflicts = []
+    plan = []
+    for old_name, new_name in renames:
+        has_old = _column_exists(cr, table_name, old_name)
+        has_new = _column_exists(cr, table_name, new_name)
+        if has_old and has_new and _columns_contradict(cr, table_name, old_name, new_name):
+            conflicts.append((old_name, new_name))
+        else:
+            plan.append((old_name, new_name, has_old, has_new))
+    if conflicts:
+        raise RuntimeError(
+            f"plasticos_documents column rename refused contradictory values in {table_name}: {conflicts}"
+        )
+    for old_name, new_name, has_old, has_new in plan:
+        if has_old and not has_new:
             cr.execute(
                 sql.SQL("ALTER TABLE {} RENAME COLUMN {} TO {}").format(
                     sql.Identifier(table_name),
@@ -41,9 +81,24 @@ def _rename_columns(cr, table_name, renames):
                     sql.Identifier(new_name),
                 )
             )
-            _logger.info("Renamed %s.%s → %s", table_name, old_name, new_name)
-        else:
-            _logger.debug("Column %s.%s not found, skipping", table_name, old_name)
+            _logger.info("Renamed %s.%s to %s", table_name, old_name, new_name)
+            continue
+        if not (has_old and has_new):
+            _logger.debug("Column %s.%s needs no change", table_name, old_name)
+            continue
+        cr.execute(
+            sql.SQL("UPDATE {} SET {} = {} WHERE {} IS NULL AND {} IS NOT NULL").format(
+                sql.Identifier(table_name),
+                sql.Identifier(new_name),
+                sql.Identifier(old_name),
+                sql.Identifier(new_name),
+                sql.Identifier(old_name),
+            )
+        )
+        cr.execute(
+            sql.SQL("ALTER TABLE {} DROP COLUMN {}").format(sql.Identifier(table_name), sql.Identifier(old_name))
+        )
+        _logger.info("Merged %s.%s into %s and dropped the source", table_name, old_name, new_name)
 
 
 def migrate(cr, version):
@@ -61,8 +116,8 @@ def migrate(cr, version):
         version,
     )
 
-    # ── 1. Rename 8 columns on plasticos_transaction ──────────────
-    _rename_columns(
+    # ── 1. Align renamed columns on plasticos_transaction ─────────
+    _align_columns(
         cr,
         "plasticos_transaction",
         [

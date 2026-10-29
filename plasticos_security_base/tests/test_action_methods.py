@@ -206,7 +206,6 @@ class TestLoadActions(PlasticosTestCase):
                 "supplier_id": self.origin.id,
                 "buyer_id": self.destination.id,
                 "intake_id": intake.id,
-                "load_id": load.id,
             }
         )
         load.invalidate_recordset()
@@ -286,7 +285,9 @@ class TestLoadActions(PlasticosTestCase):
         self.assertFalse(load.action_view_transaction())
         # A load can only be assigned once supplier and buyer are set
         # (plasticos_logistics/models/transaction_inherit.py:52-61).
-        tx = self._create_transaction(supplier_id=self.origin.id, buyer_id=self.destination.id, load_id=load.id)
+        order = self.env["sale.order"].create({"partner_id": self.destination.id})
+        load.sale_order_id = order
+        tx = self._create_transaction(supplier_id=self.origin.id, buyer_id=self.destination.id, sale_order_id=order.id)
         result = load.action_view_transaction()
         self.assertEqual(result["type"], "ir.actions.act_window")
         self.assertEqual(result["res_id"], tx.id)
