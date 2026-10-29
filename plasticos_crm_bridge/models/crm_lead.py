@@ -289,8 +289,10 @@ class CrmLeadPlastOS(models.Model):
         Flow:
         1. Create or find res.partner from lead data
         2. Create plasticos.intake linked to partner + this lead
-        3. Move CRM lead to Active Supplier stage
-        4. Open the new intake form
+        3. Open the new intake form
+
+        The pipeline stage is untouched: creating or reusing an intake is not
+        a Won disposition. Stage moves stay manual CRM operations.
         """
         self.ensure_one()
 
@@ -326,7 +328,6 @@ class CrmLeadPlastOS(models.Model):
             if intake.material_profile_id:
                 self.material_profile_id = intake.material_profile_id
                 self._propagate_available_commercial_images(material_profile=intake.material_profile_id)
-            self._move_to_active_supplier_stage()
             self.message_post(
                 body=(
                     f'Reused originating intake: <a href="#" '
@@ -369,16 +370,13 @@ class CrmLeadPlastOS(models.Model):
 
         intake = self.env["plasticos.intake"].create(intake_vals)
 
-        # 3. Move lead to Active Supplier stage
-        self._move_to_active_supplier_stage()
-
         self.message_post(
             body=f'Intake created: <a href="#" '
             f'data-oe-model="plasticos.intake" '
             f'data-oe-id="{intake.id}">{intake.name or "New Intake"}</a>'
         )
 
-        # 4. Open intake form
+        # 3. Open intake form
         return {
             "type": "ir.actions.act_window",
             "name": f"Intake — {partner.name}",
