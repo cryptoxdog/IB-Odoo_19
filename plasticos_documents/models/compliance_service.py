@@ -86,17 +86,5 @@ class PlasticosComplianceService(models.AbstractModel):
         return float_compare(doc.covered_quantity, transaction.quantity, precision_digits=2) >= 0
 
     def is_compliant(self, res_model, res_id, purpose=None):
-        missing = self.get_missing_documents(res_model, res_id, purpose=purpose)
-        compliant = len(missing) == 0
-        self._sync_stored_compliance(res_model, res_id)
-        return compliant
-
-    def _sync_stored_compliance(self, res_model, res_id):
-        """Calendar expiry has no document write. Refresh the stored gate on read."""
-        if self.env.context.get("plasticos_compliance_quiet"):
-            return
-        if res_model != "plasticos.transaction":
-            return
-        transaction = self.env["plasticos.transaction"].browse(res_id).exists()
-        if transaction:
-            transaction.with_context(plasticos_compliance_quiet=True)._compute_compliance()
+        """Live eligibility. This read does not store, recompute, or post."""
+        return not self.get_missing_documents(res_model, res_id, purpose=purpose)

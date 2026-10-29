@@ -279,21 +279,28 @@ class TestPr322Findings(PlasticosTestCase):
         service = self.env["plasticos.compliance.service"]
         self.assertTrue(service.is_compliant("plasticos.transaction", tx.id, purpose="invoice"))
         later = fields.Date.today() + timedelta(days=2)
-        aged_service = service.with_context(plasticos_documents_today=later)
         write_date = accepted.write_date
-        self.assertFalse(aged_service.is_compliant("plasticos.transaction", tx.id, purpose="invoice"))
-        self.assertEqual(accepted.write_date, write_date)
+        with patch.object(type(accepted), "_evidence_today", return_value=later):
+            self.assertFalse(service.is_compliant("plasticos.transaction", tx.id, purpose="invoice"))
+            self.assertEqual(accepted.write_date, write_date)
+            self.assertEqual(accepted.verified_by, actor)
+            self.assertEqual(accepted.verified_at, stamp)
+            self.env.flush_all()
+            self.env.cr.execute("SELECT compliance_status FROM plasticos_transaction WHERE id = %s", (tx.id,))
+            self.assertEqual(self.env.cr.fetchone()[0], "compliant")
+            found = (
+                self.env["plasticos.transaction"]
+                .with_context(plasticos_documents_today=later)
+                .search([("id", "=", tx.id), ("compliance_status", "=", "compliant")])
+            )
+            self.assertEqual(found, tx)
+            self.env["plasticos.midnight.recompute"]._recompute_document_expiry()
+            self.env.flush_all()
+            self.env.cr.execute("SELECT compliance_status FROM plasticos_transaction WHERE id = %s", (tx.id,))
+            self.assertEqual(self.env.cr.fetchone()[0], "missing")
         self.assertEqual(accepted.verified_by, actor)
         self.assertEqual(accepted.verified_at, stamp)
-        self.env.flush_all()
-        self.env.cr.execute("SELECT compliance_status FROM plasticos_transaction WHERE id = %s", (tx.id,))
-        self.assertEqual(self.env.cr.fetchone()[0], "missing")
-        found = (
-            self.env["plasticos.transaction"]
-            .with_context(plasticos_documents_today=later)
-            .search([("id", "=", tx.id), ("compliance_status", "=", "compliant")])
-        )
-        self.assertFalse(found)
+        self.assertEqual(accepted.expiry_date, fields.Date.today() + timedelta(days=1))
         replacement = self._accept(self.bol, tx, quantity=0)
         replacement.with_user(self.verifier).action_verify()
         self.assertEqual(accepted.verified_by, actor)
