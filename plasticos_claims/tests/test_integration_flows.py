@@ -51,7 +51,7 @@ class TestLeadToIntakeToTransaction(PlasticosTestCase):
             intake.action_confirm()
             self.assertEqual(intake.state, "confirmed")
 
-    def test_lead_creates_partner_when_missing(self):
+    def test_lead_keeps_partner_missing(self):
         lead = self.env["crm.lead"].create(
             {
                 "name": "No Partner Lead",
@@ -61,7 +61,9 @@ class TestLeadToIntakeToTransaction(PlasticosTestCase):
             }
         )
         lead.action_convert_to_intake()
-        self.assertTrue(lead.partner_id)
+        self.assertFalse(lead.partner_id)
+        self.assertFalse(lead.source_intake_id.partner_id)
+        self.assertEqual(lead.source_intake_id.pending_company_name, "Auto Create Co")
         self.assertTrue(lead.intake_ids)
 
 
