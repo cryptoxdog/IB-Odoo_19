@@ -103,4 +103,17 @@ bash scripts/git_push_with_pr.sh "${TARGET}"
 echo ""
 
 echo "→ Open/verify PR → ${BASE}..."
-bash scripts/git_open_pr.sh "${TARGET}" "${BASE}"
+if ! bash scripts/git_open_pr.sh "${TARGET}" "${BASE}"; then
+  echo "partial publication: origin/${TARGET} was pushed at $(git rev-parse HEAD)," >&2
+  echo "but the pull request into ${BASE} was not created or proven. Re-run make pr to create/verify it." >&2
+  exit 1
+fi
+
+PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
+if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
+  bypass_note="Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by the operator: ${PR_SMOKE_BYPASS}"
+  pr_number="$(gh pr list --head "${TARGET}" --base "${BASE}" --state open --json number --jq '.[0].number')"
+  if [[ -z "${pr_number}" ]] || ! gh pr comment "${pr_number}" --body "${bypass_note}" >/dev/null; then
+    echo "warning: could not post the install-smoke bypass note on the PR" >&2
+  fi
+fi

@@ -686,6 +686,14 @@ test-module:
 pr:
 	@bash scripts/make_push_pipeline.sh "" "$(b)" "$(if $(base),$(base),Staging)" 1 0
 
+# Operator bypass for the local install-smoke gate. make pr-nosmoke reason="..."
+# runs make pr without Docker install-smoke; every other gate still runs.
+# The reason is printed and posted on the PR. make pr is unchanged.
+.PHONY: pr-nosmoke
+pr-nosmoke:
+	@test -n "$(strip $(reason))" || { echo 'usage: make pr-nosmoke reason="why install-smoke is skipped"' >&2; exit 2; }
+	@PR_SMOKE_BYPASS='$(reason)' $(MAKE) --no-print-directory pr $(if $(b),b=$(b),) $(if $(base),base=$(base),)
+
 # REQUIRED before any push or PR creation (local + remote when PR/CI exists).
 # The local pre-push gate — not the full GitHub CI job graph (gate-sdk-tests runs
 # only in CI; secrets are scanned by the gitleaks-push hook and CI secret-scan). Scheduled in parallel waves via
