@@ -26,9 +26,7 @@ def migrate(cr, version):
         raise RuntimeError("plasticos_load.transaction_id is missing after the logistics upgrade.")
     conflicts = pre._conflicts(cr)
     if conflicts:
-        raise RuntimeError(
-            f"plasticos load parent migration refused after upgrade. Rows left unchanged: {conflicts}"
-        )
+        raise RuntimeError(f"plasticos load parent migration refused after upgrade. Rows left unchanged: {conflicts}")
     copied = pre._copy(cr)
     cr.execute(
         """
@@ -42,7 +40,5 @@ def migrate(cr, version):
     )
     missing = cr.fetchall()
     if missing:
-        raise RuntimeError(
-            f"plasticos load parent migration did not preserve every transaction.load_id row: {missing}"
-        )
+        raise RuntimeError(f"plasticos load parent migration did not preserve every transaction.load_id row: {missing}")
     _logger.info("plasticos_logistics post-migrate confirmed load parents; copied %s", copied)

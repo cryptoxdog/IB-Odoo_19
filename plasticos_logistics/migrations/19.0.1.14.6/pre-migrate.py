@@ -113,8 +113,6 @@ def migrate(cr, version):
         return
     conflicts = _conflicts(cr)
     if conflicts:
-        raise RuntimeError(
-            f"plasticos load parent migration refused. Resolve these rows before upgrading: {conflicts}"
-        )
+        raise RuntimeError(f"plasticos load parent migration refused. Resolve these rows before upgrading: {conflicts}")
     copied = _copy(cr)
     _logger.info("plasticos_logistics pre-migrate copied %s load parents", copied)
