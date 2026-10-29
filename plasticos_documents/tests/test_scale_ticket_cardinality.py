@@ -116,6 +116,13 @@ class TestScaleTicketCardinality(TransactionCase):
         self.assertGreaterEqual(result["failures"], 1)
         self.assertTrue(second.scale_ticket_reminder_sent)
         self.assertFalse(first.scale_ticket_reminder_sent)
+        retry_key = "plasticos_documents.scale_ticket_retry_ids"
+        stored = self.env["ir.config_parameter"].get_param(retry_key) or ""
+        self.assertIn(str(first.id), stored.split(","))
+        model.cron_check_scale_tickets()
+        self.assertTrue(first.scale_ticket_reminder_sent)
+        stored_after = self.env["ir.config_parameter"].get_param(retry_key) or ""
+        self.assertNotIn(str(first.id), [part.strip() for part in stored_after.split(",") if part.strip()])
 
     def test_more_than_300_loads_are_not_stranded(self):
         order = self.env["sale.order"].create({"partner_id": self.buyer.id})

@@ -480,7 +480,12 @@ class TestLoadCardinality(TransactionCase):
         self.assertEqual(parents[0][0], 2)
 
     def test_two_sessions_cannot_both_commit_competing_load_ownership(self):
-        """One load accepts one committed parent. The losing session rolls back completely."""
+        """One load accepts one committed parent. The losing session rolls back completely.
+
+        Under repeatable read the loser can receive SerializationFailure when it
+        locks a row the winner already updated. That failure commits nothing:
+        no parent and no partial evidence row.
+        """
         created = {"loads": [], "transactions": [], "orders": [], "partners": [], "parameters": []}
         self.addCleanup(lambda: self._erase_committed(created))
 

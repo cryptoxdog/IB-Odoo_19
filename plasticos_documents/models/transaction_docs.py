@@ -265,6 +265,27 @@ class PlasticosTransactionDocs(models.Model):
 
     _SCALE_TICKET_BATCH = 300
     _SCALE_TICKET_CURSOR = "plasticos_documents.scale_ticket_scan_cursor"
+    _SCALE_TICKET_RETRY = "plasticos_documents.scale_ticket_retry_ids"
+
+    def _scale_ticket_retry_ids(self):
+        raw = self.env["ir.config_parameter"].get_param(self._SCALE_TICKET_RETRY, "") or ""
+        ids = []
+        for part in str(raw).split(","):
+            part = part.strip()
+            if part.isdigit():
+                ids.append(int(part))
+        return ids
+
+    def _set_scale_ticket_retry_ids(self, load_ids):
+        unique = []
+        for load_id in load_ids:
+            if load_id not in unique:
+                unique.append(load_id)
+        capped = unique[: self._SCALE_TICKET_BATCH]
+        self.env["ir.config_parameter"].set_param(
+            self._SCALE_TICKET_RETRY,
+            ",".join(str(load_id) for load_id in capped),
+        )
 
     def _scale_ticket_domain(self):
         return [("transaction_id.state", "in", ("delivered", "closed", "invoiced"))]
@@ -364,7 +385,16 @@ class PlasticosTransactionDocs(models.Model):
         try:
             today = date.today()
             batch_size = int(self.env.context.get("scale_ticket_batch_size") or self._SCALE_TICKET_BATCH)
-            loads = self._next_scale_ticket_batch(batch_size)
+            previous_retry_ids = self._scale_ticket_retry_ids()
+            retry_loads = self.env["plasticos.load"].browse(previous_retry_ids).exists()
+            page = self._next_scale_ticket_batch(batch_size)
+            seen = set()
+            loads = []
+            for load in list(retry_loads) + list(page):
+                if load.id in seen:
+                    continue
+                seen.add(load.id)
+                loads.append(load)
             if not loads:
                 _logger.info("Scale ticket cron: no loads to check.")
                 return {"processed": 0, "failures": 0, "skipped": False}
@@ -393,7 +423,10 @@ class PlasticosTransactionDocs(models.Model):
                 escalation_bd = 7
             manager = self._get_logistics_manager(self._scale_ticket_manager_group())
 
+            failed_ids = []
+            attempted_ids = set()
             for load in loads:
+                attempted_ids.add(load.id)
                 try:
                     with self.env.cr.savepoint():
                         if self._load_has_current_scale_ticket(load, scale_ticket_tag):
@@ -418,7 +451,12 @@ class PlasticosTransactionDocs(models.Model):
                         processed += 1
                 except Exception:
                     failures += 1
+                    failed_ids.append(load.id)
                     _logger.exception("Scale ticket cron failed for load %s", load.name)
+            still_waiting = [
+                load_id for load_id in previous_retry_ids if load_id not in attempted_ids and load_id in retry_loads.ids
+            ]
+            self._set_scale_ticket_retry_ids(still_waiting + failed_ids)
             if failures:
                 _logger.error("Scale ticket cron finished with %s load failures.", failures)
             return {"processed": processed, "failures": failures, "skipped": False}

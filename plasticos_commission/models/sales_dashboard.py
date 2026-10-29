@@ -179,20 +179,25 @@ class PlasticosSalesDashboard(models.Model):
                 l.id                                          AS load_id,
                 COALESCE(lc.load_count, 0)                    AS load_count,
                 l.state                                       AS load_state,
-                l.pickup_datetime                             AS pickup_datetime,
-                l.delivery_datetime                           AS delivery_datetime,
-                l.delivered_at                                AS delivered_at,
+                COALESCE(l.pickup_datetime, lc.earliest_pickup) AS pickup_datetime,
+                COALESCE(l.delivery_datetime, lc.latest_delivery) AS delivery_datetime,
+                COALESCE(l.delivered_at, lc.latest_delivered) AS delivered_at,
                 l.trailer_number                              AS trailer_number,
                 l.delivery_term                               AS delivery_term,
-                rp.name                                       AS carrier_name
+                COALESCE(rp.name, lc.carrier_names)           AS carrier_name
             FROM plasticos_transaction t
             LEFT JOIN (
-                SELECT transaction_id,
+                SELECT pl.transaction_id,
                        COUNT(*)::integer AS load_count,
-                       CASE WHEN COUNT(*) = 1 THEN MIN(id) ELSE NULL::integer END AS sole_load_id
-                  FROM plasticos_load
-                 WHERE transaction_id IS NOT NULL
-                 GROUP BY transaction_id
+                       CASE WHEN COUNT(*) = 1 THEN MIN(pl.id) ELSE NULL::integer END AS sole_load_id,
+                       MIN(pl.pickup_datetime) AS earliest_pickup,
+                       MAX(pl.delivery_datetime) AS latest_delivery,
+                       MAX(pl.delivered_at) AS latest_delivered,
+                       string_agg(DISTINCT carrier.name, ', ' ORDER BY carrier.name) AS carrier_names
+                  FROM plasticos_load pl
+                  LEFT JOIN res_partner carrier ON carrier.id = pl.carrier_id
+                 WHERE pl.transaction_id IS NOT NULL
+                 GROUP BY pl.transaction_id
             ) lc ON lc.transaction_id = t.id
             LEFT JOIN plasticos_load l ON l.id = lc.sole_load_id
             LEFT JOIN res_partner rp ON rp.id = l.carrier_id

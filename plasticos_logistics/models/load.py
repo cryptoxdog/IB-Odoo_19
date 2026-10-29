@@ -2,8 +2,6 @@ import hashlib
 import logging
 from datetime import timedelta
 
-from psycopg2 import sql
-
 from odoo import SUPERUSER_ID, api, fields, models
 from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -326,15 +324,18 @@ class PlasticosLoad(models.Model):
         return records
 
     def _lock_rows(self, table, ids):
-        if table not in {"sale_order", "plasticos_transaction", "plasticos_load"}:
-            raise ValidationError("Cannot lock an unexpected table while assigning a load.")
         row_ids = tuple(sorted({row_id for row_id in ids if row_id}))
         if not row_ids:
             return
-        self.env.cr.execute(
-            sql.SQL("SELECT id FROM {} WHERE id IN %s ORDER BY id FOR UPDATE").format(sql.Identifier(table)),
-            [row_ids],
-        )
+        if table == "sale_order":
+            query = "SELECT id FROM sale_order WHERE id IN %s ORDER BY id FOR UPDATE"
+        elif table == "plasticos_transaction":
+            query = "SELECT id FROM plasticos_transaction WHERE id IN %s ORDER BY id FOR UPDATE"
+        elif table == "plasticos_load":
+            query = "SELECT id FROM plasticos_load WHERE id IN %s ORDER BY id FOR UPDATE"
+        else:
+            raise ValidationError("Cannot lock an unexpected table while assigning a load.")
+        self.env.cr.execute(query, [row_ids])
 
     def _eligible_transactions(self, sale_order):
         return self.env[PLASTICOS_TRANSACTION].search(
