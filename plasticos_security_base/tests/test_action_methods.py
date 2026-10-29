@@ -570,11 +570,12 @@ class TestCrmLeadActions(PlasticosTestCase):
         self.assertTrue(lead.partner_id)
 
     def test_action_convert_moves_stage(self):
-        lead = self._make_lead(partner_id=self.partner.id)
+        stage = self.env.ref("plasticos_crm_bridge.stage_new")
+        lead = self._make_lead(partner_id=self.partner.id, stage_id=stage.id)
+        self.assertFalse(lead.stage_id.is_won)
         lead.action_convert_to_intake()
-        stage = self.env.ref("plasticos_crm_bridge.stage_active_supplier", raise_if_not_found=False)
-        if stage:
-            self.assertEqual(lead.stage_id, stage)
+        self.assertEqual(lead.stage_id, stage)
+        self.assertFalse(lead.stage_id.is_won)
 
     def test_action_convert_posts_message(self):
         lead = self._make_lead(partner_id=self.partner.id)

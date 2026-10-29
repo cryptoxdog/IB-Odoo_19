@@ -70,7 +70,9 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertEqual(opportunity.email_from, "alex@example.test")
         self.assertTrue(re.sub(r"\D", "", opportunity.phone or "").endswith("5550100"))
         self.assertIn("HDPE pellets", opportunity.description)
-        self.assertIn("40000 lbs", opportunity.description)
+        self.assertIn("<b>Quantity (submitted):</b> 2 loads per month", opportunity.description)
+        self.assertIn("<b>Weight per load (submitted):</b> 40000 lbs", opportunity.description)
+        self.assertNotIn("<b>Quantity (submitted):</b> 40000 lbs", opportunity.description)
         self.assertIn("Dayton, OH", opportunity.description)
 
         self.assertFalse(opportunity.partner_id)

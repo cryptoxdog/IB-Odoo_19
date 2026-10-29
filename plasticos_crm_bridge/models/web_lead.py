@@ -60,7 +60,7 @@ class PlasticosWebLeadCRM(models.Model):
         pickup = " ".join(filter(None, [payload.get("pickup_location_text"), payload.get("pickup_postal_code")]))
         rows = [
             ("Material (submitted)", self.material_description),
-            ("Quantity (submitted)", self.quantity_text or payload.get("quantity_text")),
+            ("Quantity (submitted)", payload.get("quantity_text")),
             ("Weight per load (submitted)", payload.get("weight_per_load_text")),
             ("Frequency (submitted)", payload.get("frequency_text") or self.frequency),
             ("Contaminants (submitted)", payload.get("contaminants_text") or self.contaminant_notes),
