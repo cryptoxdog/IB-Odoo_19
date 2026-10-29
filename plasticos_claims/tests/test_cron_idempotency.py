@@ -78,7 +78,13 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(past_offer.state, "expired")
         self.assertEqual(future_offer.state, "draft")
 
+    def _skip_unless_model(self, model_name):
+        """A claims-only install does not load optional addons."""
+        if model_name not in self.env.registry:
+            self.skipTest(f"{model_name} is not installed")
+
     def test_sale_approval_in_domain(self):
+        self._skip_unless_model("plasticos.automation.config")
         order_model = self.env["sale.order"]
         config = self.env["plasticos.automation.config"].get_config()
         domain = [
@@ -115,6 +121,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(_log_count(self.env, "sale.order", order.id, "approval_flag"), 1)
 
     def test_invoice_reminder_in_domain(self):
+        self._skip_unless_model("plasticos.automation.config")
         move_model = self.env["account.move"]
         config = self.env["plasticos.automation.config"].get_config()
         due = fields.Date.to_date("1900-01-01")
@@ -158,6 +165,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(_log_count(self.env, "account.move", invoice.id, "invoice_reminder"), 1)
 
     def test_contract_renewal_in_domain(self):
+        self._skip_unless_model("plasticos.automation.log")
         partner_model = self.env["res.partner"]
         today = fields.Date.today()
         same_day = partner_model.search_count(
@@ -176,6 +184,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(_log_count(self.env, "res.partner", partner.id, "contract_alert"), 1)
 
     def test_stock_reorder_in_domain(self):
+        self._skip_unless_model("plasticos.automation.log")
         product_model = self.env["product.product"]
         waiting = product_model.search_count([("type", "in", ("product", "consu"))])
         self.assertLess(waiting, 500, f"product.product domain already has {waiting} rows; limit is 500")
@@ -246,6 +255,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(resolved.state, "resolved")
 
     def test_batch_normalize_in_domain(self):
+        self._skip_unless_model("plasticos.normalizer.config")
         intake_model = self.env["plasticos.intake"]
         config = self.env["plasticos.normalizer.config"].get_config()
         limit = config.batch_limit or 200
@@ -266,6 +276,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(intake.match_status, "error")
 
     def test_load_sla_in_domain(self):
+        self._skip_unless_model("plasticos.automation.log")
         from odoo.addons.plasticos_logistics.models.load import (
             _FREIGHT_INTERNAL_WRITE,
             _FREIGHT_INTERNAL_WRITE_TOKEN,
@@ -628,6 +639,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertFalse(attachment.exists())
 
     def test_trucker_followup_marks_unconfirmed_outgoing_picking(self):
+        self._skip_unless_model("plasticos.automation.log")
         picking_type = self.env["stock.picking.type"].search([("code", "=", "outgoing")], limit=1)
         self.assertTrue(picking_type, "an outgoing picking type is required to aim the trucker cron")
         source = picking_type.default_location_src_id or self.env.ref("stock.stock_location_stock")
@@ -665,6 +677,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(picking.trucker_followup_count, 1)
 
     def test_supplier_followup_marks_confirmed_purchase_order(self):
+        self._skip_unless_model("plasticos.automation.log")
         partner = self.env["res.partner"].create({"name": "Cron PO Supplier", "is_company": True})
         order = self.env["purchase.order"].create({"partner_id": partner.id})
         self.assertEqual(order.state, "draft")
@@ -693,6 +706,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(order.followup_count, 1)
 
     def test_expire_temporary_exclusions_deactivates_past_row(self):
+        self._skip_unless_model("plasticos.match.exclusion")
         supplier = self.env["res.partner"].create({"name": "Excluded Supplier", "is_company": True})
         buyer = self.env["res.partner"].create({"name": "Excluded Buyer", "is_company": True})
         exclusion = self.env["plasticos.match.exclusion"].create(
@@ -722,6 +736,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertFalse(exclusion.active)
 
     def test_crm_sync_cron_calls_enabled_connection(self):
+        self._skip_unless_model("plasticos.crm.connection")
         connection = self.env["plasticos.crm.connection"].create({"name": "Cron Sync Lock", "enabled": True})
         others = self.env["plasticos.crm.connection"].search_count(
             [
@@ -739,6 +754,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(seen.count(connection.id), 2)
 
     def test_admin_kpi_refresh_keeps_the_singleton(self):
+        self._skip_unless_model("plasticos.admin.kpi")
         kpi_model = self.env["plasticos.admin.kpi"]
         kpi = kpi_model._get_or_create()
         self.assertTrue(kpi.action_refresh())
@@ -746,6 +762,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(kpi_model._get_or_create().id, kpi.id)
 
     def test_retired_enrichment_crons_stay_skipped(self):
+        self._skip_unless_model("plasticos.enrichment.run")
         run_model = self.env["plasticos.enrichment.run"]
         logger = "odoo.addons.plasticos_enrichment.models.enrichment_run"
         with self.assertLogs(logger, level="INFO") as caught:
