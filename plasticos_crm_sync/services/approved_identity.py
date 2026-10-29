@@ -28,15 +28,17 @@ XMLID_MODULE = "plasticos_transaction"
 # The inactive contact is the wrong target. The active company is already
 # imported, and this person is not one of its active contacts. The VanillaSoft
 # contact is placed on that company. It is not a second lead.
-ACTIVE_COMPANY_CP_BY_VS = {
-    "572647290": "399",  # WESTBURY PAPERSTOCK WAREHOUSE
-    "573474286": "1405",  # MIDWEST FIBER INC, including Normal, IL
-    "579156006": "1484",  # ASHEBORO RECYCLING
-    "700174793": "1257",  # PRATT INDUSTRIES; Jay Wallace is inactive on this active company
-    "683417624": "1380",  # Jay Saxton, regional manager on active BALCONES RECYCLING
-    "609608749": "2461",  # Wanda McGee, owner; Randy is the plant manager on FOUR SEASONS PRODUCE
-    "715993397": "2076",  # Jessica Klein; the Le Mars address belongs to active KAMPS INC
-}
+ACTIVE_COMPANY_CP_BY_VS = dict(
+    [
+        ("572647290", "399"),  # WESTBURY PAPERSTOCK WAREHOUSE
+        ("573474286", "1405"),  # MIDWEST FIBER INC, including Normal, IL
+        ("579156006", "1484"),  # ASHEBORO RECYCLING
+        ("700174793", "1257"),  # PRATT INDUSTRIES; Jay Wallace is inactive on this active company
+        ("683417624", "1380"),  # Jay Saxton, regional manager on active BALCONES RECYCLING
+        ("609608749", "2461"),  # Wanda McGee, owner; Randy is the plant manager on FOUR SEASONS PRODUCE
+        ("715993397", "2076"),  # Jessica Klein; the Le Mars address belongs to active KAMPS INC
+    ]
+)
 OMITTED_DUPLICATE_VS_IDS = frozenset(
     {
         "1045036935",  # inactive CT 127550001; active person is approved as CT 179700001
