@@ -306,6 +306,44 @@ class TestPr322Findings(PlasticosTestCase):
         self.assertEqual(accepted.verified_by, actor)
         self.assertTrue(service.is_compliant("plasticos.transaction", tx.id, purpose="invoice"))
 
+    def test_upgrade_projects_documents_the_old_cron_already_marked_expired(self):
+        tx = self._transaction(quantity=10)
+        self._only_rule(self.bol)
+        row = self._shell(self.bol)
+        row.expiry_date = fields.Date.today() + timedelta(days=1)
+        accepted = row.with_user(self.verifier).action_associate(
+            "plasticos.transaction", tx.id, source_reference="already-expired", covered_quantity=0
+        )
+        accepted.with_user(self.verifier).action_verify()
+        actor = accepted.verified_by
+        service = self.env["plasticos.compliance.service"]
+        self.assertTrue(service.is_compliant("plasticos.transaction", tx.id, purpose="invoice"))
+        yesterday = fields.Date.today() - timedelta(days=1)
+        self.env.cr.execute(
+            "UPDATE plasticos_document SET expiry_date = %s, is_expired = TRUE WHERE id = %s",
+            (yesterday, accepted.id),
+        )
+        accepted.invalidate_recordset()
+        midnight = self.env["plasticos.midnight.recompute"]
+        midnight._recompute_document_expiry()
+        self.env.flush_all()
+        self.env.cr.execute("SELECT compliance_status FROM plasticos_transaction WHERE id = %s", (tx.id,))
+        self.assertEqual(self.env.cr.fetchone()[0], "compliant")
+        document_model = self.env["plasticos.document"].with_context(active_test=False)
+        midnight._recompute_expiry_keyset(
+            document_model,
+            [
+                ("expiry_date", "!=", False),
+                ("expiry_date", "<", document_model._evidence_today()),
+                ("is_expired", "=", True),
+            ],
+        )
+        self.env.flush_all()
+        self.env.cr.execute("SELECT compliance_status FROM plasticos_transaction WHERE id = %s", (tx.id,))
+        self.assertEqual(self.env.cr.fetchone()[0], "missing")
+        self.assertEqual(accepted.verified_by, actor)
+        self.assertEqual(accepted.expiry_date, yesterday)
+
     def test_pending_tag_edit_stays_open_before_a_decision(self):
         tx = self._transaction(quantity=10)
         row = self._accept(self.bol, tx, quantity=0)
