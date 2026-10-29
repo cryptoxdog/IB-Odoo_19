@@ -79,7 +79,6 @@ class LifecycleGrant:
 
 
 LIFECYCLE_GRANT_KEY = "plasticos_document_lifecycle_grant"
-EVIDENCE_TODAY_KEY = "plasticos_documents_today"
 # Category, revision, and eligibility accepted with a verification decision.
 # A plain write must not retarget or revive that decision.
 ELIGIBILITY_FIELDS = frozenset(
@@ -257,10 +256,7 @@ class PlasticosDocument(models.Model):
     )
 
     def _evidence_today(self):
-        """Calendar date for eligibility. Tests inject one date; production uses today."""
-        raw = self.env.context.get(EVIDENCE_TODAY_KEY)
-        if raw:
-            return fields.Date.to_date(raw)
+        """Server calendar date. RPC context, caller timezone, and headers are not a clock."""
         return fields.Date.today()
 
     def _expiry_elapsed(self):
@@ -278,7 +274,7 @@ class PlasticosDocument(models.Model):
 
     @api.depends("expiry_date")
     def _compute_is_expired(self):
-        today = fields.Date.today()
+        today = self._evidence_today()
         for rec in self:
             rec.is_expired = bool(rec.expiry_date and rec.expiry_date < today)
 

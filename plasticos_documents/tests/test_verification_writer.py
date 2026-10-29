@@ -162,21 +162,19 @@ class TestVerificationWriter(PlasticosTestCase):
         self.assertTrue(service.is_compliant("plasticos.transaction", self.tx.id))
         self.assertEqual(self.tx.compliance_status, "compliant")
         later = fields.Date.today() + timedelta(days=2)
-        aged = old.with_context(plasticos_documents_today=later)
-        self.assertTrue(aged.verified)
-        self.assertEqual(aged.verified_at, stamp)
-        self.assertEqual(aged.verified_by, actor)
-        self.assertFalse(aged._currently_eligible())
-        self.assertFalse(
-            service.with_context(plasticos_documents_today=later).is_compliant("plasticos.transaction", self.tx.id)
-        )
+        with patch.object(type(old), "_evidence_today", return_value=later):
+            self.assertTrue(old.verified)
+            self.assertEqual(old.verified_at, stamp)
+            self.assertEqual(old.verified_by, actor)
+            self.assertFalse(old._currently_eligible())
+            self.assertFalse(service.is_compliant("plasticos.transaction", self.tx.id))
+            old._cron_compliance_audit()
         with self.assertRaises(AccessError):
             old.with_user(self.internal).write({"expiry_date": fields.Date.today() + timedelta(days=30)})
         with self.assertRaises(AccessError):
             old.with_user(self.verifier).write({"expiry_date": False})
         self.assertEqual(old.verified_by, actor)
         self.assertEqual(old.expiry_date, fields.Date.today() + timedelta(days=1))
-        old.with_context(plasticos_documents_today=later)._cron_compliance_audit()
         self.assertTrue(old.verified)
         self.assertEqual(old.verified_by, actor)
 

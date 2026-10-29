@@ -1,5 +1,4 @@
 from odoo import api, fields, models
-from odoo.fields import Domain
 
 
 class PlasticosTransactionDocsBridge(models.Model):
@@ -32,47 +31,6 @@ class PlasticosTransactionDocsBridge(models.Model):
     def _compute_compliance(self):
         """Override to add document_ids dependencies for auto-recompute."""
         return super()._compute_compliance()
-
-    def _search(self, domain, offset=0, limit=None, order=None, *, active_test=True, bypass_access=False):
-        if self._domain_mentions_compliance(domain):
-            self._refresh_elapsed_expiry_compliance()
-        return super()._search(
-            domain,
-            offset=offset,
-            limit=limit,
-            order=order,
-            active_test=active_test,
-            bypass_access=bypass_access,
-        )
-
-    def _domain_mentions_compliance(self, domain):
-        try:
-            parsed = Domain(domain)
-        except (TypeError, ValueError):
-            return False
-        needle = self._fields["compliance_status"].name
-        return any(condition.field_expr == needle for condition in parsed.iter_conditions())
-
-    def _refresh_elapsed_expiry_compliance(self):
-        """Stored compliance follows expiry without waiting for a document write."""
-        if self.env.context.get("plasticos_compliance_quiet"):
-            return
-        document_model = self.env["plasticos.document"]
-        documents = document_model.search(
-            [
-                ("res_model", "=", "plasticos.transaction"),
-                ("association_state", "=", "accepted"),
-                *document_model._elapsed_expiry_domain(),
-                "|",
-                ("verified", "=", True),
-                ("override", "=", True),
-            ]
-        )
-        if not documents:
-            return
-        transactions = self.browse(list({doc.res_id for doc in documents})).exists()
-        if transactions:
-            transactions.with_context(plasticos_compliance_quiet=True)._compute_compliance()
 
     def action_view_documents(self):
         """Open documents linked to this transaction."""
