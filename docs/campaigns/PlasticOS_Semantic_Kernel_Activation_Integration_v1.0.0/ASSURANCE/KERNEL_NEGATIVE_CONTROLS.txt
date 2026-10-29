@@ -1,0 +1,26 @@
+PASS synthetic declared accounting: new_addon ; offline precode refused
+PASS synthetic declared accounting: wip_alignment ; offline precode refused
+PASS negative: unassessed active constitutional invariant -> UNASSESSED_ACTIVE_INVARIANT: ODOO-INV-01
+PASS negative: BAN001 excluded -> BAN001_CANNOT_BE_EXCLUDED
+PASS negative: operator blast-radius gate disabled -> POS_INV_26_DISABLED: operator pre-code closure never optional
+PASS negative: draft masquerades as constitution -> WRONG_CONSTITUTION: repo INVARIANTS.md v2.2.0 outranks draft POS candidates
+PASS negative: missing reverse-dependent module -> UNACCOUNTED_REVERSE_DEPENDENTS: plasticos_security_base
+PASS negative: duplicate reverse-dependent module -> DUPLICATE_MODULE_IMPACT
+PASS negative: unobserved installed target -> TARGET_ENV_UNKNOWN
+PASS negative: unknown runtime consumers -> UNEXPLORED_DYNAMIC_CONSUMERS
+PASS negative: missing effect owner -> effects/0/owner: '' should be non-empty
+PASS negative: missing effect source revision -> effects/0/source/revision: '' should be non-empty
+PASS negative: source revision drift -> SOURCE_DRIFT: rebind case, source lock and complete manifest census to the same SHA
+PASS negative: unplanned file change -> UNPLANNED_CHANGE_FILE: effect E-1
+PASS negative: unaccounted effect -> EFFECTS_NOT_ASSIGNED_EXACTLY_ONCE
+PASS negative: missing migration -> effects/0/migration: '' should be non-empty
+PASS negative: missing recovery -> effects/0/recovery: '' should be non-empty
+PASS negative: missing negative proof -> delivery/proofs/0/negative: '' should be non-empty
+PASS negative: unknown proof ID -> MISSING_EFFECT_PROOF: E-1 -> MISSING
+PASS negative: unresolved business decision -> OPEN_OPERATOR_DECISIONS
+PASS negative: unjustified no change -> EMPTY: effect E-1.no_change_basis
+PASS negative: missing stage assignment -> EFFECTS_NOT_ASSIGNED_EXACTLY_ONCE
+PASS negative: ghost dependency -> MISSING_EFFECT_DEPENDENCY: effect E-1 -> E-missing
+PASS negative: schema unknown property -> : Additional properties are not allowed ('phantom_property' was unexpected)
+PASS fake authorization rejected and plan changes invalidate digest
+RESULT: synthetic structural tests PASS, REAL WORLD VALIDATION NOT_RUN

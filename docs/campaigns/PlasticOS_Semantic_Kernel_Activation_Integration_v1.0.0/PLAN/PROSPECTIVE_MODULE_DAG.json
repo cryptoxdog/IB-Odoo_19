@@ -1,0 +1,681 @@
+{
+  "format": "package-local-prospective-module-dag/v1",
+  "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+  "baseline_modules": [
+    {
+      "name": "plasticos_accounting",
+      "manifest_path": "plasticos_accounting/__manifest__.py",
+      "manifest_blob_sha": "2da94f00bbc342d6664ee36ed5e46ee42df7a642",
+      "version": "19.0.1.6.1",
+      "depends": [
+        "account"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_admin_dashboard",
+      "manifest_path": "plasticos_admin_dashboard/__manifest__.py",
+      "manifest_blob_sha": "69fa36a11e8f0a4ba6ddfcedb82642b558e14604",
+      "version": "19.0.1.1.0",
+      "depends": [
+        "plasticos_base",
+        "plasticos_intake",
+        "plasticos_offer",
+        "plasticos_transaction",
+        "plasticos_logistics",
+        "plasticos_commission",
+        "plasticos_web_leads",
+        "plasticos_security_base"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_automation",
+      "manifest_path": "plasticos_automation/__manifest__.py",
+      "manifest_blob_sha": "52c9bbf55940e12960e7851c4477ffa13408ee65",
+      "version": "19.0.2.1.6",
+      "depends": [
+        "plasticos_base",
+        "base",
+        "base_automation",
+        "mail",
+        "product",
+        "sale_management",
+        "sale_stock",
+        "account",
+        "stock",
+        "purchase",
+        "plasticos_logistics",
+        "plasticos_transaction",
+        "plasticos_claims"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_base",
+      "manifest_path": "plasticos_base/__manifest__.py",
+      "manifest_blob_sha": "da095910429259457e5c0d8a64d7da83d547fb82",
+      "version": "19.0.1.1.9",
+      "depends": [
+        "plasticos_odoo_standard_apps",
+        "base",
+        "base_setup",
+        "contacts",
+        "sale_management"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_claims",
+      "manifest_path": "plasticos_claims/__manifest__.py",
+      "manifest_blob_sha": "e73279881b03fae7a1cf7d27eca114339d71bbc9",
+      "version": "19.0.1.1.2",
+      "depends": [
+        "base",
+        "mail",
+        "plasticos_base",
+        "plasticos_transaction",
+        "plasticos_documents",
+        "plasticos_logistics"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_commission",
+      "manifest_path": "plasticos_commission/__manifest__.py",
+      "manifest_blob_sha": "ad575d43d92e47a2be4bd7560ea46cc9af5e213e",
+      "version": "19.0.1.4.3",
+      "depends": [
+        "plasticos_base",
+        "plasticos_transaction",
+        "plasticos_logistics",
+        "plasticos_security_base",
+        "base",
+        "product",
+        "mail",
+        "sales_team"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_crm_bridge",
+      "manifest_path": "plasticos_crm_bridge/__manifest__.py",
+      "manifest_blob_sha": "bd20ed2811e75593bbc7fda07ec4f61564cf3c9a",
+      "version": "19.0.3.4.14",
+      "depends": [
+        "crm",
+        "utm",
+        "plasticos_security_base",
+        "plasticos_web_leads",
+        "plasticos_material_profile",
+        "plasticos_facility_profile",
+        "plasticos_transaction",
+        "plasticos_logistics",
+        "plasticos_intake"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_crm_sync",
+      "manifest_path": "plasticos_crm_sync/__manifest__.py",
+      "manifest_blob_sha": "d56275caa98f2eb37852713733eb157871339146",
+      "version": "19.0.1.9.12",
+      "depends": [
+        "base",
+        "base_setup",
+        "crm",
+        "mail",
+        "utm",
+        "plasticos_base",
+        "plasticos_security_base",
+        "plasticos_material_profile",
+        "plasticos_crm_bridge",
+        "plasticos_facility_profile"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_dev_tools",
+      "manifest_path": "plasticos_dev_tools/__manifest__.py",
+      "manifest_blob_sha": "720993075d096bb284286d0e8fb9d78ee90c24ac",
+      "version": "19.0.1.0.0",
+      "depends": [
+        "base"
+      ],
+      "installable": false,
+      "installable_evidence": "SOURCE_OBSERVED",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_documents",
+      "manifest_path": "plasticos_documents/__manifest__.py",
+      "manifest_blob_sha": "a59b7d1fc414075aa4525643f59210f06ddedc97",
+      "version": "19.0.2.1.6",
+      "depends": [
+        "base",
+        "mail",
+        "plasticos_base",
+        "plasticos_transaction",
+        "plasticos_logistics"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_documents_native",
+      "manifest_path": "plasticos_documents_native/__manifest__.py",
+      "manifest_blob_sha": "a8ef91f9727bf45119d8ebfa02fb524431dbfc9b",
+      "version": "19.0.1.2.10",
+      "depends": [
+        "documents",
+        "documents_account",
+        "plasticos_documents",
+        "plasticos_logistics",
+        "plasticos_transaction",
+        "plasticos_intake",
+        "plasticos_material_profile",
+        "plasticos_security_base"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_enrichment",
+      "manifest_path": "plasticos_enrichment/__manifest__.py",
+      "manifest_blob_sha": "636647aaea9397a1125d76e7b7d894cc68b484f8",
+      "version": "19.0.2.5.5",
+      "depends": [
+        "plasticos_base",
+        "plasticos_gate",
+        "base",
+        "mail",
+        "contacts",
+        "plasticos_material_profile"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_facility_profile",
+      "manifest_path": "plasticos_facility_profile/__manifest__.py",
+      "manifest_blob_sha": "8735486d611aad115ed0d8d731ba26bf01c43d07",
+      "version": "19.0.5.3.13",
+      "depends": [
+        "base",
+        "contacts",
+        "mail",
+        "sale_management",
+        "utm",
+        "plasticos_material_profile"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_gate",
+      "manifest_path": "plasticos_gate/__manifest__.py",
+      "manifest_blob_sha": "8d6c174fa44ee4ad8c69c4ce81cda9554075b7cc",
+      "version": "19.0.1.9.5",
+      "depends": [
+        "base",
+        "plasticos_base"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_geolocalize",
+      "manifest_path": "plasticos_geolocalize/__manifest__.py",
+      "manifest_blob_sha": "de6999d5b8d04c7ee59ec56203b5aa7b5858ad7f",
+      "version": "19.0.1.1.0",
+      "depends": [
+        "plasticos_base",
+        "base",
+        "base_geolocalize",
+        "plasticos_intake"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_intake",
+      "manifest_path": "plasticos_intake/__manifest__.py",
+      "manifest_blob_sha": "b30b5d020ad3108d279a04915d00880042d10b51",
+      "version": "19.0.5.3.3",
+      "depends": [
+        "base",
+        "contacts",
+        "crm",
+        "mail",
+        "utm",
+        "plasticos_base",
+        "plasticos_material_profile",
+        "plasticos_facility_profile"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_intake_normalizer",
+      "manifest_path": "plasticos_intake_normalizer/__manifest__.py",
+      "manifest_blob_sha": "6c6fe87bc7d48ad562ceaba5cc9158ccfe53169d",
+      "version": "19.0.1.0.3",
+      "depends": [
+        "plasticos_intake",
+        "plasticos_material_profile",
+        "plasticos_base"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_logistics",
+      "manifest_path": "plasticos_logistics/__manifest__.py",
+      "manifest_blob_sha": "cd7f3e0264374e8b215d57fa7e2999b4aed8958d",
+      "version": "19.0.1.14.5",
+      "depends": [
+        "plasticos_base",
+        "plasticos_transaction",
+        "sale_management",
+        "stock",
+        "purchase",
+        "purchase_stock",
+        "mail",
+        "base_automation"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_matching",
+      "manifest_path": "plasticos_matching/__manifest__.py",
+      "manifest_blob_sha": "db9f4edb74037a9a458a815d64761ac92d2c0f05",
+      "version": "19.0.3.1.4",
+      "depends": [
+        "base",
+        "mail",
+        "plasticos_base",
+        "plasticos_intake",
+        "plasticos_facility_profile",
+        "plasticos_gate"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_material_profile",
+      "manifest_path": "plasticos_material_profile/__manifest__.py",
+      "manifest_blob_sha": "3f590b923e579c68382b1361bcdf3242a62312f6",
+      "version": "19.0.5.10.9",
+      "depends": [
+        "plasticos_base",
+        "base",
+        "contacts",
+        "mail",
+        "purchase",
+        "sale_management",
+        "product"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_odoo_standard_apps",
+      "manifest_path": "plasticos_odoo_standard_apps/__manifest__.py",
+      "manifest_blob_sha": "30c77f13e2312fdad281d00e2db1d56f0509d239",
+      "version": "19.0.1.0.0",
+      "depends": [
+        "base",
+        "base_setup",
+        "web",
+        "mail",
+        "calendar",
+        "contacts",
+        "crm",
+        "sale_management",
+        "spreadsheet_dashboard",
+        "account",
+        "purchase",
+        "stock",
+        "barcodes"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_offer",
+      "manifest_path": "plasticos_offer/__manifest__.py",
+      "manifest_blob_sha": "a0e799ddfa11fb55cda548fe4e073a02167c00bd",
+      "version": "19.0.1.1.0",
+      "depends": [
+        "plasticos_base",
+        "base",
+        "mail",
+        "plasticos_intake"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_order_lines",
+      "manifest_path": "plasticos_order_lines/__manifest__.py",
+      "manifest_blob_sha": "50e6141c46ac6095d02674cd3235542e2637fb07",
+      "version": "19.0.1.0.1",
+      "depends": [
+        "purchase",
+        "sale",
+        "sale_management",
+        "plasticos_material_profile",
+        "plasticos_product"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_partner_import",
+      "manifest_path": "plasticos_partner_import/__manifest__.py",
+      "manifest_blob_sha": "e05857488cf4a4bfad808700fa1e72d0a5cb1f51",
+      "version": "19.0.2.10.30",
+      "depends": [
+        "base",
+        "base_setup",
+        "contacts",
+        "account",
+        "crm",
+        "utm",
+        "plasticos_base",
+        "plasticos_facility_profile",
+        "plasticos_intake"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_product",
+      "manifest_path": "plasticos_product/__manifest__.py",
+      "manifest_blob_sha": "5a92e1b2c1f2871ad67853c25f498a61e45faaf7",
+      "version": "19.0.1.0.2",
+      "depends": [
+        "product",
+        "plasticos_material_profile"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_security_base",
+      "manifest_path": "plasticos_security_base/__manifest__.py",
+      "manifest_blob_sha": "b93db83ff211572f866a097c5854ab254221b9e0",
+      "version": "19.0.1.2.21",
+      "depends": [
+        "base",
+        "plasticos_base",
+        "base_geolocalize",
+        "sale",
+        "purchase",
+        "purchase_stock",
+        "account",
+        "stock",
+        "plasticos_transaction",
+        "plasticos_intake",
+        "plasticos_material_profile",
+        "plasticos_facility_profile",
+        "plasticos_offer",
+        "plasticos_logistics",
+        "plasticos_documents",
+        "plasticos_automation",
+        "plasticos_web_leads"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_semantic_kernel",
+      "manifest_path": "plasticos_semantic_kernel/__manifest__.py",
+      "manifest_blob_sha": "b990bfd16431e6cf711b21c418d288cdb5ba197f",
+      "version": "19.0.1.0.3",
+      "depends": [
+        "mail",
+        "plasticos_material_profile",
+        "plasticos_facility_profile",
+        "plasticos_intake"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_transaction",
+      "manifest_path": "plasticos_transaction/__manifest__.py",
+      "manifest_blob_sha": "b20d2a68fa32dcbefff95d952ce95a4ba73741b2",
+      "version": "19.0.2.3.43",
+      "depends": [
+        "plasticos_base",
+        "base",
+        "mail",
+        "product",
+        "account",
+        "account_debit_note",
+        "sale_management",
+        "purchase",
+        "purchase_stock",
+        "stock",
+        "plasticos_material_profile",
+        "plasticos_facility_profile",
+        "plasticos_intake",
+        "plasticos_product",
+        "plasticos_offer",
+        "plasticos_partner_import"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_web_leads",
+      "manifest_path": "plasticos_web_leads/__manifest__.py",
+      "manifest_blob_sha": "39b6bd75bd6c4d4db74e2736a03d472f1ff916f4",
+      "version": "19.0.2.8.5",
+      "depends": [
+        "base",
+        "mail",
+        "utm",
+        "plasticos_facility_profile",
+        "plasticos_intake",
+        "plasticos_material_profile",
+        "purchase"
+      ],
+      "installable": null,
+      "installable_evidence": "NOT_INDEPENDENTLY_CHECKED_FOR_ALL",
+      "auto_install": null
+    },
+    {
+      "name": "plasticos_website",
+      "manifest_path": "plasticos_website/__manifest__.py",
+      "manifest_blob_sha": "01e2e43a1d901232a84d4872bd47dcb573b18288",
+      "version": "19.0.1.0.0",
+      "depends": [
+        "website",
+        "plasticos_base"
+      ],
+      "installable": false,
+      "installable_evidence": "SOURCE_OBSERVED",
+      "auto_install": null
+    }
+  ],
+  "proposed_modules": [
+    {
+      "name": "plasticos_semantic_bridge",
+      "auto_install": false,
+      "application": false,
+      "depends": [
+        "crm",
+        "mail",
+        "plasticos_semantic_kernel",
+        "plasticos_crm_bridge",
+        "plasticos_gate",
+        "plasticos_matching"
+      ],
+      "conditional_dependency": {
+        "plasticos_enrichment": "Only if directly consuming its proved installed runtime surface; F05 admission first."
+      },
+      "status": "PROPOSED_NOT_CREATED"
+    }
+  ],
+  "forbidden_edges": [
+    {
+      "from": "plasticos_accounting",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_admin_dashboard",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_automation",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_base",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_claims",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_commission",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_crm_bridge",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_crm_sync",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_dev_tools",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_documents",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_documents_native",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_enrichment",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_facility_profile",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_gate",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_geolocalize",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_intake",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_intake_normalizer",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_logistics",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_matching",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_material_profile",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_odoo_standard_apps",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_offer",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_order_lines",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_partner_import",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_product",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_security_base",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_semantic_kernel",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_transaction",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_web_leads",
+      "to": "plasticos_semantic_bridge"
+    },
+    {
+      "from": "plasticos_website",
+      "to": "plasticos_semantic_bridge"
+    }
+  ],
+  "installation": "Optional isolated lane only; default MVP path unchanged."
+}

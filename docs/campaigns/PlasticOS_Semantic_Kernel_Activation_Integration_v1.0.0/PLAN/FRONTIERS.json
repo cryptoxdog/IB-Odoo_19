@@ -1,0 +1,85 @@
+{
+  "format": "package-local-frontier-ledger/v1",
+  "frontiers": [
+    {
+      "id": "F01",
+      "concern": "Installed Odoo and dynamic consumers",
+      "status": "UNOBSERVED",
+      "unit": "U00",
+      "required_evidence": "Inspect exact Odoo.sh Staging/Production module state, rows, versions, ACLs/rules, server actions, automated actions, cron, aliases, views, templates and native/Enterprise fields read-only.",
+      "scope_of_block": "Blocks dependent implementation and all activation; does not block portable plan authoring."
+    },
+    {
+      "id": "F02",
+      "concern": "Global/external contract admission",
+      "status": "NOT_ADMITTED",
+      "unit": "U01",
+      "required_evidence": "Resolve current source-owned registry and any governing L9 authority; admit exact projection/gap action and schema versions. This package is not a canonical L9 authority receipt.",
+      "scope_of_block": "Blocks interface code and new action grants."
+    },
+    {
+      "id": "F03",
+      "concern": "Full external source closure",
+      "status": "BOUNDED_NOT_EXHAUSTIVE",
+      "unit": "U00",
+      "required_evidence": "Inspect EIE rule invocation/durable store, CEG sync node/edge implementation, compiler, Gate caller-policy handlers and current tests at pinned refs before edit.",
+      "scope_of_block": "Blocks affected external implementation; source paths identified are not full implementation proof."
+    },
+    {
+      "id": "F04",
+      "concern": "SDK and live release set",
+      "status": "UNOBSERVED",
+      "unit": "U00",
+      "required_evidence": "Record installed SDK pins and deployed image SHAs for Odoo/Gate/EIE/CEG; confirm compatible active payload shapes and effective grants.",
+      "scope_of_block": "Blocks execution integration and activation."
+    },
+    {
+      "id": "F05",
+      "concern": "Optional bridge sufficiency",
+      "status": "PROPOSED_TOPOLOGY",
+      "unit": "U01",
+      "required_evidence": "Compare direct native projection and reuse of existing dual_write/run receipts against optional bridge. Admit bridge only if owner separation and durable lifecycle needs cannot be met in existing owners without coupling.",
+      "scope_of_block": "Blocks creation of new addon/files; no speculative scaffold."
+    },
+    {
+      "id": "F06",
+      "concern": "Branched commercial campaign",
+      "status": "EXTERNAL_DEPENDENCY",
+      "unit": "U08",
+      "required_evidence": "Obtain current native opportunity readiness, partnerless identity, single match selection, offer and PO/Lost lifecycle interface receipts; PR329 head refreshed, successor unknown.",
+      "scope_of_block": "Blocks commercial integration tests, not independent inference/domain-rule development after U00/U01."
+    },
+    {
+      "id": "F07",
+      "concern": "Inference evaluation/calibration",
+      "status": "NOT_RUN",
+      "unit": "U04",
+      "required_evidence": "Acquire operator-authorized, domain-reviewed ground truth with counterexamples; define approved abstention/calibration and cost policy.",
+      "scope_of_block": "Blocks business inference use; deterministic fixtures alone not accuracy proof."
+    },
+    {
+      "id": "F08",
+      "concern": "Historical data and identifiers",
+      "status": "UNOBSERVED",
+      "unit": "U00",
+      "required_evidence": "Count source/semantic/graph rows; preserve external UUID/reference consumers; map duplicates, conflicts, retention and restore evidence.",
+      "scope_of_block": "Blocks backfill/migration and destructive change."
+    },
+    {
+      "id": "F09",
+      "concern": "Post-PO listing disposition",
+      "status": "REQUIRES_SOURCE_PROOF",
+      "unit": "U09",
+      "required_evidence": "Consume actual opportunity/PO allocation policy; procurement is not automatically a resale. If residual stock/contract supply lacks active commercial owner, pause listing until explicit successor/disposition.",
+      "scope_of_block": "Blocks ambiguous listings; does not reopen locked Won-at-PO rule."
+    },
+    {
+      "id": "F10",
+      "concern": "Production activation",
+      "status": "NOT_AUTHORIZED",
+      "unit": "U12",
+      "required_evidence": "Fresh explicit operator authorization for exact tenant/release/operations only after all prior gates and recovery proof.",
+      "scope_of_block": "Blocks all production activation, independent of green tests."
+    }
+  ]
+}

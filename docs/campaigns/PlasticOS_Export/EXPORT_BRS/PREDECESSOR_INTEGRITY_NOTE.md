@@ -1,0 +1,3 @@
+# Predecessor packaging observation
+
+The standalone v1.3.0 Export BRS SHA256SUMS validated. The full RecycleOS v1.7.0 ZIP had eight file checksums in its embedded MANIFEST.json that did not match the actual ZIP contents: 00_README.md, EXPORT_BRS/ACCEPTANCE/cases.csv, EXPORT_BRS/ACCEPTANCE/cases.json, EXPORT_BRS/INTEROP/TARGET_OWNER_BRS_AMENDMENTS.md, EXPORT_BRS/README.md, EXPORT_BRS/REGISTRY/rules.json, EXPORT_BRS/RULES/BRS-EXP-09.md, EXPORT_BRS/SHA256SUMS. The successor preserves the actual v1.7.0 bytes for all unrelated files, regenerates a fresh complete manifest, and does not claim the stale predecessor manifest passed.

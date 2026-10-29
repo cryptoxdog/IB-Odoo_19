@@ -1,0 +1,30 @@
+{
+  "name": "PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0",
+  "version": "1.0.0",
+  "classification": "FORMAL_WORKING_PLAN_WITH_LOCKED_PRODUCT_INTENT",
+  "created_date": "2026-10-29",
+  "method": "PlasticOS Addon Strategic Development Kernel v0.2.0 (unchanged input)",
+  "plan_digest_sha256": "1c7ccb507c106ea4247301a3d59b5bf8b088b77785e6998353d1474f3624e92f",
+  "source_register": "EVIDENCE/SOURCE_REGISTER.json",
+  "case": "case.json",
+  "combined_graph": "PLAN/DELIVERY_GRAPH.json",
+  "external_effects": "PLAN/CROSS_REPO_PLAN.json",
+  "package_validation": "ASSURANCE/PACKAGE_VALIDATION.json",
+  "proof_scope": "Package integrity/declared coherence only; not source completeness, implementation, independent acceptance, runtime or activation.",
+  "activation": {
+    "production_enabled": false,
+    "operator_approved": false,
+    "repository_changes_executed": false,
+    "product_runtime_tests_executed": false
+  },
+  "counts": {
+    "odoo_effects": 22,
+    "external_effects": 7,
+    "units": 13,
+    "proof_obligations": 34,
+    "scenario_specs": 20,
+    "source_records": 52,
+    "original_kernel_members": 24
+  },
+  "checksum_manifest": "SHA256SUMS.json"
+}

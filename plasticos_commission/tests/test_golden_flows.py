@@ -146,8 +146,8 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
         if hasattr(tx, "state"):
             self.assertNotEqual(tx.state, "draft", "Transaction should not remain in draft")
 
-    def test_lead_conversion_creates_partner_when_missing(self):
-        """Lead without partner should auto-create partner on conversion."""
+    def test_lead_conversion_keeps_partner_missing(self):
+        """Conversion preserves pending supplier evidence without master data."""
         lead = self.Lead.create(
             {
                 "name": "No Partner Lead",
@@ -157,7 +157,8 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
             }
         )
         lead.action_convert_to_intake()
-        self.assertTrue(lead.partner_id, "Partner should be auto-created")
+        self.assertFalse(lead.partner_id, "Conversion must not create a partner")
+        self.assertEqual(lead.source_intake_id.pending_company_name, "Auto Created Partner Co")
         self.assertTrue(lead.intake_ids, "Intake should be created")
 
     def test_intake_confirmation_posts_message(self):
@@ -232,7 +233,7 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertTrue(lead.crm_lead_id, "HOT lead should create a traceable CRM lead")
         self.assertEqual(lead.crm_lead_id.source_intake_id, intake)
 
-    def test_hot_lead_crm_conversion_reuses_intake_and_assigns_profile(self):
+    def test_hot_lead_crm_conversion_reuses_intake_and_keeps_qualification_pending(self):
         """CRM tracking must not duplicate the web intake during qualification."""
         lead = self.WebLead.create_from_cognito(self._make_hot_lead_payload("GOLD-CRM-PROFILE-001"))
         crm_lead = lead.crm_lead_id
@@ -242,9 +243,9 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
 
         self.assertEqual(action["res_model"], "plasticos.intake")
         self.assertEqual(action["res_id"], lead.intake_id.id, "Existing HOT intake must be reused")
-        self.assertTrue(crm_lead.partner_id, "CRM qualification should create or link a commercial identity")
+        self.assertFalse(crm_lead.partner_id, "Conversion must not infer commercial identity")
         self.assertEqual(lead.intake_id.crm_lead_id, crm_lead)
-        self.assertTrue(lead.intake_id.material_profile_id, "Qualified intake should receive a material profile")
+        self.assertFalse(lead.intake_id.material_profile_id, "Material qualification remains pending")
         self.assertEqual(crm_lead.material_profile_id, lead.intake_id.material_profile_id)
 
     def test_hot_lead_images_reach_crm_and_material_profile_idempotently(self):
@@ -262,8 +263,13 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         Attachment.create({**attachment_vals, "res_model": "plasticos.intake", "res_id": lead.intake_id.id})
 
         crm_lead = lead.crm_lead_id
+        profile = self._create_material_profile(
+            partner=self.default_partner, polymer=lead.intake_id.polymer_id, form_id=lead.intake_id.form_id.id
+        )
+        crm_lead.partner_id = self.default_partner
+        lead.intake_id.material_profile_id = profile
         crm_lead.action_convert_to_intake()
-        profile = crm_lead.material_profile_id
+        self.assertEqual(crm_lead.material_profile_id, profile)
         crm_domain = [("res_model", "=", "crm.lead"), ("res_id", "=", crm_lead.id), ("mimetype", "like", "image/")]
         profile_domain = [
             ("res_model", "=", "plasticos.material.profile"),

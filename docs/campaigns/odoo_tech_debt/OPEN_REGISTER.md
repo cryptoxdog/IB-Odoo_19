@@ -21,7 +21,7 @@ Open campaigns are [`workflow_state.md`](../../../workflow_state.md). This regis
 | n_plus_one_new | 0 |
 | n_plus_one_stale_baseline | 2 |
 | extended_baseline_entries | 78 |
-| weak_tests | 7 |
+| weak_tests | 27 |
 | unbounded_search | 22 |
 | unjustified_sudo | 1 |
 | state_bypass | 0 |
@@ -32,8 +32,8 @@ Open campaigns are [`workflow_state.md`](../../../workflow_state.md). This regis
 | schema_stale | 0 |
 | schema_baseline_entries | 88 |
 | illegal_field_parameter | 2 |
-| items | 230 |
-| remediate_true | 95 |
+| items | 250 |
+| remediate_true | 115 |
 
 | Classification | Items |
 |---|---:|
@@ -43,7 +43,7 @@ Open campaigns are [`workflow_state.md`](../../../workflow_state.md). This regis
 | evidence_gap | 1 |
 | false_positive | 113 |
 | policy_deferred | 4 |
-| real_debt | 12 |
+| real_debt | 32 |
 | scanner_misalignment | 7 |
 
 ## Sealed work (do not reopen)
@@ -64,7 +64,6 @@ Open campaigns are [`workflow_state.md`](../../../workflow_state.md). This regis
 | GMP-NC-D | closed_genuine_overfetch | PR #240 validation domains and negative batch_limit; scanner residue is TD-UB |
 | GMP-NC-E | closed_findings | live XPath scan empty; TD-XPATH-001 is leftover fix text |
 | GMP-NC-F | replaced | this register is the reconciliation |
-| TD-WEAK-001-020 | closed | PR #325 moved the cron tests to plasticos_claims/tests and replaced the assertion-free methods |
 
 ## Rules
 
@@ -182,10 +181,30 @@ Actions:
 
 ## WEAK_TEST
 
-7 item(s).
+27 item(s).
 
 | ID | Remediate | Class | File | Line | Symbol | Code / message |
 |---|---|---|---|---:|---|---|
+| TD-WEAK-001 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 61 | test_midnight_recompute_idempotent | def test_midnight_recompute_idempotent(self): |
+| TD-WEAK-002 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 65 | test_batch_normalize_idempotent | def test_batch_normalize_idempotent(self): |
+| TD-WEAK-003 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 69 | test_geo_backfill_idempotent | def test_geo_backfill_idempotent(self): |
+| TD-WEAK-004 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 73 | test_expire_offers_idempotent | def test_expire_offers_idempotent(self): |
+| TD-WEAK-005 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 77 | test_claim_cron_idempotent | def test_claim_cron_idempotent(self): |
+| TD-WEAK-006 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 81 | test_logistics_cron_idempotent | def test_logistics_cron_idempotent(self): |
+| TD-WEAK-007 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 85 | test_enrichment_cron_idempotent | def test_enrichment_cron_idempotent(self): |
+| TD-WEAK-008 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 94 | test_audit_cron_idempotent | def test_audit_cron_idempotent(self): |
+| TD-WEAK-009 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 98 | test_scale_ticket_cron_idempotent | def test_scale_ticket_cron_idempotent(self): |
+| TD-WEAK-010 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 101 | test_missing_docs_cron_idempotent | def test_missing_docs_cron_idempotent(self): |
+| TD-WEAK-011 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 105 | test_contract_renewal_cron_idempotent | def test_contract_renewal_cron_idempotent(self): |
+| TD-WEAK-012 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 108 | test_invoice_reminder_cron_idempotent | def test_invoice_reminder_cron_idempotent(self): |
+| TD-WEAK-013 | yes | real_debt | `tests/integration/test_cron_idempotency.py` | 111 | test_sale_approval_cron_idempotent | def test_sale_approval_cron_idempotent(self): |
+| TD-WEAK-014 | yes | real_debt | `tests/test_cron_runtime.py` | 85 | test_load_sla_check_empty | def test_load_sla_check_empty(self): |
+| TD-WEAK-015 | yes | real_debt | `tests/test_cron_runtime.py` | 89 | test_stock_alert_empty | def test_stock_alert_empty(self): |
+| TD-WEAK-016 | yes | real_debt | `tests/test_cron_runtime.py` | 93 | test_enrichment_pending_empty | def test_enrichment_pending_empty(self): |
+| TD-WEAK-017 | yes | real_debt | `tests/test_cron_runtime.py` | 101 | test_claim_escalation_empty | def test_claim_escalation_empty(self): |
+| TD-WEAK-018 | yes | real_debt | `tests/test_cron_runtime.py` | 105 | test_transaction_audit_empty | def test_transaction_audit_empty(self): |
+| TD-WEAK-019 | yes | real_debt | `tests/test_cron_runtime.py` | 109 | test_missing_docs_check_empty | def test_missing_docs_check_empty(self): |
+| TD-WEAK-020 | yes | real_debt | `tests/test_cron_runtime.py` | 113 | test_geo_backfill_empty | def test_geo_backfill_empty(self): |
 | TD-WEAK-021 | yes | real_debt | `tests/test_gate_sdk_invocation.py` | 238 | test_sdk_validates_the_adapter_packet_as_gate_bound | def test_sdk_validates_the_adapter_packet_as_gate_bound(gate): |
 | TD-WEAK-022 | yes | real_debt | `tests/test_opportunity_protocol_split.py` | 41 | test_positive_supply_fixture | def test_positive_supply_fixture() -> None: |
 | TD-WEAK-023 | yes | real_debt | `tests/test_opportunity_protocol_split.py` | 45 | test_positive_buyer_demand_fixture | def test_positive_buyer_demand_fixture() -> None: |
@@ -196,7 +215,7 @@ Actions:
 
 Actions:
 
-- TD-WEAK-021, TD-WEAK-022, TD-WEAK-023, TD-WEAK-024, TD-WEAK-025, TD-WEAK-026, TD-WEAK-027: Add an assertion that fails if the contract under test is broken. Use the operations already in the test body. Do not add assert True, a tautology, or a helper whose name merely starts with check_, validate_, _run_, or _safe_.
+- TD-WEAK-001 … TD-WEAK-027 (27 rows, same action): Add an assertion that fails if the contract under test is broken. Use the operations already in the test body. Do not add assert True, a tautology, or a helper whose name merely starts with check_, validate_, _run_, or _safe_.
 
 ## UNBOUNDED_SEARCH
 

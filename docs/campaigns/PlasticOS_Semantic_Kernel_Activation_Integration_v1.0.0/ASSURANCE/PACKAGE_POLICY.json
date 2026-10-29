@@ -1,0 +1,70 @@
+{
+  "authority_ref": "Operator decisions D01-D16 in case.json; package-only assertions, no execution or canonical authority grant.",
+  "assertions": [
+    {
+      "id": "production-stays-off",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/production_enabled",
+      "value": false
+    },
+    {
+      "id": "operator-enable-not-granted",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/production_operator_approved",
+      "value": false
+    },
+    {
+      "id": "coding-not-granted",
+      "kind": "equals",
+      "file": "case.json",
+      "pointer": "/authority/coding_grant/granted",
+      "value": false
+    },
+    {
+      "id": "runtime-remains-not-run",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/runtime_proofs",
+      "value": "NOT_RUN"
+    },
+    {
+      "id": "preserve-kernel-bytes",
+      "kind": "equals",
+      "file": "EVIDENCE/PREDECESSOR_COMPARISON.json",
+      "pointer": "/changed_original_members",
+      "value": 0
+    },
+    {
+      "id": "staging-before-activation",
+      "kind": "edge_exists",
+      "file": "PLAN/DELIVERY_GRAPH.json",
+      "source": "U11",
+      "target": "U12",
+      "relation": "requires"
+    },
+    {
+      "id": "review-before-staging",
+      "kind": "edge_exists",
+      "file": "PLAN/DELIVERY_GRAPH.json",
+      "source": "U10",
+      "target": "U11",
+      "relation": "requires"
+    },
+    {
+      "id": "unique-decisions",
+      "kind": "unique_field",
+      "file": "case.json",
+      "pointer": "/authority/locked_decisions",
+      "field": "id"
+    },
+    {
+      "id": "no-production-grant",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/final_activation_grant",
+      "value": null
+    }
+  ]
+}

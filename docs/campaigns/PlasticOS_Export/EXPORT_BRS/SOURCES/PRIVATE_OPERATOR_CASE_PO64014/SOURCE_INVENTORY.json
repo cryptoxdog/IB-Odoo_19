@@ -1,0 +1,61 @@
+{
+  "schema": "operator.private-sources/v1",
+  "purpose": "Non-committable user-supplied evidence for private BRS acceptance planning",
+  "files": [
+    {
+      "name": "PurchaseOrder_64014.pdf",
+      "sha256": "d11d99dfcff4681569621beddfd1015bef8902d03492b58e0926074b11c5b0f3",
+      "bytes": 137645
+    },
+    {
+      "name": "PurchaseOrder_64014_Email.pdf",
+      "sha256": "56cc0e35aa7c38079d2adb8958881762825eafe93c802025c7b377f8ab0059e8",
+      "bytes": 403114
+    },
+    {
+      "name": "BOOKING CONFIRMATION-64014.pdf",
+      "sha256": "c0986fca13616a522e963f6ed270c8f6cbed2c962fb18418bb0e491364bbf901",
+      "bytes": 93429
+    },
+    {
+      "name": "BOOKING CONFIRMATION-64014-Email.pdf",
+      "sha256": "dea89600c68dabf55bebc00d641f3e7b2a85535619764ae0b2a1b0dddd5dd191",
+      "bytes": 191353
+    },
+    {
+      "name": "Email Universal BKG 6509024800 - PO 64014.pdf",
+      "sha256": "d16a7a4098a99b65a0382546a749667d50f5e80944be28efaf925e4ebddb8a42",
+      "bytes": 273127
+    },
+    {
+      "name": "1728952 LOAD 1.pdf",
+      "sha256": "3af93cf4bf9c204b15cbc15edbe333fea95e963c9d651b673b74c1e3cd4a2ad1",
+      "bytes": 42291
+    },
+    {
+      "name": "Universal BKG 6509024800 - PO 64014.xlsx",
+      "sha256": "3902ba83d40a7db0bed9b037610730577c1a954c8b0dca5420aeb5d611551519",
+      "bytes": 12434
+    },
+    {
+      "name": "6509024800-LAS-SEA2-UCS.pdf",
+      "sha256": "580d4e6114679203aabb9b8ca24f0b3796522cfb017c14571d73449d18d70563",
+      "bytes": 70256
+    },
+    {
+      "name": "6509024800-R_1.pdf",
+      "sha256": "cefb0b63362df4a6a72531e6840b0b0428e16d4dc60598fb9d70f5c70c12b756",
+      "bytes": 70253
+    },
+    {
+      "name": "6509024800-RR_1.pdf",
+      "sha256": "6a97bd786869b3a6cf64496dd59810ffc972da8cee4fd35b9374657bb0ddc2d6",
+      "bytes": 70289
+    },
+    {
+      "name": "64014-Email From Sherry With Booking.png",
+      "sha256": "4be7386ae052f078260fa9a088b58eda42f63cf6b29699947b3a16399c495eb8",
+      "bytes": 294401
+    }
+  ]
+}
