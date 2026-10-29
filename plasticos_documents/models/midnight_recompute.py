@@ -14,10 +14,11 @@ from odoo import models
 _logger = logging.getLogger(__name__)
 
 _EXPIRY_KEYSET_LIMIT = 1000
+# (transaction field, many-relation)
 _UNIQUE_SUBJECT_FIELDS = {
-    "plasticos.load": "load_id",
-    "sale.order": "sale_order_id",
-    "purchase.order": "purchase_order_ids",
+    "plasticos.load": ("load_id", False),
+    "sale.order": ("sale_order_id", False),
+    "purchase.order": ("purchase_order_ids", True),
 }
 
 
@@ -101,9 +102,10 @@ class PlasticosMidnightRecomputeDocument(models.AbstractModel):
             return document.transaction_id.id
         if document.res_model == "plasticos.transaction" and document.res_id:
             return document.res_id
-        field_name = _UNIQUE_SUBJECT_FIELDS.get(document.res_model)
+        spec = _UNIQUE_SUBJECT_FIELDS.get(document.res_model)
+        field_name, many = spec if spec else (None, False)
         if not field_name or field_name not in tx_model._fields or not document.res_id:
-            if document.res_model in {"stock.picking", *_UNIQUE_SUBJECT_FIELDS}:
+            if document.res_model == "stock.picking" or spec:
                 _logger.info(
                     "UNKNOWN transaction attribution for document %s on %s,%s.",
                     document.id,
@@ -111,9 +113,8 @@ class PlasticosMidnightRecomputeDocument(models.AbstractModel):
                     document.res_id,
                 )
             return None
-        value = [document.res_id] if field_name == "purchase_order_ids" else document.res_id
-        operator = "in" if field_name == "purchase_order_ids" else "="
-        found = tx_model.search([(field_name, operator, value)])
+        value = [document.res_id] if many else document.res_id
+        found = tx_model.search([(field_name, "in" if many else "=", value)])
         if len(found) == 1:
             return found.id
         if len(found) > 1:
