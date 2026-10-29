@@ -1,0 +1,212 @@
+{
+  "format": "package-local-delivery-dag/v1",
+  "edge_meaning": "from prerequisite to dependent; not authorization",
+  "nodes": [
+    {
+      "id": "U00",
+      "description": "Resolve runtime, source, contract and cross-campaign frontiers before any dependent code.",
+      "status": "NOT_STARTED",
+      "effects": []
+    },
+    {
+      "id": "U01",
+      "description": "Admit narrow ADR amendments and implementation contracts; freeze data ownership and interface versions.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "O01",
+        "O18"
+      ]
+    },
+    {
+      "id": "U02",
+      "description": "Harden optional semantic persistence, identity, evidence states and server-side dormancy.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "O02",
+        "O03",
+        "O04",
+        "O05",
+        "O06",
+        "O07"
+      ]
+    },
+    {
+      "id": "U03",
+      "description": "Implement truthful scoped backfill and durable commit-bound projection operations.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "O08",
+        "O09"
+      ]
+    },
+    {
+      "id": "U04",
+      "description": "Develop versioned EIE industrial hypothesis rules and independent evaluation.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "X01",
+        "X02"
+      ]
+    },
+    {
+      "id": "U05",
+      "description": "Align CEG graph identity, edges, domain roles and two matching directions.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "X03",
+        "X04"
+      ]
+    },
+    {
+      "id": "U06",
+      "description": "Implement scoped CEG gap assessment, quantity coverage and information-gap behavior.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "X05"
+      ]
+    },
+    {
+      "id": "U07",
+      "description": "Admit and verify least-privilege Gate routes and caller scopes for the frozen external contracts.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "X06"
+      ]
+    },
+    {
+      "id": "U08",
+      "description": "Wire one optional Odoo integration bridge to native opportunity sources, EIE and CEG.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "O10",
+        "O11",
+        "O12",
+        "O13",
+        "O14"
+      ]
+    },
+    {
+      "id": "U09",
+      "description": "Add native read-only review and explicit CRM handoff without duplicate commercial lifecycle.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "O15",
+        "O20",
+        "O21"
+      ]
+    },
+    {
+      "id": "U10",
+      "description": "Complete integrated tests, optional Enterprise lane, migration/recovery and independent review.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "O16",
+        "O17",
+        "O19",
+        "X07"
+      ]
+    },
+    {
+      "id": "U11",
+      "description": "Run isolated Staging shadow acceptance on the final immutable release set.",
+      "status": "NOT_STARTED",
+      "effects": []
+    },
+    {
+      "id": "U12",
+      "description": "Operator-only phased activation and monitored recovery; disabled until separately authorized.",
+      "status": "NOT_STARTED",
+      "effects": [
+        "O22"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "U00",
+      "target": "U01",
+      "relation": "requires"
+    },
+    {
+      "source": "U01",
+      "target": "U02",
+      "relation": "requires"
+    },
+    {
+      "source": "U02",
+      "target": "U03",
+      "relation": "requires"
+    },
+    {
+      "source": "U01",
+      "target": "U04",
+      "relation": "requires"
+    },
+    {
+      "source": "U01",
+      "target": "U05",
+      "relation": "requires"
+    },
+    {
+      "source": "U05",
+      "target": "U06",
+      "relation": "requires"
+    },
+    {
+      "source": "U04",
+      "target": "U07",
+      "relation": "requires"
+    },
+    {
+      "source": "U05",
+      "target": "U07",
+      "relation": "requires"
+    },
+    {
+      "source": "U06",
+      "target": "U07",
+      "relation": "requires"
+    },
+    {
+      "source": "U03",
+      "target": "U08",
+      "relation": "requires"
+    },
+    {
+      "source": "U07",
+      "target": "U08",
+      "relation": "requires"
+    },
+    {
+      "source": "U08",
+      "target": "U09",
+      "relation": "requires"
+    },
+    {
+      "source": "U09",
+      "target": "U10",
+      "relation": "requires"
+    },
+    {
+      "source": "U10",
+      "target": "U11",
+      "relation": "requires"
+    },
+    {
+      "source": "U11",
+      "target": "U12",
+      "relation": "requires"
+    }
+  ],
+  "external_dependencies": [
+    {
+      "id": "COMMERCIAL-CAMPAIGN",
+      "needed_by": [
+        "U08",
+        "U09",
+        "U10"
+      ],
+      "contract": "F06; no hard merge-first rule. Exact available predecessor head may be consumed in isolated integration; final runtime proof requires integrated build."
+    }
+  ]
+}

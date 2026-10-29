@@ -1,0 +1,2152 @@
+{
+  "schema": "plasticos.addon-planning-case/v0.2",
+  "case_id": "PLASTICOS-SEMANTIC-ACTIVATION-2026-10-29-v1",
+  "mode": "wip_alignment",
+  "target": {
+    "repository": "cryptoxdog/IB-Odoo_19",
+    "revision": "677d734fd88615d673501d91de88734b7150ff50",
+    "source_lock": "PLANNING_KERNEL/SOURCES/REPO_SOURCE_LOCK.json",
+    "constitution": {
+      "path": "INVARIANTS.md",
+      "version": "2.2.0",
+      "blob_sha": "c16e99c575a262ff6279f2202e5959f777b2fc6f",
+      "authority_class": "CONSTITUTIONAL"
+    },
+    "installed_target": {
+      "status": "UNOBSERVED",
+      "evidence": "F01/F04/F08: no live database or installed Enterprise registry access used. Evidence is repository-only; read-only census is first gate."
+    },
+    "wip": {
+      "base_revision": "677d734fd88615d673501d91de88734b7150ff50",
+      "head_revision": "677d734fd88615d673501d91de88734b7150ff50",
+      "related_prs": [
+        "https://github.com/cryptoxdog/IB-Odoo_19/pull/329 (protected external campaign; head fec9bf0f3958ce61daa86eedb64e4db75cac1c1a)"
+      ],
+      "test_evidence": "No product tests executed. Existing test source inspected; package validation is separate.",
+      "capabilities": [
+        {
+          "name": "Semantic data vocabulary",
+          "behavior": "Six passive models and peer supply/demand protocols",
+          "disposition": "PRESERVE",
+          "evidence": "S01-S18",
+          "preservation_test": "P04/P05/P07/P11"
+        },
+        {
+          "name": "Dormant execution",
+          "behavior": "Optional install, blocked supply/demand backfill, specification-only cutover",
+          "disposition": "ALIGN",
+          "evidence": "S02/S05-S09/S26",
+          "preservation_test": "P03/P27/P29"
+        },
+        {
+          "name": "External inference and graph intelligence",
+          "behavior": "EIE inference infrastructure and CEG matching domain exist; full industrial gap capability unproved",
+          "disposition": "ALIGN",
+          "evidence": "S31-S47",
+          "preservation_test": "P06/P12-P18/P31-P33"
+        },
+        {
+          "name": "Commercial pipeline",
+          "behavior": "Native opportunity campaign remains independent owner",
+          "disposition": "PRESERVE",
+          "evidence": "S21-S28 and protected PR metadata",
+          "preservation_test": "P20-P22"
+        }
+      ]
+    }
+  },
+  "authority": {
+    "locked_decisions": [
+      {
+        "id": "D01",
+        "text": "Preserve and fully develop the industrial supply/demand intelligence capability; do not deprecate its useful semantic concepts.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D02",
+        "text": "Remain dormant for business use until repaired, connected, tested and separately activated by the operator. This package is not activation or repository-write authorization.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D03",
+        "text": "Inference, verified facts, and currently marketable supply/confirmed demand are separate evidence classes. Confidence never promotes inferred inventory to verified supply.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D04",
+        "text": "EIE owns enrichment and source-backed industrial inference; CEG owns graph reasoning, matching and gap assessment; Gate owns mediated transport; Odoo owns commercial records and approvals.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D05",
+        "text": "Native crm.lead with type opportunity is the single commercial attempt and matching/offer entry. Supplier/profile buttons may create/open an opportunity, not bypass it.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D06",
+        "text": "One opportunity per independently marketable load or supply contract; one material profile may support many opportunities; one opportunity may have many buyer offers.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D07",
+        "text": "Material profile plus current opportunity material snapshot is a hard gate for commercial matching. Reuse lead-owned facility/material identity before partner creation.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D08",
+        "text": "Won is confirmed PO issuance, not an intake, draft RFQ, accepted offer or stage drag. Partner creation/linking belongs to the separately governed PO issuance workflow.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D09",
+        "text": "Lost retains the native opportunity, requires a native loss reason and creates/reuses an appropriately classified CRM follow-up lead retaining material-stream evidence; it does not deactivate the supplier or erase material identity.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D10",
+        "text": "Matching, selected buyers, draft approval, actual email outcomes and follow-up remain opportunity-owned; this kernel cannot send email, issue POs, create partners, mark Won or create another sales pipeline.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D11",
+        "text": "Non-HOT Cognito disposition remains deferred and unchanged. Do not expand this campaign into webhook, accounting, export, warehouse, logistics or general CRM repairs.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D12",
+        "text": "Keep source/quantity/time/location/specification provenance, uncertainty, contradiction and expiry. Unknown is not zero; recurring capacity is not confirmed buying intent; predicted scrap is not available inventory.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D13",
+        "text": "Backfill, ongoing projection, read-authority cutover, industrial inference, gap reports and commercial admission are independent operations with independent scope and proof.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D14",
+        "text": "No direct Odoo-to-EIE/CEG bypass, no local matching/inference fallback and no unapproved caller-role or action expansion.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D15",
+        "text": "All named direct/transitive effects require owner, source, disposition, migration/recovery and positive/negative proof before dependent implementation. Material new discovery reopens only affected scope.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      },
+      {
+        "id": "D16",
+        "text": "Live activation remains a deliberate later event even after all automated tests pass; production operations, secrets and paid calls require their own authorization.",
+        "source": "Operator decisions in this conversation, culminating in request to formalize full development while dormant.",
+        "source_revision": "2026-10-29"
+      }
+    ],
+    "open_material_decisions": [
+      "F05: implementation topology admission after sufficiency test; bridge is a proposed plan, not an accepted new semantic owner.",
+      "F07: production inference calibration and spend policy require domain-evaluation evidence."
+    ],
+    "operator_blast_radius_gate": {
+      "id": "POS-INV-26",
+      "source": "Operator instruction preserved at SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "applies": true
+    },
+    "plan_acceptance": {
+      "granted": false,
+      "digest": "",
+      "basis": "Business intent locked by operator; this newly generated source-bound implementation plan has not received independent acceptance."
+    },
+    "coding_grant": {
+      "granted": false,
+      "digest": "",
+      "scope": "No repository, runtime, migration, API-spend, publication or activation grant issued."
+    },
+    "source_interfaces": [
+      {
+        "owner": "Odoo commercial campaign",
+        "interface": "Native opportunity/material snapshot, approved readiness and PO/Lost lifecycle",
+        "status": "PROPOSED",
+        "evidence": "F06; source/current PR exists, successor not yet proven."
+      },
+      {
+        "owner": "CEG",
+        "interface": "Versioned canonical source projection, current match/result and gap assessment contract",
+        "status": "PROPOSED",
+        "evidence": "S37-S43/F02/F03; detached contracts not assumed live."
+      },
+      {
+        "owner": "EIE",
+        "interface": "Industrial hypothesis evidence and durable sync result",
+        "status": "PROPOSED",
+        "evidence": "S31-S36/P06/P32/P33."
+      },
+      {
+        "owner": "Gate",
+        "interface": "Current signed action/caller admission",
+        "status": "SOURCE_OBSERVED",
+        "evidence": "S44-S47; deployed grants still F04."
+      }
+    ]
+  },
+  "strategy": {
+    "user_problem": "Industrial capabilities and product evidence are not connected to reliable supply/demand hypotheses, confirmed availability, gap intelligence and the single native CRM commercial workflow.",
+    "outcome": "Fully develop and prove evidence-bound inference, confirmed supply/demand projection, bidirectional matching and scoped gap intelligence; keep all business use dormant until separate activation.",
+    "first_proof": "Read-only runtime/source census plus a version-bound contract fit check; then one positive and one discriminating negative process hypothesis and one confirmed demand-to-supply path in isolated fixtures.",
+    "best_alternative": "Direct projection from native CRM/intake to existing EIE/CEG without a durable optional Odoo semantic integration addon.",
+    "reason_selected": "Preserve existing useful semantic models as passive records. Proposed optional bridge protects default MVP install and no-intelligence kernel boundary while adding durable source lifecycle integration; admission requires F05 comparison, not aesthetics.",
+    "reversibility": "Default-deny operation grants; read-only shadow deployment; reversible graph projection with source readback, paused operations and tested database/filestore restore. Never restore local matching.",
+    "future_seam": "Full pipeline includes inferred supplier discovery and buyer-fit research, verified supply/demand, gap reports, operator qualification and native CRM handoff. Autonomous outbound remains excluded.",
+    "now_scope": [
+      "Formal plan, exact owner/path accounting, ADR drafts/amendments, data/wire/state contracts, ordered development, full proof and activation gates",
+      "Read-only source checks and package-only validation"
+    ],
+    "deferred": [
+      "Non-HOT Cognito disposition",
+      "Autonomous outreach/negotiation and new financial/physical workflows",
+      "General refactors and unrelated audit campaigns"
+    ],
+    "non_goals": [
+      "No code execution in target repositories",
+      "No PR/merge/deploy, migration, live message, paid provider request or activation",
+      "No new local Odoo inference/matching engine",
+      "No second independent sales pipeline"
+    ],
+    "native_fit": [
+      {
+        "capability": "Commercial opportunities, activities, loss reasons and PO lifecycle",
+        "decision": "REUSE",
+        "owner": "Native Odoo + branched commercial campaign",
+        "source": "S21-S28"
+      },
+      {
+        "capability": "Provisional material/facility identity",
+        "decision": "REUSE",
+        "owner": "plasticos_crm_bridge",
+        "source": "S23-S25"
+      },
+      {
+        "capability": "Semantic evidence/supply/demand records",
+        "decision": "EXTEND",
+        "owner": "plasticos_semantic_kernel",
+        "source": "S09-S17"
+      },
+      {
+        "capability": "Optional isolated CRM-to-semantic runtime integration",
+        "decision": "BRIDGE",
+        "owner": "Proposed plasticos_semantic_bridge, subject to F05 admission",
+        "source": "S09/S26/S48 plus existing manifest DAG"
+      },
+      {
+        "capability": "Industrial inference and gap intelligence",
+        "decision": "EXTEND",
+        "owner": "EIE and CEG",
+        "source": "S31-S43"
+      },
+      {
+        "capability": "Signed routing",
+        "decision": "REUSE",
+        "owner": "plasticos_gate and Gate_SDK/Constellation.Gate",
+        "source": "S29/S33/S44-S47"
+      }
+    ]
+  },
+  "source_census": {
+    "search_scope": "Pinned Odoo source and supplied 30-manifest DAG; known direct and transitive semantic/model/Gate paths; four repositories. Search is bounded; live Odoo/Enterprise and full external call closure remain explicit F01-F04/F08.",
+    "methods": [
+      "Exact immutable GitHub file reads and current branch SHA resolution",
+      "Definition/call-site search; model inheritance, manifest and view/security inspection",
+      "Whole-change reverse dependency graph from supplied verified revision snapshot",
+      "Prior same-revision observations reused with explicit current SHA confirmation"
+    ],
+    "root_modules": [
+      "plasticos_semantic_kernel",
+      "plasticos_gate",
+      "plasticos_crm_bridge",
+      "plasticos_matching",
+      "plasticos_enrichment"
+    ],
+    "module_dispositions": [
+      {
+        "module": "plasticos_crm_bridge",
+        "disposition": "NO_CHANGE",
+        "reason": "Reuse existing partnerless identity and generic reference reconciliation; consume protected commercial interfaces. F01 may discover new material callers; reopen only those.",
+        "evidence": "Manifest plasticos_crm_bridge/__manifest__.py blob bd20ed2811e75593bbc7fda07ec4f61564cf3c9a at 677d734fd88615d673501d91de88734b7150ff50; no-change is bounded by F01/F03, not proof of all dynamic consumers.",
+        "test_obligation": "P10/P20/P22/P24"
+      },
+      {
+        "module": "plasticos_crm_sync",
+        "disposition": "NO_CHANGE",
+        "reason": "Reuse existing partnerless identity and generic reference reconciliation; consume protected commercial interfaces. F01 may discover new material callers; reopen only those.",
+        "evidence": "Manifest plasticos_crm_sync/__manifest__.py blob d56275caa98f2eb37852713733eb157871339146 at 677d734fd88615d673501d91de88734b7150ff50; no-change is bounded by F01/F03, not proof of all dynamic consumers.",
+        "test_obligation": "P10/P20/P22/P24"
+      },
+      {
+        "module": "plasticos_enrichment",
+        "disposition": "NO_CHANGE",
+        "reason": "Preserve existing runtime shells; optional bridge composes them. Commercial matching changes owned by branched campaign; no duplicated write surface.",
+        "evidence": "Manifest plasticos_enrichment/__manifest__.py blob 636647aaea9397a1125d76e7b7d894cc68b484f8 at 677d734fd88615d673501d91de88734b7150ff50; no-change is bounded by F01/F03, not proof of all dynamic consumers.",
+        "test_obligation": "P12/P14/P16/P22/P31"
+      },
+      {
+        "module": "plasticos_gate",
+        "disposition": "EDIT",
+        "reason": "Owned schema/contract or runtime control changes enumerated in effects.",
+        "evidence": "Manifest plasticos_gate/__manifest__.py blob 8d6c174fa44ee4ad8c69c4ce81cda9554075b7cc at 677d734fd88615d673501d91de88734b7150ff50; no-change is bounded by F01/F03, not proof of all dynamic consumers.",
+        "test_obligation": "P03/P07/P08/P12/P23/P24"
+      },
+      {
+        "module": "plasticos_matching",
+        "disposition": "NO_CHANGE",
+        "reason": "Preserve existing runtime shells; optional bridge composes them. Commercial matching changes owned by branched campaign; no duplicated write surface.",
+        "evidence": "Manifest plasticos_matching/__manifest__.py blob db9f4edb74037a9a458a815d64761ac92d2c0f05 at 677d734fd88615d673501d91de88734b7150ff50; no-change is bounded by F01/F03, not proof of all dynamic consumers.",
+        "test_obligation": "P12/P14/P16/P22/P31"
+      },
+      {
+        "module": "plasticos_semantic_kernel",
+        "disposition": "EDIT",
+        "reason": "Owned schema/contract or runtime control changes enumerated in effects.",
+        "evidence": "Manifest plasticos_semantic_kernel/__manifest__.py blob b990bfd16431e6cf711b21c418d288cdb5ba197f at 677d734fd88615d673501d91de88734b7150ff50; no-change is bounded by F01/F03, not proof of all dynamic consumers.",
+        "test_obligation": "P03/P07/P08/P12/P23/P24"
+      }
+    ],
+    "extra_consumers": [
+      {
+        "id": "EC-1",
+        "module_or_surface": "Quantum-L9/Enrichment.Inference.Engine Industrial inference rules",
+        "disposition": "EDIT",
+        "reason": "Add source-backed, versioned process/product-to-potential-material and capability-to-potential-demand rules, prerequisites/counterexamples, evidence/rationale/expiry/abstention. Hypotheses only; no order/inventory creation. All general mechanisms remain domain-neutral.",
+        "evidence": "PLAN/CROSS_REPO_PLAN.json X01 at 3f96eda98240789963b0e6534aa2151aed12658e",
+        "test_obligation": "P06,P32,P33"
+      },
+      {
+        "id": "EC-2",
+        "module_or_surface": "Quantum-L9/Enrichment.Inference.Engine Evidence durability and sync coordination",
+        "disposition": "EDIT",
+        "reason": "Reuse durable results, tenant-bound routing and ack logic. Do not route authoritative Odoo facts through inference merely to obtain worker permissions. Preserve provenance and parent evidence revision.",
+        "evidence": "PLAN/CROSS_REPO_PLAN.json X02 at 3f96eda98240789963b0e6534aa2151aed12658e",
+        "test_obligation": "P12,P13,P32"
+      },
+      {
+        "id": "EC-3",
+        "module_or_surface": "Quantum-L9/Cognitive.Engine.Graphs Graph identity and lifecycle",
+        "disposition": "EDIT",
+        "reason": "Admit stable prospect/source identity; upsert nodes AND required edges, latest-revision guards, tombstones, tenant isolation and verified eligibility. Acknowledgement proves materialized identities and lineage, not only transport.",
+        "evidence": "PLAN/CROSS_REPO_PLAN.json X03 at 0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "test_obligation": "P07,P12,P13,P15,P31"
+      },
+      {
+        "id": "EC-4",
+        "module_or_surface": "Quantum-L9/Cognitive.Engine.Graphs Matching domain semantics",
+        "disposition": "EDIT",
+        "reason": "Specify supplier-offered load -> eligible buying facility; confirmed buyer need -> genuinely current supply. Unit tests must distinguish commercial role, capability and need. Fix only verified compiler defects at compiler owner; no Odoo workaround.",
+        "evidence": "PLAN/CROSS_REPO_PLAN.json X04 at 0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "test_obligation": "P14,P15,P16,P30"
+      },
+      {
+        "id": "EC-5",
+        "module_or_surface": "Quantum-L9/Cognitive.Engine.Graphs Scoped gap analysis",
+        "disposition": "EDIT",
+        "reason": "Proposed domain-neutral gap assessment composes actual eligible match evidence and scoped quantity coverage, with explicit information-gap/unknown outcomes. Proposed canonical action assess-gaps is not callable until admitted; reuse an existing equivalent route if U00 proves it sufficient.",
+        "evidence": "PLAN/CROSS_REPO_PLAN.json X05 at 0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "test_obligation": "P17,P18,P31"
+      },
+      {
+        "id": "EC-6",
+        "module_or_surface": "Quantum-L9/Constellation.Gate Canonical route and caller authority",
+        "disposition": "EDIT",
+        "reason": "After source-owner admission, route narrow CEG gap action and permitted source-projection operation. Signed Odoo consumer must remain consumer. Least-privilege tenant/action/source scope; do not grant worker or unrestricted sync privileges. Preserve existing routes.",
+        "evidence": "PLAN/CROSS_REPO_PLAN.json X06 at cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+        "test_obligation": "P02,P03,P12,P31"
+      },
+      {
+        "id": "EC-7",
+        "module_or_surface": "Quantum-L9/Cognitive.Engine.Graphs Actual Odoo cross-system proof",
+        "disposition": "EDIT",
+        "reason": "Mandatory nonempty positive and correct empty negative, real registry IDs, saved review result, source revisions, edge readback, rollback/expiry/reopen/disable and role checks. Separate synthetic rules fixture from live evidence pilot.",
+        "evidence": "PLAN/CROSS_REPO_PLAN.json X07 at 0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "test_obligation": "P13,P14,P15,P16,P26,P27"
+      },
+      {
+        "id": "EC-BRIDGE",
+        "module_or_surface": "Proposed optional bridge",
+        "disposition": "CREATE",
+        "reason": "Separate runtime integration owner only after F05 sufficiency/admission. Never added to mandatory critical path.",
+        "evidence": "DESIGN/OWNERSHIP_AND_DAG.md, effects O13-O16",
+        "test_obligation": "P02/P03/P23/P24"
+      }
+    ],
+    "runtime_consumers": {
+      "status": "UNOBSERVED",
+      "evidence": "F01: dynamic actions, installed models/EE and source rows are not inspected; plan gate must not pass this away."
+    },
+    "limits": [
+      "F01: Installed Odoo and dynamic consumers: UNOBSERVED",
+      "F02: Global/external contract admission: NOT_ADMITTED",
+      "F03: Full external source closure: BOUNDED_NOT_EXHAUSTIVE",
+      "F04: SDK and live release set: UNOBSERVED",
+      "F05: Optional bridge sufficiency: PROPOSED_TOPOLOGY",
+      "F06: Branched commercial campaign: EXTERNAL_DEPENDENCY",
+      "F07: Inference evaluation/calibration: NOT_RUN",
+      "F08: Historical data and identifiers: UNOBSERVED",
+      "F09: Post-PO listing disposition: REQUIRES_SOURCE_PROOF"
+    ]
+  },
+  "invariants": {
+    "constitutional": [
+      {
+        "id": "ODOO-INV-01",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#1",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-02",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#2",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-03",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#3",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-04",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#4",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-05",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#5",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-06",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#6",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-07",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#7",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-08",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#8",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-09",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#9",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-10",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#10",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-11",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#11",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-12",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#12",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-13",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#13",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-14",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#14",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-15",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#15",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-16",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#16",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-17",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#17",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-18",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#18",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "ODOO-INV-19",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#19",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      },
+      {
+        "id": "BAN001",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#BAN001",
+        "basis": "Preserved from exact active constitution; applied through source ownership, Odoo 19/DAG/ACL/wiring, native-only behavior and strict precode impact accounting. See PLAN/INVARIANT_APPLICATION.md.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md and EVIDENCE/SOURCE_REGISTER.json S29/S30."
+      }
+    ],
+    "candidate_screening": {
+      "source": "SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "status": "SCREENED",
+      "relevant_ids": [
+        "POS-INV-01",
+        "POS-INV-02",
+        "POS-INV-03",
+        "POS-INV-04",
+        "POS-INV-05",
+        "POS-INV-06",
+        "POS-INV-07",
+        "POS-INV-08",
+        "POS-INV-09",
+        "POS-INV-10",
+        "POS-INV-11",
+        "POS-INV-12",
+        "POS-INV-13",
+        "POS-INV-14",
+        "POS-INV-15",
+        "POS-INV-16",
+        "POS-INV-17",
+        "POS-INV-18",
+        "POS-INV-19",
+        "POS-INV-20",
+        "POS-INV-21",
+        "POS-INV-22",
+        "POS-INV-23",
+        "POS-INV-24",
+        "POS-INV-25"
+      ],
+      "basis": "Screened as candidate themes only; no constitutional promotion. POS-INV-26 separately imposed by operator. Exact bundled draft preserved; active constitution remains S30."
+    }
+  },
+  "effects": [
+    {
+      "id": "O01",
+      "owner": "Odoo ADR/source authority",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "docs/adr/ADR-124-semantic-kernel-backfill.md",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Supply/demand and field authority are blanket-blocked; old ADRs do not express staged activation.",
+      "after": "Adopt only the exact supersession deltas in ADR/AMENDMENTS.md. Keep prohibitions against ambiguous conversion, local intelligence and automatic activation.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "docs/adr/ADR-120-plasticos-semantic-kernel-skeleton.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "docs/adr/ADR-121-spec-observation-models.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "docs/adr/ADR-122-supply-demand-models.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "docs/adr/ADR-124-semantic-kernel-backfill.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "docs/adr/ADR-125-split-opportunity-protocol.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "docs/adr/ADR-126-odoo-semantic-gate-mappers.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "docs/adr/ADR-127-field-family-cutover.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "docs/adr/PROPOSED-semantic-kernel-controlled-activation.md",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P01",
+        "P02",
+        "P31"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O02",
+      "owner": "Semantic supply persistence",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_kernel/models/supply_opportunity.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "b338c85a664ba0047ca270cd0432653610ed865e"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Standalone editable states, supplier partner required; no direct native opportunity provenance.",
+      "after": "Preserve stable UUID; permit prospect identity under a governed owner, bind current supply to approved native opportunity snapshot, separate listing eligibility from commercial Won. Derived projection cannot be independently traded. See DESIGN/DATA_CONTRACT.md.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_semantic_kernel/models/supply_opportunity.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P04",
+        "P07",
+        "P09",
+        "P10",
+        "P21"
+      ],
+      "depends_on": [
+        "O01"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O03",
+      "owner": "Semantic demand persistence",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_kernel/models/buyer_demand.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "a2db72ae03d7c5c542d1c1001ed7c269a53d3ad5"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Requirement-shaped rows have no evidence admission path and force partner identity.",
+      "after": "Use confirmed inquiry/source evidence and qualified facility identity; hypothetical demand remains inference evidence. No buyer capability-to-demand auto conversion; explicit native CRM source binding via optional integration.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_semantic_kernel/models/buyer_demand.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P05",
+        "P07",
+        "P09",
+        "P19"
+      ],
+      "depends_on": [
+        "O01"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O04",
+      "owner": "Material evidence persistence",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_kernel/models/material_observation.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "f2083519224c9de34984fbc7c8f02195fed4b4d8"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "UUID immutable but general evidence facts can change; source classes exist.",
+      "after": "Server-admitted evidence provenance, revision/expiry/supersession semantics, value-state consistency and no confirmed write from unverified inference. Append/supersede approved observations rather than rewrite.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_semantic_kernel/models/material_observation.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/models/material_specification.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P07",
+        "P11",
+        "P32"
+      ],
+      "depends_on": [
+        "O01"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O05",
+      "owner": "Facility evidence persistence",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_kernel/models/facility_material_rule.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "6a32931a5be0ff7c920c42bdbc5286c21d371087"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Useful rule/observation vocabulary exists but does not itself validate industrial inference or current demand.",
+      "after": "Preserve accept/reject/prefer/require and capacity categories; enforce provenance, units, time and conflict states. Inferred capability is research evidence, never confirmed buying intent.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_semantic_kernel/models/facility_material_rule.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/models/capacity_observation.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P05",
+        "P06",
+        "P07",
+        "P11"
+      ],
+      "depends_on": [
+        "O01"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O06",
+      "owner": "Semantic security and UI",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_kernel/__manifest__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "b990bfd16431e6cf711b21c418d288cdb5ba197f"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Internal users can edit supply/demand; independent menus invite duplicate pipeline.",
+      "after": "Read-only derived supply/demand views; permitted evidence approval uses checked actions. Add company rules and role-based grants, retain admin diagnostics without bypass. No standalone Run Match/Send/Mark Won.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_semantic_kernel/security/ir.model.access.csv",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/views/supply_opportunity_views.xml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/views/buyer_demand_views.xml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/views/menus.xml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/security/semantic_rules.xml",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P03",
+        "P19",
+        "P23"
+      ],
+      "depends_on": [
+        "O02",
+        "O03",
+        "O04",
+        "O05"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O07",
+      "owner": "Semantic module wiring",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_kernel/__manifest__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "b990bfd16431e6cf711b21c418d288cdb5ba197f"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Optional schema package; no real ORM test suite registered.",
+      "after": "Bump installed version monotonically, register security and model tests, remain optional/non-auto-installed and free of Gate/client/scoring imports.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_semantic_kernel/__manifest__.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/models/__init__.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/tests/__init__.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/README.md",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_kernel/tests/test_evidence_admission.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_kernel/tests/test_projection_ownership.py",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P03",
+        "P11",
+        "P19",
+        "P23",
+        "P24"
+      ],
+      "depends_on": [
+        "O06"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O08",
+      "owner": "Backfill planner",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "scripts/semantic_kernel_backfill_engine.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Supply/demand blocked; created increments without a writer; mapping version participates in identity; conflict check fixture-only.",
+      "after": "Keep default denial and replace blanket block only for an approved source family/batch. Stable business identity independent of mapping version; planned/committed/reused/rejected/unknown outcomes reflect durable results. Detect real conflicts and safe resume cursor.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "scripts/semantic_kernel_backfill_engine.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_semantic_kernel_backfill.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_semantic_kernel_backfill_family_report.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P04",
+        "P05",
+        "P08",
+        "P09"
+      ],
+      "depends_on": [
+        "O07"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O09",
+      "owner": "Backfill execution boundary",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "scripts/semantic_kernel_backfill.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Fixture-only rows; force dry-run; no ORM persistence and no source admission.",
+      "after": "Keep ordinary CLI dry-run. Authorized execute binds a live read adapter and owned ORM write adapter in the optional bridge, reviewed batch/digest/company/source cutoff. No flag-only global unblock or install-hook writes.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "scripts/semantic_kernel_backfill.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P01",
+        "P03",
+        "P08",
+        "P09"
+      ],
+      "depends_on": [
+        "O08"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O10",
+      "owner": "Gate domain mappings",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_gate/services/semantic_payloads.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "be1ed55d0700b2b125a911599af2dd0064a68782"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Hardcoded Odoo supply record IDs, revision default 1, empty evidence, nested direction wrapper differs from active match.",
+      "after": "Single versioned owner-approved mapping from typed source. Preserve source/UUID/tenant/revision, quantity state and evidence; distinguish sync, match and gap payloads. Never point stale wrapper directly at live match handler.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_gate/services/semantic_payloads.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_gate/services/gate_contracts.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_gate/services/gate_builders.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_gate/services/gate_mappers.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_semantic_gate_payloads.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_gate_canonical_contract.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P07",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P31"
+      ],
+      "depends_on": [
+        "O09"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O11",
+      "owner": "Field-authority and activation controls",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_gate/services/field_family_cutover.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "625f4ae2e070966de54402e9fcbaab63888bed30"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Specification-only classifier; controls not proven to guard business dispatch.",
+      "after": "Preserve existing specification behavior. Add only owner-admitted family/operation checks and call-site enforcement; backfill is not read-authority promotion; default off with grant bound to tenant/release/evidence. No local fallback.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_gate/services/field_family_cutover.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_field_family_cutover.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P03",
+        "P12",
+        "P27",
+        "P29"
+      ],
+      "depends_on": [
+        "O10"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O12",
+      "owner": "Gate SDK consumer seam",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_gate/__manifest__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "8d6c174fa44ee4ad8c69c4ce81cda9554075b7cc"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review",
+        "Preserve plasticos_gate/services/dual_write.py and services/__init__.py unless F03/F05 proves a required change. Their existence is not an instruction to refactor."
+      ],
+      "before": "Existing SDK seam and dual_write module; no proven authoritative native-opportunity publisher.",
+      "after": "Inspect/reuse dual_write and SDK transport before adding operation support; maintain one SDK import owner and verified signed failures. New source sync calls remain forbidden until explicit Gate grant.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_gate/services/gate_client.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_gate/services/gate_config.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_gate/__manifest__.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P02",
+        "P03",
+        "P12",
+        "P27",
+        "P31"
+      ],
+      "depends_on": [
+        "O11"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O13",
+      "owner": "Optional integration ownership",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_bridge/__manifest__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "No existing addon owns both optional kernel integration and CRM/Gate orchestration without broadening mandatory installation or violating ADR-120.",
+      "after": "Proposed optional bridge depends on kernel, native CRM bridge, Gate, matching and enrichment. No mandatory addon depends on it. Schema remains passive; transport remains plasticos_gate. Admission of new addon requires U00 sufficiency check.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_semantic_bridge/__manifest__.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/__init__.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/models/__init__.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/models/opportunity_projection.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/models/projection_operation.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/models/semantic_admission.py",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P08",
+        "P12",
+        "P23"
+      ],
+      "depends_on": [
+        "O09",
+        "O12"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O14",
+      "owner": "Optional bridge lifecycle/writer",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_bridge/models/opportunity_projection.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "There is no proved native opportunity -> semantic -> graph lifecycle publisher.",
+      "after": "Checked material-readiness approval captures exact snapshot; durable operation written with source transaction; background worker publishes after commit, retries stable identity and rejects stale revision. No generic message bus. Reuse existing durable journal if U00 proves it sufficient.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_semantic_bridge/services/__init__.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/services/backfill_adapter.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/services/projection_service.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/models/semantic_scheduler.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/data/semantic_cron.xml",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/models/__init__.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_bridge/__manifest__.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P03",
+        "P08",
+        "P09",
+        "P13",
+        "P21",
+        "P27"
+      ],
+      "depends_on": [
+        "O13"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O15",
+      "owner": "Optional bridge review/security",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_bridge/models/semantic_admission.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "No explicit hypothesis-review -> native CRM handoff for this capability.",
+      "after": "Native read-only fact/hypothesis/gap views and explicit review actions. Human can create/reuse lead or link opportunity, but never implicitly send offers, issue PO or create partner. Underlying receipt remains with evidence owner.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_semantic_bridge/views/semantic_review_views.xml",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/security/ir.model.access.csv",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/security/semantic_rules.xml",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/wizards/__init__.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/wizards/semantic_review.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/__manifest__.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_semantic_bridge/__init__.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P03",
+        "P10",
+        "P19",
+        "P20",
+        "P22"
+      ],
+      "depends_on": [
+        "O14"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O16",
+      "owner": "Optional bridge proofs",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_semantic_bridge/tests/__init__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "No current integrated optional-bridge tests.",
+      "after": "Register real ORM tests for dormancy, source ownership, backfill, races, lifecycle and non-HOT preservation; use no paid calls or real email by default.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_semantic_bridge/tests/__init__.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/tests/test_dormant_boundaries.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/tests/test_source_projection.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/tests/test_backfill_commit.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/tests/test_lifecycle_replay.py",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_semantic_bridge/tests/test_review_handoff.py",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P03",
+        "P08",
+        "P09",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P24"
+      ],
+      "depends_on": [
+        "O15"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O17",
+      "owner": "Install, migration and optional tests",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "config/odoo_module_order.yaml",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "config -> owned-clone test runner -> optional installed registry",
+        "Optional CRM collision tests -> material references -> supply model"
+      ],
+      "before": "Default critical lane excludes semantic kernel; optional collision suite is non-standard.",
+      "after": "Keep default exclusion; add separate opt-in optional-kernel/bridge Enterprise lane and explicit versioned data migration. Freeze numeric migration directory only after current installed versions known. Preserve default MVP lane.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "config/odoo_module_order.yaml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_semantic_kernel_skeleton.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_semantic_kernel_supply_demand.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_semantic_kernel_spec_observation.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_semantic_kernel_facility_capacity.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P01",
+        "P09",
+        "P23",
+        "P24"
+      ],
+      "depends_on": [
+        "O16"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O18",
+      "owner": "Payload schemas and validators",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "contracts/schemas/draft/supply-opportunity.schema.yaml",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Detached draft schemas coexist with live shapes; peer supply/demand and source references are not runtime equivalence.",
+      "after": "Version revisions only after contract-owner admission; preserve peer protocols, source evidence and explicit quantity/availability. Add matched native source lineage and gap/hypothesis exchange schemas at owners, not transport fields.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "contracts/schemas/draft/supply-opportunity.schema.yaml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "contracts/schemas/draft/buyer-demand.schema.yaml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "contracts/schemas/draft/canonical-projection.schema.yaml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "contracts/schemas/examples/supply-opportunity.json",
+          "operation": "EDIT"
+        },
+        {
+          "path": "contracts/schemas/examples/buyer-demand.json",
+          "operation": "EDIT"
+        },
+        {
+          "path": "scripts/opportunity_protocol.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "scripts/projection_outcome_schemas.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_opportunity_protocol_split.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/test_projection_outcome_schemas.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P02",
+        "P07",
+        "P12",
+        "P31"
+      ],
+      "depends_on": [
+        "O01"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O19",
+      "owner": "Existing provisional material ownership",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_crm_bridge/__manifest__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "bd20ed2811e75593bbc7fda07ec4f61564cf3c9a"
+      },
+      "reachability": [
+        "CRM bridge field override -> lead-owned facility -> material profile",
+        "Registry-based reconciliation -> semantic supply references"
+      ],
+      "before": "CRM bridge already permits lead-owned material/facility profiles and reconciliation.",
+      "after": "NO_CHANGE to the ownership mechanism in this campaign. The optional bridge must consume it and prove profile collision/foreign-key preservation. Reopen only a demonstrated defect; do not create parallel provisional model.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "NO_CHANGE to the ownership mechanism in this campaign. The optional bridge must consume it and prove profile collision/foreign-key preservation. Reopen only a demonstrated defect; do not create parallel provisional model.",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P10",
+        "P24"
+      ],
+      "depends_on": [
+        "O17"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O20",
+      "owner": "Web/CRM/matching/offer commercial seam",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_matching/__manifest__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "db9f4edb74037a9a458a815d64761ac92d2c0f05"
+      },
+      "reachability": [
+        "Native opportunity readiness -> shared match orchestrator",
+        "One canonical match result -> offer draft/approval owned externally",
+        "PR329 head changed; re-resolve exact campaign head before integration"
+      ],
+      "before": "Partnerless match and single canonical review/offer paths are owned by the branched web-lead campaign; current baseline still has conflicting legacy guards.",
+      "after": "CONSUME predecessor interface and proof, do not duplicate its implementation. This plan supplies source facts and consumes canonical match results. No new direct supplier match or independent offer review.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "CONSUME predecessor interface and proof, do not duplicate its implementation. This plan supplies source facts and consumes canonical match results. No new direct supplier match or independent offer review.",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P14",
+        "P16",
+        "P20",
+        "P21",
+        "P22",
+        "P30"
+      ],
+      "depends_on": [
+        "O14"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O21",
+      "owner": "Native PO/partner and Lost event ownership",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "plasticos_transaction/__manifest__.py",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED",
+        "git_blob_sha": "b20d2a68fa32dcbefff95d952ce95a4ba73741b2"
+      },
+      "reachability": [
+        "purchase.order lifecycle -> commercial opportunity",
+        "Opportunity outcome -> bridge listing event; no reverse financial write"
+      ],
+      "before": "Legacy intake can claim PO creation from a transaction; external campaign must implement confirmed-PO and required-loss-reason semantics.",
+      "after": "CONSUME actual native confirmed PO and explicit Lost reason as inputs only; no own partner/PO/won writer. Procurement alone does not prove buyer allocation or physical sale. Unknown residual disposition fails closed.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "CONSUME actual native confirmed PO and explicit Lost reason as inputs only; no own partner/PO/won writer. Procurement alone does not prove buyer allocation or physical sale. Unknown residual disposition fails closed.",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P20",
+        "P21",
+        "P22"
+      ],
+      "depends_on": [
+        "O14"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    },
+    {
+      "id": "O22",
+      "owner": "Release and recovery",
+      "consumer": "Native CRM commercial workflow and semantic integration consumers",
+      "source": {
+        "path": "docs/adr/ADR-007-deployment-architecture.md",
+        "revision": "677d734fd88615d673501d91de88734b7150ff50",
+        "evidence": "EVIDENCE/SOURCE_REGISTER.json and the bounded source reads in this conversation; see named before/after owner paths.",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "Source owner -> optional semantic records -> Gate projection -> CEG/EIE -> operator review"
+      ],
+      "before": "Source presence and tests are not production admission.",
+      "after": "Exact multi-repo release set, operator authorization, company/operation allowlist, cost caps, live receipt, kill switch and restoration proof before any use. All package activation grants false.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Exact multi-repo release set, operator authorization, company/operation allowlist, cost caps, live receipt, kill switch and restoration proof before any use. All package activation grants false.",
+      "migration": "Versioned additive migration only after exact installed registry/data census; preserve IDs, historical approvals and source lineage. No install-hook backfill.",
+      "recovery": "Keep feature dormant; restore exact database/filestore and release set only from verified backup when destructive reversal is necessary. Preserve evidence and pause pending operations.",
+      "security_impact": "Company-scoped ORM access; no public/portal writes, no broad sudo or caller-granted approval, no business side effects before admitted operation.",
+      "proof_ids": [
+        "P26",
+        "P27",
+        "P28",
+        "P29",
+        "P34"
+      ],
+      "depends_on": [
+        "O17",
+        "O19",
+        "O20",
+        "O21"
+      ],
+      "invalidators": [
+        "Changed source SHA/blob or installed registry",
+        "New dynamic/consumer reference",
+        "Incompatible external payload or ownership change"
+      ]
+    }
+  ],
+  "delivery": {
+    "units": [
+      {
+        "id": "U01",
+        "description": "Admit narrow ADR amendments and implementation contracts; freeze data ownership and interface versions.",
+        "effect_ids": [
+          "O01",
+          "O18"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "U02",
+        "description": "Harden optional semantic persistence, identity, evidence states and server-side dormancy.",
+        "effect_ids": [
+          "O02",
+          "O03",
+          "O04",
+          "O05",
+          "O06",
+          "O07"
+        ],
+        "depends_on": [
+          "U01"
+        ]
+      },
+      {
+        "id": "U03",
+        "description": "Implement truthful scoped backfill and durable commit-bound projection operations.",
+        "effect_ids": [
+          "O08",
+          "O09"
+        ],
+        "depends_on": [
+          "U02"
+        ]
+      },
+      {
+        "id": "U08",
+        "description": "Wire one optional Odoo integration bridge to native opportunity sources, EIE and CEG.",
+        "effect_ids": [
+          "O10",
+          "O11",
+          "O12",
+          "O13",
+          "O14"
+        ],
+        "depends_on": [
+          "U03"
+        ]
+      },
+      {
+        "id": "U09",
+        "description": "Add native read-only review and explicit CRM handoff without duplicate commercial lifecycle.",
+        "effect_ids": [
+          "O15",
+          "O20",
+          "O21"
+        ],
+        "depends_on": [
+          "U08"
+        ]
+      },
+      {
+        "id": "U10",
+        "description": "Complete integrated tests, optional Enterprise lane, migration/recovery and independent review.",
+        "effect_ids": [
+          "O16",
+          "O17",
+          "O19"
+        ],
+        "depends_on": [
+          "U09"
+        ]
+      },
+      {
+        "id": "U12",
+        "description": "Operator-only phased activation and monitored recovery; disabled until separately authorized.",
+        "effect_ids": [
+          "O22"
+        ],
+        "depends_on": [
+          "U10"
+        ]
+      }
+    ],
+    "proofs": [
+      {
+        "id": "P01",
+        "stage": "PRECODE",
+        "positive": "Live registry/source census resolves installed modules, rows, dynamic actions and exact build.",
+        "negative": "Missing data/access or changed refs blocks affected scope.",
+        "owner": "Odoo runtime operator",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P02",
+        "stage": "PRECODE",
+        "positive": "All current source contracts, payload roots and package topology accepted at their source owners.",
+        "negative": "Unadopted shape, generic inferred authority or missing source stays blocked.",
+        "owner": "Repository contract owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P03",
+        "stage": "POSTCODE",
+        "positive": "Dormant calls are side-effect free in user/API/import/cron paths even when optional addon is installed.",
+        "negative": "False flags, stale grants, cross-tenant context, queued job after disable cannot mutate or dispatch.",
+        "owner": "Odoo integration owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P04",
+        "stage": "POSTCODE",
+        "positive": "Verified current opportunity and snapshot produce one stable supply identity and revision.",
+        "negative": "Profile alone, past transaction, cold web submission or unapproved material creates no active supply.",
+        "owner": "Odoo semantic owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P05",
+        "stage": "POSTCODE",
+        "positive": "Confirmed buyer inquiry produces a scoped requirement with evidence/time/spec/quantity state.",
+        "negative": "Processing machinery or installed capacity alone creates no confirmed demand.",
+        "owner": "Odoo demand admission owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P06",
+        "stage": "POSTCODE",
+        "positive": "Every industrial inference has observed prerequisites, rule version, evidence and abstention behavior.",
+        "negative": "Hot runners, internal recycling, unsuitable resin or captive sourcing defeat overbroad rules.",
+        "owner": "EIE domain owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P07",
+        "stage": "POSTCODE",
+        "positive": "Quantity/unit/currency conversions preserve exact values and typed uncertainty.",
+        "negative": "Unknown zero, lb/metric-ton/short-ton ambiguity, conflicting ranges or stale price cannot become tradable truth.",
+        "owner": "All payload owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P08",
+        "stage": "POSTCODE",
+        "positive": "Recorded create/update counts equal actual committed ORM rows and revisions.",
+        "negative": "Rollback, writer failure, duplicate/reordered retries and mapping-version upgrade produce no false creates or duplicate business identity.",
+        "owner": "Odoo backfill owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P09",
+        "stage": "POSTCODE",
+        "positive": "Controlled migration retains existing IDs, UUIDs, evidence and material/lead references.",
+        "negative": "Orphans, conflicting company/owner, ambiguous source or inferred historical availability are quarantined.",
+        "owner": "Odoo data owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P10",
+        "stage": "POSTCODE",
+        "positive": "Prospect-owned profile works without res.partner; later verified linking preserves identity and history.",
+        "negative": "Duplicate companies/profile collisions are not resolved by name-only guessing or losing references.",
+        "owner": "CRM bridge owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P11",
+        "stage": "POSTCODE",
+        "positive": "Native material/spec observations remain attributable, superseded and immutable after approval.",
+        "negative": "Editing published observation or attachment cannot rewrite an approved historical offer or projection.",
+        "owner": "Odoo semantic owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P12",
+        "stage": "POSTCODE",
+        "positive": "Tenant-bound signed Gate invocation and acknowledgement validate action, source, revision and entity.",
+        "negative": "Unsigned/unknown/wrong-node/wrong-tenant/action-denied or HTTP200 failure remains failure.",
+        "owner": "Gate/SDK owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P13",
+        "stage": "POSTCODE",
+        "positive": "CEG persists the exact current nodes and required typed edges with source lineage.",
+        "negative": "Node-only writes, missing FULFILLS_POLYMER/PROCESSES edges, stale revision or replayed tombstone cannot yield false success.",
+        "owner": "CEG sync owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P14",
+        "stage": "POSTCODE",
+        "positive": "Supplier-load query returns eligible buying facilities with resolvable identities.",
+        "negative": "Mere supplier identity, blocked counterparties, incompatible materials and fabricated buyer IDs are rejected.",
+        "owner": "CEG domain owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P15",
+        "stage": "POSTCODE",
+        "positive": "Confirmed buyer need finds the correct available supply and resolves to native opportunity.",
+        "negative": "Facility capability, reserved/withdrawn/expired supply and hypothesis-only nodes never satisfy actual demand.",
+        "owner": "CEG match owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P16",
+        "stage": "POSTCODE",
+        "positive": "Canonical result mapper preserves score scale, uncertainty and evidence and renders one review set.",
+        "negative": "Raw candidate row mismatch, unresolved entity_ref, duplicate selections or 0-1 versus 0-100 drift cannot pass.",
+        "owner": "Odoo matching/CEG contract owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P17",
+        "stage": "POSTCODE",
+        "positive": "Gap report states scope/time/coverage and distinguishes shortage, surplus and information gap.",
+        "negative": "Empty graph, unavailable worker or insufficient evidence cannot be reported as confirmed market shortage.",
+        "owner": "CEG gap owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P18",
+        "stage": "POSTCODE",
+        "positive": "Compatible available quantity is allocated once across overlapping requests/windows.",
+        "negative": "One lot counted twice, recurring capacity counted as stock, or incompatible units cannot inflate coverage.",
+        "owner": "CEG gap owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P19",
+        "stage": "POSTCODE",
+        "positive": "Operator can inspect facts, hypotheses, evidence and gaps in native read-only Odoo views.",
+        "negative": "Portal user, public user or unauthorized company cannot read evidence or approve a fact.",
+        "owner": "Odoo ACL/UI owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P20",
+        "stage": "POSTCODE",
+        "positive": "Accepted discovery creates/reuses a native lead or links an existing opportunity with explicit operator intent.",
+        "negative": "Inference alone never creates partners, POs, active offers, won stages or duplicate commercial opportunities.",
+        "owner": "CRM handoff owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P21",
+        "stage": "POSTCODE",
+        "positive": "Opportunity closure, withdrawal, expiry, reopen and PO event produce correct listing disposition.",
+        "negative": "PO procurement is not blindly treated as a buyer sale; stale approved listing cannot remain marketable without explicit current owner.",
+        "owner": "Commercial lifecycle/bridge owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P22",
+        "stage": "POSTCODE",
+        "positive": "Existing web-lead, CRM, material ownership and offer gates remain unchanged outside handoff.",
+        "negative": "New semantic installation cannot alter non-HOT policy or trigger offer email.",
+        "owner": "Separate web/CRM campaign",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P23",
+        "stage": "PREMERGE",
+        "positive": "Addon DAG, imports, manifests, ACL/XML IDs and future bridge dependencies are coherent.",
+        "negative": "Circular dependency, latent optional-model reference or dangling import/view fails build.",
+        "owner": "Odoo integration owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P24",
+        "stage": "PREMERGE",
+        "positive": "Pinned native Odoo 19 Enterprise install/upgrade runs optional addon and its non-standard collision tests.",
+        "negative": "Community-only run or default smoke that excludes the kernel cannot satisfy this gate.",
+        "owner": "Runtime verification owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P25",
+        "stage": "PREMERGE",
+        "positive": "Independent code review dispositions every in-scope finding on the exact candidate revisions.",
+        "negative": "Unrun tests, suppressed findings or source-changed receipts block closure.",
+        "owner": "Independent reviewer",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P26",
+        "stage": "PRERELEASE",
+        "positive": "Real Odoo/Gate/EIE/CEG/Neo4j fixture proves full lineage from approved source to result and back.",
+        "negative": "Synthetic-only HTTP success, empty candidates key or mismatched deployed hashes is not end-to-end proof.",
+        "owner": "Cross-system integration owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P27",
+        "stage": "PRERELEASE",
+        "positive": "Disable/recovery restores safe operation while preserving evidence and paused work.",
+        "negative": "Restart, pending jobs or disabling projection must not resurrect local intelligence or stale tradable supply.",
+        "owner": "Release/recovery owner",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P28",
+        "stage": "PRERELEASE",
+        "positive": "Two complete observations in isolated Staging show correct lifecycle freshness and read-only business output.",
+        "negative": "Mail delivery, partner/PO writes, unapproved cost or source drift invalidates receipt.",
+        "owner": "Staging operator",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P29",
+        "stage": "PRERELEASE",
+        "positive": "Operator approves exact tenant/release/operations after passed proofs and restore rehearsal.",
+        "negative": "Green CI, approved design or one global flag alone cannot activate production.",
+        "owner": "Operator",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P30",
+        "stage": "POSTCODE",
+        "positive": "Supplier-specific exclusions survive provisional-to-partner identity and both match directions.",
+        "negative": "Missing partner identity is not an exemption from exclusion or privacy policy.",
+        "owner": "Odoo/CEG owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P31",
+        "stage": "POSTCODE",
+        "positive": "Shared SDK/action paths remain domain-neutral and unchanged where sufficient.",
+        "negative": "Odoo-specific engine branch, transport field in domain payload or hidden second caller is rejected.",
+        "owner": "External owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P32",
+        "stage": "POSTCODE",
+        "positive": "Graph inference updates retain cited hypotheses without overwriting operator facts.",
+        "negative": "Later low-confidence or circularly derived evidence cannot overwrite documented commercial data.",
+        "owner": "EIE/CEG/Odoo owners",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P33",
+        "stage": "POSTCODE",
+        "positive": "Inference evaluation uses a held-out, domain-reviewed corpus and approved confidence/abstention policy.",
+        "negative": "A rule author validating only its own happy examples or uncalibrated confidence cannot claim reliability.",
+        "owner": "Domain evaluator",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      },
+      {
+        "id": "P34",
+        "stage": "PRERELEASE",
+        "positive": "Read-only shadow use reports marginal useful hypotheses and bounded cost/latency without business mutation.",
+        "negative": "Accuracy claims from synthetic tests alone or spend beyond authorized budget fail pilot.",
+        "owner": "Operator and evaluator",
+        "status": "NOT_RUN",
+        "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+      }
+    ],
+    "migration_plan": "DESIGN/MIGRATION_AND_RECOVERY.md; F01/F08 census first; explicit family/source/batch review, durable idempotent writes and no historical truth inflation.",
+    "recovery_plan": "DESIGN/MIGRATION_AND_RECOVERY.md and DELIVERY/ACTIVATION_RUNBOOK.md; disable, pause, reconcile and restore tested backups without losing original evidence.",
+    "release_boundary": "No deployment or activation authorized. Preserve all OFF defaults; exact release-set proof then explicit operator authorization per environment/tenant/operation."
+  },
+  "readiness": {
+    "state": "PLAN_REVIEW",
+    "notes": "Formalized working candidate, source-bound and schema-valid, but live/runtime and topology/admission frontiers intentionally block plan/precode acceptance. Business decisions locked; code and activation not authorized."
+  }
+}

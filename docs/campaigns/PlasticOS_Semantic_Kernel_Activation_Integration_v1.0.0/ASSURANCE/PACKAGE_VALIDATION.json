@@ -1,0 +1,22 @@
+{
+  "status": "PASS_STRUCTURAL_WITH_RELEASE_BLOCKED",
+  "errors": [],
+  "schema": "PASS",
+  "kernel_plan_gate": {
+    "status": "FAIL",
+    "errors": [
+      "TARGET_ENV_UNKNOWN",
+      "OPEN_OPERATOR_DECISIONS",
+      "UNEXPLORED_DYNAMIC_CONSUMERS"
+    ],
+    "interpretation": "Expected material-frontier refusal; not execution readiness."
+  },
+  "effects": 29,
+  "proof_obligations": 34,
+  "delivery_units": 13,
+  "preserved_kernel_members": 24,
+  "plan_digest": "1c7ccb507c106ea4247301a3d59b5bf8b088b77785e6998353d1474f3624e92f",
+  "independent_semantic_acceptance": "NOT_RUN",
+  "runtime": "NOT_RUN",
+  "production_activation": "NOT_AUTHORIZED"
+}
