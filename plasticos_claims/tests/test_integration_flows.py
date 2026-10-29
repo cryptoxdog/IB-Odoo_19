@@ -157,6 +157,8 @@ class TestTransactionToLoadToDelivery(PlasticosTestCase):
             }
         )
         self.assertEqual(load.state, "draft")
+        self.assertEqual(load.transaction_id, tx)
+        self.assertIn(load, tx.load_ids)
 
         # Current load workflow (plasticos_logistics/services/state_machine.py:9-20):
         # draft -> awaiting_ready has no dedicated action; picked_up/delivered are

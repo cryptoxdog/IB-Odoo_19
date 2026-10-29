@@ -470,17 +470,21 @@ class PlasticosDocument(models.Model):
             if record.res_model == "plasticos.transaction":
                 tx_ids.add(record.res_id)
 
-            # Polymorphic link: document on load -> find transaction
+            # Polymorphic link: document on load -> that load's stored parent only.
             elif record.res_model == "plasticos.load":
-                tx = tx_model.search([("load_id", "=", record.res_id)], limit=1)
-                if tx:
-                    tx_ids.add(tx.id)
+                load = self.env["plasticos.load"].browse(record.res_id).exists()
+                if load.transaction_id:
+                    tx_ids.add(load.transaction_id.id)
 
-            # Polymorphic link: document on sale order -> find transaction
+            # A sale order with one transaction can invalidate that transaction.
+            # Several matches stay untouched so a sibling is not chosen for us.
             elif record.res_model == "sale.order":
-                tx = tx_model.search([("sale_order_id", "=", record.res_id)], limit=1)
-                if tx:
-                    tx_ids.add(tx.id)
+                txs = tx_model.search([("sale_order_id", "=", record.res_id)])
+                if len(txs) == 1:
+                    tx_ids.add(txs.id)
+
+            if record.load_id.transaction_id:
+                tx_ids.add(record.load_id.transaction_id.id)
 
         return tx_model.browse(list(tx_ids)) if tx_ids else tx_model
 

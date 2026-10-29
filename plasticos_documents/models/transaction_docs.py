@@ -56,7 +56,7 @@ class PlasticosTransactionDocs(models.Model):
 
     # ── Computed Missing Doc Flags ─────────────────────────────────
 
-    @api.depends("load_id", "sale_order_id", "document_ids", "document_ids.tag_id", "document_ids.active")
+    @api.depends("load_ids", "sale_order_id", "document_ids", "document_ids.tag_id", "document_ids.active")
     def _compute_missing_doc_flags(self):
         """Compute missing document flags using the existing compliance service.
 
@@ -225,17 +225,36 @@ class PlasticosTransactionDocs(models.Model):
     scale_ticket_reminder_sent = fields.Boolean(
         string="Scale Ticket Reminder Sent",
         default=False,
-        help="True if 48h reminder has been sent for missing scale ticket.",
+        help="Historical transaction flag. New reminders are stored on each load.",
     )
     scale_ticket_escalated = fields.Boolean(
         string="Scale Ticket Escalated",
         default=False,
-        help="True if 7-day escalation has been triggered for missing scale ticket.",
+        help="Historical transaction flag. New escalations are stored on each load.",
     )
+
+    def _load_has_current_scale_ticket(self, load, tag):
+        """True only when this load has its own current scale ticket.
+
+        A ticket on the transaction or on a sibling load does not count.
+        Pending, expired, superseded, and unverified rows stay ineligible.
+        """
+        documents = self.env["plasticos.document"].search(
+            [
+                ("tag_id", "=", tag.id),
+                ("active", "=", True),
+                "|",
+                ("load_id", "=", load.id),
+                "&",
+                ("res_model", "=", "plasticos.load"),
+                ("res_id", "=", load.id),
+            ]
+        )
+        return any(document._currently_eligible() for document in documents)
 
     @api.model
     def cron_check_scale_tickets(self):
-        """Check delivered/closed/invoiced transactions for missing scale tickets.
+        """Check each delivered load for its own missing scale ticket.
 
         Business rules:
         - 48 hours (2 BD) after delivery → send reminder to carrier
@@ -256,18 +275,14 @@ class PlasticosTransactionDocs(models.Model):
         try:
             today = date.today()
 
-            # Find transactions in relevant states with a load
-            transactions = self.search(
-                [
-                    ("state", "in", ["delivered", "closed", "invoiced"]),
-                    ("load_id", "!=", False),
-                ],
-                order="create_date ASC, id ASC",
+            loads = self.env["plasticos.load"].search(
+                [("transaction_id.state", "in", ["delivered", "closed", "invoiced"])],
+                order="id ASC",
                 limit=300,
             )
 
-            if not transactions:
-                _logger.info("Scale ticket cron: no transactions to check.")
+            if not loads:
+                _logger.info("Scale ticket cron: no loads to check.")
                 return
 
             # Get scale ticket tag
@@ -299,81 +314,81 @@ class PlasticosTransactionDocs(models.Model):
             # Get logistics manager group for escalation
             logistics_group = self.env.ref("plasticos_logistics.group_logistics_manager", raise_if_not_found=False)
 
-            for tx in transactions:
-                load = tx.load_id
-                if not load:
+            for load in loads:
+                tx = load.transaction_id
+                if self._load_has_current_scale_ticket(load, scale_ticket_tag):
                     continue
 
-                # Check if scale ticket already exists
-                has_scale_ticket = self.env["plasticos.document"].search_count(
-                    [
-                        ("transaction_id", "=", tx.id),
-                        ("tag_id", "=", scale_ticket_tag.id),
-                        ("active", "=", True),
-                    ]
-                )
-                if has_scale_ticket:
-                    continue  # Scale ticket exists, skip
-
-                # Calculate business days since delivery and pickup
                 delivery_date = load.delivered_at.date() if load.delivered_at else None
                 pickup_date = load.dispatched_at.date() if load.dispatched_at else None
-
                 bd_since_delivery = self._count_business_days(delivery_date, today) if delivery_date else 0
                 bd_since_pickup = self._count_business_days(pickup_date, today) if pickup_date else 0
 
-                # Escalation: 7 BD from pickup
-                if bd_since_pickup >= escalation_bd and not tx.scale_ticket_escalated:
-                    # Find logistics manager to assign activity
+                if bd_since_pickup >= escalation_bd and not load.scale_ticket_escalated:
+                    summary = f"ESCALATION: Missing scale ticket on {load.name}"
                     manager_user = self._get_logistics_manager(logistics_group)
-                    if manager_user:
-                        # Create escalation activity
-                        tx.activity_schedule(
+                    already = self.env["mail.activity"].search_count(
+                        [
+                            ("res_model", "=", "plasticos.load"),
+                            ("res_id", "=", load.id),
+                            ("summary", "=", summary),
+                        ]
+                    )
+                    if manager_user and not already:
+                        load.activity_schedule(
                             "mail.mail_activity_data_todo",
                             user_id=manager_user.id,
-                            summary=f"ESCALATION: Missing scale ticket on {tx.name}",
+                            summary=summary,
                             note=(
-                                f"Transaction {tx.name} is missing a scale ticket.\n"
+                                f"Load {load.name} on transaction {tx.name} is missing a scale ticket.\n"
                                 f"Pickup was {bd_since_pickup} business days ago.\n"
                                 f"Carrier: {load.carrier_id.name if load.carrier_id else 'Unknown'}\n"
                                 "Please follow up with the carrier immediately."
                             ),
                         )
                         _logger.info(
-                            "Scale ticket ESCALATION: TX %s, %d BD since pickup, assigned to %s",
+                            "Scale ticket ESCALATION: load %s transaction %s, %s BD since pickup, assigned to %s",
+                            load.name,
                             tx.name,
                             bd_since_pickup,
                             manager_user.name,
                         )
-                    else:
-                        # No manager found, post message instead
-                        tx.message_post(
+                    elif not manager_user:
+                        load.message_post(
                             body=(
-                                f"<b>ESCALATION:</b> Missing scale ticket for {tx.name}. "
-                                f"Pickup was {bd_since_pickup} business days ago. "
+                                f"<b>ESCALATION:</b> Missing scale ticket for load {load.name} "
+                                f"on {tx.name}. Pickup was {bd_since_pickup} business days ago. "
                                 "No logistics manager found for assignment."
                             ),
                             message_type="notification",
                             subtype_xmlid="mail.mt_note",
                         )
-                        _logger.warning("Scale ticket ESCALATION: TX %s, no logistics manager found", tx.name)
-                    tx.scale_ticket_escalated = True
+                        _logger.warning(
+                            "Scale ticket ESCALATION: load %s transaction %s, no logistics manager found",
+                            load.name,
+                            tx.name,
+                        )
+                    load.scale_ticket_escalated = True
 
-                # Reminder: 2 BD after delivery (only if not yet escalated)
-                elif bd_since_delivery >= overdue_bd and not tx.scale_ticket_reminder_sent:
-                    # Send reminder message
+                elif bd_since_delivery >= overdue_bd and not load.scale_ticket_reminder_sent:
                     carrier_name = load.carrier_id.name if load.carrier_id else "Carrier"
-                    tx.message_post(
+                    load.message_post(
                         body=(
-                            f"<b>Automated Request:</b> Scale ticket needed for {tx.name}.\n"
+                            f"<b>Automated Request:</b> Scale ticket needed for load {load.name} "
+                            f"on {tx.name}.\n"
                             f"Delivery was {bd_since_delivery} business days ago.\n"
                             f"Please request scale ticket from {carrier_name}."
                         ),
                         message_type="notification",
                         subtype_xmlid="mail.mt_note",
                     )
-                    tx.scale_ticket_reminder_sent = True
-                    _logger.info("Scale ticket REMINDER: TX %s, %d BD since delivery", tx.name, bd_since_delivery)
+                    load.scale_ticket_reminder_sent = True
+                    _logger.info(
+                        "Scale ticket REMINDER: load %s transaction %s, %s BD since delivery",
+                        load.name,
+                        tx.name,
+                        bd_since_delivery,
+                    )
 
         finally:
             self.env.cr.execute(
@@ -397,3 +412,20 @@ class PlasticosTransactionDocs(models.Model):
             limit=1,
         )
         return managers[0] if managers else self.env.user
+
+
+class PlasticosLoadScaleTicket(models.Model):
+    """Per-load scale-ticket reminder state. A sibling load does not share it."""
+
+    _inherit = "plasticos.load"
+
+    scale_ticket_reminder_sent = fields.Boolean(
+        string="Scale Ticket Reminder Sent",
+        default=False,
+        help="True after the reminder for this load's own missing scale ticket.",
+    )
+    scale_ticket_escalated = fields.Boolean(
+        string="Scale Ticket Escalated",
+        default=False,
+        help="True after the escalation for this load's own missing scale ticket.",
+    )

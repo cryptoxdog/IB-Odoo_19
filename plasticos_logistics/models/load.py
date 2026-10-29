@@ -30,6 +30,7 @@ _FREIGHT_PROVENANCE_FIELDS = {
 }
 _FREIGHT_RATE_INPUT_FIELDS = {"carrier_id", "rate_amount", "rate_currency_id"}
 _FREIGHT_ACTUAL_INPUT_FIELDS = {"actual_freight_cost", "actual_freight_currency_id"}
+_PROTECTED_PARENT_STATES = ("dispatched", "picked_up", "delivered", "closed")
 
 
 class PlasticosLoad(models.Model):
@@ -126,17 +127,13 @@ class PlasticosLoad(models.Model):
     delivered_at = fields.Datetime()
     cycle_time_hours = fields.Float(compute="_compute_cycle_time", store=True, index=True)
 
-    # ── Reverse Link to Transaction (for UX) ──────────────────────────
-    # Note: This is the inverse of plasticos.transaction.load_id
-    # Stored to enable dependency triggers (e.g., delivery_term_overridden)
+    # Stored parent. plasticos.transaction.load_ids is the inverse. One load, one parent.
     transaction_id = fields.Many2one(
         PLASTICOS_TRANSACTION,
         string="Transaction",
-        compute="_compute_transaction_id",
-        store=True,
         index=True,
-        help="Transaction linked to this load (reverse lookup).",
-        ondelete="cascade",
+        ondelete="restrict",
+        help="The single transaction this load belongs to. Empty when the load is not linked.",
     )
 
     # ── Delivery Term (editable with override tracking) ───────────────
@@ -283,19 +280,109 @@ class PlasticosLoad(models.Model):
                         f"{', '.join(sorted(protected))}"
                     )
         records = super().create(vals_list)
-        sale_orders = records.mapped("sale_order_id")
-        tx_by_sale = {}
-        if sale_orders:
-            transactions = self.env[PLASTICOS_TRANSACTION].search([("sale_order_id", "in", sale_orders.ids)])
-            for tx in transactions:
-                tx_by_sale.setdefault(tx.sale_order_id.id, tx)
-        for rec in records:
-            if not rec.sale_order_id:
-                continue
-            tx = tx_by_sale.get(rec.sale_order_id.id)
-            if tx and not tx.load_id and tx.supplier_id and tx.buyer_id:
-                tx.load_id = rec.id
+        records._link_unique_sale_order_transaction()
         return records
+
+    def _transaction_company_conflicts(self, transaction):
+        """True when both sides name a company and the companies differ."""
+        self.ensure_one()
+        load_company = self.company_id
+        transaction_company = transaction.sale_order_id.company_id
+        return bool(load_company and transaction_company and load_company != transaction_company)
+
+    def _link_unique_sale_order_transaction(self):
+        """Link a new load only when its sale order has one eligible transaction.
+
+        Zero matches stay unlinked. Two or more eligible transactions are refused
+        so the create rolls back instead of picking a sale order's first row.
+        """
+        transactions = self.env[PLASTICOS_TRANSACTION]
+        for rec in self:
+            if rec.transaction_id or not rec.sale_order_id:
+                continue
+            candidates = transactions.search(
+                [
+                    ("sale_order_id", "=", rec.sale_order_id.id),
+                    ("supplier_id", "!=", False),
+                    ("buyer_id", "!=", False),
+                ]
+            )
+            candidates = candidates.filtered(lambda tx, load=rec: not load._transaction_company_conflicts(tx))
+            if len(candidates) > 1:
+                raise ValidationError(
+                    f"Sale order {rec.sale_order_id.display_name} matches {len(candidates)} transactions "
+                    "with supplier and buyer. Assign the transaction explicitly."
+                )
+            if len(candidates) == 1:
+                rec.transaction_id = candidates.id
+
+    def _has_freight_provenance(self):
+        self.ensure_one()
+        if self.rate_confirmed_at or self.actual_freight_recorded_at or self.selected_freight_quote_id:
+            return True
+        if self.freight_context_fingerprint or self.sal_evaluated_at or self.sal_source_load_id:
+            return True
+        if self.rate_auto_reused or self.sal_execution_failed or self.sal_miss_reason:
+            return True
+        return self.sal_decision not in (False, "not_evaluated")
+
+    def _parent_link_is_protected(self):
+        """Dispatched loads and loads that already carry evidence cannot be reparented."""
+        self.ensure_one()
+        if self.state in _PROTECTED_PARENT_STATES or self._has_freight_provenance():
+            return True
+        if self.freight_quote_request_ids:
+            return True
+        if "plasticos.freight.quote" in self.env and self.env["plasticos.freight.quote"].search_count(
+            [("load_id", "=", self.id)], limit=1
+        ):
+            return True
+        if "plasticos.dispatch" in self.env and self.env["plasticos.dispatch"].search_count(
+            [("load_id", "=", self.id)], limit=1
+        ):
+            return True
+        return bool(
+            "plasticos.document" in self.env
+            and self.env["plasticos.document"].search_count(
+                [("load_id", "=", self.id), ("association_state", "=", "accepted")],
+                limit=1,
+            )
+        )
+
+    def _guard_transaction_parent(self, new_tx_id):
+        """Keep a load on its current transaction. A failed write leaves that link."""
+        new_tx_id = new_tx_id or False
+        if not self:
+            return
+        self.env.cr.execute(
+            "SELECT id FROM plasticos_load WHERE id IN %s FOR UPDATE",
+            [tuple(self.ids)],
+        )
+        self.invalidate_recordset(["transaction_id"])
+        for rec in self:
+            current_id = rec.transaction_id.id
+            if current_id == new_tx_id:
+                continue
+            if current_id and new_tx_id:
+                raise ValidationError(
+                    f"Load {rec.name} already belongs to a transaction and cannot be attached to another."
+                )
+            if rec._parent_link_is_protected():
+                raise ValidationError(
+                    f"Load {rec.name} is dispatched or carries freight, dispatch, or accepted evidence. "
+                    "Its transaction link stays unchanged."
+                )
+
+    @api.constrains("transaction_id", "sale_order_id")
+    def _check_transaction_parent(self):
+        for rec in self:
+            tx = rec.transaction_id
+            if not tx:
+                continue
+            if not tx.supplier_id or not tx.buyer_id:
+                raise ValidationError("Cannot link a load until the transaction has both a supplier and a buyer.")
+            if rec._transaction_company_conflicts(tx):
+                raise ValidationError("Cannot link a load to a transaction in another company.")
 
     def copy_data(self, default=None):
         """A duplicated load starts in Draft with no freight provenance.
@@ -367,6 +454,9 @@ class PlasticosLoad(models.Model):
                         "Recorded actual freight is immutable; use the attributed calibration correction workflow."
                     )
 
+        if "transaction_id" in vals:
+            self._guard_transaction_parent(vals.get("transaction_id"))
+
         for rec in self:
             if rec.state in ["dispatched", "picked_up", "delivered", "closed"]:
                 allowed = {
@@ -413,19 +503,6 @@ class PlasticosLoad(models.Model):
                 rec.cycle_time_hours = delta
             else:
                 rec.cycle_time_hours = 0
-
-    @api.depends_context("force_recompute_transaction_id")
-    def _compute_transaction_id(self):
-        """Reverse lookup: find transaction that references this load.
-
-        Batched query to avoid N+1 problem on list views.
-        Stored for searchability and dependency triggers.
-        Recomputation is triggered by transaction_inherit.py when load_id changes.
-        """
-        txs = self.env[PLASTICOS_TRANSACTION].search([("load_id", "in", self.ids)])
-        tx_map = {tx.load_id.id: tx.id for tx in txs}
-        for rec in self:
-            rec.transaction_id = tx_map.get(rec.id, False)
 
     def _get_default_delivery_term(self):
         """Get delivery term from linked transaction if available."""
@@ -1221,7 +1298,7 @@ class PlasticosLoad(models.Model):
             if has_activity:
                 continue
 
-            tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", load.id)], order="id asc", limit=1)
+            tx = load.transaction_id
             user_id = tx.user_id.id if tx and tx.user_id else self.env.user.id
 
             load.activity_schedule(
@@ -1324,7 +1401,7 @@ class PlasticosLoad(models.Model):
     def action_view_transaction(self):
         """Open the linked transaction form."""
         self.ensure_one()
-        tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", self.id)], limit=1)
+        tx = self.transaction_id
         if not tx:
             return False
         return {

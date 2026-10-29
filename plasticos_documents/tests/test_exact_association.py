@@ -3,8 +3,10 @@
 import base64
 import importlib.util
 import inspect
+from datetime import timedelta
 from unittest.mock import patch
 
+from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.modules.module import get_module_path
@@ -453,3 +455,87 @@ class TestExactAssociation(PlasticosTestCase):
         source = inspect.getsource(DocumentNative._search_projected_boolean)
         source += inspect.getsource(DocumentNative._search_verified_by)
         self.assertNotIn('self.search([("type", "=", "binary")])', source)
+
+    def test_each_load_document_recomputes_only_its_parent(self):
+        order = self.env["sale.order"].create({"partner_id": self.vendor.id})
+        parent = self.env["plasticos.transaction"].create(
+            {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "sale_order_id": order.id}
+        )
+        other = self.env["plasticos.transaction"].create({"supplier_id": self.vendor.id, "buyer_id": self.vendor.id})
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        sibling = self.env["plasticos.load"].create({"transaction_id": other.id})
+        self.assertEqual(load.transaction_id, parent)
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": "load-parent.txt",
+                "datas": base64.b64encode(b"load-parent"),
+                "res_model": "plasticos.document",
+                "res_id": 0,
+            }
+        )
+        document = self.env["plasticos.document"].create(
+            {
+                "name": "Load parent",
+                "tag_id": self.tag.id,
+                "res_model": "plasticos.load",
+                "res_id": load.id,
+                "load_id": load.id,
+                "attachment_id": attachment.id,
+            }
+        )
+        found = document._get_related_transactions(document)
+        self.assertEqual(found, parent)
+        self.assertNotIn(other, found)
+        self.assertNotIn(sibling.transaction_id, document._get_related_transactions(document))
+
+    def test_sibling_scale_ticket_does_not_finish_the_other_load(self):
+        from odoo.addons.plasticos_logistics.models.load import (
+            _FREIGHT_INTERNAL_WRITE,
+            _FREIGHT_INTERNAL_WRITE_TOKEN,
+        )
+
+        tag = self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], limit=1)
+        if not tag:
+            tag = self.env["plasticos.document.tag"].create({"name": "Scale Ticket", "code": "SCALE"})
+        tx = self.env["plasticos.transaction"].create(
+            {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "state": "delivered"}
+        )
+        load_a = self.env["plasticos.load"].create({"transaction_id": tx.id})
+        load_b = self.env["plasticos.load"].create({"transaction_id": tx.id})
+        when = fields.Datetime.now() - timedelta(days=5)
+        pickup = fields.Datetime.now() - timedelta(days=3)
+        (load_a | load_b).with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
+            {"state": "delivered", "delivered_at": when, "dispatched_at": pickup}
+        )
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": "scale-a.txt",
+                "datas": base64.b64encode(b"scale-a"),
+                "res_model": "plasticos.document",
+                "res_id": 0,
+            }
+        )
+        self.env["plasticos.document"].create(
+            {
+                "name": "Scale A",
+                "tag_id": tag.id,
+                "res_model": "plasticos.load",
+                "res_id": load_a.id,
+                "load_id": load_a.id,
+                "attachment_id": attachment.id,
+            }
+        )
+
+        def eligible(document):
+            return document.load_id == load_a
+
+        with patch.object(type(self.env["plasticos.document"]), "_currently_eligible", eligible):
+            self.assertTrue(tx._load_has_current_scale_ticket(load_a, tag))
+            self.assertFalse(tx._load_has_current_scale_ticket(load_b, tag))
+            tx.cron_check_scale_tickets()
+            self.assertFalse(load_a.scale_ticket_reminder_sent)
+            self.assertTrue(load_b.scale_ticket_reminder_sent)
+            self.assertTrue(any(load_b.name in (message.body or "") for message in load_b.message_ids))
+            noted = len(load_b.message_ids)
+            tx.cron_check_scale_tickets()
+            self.assertEqual(len(load_b.message_ids), noted)

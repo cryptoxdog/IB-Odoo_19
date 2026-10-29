@@ -235,3 +235,62 @@ class TestTransactionComputesConsolidated(PlasticosTestCase):
     def test_light_weight_deduction_above_min(self):
         tx = self._tx(scale_weight=45000, minimum_net_weight=40000, light_weight_deduction_rate=0.01, unit_count=0)
         self.assertEqual(tx.light_weight_deduction, 0)
+
+
+@tagged("post_install", "-at_install", "plasticos", "constraint", "claims")
+class TestClaimLoadSelection(PlasticosTestCase):
+    """A claim load is chosen. It is never the transaction's first load."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.supplier = cls.env["res.partner"].create(
+            {"name": "Claim Load Supplier", "is_company": True, "supplier_rank": 1}
+        )
+        cls.buyer = cls.env["res.partner"].create({"name": "Claim Load Buyer", "is_company": True, "customer_rank": 1})
+        cls.tx = cls.env["plasticos.transaction"].create(
+            {"name": "TX-CLAIM-LOADS", "supplier_id": cls.supplier.id, "buyer_id": cls.buyer.id}
+        )
+        cls.first = cls.env["plasticos.load"].create({"transaction_id": cls.tx.id})
+        cls.second = cls.env["plasticos.load"].create({"transaction_id": cls.tx.id})
+        cls.other_tx = cls.env["plasticos.transaction"].create(
+            {"name": "TX-CLAIM-OTHER", "supplier_id": cls.supplier.id, "buyer_id": cls.buyer.id}
+        )
+        cls.other_load = cls.env["plasticos.load"].create({"transaction_id": cls.other_tx.id})
+
+    def test_claim_does_not_default_to_the_first_load(self):
+        claim = self.env["plasticos.claim"].create(
+            {"transaction_id": self.tx.id, "case_type": "buyer_claim", "severity": "medium"}
+        )
+        self.assertFalse(claim.load_id)
+        chosen = self.env["plasticos.claim"].create(
+            {
+                "transaction_id": self.tx.id,
+                "case_type": "buyer_claim",
+                "severity": "low",
+                "load_id": self.second.id,
+            }
+        )
+        self.assertEqual(chosen.load_id, self.second)
+
+    def test_cross_transaction_load_is_rejected_on_create_and_write(self):
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env["plasticos.claim"].create(
+                {
+                    "transaction_id": self.tx.id,
+                    "case_type": "buyer_claim",
+                    "severity": "medium",
+                    "load_id": self.other_load.id,
+                }
+            )
+        claim = self.env["plasticos.claim"].create(
+            {
+                "transaction_id": self.tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
+                "load_id": self.first.id,
+            }
+        )
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            claim.load_id = self.other_load
+        self.assertEqual(claim.load_id, self.first)

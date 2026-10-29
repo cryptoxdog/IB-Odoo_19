@@ -1,75 +1,36 @@
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
 
 
 class PlasticosTransactionLoadBridge(models.Model):
-    """Add load_id field to transaction (injected by logistics module)."""
+    """A transaction owns zero or more loads. The stored parent is on the load."""
 
     _inherit = "plasticos.transaction"
 
-    load_id = fields.Many2one(
+    load_ids = fields.One2many(
         "plasticos.load",
-        string="Load",
-        help="Logistics load linked to this transaction.",
-        index=True,
-        ondelete="cascade",
+        "transaction_id",
+        string="Loads",
+        help="Logistics loads whose stored parent is this transaction.",
     )
+    load_count = fields.Integer(compute="_compute_load_count")
 
-    # One load belongs to one transaction. NULL stays repeatable in PostgreSQL.
-    _unique_load_id = models.Constraint(
-        "UNIQUE (load_id)",
-        "A load can belong to only one transaction.",
-    )
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        """Override create to update reverse link on load."""
-        records = super().create(vals_list)
-        # Update transaction_id on linked loads
-        loads_to_update = records.filtered(lambda r: r.load_id).mapped("load_id")
-        if loads_to_update:
-            loads_to_update._compute_transaction_id()
-        return records
-
-    def write(self, vals):
-        """Override write to update reverse link on load when load_id changes."""
-        old_loads = self.env["plasticos.load"]
-        if "load_id" in vals:
-            # Capture old loads before write
-            old_loads = self.filtered(lambda r: r.load_id).mapped("load_id")
-
-        res = super().write(vals)
-
-        if "load_id" in vals:
-            # Recompute transaction_id on old loads (now unlinked)
-            if old_loads:
-                old_loads._compute_transaction_id()
-            # Recompute transaction_id on new loads
-            new_loads = self.filtered(lambda r: r.load_id).mapped("load_id")
-            if new_loads:
-                new_loads._compute_transaction_id()
-
-        return res
-
-    @api.constrains("load_id", "supplier_id", "buyer_id")
-    def _check_load_requires_supplier_buyer(self):
-        """Enforce workflow: load cannot be assigned until supplier AND buyer are set."""
+    @api.depends("load_ids")
+    def _compute_load_count(self):
         for rec in self:
-            if rec.load_id and (not rec.supplier_id or not rec.buyer_id):
-                raise ValidationError(
-                    "Cannot assign a load until both Supplier and Buyer are selected. "
-                    "Please complete the transaction details first."
-                )
+            rec.load_count = len(rec.load_ids)
 
-    def action_view_load(self):
-        """Open the linked load form."""
+    def action_view_loads(self):
+        """Open this transaction's loads. An empty set stays an empty set."""
         self.ensure_one()
-        if not self.load_id:
-            return False
-        return {
+        action = {
             "type": "ir.actions.act_window",
+            "name": "Loads",
             "res_model": "plasticos.load",
-            "res_id": self.load_id.id,
-            "view_mode": "form",
-            "target": "current",
+            "view_mode": "list,form",
+            "domain": [("transaction_id", "=", self.id)],
+            "context": {"default_transaction_id": self.id},
         }
+        if len(self.load_ids) == 1:
+            action["view_mode"] = "form"
+            action["res_id"] = self.load_ids.id
+        return action
