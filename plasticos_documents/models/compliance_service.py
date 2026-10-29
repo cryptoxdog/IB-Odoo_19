@@ -1,4 +1,9 @@
 from odoo import models
+from odoo.tools.float_utils import float_compare
+
+# Buyer Receiving is the only quantity-scoped invoice evidence. Aggregation of
+# partial receipts is not an admitted rule, so one row must cover the subject.
+RECEIVING_TAG_CODE = "RECEIVING"
 
 
 class PlasticosComplianceService(models.AbstractModel):
@@ -54,13 +59,44 @@ class PlasticosComplianceService(models.AbstractModel):
             # Historical approval is not current eligibility. Expired, inactive,
             # superseded, replaced, or unbound evidence stays on the record and
             # does not satisfy the rule.
-            valid_docs = docs.filtered(lambda d: d._currently_eligible())
+            valid_docs = docs.filtered(
+                lambda d, rule=rule: (
+                    d._currently_eligible() and self._quantity_covers_subject(d, rule, res_model, res_id)
+                )
+            )
 
             if not valid_docs:
                 missing.append(rule.tag_id.code)
 
         return missing
 
+    def _quantity_covers_subject(self, doc, rule, res_model, res_id):
+        """One Receiving row covers a transaction only when its own quantity does.
+
+        Partial rows are not summed. An unknown quantity fails closed. Other tags
+        are not quantity evidence.
+        """
+        if not rule.tag_id or rule.tag_id.code != RECEIVING_TAG_CODE:
+            return True
+        if res_model != "plasticos.transaction":
+            return False
+        transaction = self.env["plasticos.transaction"].browse(res_id).exists()
+        if not transaction or not transaction.quantity or not doc.covered_quantity:
+            return False
+        return float_compare(doc.covered_quantity, transaction.quantity, precision_digits=2) >= 0
+
     def is_compliant(self, res_model, res_id, purpose=None):
         missing = self.get_missing_documents(res_model, res_id, purpose=purpose)
-        return len(missing) == 0
+        compliant = len(missing) == 0
+        self._sync_stored_compliance(res_model, res_id)
+        return compliant
+
+    def _sync_stored_compliance(self, res_model, res_id):
+        """Calendar expiry has no document write. Refresh the stored gate on read."""
+        if self.env.context.get("plasticos_compliance_quiet"):
+            return
+        if res_model != "plasticos.transaction":
+            return
+        transaction = self.env["plasticos.transaction"].browse(res_id).exists()
+        if transaction:
+            transaction.with_context(plasticos_compliance_quiet=True)._compute_compliance()

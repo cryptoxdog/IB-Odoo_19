@@ -329,16 +329,27 @@ class DocumentNative(models.Model):
         )
 
     def _negative_projection_domain(self, rows):
-        """Binary files that do not project this exact set."""
-        narrowed = (
-            fields.Domain("verification_review_required", "=", False)
-            & fields.Domain("shortcut_document_id", "=", False)
-            & self._exact_pair_domain(rows)
-        )
-        return fields.Domain("type", "=", "binary") & ~narrowed
+        """Every native record whose computed verification is not this exact set.
+
+        URL and shortcut rows compute verified False. A binary-only negative
+        domain hides them from verified=False and verified_by=False searches.
+        """
+        return ~self._positive_projection_domain(rows)
 
     def _search_projected_boolean(self, fname, operator, value):
-        # Odoo rewrites "=" into "in" before the search method. Refuse that form
+        if operator == "in":
+            wanted = list(value or [])
+            domains = []
+            if True in wanted:
+                domains.append(self._positive_projection_domain(self._exact_projected_rows([(fname, "=", True)])))
+            if False in wanted:
+                domains.append(self._negative_projection_domain(self._exact_projected_rows([(fname, "=", True)])))
+            if not domains:
+                return [("id", "in", [])]
+            if len(domains) == 1:
+                return domains[0]
+            return fields.Domain.OR(domains)
+        # Odoo rewrites "=" into "in" before the search method. Refuse other forms
         # so the framework calls this method again with "=" or "!=".
         if operator not in ("=", "!="):
             raise NotImplementedError

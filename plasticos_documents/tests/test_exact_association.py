@@ -69,6 +69,10 @@ class TestExactAssociation(PlasticosTestCase):
     def _accepted_count(self):
         return self.env["plasticos.document"].search_count([("association_state", "=", "accepted")])
 
+    def _load(self):
+        sale = self.env["sale.order"].create({"partner_id": self.vendor.id})
+        return self.env["plasticos.load"].create({"sale_order_id": sale.id})
+
     def test_partner_recency_does_not_link_and_review_is_idempotent(self):
         older = self.env["plasticos.transaction"].create(
             {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "quantity": 1}
@@ -159,8 +163,8 @@ class TestExactAssociation(PlasticosTestCase):
 
     def test_one_original_two_loads_do_not_share_verification_or_quantity(self):
         native = self._native("shared.pdf")
-        load_a = self.env["plasticos.load"].create({})
-        load_b = self.env["plasticos.load"].create({})
+        load_a = self._load()
+        load_b = self._load()
         state_a = load_a.state
         state_b = load_b.state
         first = native.with_user(self.clerk).action_associate_exact(
@@ -277,7 +281,7 @@ class TestExactAssociation(PlasticosTestCase):
         tx = self.env["plasticos.transaction"].create(
             {"supplier_id": self.vendor.id, "buyer_id": self.vendor.id, "quantity": 44000}
         )
-        loads = self.env["plasticos.load"].create([{}, {}, {}])
+        loads = self._load() | self._load() | self._load()
         self.env["plasticos.document.rule"].create(
             {
                 "name": "phase-b transaction bol",
@@ -438,8 +442,8 @@ class TestExactAssociation(PlasticosTestCase):
         self.assertIn(pending, documents.search([("verified_by", "!=", self.clerk.id), *pair]))
 
         shared = self._native("shared-search.pdf")
-        load_a = self.env["plasticos.load"].create({})
-        load_b = self.env["plasticos.load"].create({})
+        load_a = self._load()
+        load_b = self._load()
         shared.with_user(self.clerk).action_associate_exact("plasticos.load", load_a.id, source_reference="a")
         shared.with_user(self.clerk).action_associate_exact("plasticos.load", load_b.id, source_reference="b")
         shared.invalidate_recordset()

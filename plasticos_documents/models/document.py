@@ -69,6 +69,37 @@ class VerificationGrant:
         self.fields = frozenset(fields)
 
 
+class LifecycleGrant:
+    """In-process capability for supersession. RPC context cannot carry this instance."""
+
+    __slots__ = ("uid",)
+
+    def __init__(self, uid):
+        self.uid = uid
+
+
+LIFECYCLE_GRANT_KEY = "plasticos_document_lifecycle_grant"
+EVIDENCE_TODAY_KEY = "plasticos_documents_today"
+# Category, revision, and eligibility accepted with a verification decision.
+# A plain write must not retarget or revive that decision.
+ELIGIBILITY_FIELDS = frozenset(
+    {
+        "tag_id",
+        "doc_category",
+        "attachment_id",
+        "res_model",
+        "res_id",
+        "transaction_id",
+        "load_id",
+        "active",
+        "expiry_date",
+        "is_current",
+        "superseded_by",
+        "version",
+    }
+)
+
+
 class PlasticosDocument(models.Model):
     _name = "plasticos.document"
     _description = "Plasticos Document"
@@ -123,7 +154,7 @@ class PlasticosDocument(models.Model):
         string="Expired",
         compute="_compute_is_expired",
         store=True,
-        help="Computed flag indicating whether the document has expired.",
+        help="Stored calendar flag. Eligibility uses the live date, not this column.",
     )
 
     # ── Versioning ─────────────────────────────────────────────────
@@ -225,14 +256,31 @@ class PlasticosDocument(models.Model):
         help="Classification of the document by party responsible.",
     )
 
+    def _evidence_today(self):
+        """Calendar date for eligibility. Tests inject one date; production uses today."""
+        raw = self.env.context.get(EVIDENCE_TODAY_KEY)
+        if raw:
+            return fields.Date.to_date(raw)
+        return fields.Date.today()
+
+    def _expiry_elapsed(self):
+        self.ensure_one()
+        return bool(self.expiry_date and self.expiry_date < self._evidence_today())
+
+    def _elapsed_expiry_domain(self):
+        """Live expiry domain. Do not route this through stored is_expired.
+
+        The midnight recompute searches the stored column to repair drift.
+        A custom is_expired search hides those rows and the repair never runs.
+        """
+        today = self._evidence_today()
+        return [("expiry_date", "!=", False), ("expiry_date", "<", today)]
+
     @api.depends("expiry_date")
     def _compute_is_expired(self):
         today = fields.Date.today()
         for rec in self:
-            if rec.expiry_date:
-                rec.is_expired = rec.expiry_date < today
-            else:
-                rec.is_expired = False
+            rec.is_expired = bool(rec.expiry_date and rec.expiry_date < today)
 
     def _refuse_direct_decision_write(self, vals):
         touched = DECISION_FIELDS.intersection(vals)
@@ -266,6 +314,70 @@ class PlasticosDocument(models.Model):
         if not isinstance(grant, AssociationGrant) or grant.uid != self.env.uid:
             raise AccessError("Exact evidence association cannot be written directly.")
 
+    @staticmethod
+    def _m2o_id(value):
+        if not value:
+            return False
+        return value.id if hasattr(value, "id") else int(value)
+
+    def _eligibility_write_revives(self, rec, vals):
+        """True when a plain write would reclassify or revive an accepted decision."""
+        if not (rec.verified or rec.override):
+            return False
+        if "tag_id" in vals and self._m2o_id(vals["tag_id"]) != rec.tag_id.id:
+            return True
+        if "doc_category" in vals and (vals["doc_category"] or False) != (rec.doc_category or False):
+            return True
+        if "attachment_id" in vals and self._m2o_id(vals["attachment_id"]) != rec.attachment_id.id:
+            return True
+        if "version" in vals and vals["version"] != rec.version:
+            return True
+        if "active" in vals and vals["active"] and not rec.active:
+            return True
+        if "is_current" in vals and vals["is_current"] and not rec.is_current:
+            return True
+        if "superseded_by" in vals and not self._m2o_id(vals["superseded_by"]) and rec.superseded_by:
+            return True
+        if "expiry_date" in vals:
+            new_value = vals["expiry_date"]
+            if not new_value:
+                return bool(rec.expiry_date)
+            if rec.expiry_date and fields.Date.to_date(new_value) > rec.expiry_date:
+                return True
+        return False
+
+    def _refuse_verified_eligibility_write(self, vals):
+        watched = {
+            "tag_id",
+            "doc_category",
+            "attachment_id",
+            "version",
+            "active",
+            "is_current",
+            "superseded_by",
+            "expiry_date",
+        }
+        if not watched.intersection(vals):
+            return
+        for rec in self:
+            if self._eligibility_write_revives(rec, vals):
+                raise AccessError("Verified evidence category and eligibility cannot be rewritten directly.")
+
+    def _refuse_direct_eligibility_write(self, vals):
+        """A recorded decision stays bound to the category and eligibility it accepted.
+
+        Fail-closed edits stay open: archive, supersede, and an earlier expiry.
+        Clearing or extending expiry, restoring current, and retagging do not.
+        """
+        if not ELIGIBILITY_FIELDS.intersection(vals):
+            return
+        grant = self.env.context.get(LIFECYCLE_GRANT_KEY)
+        if isinstance(grant, LifecycleGrant) and grant.uid == self.env.uid:
+            return
+        for rec in self:
+            if self._eligibility_write_revives(rec, vals):
+                raise AccessError("Verified evidence category and eligibility cannot be written directly.")
+
     def _decision_write(self, vals):
         grant = VerificationGrant(self.env.uid, DECISION_FIELDS)
         return self.with_context(**{VERIFICATION_GRANT_KEY: grant}).write(vals)
@@ -283,6 +395,8 @@ class PlasticosDocument(models.Model):
     def write(self, vals):
         self._refuse_direct_decision_write(vals)
         self._refuse_direct_association_write(vals)
+        self._refuse_verified_eligibility_write(vals)
+        self._refuse_direct_eligibility_write(vals)
         result = super().write(vals)
         # Recompute if any compliance-affecting field changed
         compliance_fields = {
@@ -404,7 +518,7 @@ class PlasticosDocument(models.Model):
         target = self.env[self.res_model].browse(self.res_id).exists()
         if not target:
             raise UserError("UNRESOLVED: the evidence target record is missing.")
-        if not self.active or not self.is_current or self.superseded_by or self.is_expired:
+        if not self.active or not self.is_current or self.superseded_by or self._expiry_elapsed():
             raise UserError("UNRESOLVED: expired, inactive, or superseded evidence cannot be accepted.")
         if self.association_state != "accepted":
             raise UserError("UNRESOLVED: the evidence is not an accepted exact association.")
@@ -416,7 +530,7 @@ class PlasticosDocument(models.Model):
         self.ensure_one()
         if not (self.verified or self.override):
             return False
-        if not self.active or not self.is_current or self.superseded_by or self.is_expired:
+        if not self.active or not self.is_current or self.superseded_by or self._expiry_elapsed():
             return False
         attachment = self.attachment_id.sudo()  # checksum only; actor already passed the command check
         if not self.evidence_digest or not attachment or attachment.checksum != self.evidence_digest:
@@ -455,6 +569,60 @@ class PlasticosDocument(models.Model):
             [f"plasticos.document.associate:{attachment.id}:{res_model}:{res_id}:{digest}"],
         )
 
+    def _original_file_company(self, attachment):
+        """Company recorded on the native original, when that module is installed."""
+        if "documents.document" not in self.env or not attachment:
+            return self.env["res.company"]
+        natives = (
+            self.env["documents.document"]
+            .sudo()
+            .search(  # original company identity only; not an acceptance grant
+                [("attachment_id", "=", attachment.id), ("shortcut_document_id", "=", False)]
+            )
+        )
+        companies = natives.mapped("company_id")
+        if len(companies) > 1:
+            raise UserError("UNRESOLVED: the original file companies conflict.")
+        return companies[:1]
+
+    def _resolved_subject_company(self, target):
+        """Unique legal company of a visible subject. Does not invent env.company.
+
+        Returns ``(company, error)``. ``company`` is empty when the subject has
+        no commercial company source. ``error`` is a UserError message fragment.
+        """
+        if self.env.su:
+            return self.env["res.company"], "exact association cannot be authorized through sudo"
+        owned = target.sudo()  # legal-company identity only; actor company_ids still gate acceptance
+        companies = self.env["res.company"]
+        requires_company = False
+        if target._name == "plasticos.transaction":
+            if owned.sale_order_id:
+                requires_company = True
+                if owned.sale_order_id.company_id:
+                    companies |= owned.sale_order_id.company_id
+            if owned.purchase_order_ids:
+                requires_company = True
+                companies |= owned.purchase_order_ids.mapped("company_id")
+        elif target._name == "plasticos.load":
+            # No sale order means no legal company. Do not invent env.company.
+            if owned.sale_order_id or owned.company_id:
+                requires_company = True
+                if owned.company_id:
+                    companies |= owned.company_id
+        elif "company_id" in target._fields:
+            requires_company = True
+            if owned.company_id:
+                companies |= owned.company_id
+        if len(companies) > 1:
+            return self.env["res.company"], "the subject companies conflict"
+        if requires_company and not companies:
+            return self.env["res.company"], "the subject company is not established"
+        company = companies[:1]
+        if company and company not in self.env.user.company_ids:
+            return self.env["res.company"], "the subject belongs to another company"
+        return company, False
+
     def action_associate(self, res_model, res_id, source_reference, covered_quantity=0.0):
         """Accept one exact subject for this original. Does not verify it."""
         self.ensure_one()
@@ -476,11 +644,17 @@ class PlasticosDocument(models.Model):
         target = self.env[res_model].browse(int(res_id)).exists()
         if not target:
             raise UserError("UNRESOLVED: the evidence target record is missing.")
-        company = target.company_id if "company_id" in target._fields and target.company_id else False
-        if company and company not in self.env.user.company_ids:
-            raise UserError("UNRESOLVED: the subject belongs to another company.")
+        company, company_error = self._resolved_subject_company(target)
+        if company_error:
+            raise UserError(f"UNRESOLVED: {company_error}.")
         if self.candidate_partner_id and self.candidate_partner_id not in self._subject_parties(target):
             raise UserError("UNRESOLVED: the subject party does not match the stated counterparty.")
+        partner_company = self.candidate_partner_id.company_id if self.candidate_partner_id else False
+        if partner_company and company and partner_company != company:
+            raise UserError("UNRESOLVED: the stated counterparty belongs to another company.")
+        original_company = self._original_file_company(attachment)
+        if company and original_company and original_company != company:
+            raise UserError("UNRESOLVED: the original file belongs to another company.")
         digest = attachment.checksum
         subject_id = int(res_id)
         self._lock_original(attachment)
@@ -599,10 +773,11 @@ class PlasticosDocument(models.Model):
         return True
 
     def action_supersede(self, new_doc_id):
-        """Mark this document as superseded by a newer version."""
+        """Suspend current eligibility. The historical decision actor and time stay."""
+        self._require_verifier()
+        grant = LifecycleGrant(self.env.uid)
         for rec in self:
-            rec.is_current = False
-            rec.superseded_by = new_doc_id
+            rec.with_context(**{LIFECYCLE_GRANT_KEY: grant}).write({"is_current": False, "superseded_by": new_doc_id})
             _logger.info(
                 "Document %s (v%d) superseded by document %s",
                 rec.name,
@@ -630,7 +805,7 @@ class PlasticosDocument(models.Model):
             expired = self.search(
                 [
                     ("verified", "=", True),
-                    ("is_expired", "=", True),
+                    *self._elapsed_expiry_domain(),
                     ("active", "=", True),
                 ],
                 order="write_date ASC, id ASC",
