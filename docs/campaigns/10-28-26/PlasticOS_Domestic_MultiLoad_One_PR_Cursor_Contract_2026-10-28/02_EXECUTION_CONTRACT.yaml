@@ -1,0 +1,110 @@
+contract_id: PLASTICOS.DOMESTIC.MULTILOAD.ONE_PR.2026-10-28
+objective: Correct domestic PlasticOS transaction-to-load cardinality to 0..N while preserving exactly one evidenced
+  transaction owner per physical load, historic truth and existing workflows; publish a separate PR after Documents
+  predecessor merge and verification.
+target:
+  repository_or_artifact: cryptoxdog/IB-Odoo_19
+  base_revision: null
+  branch_or_worktree: fresh feature branch from post-Documents-merge Staging; suggested fix/domestic-multiload-foundation
+authority_refs:
+- User-authorized domestic multi-load requirement in conversation on 2026-10-28
+- Current, accepted root INVARIANTS.md and applicable ADRs (resolve at execution, do not substitute draft)
+- plasticos_logistics/business_rules/EFFECTIVE_RULES.md and SUPERSESSION.md (current)
+- plasticos_logistics/business_rules/NATIVE_DOCUMENTS_INTEROP.md and LINDA_BUILD_PLAN.md (current)
+- Post-merge plasticos_documents/business_rules/OWNERSHIP_AND_INTEROP.md and accepted BRS-POS-03 exact evidence
+  contracts
+- Observed Staging 04bd0594a7c9dcad53d9c45fc65276d76817c112 is a dated source comparison, not execution base
+in_scope:
+- plasticos_logistics/models/transaction_inherit.py
+- plasticos_logistics/models/load.py
+- plasticos_logistics/models/load_dashboard.py
+- plasticos_logistics/views/transaction_load_views.xml
+- plasticos_logistics/views/load_views.xml
+- plasticos_logistics/views/load_dashboard_views.xml
+- plasticos_claims/models/claim.py (only load attribution)
+- plasticos_claims/models/document_inherit.py (only exact load association)
+- plasticos_documents/models/document.py (only post-predecessor load association consumer)
+- plasticos_documents/models/transaction_docs.py (only actual-load evidence use)
+- plasticos_documents/models/load_docs_bridge.py (only actual-load evidence use)
+- plasticos_documents_native/models/document_native.py and document_sync.py (only if mechanically required by
+  predecessor semantics)
+- required exact consumer closure in logistics freight/sale-order, transaction bridge and security bridge tests
+- versioned additive migrations, addon manifest version changes, scoped module tests and module UX where required
+out_of_scope:
+- Exports, bookings, shipping containers, multi-transaction load allocation
+- Warehouse/shop-floor expansion or new PO-only PlasticOS load workflow
+- AI, OCR activation, new background automations or external mail
+- ACL policy redesign, global invariant or ADR revisions, frozen BRS changes
+- Changes to margin/commission/accounting formula or source weight semantics
+- Unrelated imports, deals, claims recoveries, migrations and generated indexes
+- Merge, production deployment, staging or production business database mutations
+locked_invariants:
+- Predecessor Documents verification and exact-association PR must be merged into Staging before new branch starts.
+- A transaction has 0..N actual loads; an attributable physical load has at most one real owner transaction.
+- The load-side association has one canonical stored writer; transaction-side load_ids is the inverse collection.
+- Legacy singular transaction.load_id is compatibility only; never choose an arbitrary load when 2+ exist.
+- No guessed attribution from partner, recency, arbitrary SQL limit 1, company omission or ambiguous SO/worksheet.
+- Preserve historical IDs, states, quantities, finance, claims, attachments, freight immutable facts, and dispatch
+  authorizations.
+- PO-only Stock receipts remain native and never require fictional buyer, SO, transaction or PlasticOS load.
+- Keep native Odoo Purchase/Sale/Stock/Accounting and PlasticOS document verification owners intact.
+- No edits to current constitutional invariants, frozen original BRS, ACL policies, or security weakening.
+acceptance_criteria:
+- Every source-proven legacy (transaction, load) link maps to exact same IDs; ambiguity is blocked or review-only.
+- 0, 1, 2+ loads work on one transaction and all physical loads retain independently correct workflow state.
+- No competing relationship writers, nondeterministic first-load selection, or cross-company owner links.
+- Claims, document verification scope, dashboard, freight/quote/events, transaction navigation and financial snapshots
+  remain correct.
+- Real Odoo 19 Enterprise fresh install and versioned upgrade on protected clones pass, including repeat upgrade
+  and rollback/conflict tests.
+- An operator-authorized historical dataset receives before/after row/link reconciliation with zero lost or fabricated
+  associations.
+- No external action or invoice post emitted by the migration; no third-party emails or dispatch triggered.
+- All mandatory acceptance tests and repository local gates pass against final commit; exactly one PR published
+  via make pr.
+forbidden_actions:
+- Do not start before predecessor Documents PR is merged.
+- No raw git push, gh pr create, API PR writes, make push, make pr-nosmoke, early/second PR or merge.
+- No live production/staging DB reads or writes without separate explicit access authorization; test on owned
+  protected clones.
+- No weakening or skipping required tests, no fake EE receipts, no Community-only substitution.
+- No silent data repair, destructive migration, first/last linkage, or deletion of original evidence.
+- Do not activate Export, warehouse, AI, Linda mail, or Finance workflows.
+- Do not expand modification scope merely because a file is readable.
+validation_obligations:
+- Read current post-merge Staging code and accepted authority; complete read/write/dependency inventory.
+- Record baseline state, current installed Odoo Enterprise evidence, source fixture and relevant historical counts.
+- Implement new tests for every required positive and negative case from 05_REQUIRED_ACCEPTANCE_MATRIX.json.
+- Run fresh-install real Odoo 19 Enterprise and upgrade from old schema on protected clone.
+- Execute old-to-new migration once and twice; fail-closed conflict and restore/rollback cases.
+- Run actual historical data before-after reconciliation with per-source link ledger and preserved financial/evidence
+  hashes.
+- Run all affected module suites, make test-odoo, make install-smoke, pre-commit, make pr-check and current mandatory
+  CI.
+- Do not publish with a mandatory test Failed or Unknown; submit head-bound execution receipts and complete findings.
+delivery_mode: Exactly one new feature PR against Staging, published only through make pr after all validations;
+  never merge/deploy.
+external_action_permissions:
+- One branch and one feature PR against Staging using make pr after required gates pass.
+- PR updates in response to in-scope CI feedback on the same PR through make pr.
+- No merge or deploy authority.
+readiness_claim: bounded_change
+inspection_scope:
+- All current transaction.load_id and load.transaction_id writers and consumers including models, views, SQL,
+  tests and data migrations
+- Native sale, purchase, stock, claims, documents, freight and accounting behavior necessary to prove scoped preservation
+- Actual existing Odoo Enterprise fixture and authorized historical data in protected test clone only
+modification_scope:
+- The exact files and mechanically required collateral explicitly enumerated in 01_CURSOR_CODING_CONTRACT.md section
+  5
+preservation_obligations:
+- Lossless historical transaction/load mappings and original record IDs
+- Documents predecessor semantics with no duplicate originals or verifier
+- Immutable freight rate and calibration evidence and carrier dispatch guards
+- Source financial invoice/bill references, margin, commission, payouts, closed states and weights
+- No fake PO/SO/load in native PO-only Stock receipt
+unresolved_unknowns:
+- Future post-Documents-merge Staging exact SHA and predecessor PR number
+- Actual Odoo 19 Enterprise fixture and installed module revision at execution time
+- Operator-authorized historical dataset available for reconciliation
+- Proven status of legacy reverse links, company/source attribution and exact claim load identity
