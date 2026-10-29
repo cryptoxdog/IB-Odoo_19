@@ -349,10 +349,6 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertTrue(claim)
         if claim._table != "plasticos_claim":
             self.fail(f"plasticos.claim table is {claim._table}")
-        self.env.cr.execute(
-            'UPDATE "plasticos_claim" SET is_overdue = FALSE WHERE id = %s',
-            [claim.id],
-        )
         attachment = self.env["ir.attachment"].create(
             {
                 "name": "midnight.txt",
@@ -387,26 +383,34 @@ class TestCronInDomain(PlasticosTestCase):
         if document._table != "plasticos_document":
             self.fail(f"plasticos.document table is {document._table}")
         self.env.cr.execute(
+            'UPDATE "plasticos_claim" SET is_overdue = FALSE WHERE id = %s',
+            [claim.id],
+        )
+        self.env.cr.execute(
             'UPDATE "plasticos_document" SET expiry_date = %s, is_expired = FALSE WHERE id = %s',
             [today - timedelta(days=1), document.id],
         )
-        claim.invalidate_recordset()
-        document.invalidate_recordset()
-        if claim.is_overdue:
+        claim.invalidate_recordset(["is_overdue"], flush=False)
+        document.invalidate_recordset(["expiry_date", "is_expired"], flush=False)
+        self.env.cr.execute("SELECT is_overdue FROM plasticos_claim WHERE id = %s", [claim.id])
+        if self.env.cr.fetchone()[0]:
             self.fail("is_overdue recomputed true before the cron; the stale row was not preserved")
-        if document.is_expired:
+        self.env.cr.execute("SELECT is_expired FROM plasticos_document WHERE id = %s", [document.id])
+        if self.env.cr.fetchone()[0]:
             self.fail("is_expired recomputed true before the cron; the stale row was not preserved")
         service = self.env["plasticos.midnight.recompute"]
         service._cron_midnight_recompute()
-        claim.invalidate_recordset()
-        document.invalidate_recordset()
-        self.assertTrue(claim.is_overdue)
-        self.assertTrue(document.is_expired)
+        self.env.flush_all()
+        self.env.cr.execute("SELECT is_overdue FROM plasticos_claim WHERE id = %s", [claim.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
+        self.env.cr.execute("SELECT is_expired FROM plasticos_document WHERE id = %s", [document.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
         service._cron_midnight_recompute()
-        claim.invalidate_recordset()
-        document.invalidate_recordset()
-        self.assertTrue(claim.is_overdue)
-        self.assertTrue(document.is_expired)
+        self.env.flush_all()
+        self.env.cr.execute("SELECT is_overdue FROM plasticos_claim WHERE id = %s", [claim.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
+        self.env.cr.execute("SELECT is_expired FROM plasticos_document WHERE id = %s", [document.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
 
     def test_logistics_escalation_marks_sla_load(self):
         from odoo.addons.plasticos_logistics.models.load import (
