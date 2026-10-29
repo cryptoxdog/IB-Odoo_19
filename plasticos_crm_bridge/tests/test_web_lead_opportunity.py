@@ -6,6 +6,7 @@ admission is deterministic; no external provider is called.
 
 import re
 
+from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
 
 _HOSTILE = "<script>alert('x')</script> regrind"
@@ -210,6 +211,73 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertEqual(partner.read(["name", "supplier_rank", "lead_source_id", "write_date"])[0], partner_before)
         self.assertEqual(self.Partner.search_count([]), partners_before)
         self.assertEqual(self.env["plasticos.material.profile"].search_count([]), profiles_before)
+
+    def test_conversion_rejects_material_profile_owned_by_another_supplier(self):
+        owner = self.Partner.create({"name": "Profile Owner", "is_company": True})
+        supplier = self.Partner.create({"name": "Lead Supplier", "is_company": True})
+        profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": owner.id,
+                "polymer_id": self.env.ref("plasticos_material_profile.polymer_hdpe").id,
+                "form_id": self.env.ref("plasticos_material_profile.form_pellets").id,
+            }
+        )
+        lead = self.CrmLead.create(
+            {
+                "name": "Foreign Profile Lead",
+                "type": "opportunity",
+                "stage_id": self.stage_new.id,
+                "partner_id": supplier.id,
+                "material_profile_id": profile.id,
+            }
+        )
+        intakes_before = self.Intake.search_count([])
+        with self.assertRaises(ValidationError):
+            lead.action_convert_to_intake()
+        self.assertFalse(lead.source_intake_id)
+        self.assertEqual(lead.partner_id, supplier)
+        self.assertEqual(lead.material_profile_id, profile)
+        self.assertEqual(self.Intake.search_count([]), intakes_before)
+
+    def test_conversion_copies_material_profile_snapshot_without_source_intake(self):
+        partner = self.Partner.create({"name": "Snapshot Supplier", "is_company": True})
+        polymer = self.env.ref("plasticos_material_profile.polymer_hdpe")
+        form = self.env.ref("plasticos_material_profile.form_pellets")
+        color = self.env.ref("plasticos_material_profile.color_natural")
+        source_type = self.env.ref("plasticos_material_profile.source_post_industrial")
+        profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": partner.id,
+                "polymer_id": polymer.id,
+                "form_id": form.id,
+                "color_id": color.id,
+                "source_type_id": source_type.id,
+                "melt_flow_index": 8.5,
+                "contamination_percent": 2.5,
+                "quantity_per_load_lbs": 12500,
+            }
+        )
+        lead = self.CrmLead.create(
+            {
+                "name": "Snapshot Lead",
+                "type": "opportunity",
+                "stage_id": self.stage_new.id,
+                "partner_id": partner.id,
+                "material_profile_id": profile.id,
+            }
+        )
+        self.assertFalse(lead.source_intake_id)
+        lead.action_convert_to_intake()
+        intake = lead.source_intake_id
+        self.assertEqual(intake.partner_id, partner)
+        self.assertEqual(intake.material_profile_id, profile)
+        self.assertEqual(intake.polymer_id, polymer)
+        self.assertEqual(intake.form_id, form)
+        self.assertEqual(intake.color_id, color)
+        self.assertEqual(intake.source_type_id, source_type)
+        self.assertEqual(intake.mfi_value, 8.5)
+        self.assertEqual(intake.contamination_pct, 2.5)
+        self.assertEqual(intake.quantity_per_load_lbs, 12500)
 
     def test_incompatible_profile_keeps_intake_pending_without_copying_its_photos(self):
         web = self._admit("OPP-INCOMPATIBLE-001")

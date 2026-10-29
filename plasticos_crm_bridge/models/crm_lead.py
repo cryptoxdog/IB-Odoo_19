@@ -285,6 +285,58 @@ class CrmLeadPlastOS(models.Model):
 
     # ── Phase 5: Convert CRM Lead to Intake ──────────────────
 
+    def _reject_foreign_material_profile(self, partner):
+        """Refuse a profile owned by a supplier other than this lead's partner.
+
+        Many2one domains are UI filters, so a conversion can still pair an
+        explicit partner with another supplier's profile.
+        """
+        self.ensure_one()
+        profile = self.material_profile_id
+        if profile and partner and profile.partner_id and profile.partner_id != partner:
+            raise ValidationError(
+                "Material profile belongs to a different supplier and cannot be linked to this intake."
+            )
+
+    def _intake_snapshot_from_material_profile(self, profile):
+        """Snapshot fields ``create()`` skips because it does not run onchange.
+
+        Mirrors ``plasticos.intake._onchange_material_profile``: a falsy profile
+        value leaves the intake default, and quantity is stored as an integer.
+        """
+        vals = {"material_profile_id": profile.id}
+        for source_name, target_name in (
+            ("polymer_id", "polymer_id"),
+            ("form_id", "form_id"),
+            ("color_id", "color_id"),
+            ("source_type_id", "source_type_id"),
+            ("origin_form_id", "origin_form_id"),
+            ("packaging_type_id", "packaging_type_id"),
+            ("filler_type_id", "filler_type_id"),
+        ):
+            related = profile[source_name]
+            if related:
+                vals[target_name] = related.id
+        for source_name, target_name in (
+            ("melt_flow_index", "mfi_value"),
+            ("density", "density_value"),
+            ("moisture_percent", "moisture_pct"),
+            ("contamination_percent", "contamination_pct"),
+            ("filler_pct", "filler_pct"),
+            ("origin_process_type", "origin_process_type"),
+            ("lat", "lat"),
+            ("lon", "lon"),
+            ("loads_per_month", "loads_per_month"),
+        ):
+            value = profile[source_name]
+            if value:
+                vals[target_name] = value
+        if profile.quantity_per_load_lbs:
+            vals["quantity_per_load_lbs"] = int(profile.quantity_per_load_lbs)
+        if profile.material_attribute_ids:
+            vals["material_attribute_ids"] = [(6, 0, profile.material_attribute_ids.ids)]
+        return vals
+
     def action_convert_to_intake(self):
         """Convert CRM lead into a PlastOS material intake.
 
@@ -360,11 +412,9 @@ class CrmLeadPlastOS(models.Model):
         if other_form:
             intake_vals["form_id"] = other_form.id
 
+        self._reject_foreign_material_profile(partner)
         if self.material_profile_id:
-            intake_vals["material_profile_id"] = self.material_profile_id.id
-            intake_vals["polymer_id"] = self.material_profile_id.polymer_id.id
-            if self.material_profile_id.form_id:
-                intake_vals["form_id"] = self.material_profile_id.form_id.id
+            intake_vals.update(self._intake_snapshot_from_material_profile(self.material_profile_id))
         intake = self.env["plasticos.intake"].create(intake_vals)
         self.source_intake_id = intake
         self._propagate_available_commercial_images(material_profile=intake.material_profile_id or False)
