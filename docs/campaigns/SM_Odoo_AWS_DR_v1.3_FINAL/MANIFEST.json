@@ -1,0 +1,155 @@
+{
+  "pack_id": "SM-ODOO-DR-CAMPAIGN-001",
+  "version": "1.3.0",
+  "created_utc": "2026-10-29T04:00:53+00:00",
+  "status": "OPERATOR_LOCKED_NOT_IMPLEMENTED",
+  "invariant_count": 49,
+  "contract_count": 7,
+  "file_count": 28,
+  "self_exclusions": [
+    "MANIFEST.json",
+    "CHECKSUMS.sha256"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 7841,
+      "sha256": "c5e4b1eec66ac39217d7aefd2d8ff639f66c5c5de31f8127ab2d74a482af0627"
+    },
+    {
+      "path": "architecture/STORAGE_AND_BLAST_RADIUS.md",
+      "bytes": 21373,
+      "sha256": "e20a9450b78420d83265a375ca659e4bea3994e6a605a87b4b31a1f41bc025df"
+    },
+    {
+      "path": "contracts/00_FEASIBILITY_AND_BLAST_RADIUS.md",
+      "bytes": 9232,
+      "sha256": "c17e13dddaadc7617b2d6522b78706f6e0f92ec46b9fc4bf6b5142dceb02df8d"
+    },
+    {
+      "path": "contracts/01_ODOO_NATIVE_BACKUP.md",
+      "bytes": 11940,
+      "sha256": "1dadba44805a71f3131852a3e1ea1bc08937bbb1fef577112b359a8f6cb12621"
+    },
+    {
+      "path": "contracts/02_AWS_VAULT_AND_IDENTITY.md",
+      "bytes": 9037,
+      "sha256": "ba3d1206f5bcb499ec9570b1a814dd882916693366699fa438f62c2fa4d70656"
+    },
+    {
+      "path": "contracts/03_FULL_COPY_AND_INDEPENDENT_RESTORE.md",
+      "bytes": 6262,
+      "sha256": "e4555eb5d0dd7350b201f22fab8668032c94c0e0e6578e08a1176b33a7e69765"
+    },
+    {
+      "path": "contracts/04_INCREMENTAL_AND_WEEKDAY_SCHEDULE.md",
+      "bytes": 9089,
+      "sha256": "119d2cc97d74646ab2a5726406c586ac731f2b8a2706216de21c623c4107d4cf"
+    },
+    {
+      "path": "contracts/05_1PASSWORD_EMERGENCY_PACK.md",
+      "bytes": 9245,
+      "sha256": "61d7617e698345819f7772dd1cc5c6d65945aa2e3f9b0bdf9baa765e5e54e181"
+    },
+    {
+      "path": "contracts/06_ADVERSARIAL_REVIEW_AND_CLOSEOUT.md",
+      "bytes": 8312,
+      "sha256": "bbccb27efa33b4c415e19a5851850b526335ee8d6c306886155bd7f8cd45da3e"
+    },
+    {
+      "path": "coordination/CAMPAIGN_ORDER.md",
+      "bytes": 6070,
+      "sha256": "14c61aecf09c42aea88d4b30a306347467892d3abbb4155cf06714e22c78c464"
+    },
+    {
+      "path": "coordination/CURSOR_START.md",
+      "bytes": 5429,
+      "sha256": "df2945b1689c4cb62180e14210a73aebf8ddb0dc7777883769da73f5a9754eab"
+    },
+    {
+      "path": "coordination/DEFINITION_OF_DONE.md",
+      "bytes": 8088,
+      "sha256": "440977dfb699a9569ccf015cf055491ce6170f9c0e8e6139376fb5bd1fdc49fe"
+    },
+    {
+      "path": "coordination/INVARIANT_TRACEABILITY.csv",
+      "bytes": 17298,
+      "sha256": "f2ae45f6b3a05288e025f1a93a53a9e623ffcdffbc4ea61e9ba6e8cdcb603fea"
+    },
+    {
+      "path": "coordination/SLICE_RECEIPT_TEMPLATE.yaml",
+      "bytes": 1943,
+      "sha256": "c3770023a396da98abd4a8f09921e50f904225960ce6a1afebb7cfac2e5b4f28"
+    },
+    {
+      "path": "evidence/ACCEPTANCE_MATRIX.md",
+      "bytes": 16989,
+      "sha256": "2e18a64902cb858a078f903c451648400df8e28c088ff06de87aee57ee587a77"
+    },
+    {
+      "path": "evidence/COMPLETENESS_AND_ALIGNMENT_AUDIT.md",
+      "bytes": 5903,
+      "sha256": "2db5f4f678cc5126dc47673739471e18b87942201676d73f3651e702e8c074ad"
+    },
+    {
+      "path": "evidence/INVARIANT_TEST_WITNESSES.md",
+      "bytes": 31058,
+      "sha256": "e03f5ec7a82e1f851ed8e70305ad0921b1c89e76143e4c0c2d3d81f4440411f4"
+    },
+    {
+      "path": "evidence/PACK_VALIDATION.md",
+      "bytes": 1525,
+      "sha256": "1b9a2cdc4c6efe93df6d0b41abad0dfd56cd1e7c3ff2b52eb044e02847f75b1d"
+    },
+    {
+      "path": "evidence/SOURCE_BASIS.md",
+      "bytes": 11311,
+      "sha256": "f26a6b40fa3464ea51f12dc6884bac279362929d1d5767b2d75a79d527a6775a"
+    },
+    {
+      "path": "operations/EMERGENCY_PACK_SPEC.md",
+      "bytes": 7060,
+      "sha256": "b83af2ee2c3dc2bb4816719b932d11b000aef2639abc16706f89feebf236bda0"
+    },
+    {
+      "path": "operations/INDEPENDENT_RESTORE.md",
+      "bytes": 9600,
+      "sha256": "26f2aaa5e61198baf5de2ca3f7eed3484755778bdc182bada79780af4093b1ab"
+    },
+    {
+      "path": "policy/INVARIANTS.md",
+      "bytes": 20185,
+      "sha256": "db6260f5cda7afce7abe1e2b8762d31d46f081b41fd525c77c9fd4542460bdea"
+    },
+    {
+      "path": "policy/LOCKED_POLICY.yaml",
+      "bytes": 7632,
+      "sha256": "cb20d4ebec31c892163ddc83608afab58d85ea6a42441e68d2b2c0e869f13dc7"
+    },
+    {
+      "path": "security/INFISICAL_1PASSWORD_AND_CONFIG.md",
+      "bytes": 9942,
+      "sha256": "3734224016d647837cf85c3bd03078e93b46ba299cf82fb51dff2b305e5c6127"
+    },
+    {
+      "path": "tests/test_pack_validator.py",
+      "bytes": 2794,
+      "sha256": "06fecab90beff26574dbb004a3e3cad597f63b24a4a72437a039f883ea171c3e"
+    },
+    {
+      "path": "tests/test_slice_receipt_validation.py",
+      "bytes": 2272,
+      "sha256": "a3e1179364529f92f73177a4eabc744263109374d0eadc82edace92160aa879f"
+    },
+    {
+      "path": "tools/validate_campaign_pack.py",
+      "bytes": 8014,
+      "sha256": "422f5860b8ce7108bd20c10bf25329d6c2f9e532c72bec84c1ebc556c525bd19"
+    },
+    {
+      "path": "tools/validate_slice_receipt.py",
+      "bytes": 5308,
+      "sha256": "7f0ec5b9ccca32d988e6e3564063109c01c4290fbd6aa71d4df0a4ec584fe8fc"
+    }
+  ]
+}
