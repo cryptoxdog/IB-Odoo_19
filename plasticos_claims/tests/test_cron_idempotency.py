@@ -5,6 +5,7 @@ repeat that effect. Helpers that swallow exceptions are not used.
 """
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -77,7 +78,13 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(past_offer.state, "expired")
         self.assertEqual(future_offer.state, "draft")
 
+    def _skip_unless_model(self, model_name):
+        """A claims-only install does not load optional addons."""
+        if model_name not in self.env.registry:
+            self.skipTest(f"{model_name} is not installed")
+
     def test_sale_approval_in_domain(self):
+        self._skip_unless_model("plasticos.automation.config")
         order_model = self.env["sale.order"]
         config = self.env["plasticos.automation.config"].get_config()
         domain = [
@@ -114,6 +121,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(_log_count(self.env, "sale.order", order.id, "approval_flag"), 1)
 
     def test_invoice_reminder_in_domain(self):
+        self._skip_unless_model("plasticos.automation.config")
         move_model = self.env["account.move"]
         config = self.env["plasticos.automation.config"].get_config()
         due = fields.Date.to_date("1900-01-01")
@@ -157,6 +165,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(_log_count(self.env, "account.move", invoice.id, "invoice_reminder"), 1)
 
     def test_contract_renewal_in_domain(self):
+        self._skip_unless_model("plasticos.automation.log")
         partner_model = self.env["res.partner"]
         today = fields.Date.today()
         same_day = partner_model.search_count(
@@ -175,6 +184,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(_log_count(self.env, "res.partner", partner.id, "contract_alert"), 1)
 
     def test_stock_reorder_in_domain(self):
+        self._skip_unless_model("plasticos.automation.log")
         product_model = self.env["product.product"]
         waiting = product_model.search_count([("type", "in", ("product", "consu"))])
         self.assertLess(waiting, 500, f"product.product domain already has {waiting} rows; limit is 500")
@@ -205,7 +215,11 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertLess(
             pending_ahead, 300, f"plasticos.claim sort prefix already has {pending_ahead} rows; limit is 300"
         )
-        resolved = self._create_claim(state="resolved", resolution_note="Cron test resolution")
+        resolved = self._create_claim(
+            transaction=self._create_transaction(name="TX-TEST-CLM-RESOLVED"),
+            state="resolved",
+            resolution_note="Cron test resolution",
+        )
         self.assertTrue(resolved)
         claim_model._cron_check_sla()
         claim.invalidate_recordset()
@@ -241,6 +255,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(resolved.state, "resolved")
 
     def test_batch_normalize_in_domain(self):
+        self._skip_unless_model("plasticos.normalizer.config")
         intake_model = self.env["plasticos.intake"]
         config = self.env["plasticos.normalizer.config"].get_config()
         limit = config.batch_limit or 200
@@ -261,6 +276,7 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertEqual(intake.match_status, "error")
 
     def test_load_sla_in_domain(self):
+        self._skip_unless_model("plasticos.automation.log")
         from odoo.addons.plasticos_logistics.models.load import (
             _FREIGHT_INTERNAL_WRITE,
             _FREIGHT_INTERNAL_WRITE_TOKEN,
@@ -333,10 +349,6 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertTrue(claim)
         if claim._table != "plasticos_claim":
             self.fail(f"plasticos.claim table is {claim._table}")
-        self.env.cr.execute(
-            'UPDATE "plasticos_claim" SET is_overdue = FALSE WHERE id = %s',
-            [claim.id],
-        )
         attachment = self.env["ir.attachment"].create(
             {
                 "name": "midnight.txt",
@@ -371,26 +383,34 @@ class TestCronInDomain(PlasticosTestCase):
         if document._table != "plasticos_document":
             self.fail(f"plasticos.document table is {document._table}")
         self.env.cr.execute(
+            'UPDATE "plasticos_claim" SET is_overdue = FALSE WHERE id = %s',
+            [claim.id],
+        )
+        self.env.cr.execute(
             'UPDATE "plasticos_document" SET expiry_date = %s, is_expired = FALSE WHERE id = %s',
             [today - timedelta(days=1), document.id],
         )
-        claim.invalidate_recordset()
-        document.invalidate_recordset()
-        if claim.is_overdue:
+        claim.invalidate_recordset(["is_overdue"], flush=False)
+        document.invalidate_recordset(["expiry_date", "is_expired"], flush=False)
+        self.env.cr.execute("SELECT is_overdue FROM plasticos_claim WHERE id = %s", [claim.id])
+        if self.env.cr.fetchone()[0]:
             self.fail("is_overdue recomputed true before the cron; the stale row was not preserved")
-        if document.is_expired:
+        self.env.cr.execute("SELECT is_expired FROM plasticos_document WHERE id = %s", [document.id])
+        if self.env.cr.fetchone()[0]:
             self.fail("is_expired recomputed true before the cron; the stale row was not preserved")
         service = self.env["plasticos.midnight.recompute"]
         service._cron_midnight_recompute()
-        claim.invalidate_recordset()
-        document.invalidate_recordset()
-        self.assertTrue(claim.is_overdue)
-        self.assertTrue(document.is_expired)
+        self.env.flush_all()
+        self.env.cr.execute("SELECT is_overdue FROM plasticos_claim WHERE id = %s", [claim.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
+        self.env.cr.execute("SELECT is_expired FROM plasticos_document WHERE id = %s", [document.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
         service._cron_midnight_recompute()
-        claim.invalidate_recordset()
-        document.invalidate_recordset()
-        self.assertTrue(claim.is_overdue)
-        self.assertTrue(document.is_expired)
+        self.env.flush_all()
+        self.env.cr.execute("SELECT is_overdue FROM plasticos_claim WHERE id = %s", [claim.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
+        self.env.cr.execute("SELECT is_expired FROM plasticos_document WHERE id = %s", [document.id])
+        self.assertTrue(self.env.cr.fetchone()[0])
 
     def test_logistics_escalation_marks_sla_load(self):
         from odoo.addons.plasticos_logistics.models.load import (
@@ -441,3 +461,323 @@ class TestCronInDomain(PlasticosTestCase):
         transaction.invalidate_recordset()
         self.assertEqual(transaction.state, state)
         self.assertAlmostEqual(transaction.gross_margin, margin, places=5)
+
+    def test_dispatch_acknowledgment_creates_one_activity(self):
+        from odoo.addons.plasticos_logistics.models.load import (
+            _FREIGHT_INTERNAL_WRITE,
+            _FREIGHT_INTERNAL_WRITE_TOKEN,
+        )
+
+        load_model = self.env["plasticos.load"]
+        sent = fields.Datetime.to_datetime("2000-01-01 00:00:00")
+        load = load_model.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).create(
+            {"state": "dispatched", "dispatch_sent": sent},
+        )
+        self.assertFalse(load.dispatch_acknowledged)
+        others = load_model.search_count(
+            [
+                ("dispatch_sent", "!=", False),
+                ("dispatch_sent", "<", fields.Datetime.now() - timedelta(hours=4)),
+                ("dispatch_acknowledged", "=", False),
+                ("state", "in", ["dispatched", "scheduled"]),
+                ("id", "!=", load.id),
+                "|",
+                ("dispatch_sent", "<", sent),
+                "&",
+                ("dispatch_sent", "=", sent),
+                ("id", "<", load.id),
+            ]
+        )
+        self.assertLess(others, 100, f"dispatch acknowledgment prefix already has {others} rows; limit is 100")
+        summary = f"URGENT: No carrier acknowledgment for {load.name}"
+        activity_domain = [
+            ("res_model", "=", "plasticos.load"),
+            ("res_id", "=", load.id),
+            ("summary", "=", summary),
+            ("date_deadline", "=", fields.Date.today()),
+        ]
+        load_model._cron_check_dispatch_acknowledgments()
+        self.assertEqual(self.env["mail.activity"].search_count(activity_domain), 1)
+        load_model._cron_check_dispatch_acknowledgments()
+        self.assertEqual(self.env["mail.activity"].search_count(activity_domain), 1)
+
+    def test_supplier_confirmation_followup_marks_stale_transaction(self):
+        sent = fields.Datetime.to_datetime("2000-01-01 00:00:00")
+        transaction = self._create_transaction(
+            name="TX-CRON-SUP-FOLLOW",
+            state="active",
+            supplier_confirmation_sent=sent,
+        )
+        self.assertTrue(transaction)
+        self.assertEqual(transaction.supplier_confirmation_followup_count, 0)
+        others = self.env["plasticos.transaction"].search_count(
+            [
+                ("supplier_confirmation_sent", "!=", False),
+                ("supplier_confirmation_sent", "<", fields.Datetime.now() - timedelta(hours=24)),
+                ("supplier_confirmation_received", "=", False),
+                ("state", "in", ["active", "pending_supplier"]),
+                ("id", "!=", transaction.id),
+                "|",
+                ("supplier_confirmation_sent", "<", sent),
+                "&",
+                ("supplier_confirmation_sent", "=", sent),
+                ("id", "<", transaction.id),
+            ]
+        )
+        self.assertLess(others, 100, f"supplier confirmation prefix already has {others} rows; limit is 100")
+        self.env["plasticos.transaction"]._cron_supplier_confirmation_followup()
+        transaction.invalidate_recordset()
+        self.assertEqual(transaction.supplier_confirmation_followup_count, 1)
+        self.env["plasticos.transaction"]._cron_supplier_confirmation_followup()
+        transaction.invalidate_recordset()
+        self.assertEqual(transaction.supplier_confirmation_followup_count, 1)
+
+    def test_auto_create_delivery_orders_logs_confirmed_transaction_without_po(self):
+        received = fields.Datetime.to_datetime("2000-01-01 00:00:00")
+        transaction = self._create_transaction(
+            name="TX-CRON-DO",
+            state="active",
+            supplier_confirmation_received=received,
+        )
+        self.assertTrue(transaction)
+        self.assertTrue(transaction.is_supplier_confirmed)
+        self.assertFalse(transaction.delivery_order_id)
+        others = self.env["plasticos.transaction"].search_count(
+            [
+                ("is_supplier_confirmed", "=", True),
+                ("delivery_order_id", "=", False),
+                ("state", "in", ["supplier_ready", "active", "pending_supplier"]),
+                ("id", "!=", transaction.id),
+                "|",
+                ("supplier_confirmation_received", "<", received),
+                "&",
+                ("supplier_confirmation_received", "=", received),
+                ("id", "<", transaction.id),
+            ]
+        )
+        self.assertLess(others, 100, f"delivery-order cron prefix already has {others} rows; limit is 100")
+        logger = "odoo.addons.plasticos_transaction.models.transaction"
+        with self.assertLogs(logger, level="INFO") as caught:
+            self.env["plasticos.transaction"]._cron_auto_create_delivery_orders()
+        self.assertTrue(any(transaction.name in message and "ready for DO" in message for message in caught.output))
+        self.env["plasticos.transaction"]._cron_auto_create_delivery_orders()
+        transaction.invalidate_recordset()
+        self.assertFalse(transaction.delivery_order_id)
+
+    def test_compliance_audit_clears_verified_on_expired_document(self):
+        partner = self.env["res.partner"].create({"name": "Compliance Doc Co", "is_company": True})
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": "compliance.txt",
+                "datas": "Y29tcGxpYW5jZQ==",
+                "res_model": "res.partner",
+                "res_id": partner.id,
+            }
+        )
+        tag = self.env["plasticos.document.tag"].create({"name": "Compliance Tag", "code": f"CMP-{partner.id}"})
+        document = self.env["plasticos.document"].create(
+            {
+                "name": "Compliance Doc",
+                "res_model": "res.partner",
+                "res_id": partner.id,
+                "attachment_id": attachment.id,
+                "tag_id": tag.id,
+                "verified": True,
+                "expiry_date": fields.Date.to_date("2000-01-01"),
+            }
+        )
+        document.invalidate_recordset()
+        self.assertTrue(document.verified)
+        self.assertTrue(document.is_expired)
+        others = self.env["plasticos.document"].search_count(
+            [
+                ("verified", "=", True),
+                ("is_expired", "=", True),
+                ("active", "=", True),
+                ("id", "!=", document.id),
+            ]
+        )
+        self.assertLess(others, 500, f"document compliance domain already has {others} rows; limit is 500")
+        self.env["plasticos.document"]._cron_compliance_audit()
+        document.invalidate_recordset()
+        self.assertFalse(document.verified)
+        self.env["plasticos.document"]._cron_compliance_audit()
+        document.invalidate_recordset()
+        self.assertFalse(document.verified)
+
+    def test_attachment_orphan_cron_deletes_missing_filestore_row(self):
+        from odoo.tools import config
+
+        if not config.get("data_dir"):
+            self.fail("data_dir is unset; the orphan cron returns before it can delete a missing blob")
+        partner = self.env["res.partner"].create({"name": "Orphan Attachment Co", "is_company": True})
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": "present.txt",
+                "datas": "cHJlc2VudA==",
+                "res_model": "res.partner",
+                "res_id": partner.id,
+            }
+        )
+        self.env.cr.execute(
+            "UPDATE ir_attachment SET type = 'binary', store_fname = %s WHERE id = %s",
+            ["cron-lock-missing/absent.bin", attachment.id],
+        )
+        attachment.invalidate_recordset()
+        others = (
+            self.env["ir.attachment"]
+            .sudo()
+            .search_count(
+                [
+                    ("type", "=", "binary"),
+                    ("store_fname", "!=", False),
+                    ("id", "<", attachment.id),
+                ]
+            )
+        )
+        self.assertLess(others, 2000, f"attachment orphan prefix already has {others} rows; limit is 2000")
+        removed = self.env["ir.attachment"]._cron_cleanup_missing_filestore_orphans()
+        self.assertGreaterEqual(removed, 1)
+        self.assertFalse(attachment.exists())
+        self.env["ir.attachment"]._cron_cleanup_missing_filestore_orphans()
+        self.assertFalse(attachment.exists())
+
+    def test_trucker_followup_marks_unconfirmed_outgoing_picking(self):
+        self._skip_unless_model("plasticos.automation.log")
+        picking_type = self.env["stock.picking.type"].search([("code", "=", "outgoing")], limit=1)
+        self.assertTrue(picking_type, "an outgoing picking type is required to aim the trucker cron")
+        source = picking_type.default_location_src_id or self.env.ref("stock.stock_location_stock")
+        destination = picking_type.default_location_dest_id or self.env.ref("stock.stock_location_customers")
+        carrier = self.env["res.partner"].create({"name": "Cron Carrier", "is_company": True})
+        picking = self.env["stock.picking"].create(
+            {
+                "picking_type_id": picking_type.id,
+                "location_id": source.id,
+                "location_dest_id": destination.id,
+                "carrier_id": carrier.id,
+            }
+        )
+        self.assertEqual(picking.trucker_followup_count, 0)
+        stale_before = fields.Datetime.now() - timedelta(days=1)
+        others = self.env["stock.picking"].search_count(
+            [
+                ("picking_type_code", "=", "outgoing"),
+                ("carrier_id", "!=", False),
+                ("receipt_confirmation", "=", False),
+                ("state", "not in", ("done", "cancel")),
+                ("id", "!=", picking.id),
+                "|",
+                ("trucker_notified_on", "=", False),
+                ("trucker_notified_on", "<", stale_before),
+            ]
+        )
+        self.assertLess(others, 200, f"trucker follow-up domain already has {others} rows; limit is 200")
+        self.env["stock.picking"].cron_trucker_followup()
+        picking.invalidate_recordset()
+        self.assertEqual(picking.trucker_followup_count, 1)
+        self.assertTrue(picking.trucker_notified_on)
+        self.env["stock.picking"].cron_trucker_followup()
+        picking.invalidate_recordset()
+        self.assertEqual(picking.trucker_followup_count, 1)
+
+    def test_supplier_followup_marks_confirmed_purchase_order(self):
+        self._skip_unless_model("plasticos.automation.log")
+        partner = self.env["res.partner"].create({"name": "Cron PO Supplier", "is_company": True})
+        order = self.env["purchase.order"].create({"partner_id": partner.id})
+        self.assertEqual(order.state, "draft")
+        self.env.cr.execute("UPDATE purchase_order SET state = %s WHERE id = %s", ["purchase", order.id])
+        order.invalidate_recordset()
+        self.assertEqual(order.state, "purchase")
+        self.assertFalse(order.supplier_ready)
+        self.assertEqual(order.followup_count, 0)
+        stale_before = fields.Datetime.now() - timedelta(days=1)
+        others = self.env["purchase.order"].search_count(
+            [
+                ("state", "=", "purchase"),
+                ("supplier_ready", "=", False),
+                ("id", "!=", order.id),
+                "|",
+                ("last_followup_on", "=", False),
+                ("last_followup_on", "<", stale_before),
+            ]
+        )
+        self.assertLess(others, 200, f"supplier follow-up domain already has {others} rows; limit is 200")
+        self.env["purchase.order"].cron_supplier_followup()
+        order.invalidate_recordset()
+        self.assertEqual(order.followup_count, 1)
+        self.env["purchase.order"].cron_supplier_followup()
+        order.invalidate_recordset()
+        self.assertEqual(order.followup_count, 1)
+
+    def test_expire_temporary_exclusions_deactivates_past_row(self):
+        self._skip_unless_model("plasticos.match.exclusion")
+        supplier = self.env["res.partner"].create({"name": "Excluded Supplier", "is_company": True})
+        buyer = self.env["res.partner"].create({"name": "Excluded Buyer", "is_company": True})
+        exclusion = self.env["plasticos.match.exclusion"].create(
+            {
+                "supplier_partner_id": supplier.id,
+                "buyer_partner_id": buyer.id,
+                "reason": "qc_dispute",
+                "exclusion_type": "temporary",
+                "expiry_date": fields.Date.to_date("2000-01-01"),
+            }
+        )
+        self.assertTrue(exclusion.active)
+        others = self.env["plasticos.match.exclusion"].search_count(
+            [
+                ("exclusion_type", "=", "temporary"),
+                ("expiry_date", "<", fields.Date.today()),
+                ("active", "=", True),
+                ("id", "!=", exclusion.id),
+            ]
+        )
+        self.assertLess(others, 500, f"match exclusion domain already has {others} rows; limit is 500")
+        self.env["plasticos.match.exclusion"]._cron_expire_temporary_exclusions()
+        exclusion.invalidate_recordset()
+        self.assertFalse(exclusion.active)
+        self.env["plasticos.match.exclusion"]._cron_expire_temporary_exclusions()
+        exclusion.invalidate_recordset()
+        self.assertFalse(exclusion.active)
+
+    def test_crm_sync_cron_calls_enabled_connection(self):
+        self._skip_unless_model("plasticos.crm.connection")
+        connection = self.env["plasticos.crm.connection"].create({"name": "Cron Sync Lock", "enabled": True})
+        others = self.env["plasticos.crm.connection"].search_count(
+            [
+                ("enabled", "=", True),
+                ("active", "=", True),
+                ("id", "<", connection.id),
+            ]
+        )
+        self.assertLess(others, 100, f"CRM sync prefix already has {others} rows; limit is 100")
+        target = "odoo.addons.plasticos_crm_sync.services.orchestrator.SyncOrchestrator.run_connection"
+        with patch(target) as run_connection:
+            self.env["plasticos.crm.connection"]._cron_sync_all()
+            self.env["plasticos.crm.connection"]._cron_sync_all()
+        seen = [args[0].id for args, _kwargs in run_connection.call_args_list]
+        self.assertEqual(seen.count(connection.id), 2)
+
+    def test_admin_kpi_refresh_keeps_the_singleton(self):
+        self._skip_unless_model("plasticos.admin.kpi")
+        kpi_model = self.env["plasticos.admin.kpi"]
+        kpi = kpi_model._get_or_create()
+        self.assertTrue(kpi.action_refresh())
+        self.assertTrue(kpi_model._get_or_create().action_refresh())
+        self.assertEqual(kpi_model._get_or_create().id, kpi.id)
+
+    def test_retired_enrichment_crons_stay_skipped(self):
+        self._skip_unless_model("plasticos.enrichment.run")
+        run_model = self.env["plasticos.enrichment.run"]
+        logger = "odoo.addons.plasticos_enrichment.models.enrichment_run"
+        with self.assertLogs(logger, level="INFO") as caught:
+            self.assertTrue(run_model.action_cron_enrich_pending(run_inference=False))
+            self.assertTrue(run_model.action_cron_inference_only())
+        text = "\n".join(caught.output)
+        self.assertIn("action_cron_enrich_pending skipped", text)
+        self.assertIn("action_cron_inference_only skipped", text)
+        with self.assertLogs(logger, level="INFO") as again:
+            self.assertTrue(run_model.action_cron_enrich_pending(run_inference=False))
+            self.assertTrue(run_model.action_cron_inference_only())
+        text = "\n".join(again.output)
+        self.assertIn("action_cron_enrich_pending skipped", text)
+        self.assertIn("action_cron_inference_only skipped", text)
