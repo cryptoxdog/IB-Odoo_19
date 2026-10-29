@@ -152,6 +152,8 @@ class CrmLeadPlastOS(models.Model):
         intake image can be incorporated without repeating a provider download.
         The web-lead attachment helper preserves distinct provider uploads and
         collapses only non-provider duplicate image bytes.
+        An explicit false profile copies to CRM only; omitted/None retains the
+        existing opportunity-profile default for other commercial callers.
         """
         self.ensure_one()
         from odoo.addons.plasticos_web_leads.models.attachment_processor import copy_images_to_commercial_record
@@ -163,7 +165,7 @@ class CrmLeadPlastOS(models.Model):
             target_id=self.id,
             sources=sources,
         )
-        profile = material_profile or self.material_profile_id
+        profile = self.material_profile_id if material_profile is None else material_profile
         profile_copied = 0
         if profile:
             profile_copied = copy_images_to_commercial_record(
@@ -287,8 +289,8 @@ class CrmLeadPlastOS(models.Model):
         """Convert CRM lead into a PlastOS material intake.
 
         Flow:
-        1. Create or find res.partner from lead data
-        2. Create plasticos.intake linked to partner + this lead
+        1. Preserve explicitly linked partners; never infer a supplier identity
+        2. Reuse or create plasticos.intake linked to this lead
         3. Open the new intake form
 
         The pipeline stage is untouched: creating or reusing an intake is not
@@ -296,38 +298,27 @@ class CrmLeadPlastOS(models.Model):
         """
         self.ensure_one()
 
-        # 1. Reuse a source-intake partner before performing CRM name matching.
-        # This prevents a web intake that was already qualified from creating a
-        # duplicate commercial identity during CRM conversion.
-        if self.source_intake_id and self.source_intake_id.partner_id and not self.partner_id:
+        partner = self.partner_id
+        if not partner and self.source_intake_id.partner_id:
             partner = self.source_intake_id.partner_id
             self.partner_id = partner
-        elif not self.partner_id:
-            partner = self._find_or_create_partner_from_lead()
-            self.partner_id = partner
-        else:
-            partner = self.partner_id
 
         # A HOT web lead already owns an intake. Reuse it rather than creating a
-        # duplicate, associate it with the CRM lead, and create its canonical
-        # material profile only after a partner/facility exists.
+        # duplicate. Conversion does not qualify material or create a profile.
         if self.source_intake_id:
             intake = self.source_intake_id
-            if not intake.partner_id:
-                intake.write(
-                    {
-                        "partner_id": partner.id,
-                        "pending_company_name": False,
-                        "crm_lead_id": self.id,
-                    }
-                )
-            elif intake.crm_lead_id != self:
+            if intake.crm_lead_id != self:
                 intake.write({"crm_lead_id": self.id})
-            if not intake.material_profile_id:
-                intake._create_material_profile_from_intake()
+            profile = self.material_profile_id
+            if not intake.material_profile_id and profile and profile.polymer_id == intake.polymer_id:
+                if profile.form_id == intake.form_id:
+                    intake.material_profile_id = profile
             if intake.material_profile_id:
-                self.material_profile_id = intake.material_profile_id
-                self._propagate_available_commercial_images(material_profile=intake.material_profile_id)
+                if not self.material_profile_id:
+                    self.material_profile_id = intake.material_profile_id
+            else:
+                self.message_post(body="NOT_READY_FOR_MATCHING: material qualification is still pending.")
+            self._propagate_available_commercial_images(material_profile=intake.material_profile_id or False)
             self.message_post(
                 body=(
                     f'Reused originating intake: <a href="#" '
@@ -337,7 +328,7 @@ class CrmLeadPlastOS(models.Model):
             )
             return {
                 "type": "ir.actions.act_window",
-                "name": f"Intake — {partner.name}",
+                "name": f"Intake — {partner.name or intake.pending_company_name or self.name}",
                 "res_model": "plasticos.intake",
                 "res_id": intake.id,
                 "view_mode": "form",
@@ -347,6 +338,7 @@ class CrmLeadPlastOS(models.Model):
         # 2. Create intake
         intake_vals = {
             "partner_id": partner.id,
+            "pending_company_name": self.partner_name or self.contact_name or self.name,
             "crm_lead_id": self.id,
             "intake_notes": self.description or "",
         }
@@ -368,7 +360,16 @@ class CrmLeadPlastOS(models.Model):
         if other_form:
             intake_vals["form_id"] = other_form.id
 
+        if self.material_profile_id:
+            intake_vals["material_profile_id"] = self.material_profile_id.id
+            intake_vals["polymer_id"] = self.material_profile_id.polymer_id.id
+            if self.material_profile_id.form_id:
+                intake_vals["form_id"] = self.material_profile_id.form_id.id
         intake = self.env["plasticos.intake"].create(intake_vals)
+        self.source_intake_id = intake
+        self._propagate_available_commercial_images(material_profile=intake.material_profile_id or False)
+        if not intake.material_profile_id:
+            self.message_post(body="NOT_READY_FOR_MATCHING: material qualification is still pending.")
 
         self.message_post(
             body=f'Intake created: <a href="#" '
@@ -379,7 +380,7 @@ class CrmLeadPlastOS(models.Model):
         # 3. Open intake form
         return {
             "type": "ir.actions.act_window",
-            "name": f"Intake — {partner.name}",
+            "name": f"Intake — {partner.name or intake.pending_company_name or self.name}",
             "res_model": "plasticos.intake",
             "res_id": intake.id,
             "view_mode": "form",
