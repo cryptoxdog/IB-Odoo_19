@@ -1,0 +1,558 @@
+{
+  "schema": "evidence.assessment/v1",
+  "target": {
+    "locator": "/mnt/data/PlasticOS_Export_Blast_Radius_Closure_v2.7.2.zip",
+    "artifact_type": "knowledge_pack",
+    "revision": "v2.7.2",
+    "sha256": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d"
+  },
+  "review_mode": "full_audit",
+  "authority_basis": [],
+  "adapters": [
+    "local_zipfile_sha256_manifest_and_content",
+    "read_only_github_connector_exact_sha_and_compare",
+    "owner_source_file_inspection",
+    "pack_invariant_and_cross_module_plan_census"
+  ],
+  "findings": [
+    {
+      "finding_id": "F-001",
+      "finding_fingerprint": "53074c5ddac4204a458321fdf2c2b7e355254eac132eee82a74040123575edfc",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md:29-41",
+        "finding_type": "gap",
+        "rule_key": "F-001/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / full accounting: Seven RP frontiers all OPEN; no effect-by-effect owner/path/disposition register has been ",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md",
+        "location": "29-41",
+        "support_type": "direct",
+        "excerpt_or_summary": "Seven RP frontiers all OPEN; no effect-by-effect owner/path/disposition register has been populated. VERIFIED_NO_CHANGE and PROVEN_INDEPENDENT appear only as instructions, not actual accepted disposition rows.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "No full direct/transitive closure or complete planned change set. The pack explicitly blocks code.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-002",
+      "finding_fingerprint": "32126acc9274e1e266c02bf2ab908b3c6cc7162fd9a6947949b3d9712751f6ec",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:8-64",
+        "finding_type": "gap",
+        "rule_key": "F-002/POS-INV-26"
+      },
+      "title": "Blast-radius discovery: Actual Logistics manifest reverse dependency closure includes direct dependents: admin_das",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_logistics/__manifest__.py",
+        "location": "1-20",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "Actual Logistics manifest reverse dependency closure includes direct dependents: admin_dashboard, automation, claims, commission, crm_bridge, documents, documents_native, security_base; CRM sync is downstream through security_base/crm_bridge. The file map is limited to four existing addons and does not disposition these consumers individually.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Transitive effect paths and exclusions are incomplete, including legal claim automation and transaction-derived dashboards.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-003",
+      "finding_fingerprint": "eddbc28762becf870cc55b67b8bbd736bf8d057e12ad113b8311d35e65dea61f",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:8-30",
+        "finding_type": "gap",
+        "rule_key": "F-003/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / change planning: Existing delivery-order and pickup/delivery BOL QWeb layouts dereference doc",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_logistics/report/report_delivery_order.xml",
+        "location": "32-39",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "Existing delivery-order and pickup/delivery BOL QWeb layouts dereference doc.sale_order_id.company_id, while the selected contract permits real buyerless/company-known loads. All three report files are absent from the detailed file plan.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Buyerless physical paperwork may show missing/wrong source company or fail its intended audience semantics; carrier packet proofs incomplete.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-004",
+      "finding_fingerprint": "633d52c2cfa48b779e36d72c4b7b984c9a0935fb33312de46cc2d529c269e851",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:105-114",
+        "finding_type": "gap",
+        "rule_key": "F-004/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / evidence-backed exclusions: Existing carrier dispatch/delivery/BOL email templates use object",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_automation/data/email_templates.xml",
+        "location": "150-159",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "Existing carrier dispatch/delivery/BOL email templates use object.sale_order_id.company_id for email-from, names, and reply-to context. The map defaults Automation to untouched, and its specific templates have no accepted no-change disposition.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "New buyerless/PO-only load messages may use blank or fallback business identity; audience/security and deliverability can diverge from Logistics.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-005",
+      "finding_fingerprint": "3a2e6e9f0a10f370626d86b536a7b0f2b16de98bb280b92c06d9db9ae2a630f1",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:8-30",
+        "finding_type": "gap",
+        "rule_key": "F-005/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / planning: Linda inbound automation filters mail",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_logistics/data/linda_inbound_ai.xml",
+        "location": "22-27",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "Linda inbound automation filters mail.message.model only to purchase.order and sale.order. Adding a booking request and modifying linda_response.py alone does not deliver booking-bound messages into the evidence pipeline. The inbound XML is not in the file map.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Booking reply evidence is silently absent even when response model accepts the new source kind.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-006",
+      "finding_fingerprint": "a71cff46b7ead3f13acd4213d79f4d7db7d879359f83996719371aff9192515c",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md:33-35",
+        "finding_type": "contradiction",
+        "rule_key": "F-006/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / implementation planning: The active dispatch-acknowledgment cron invokes load",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "contradiction",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_logistics/models/load.py",
+        "location": "1190-1236",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "The active dispatch-acknowledgment cron invokes load.action_send_dispatch_direct() after the threshold, resending the full carrier packet. The accepted Linda/Documents owner policy says packet acknowledgment reminders must not resend the full packet. RP-03 names cron generically but does not assign the exact correction and pre-code proof.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Real duplicate carrier packets, potentially including stale booking revision, can escape without a complete plan.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-007",
+      "finding_fingerprint": "7ff43068ab22ec098f224fdcc61cd3f976a944ecd4e4c4e2553e7ad079a4b34f",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md:33-35",
+        "finding_type": "gap",
+        "rule_key": "F-007/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / planning: The separate plasticos",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_logistics/models/dispatch.py",
+        "location": "26-49",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "The separate plasticos.dispatch transition writes state directly; load_bulk_update_wizard directly invokes load._transition; composer and direct send actions remain distinct. The package does not list each effective entrypoint with change/no-change and an exact enforcement hook.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "An Export booking hold may be bypassed by a direct/wizard/cron or mail path.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-008",
+      "finding_fingerprint": "caf3bd98282684157be9d0e22989a6a136fbb9c39def163960ceb2ee7a0c0aad",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md:31-34",
+        "finding_type": "gap",
+        "rule_key": "F-008/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / exclusions: Freight RFQ creation requires both load company and load",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": 4,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_logistics/models/freight_quote.py",
+        "location": "111-121",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "Freight RFQ creation requires both load company and load.transaction_id; SAL resolver and freight history also derive company/repeat-stream context from SO/transaction. These consumers are not individually disposed in the file-change map.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Buyerless or PO-only loads may encounter an unplanned abstention, blocked RFQ or incorrect freight-source identity.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-009",
+      "finding_fingerprint": "5d723a066da7856d1b3f923dc3d9626981a42dd2efe882440598ac49157ab34a",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md:35-38",
+        "finding_type": "gap",
+        "rule_key": "F-009/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / downstream consumers: The Claims addon hooks plasticos",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_claims/models/document_inherit.py",
+        "location": "5-58",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "The Claims addon hooks plasticos.document.create and auto-creates a claim and outgoing notification for certain document tags; it searches a transaction via load_id with limit=1. The owner plan does not give Claims a verified no-change or planned adaptation for many scoped evidence links.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "One original/typed association migration may spur unintended claim side effects or misattribute claims; evidence changes have monetary/workflow ramifications.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-010",
+      "finding_fingerprint": "3f96827c216addb0030af94e28f7d015dc5aaa59921ce5a7e71e49572cfcc52c",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md:35-38",
+        "finding_type": "gap",
+        "rule_key": "F-010/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / exclusions: Commission sales dashboard uses a SQL transaction/load join and derives document status fr",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": 4,
+      "recurrence": "Unknown",
+      "confidence": "likely",
+      "evidence": {
+        "source": "plasticos_commission/models/sales_dashboard.py",
+        "location": "150-250",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "Commission sales dashboard uses a SQL transaction/load join and derives document status from verified/override flags, while proposed Documents replaces unscoped verification with typed scoped acceptance. The pack lacks a per-consumer change/no-change verdict.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Sales dashboard document status or source permissions may diverge even if Export itself displays correct scoped evidence.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-011",
+      "finding_fingerprint": "01e6a674a71c0b716d52f398e5c049d301342c3958891f2ccf725edc77fc8f59",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:31-54",
+        "finding_type": "gap",
+        "rule_key": "F-011/POS-INV-26"
+      },
+      "title": "Blast-radius discovery / planning: The Documents addon has an active six-hour missing-doc cron driven by transaction create_d",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": 4,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_documents/models/transaction_docs.py",
+        "location": "116-175",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "The Documents addon has an active six-hour missing-doc cron driven by transaction create_date and a single-link compliance API that checks expiry but not current/superseded status; these exact data/cron consumers do not have a row-level change/no-change plan.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "New scoped evidence may not clear existing reminders or may incorrectly mark old obligations satisfied; duplicative followups are possible.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-012",
+      "finding_fingerprint": "17ea162671e276295694b74e19ee6a9ab3379530558d41b2a7c434732917069c",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md:37-38",
+        "finding_type": "gap",
+        "rule_key": "F-012/POS-INV-26"
+      },
+      "title": "Change planning / security: The global Load rule accepts company_id=False, and the Sales Rep rule keys visibility to s",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_security_base/security/record_rules.xml",
+        "location": "124-152",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "The global Load rule accepts company_id=False, and the Sales Rep rule keys visibility to sale_order_id.user_id. Company ownership change and buyerless loads can alter access while no actual-company backfill census or exact revised record rules exist.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Cross-company/missing-company load visibility and owner access are not proven safe.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-013",
+      "finding_fingerprint": "27a1bf039cd97fe3b431b9c4c29e58c398ec5acf7220f89a5836e731c8271169",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:31-60",
+        "finding_type": "gap",
+        "rule_key": "F-013/POS-INV-26"
+      },
+      "title": "Full change accounting / security: ACL grants base",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_documents/security/ir.model.access.csv",
+        "location": "2-13",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "ACL grants base.group_user broad document create/write/unlink, while document.write accepts verified/override fields without enforcing the named manager-authoritative action; the candidate one-writer migration has no precise authorization/field-write migration and negative acceptance row.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "A new typed business verifier could be bypassed by ordinary ORM writes, compromising verification authority.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-014",
+      "finding_fingerprint": "62b2f8322fb6a3eb63f9a2af2aa685f0d107e94b3f22331d4856bac25024f506",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/MODULE_DESIGN/TECHNICAL_CLOSURE_v2.7.md:289-320",
+        "finding_type": "gap",
+        "rule_key": "F-014/POS-INV-26"
+      },
+      "title": "Complete implementation planning: M0-M7 migration steps and EE-01",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "likely",
+      "evidence": {
+        "source": "EXPORT_BRS/MODULE_DESIGN/TECHNICAL_CLOSURE_v2.7.md",
+        "location": "289-320",
+        "support_type": "direct",
+        "excerpt_or_summary": "M0-M7 migration steps and EE-01..09 tests are desired proof plans, all NOT_RUN. Source counts, actual ambiguous-row populations, exact versioned migration paths (<next_version>), upgrade fixture and tested rollback/restore references are absent.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "No deterministic full migration/rollback/upgrade plan can be frozen for existing tenant data.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-015",
+      "finding_fingerprint": "918c4f8826dc11af3c5af82ba2eeab082b989d3568ffc639cda401b6baa34c71",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:105-123",
+        "finding_type": "gap",
+        "rule_key": "F-015/POS-INV-26"
+      },
+      "title": "Evidence-backed exclusions: The map says not to modify Transaction, native Stock, Automation and Facility Profile by d",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": 4,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md",
+        "location": "105-123",
+        "support_type": "direct",
+        "excerpt_or_summary": "The map says not to modify Transaction, native Stock, Automation and Facility Profile by default. It does not provide the required per-consumer verified unchanged records, and Automation source demonstrably has affected message templates.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "A no-change assumption would launder unresolved dependencies into code authorization.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-016",
+      "finding_fingerprint": "44354bd2fba3e21262f4455e89f8a78ad1c6b0e66e00d1554fd49962e00e5699",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md:1-6",
+        "finding_type": "risk",
+        "rule_key": "F-016/POS-INV-26"
+      },
+      "title": "Blast-radius freshness: ZIP source map pins Staging@04bd0594; current Staging HEAD advanced three commits to 78476",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "risk",
+      "basis_class": "observational",
+      "severity": 3,
+      "blast_radius": 4,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "plasticos_material_profile/models/material_normalizer.py",
+        "location": "1-7",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "ZIP source map pins Staging@04bd0594; current Staging HEAD advanced three commits to 78476d, changing seven CRM/material files. The listed Logistics/Documents owner files inspected here retain matching blob identity, but source currentness and any material-profile integration exclusion have not been recorded in the ZIP.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "An operator could code against an obsolete baseline or assume changed source providers are independent without proof.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-017",
+      "finding_fingerprint": "039492b439c828b61d2ff0a260358af273f0475b8149ff5409c184dfd9d10696",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/MODULE_DESIGN/PROPOSED_FILETREE.md:1-62",
+        "finding_type": "gap",
+        "rule_key": "F-017/POS-INV-26"
+      },
+      "title": "Full change accounting / implementation planning: The old proposed addon filetree contains conditional booking_revision",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": 4,
+      "recurrence": "Unknown",
+      "confidence": "likely",
+      "evidence": {
+        "source": "EXPORT_BRS/MODULE_DESIGN/PROPOSED_FILETREE.md",
+        "location": "1-62",
+        "support_type": "direct",
+        "excerpt_or_summary": "The old proposed addon filetree contains conditional booking_revision.py and a load_extension.py description centered on bookings with individual loads, while selected v2.7 E2/J1/E3 roles are stated elsewhere. This is historical/design-only, but the pre-code plan does not resolve whether each proposed file is kept, replaced, co-located or excluded.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "An implementation agent reading both paths could choose conflicting field ownership or create surplus files.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-018",
+      "finding_fingerprint": "aa5c6f3f59c1785b0cf3f762a516c601dcf1aae72c32bfeefc55da03136e0cfb",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "GOVERNANCE/INVARIANT_NEGATIVE_PROBES.md:21-23",
+        "finding_type": "gap",
+        "rule_key": "F-018/POS-INV-26"
+      },
+      "title": "Fail-closed enforcement: POS-INV-26 remains a working DRAFT; INV-P16 is a written negative probe marked NOT_RUN; th",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": 4,
+      "recurrence": "Unknown",
+      "confidence": "likely",
+      "evidence": {
+        "source": "GOVERNANCE/INVARIANT_NEGATIVE_PROBES.md",
+        "location": "21-23",
+        "support_type": "direct",
+        "excerpt_or_summary": "POS-INV-26 remains a working DRAFT; INV-P16 is a written negative probe marked NOT_RUN; the ZIP declares code blocked but does not contain an accepted revision-bound complete-plan receipt or an observed technical gate preventing unplanned edits.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Human/operator blocking instruction is explicit, but automatic repo/agent fail-closed enforcement cannot be claimed.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-019",
+      "finding_fingerprint": "9969e97137da82574b50d6b194c037553e8298c4ff2d235d92a803a8c9800f21",
+      "fingerprint_basis": {
+        "subject": "02ec68291603753f6eb33d00ecaeb324ac529936fa0c9533a94bfdfcbbce190d",
+        "location": "EXPORT_BRS/MODULE_DESIGN/TECHNICAL_CONTRACT_v2.7.json",
+        "finding_type": "gap",
+        "rule_key": "F-019/POS-INV-26"
+      },
+      "title": "Owner adoption / Enterprise compatibility: All seven EXP-IC contract handoffs have status NOT_ADOPTED and Enterprise tests are NOT_RU",
+      "artifact_type": "knowledge_pack",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 5,
+      "blast_radius": 5,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "EXPORT_BRS/MODULE_DESIGN/TECHNICAL_CONTRACT_v2.7.json",
+        "location": "cross_module_adoption",
+        "support_type": "direct",
+        "excerpt_or_summary": "All seven EXP-IC contract handoffs have status NOT_ADOPTED and Enterprise tests are NOT_RUN. J1/J2 and the 12 command signatures are specified as non-installed targets.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "No downstream code may treat proposed interfaces as callable contracts or owner-approved schema.",
+      "status": "open"
+    }
+  ],
+  "unknowns": [
+    {
+      "item": "Exhaustive semantic read/write call graph beyond reviewed paths",
+      "reason": "Source inspection demonstrated material missed consumers but did not reconstruct every runtime invocation across entire Odoo ecosystem.",
+      "material": true
+    },
+    {
+      "item": "Enterprise installed runtime and production migration population",
+      "reason": "No actual Enterprise fixture, private database/verified migration census, or negative test receipts supplied in the ZIP.",
+      "material": true
+    },
+    {
+      "item": "Source-owner adoption and technical pre-code enforcement",
+      "reason": "The seven handoffs are marked NOT_ADOPTED; pre-code negative INV-P16 NOT_RUN and invariant draft not admitted into repository constitution.",
+      "material": true
+    }
+  ],
+  "convergence": {
+    "status": "partial",
+    "passes": 3,
+    "material_changes_after_final_pass": false,
+    "improvement_estimate_remaining_percent": "Unknown",
+    "final_confidence": "Unknown",
+    "stop_condition": "Evidence sufficient to prohibit code; exhaustive material-effect closure requires exact source owner and runtime proof before any stronger claim."
+  },
+  "assessment_status": "partial"
+}

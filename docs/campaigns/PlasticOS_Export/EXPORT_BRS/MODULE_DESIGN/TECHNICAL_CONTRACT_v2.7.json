@@ -1,0 +1,758 @@
+{
+  "authority": "Markdown source document controls; this JSON is a derived engineering index, not a new BRS registry",
+  "baseline": {
+    "constitution": "INVARIANTS.md v2.2.0",
+    "target_repo": "cryptoxdog/IB-Odoo_19",
+    "target_sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+    "working_invariants": "ODOO_INVARIANTS_v3.3.0_DRAFT_r1.md"
+  },
+  "classification": "WORKING_PACK_TECHNICAL_PROJECTION_NOT_CANONICAL_OR_INSTALLED",
+  "cross_module_adoption": [
+    {
+      "id": "EXP-IC-01",
+      "runtime": "NOT_RUN",
+      "status": "NOT_ADOPTED"
+    },
+    {
+      "id": "EXP-IC-02",
+      "runtime": "NOT_RUN",
+      "status": "NOT_ADOPTED"
+    },
+    {
+      "id": "EXP-IC-03",
+      "runtime": "NOT_RUN",
+      "status": "PRODUCT_SELECTED_PENDING_SOURCE_OWNER_ADOPTION"
+    },
+    {
+      "id": "EXP-IC-04",
+      "runtime": "NOT_RUN",
+      "status": "NOT_ADOPTED"
+    },
+    {
+      "id": "EXP-IC-05",
+      "runtime": "NOT_RUN",
+      "status": "NOT_ADOPTED"
+    },
+    {
+      "id": "EXP-IC-06",
+      "runtime": "NOT_RUN",
+      "status": "NOT_ADOPTED"
+    },
+    {
+      "id": "EXP-IC-07",
+      "runtime": "NOT_RUN",
+      "status": "NOT_ADOPTED"
+    }
+  ],
+  "external_effects": "DISABLED_BY_DEFAULT",
+  "models": {
+    "E1": {
+      "addon": "plasticos_export",
+      "constraints": [
+        "accepted: company,issuer,booking number,source occurrence all present",
+        "unique(company_id,issuer_id,source_occurrence_key) for non-null keys",
+        "one current_revision_id",
+        "revision acceptance + capacity atomic"
+      ],
+      "fields": {
+        "carrier_booking_no": {
+          "constraint": "required at acceptance, not globally unique",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "Export sourced acceptance"
+        },
+        "carrier_id": {
+          "constraint": "different from issuer",
+          "odoo_field": "Many2one(res.partner)",
+          "required": false,
+          "write_authority": "Export"
+        },
+        "company_id": {
+          "constraint": "immutable after acceptance; exact company guard",
+          "odoo_field": "Many2one(res.company)",
+          "required": true,
+          "write_authority": "Export authorized create"
+        },
+        "current_revision_id": {
+          "constraint": "accepted revision must belong to this booking/company",
+          "odoo_field": "Many2one(plasticos.export.booking.revision)",
+          "required": false,
+          "write_authority": "Export action_accept_booking_revision"
+        },
+        "display_state": {
+          "constraint": "not independently written",
+          "odoo_field": "computed Selection(candidate,confirmed,held,cancelled)",
+          "required": false,
+          "write_authority": "computed"
+        },
+        "issuer_id": {
+          "constraint": "required for accepted booking",
+          "odoo_field": "Many2one(res.partner)",
+          "required": false,
+          "write_authority": "Export authorized acceptance"
+        },
+        "slot_ids": {
+          "constraint": "confirmed-only capacity",
+          "odoo_field": "One2many(plasticos.export.booking.slot,booking_id)",
+          "required": false,
+          "write_authority": "derived"
+        },
+        "source_occurrence_key": {
+          "constraint": "required at acceptance; exact booking-cycle identity not number-only",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "Export sourced acceptance"
+        }
+      },
+      "name": "plasticos.export.booking",
+      "status": "SELECTED_TARGET_NOT_INSTALLED"
+    },
+    "E2": {
+      "addon": "plasticos_export",
+      "constraints": [
+        "unique(booking_id,source_revision_key)",
+        "candidate -> accepted or rejected",
+        "accepted fields immutable, currentness pointer on E1",
+        "Json field support proof required"
+      ],
+      "fields": {
+        "acceptance_basis": {
+          "constraint": "required if accepted",
+          "odoo_field": "Text",
+          "required": false,
+          "write_authority": "Export"
+        },
+        "accepted_at": {
+          "constraint": "required if accepted",
+          "odoo_field": "Datetime",
+          "required": false,
+          "write_authority": "server"
+        },
+        "accepted_by": {
+          "constraint": "required if accepted",
+          "odoo_field": "Many2one(res.users)",
+          "required": false,
+          "write_authority": "server user"
+        },
+        "additional_terms": {
+          "constraint": "field-level original, precision and status",
+          "odoo_field": "Json",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "affected_scope": {
+          "constraint": "exact IDs or scope unknown",
+          "odoo_field": "Json",
+          "required": false,
+          "write_authority": "accepted amendment"
+        },
+        "booking_id": {
+          "constraint": "same-company",
+          "odoo_field": "Many2one(plasticos.export.booking)",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "cargo_cutoff_local": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "cargo_cutoff_precision": {
+          "constraint": "",
+          "odoo_field": "Selection(date,datetime,unknown)",
+          "required": true,
+          "write_authority": "validated source snapshot"
+        },
+        "cargo_cutoff_tz": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "cargo_cutoff_utc": {
+          "constraint": "requires precise zone and date-time",
+          "odoo_field": "Datetime",
+          "required": false,
+          "write_authority": "validated source snapshot"
+        },
+        "carrier_booking_no": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "company_id": {
+          "constraint": "",
+          "odoo_field": "related Many2one(res.company)",
+          "required": true,
+          "write_authority": "derived"
+        },
+        "decision": {
+          "constraint": "accepted immutable",
+          "odoo_field": "Selection(candidate,accepted,rejected)",
+          "required": true,
+          "write_authority": "Export accepted action"
+        },
+        "equipment_counts": {
+          "constraint": "requested and confirmed counts distinct",
+          "odoo_field": "Json",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "erd_local": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "erd_precision": {
+          "constraint": "",
+          "odoo_field": "Selection(date,datetime,unknown)",
+          "required": true,
+          "write_authority": "validated source snapshot"
+        },
+        "erd_tz": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "erd_utc": {
+          "constraint": "requires precise zone and date-time",
+          "odoo_field": "Datetime",
+          "required": false,
+          "write_authority": "validated source snapshot"
+        },
+        "observed_at": {
+          "constraint": "source issued time separate",
+          "odoo_field": "Datetime",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "pod_text": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "pol_text": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "source_issued_at": {
+          "constraint": "never inferred",
+          "odoo_field": "Datetime",
+          "required": false,
+          "write_authority": "Export"
+        },
+        "source_message_id": {
+          "constraint": "at least one original/message",
+          "odoo_field": "Many2one(mail.message)",
+          "required": false,
+          "write_authority": "Export source pointer"
+        },
+        "source_original_id": {
+          "constraint": "at least one original/message",
+          "odoo_field": "Many2one(documents.document)",
+          "required": false,
+          "write_authority": "Export source pointer"
+        },
+        "source_revision_key": {
+          "constraint": "unique per booking",
+          "odoo_field": "Char",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "steamship_line_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(res.partner)",
+          "required": false,
+          "write_authority": "source snapshot"
+        },
+        "supersedes_revision_id": {
+          "constraint": "exact previous accepted revision",
+          "odoo_field": "Many2one(self)",
+          "required": false,
+          "write_authority": "Export"
+        }
+      },
+      "name": "plasticos.export.booking.revision",
+      "status": "SELECTED_TARGET_NOT_INSTALLED"
+    },
+    "E3": {
+      "addon": "plasticos_export",
+      "constraints": [
+        "unique(booking_id,slot_key)",
+        "at most one active E3 per J1 via DB partial unique predicate",
+        "distinct E3 counts, not E4 counts",
+        "stable slot key after accepted reduction",
+        "booking row lock, then E3 rows in ID order"
+      ],
+      "fields": {
+        "allocation_state": {
+          "constraint": "",
+          "odoo_field": "computed Selection(available,committed,held,historical)",
+          "required": false,
+          "write_authority": "computed"
+        },
+        "booking_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(plasticos.export.booking)",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "company_id": {
+          "constraint": "",
+          "odoo_field": "related Many2one(res.company)",
+          "required": true,
+          "write_authority": "derived"
+        },
+        "created_from_revision_id": {
+          "constraint": "accepted only",
+          "odoo_field": "Many2one(plasticos.export.booking.revision)",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "equipment_class": {
+          "constraint": "confirmed equipment type",
+          "odoo_field": "Selection(20STD,40STD,40HC,45STD,45HC)",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "hold_reason": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "Export owner exception"
+        },
+        "hold_revision_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(plasticos.export.booking.revision)",
+          "required": false,
+          "write_authority": "Export owner exception"
+        },
+        "journey_binding_state": {
+          "constraint": "partial unique on active journey_id",
+          "odoo_field": "Selection(unbound,active,historical)",
+          "required": true,
+          "write_authority": "Export guarded binding"
+        },
+        "journey_id": {
+          "constraint": "NOT load_id; real J1 under Logistics",
+          "odoo_field": "Many2one(plasticos.iso.journey)",
+          "required": false,
+          "write_authority": "Export exact binding"
+        },
+        "slot_key": {
+          "constraint": "stable unique within booking",
+          "odoo_field": "Char",
+          "required": true,
+          "write_authority": "Export"
+        }
+      },
+      "name": "plasticos.export.booking.slot",
+      "status": "SELECTED_TARGET_NOT_INSTALLED"
+    },
+    "E4": {
+      "addon": "plasticos_export",
+      "constraints": [
+        "unique(company_id,allocation_key)",
+        "exact authorized source identity and quantity basis",
+        "no physical or economic write",
+        "one E4 link never consumes extra booking slot"
+      ],
+      "fields": {
+        "allocation_key": {
+          "constraint": "unique per company",
+          "odoo_field": "Char",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "company_id": {
+          "constraint": "",
+          "odoo_field": "related Many2one(res.company)",
+          "required": true,
+          "write_authority": "derived"
+        },
+        "original_attachment_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(ir.attachment)",
+          "required": false,
+          "write_authority": "source pointer"
+        },
+        "physical_source_kind": {
+          "constraint": "pending implies no actual shipped claim",
+          "odoo_field": "Selection(native_stock,logistics_load,verified_nonstock,pending)",
+          "required": true,
+          "write_authority": "Export sourced context"
+        },
+        "physical_source_ref": {
+          "constraint": "exact proof, not arbitrary name matching",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source reference"
+        },
+        "planned_quantity": {
+          "constraint": "only prospective",
+          "odoo_field": "Float",
+          "required": false,
+          "write_authority": "Export"
+        },
+        "planned_quantity_known": {
+          "constraint": "separate from float zero",
+          "odoo_field": "Boolean",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "purchase_line_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(purchase.order.line)",
+          "required": false,
+          "write_authority": "source reference"
+        },
+        "replaces_link_id": {
+          "constraint": "preserve prior",
+          "odoo_field": "Many2one(self)",
+          "required": false,
+          "write_authority": "Export"
+        },
+        "sale_line_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(sale.order.line)",
+          "required": false,
+          "write_authority": "source reference"
+        },
+        "slot_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(plasticos.export.booking.slot)",
+          "required": true,
+          "write_authority": "Export"
+        },
+        "source_load_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(plasticos.load)",
+          "required": false,
+          "write_authority": "source reference"
+        },
+        "source_revision_key": {
+          "constraint": "identity and replay",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "source owner"
+        },
+        "state": {
+          "constraint": "",
+          "odoo_field": "Selection(proposed,committed,held,released)",
+          "required": true,
+          "write_authority": "Export guarded command"
+        },
+        "stock_move_line_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(stock.move.line)",
+          "required": false,
+          "write_authority": "source reference"
+        },
+        "uom_id": {
+          "constraint": "required if known",
+          "odoo_field": "Many2one(uom.uom)",
+          "required": false,
+          "write_authority": "source UoM"
+        }
+      },
+      "name": "plasticos.export.booking.cargo.link",
+      "status": "SELECTED_TARGET_NOT_INSTALLED"
+    },
+    "J1": {
+      "addon": "plasticos_logistics",
+      "constraints": [
+        "one actual ISO journey identity, same ISO string reusable another cycle",
+        "no booking FK, no Export/Document/Accounting writer",
+        "source-backed identity only, no gate-in inference"
+      ],
+      "fields": {
+        "company_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(res.company)",
+          "required": true,
+          "write_authority": "Logistics"
+        },
+        "equipment_class": {
+          "constraint": "real source class",
+          "odoo_field": "Char",
+          "required": true,
+          "write_authority": "Logistics"
+        },
+        "identity_attested_at": {
+          "constraint": "",
+          "odoo_field": "Datetime",
+          "required": false,
+          "write_authority": "server source"
+        },
+        "identity_attested_by": {
+          "constraint": "",
+          "odoo_field": "Many2one(res.users)",
+          "required": false,
+          "write_authority": "server identity"
+        },
+        "identity_evidence_attachment_id": {
+          "constraint": "required for verified unless independent operator physical-observation record",
+          "odoo_field": "Many2one(ir.attachment)",
+          "required": false,
+          "write_authority": "Logistics"
+        },
+        "identity_state": {
+          "constraint": "",
+          "odoo_field": "Selection(candidate,attributed,verified)",
+          "required": true,
+          "write_authority": "Logistics guarded action"
+        },
+        "iso_number": {
+          "constraint": "not globally unique",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "Logistics verified source"
+        },
+        "seal_number": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "Logistics verified source"
+        },
+        "source_cycle_key": {
+          "constraint": "required at accepted attribution, unique within company",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "Logistics"
+        },
+        "source_ids": {
+          "constraint": "",
+          "odoo_field": "One2many(plasticos.iso.journey.source,journey_id)",
+          "required": false,
+          "write_authority": "derived"
+        }
+      },
+      "name": "plasticos.iso.journey",
+      "status": "OWNER_ADOPTION_PROPOSAL_NOT_INSTALLED"
+    },
+    "J2": {
+      "addon": "plasticos_logistics",
+      "constraints": [
+        "exactly one physical subject FK matches source_kind",
+        "accepted association immutable",
+        "no independent quantity, stock, financial or document verification writer"
+      ],
+      "fields": {
+        "acceptance_basis": {
+          "constraint": "",
+          "odoo_field": "Text",
+          "required": false,
+          "write_authority": "Logistics approved action"
+        },
+        "company_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(res.company)",
+          "required": true,
+          "write_authority": "Logistics source"
+        },
+        "evidence_attachment_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(ir.attachment)",
+          "required": false,
+          "write_authority": "Logistics source reference"
+        },
+        "journey_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(plasticos.iso.journey)",
+          "required": true,
+          "write_authority": "Logistics"
+        },
+        "load_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(plasticos.load)",
+          "required": false,
+          "write_authority": "Logistics source reference"
+        },
+        "source_kind": {
+          "constraint": "",
+          "odoo_field": "Selection(load,stock_move_line,nonstock_evidence)",
+          "required": true,
+          "write_authority": "Logistics"
+        },
+        "source_party_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(res.partner)",
+          "required": true,
+          "write_authority": "Logistics sourced role"
+        },
+        "source_reference": {
+          "constraint": "",
+          "odoo_field": "Char",
+          "required": false,
+          "write_authority": "Logistics source"
+        },
+        "state": {
+          "constraint": "",
+          "odoo_field": "Selection(candidate,accepted,rejected)",
+          "required": true,
+          "write_authority": "Logistics guarded action"
+        },
+        "stock_move_line_id": {
+          "constraint": "",
+          "odoo_field": "Many2one(stock.move.line)",
+          "required": false,
+          "write_authority": "Logistics source reference"
+        }
+      },
+      "name": "plasticos.iso.journey.source",
+      "status": "OWNER_ADOPTION_PROPOSAL_NOT_INSTALLED"
+    }
+  },
+  "schema": "plasticos.export.technical-contract/v2.7",
+  "source_document": "EXPORT_BRS/MODULE_DESIGN/TECHNICAL_CLOSURE_v2.7.md",
+  "state": "PRODUCT_DESIGN_SELECTED_NOT_GAR_ADMITTED_OR_CODE_AUTHORIZED",
+  "target_command_signatures": [
+    {
+      "installed": false,
+      "method": "record_booking_revision_candidate",
+      "owner": "Export",
+      "parameters": "source_original_id:int|null, source_message_id:int|null, source_revision_key:str, extracted_terms:dict, operation_key:str",
+      "receiver": "plasticos.export.booking",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_accept_booking_revision",
+      "owner": "Export",
+      "parameters": "revision_id:int, expected_current_revision_id:int|null, operation_key:str, acceptance_reason:str",
+      "receiver": "plasticos.export.booking",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_commit_cargo",
+      "owner": "Export",
+      "parameters": "source_refs:dict, planned_quantity:float|null, uom_id:int|null, expected_booking_revision_id:int, operation_key:str",
+      "receiver": "plasticos.export.booking.slot",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_release_cargo",
+      "owner": "Export",
+      "parameters": "cargo_link_id:int, expected_booking_revision_id:int, operation_key:str, reason:str",
+      "receiver": "plasticos.export.booking.slot",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_bind_journey",
+      "owner": "Export",
+      "parameters": "journey_id:int, expected_booking_revision_id:int, operation_key:str, source_basis:str",
+      "receiver": "plasticos.export.booking.slot",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_request_booking_notice",
+      "owner": "Export",
+      "parameters": "purpose:str, audience_partner_id:int, recipient_email:str, expected_current_revision_id:int, operation_key:str, audience_basis:str",
+      "receiver": "plasticos.export.booking",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_bind_exact_transaction_load",
+      "owner": "Logistics/Transaction",
+      "parameters": "transaction_id:int, load_id:int, movement_authorization:dict, operation_key:str",
+      "receiver": "plasticos.load",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_register_iso_journey",
+      "owner": "Logistics",
+      "parameters": "company_id:int, source_cycle_key:str, equipment_class:str, identity_attachment_id:int|null, iso_number:str|null, seal_number:str|null, operation_key:str",
+      "receiver": "plasticos.iso.journey",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "action_bind_journey_source",
+      "owner": "Logistics",
+      "parameters": "journey_id:int, source_kind:str, source_id:int, source_party_id:int, evidence_attachment_id:int|null, operation_key:str, acceptance_basis:str",
+      "receiver": "plasticos.iso.journey.source",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "assert_can_release_physical_operation",
+      "owner": "Logistics",
+      "parameters": "load_id:int, operation_kind:str, expected_context_token:str|null",
+      "receiver": "plasticos.load",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "get_scoped_evidence_verdict",
+      "owner": "Documents",
+      "parameters": "company_id:int, subject_kind:str, subject_id:int, obligation_kind:str, source_revision_key:str",
+      "receiver": "plasticos.document",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    },
+    {
+      "installed": false,
+      "method": "request_booking_correspondence",
+      "owner": "Linda",
+      "parameters": "booking_id:int, accepted_revision_id:int, purpose:str, audience_partner_id:int, recipient_email:str, attachment_original_ids:list[int], source_payload_fingerprint:str, operation_key:str",
+      "receiver": "plasticos.logistics.request",
+      "return": "dict(status: applied|already_applied|stale|blocked|ambiguous|not_available; record_id?: int; reason?: str)"
+    }
+  ],
+  "tests": {
+    "enterprise": [
+      "EE-01",
+      "EE-02",
+      "EE-03",
+      "EE-04",
+      "EE-05",
+      "EE-06",
+      "EE-07",
+      "EE-08",
+      "EE-09"
+    ],
+    "integration": [
+      "IC-T01",
+      "IC-T02",
+      "IC-T03",
+      "IC-T04",
+      "IC-T05",
+      "IC-T06",
+      "IC-T07",
+      "IC-T08",
+      "IC-T09",
+      "IC-T10",
+      "IC-T11",
+      "IC-T12",
+      "IC-T13",
+      "IC-T14",
+      "IC-T15",
+      "IC-T16",
+      "IC-T17"
+    ],
+    "migration": [
+      "M0",
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6",
+      "M7"
+    ],
+    "status": "NOT_RUN"
+  },
+  "version": "2.7.0"
+}

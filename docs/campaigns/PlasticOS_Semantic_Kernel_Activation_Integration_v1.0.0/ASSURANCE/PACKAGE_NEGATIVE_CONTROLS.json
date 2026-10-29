@@ -1,0 +1,68 @@
+{
+  "status": "PASS_SYNTHETIC_PACKAGE_CONTROLS",
+  "tests": 8,
+  "results": [
+    {
+      "case": "activation set true",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "production activation"
+      ]
+    },
+    {
+      "case": "fake runtime proof",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "unexecuted product proof claimed run"
+      ]
+    },
+    {
+      "case": "missing evidence obligation",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "dangling proof"
+      ]
+    },
+    {
+      "case": "missing effect accounting",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "effect allocation not exactly once",
+        "unknown effect predecessor",
+        "unknown effect predecessor",
+        "unknown effect predecessor",
+        "unknown effect predecessor",
+        "unknown effect predecessor"
+      ]
+    },
+    {
+      "case": "cycle in delivery",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "cyclic graph"
+      ]
+    },
+    {
+      "case": "uncovered operator decision",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "intent coverage"
+      ]
+    },
+    {
+      "case": "fake coding authorization",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "unexpected coding grant"
+      ]
+    },
+    {
+      "case": "dangling graph node",
+      "result": "REJECTED_AS_REQUIRED",
+      "errors": [
+        "dangling graph edge"
+      ]
+    }
+  ],
+  "product_runtime_tests": "NOT_RUN"
+}

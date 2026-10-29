@@ -1,4 +1,9 @@
 from odoo import models
+from odoo.tools.float_utils import float_compare
+
+# Buyer Receiving is the only quantity-scoped invoice evidence. Aggregation of
+# partial receipts is not an admitted rule, so one row must cover the subject.
+RECEIVING_TAG_CODE = "RECEIVING"
 
 
 class PlasticosComplianceService(models.AbstractModel):
@@ -32,6 +37,7 @@ class PlasticosComplianceService(models.AbstractModel):
                     ("res_model", "=", res_model),
                     ("res_id", "=", res_id),
                     ("tag_id", "in", tag_ids),
+                    ("association_state", "=", "accepted"),
                     "|",
                     ("verified", "=", True),
                     ("override", "=", True),
@@ -50,14 +56,35 @@ class PlasticosComplianceService(models.AbstractModel):
 
         for rule in rules:
             docs = docs_by_tag.get(rule.tag_id.id, self.env["plasticos.document"])
-            # Filter out expired documents so they no longer satisfy compliance
-            valid_docs = docs.filtered(lambda d: not d.is_expired)
+            # Historical approval is not current eligibility. Expired, inactive,
+            # superseded, replaced, or unbound evidence stays on the record and
+            # does not satisfy the rule.
+            valid_docs = docs.filtered(
+                lambda d, rule=rule: (
+                    d._currently_eligible() and self._quantity_covers_subject(d, rule, res_model, res_id)
+                )
+            )
 
             if not valid_docs:
                 missing.append(rule.tag_id.code)
 
         return missing
 
+    def _quantity_covers_subject(self, doc, rule, res_model, res_id):
+        """One Receiving row covers a transaction only when its own quantity does.
+
+        Partial rows are not summed. An unknown quantity fails closed. Other tags
+        are not quantity evidence.
+        """
+        if not rule.tag_id or rule.tag_id.code != RECEIVING_TAG_CODE:
+            return True
+        if res_model != "plasticos.transaction":
+            return False
+        transaction = self.env["plasticos.transaction"].browse(res_id).exists()
+        if not transaction or not transaction.quantity or not doc.covered_quantity:
+            return False
+        return float_compare(doc.covered_quantity, transaction.quantity, precision_digits=2) >= 0
+
     def is_compliant(self, res_model, res_id, purpose=None):
-        missing = self.get_missing_documents(res_model, res_id, purpose=purpose)
-        return len(missing) == 0
+        """Live eligibility. This read does not store, recompute, or post."""
+        return not self.get_missing_documents(res_model, res_id, purpose=purpose)

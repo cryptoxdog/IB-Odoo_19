@@ -1,0 +1,45 @@
+schema: sm.odoosh.dr.slice-receipt/local-v1
+campaign_id: SM-ODOO-DR-CAMPAIGN-001
+contract_id: REQUIRED_00_TO_06
+contract_revision_sha256: REQUIRED
+status: NOT_STARTED # NOT_STARTED | ACTIVE | PASS | FAIL | BLOCKED_EXTERNAL
+observation_utc: UNKNOWN
+source:
+  odoo_project_build_db: UNKNOWN_OR_NOT_APPLICABLE
+  source_checkpoint_at_utc: UNKNOWN_OR_NOT_APPLICABLE
+  repository_sha: UNKNOWN
+  aws_account_region: UNKNOWN_OR_NOT_APPLICABLE
+  external_owners_or_grants: []
+permissions_and_code:
+  files_added_changed_removed: []
+  aws_resources_created_and_arns: []
+  other_service_settings: []
+  secret_references_only: []
+  protected_1password_item_ids_only: []
+  iac_state_private_reference: UNKNOWN_OR_NOT_APPLICABLE
+validation:
+  observed_real_checks: []
+  observed_negative_tests: []
+  test_fixture_only_checks: []
+  verified_protected_s3_versions: []
+  independent_restore_reference: UNKNOWN_OR_NOT_APPLICABLE
+  verifier_admission_reference: UNKNOWN_OR_NOT_APPLICABLE
+  actual_deployed_recovery_release_digest: UNKNOWN_OR_NOT_APPLICABLE
+  protected_release_object_version_reference: UNKNOWN_OR_NOT_APPLICABLE
+  measured_business_rpo_minutes: UNKNOWN_OR_NOT_APPLICABLE
+  measured_rto_minutes: UNKNOWN_OR_NOT_APPLICABLE
+  backup_bytes_and_transfer_savings: UNKNOWN_OR_NOT_APPLICABLE
+  immutable_dependency_closed: UNKNOWN
+handoff:
+  predecessor_receipts_verified: []
+  independent_consumer_ready: false
+  operator_emergency_pack_version_and_digest: UNKNOWN_OR_NOT_APPLICABLE
+  tested_capability_level: NONE # NONE | NATIVE | INDEPENDENT_DAILY | INCREMENTAL | TWO_HOUR
+  owner_operator_access_test: UNKNOWN
+  private_evidence_repository_reference: UNKNOWN
+  native_odoo_status_unchanged: UNKNOWN
+  exact_cost_monitor_owner: UNKNOWN
+  open_in_scope_items: [] # MUST EMPTY for PASS
+  externally_blocked_items: [] # BLOCKED_EXTERNAL requires named proof and one owner
+  cleanup_and_rotation_complete: false
+  next_action_or_campaign_exit: REQUIRED

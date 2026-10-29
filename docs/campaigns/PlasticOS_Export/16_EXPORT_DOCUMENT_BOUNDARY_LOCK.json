@@ -1,0 +1,55 @@
+{
+  "schema": "recycleos.idea-expansion-addon/v1",
+  "id": "plasticos-export-document-owner-boundary-lock-2026-10-27",
+  "version": "1.3.0",
+  "status": "locked-operator-intent-not-admitted",
+  "mode": "additive-to-v1.2.0",
+  "implementation_authority": "none",
+  "module": "plasticos_export",
+  "primary_jobs": [
+    "export booking context",
+    "export document requirements",
+    "native QWeb report templates",
+    "native Odoo views and exceptions",
+    "minimal proven absent fields or links"
+  ],
+  "owner_map": {
+    "original_files_versions_aliases": "Odoo native Documents / ir.attachment when enabled",
+    "business_evidence_classification_and_authoritative_verification": "plasticos_documents",
+    "export_document_applicability": "plasticos_export (using existing Documents compliance)",
+    "outbound_external_communications": "plasticos_logistics/Linda via native Odoo Mail",
+    "actual_goods_stock_package": "native Odoo Stock",
+    "orders_and_finance": "native Odoo Sales/Purchase/Accounting",
+    "inland_logistics_dispatch_and_freight": "plasticos_logistics",
+    "native_internal_todo": "mail.activity / native Documents Request where available"
+  },
+  "forbidden": [
+    "duplicate original document storage",
+    "independent export verification writer",
+    "new export generic compliance engine",
+    "second external sender or reminder scheduler",
+    "custom PDF report runtime instead of native QWeb",
+    "duplicate stock or accounting ledger",
+    "automatic financial or legal effects from document verification",
+    "unverified regulatory filing or ocean B/L issuance",
+    "promotion of unadmitted BRS to code authority"
+  ],
+  "phase_ids": [
+    "EX-P1",
+    "EX-P2"
+  ],
+  "source": {
+    "repo": "cryptoxdog/IB-Odoo_19",
+    "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+    "status": "code-observed-not-runtime"
+  },
+  "existing_seam": "native bridge has local verified/action_verify alongside plasticos_documents verification; conform to one authoritative writer before export consumption",
+  "requirements": [
+    "00C_VERSION_1_3_DOCUMENT_BOUNDARY_LOCK.md",
+    "14_EXPORT_DOCUMENT_OWNERSHIP_MATRIX.md"
+  ],
+  "acceptance": "15_EXPORT_DOCUMENT_BOUNDARY_PROBES.md",
+  "tests": "NOT_RUN",
+  "admission": false,
+  "changes_authorized": false
+}

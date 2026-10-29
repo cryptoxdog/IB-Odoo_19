@@ -1,0 +1,52 @@
+{
+  "observed_date": "2026-10-29",
+  "repositories": [
+    {
+      "key": "odoo",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "revision": "677d734fd88615d673501d91de88734b7150ff50",
+      "branch": "Staging",
+      "verification": "GitHub compare ref to itself; exact SHA matches prior bounded source reads"
+    },
+    {
+      "key": "eie",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "branch": "main",
+      "verification": "GitHub compare ref to itself; exact SHA matches prior bounded source reads"
+    },
+    {
+      "key": "ceg",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "branch": "main",
+      "verification": "GitHub compare ref to itself; exact SHA matches prior bounded source reads"
+    },
+    {
+      "key": "gate",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "branch": "main",
+      "verification": "GitHub compare ref to itself; exact SHA matches prior bounded source reads"
+    }
+  ],
+  "protected_prs": [
+    {
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "number": 329,
+      "head": "fec9bf0f3958ce61daa86eedb64e4db75cac1c1a",
+      "base": "677d734fd88615d673501d91de88734b7150ff50",
+      "state": "open",
+      "merged": false,
+      "note": "Refreshed metadata only on this task; previous head changed. Reinspect actual diff before consuming its interfaces. Separate web-lead campaign owns remediation."
+    }
+  ],
+  "unresolved_coordinates": [
+    "Installed Odoo Enterprise revision and registry",
+    "Live Odoo.sh build/database/configuration",
+    "Deployed EIE/CEG/Gate image release set",
+    "Effective Gate_SDK pin in all consumers",
+    "Current global L9 authority projection if canonical conformance is later claimed"
+  ],
+  "scope": "Read-only source planning; not live-state attestation"
+}

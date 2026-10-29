@@ -1,0 +1,200 @@
+{
+  "format": "package-local-intent-trace/v1",
+  "coverage": [
+    {
+      "decision": "D01",
+      "effect_ids": [
+        "O01",
+        "O02",
+        "O03",
+        "X01",
+        "X05"
+      ],
+      "proof_ids": [
+        "P06",
+        "P17"
+      ]
+    },
+    {
+      "decision": "D02",
+      "effect_ids": [
+        "O11",
+        "O22"
+      ],
+      "proof_ids": [
+        "P03",
+        "P27",
+        "P29"
+      ]
+    },
+    {
+      "decision": "D03",
+      "effect_ids": [
+        "O04",
+        "O05",
+        "X01"
+      ],
+      "proof_ids": [
+        "P04",
+        "P05",
+        "P06",
+        "P32"
+      ]
+    },
+    {
+      "decision": "D04",
+      "effect_ids": [
+        "O12",
+        "X01",
+        "X03",
+        "X05",
+        "X06"
+      ],
+      "proof_ids": [
+        "P12",
+        "P31"
+      ]
+    },
+    {
+      "decision": "D05",
+      "effect_ids": [
+        "O15",
+        "O20"
+      ],
+      "proof_ids": [
+        "P20",
+        "P22"
+      ]
+    },
+    {
+      "decision": "D06",
+      "effect_ids": [
+        "O02",
+        "O13"
+      ],
+      "proof_ids": [
+        "P04",
+        "P08"
+      ]
+    },
+    {
+      "decision": "D07",
+      "effect_ids": [
+        "O02",
+        "O19",
+        "O20"
+      ],
+      "proof_ids": [
+        "P04",
+        "P10",
+        "P14"
+      ]
+    },
+    {
+      "decision": "D08",
+      "effect_ids": [
+        "O21",
+        "O14"
+      ],
+      "proof_ids": [
+        "P21",
+        "P22"
+      ]
+    },
+    {
+      "decision": "D09",
+      "effect_ids": [
+        "O14",
+        "O21"
+      ],
+      "proof_ids": [
+        "P21"
+      ]
+    },
+    {
+      "decision": "D10",
+      "effect_ids": [
+        "O15",
+        "O20"
+      ],
+      "proof_ids": [
+        "P19",
+        "P20",
+        "P22"
+      ]
+    },
+    {
+      "decision": "D11",
+      "effect_ids": [
+        "O20"
+      ],
+      "proof_ids": [
+        "P22"
+      ]
+    },
+    {
+      "decision": "D12",
+      "effect_ids": [
+        "O02",
+        "O03",
+        "O04",
+        "O05",
+        "X05"
+      ],
+      "proof_ids": [
+        "P05",
+        "P07",
+        "P17",
+        "P18"
+      ]
+    },
+    {
+      "decision": "D13",
+      "effect_ids": [
+        "O08",
+        "O09",
+        "O11",
+        "O22"
+      ],
+      "proof_ids": [
+        "P03",
+        "P08",
+        "P29"
+      ]
+    },
+    {
+      "decision": "D14",
+      "effect_ids": [
+        "O12",
+        "X06"
+      ],
+      "proof_ids": [
+        "P12",
+        "P31"
+      ]
+    },
+    {
+      "decision": "D15",
+      "effect_ids": [
+        "O01",
+        "O17"
+      ],
+      "proof_ids": [
+        "P01",
+        "P02",
+        "P23",
+        "P25"
+      ]
+    },
+    {
+      "decision": "D16",
+      "effect_ids": [
+        "O22"
+      ],
+      "proof_ids": [
+        "P29",
+        "P34"
+      ]
+    }
+  ]
+}

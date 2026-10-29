@@ -1,0 +1,46 @@
+{
+  "schema": "recycleos.export.equipment.additive/v1",
+  "version": "1.5.0",
+  "classification": "working_expansion_not_plan_admitted",
+  "authority": "operator locked equipment options, technical owners proposed",
+  "source_revision": "cryptoxdog/IB-Odoo_19@04bd0594a7c9dcad53d9c45fc65276d76817c112",
+  "requested_legal_names": [
+    "53-foot domestic trailer",
+    "48-foot domestic trailer",
+    "flatbed",
+    "40-foot high cube",
+    "40-foot standard",
+    "45-foot high cube",
+    "45-foot standard",
+    "20-foot standard"
+  ],
+  "maritime_codes": [
+    "40HC",
+    "40STD",
+    "45HC",
+    "45STD",
+    "20STD"
+  ],
+  "default_suggestion_for_plastics": "40HC",
+  "metal_applicability": "20STD explicitly supported",
+  "no_hardcoded_payload": true,
+  "anti_duplication": [
+    "facility equipment registry is not a shipping type catalog",
+    "no export-owned inventory",
+    "no duplicate logistics transport engine",
+    "booking request and actual ISO units distinct",
+    "carrier availability must be evidenced"
+  ],
+  "brs_rule_ids": [
+    "BRS-EXP-07-R001",
+    "BRS-EXP-07-R002",
+    "BRS-EXP-07-R003",
+    "BRS-EXP-07-R004",
+    "BRS-EXP-07-R005",
+    "BRS-EXP-07-R006",
+    "BRS-EXP-07-R007",
+    "BRS-EXP-07-R008"
+  ],
+  "acceptance": "NOT_RUN",
+  "implementation": "NOT_AUTHORIZED"
+}

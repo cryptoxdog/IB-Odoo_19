@@ -857,8 +857,9 @@ class PlasticosTransaction(models.Model):
         (transaction_docs_bridge.py) to avoid circular dependency. The bridge
         module extends this compute with document-aware triggers.
 
-        When compliance changes from 'missing' to 'compliant', auto-posts any
-        draft invoices/bills linked to this transaction.
+        Observational only. Document transitions must not post invoices, bills,
+        or freight bills. Explicit Accounting ``action_post`` remains the posting
+        command.
         """
         if "plasticos.compliance.service" not in self.env:
             for rec in self:
@@ -867,17 +868,16 @@ class PlasticosTransaction(models.Model):
         service = self.env["plasticos.compliance.service"]
 
         for rec in self:
-            old_status = rec.compliance_status
             if service.is_compliant(PLASTICOS_TRANSACTION, rec.id):
                 rec.compliance_status = "compliant"
-                # Auto-post draft invoices when compliance achieved
-                if old_status == "missing":
-                    rec._auto_post_pending_invoices()
             else:
                 rec.compliance_status = "missing"
 
     def _auto_post_pending_invoices(self):
-        """Auto-post draft invoices/bills when transaction becomes compliant.
+        """Post draft invoices/bills when an explicit caller asks.
+
+        Compliance recompute does not call this. Historical ERP drafts,
+        identified by their ir.model.data marker, stay draft.
 
         Posts: customer_invoice_id, vendor_bill_ids, freight_bill_ids.
         Only posts moves in 'draft' state to avoid double-posting.

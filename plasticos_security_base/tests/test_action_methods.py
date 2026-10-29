@@ -564,17 +564,21 @@ class TestCrmLeadActions(PlasticosTestCase):
         self.assertEqual(result["res_model"], "plasticos.intake")
         self.assertTrue(lead.intake_ids)
 
-    def test_action_convert_creates_partner_if_missing(self):
+    def test_action_convert_keeps_partner_missing(self):
         lead = self._make_lead(partner_id=False, partner_name="New Auto Co")
         result = lead.action_convert_to_intake()
-        self.assertTrue(lead.partner_id)
+        self.assertFalse(lead.partner_id)
+        self.assertFalse(lead.source_intake_id.partner_id)
+        self.assertEqual(lead.source_intake_id.id, result["res_id"])
+        self.assertEqual(lead.source_intake_id.pending_company_name, "New Auto Co")
 
     def test_action_convert_moves_stage(self):
-        lead = self._make_lead(partner_id=self.partner.id)
+        stage = self.env.ref("plasticos_crm_bridge.stage_new")
+        lead = self._make_lead(partner_id=self.partner.id, stage_id=stage.id)
+        self.assertFalse(lead.stage_id.is_won)
         lead.action_convert_to_intake()
-        stage = self.env.ref("plasticos_crm_bridge.stage_active_supplier", raise_if_not_found=False)
-        if stage:
-            self.assertEqual(lead.stage_id, stage)
+        self.assertEqual(lead.stage_id, stage)
+        self.assertFalse(lead.stage_id.is_won)
 
     def test_action_convert_posts_message(self):
         lead = self._make_lead(partner_id=self.partner.id)
