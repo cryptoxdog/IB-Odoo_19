@@ -1,0 +1,967 @@
+{
+  "schema": "plasticos.export.brs.acceptance/v1",
+  "status": "NOT_RUN",
+  "case_count": 120,
+  "cases": [
+    {
+      "id": "AC-EXP-01-001",
+      "rule_id": "BRS-EXP-01-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "An FAS booking is shown with native linked SO/PO, load, evidence and reports; every new export field has a reason for not reusing an existing field.",
+      "negative": "New export `stock.move`, `mail.queue`, `document.file` or generic `compliance_status` authority is introduced."
+    },
+    {
+      "id": "AC-EXP-01-002",
+      "rule_id": "BRS-EXP-01-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Export view shows one current document verdict, one freight status, one stock movement and one posted invoice sourced from the proper owners.",
+      "negative": "Export stores a second verified flag, shipment stock quantity, actual freight ledger or independently sent mail."
+    },
+    {
+      "id": "AC-EXP-01-003",
+      "rule_id": "BRS-EXP-01-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A company buys and dispatches an approved supplier load with buyer unset; it is held as unallocated stock/in-transit material and later linked to a genuine buyer sale with audit history.",
+      "negative": "An AI booking auto-link picks the newest transaction from the same supplier, or the dispatcher creates a dummy buyer to proceed."
+    },
+    {
+      "id": "AC-EXP-01-004",
+      "rule_id": "BRS-EXP-01-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "An exactly matched, verified booking updates its booking context; an explicitly permitted documented transition is performed only through an authorized guarded business action.",
+      "negative": "AI marks transaction delivered/invoiced when it reads a booking PDF, or a controller writes `state` directly."
+    },
+    {
+      "id": "AC-EXP-01-005",
+      "rule_id": "BRS-EXP-01-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A CE environment records its supported attachment workflow and marks Enterprise-only features unavailable.",
+      "negative": "Export refuses to install because a speculative Documents AI action is mandatory or claims scanning was proven."
+    },
+    {
+      "id": "AC-EXP-02-001",
+      "rule_id": "BRS-EXP-02-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One SO for 30 loads and one supplier PO for four weekly loads can show four separate bookings and individual receipts without duplicating orders or quantities.",
+      "negative": "Each new booking clones the PO or SO; the only `transaction.load_id` is overwritten by the fourth physical load."
+    },
+    {
+      "id": "AC-EXP-02-002",
+      "rule_id": "BRS-EXP-02-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "An external booking notice supplies all six, and an operator can retrieve it by exact booking number and steamship line.",
+      "negative": "A numeric booking field drops leading zeros or Port of Discharge is overwritten with buyer destination."
+    },
+    {
+      "id": "AC-EXP-02-003",
+      "rule_id": "BRS-EXP-02-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A carrier supplies date-only ERD and an 18:00 terminal-local cargo cutoff; the system keeps their different precision and purpose.",
+      "negative": "ERD is misused as the empty-container return date or SI cutoff silently replaces cargo cutoff."
+    },
+    {
+      "id": "AC-EXP-02-004",
+      "rule_id": "BRS-EXP-02-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "An amended cutoff preserves both notice originals and displays current confirmed value with its source and timezone.",
+      "negative": "Old screenshot silently wins a race against a verified terminal advisory or date-only value becomes 00:00."
+    },
+    {
+      "id": "AC-EXP-02-005",
+      "rule_id": "BRS-EXP-02-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Cutoff passes with no terminal acceptance record: dashboard shows at-risk/pending and retains source status.",
+      "negative": "Booking label changes from Planned to Delivered merely because a cargo cutoff is in the past."
+    },
+    {
+      "id": "AC-EXP-02-006",
+      "rule_id": "BRS-EXP-02-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Industry FOB pickup and a formal FCA term can be stored distinctly when the actual contract supports both.",
+      "negative": "Selecting FAS sets official ICC FAS risk transfer at rail gate or turns on seller ocean freight automatically."
+    },
+    {
+      "id": "AC-EXP-03-001",
+      "rule_id": "BRS-EXP-03-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Four weekly bookings from the same Charleston supplier are independently extracted and attached to their correct load/booking without cross-linking.",
+      "negative": "AI auto-sort associates each document with the latest open transaction for Waste Management or silently replaces the original."
+    },
+    {
+      "id": "AC-EXP-03-002",
+      "rule_id": "BRS-EXP-03-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Phase 1 FAS requires terminal gate receipt for a particular handoff; Documents says missing until verified current evidence arrives.",
+      "negative": "Any upload unconditionally flips an export `documents_complete` stored flag despite invalid source evidence."
+    },
+    {
+      "id": "AC-EXP-03-003",
+      "rule_id": "BRS-EXP-03-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Native view and PlasticOS evidence show one identical approved verdict.",
+      "negative": "Native verify button writes its own independent verified truth and Export accepts it without the business owner."
+    },
+    {
+      "id": "AC-EXP-03-004",
+      "rule_id": "BRS-EXP-03-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Booking sheet and packing list print exact booking revision and native package weights without changing inventory.",
+      "negative": "Generating a packing list overwrites actual stock weight or forges a carrier-issued ocean B/L."
+    },
+    {
+      "id": "AC-EXP-03-005",
+      "rule_id": "BRS-EXP-03-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One report is sent once with approved recipient/edition and Odoo mail evidence.",
+      "negative": "Export calls its own SMTP or resends a message whose delivery status is unknown while Linda is also sending."
+    },
+    {
+      "id": "AC-EXP-03-006",
+      "rule_id": "BRS-EXP-03-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Missing gate receipt generates one internal review item and, if explicitly approved, a single Linda outreach episode.",
+      "negative": "Documents, Export and Linda each send a separate external request for the same receipt."
+    },
+    {
+      "id": "AC-EXP-03-007",
+      "rule_id": "BRS-EXP-03-R007",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A port/rail FAS sale is eligible for terminal handoff review without a fictitious issued ocean B/L when its actual obligation does not require one.",
+      "negative": "An export-ready badge assumes every BOL is an issued ocean B/L or unconditionally demands foreign customs paperwork in Phase 1."
+    },
+    {
+      "id": "AC-EXP-04-001",
+      "rule_id": "BRS-EXP-04-R001",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A buyer-arranged truck pickup completes with actual pickup evidence and no ocean booking.",
+      "negative": "FOB pickup refuses to operate until Steamship Line and Port of Discharge are populated."
+    },
+    {
+      "id": "AC-EXP-04-002",
+      "rule_id": "BRS-EXP-04-R002",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A seller-arranged drayage load reaches specified rail/port handoff, with separately verified gate/delivery evidence.",
+      "negative": "A truck is scheduled, and Export marks ocean freight paid or formal alongside-vessel legal delivery proven."
+    },
+    {
+      "id": "AC-EXP-04-003",
+      "rule_id": "BRS-EXP-04-R003",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "An authorized FAS-style shipment reaches the rail ramp with buyer allocation pending; physical evidence is retained and no customer invoice is posted until a genuine sale permits it.",
+      "negative": "Gate-in retroactively creates a customer sale, or the load is marked delivered to a nonexistent buyer facility."
+    },
+    {
+      "id": "AC-EXP-04-004",
+      "rule_id": "BRS-EXP-04-R004",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Carrier revises ERD after a pickup is proposed; operator sees the conflict and existing dispatcher receives a legitimate action.",
+      "negative": "Schedule change silently modifies a confirmed carrier rate or sends multiple reschedule emails."
+    },
+    {
+      "id": "AC-EXP-04-005",
+      "rule_id": "BRS-EXP-04-R005",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Staff complete a real FAS booking and review source docs through one simple view plus existing Odoo records.",
+      "negative": "Phase 1 requires a new event bus, overseas vessel polling or independent compliance ledger to generate a dispatch sheet."
+    },
+    {
+      "id": "AC-EXP-05-001",
+      "rule_id": "BRS-EXP-05-R001",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A container already sailed without a buyer is later allocated to an approved international SO with a traceable effective date and unchanged carrier documents.",
+      "negative": "A late sale rewrites the original booking party or shipping date, automatically assumes customs clearance, or creates a second stock quant."
+    },
+    {
+      "id": "AC-EXP-05-002",
+      "rule_id": "BRS-EXP-05-R002",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A CFR shipment shows seller ocean freight responsibility and risk recorded separately from arrival.",
+      "negative": "CNF label automatically posts freight bill or treats arrival at POD as first transfer of risk."
+    },
+    {
+      "id": "AC-EXP-05-003",
+      "rule_id": "BRS-EXP-05-R003",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "Ocean B/L and carrier departure notice can be correlated to a booking/container and displayed as source-backed milestones.",
+      "negative": "An ETD estimate automatically marks vessel sailed, invoice paid or cargo received."
+    },
+    {
+      "id": "AC-EXP-05-004",
+      "rule_id": "BRS-EXP-05-R004",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A third-party-issued B/L is linked and verified for the exact ocean container; VGM proof names its method and signer when required.",
+      "negative": "An export PDF labels itself carrier-issued B/L or treats QR weights alone as verified gross mass."
+    },
+    {
+      "id": "AC-EXP-05-005",
+      "rule_id": "BRS-EXP-05-R005",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "Shipment needing an export filing retains the filer, authority acceptance reference and approved evidence.",
+      "negative": "Shipment is marked compliant because the upload filename contains the word approved."
+    },
+    {
+      "id": "AC-EXP-05-006",
+      "rule_id": "BRS-EXP-05-R006",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A CIF invoice remains Odoo accounting, with separate marine insurance evidence and native financial posting approval.",
+      "negative": "Ocean release triggers a new export cash ledger or duplicates Linda scheduled reminders."
+    },
+    {
+      "id": "AC-EXP-06-001",
+      "rule_id": "BRS-EXP-06-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Forwarder booking sheet contains authorized load details without exposing hidden supplier buy price.",
+      "negative": "A read-only export user can download every native Documents original or a buyer sees supplier invoice."
+    },
+    {
+      "id": "AC-EXP-06-002",
+      "rule_id": "BRS-EXP-06-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Carrier and terminal disagree on Cut Off; both originals are retained and action is assigned for verification.",
+      "negative": "The newest unauthenticated email silently changes the confirmed booking and makes it green."
+    },
+    {
+      "id": "AC-EXP-06-003",
+      "rule_id": "BRS-EXP-06-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A first-week load has a verified gate receipt while three future PO quantities remain open and the 30-load SO remains partially fulfilled.",
+      "negative": "One extracted booking or scanned container marks its parent transaction and all sibling loads Delivered/Closed, or invoices all remaining quantities."
+    },
+    {
+      "id": "AC-EXP-06-004",
+      "rule_id": "BRS-EXP-06-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A future export PR maps each changed file to a rule and shows no duplicate sender/verifier/stock writer under tests.",
+      "negative": "A new generic document engine is approved solely because a QWeb template could not find a field."
+    },
+    {
+      "id": "AC-EXP-06-005",
+      "rule_id": "BRS-EXP-06-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "The BRS pack can be reviewed with all operational services unchanged.",
+      "negative": "Publishing a document BRS silently enables Linda email or makes a compliance rule legally operative."
+    },
+    {
+      "id": "AC-EXP-07-001",
+      "rule_id": "BRS-EXP-07-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A 40HC container travels on a chassis to a terminal while its ISO container number, drayage load, booking and scanned cargo packages remain distinct.",
+      "negative": "A stock.package, trailer number or booking number substitutes for ISO container identity or its truck chassis."
+    },
+    {
+      "id": "AC-EXP-07-002",
+      "rule_id": "BRS-EXP-07-R002",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Operator can specify a 53-foot trailer, 48-foot trailer or flatbed on native logistics movement and find it through the related export booking if relevant.",
+      "negative": "Flatbed automatically means 48-foot, or Export creates a duplicate domestic load and rate workflow."
+    },
+    {
+      "id": "AC-EXP-07-003",
+      "rule_id": "BRS-EXP-07-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Plastic booking suggests 40HC; metal export can explicitly choose 20STD; 40STD, 45HC and 45STD remain separately selectable when offered.",
+      "negative": "The system silently converts a requested 45STD to 45HC, bans a 20STD for non-metal cargo, or asserts any type is universally bookable."
+    },
+    {
+      "id": "AC-EXP-07-004",
+      "rule_id": "BRS-EXP-07-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One SO covers four weekly shipments with four booking numbers; a later booking includes two distinct 40HC containers each with its own seal and loading evidence.",
+      "negative": "Changing week 3 equipment silently edits week 1 container or copies full shipment tonnage to both containers."
+    },
+    {
+      "id": "AC-EXP-07-005",
+      "rule_id": "BRS-EXP-07-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A missing transport type is defined once at the appropriate logistics/native transport owner and Export uses a reference; facility granulator capabilities remain untouched.",
+      "negative": "Export seeds ocean sizes into facility equipment types or clones an overlapping equipment catalog."
+    },
+    {
+      "id": "AC-EXP-07-006",
+      "rule_id": "BRS-EXP-07-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A 40HC shipment includes current package totals and independently attributed container tare/VGM evidence when required, without altering supplier/buyer settlement authority.",
+      "negative": "40HC code automatically inserts a universal max payload, self-certifies VGM or writes invoice weights."
+    },
+    {
+      "id": "AC-EXP-07-007",
+      "rule_id": "BRS-EXP-07-R007",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Carrier assigns 40STD instead of requested 40HC; the booking view shows discrepancy and a sourced operator approval before documentation is finalized.",
+      "negative": "Export silently changes freight/dispatch and sends a replacement carrier instruction on a dropdown edit."
+    },
+    {
+      "id": "AC-EXP-07-008",
+      "rule_id": "BRS-EXP-07-R008",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Packing list for one of two booked containers lists exactly the scanned inventory packages, distinct seal and observed weight with unresolved fields clearly shown.",
+      "negative": "A booking-level 40HC field copies all 40,000 lb onto each of two containers, or report assumes goods are shipped before verified stock dispatch."
+    },
+    {
+      "id": "AC-EXP-08-001",
+      "rule_id": "BRS-EXP-08-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Buyerless purchased material is received or drayed on authorized records, remains unsold and traceable, then is sold later.",
+      "negative": "Buyer is mandatory at every physical movement, or system auto-creates a dummy buyer to start freight."
+    },
+    {
+      "id": "AC-EXP-08-002",
+      "rule_id": "BRS-EXP-08-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One 30-load customer SO and one four-load Waste Management supplier PO are both represented natively with correct counterparties and quantities.",
+      "negative": "Each new weekly truck creates a new SO or PO, or the buyer PO is mistaken for the supplier PO."
+    },
+    {
+      "id": "AC-EXP-08-003",
+      "rule_id": "BRS-EXP-08-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One supplier PO for four planned loads is received across four weekly stock operations and correctly shows three remaining after week 1.",
+      "negative": "First receipt closes the PO or Export issues a new PO to substitute for an approved backorder."
+    },
+    {
+      "id": "AC-EXP-08-004",
+      "rule_id": "BRS-EXP-08-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "After shipping one eligible load the SO still has 29 load-equivalents open (subject to actual UoM) and a later shipment can satisfy more.",
+      "negative": "Assigning a booking decrements SO deliveries, auto-delivers the rest, or books sold quantity before approved allocation."
+    },
+    {
+      "id": "AC-EXP-08-005",
+      "rule_id": "BRS-EXP-08-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Four weekly physical loads under one PO have four distinct booking confirmations and dates, each linked to the correct shipment.",
+      "negative": "Booking number replaces load ID, or a fourth load overwrites the first three links."
+    },
+    {
+      "id": "AC-EXP-08-006",
+      "rule_id": "BRS-EXP-08-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One four-load PO has four traceable executed quantities each linked to separate bookings, and a received load cannot be allocated twice to SOs.",
+      "negative": "Export stores editable aggregate inventory or allows the same stock quantity to satisfy two sales orders."
+    },
+    {
+      "id": "AC-EXP-08-007",
+      "rule_id": "BRS-EXP-08-R007",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "An unsold container already afloat is sold and linked to a new buyer SO without rewriting its prior gate-in or departure facts.",
+      "negative": "Sale order date backdates the ocean booking or changing buyer silently changes delivery partner, customs filer or original B/L."
+    },
+    {
+      "id": "AC-EXP-08-008",
+      "rule_id": "BRS-EXP-08-R008",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A supplier-approved buyerless booking uses a company-authorized Logistics movement while ordinary sale dispatch still rejects an absent buyer.",
+      "negative": "A generic removal of all buyer checks allows unidentified company/cargo or dispatch without commercial approval."
+    },
+    {
+      "id": "AC-EXP-09-001",
+      "rule_id": "BRS-EXP-09-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A carrier booking PDF enters native Documents and yields editable candidate data with the original retained.",
+      "negative": "Export introduces a second file storage/OCR pipeline or claims unverified AI integration works in CE."
+    },
+    {
+      "id": "AC-EXP-09-002",
+      "rule_id": "BRS-EXP-09-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "PO 64014 and Booking 6509024800 are extracted from separate files, with 1 x 40HQ, 10/05 ERD and 10/09 16:00 cutoff traced to the dated booking PDF; missing POL/POD remain unknown rather than inferred from Long Beach terminal.",
+      "negative": "AI mistakes order 64014 for ocean Booking No., infers POD from container destination, or converts date-only ERD into an exact midnight appointment."
+    },
+    {
+      "id": "AC-EXP-09-003",
+      "rule_id": "BRS-EXP-09-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "The scale ticket and spreadsheet both specify PO 64014, booking 6509024800, ticket 1728952 and container CSNU8490558, resolving that specific physical load without attaching four other future loads.",
+      "negative": "An email from the same supplier links an amended booking to the most recent transaction or globally changes all five PO loads."
+    },
+    {
+      "id": "AC-EXP-09-004",
+      "rule_id": "BRS-EXP-09-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Two similar bookings share a carrier and supplier; ambiguous PDF waits in an exact-match review queue without changing either shipment.",
+      "negative": "AI guesses the most recent load or changes all four siblings on a single ambiguous booking email."
+    },
+    {
+      "id": "AC-EXP-09-005",
+      "rule_id": "BRS-EXP-09-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A later two-container ERD/cutoff email is held as a candidate revision of the earlier one-container booking until same-booking identity/authority is verified; a confirmed roll supersedes only the affected booking revision.",
+      "negative": "AI assumes the latest email is an authoritative replacement despite missing booking number or overwrites a September original because the PDF has the same filename."
+    },
+    {
+      "id": "AC-EXP-09-006",
+      "rule_id": "BRS-EXP-09-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Confirmed booking extraction updates the exact booking record and its linked view without mutating a purchase order or load freight rate.",
+      "negative": "An AI server action directly writes arbitrary model/field values, bypasses access controls or sets Documents verified=true."
+    },
+    {
+      "id": "AC-EXP-09-007",
+      "rule_id": "BRS-EXP-09-R007",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "The Oct 8 supplier completion email and ticket 1728952 support a reviewable Load 1 shipped/loaded event; other four PO loads remain open and terminal gate-in remains unverified.",
+      "negative": "AI marks the five-container PO fulfilled or load delivered-to-port/at sea solely on a supplier email saying booking complete."
+    },
+    {
+      "id": "AC-EXP-09-008",
+      "rule_id": "BRS-EXP-09-R008",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Week 1 has current verified gate proof and week 2 document is missing; only week 1 shows its milestone complete.",
+      "negative": "A single Booking PDF marks every order line document-ready or suppresses unresolved extraction review."
+    },
+    {
+      "id": "AC-EXP-10-001",
+      "rule_id": "BRS-EXP-10-R001",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "One of four weekly bookings contributes its own terminal cutoff and container type to its corresponding Logistics load.",
+      "negative": "An export edit directly sends a drayage order or changes an accepted freight rate."
+    },
+    {
+      "id": "AC-EXP-10-002",
+      "rule_id": "BRS-EXP-10-R002",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "PO 64014 is issued on September 4 without a booking; booking 6509024800 is later sent on September 30, linked to the same PO, without a new PO or duplicate send. A future multi-load PO sends each weekly booking separately.",
+      "negative": "PO waits for a booking, four weekly bookings produce four new POs, or a booking amendment silently reissues an unchanged PO or exposes the buyer's price."
+    },
+    {
+      "id": "AC-EXP-10-003",
+      "rule_id": "BRS-EXP-10-R003",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Drayage trucker receives Booking and Work Order for its precise weekly load; domestic truck continues receiving its approved three-PDF packet.",
+      "negative": "Carrier is sent the buyer PO, supplier price, or a blanket three-document domestic packet for every ocean container."
+    },
+    {
+      "id": "AC-EXP-10-004",
+      "rule_id": "BRS-EXP-10-R004",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Week 3 cutoff moves and only week 3 pending work order is held for review; weeks 1, 2 and 4 remain intact.",
+      "negative": "AI amendment cancels all four shipments, reissues the supplier PO, or blindly retries an unknown-status email."
+    },
+    {
+      "id": "AC-EXP-10-005",
+      "rule_id": "BRS-EXP-10-R005",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Logistics proposes week-2 pickup timed for the booked terminal acceptance slot, accounting for real supplier hours and travel.",
+      "negative": "A missing authorized staging yard is assumed or a date-only ERD is treated as 00:00 supplier pickup."
+    },
+    {
+      "id": "AC-EXP-10-006",
+      "rule_id": "BRS-EXP-10-R006",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A 40HC drayage movement qualifies only for the correct equipment and approved carrier rate, with no buyer requirement for an authorized unsold-stock move.",
+      "negative": "A same-as-last rate applies to incompatible chassis because equipment context is missing; or no SO results in null company."
+    },
+    {
+      "id": "AC-EXP-10-007",
+      "rule_id": "BRS-EXP-10-R007",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A load has delivered-to-port proof while no vessel departure or buyer final-delivery fact exists.",
+      "negative": "Gate appointment alone marks ocean shipment sailed or customer invoice paid."
+    },
+    {
+      "id": "AC-EXP-10-008",
+      "rule_id": "BRS-EXP-10-R008",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Buyerless stock relocation and ordinary buyer-linked sale both use Logistics with different validated eligibility; trucker only sees execution context.",
+      "negative": "Exporter invents a buyer to satisfy a global constraint, or PO-only movement bypasses all company and rate checks."
+    },
+    {
+      "id": "AC-EXP-11-001",
+      "rule_id": "BRS-EXP-11-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "PO issued Sep 4, separate booking forwarded Sep 30, supplier reported completion Oct 8, later Oct 20 instruction remain four separately timed claims, all linked but not flattened into a single current statement.",
+      "negative": "The latest PDF filename or subject alone overwrites booking fields or an email quote is mistaken for a fresh carrier instruction."
+    },
+    {
+      "id": "AC-EXP-11-002",
+      "rule_id": "BRS-EXP-11-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "AI recognizes 1728952 LOAD 1.pdf as a scale ticket and the supplier Oct 8 email as a completion assertion while the photograph link remains pending access/verification.",
+      "negative": "The phrase Booking Confirmation in a subject causes proof-of-vessel-load or all required loading photos to be marked verified."
+    },
+    {
+      "id": "AC-EXP-11-003",
+      "rule_id": "BRS-EXP-11-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "XLSX row binds booking 6509024800, PO 64014, container CSNU8490558, seal 7695652, ticket 1728952, Load 1 without consuming all five PO units.",
+      "negative": "One 40HQ booking creates five loads or a generic vendor email attaches the ticket to an unrelated future booking."
+    },
+    {
+      "id": "AC-EXP-11-004",
+      "rule_id": "BRS-EXP-11-R004",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Booking PDF yields COSCO Shipping Lines, 1 x 40HQ, vessel CMA CGM JEAN GABRIEL, voyage MTE0, ERD Oct 5 and cutoff Oct 9 16:00, but explicit POD stays unknown.",
+      "negative": "The Long Beach empty pickup terminal is stored as Port of Discharge or the cutoff receives a fabricated time zone."
+    },
+    {
+      "id": "AC-EXP-11-005",
+      "rule_id": "BRS-EXP-11-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "The source PDFs with 3, 4 and 5 x 40HC under booking 6509024800, with a cutoff change from October 9 to October 12 and sailing change October 16 to 18, generate a sourced comparison and a separately reviewable terminal-ERD discrepancy; only accepted affected commitments are revalidated.",
+      "negative": "PDF filename ordering alone is treated as official issue chronology, competing terminal ERDs are flattened into one, an unrelated load is rescheduled, or a 1-container supplier summary is overwritten by an unverified 5-container email."
+    },
+    {
+      "id": "AC-EXP-11-006",
+      "rule_id": "BRS-EXP-11-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Oct 20 email offers 2 x 40HQ / Oct 26 ERD / Oct 30 cutoff as candidates; old 1 x 40HQ / Oct 5 / Oct 9 remain readable and operative until version/match authority is established.",
+      "negative": "AI picks a new cutoff just because email timestamp is later or treats same filename as identical content."
+    },
+    {
+      "id": "AC-EXP-11-007",
+      "rule_id": "BRS-EXP-11-R007",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "PO 64014 describes 200000 lb / 5 containers, FAS Port / Supplier Delivered, minimum 36000 lb per 40HQ and specified photo sequence, which are visible for each applicable load.",
+      "negative": "The scale ticket $0.03/lb overwrites the PO $0.04/lb or a pallet tare convention is replaced by a truck-scale tare."
+    },
+    {
+      "id": "AC-EXP-11-008",
+      "rule_id": "BRS-EXP-11-R008",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Workbook gives Load 1, PO 64014, booking 6509024800, container CSNU8490558, 20 bales, seal 7695652, 40200 lb; ticket 1728952 confirms gross 72200, tare 32000, net 40200.",
+      "negative": "AI silently treats scale ticket $1206 total as the approved PO value or marks ocean departure from the shipper email."
+    },
+    {
+      "id": "AC-EXP-11-009",
+      "rule_id": "BRS-EXP-11-R009",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "The supplier email reports a photo link, but actual photo count/compliance remains pending until the link is accessed and relevant images verified.",
+      "negative": "AI marks ten loading photos present and approved merely from a link title BKG 6509024800."
+    },
+    {
+      "id": "AC-EXP-11-010",
+      "rule_id": "BRS-EXP-11-R010",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Load 1 recognized, with exact source evidence; the supplier PO retains a remaining balance computed through native order/stock execution and future bookings remain untouched.",
+      "negative": "Keyword booking complete causes all five units to close, sale invoice to post, or terminal gate-in to appear."
+    },
+    {
+      "id": "AC-EXP-11-011",
+      "rule_id": "BRS-EXP-11-R011",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Only a load still awaiting gate-in under a verified rolled booking receives an at-risk schedule exception and revised supplier/carrier notice draft after approval.",
+      "negative": "AI cancels all five PO loads or regenerates/sends the approved PO automatically from a rolled booking."
+    },
+    {
+      "id": "AC-EXP-11-012",
+      "rule_id": "BRS-EXP-11-R012",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A review card shows Old: 1 x 40HQ/ERD Oct 5/Cutoff Oct 9; Candidate: 2 x 40HQ/ERD Oct 26/Cutoff Oct 30, together with booking-identity uncertainty and affected load status.",
+      "negative": "A summary displays one clean date, hiding material contradiction and provenance."
+    },
+    {
+      "id": "AC-EXP-12-001",
+      "rule_id": "BRS-EXP-12-R001",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "An international shipment with FindTEU enabled displays source-labeled observed container milestones; the same Phase 1 booking works unchanged when the connector is disabled.",
+      "negative": "An unavailable FindTEU account blocks Phase 1 purchasing, receiving or Linda dispatch, or tracking status directly creates freight bookings."
+    },
+    {
+      "id": "AC-EXP-12-002",
+      "rule_id": "BRS-EXP-12-R002",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "Booking 6509024800 has five containers: a tracking event for CSNU8490558 is linked only to that identified container and the correct journey.",
+      "negative": "A booking-number webhook blindly marks all five containers loaded, or an old container reuse event is attached to the current booking."
+    },
+    {
+      "id": "AC-EXP-12-003",
+      "rule_id": "BRS-EXP-12-R003",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "Estimated port arrival changes and the UI updates the ETA with a source and timestamp but the Odoo sale and physical delivery states remain unchanged.",
+      "negative": "Provider \"completed\" automatically closes the customer invoice, asserts buyer delivery or documents Customs release."
+    },
+    {
+      "id": "AC-EXP-12-004",
+      "rule_id": "BRS-EXP-12-R004",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A carrier roll causes a reviewable mismatch between the current booking PDF and tracking vessel/ETA; prior events remain inspectable, Linda receives a scoped change request only after approved booking revision.",
+      "negative": "An out-of-order webhook deletes a previous actual event or reschedules a confirmed drayage truck without approval."
+    },
+    {
+      "id": "AC-EXP-12-005",
+      "rule_id": "BRS-EXP-12-R005",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A tenant-scoped API credential successfully tracks a supported container and isolates its webhook events from other companies; provider outage yields a visible no-fresh-data exception.",
+      "negative": "An untrusted webhook changes another tenant shipment, or a missing token yields a fabricated on-time event or prevents native order handling."
+    },
+    {
+      "id": "AC-EXP-12-006",
+      "rule_id": "BRS-EXP-12-R006",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "The authorized exporter identifies a reportable shipment, selects the responsible filer and prepares an evidence-backed filing case; another exempt case documents its actual exemption basis.",
+      "negative": "Every FAS shipment is automatically marked as requiring AES or as filed merely because the shipment has an ocean booking."
+    },
+    {
+      "id": "AC-EXP-12-007",
+      "rule_id": "BRS-EXP-12-R007",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A four-container shipment prepares the filing data with traceable stock, commercial and booking references and flags an unverified Schedule B/HS mapping for review.",
+      "negative": "A shipping booking PDF alone causes AI to fill an unverified Schedule B and value and claim EEI ready."
+    },
+    {
+      "id": "AC-EXP-12-008",
+      "rule_id": "BRS-EXP-12-R008",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "The responsible filer reviews the proposed EEI data, follows a working validated WebLink/portal handoff, manually submits, and returns with an official response.",
+      "negative": "An API implementation posts an uncertified EEI directly to AES or labels a prepared WebLink payload \"filed\"."
+    },
+    {
+      "id": "AC-EXP-12-009",
+      "rule_id": "BRS-EXP-12-R009",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A supported AES acknowledgment returns ITN for the intended company and shipment; the original is attached once and the status indicates accepted with traceable source.",
+      "negative": "The presence of a draft filing CSV, emailed arbitrary number or filename containing \"AES\" marks the export officially accepted."
+    },
+    {
+      "id": "AC-EXP-12-010",
+      "rule_id": "BRS-EXP-12-R010",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "A corrected value prompts the responsible filer to amend via the authorized filing route; old ITN and amendment evidence remain linked and an exception is visible until reconciled.",
+      "negative": "AI silently edits an already accepted EEI or a non-filer account transmits a correction, and original evidence is erased."
+    },
+    {
+      "id": "AC-EXP-13-001",
+      "rule_id": "BRS-EXP-13-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Booking 6509024800 shows its six fields and source revision with typed links to the applicable loads and documents.",
+      "negative": "POL and POD are conflated, a vendor contact becomes the shipment buyer, or the same booking is stored as two competing records."
+    },
+    {
+      "id": "AC-EXP-13-002",
+      "rule_id": "BRS-EXP-13-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Cargo cutoff 2026-10-12 16:00 PT, documentation cutoff 12:00 PT and VGM cutoff 16:00 PT are independently visible.",
+      "negative": "An email changing cargo cutoff silently changes VGM/document deadlines or treats an unconfirmed date as final."
+    },
+    {
+      "id": "AC-EXP-13-003",
+      "rule_id": "BRS-EXP-13-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "COSCO, TOP POINT PLASTICS, CMA CGM JEAN GABRIEL, MTE0, ETA and ETD are mapped to distinct sourced fields.",
+      "negative": "One ETA update marks vessel arrival as actual or overwrites a verified terminal acceptance event."
+    },
+    {
+      "id": "AC-EXP-13-004",
+      "rule_id": "BRS-EXP-13-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Long Beach as POL, Port Klang as POD, PCT as empty pickup and APL as loaded return remain four distinct concepts.",
+      "negative": "The buyer address is silently selected as terminal destination or a POL location substitutes for a physical drayage gate."
+    },
+    {
+      "id": "AC-EXP-13-005",
+      "rule_id": "BRS-EXP-13-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Booking 6509024800 contains five 40HC containers from four supplier POs, each retaining its own container/seal/weights.",
+      "negative": "The system forces one PO per ocean booking or duplicates a single physical container into five transaction loads."
+    },
+    {
+      "id": "AC-EXP-13-006",
+      "rule_id": "BRS-EXP-13-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Cargo weight limits display alongside, not as replacements for, verified 40,200-lb load net weight.",
+      "negative": "An AI-extracted description or blank weight constraint modifies the stock quant, invoice or purchase price."
+    },
+    {
+      "id": "AC-EXP-13-007",
+      "rule_id": "BRS-EXP-13-R007",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A booking-roll email creates reviewable revised status with old original preserved; a blank Group stays blank.",
+      "negative": "Any email containing the booking number automatically marks all containers accepted by terminal."
+    },
+    {
+      "id": "AC-EXP-13-008",
+      "rule_id": "BRS-EXP-13-R008",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A revised 5x40HC email is associated with the existing booking and produces a field-by-field approved comparison before deadline update.",
+      "negative": "A newest-open-by-partner guess links an amended booking to another PO, or extracted ETA directly closes a sale."
+    },
+    {
+      "id": "AC-EXP-13-009",
+      "rule_id": "BRS-EXP-13-R009",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "An operator opens one booking and navigates to five assigned containers, four POs, verified documents and native freight records.",
+      "negative": "A Budget Expenses tab creates a second freight or AP ledger or Documents tab creates another verification field."
+    },
+    {
+      "id": "AC-EXP-13-010",
+      "rule_id": "BRS-EXP-13-R010",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Original carrier PDF and audience-safe supplier summary are both linked, labeled and separately versioned.",
+      "negative": "A generated PDF carries carrier-issued claims or Export sends supplier email directly via an alternate mail queue."
+    },
+    {
+      "id": "AC-EXP-14-001",
+      "rule_id": "BRS-EXP-14-R001",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One saved Export Containers view provides filters, grouping and current-filter XLSX export using Odoo mechanisms.",
+      "negative": "A custom query/reporting service duplicates Odoo native access control and creates a second calculation authority."
+    },
+    {
+      "id": "AC-EXP-14-002",
+      "rule_id": "BRS-EXP-14-R002",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Booking 6509024800 returns five unique rows with POs 64014, 64036, 63999, 63992, 63999 and correct net weights.",
+      "negative": "Joining orders multiplies container rows, hides an unassigned buyer, or aggregates five loads into one physical record."
+    },
+    {
+      "id": "AC-EXP-14-003",
+      "rule_id": "BRS-EXP-14-R003",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "One booking shows 5 assigned containers, 4 distinct POs, 201,300 lb source-reported net and drill-down to each.",
+      "negative": "A booking summary repeats cargo totals once per PO join or claims completed movement from a booking ETA."
+    },
+    {
+      "id": "AC-EXP-14-004",
+      "rule_id": "BRS-EXP-14-R004",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A user saves Unassigned Containers, At-Risk Cutoffs, Departing This Week and Missing Documentation, and reopens them without losing filters.",
+      "negative": "A filter unexpectedly hides buyer-unassigned loads or leaks restricted commercial invoices to a carrier."
+    },
+    {
+      "id": "AC-EXP-14-005",
+      "rule_id": "BRS-EXP-14-R005",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "The user filters booking 6509024800, sees 5 container rows and downloads matching Excel rows with the same identifiers.",
+      "negative": "A download silently includes all companies, ignores applied filters or exports stale/old booking revisions as current."
+    },
+    {
+      "id": "AC-EXP-14-006",
+      "rule_id": "BRS-EXP-14-R006",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Source columns from 43-column workbook are classified by owner and must-have/optional/deferred status before implementing joins.",
+      "negative": "Invoice No, source worksheet, VGM or shipping date is recomputed from unrelated dates or a second export ledger."
+    },
+    {
+      "id": "AC-EXP-14-007",
+      "rule_id": "BRS-EXP-14-R007",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "A container shows pickup date, gate cutoff and ETD as distinct values and an applicable risk when gate cutoff approaches.",
+      "negative": "A blank ETA is replaced with actual ship date or an ERD update silently changes a trucking appointment."
+    },
+    {
+      "id": "AC-EXP-14-008",
+      "rule_id": "BRS-EXP-14-R008",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "For the first container show 40,200 lb net and leave missing VGM unverified, with metric-ton conversion labeled.",
+      "negative": "System sums cargo and tare then asserts certified VGM or prints unknown VGM as 0.00 accepted."
+    },
+    {
+      "id": "AC-EXP-14-009",
+      "rule_id": "BRS-EXP-14-R009",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Users can aggregate loads and verified net weight by carrier, customer, grade and month without duplicate booking-row sums.",
+      "negative": "A pivot sums booking-level freight five times or markets preliminary margin as realized profit."
+    },
+    {
+      "id": "AC-EXP-14-010",
+      "rule_id": "BRS-EXP-14-R010",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Supplier booking copy prints the latest authorized deadline with no sales prices; internal copy may include relevant restricted columns.",
+      "negative": "Old cutoff appears on a newly sent report or carrier sees customer pricing through a generic export."
+    },
+    {
+      "id": "AC-EXP-14-011",
+      "rule_id": "BRS-EXP-14-R011",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "All 43 headings are inventoried, booking grouping is correct and rows with missing POD, ETD or buyer display explicit missing/unknown status.",
+      "negative": "Importing a workbook directly overwrites native Odoo booking, Stock, Invoice or document records without reconciliation."
+    },
+    {
+      "id": "AC-EXP-14-012",
+      "rule_id": "BRS-EXP-14-R012",
+      "phase": "BOTH",
+      "status": "NOT_RUN",
+      "positive": "Two users with different company rights see only their permitted container and financial columns under the same saved filter.",
+      "negative": "A downloaded workbook bypasses row rules or an exported supplier booking includes profit margins."
+    },
+    {
+      "id": "AC-EXP-14-013",
+      "rule_id": "BRS-EXP-14-R013",
+      "phase": "P2",
+      "status": "NOT_RUN",
+      "positive": "FindTEU ETA and an accepted ITN appear with their sources alongside existing booking detail if authorized.",
+      "negative": "An unauthenticated third-party milestone is shown as a verified official filing or Phase 1 reporting breaks without provider credentials."
+    },
+    {
+      "id": "AC-EXP-14-014",
+      "rule_id": "BRS-EXP-14-R014",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Confirmed 5 x 40HC booking with 5 distinct committed slots shows confirmed=5, allocated=5, available=0 even if some containers have not reached the terminal.",
+      "negative": "A stale rolled capacity, provisional AI interpretation, repeated purchase-order line or previously loaded container increases available slots, or a 40STD slot is counted as 40HC."
+    },
+    {
+      "id": "AC-EXP-14-015",
+      "rule_id": "BRS-EXP-14-R015",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "One five-slot booking binds five container journeys across four POs, with one PO spanning two containers; an additional mixed-grade container with two PO lines still consumes one slot.",
+      "negative": "An order-line join makes five slots become six, or assignment creates a synthetic delivery, completed load, buyer or container number."
+    },
+    {
+      "id": "AC-EXP-14-016",
+      "rule_id": "BRS-EXP-14-R016",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A confirmed 5-slot booking revised down to 4 with 5 assigned shows overallocated=1 and affected allocations; the correct owner reconciles without losing prior evidence.",
+      "negative": "Two users allocate the same remaining slot, a booking roll auto-dispatches new trucks, or stale cutoffs remain printed as current."
+    },
+    {
+      "id": "AC-EXP-14-017",
+      "rule_id": "BRS-EXP-14-R017",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "An authorized user sees six meaningful previews, clicks Available 40HC to reach the filtered Booking Space Availability report and its exact current booking records, then drills into a booking; clicks Missing Documents and reaches its operation-specific evidence obligations, not a generic document list.",
+      "negative": "One of the six reports has no dashboard summary or direct link; an at-risk card opens all bookings without carrying its active filters; a restricted user sees supplier commercial data; or a chart changes source-grain counts by joining PO/document lines."
+    },
+    {
+      "id": "AC-EXP-14-018",
+      "rule_id": "BRS-EXP-14-R018",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A four-load supplier PO scheduled weekly appears as four separately assessable movements; the original PO remains one and available booking capacity may exist even before a supplier is ready.",
+      "negative": "An empty booking is hidden because it has no container, or a buyerless load vanishes from matching views, or an SO balance is mistaken for ocean slots."
+    },
+    {
+      "id": "AC-EXP-14-019",
+      "rule_id": "BRS-EXP-14-R019",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A cargo cutoff revision flags the two affected planned container movements and links to their Logistics schedule and packet freshness evidence.",
+      "negative": "Changed ERD automatically changes approved pickup, a proposed AI cutoff silently overrides the current authorized one, or terminal arrival is presented as accepted gate-in."
+    },
+    {
+      "id": "AC-EXP-14-020",
+      "rule_id": "BRS-EXP-14-R020",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A user opens a booked container and sees exact PO, current carrier confirmation, seal photo and scale ticket with distinct verification states and a missing gate receipt.",
+      "negative": "An uploaded supplier statement marks ocean sailing completed, a generated PDF impersonates carrier confirmation, or Export writes a new verified flag."
+    },
+    {
+      "id": "AC-EXP-14-021",
+      "rule_id": "BRS-EXP-14-R021",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "Booking 6509024800 shows five actual containers, four distinct supplier POs, and 201,300 lb source-reported net without duplicate cargo rows; each of the six reports is accessible directly from its dashboard summary and the filtered detail can be exported under native Odoo rights.",
+      "negative": "The dashboard substitutes an optional economics report for Missing Documents, shows a generic page instead of the six report views, double-counts joined loads, or implies missing verified evidence from mere attachment presence."
+    },
+    {
+      "id": "AC-EXP-14-022",
+      "rule_id": "BRS-EXP-14-R022",
+      "phase": "P1",
+      "status": "NOT_RUN",
+      "positive": "A company-limited user filters Overview to 40HC, port and cutoff week; all six cards show authoritative values for that scope, the dashboard opens each corresponding prefiltered report, the detail opens an exact load/booking/PO/document obligation, and counts reconcile at one declared grain or identify their changed-as-of time.",
+      "negative": "One of six cards is inert, repeats unrelated metrics, resets the report scope to all companies/dates, reveals a restricted count, hides an AI-proposed-but-unverified booking as confirmed, shows an unknown document result as zero, or counts one five-container booking as five open ocean bookings."
+    }
+  ]
+}
