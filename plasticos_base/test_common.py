@@ -110,7 +110,7 @@ class PlastOSTestFactoryMixin:
         """Create a claim record linked to a transaction."""
         if "plasticos.claim" not in cls.env:
             return None
-        transaction = transaction or cls._create_transaction(name="TX-TEST-CLM")
+        transaction = transaction or cls._create_transaction()
         vals = {
             "transaction_id": transaction.id,
             "case_type": "buyer_claim",
