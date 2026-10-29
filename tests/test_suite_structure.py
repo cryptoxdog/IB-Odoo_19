@@ -55,6 +55,8 @@ NON_TEST_FILES = frozenset(
         "_runtime_env.py",
         # Disposable-database lifecycle imported by run_erp_import.py. Not a test.
         "scratch_db.py",
+        # Odoo-free cron registry imported by the XML lock. Not a test module.
+        "cron_contract.py",
     }
 )
 
