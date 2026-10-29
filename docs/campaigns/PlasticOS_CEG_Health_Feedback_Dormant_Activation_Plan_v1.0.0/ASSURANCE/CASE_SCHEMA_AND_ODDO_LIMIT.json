@@ -1,0 +1,16 @@
+{
+  "schema": [],
+  "legacy_odoo_plan_gate_errors": [
+    "REPOSITORY_MISMATCH",
+    "SOURCE_DRIFT: rebind case, source lock and complete manifest census to the same SHA",
+    "WRONG_CONSTITUTION: repo INVARIANTS.md v2.2.0 outranks draft POS candidates",
+    "TARGET_ENV_UNKNOWN",
+    "OPEN_OPERATOR_DECISIONS",
+    "UNKNOWN_ROOT_MODULE: engine.health",
+    "UNKNOWN_ROOT_MODULE: engine.handlers",
+    "UNKNOWN_ROOT_MODULE: engine.gate_egress",
+    "UNKNOWN_ROOT_MODULE: engine.boot",
+    "UNEXPLORED_DYNAMIC_CONSUMERS"
+  ],
+  "interpretation": "Schema valid; hardcoded Odoo manifest/constitution validator not applicable to CEG/Gate/EIE."
+}

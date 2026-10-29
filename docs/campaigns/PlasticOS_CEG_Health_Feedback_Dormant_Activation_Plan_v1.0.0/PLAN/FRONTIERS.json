@@ -1,0 +1,58 @@
+{
+  "unresolved": [
+    {
+      "id": "F01",
+      "issue": "Exact current deployed images, GateSDK pins, signed consumer grants and tenant allowlists unobserved",
+      "disposition": "BLOCKS_PRECODE",
+      "evidence_needed": "Source-bound runtime census and effective configuration with secrets redacted"
+    },
+    {
+      "id": "F02",
+      "issue": "Source-owned ADR acceptance and Gate canonical health-assess route not admitted",
+      "disposition": "BLOCKS_PRECODE",
+      "evidence_needed": "Owner-approved narrow ADR, action registry and static-readiness declaration"
+    },
+    {
+      "id": "F03",
+      "issue": "Neo4j tenant graph/driver field identity and due-entity criteria unobserved",
+      "disposition": "BLOCKS_PRECODE",
+      "evidence_needed": "Existing graph ontology source/fixture, field types and bounded query proof"
+    },
+    {
+      "id": "F04",
+      "issue": "Existing scheduler leader-election and job ownership unobserved; no nightly health job caller found",
+      "disposition": "BLOCKS_PRECODE",
+      "evidence_needed": "EngineLifecycle/host scheduler census and minimal single-owner job strategy"
+    },
+    {
+      "id": "F05",
+      "issue": "Real EIE provider cost/limits and stable idempotency store not established",
+      "disposition": "BLOCKS_PRECODE",
+      "evidence_needed": "Actual budget owner, signed operation policy and authorized provider receipt"
+    },
+    {
+      "id": "F06",
+      "issue": "Graph inference production trigger and EIE durable target store/claim semantics undecided",
+      "disposition": "BLOCKS_PRECODE",
+      "evidence_needed": "Exact live process topology + durable inbox sufficiency test"
+    },
+    {
+      "id": "F07",
+      "issue": "ROI economic calibration and trusted data provenance missing",
+      "disposition": "BLOCKS_ACTIVATION",
+      "evidence_needed": "Domain-reviewed sample, actual outcomes and spend/benefit evaluation; heuristic ROI not permission"
+    },
+    {
+      "id": "F08",
+      "issue": "No live multi-node CEG/Gate/EIE/Neo4j integrated proof or independent review",
+      "disposition": "BLOCKS_ACTIVATION",
+      "evidence_needed": "Reproducible release-bound E2E positive/negative and accepted reviewer findings"
+    },
+    {
+      "id": "F09",
+      "issue": "No operator authorization to enable production flags or spend",
+      "disposition": "BLOCKS_ACTIVATION",
+      "evidence_needed": "Fresh explicit env/tenant/release/budget/grant with kill-switch rehearsal"
+    }
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "source_date": "2026-10-29",
+  "source_class": "PINNED_CODE_READ_NOT_RUNTIME",
+  "sources": [
+    {
+      "id": "E01",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/config/settings.py",
+      "git_blob_sha": "119c8a16cfd436bd49e2b064bfba97defe0de3fb",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/config/settings.py",
+      "class_": "CODE_READ",
+      "observed": "health_api_enabled, auto_enrich_via_gate and graph_inference_feedback_enabled default False. health_commercial_mode_enabled also False; batch limits 100 entities/$10 while nightly scanner elsewhere defaults $50."
+    },
+    {
+      "id": "E02",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/health/nightly_health_scan.py",
+      "git_blob_sha": "b0658bc2966b8ab7ea190260f8ae9c4246d462bf",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/health/nightly_health_scan.py",
+      "class_": "CODE_READ",
+      "observed": "run_nightly_health_scan builds ROI-ranked queue; without injected entity_loader returns []; no dispatch call; process-global scanned_this_run set; MAX_QUEUE=100 and default $50 estimate ceiling."
+    },
+    {
+      "id": "E03",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/health/enrichment_trigger.py",
+      "git_blob_sha": "95c70a4c9d2a6f2c5000e5dea79c607c17c335f0",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/health/enrichment_trigger.py",
+      "class_": "CODE_READ",
+      "observed": "trigger_reenrichment_v2 can use Gate request_enrichment with flag true; heuristic ROI assumes filling gaps and chooses average deal value from domain description or default $1000; financial ROI is estimate not proven observed value."
+    },
+    {
+      "id": "E04",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/health/api.py",
+      "git_blob_sha": "b11f76e18b7930cb5aeb9e9c9c1982b0a8a55812",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/health/api.py",
+      "class_": "CODE_READ",
+      "observed": "handle_health_assess automatically triggers Gate dispatch on enrich_now recommendation when allowed and flag on; handle_health_batch_assess only calculates estimates, reports dispatched=0, and scans caller-supplied list."
+    },
+    {
+      "id": "E05",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/handlers.py",
+      "git_blob_sha": "9d05bc24b13bf2ffa22955d20e6714c02acda8d4",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/handlers.py",
+      "class_": "CODE_READ",
+      "observed": "health-assess is canonical three-subaction handler; emit_inference_feedback exists only as admin subaction, not accessible via health-assess route. Domain id can be caller-provided in admin payload; verify tenant binding."
+    },
+    {
+      "id": "E06",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/spec.yaml",
+      "git_blob_sha": "b1aeedd9c67917d3c4e6cc8dfad4d6013bd985c6",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/spec.yaml",
+      "class_": "CODE_READ",
+      "observed": "CEG advertises health-assess along with match/sync/outcomes/resolve. It does not advertise admin or enrich."
+    },
+    {
+      "id": "E07",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/gate_egress.py",
+      "git_blob_sha": "2b96ff343bd566cf2de449277a3f35665bdeec4d",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/gate_egress.py",
+      "class_": "CODE_READ",
+      "observed": "One SDK Gate EIE egress for enrich and graph-inference-result with idempotency keys; response header failure checked; no direct peer transport. Enrichment key excludes explicit input/source revision."
+    },
+    {
+      "id": "E08",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "engine/boot.py",
+      "git_blob_sha": "3629cae40ff4e498d1b2b3c10674075e483c912e",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/engine/boot.py",
+      "class_": "CODE_READ",
+      "observed": "GraphLifecycle starts GDS schedulers and compliance task but does not start nightly health scan; search found only run_nightly_health_scan definition, no caller."
+    },
+    {
+      "id": "E09",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "tests/architecture/test_seam_gate_only.py",
+      "git_blob_sha": "a08401eafefc93b72c2a13629bcf478894dd287c",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/tests/architecture/test_seam_gate_only.py",
+      "class_": "CODE_READ",
+      "observed": "Guard pins health-assess advertised, no admin/enrich via Gate and SDK-only peer egress. Existing static Gate registry proof is in Gate repo."
+    },
+    {
+      "id": "E10",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "tests/unit/test_health_api.py",
+      "git_blob_sha": "276310bf94df04884cb9dc9f0ed78470b182526a",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/tests/unit/test_health_api.py",
+      "class_": "CODE_READ",
+      "observed": "Mocked orchestration tests cover tenant binding, batch cost ceilings, commercial mode and assess trigger. No real Neo4j loader/scheduler or complete multi-node dispatch demonstration."
+    },
+    {
+      "id": "E11",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "tests/unit/test_health_engine.py",
+      "git_blob_sha": "634a056cf4ff35e94c02af46fe06e306b4d43bf0",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/tests/unit/test_health_engine.py",
+      "class_": "CODE_READ",
+      "observed": "ROI and health algorithm unit tests exist, not independent calibration or measured enrichment value."
+    },
+    {
+      "id": "E12",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "path": "docs/FEATURE_GATES.md",
+      "git_blob_sha": "ccc877ec77ff9fc3fa09cf641937d3a1bfa9e5fc",
+      "url": "https://github.com/Quantum-L9/Cognitive.Engine.Graphs/blob/0d84ec8531baf604383c5ddc012f40aa84fc4b76/docs/FEATURE_GATES.md",
+      "class_": "CODE_READ",
+      "observed": "Flags documented dormant; repo explicitly notes multi-node constellation orchestration gap."
+    },
+    {
+      "id": "E13",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "path": "constellation-gate/src/constellation_gate/routing/action_ownership.py",
+      "git_blob_sha": "c4099451db191d34937d168f138e97afa9ce5e5c",
+      "url": "https://github.com/Quantum-L9/Constellation.Gate/blob/cfeb81fa4d11eb8c106314fa27310f660a1dfad7/constellation-gate/src/constellation_gate/routing/action_ownership.py",
+      "class_": "CODE_READ",
+      "observed": "Canonical owner table and SEAM_ACTIONS omit health-assess even though CEG advertises it. Current enrich and graph-inference-result belong to EIE."
+    },
+    {
+      "id": "E14",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "path": "constellation-gate/src/constellation_gate/config/node_registry.yaml",
+      "git_blob_sha": "823c5dfde515b5b15fef374d8b7aebb7f03b20fc",
+      "url": "https://github.com/Quantum-L9/Constellation.Gate/blob/cfeb81fa4d11eb8c106314fa27310f660a1dfad7/constellation-gate/src/constellation_gate/config/node_registry.yaml",
+      "class_": "CODE_READ",
+      "observed": "Static graph node only advertises match/sync/outcomes/resolve, not health-assess; seed topology incomplete for CEG advertised health route."
+    },
+    {
+      "id": "E15",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "path": "constellation-gate/src/constellation_gate/runtime/routing_readiness.py",
+      "git_blob_sha": "abaaaee77e52b7b7421145098940b11e9a637464",
+      "url": "https://github.com/Quantum-L9/Constellation.Gate/blob/cfeb81fa4d11eb8c106314fa27310f660a1dfad7/constellation-gate/src/constellation_gate/runtime/routing_readiness.py",
+      "class_": "CODE_READ",
+      "observed": "Default readiness derives SEAM_ACTIONS and therefore does not require health-assess; route can be falsely classified ready for this feature."
+    },
+    {
+      "id": "E16",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "path": "constellation-gate/tests/architecture/test_seam_route_contract.py",
+      "git_blob_sha": "6925fa1252b25c69d2e8dc3b8ffc84efc9dee172",
+      "url": "https://github.com/Quantum-L9/Constellation.Gate/blob/cfeb81fa4d11eb8c106314fa27310f660a1dfad7/constellation-gate/tests/architecture/test_seam_route_contract.py",
+      "class_": "CODE_READ",
+      "observed": "Contract test freezes static graph set and seam action names without health-assess; must evolve with accepted route."
+    },
+    {
+      "id": "E17",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "path": "constellation-gate/src/constellation_gate/resilience/replay_safety.py",
+      "git_blob_sha": "b3a2942bfd29dcac406e6738a49cc7e4d35bcf10",
+      "url": "https://github.com/Quantum-L9/Constellation.Gate/blob/cfeb81fa4d11eb8c106314fa27310f660a1dfad7/constellation-gate/src/constellation_gate/resilience/replay_safety.py",
+      "class_": "CODE_READ",
+      "observed": "Gate replay-safe actions default empty; worker-owned retry is explicit. Do not add whole-operation replay for paid enrich merely to unblock."
+    },
+    {
+      "id": "E18",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "path": "constellation-gate/docs/adr/ADR-action-ownership.md",
+      "git_blob_sha": "982a91ced847167b68203d24b46a03ce848cb5ee",
+      "url": "https://github.com/Quantum-L9/Constellation.Gate/blob/cfeb81fa4d11eb8c106314fa27310f660a1dfad7/constellation-gate/docs/adr/ADR-action-ownership.md",
+      "class_": "CODE_READ",
+      "observed": "Accepted action-ownership ADR lacks health-assess; amend at authority owner."
+    },
+    {
+      "id": "E19",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "path": "constellation-gate/tests/runtime/test_routing_readiness.py",
+      "git_blob_sha": "e5b68f7fa531b02647028b5baf8bc40f1255d267",
+      "url": "https://github.com/Quantum-L9/Constellation.Gate/blob/cfeb81fa4d11eb8c106314fa27310f660a1dfad7/constellation-gate/tests/runtime/test_routing_readiness.py",
+      "class_": "CODE_READ",
+      "observed": "Readiness fixtures expect old seam set; extend targeted behavior and negative owner collision proof."
+    },
+    {
+      "id": "E20",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "path": "app/services/graph_return_channel.py",
+      "git_blob_sha": "76679b7b18ea6d2391960b2cb60e4f7a936569cf",
+      "url": "https://github.com/Quantum-L9/Enrichment.Inference.Engine/blob/3f96eda98240789963b0e6534aa2151aed12658e/app/services/graph_return_channel.py",
+      "class_": "CODE_READ",
+      "observed": "Per-process asyncio.Queue keyed by tenant, bounded 10000; QueueFull silently drops a target and accepted handler returns count; no durable process restart guarantee."
+    },
+    {
+      "id": "E21",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "path": "app/engines/convergence_controller.py",
+      "git_blob_sha": "d84b3db458011e17ed4af8b5e31db4e7134b699d",
+      "url": "https://github.com/Quantum-L9/Enrichment.Inference.Engine/blob/3f96eda98240789963b0e6534aa2151aed12658e/app/engines/convergence_controller.py",
+      "class_": "CODE_READ",
+      "observed": "Convergence consumes returned graph targets via take_for_entity at start of each future pass; acceptance of targets does not itself schedule a convergence pass."
+    },
+    {
+      "id": "E22",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "path": "app/services/chassis_handlers.py",
+      "git_blob_sha": "31009b26a44c2089def388723e993bfd571d50cf",
+      "url": "https://github.com/Quantum-L9/Enrichment.Inference.Engine/blob/3f96eda98240789963b0e6534aa2151aed12658e/app/services/chassis_handlers.py",
+      "class_": "CODE_READ",
+      "observed": "Registered existing graph-inference-result SDK handler; preserve canonical EIE action ownership and tenant-from-packet."
+    },
+    {
+      "id": "E23",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "path": "app/services/side_effect_coordinator.py",
+      "git_blob_sha": "28e861bdfb8e3a539cd11b814e30e70140c3f791",
+      "url": "https://github.com/Quantum-L9/Enrichment.Inference.Engine/blob/3f96eda98240789963b0e6534aa2151aed12658e/app/services/side_effect_coordinator.py",
+      "class_": "CODE_READ",
+      "observed": "Existing graph sync acknowledgement and process-local exactly-once guard. Cannot presume durable recovery for graph feedback from this code."
+    },
+    {
+      "id": "E24",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "path": "tests/services/test_graph_return_channel.py",
+      "git_blob_sha": "13c9ecef819cf13b3251bab25d6947a082303967",
+      "url": "https://github.com/Quantum-L9/Enrichment.Inference.Engine/blob/3f96eda98240789963b0e6534aa2151aed12658e/tests/services/test_graph_return_channel.py",
+      "class_": "CODE_READ",
+      "observed": "Existing return-channel tests cover singleton, tenant separation, handler, filtering; no mandatory restart/queue-full durability proof."
+    },
+    {
+      "id": "E25",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "path": "docs/contracts/dependencies/constellation-gate.yaml",
+      "git_blob_sha": "ce1b5d30e461b9cde2a6719a382d98fb106a1a9a",
+      "url": "https://github.com/Quantum-L9/Enrichment.Inference.Engine/blob/3f96eda98240789963b0e6534aa2151aed12658e/docs/contracts/dependencies/constellation-gate.yaml",
+      "class_": "CODE_READ",
+      "observed": "Accepted Gate-only integration contract: graph-inference-result is fed to convergence by tenant+entity. Distinct sync acknowledgement required for graph update."
+    }
+  ],
+  "runtime_host_inspected": false,
+  "known_limit": "Search index absence does not prove every dynamic/runtime call absent. Installed CEG/Gate/EIE images, authenticated runtime action grants, Neo4j tenant registry and EIE worker topology not inspected."
+}

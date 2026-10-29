@@ -1,0 +1,58 @@
+{
+  "status": "PASS_SYNTHETIC_NEGATIVE_CONTROLS",
+  "count": 10,
+  "tests": [
+    {
+      "case": "flag switched ON",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "current required OFF flags changed"
+    },
+    {
+      "case": "fabricated activation grant",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "false operator authorization"
+    },
+    {
+      "case": "fake proof PASS",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "product test status invented"
+    },
+    {
+      "case": "missing invariant",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "invariant IDs absent/duplicated"
+    },
+    {
+      "case": "duplicate effect",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "effect census missing/duplicated"
+    },
+    {
+      "case": "deleted required route edge",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "dispatch before route/scan"
+    },
+    {
+      "case": "cross-unit inverted predecessor",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "out-of-order cross-unit predecessor C01<-C10"
+    },
+    {
+      "case": "new Odoo repository",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "effect wrong repo/revision C01"
+    },
+    {
+      "case": "unjustified no-change",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "no-change unjustified C01"
+    },
+    {
+      "case": "fabricated coding grant",
+      "result": "REJECTED_AS_REQUIRED",
+      "failure": "false coding/plan grant"
+    }
+  ],
+  "product_runtime_tests": "NOT_RUN",
+  "independent_review": "NOT_RUN"
+}

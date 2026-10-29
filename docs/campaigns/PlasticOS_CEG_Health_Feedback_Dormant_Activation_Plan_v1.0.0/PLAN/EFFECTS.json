@@ -1,0 +1,710 @@
+{
+  "format": "scoped-health-effects/v1",
+  "effects": [
+    {
+      "id": "C01",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/config/settings.py",
+      "source_blob_sha": "119c8a16cfd436bd49e2b064bfba97defe0de3fb",
+      "observed": "health_api_enabled, auto_enrich_via_gate and graph_inference_feedback_enabled default False. health_commercial_mode_enabled also False; batch limits 100 entities/$10 while nightly scanner elsewhere defaults $50.",
+      "disposition": "NO_CHANGE",
+      "unit": "U01",
+      "before": "Three enable switches default false, plus unrelated safety switches.",
+      "after": "Preserve defaults false, separate readiness flags from activation; no live config change.",
+      "paths": [],
+      "proof_ids": [
+        "P18",
+        "P19",
+        "P21"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Settings defaults are a safety invariant; proof of effective future config belongs to release operator.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C02",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/spec.yaml",
+      "source_blob_sha": "b1aeedd9c67917d3c4e6cc8dfad4d6013bd985c6",
+      "observed": "CEG advertises health-assess along with match/sync/outcomes/resolve. It does not advertise admin or enrich.",
+      "disposition": "NO_CHANGE",
+      "unit": "U02",
+      "before": "Canonical health-assess already advertised.",
+      "after": "Preserve existing advertisement; Gate registry must align, no admin or enrich added.",
+      "paths": [],
+      "proof_ids": [
+        "P02",
+        "P03"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Spec already correct at pinned revision; no CEG-side need to rename action.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C03",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/handlers.py",
+      "source_blob_sha": "9d05bc24b13bf2ffa22955d20e6714c02acda8d4",
+      "observed": "health-assess is canonical three-subaction handler; emit_inference_feedback exists only as admin subaction, not accessible via health-assess route. Domain id can be caller-provided in admin payload; verify tenant binding.",
+      "disposition": "EDIT",
+      "unit": "U05",
+      "before": "Graph-inference producer callable only via admin emit_inference_feedback; health route limited to three.",
+      "after": "Keep health route limited; wire feedback producer to existing authorized internal graph/rule event; remove unsafe payload-driven domain switching, add recursion and producer receipts.",
+      "paths": [
+        {
+          "path": "engine/handlers.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P03",
+        "P12",
+        "P13"
+      ],
+      "depends_on": [
+        "C04"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C04",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/health/api.py",
+      "source_blob_sha": "b11f76e18b7930cb5aeb9e9c9c1982b0a8a55812",
+      "observed": "handle_health_assess automatically triggers Gate dispatch on enrich_now recommendation when allowed and flag on; handle_health_batch_assess only calculates estimates, reports dispatched=0, and scans caller-supplied list.",
+      "disposition": "EDIT",
+      "unit": "U03",
+      "before": "Assessor currently auto-dispatches enrich_now if allowed; batch scans caller input, dispatched=0.",
+      "after": "Separate strictly read-only assess/batch/report from paid worker actions. Replace automatic read-side side effect with eligibility only; keep server-owned caps.",
+      "paths": [
+        {
+          "path": "engine/health/api.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P03",
+        "P06",
+        "P07"
+      ],
+      "depends_on": [
+        "C01"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C05",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/health/nightly_health_scan.py",
+      "source_blob_sha": "b0658bc2966b8ab7ea190260f8ae9c4246d462bf",
+      "observed": "run_nightly_health_scan builds ROI-ranked queue; without injected entity_loader returns []; no dispatch call; process-global scanned_this_run set; MAX_QUEUE=100 and default $50 estimate ceiling.",
+      "disposition": "EDIT",
+      "unit": "U03",
+      "before": "No production entity_loader returns []; top100 estimated queue only; global scanned set.",
+      "after": "Reuse GraphDriver tenant DB to obtain real candidates; stable paging/watermarks, stateful due selection, truthful zero/unavailable, queue output only with bounded policies.",
+      "paths": [
+        {
+          "path": "engine/health/nightly_health_scan.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P04",
+        "P05",
+        "P06",
+        "P07"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C06",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/health/enrichment_trigger.py",
+      "source_blob_sha": "95c70a4c9d2a6f2c5000e5dea79c607c17c335f0",
+      "observed": "trigger_reenrichment_v2 can use Gate request_enrichment with flag true; heuristic ROI assumes filling gaps and chooses average deal value from domain description or default $1000; financial ROI is estimate not proven observed value.",
+      "disposition": "EDIT",
+      "unit": "U04",
+      "before": "ROI derived from assumed projected match probability and default deal value; request_enrichment returns Gate dispatch status.",
+      "after": "Keep ranking advisory; require explicit approved tenant budget and durable dispatch check; no hypothetical ROI used as spending authority; preserve one Gate egress.",
+      "paths": [
+        {
+          "path": "engine/health/enrichment_trigger.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P07",
+        "P08",
+        "P09"
+      ],
+      "depends_on": [
+        "C05"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C07",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/boot.py",
+      "source_blob_sha": "3629cae40ff4e498d1b2b3c10674075e483c912e",
+      "observed": "GraphLifecycle starts GDS schedulers and compliance task but does not start nightly health scan; search found only run_nightly_health_scan definition, no caller.",
+      "disposition": "EDIT",
+      "unit": "U03",
+      "before": "Lifecycle schedules GDS jobs and compliance only; no health job.",
+      "after": "Wire existing approved lifecycle/scheduler to a scoped health worker with startup/shutdown single scheduler and OFF effective gate; reuse existing lifecycle, no new service by default.",
+      "paths": [
+        {
+          "path": "engine/boot.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P05",
+        "P18",
+        "P19"
+      ],
+      "depends_on": [
+        "C05"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C08",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/gate_egress.py",
+      "source_blob_sha": "2b96ff343bd566cf2de449277a3f35665bdeec4d",
+      "observed": "One SDK Gate EIE egress for enrich and graph-inference-result with idempotency keys; response header failure checked; no direct peer transport. Enrichment key excludes explicit input/source revision.",
+      "disposition": "NO_CHANGE",
+      "unit": "U04",
+      "before": "Gate-only SDK egress, fixed enrich keys without explicit input revision.",
+      "after": "Preserve SDK transport; before coding confirm idempotency key sufficiency and acknowledgement semantics. If revision-awareness cannot be enforced at workflow owner, open narrow amendment here, never direct HTTP.",
+      "paths": [],
+      "proof_ids": [
+        "P08",
+        "P09",
+        "P13"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Existing SDK is an adequate transport owner; its semantic retry identity needs independent proof, not speculative refactor.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C09",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "tests/unit/test_health_api.py",
+      "source_blob_sha": "276310bf94df04884cb9dc9f0ed78470b182526a",
+      "observed": "Mocked orchestration tests cover tenant binding, batch cost ceilings, commercial mode and assess trigger. No real Neo4j loader/scheduler or complete multi-node dispatch demonstration.",
+      "disposition": "EDIT",
+      "unit": "U06",
+      "before": "Current tests assert automatic trigger from read-path and mock analysis.",
+      "after": "Revise for side-effect-free health read, budget authority, real candidate integration and disabled gates; never weaken tenant/gate assertions.",
+      "paths": [
+        {
+          "path": "tests/unit/test_health_api.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/unit/test_health_engine.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/architecture/test_seam_gate_only.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P03",
+        "P06",
+        "P16",
+        "P21"
+      ],
+      "depends_on": [
+        "C03",
+        "C04",
+        "C05",
+        "C06"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C10",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "docs/FEATURE_GATES.md",
+      "source_blob_sha": "ccc877ec77ff9fc3fa09cf641937d3a1bfa9e5fc",
+      "observed": "Flags documented dormant; repo explicitly notes multi-node constellation orchestration gap.",
+      "disposition": "EDIT",
+      "unit": "U07",
+      "before": "Docs report 3 dormant flags and separate commercial setting.",
+      "after": "Update expected proven readiness and staged enabling process without setting flags or falsely claiming live.",
+      "paths": [
+        {
+          "path": "docs/FEATURE_GATES.md",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P18",
+        "P19",
+        "P21"
+      ],
+      "depends_on": [
+        "C09"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C11",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/health/health_schemas.py",
+      "source_blob_sha": null,
+      "observed": "SOURCE_IDENTIFIED_NOT_VERIFIED_FULLY",
+      "disposition": "NO_CHANGE",
+      "unit": "U03",
+      "before": "HealthScanProfile and batch caps exist; no observed proven deficiency in exact schema.",
+      "after": "Reuse current typed profiles; amend schema only after an exact failed required contract test.",
+      "paths": [],
+      "proof_ids": [
+        "P04",
+        "P07"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Preserve existing typed schemas and avoid speculative fields.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C12",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/graph/driver.py",
+      "source_blob_sha": null,
+      "observed": "SOURCE_IDENTIFIED_NOT_VERIFIED_FULLY",
+      "disposition": "NO_CHANGE",
+      "unit": "U03",
+      "before": "GraphDriver has explicit tenant database handling; not used by current scanner default.",
+      "after": "Use GraphDriver; do not invent new Neo4j client or tenant fallback.",
+      "paths": [],
+      "proof_ids": [
+        "P04",
+        "P15"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "GraphDriver is existing source owner; no code change demonstrated necessary yet.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "C13",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "owner": "CEG",
+      "source_path": "engine/inference_rule_registry.py",
+      "source_blob_sha": null,
+      "observed": "SOURCE_IDENTIFIED_NOT_VERIFIED_FULLY",
+      "disposition": "NO_CHANGE",
+      "unit": "U05",
+      "before": "Authorized graph rule registry is consumed from admin path.",
+      "after": "Reuse authorized rules; no generic rule engine or autonomous rule expansion.",
+      "paths": [],
+      "proof_ids": [
+        "P12",
+        "P21"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Existing rule registry supplies validated rule authorization; activation should wire it, not fork it.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "G01",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "owner": "GATE",
+      "source_path": "constellation-gate/src/constellation_gate/routing/action_ownership.py",
+      "source_blob_sha": "c4099451db191d34937d168f138e97afa9ce5e5c",
+      "observed": "Canonical owner table and SEAM_ACTIONS omit health-assess even though CEG advertises it. Current enrich and graph-inference-result belong to EIE.",
+      "disposition": "EDIT",
+      "unit": "U02",
+      "before": "Canonical owners and SEAM_ACTIONS lack health-assess.",
+      "after": "Admit `health-assess:ceg`, preserve enrich/graph-inference-result:EIE; extend seam/readiness contract and deny collisions.",
+      "paths": [
+        {
+          "path": "constellation-gate/src/constellation_gate/routing/action_ownership.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P02",
+        "P09",
+        "P16"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "G02",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "owner": "GATE",
+      "source_path": "constellation-gate/src/constellation_gate/config/node_registry.yaml",
+      "source_blob_sha": "823c5dfde515b5b15fef374d8b7aebb7f03b20fc",
+      "observed": "Static graph node only advertises match/sync/outcomes/resolve, not health-assess; seed topology incomplete for CEG advertised health route.",
+      "disposition": "EDIT",
+      "unit": "U02",
+      "before": "Static seed graph node has no health-assess.",
+      "after": "Align static graph action with CEG spec and owner, preserve unrelated EIE routes.",
+      "paths": [
+        {
+          "path": "constellation-gate/src/constellation_gate/config/node_registry.yaml",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P02",
+        "P15"
+      ],
+      "depends_on": [
+        "G01"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "G03",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "owner": "GATE",
+      "source_path": "constellation-gate/tests/architecture/test_seam_route_contract.py",
+      "source_blob_sha": "6925fa1252b25c69d2e8dc3b8ffc84efc9dee172",
+      "observed": "Contract test freezes static graph set and seam action names without health-assess; must evolve with accepted route.",
+      "disposition": "EDIT",
+      "unit": "U06",
+      "before": "Architecture route tests freeze old action set and default readiness semantics.",
+      "after": "Extend exact owner, static/dynamic registry, readiness, wrong-owner and collision tests; keep worker retry ownership enforced.",
+      "paths": [
+        {
+          "path": "constellation-gate/tests/architecture/test_seam_route_contract.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "constellation-gate/tests/runtime/test_routing_readiness.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P02",
+        "P15",
+        "P16"
+      ],
+      "depends_on": [
+        "G02"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "G04",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "owner": "GATE",
+      "source_path": "constellation-gate/src/constellation_gate/runtime/routing_readiness.py",
+      "source_blob_sha": "abaaaee77e52b7b7421145098940b11e9a637464",
+      "observed": "Default readiness derives SEAM_ACTIONS and therefore does not require health-assess; route can be falsely classified ready for this feature.",
+      "disposition": "NO_CHANGE",
+      "unit": "U02",
+      "before": "Default readiness uses SEAM_ACTIONS owned in action_ownership.",
+      "after": "Existing readiness aggregation suffices after SEAM_ACTIONS update; test no silent liveness-only green.",
+      "paths": [],
+      "proof_ids": [
+        "P02",
+        "P16"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Do not edit generic readiness if new required action inherits correctly from single SEAM_ACTIONS owner.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "G05",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "owner": "GATE",
+      "source_path": "constellation-gate/src/constellation_gate/resilience/replay_safety.py",
+      "source_blob_sha": "b3a2942bfd29dcac406e6738a49cc7e4d35bcf10",
+      "observed": "Gate replay-safe actions default empty; worker-owned retry is explicit. Do not add whole-operation replay for paid enrich merely to unblock.",
+      "disposition": "NO_CHANGE",
+      "unit": "U04",
+      "before": "Gate whole-operation replay defaults disabled.",
+      "after": "Do not enable generic Gate replay for paid enrichment; domain worker owns safe retry.",
+      "paths": [],
+      "proof_ids": [
+        "P08",
+        "P09"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Transport timeout may conceal completed provider work; Gate retries remain denied.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "E01",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "owner": "EIE",
+      "source_path": "app/services/graph_return_channel.py",
+      "source_blob_sha": "76679b7b18ea6d2391960b2cb60e4f7a936569cf",
+      "observed": "Per-process asyncio.Queue keyed by tenant, bounded 10000; QueueFull silently drops a target and accepted handler returns count; no durable process restart guarantee.",
+      "disposition": "EDIT",
+      "unit": "U05",
+      "before": "Per-process in-memory per-tenant queue; QueueFull drops; accepted response is not durable.",
+      "after": "Reuse existing durable result/inbox where sufficient; otherwise owner-approved minimal durable target state, honest full/partial counts, dedupe, restart and multi-worker recovery. No silent successful discard.",
+      "paths": [
+        {
+          "path": "app/services/graph_return_channel.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P10",
+        "P11",
+        "P13"
+      ],
+      "depends_on": [
+        "G01"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "E02",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "owner": "EIE",
+      "source_path": "app/engines/convergence_controller.py",
+      "source_blob_sha": "d84b3db458011e17ed4af8b5e31db4e7134b699d",
+      "observed": "Convergence consumes returned graph targets via take_for_entity at start of each future pass; acceptance of targets does not itself schedule a convergence pass.",
+      "disposition": "EDIT",
+      "unit": "U05",
+      "before": "GraphReturnChannel targets consumed only when some later authorized converge pass happens.",
+      "after": "Connect admitted return targets to a bounded authorized convergence trigger or pending-state wakeup; preserve seed confidence and stronger source facts; no self-amplifying feedback loop.",
+      "paths": [
+        {
+          "path": "app/engines/convergence_controller.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P11",
+        "P14"
+      ],
+      "depends_on": [
+        "E01"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "E03",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "owner": "EIE",
+      "source_path": "app/services/chassis_handlers.py",
+      "source_blob_sha": "31009b26a44c2089def388723e993bfd571d50cf",
+      "observed": "Registered existing graph-inference-result SDK handler; preserve canonical EIE action ownership and tenant-from-packet.",
+      "disposition": "NO_CHANGE",
+      "unit": "U05",
+      "before": "Existing handler registers graph-inference-result via SDK.",
+      "after": "Retain EIE canonical handler ownership and tenant identity from packet; no duplicate endpoint.",
+      "paths": [],
+      "proof_ids": [
+        "P10",
+        "P13"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Existing registered action/handler are correct at observed source; no demonstrated change needed.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "E04",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "owner": "EIE",
+      "source_path": "app/services/side_effect_coordinator.py",
+      "source_blob_sha": "28e861bdfb8e3a539cd11b814e30e70140c3f791",
+      "observed": "Existing graph sync acknowledgement and process-local exactly-once guard. Cannot presume durable recovery for graph feedback from this code.",
+      "disposition": "NO_CHANGE",
+      "unit": "U05",
+      "before": "Has process-local dedupe and graph sync acknowledgement checks.",
+      "after": "Reuse result/graph-sync owners; a source restart probe may demonstrate separate durable inbox requirement; no speculative rewrite.",
+      "paths": [],
+      "proof_ids": [
+        "P10",
+        "P14"
+      ],
+      "depends_on": [],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "Separate EIE graph sync pipeline already owns durable result/evidence work, but graph-feedback queue durability unproven.",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "E05",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "owner": "EIE",
+      "source_path": "tests/services/test_graph_return_channel.py",
+      "source_blob_sha": "13c9ecef819cf13b3251bab25d6947a082303967",
+      "observed": "Existing return-channel tests cover singleton, tenant separation, handler, filtering; no mandatory restart/queue-full durability proof.",
+      "disposition": "EDIT",
+      "unit": "U06",
+      "before": "Tests cover singleton/tenant separation and receive, not crash/full/multiprocess/replayed-target semantics.",
+      "after": "Add restart/dedup/reject-ack and source-confidence negative tests; ensure real delivery into next authorized converge pass.",
+      "paths": [
+        {
+          "path": "tests/services/test_graph_return_channel.py",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P10",
+        "P11",
+        "P16"
+      ],
+      "depends_on": [
+        "E01",
+        "E02"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    },
+    {
+      "id": "E06",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e",
+      "owner": "EIE",
+      "source_path": "docs/contracts/dependencies/constellation-gate.yaml",
+      "source_blob_sha": "ce1b5d30e461b9cde2a6719a382d98fb106a1a9a",
+      "observed": "Accepted Gate-only integration contract: graph-inference-result is fed to convergence by tenant+entity. Distinct sync acknowledgement required for graph update.",
+      "disposition": "EDIT",
+      "unit": "U07",
+      "before": "Current contract says graph return channel seeds convergence and sync ack must be exact; no durable target promise.",
+      "after": "Update exact accepted durable target ack and bounded re-trigger semantics; preserve Gate-only producer and graph sync acknowledgement.",
+      "paths": [
+        {
+          "path": "docs/contracts/dependencies/constellation-gate.yaml",
+          "operation": "EDIT"
+        }
+      ],
+      "proof_ids": [
+        "P10",
+        "P11",
+        "P14"
+      ],
+      "depends_on": [
+        "E01",
+        "E02"
+      ],
+      "security": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "no_change_basis": "",
+      "status": "PLANNED_NOT_EXECUTED"
+    }
+  ],
+  "materiality": "Proposed source-owner dispositions; no repository writes.",
+  "needs_admission": true
+}

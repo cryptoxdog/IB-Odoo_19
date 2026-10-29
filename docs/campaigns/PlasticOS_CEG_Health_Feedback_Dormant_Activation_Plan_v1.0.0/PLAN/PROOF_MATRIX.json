@@ -1,0 +1,194 @@
+{
+  "status": "NOT_RUN",
+  "proofs": [
+    {
+      "id": "P01",
+      "stage": "PRECODE",
+      "owner": "CEG/Gate/EIE source owners",
+      "positive": "Exact deployed image/SDK, effective route/caller grants and tenant/Neo4j DB are inventoried against pinned refs.",
+      "negative": "Mismatch, missing authority, stale pack or unknown dynamic consumer remains explicitly blocked.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P02",
+      "stage": "POSTCODE",
+      "owner": "Gate",
+      "positive": "health-assess has unique CEG owner, static and dynamic registration, and ready routing.",
+      "negative": "Cross-owner collision or unhealthy/missing CEG fails readiness and routes nowhere else.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P03",
+      "stage": "POSTCODE",
+      "owner": "CEG",
+      "positive": "health-assess supports exactly assess/batch/report and remains read-only under all flags.",
+      "negative": "No admin subaction exposed, no paid Gate request from read-only health call.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P04",
+      "stage": "POSTCODE",
+      "owner": "CEG",
+      "positive": "Neo4j loader retrieves due health entities from exact tenant database with stable pagination.",
+      "negative": "No-loader is classified unavailable, never a successful zero; cross-tenant reads rejected.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P05",
+      "stage": "POSTCODE",
+      "owner": "CEG",
+      "positive": "Scheduled health job runs only in explicitly authorized test context, chooses stable deduped entities and cancels cleanly.",
+      "negative": "Restart or multiple workers do not double-schedule, scan disabled tenant or run after kill-switch.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P06",
+      "stage": "POSTCODE",
+      "owner": "CEG",
+      "positive": "Healthy/missing-field cases produce correct readiness, prioritized target fields and traceable evidence.",
+      "negative": "Bad entity label, unknown field, nonexistent spec or poisoned provenance cannot become accepted target.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P07",
+      "stage": "POSTCODE",
+      "owner": "CEG",
+      "positive": "One run obeys per-tenant max entities, actual paid spend/calls/token ceilings, scope and audit.",
+      "negative": "Heuristic ROI, $50 nightly estimate or request-specified ceilings cannot raise server budget.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P08",
+      "stage": "POSTCODE",
+      "owner": "CEG",
+      "positive": "Durable operation identity survives restart with source revision and field-set digest; worker sends once.",
+      "negative": "Concurrent workers, clock/retry/mapping changes or reorders cannot multiply paid requests.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P09",
+      "stage": "POSTCODE",
+      "owner": "CEG/Gate",
+      "positive": "CEG uses Gate SDK enrich, receiving typed worker ack with correct entity and tenant.",
+      "negative": "Gate absent, bad signature, HTTP200 failure packet, wrong action/tenant not recorded success.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P10",
+      "stage": "POSTCODE",
+      "owner": "EIE",
+      "positive": "EIE persists accepted feedback targets in recoverable owner and reports durable accepted versus rejected counts.",
+      "negative": "Full process queue, restart, wrong process or duplicate packet cannot claim successfully consumed work.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P11",
+      "stage": "POSTCODE",
+      "owner": "EIE",
+      "positive": "Authorized converge pass consumes tenant+entity graph target exactly once with provenance.",
+      "negative": "Graph suggestion cannot overwrite stronger verified facts or cross another entity/tenant.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P12",
+      "stage": "POSTCODE",
+      "owner": "CEG",
+      "positive": "Graph-derived inference producer is triggered by authorized real event not via unavailable admin action, with rule whitelist and floor.",
+      "negative": "Unchanged evidence, unauthorized rule, low-confidence or cyclic graph-derived result does not cause new paid feedback.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P13",
+      "stage": "POSTCODE",
+      "owner": "CEG/Gate/EIE",
+      "positive": "Graph feedback traverses CEG→Gate graph-inference-result→EIE, stores and acknowledges exact outputs.",
+      "negative": "Unknown action, queue full, worker failure, wrong tenant or partial acceptance remains retryable/not completed.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P14",
+      "stage": "POSTCODE",
+      "owner": "EIE/CEG",
+      "positive": "EIE enrichment persists evidence and receives CEG graph-sync acknowledgement; CEG reassessment uses updated revision.",
+      "negative": "Transport accept or queued target alone does not count as refreshed graph health.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P15",
+      "stage": "PREMERGE",
+      "owner": "Security reviewers",
+      "positive": "No direct peer ingress, no privilege escalation, no payload tenant override, safe source allowlists and no secrets.",
+      "negative": "Adversarial tenant mismatch, missing production allowlist, forged headers and forbidden fields fail closed.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P16",
+      "stage": "PREMERGE",
+      "owner": "Source owners",
+      "positive": "All edited current tests, ownership/ADR/readiness registries and lifecycle paths pass at exact source heads.",
+      "negative": "One test suite passing from a detached source, mock-only integration, or suppressed failure is insufficient.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P17",
+      "stage": "PRERELEASE",
+      "owner": "Independent integration reviewer",
+      "positive": "Real Gate+CEG+EIE+Neo4j fixture proves scored deficiency→dispatch→EIE result→graph update→health improvement.",
+      "negative": "An empty queue, just an HTTP200, or one node fake cannot produce a green end-to-end receipt.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P18",
+      "stage": "PRERELEASE",
+      "owner": "Release operator",
+      "positive": "All three flags OFF in actual deployment until separate approval; ON tested only in authorized isolated fixture.",
+      "negative": "No flag flip, paid send, scheduled job or deployment implied by published code or plan.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P19",
+      "stage": "PRERELEASE",
+      "owner": "Release operator",
+      "positive": "Kill switches stop new queued/cached/retried sends and preserve evidence; rollback/restore exercised.",
+      "negative": "Previously queued retry cannot dispatch after disabled, and disabling does not delete evidence.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P20",
+      "stage": "PRERELEASE",
+      "owner": "Source-owner + independent reviewer",
+      "positive": "Exact final candidate revisions, real action registration, data/tenant boundaries, budgets and unresolved findings closed.",
+      "negative": "Any missing approval, unknown result, cost runaway, feedback recursion or source drift prevents activation.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    },
+    {
+      "id": "P21",
+      "stage": "PREMERGE",
+      "owner": "Portfolio boundary reviewer",
+      "positive": "No edits to Odoo, Offer Drafting, PR #329 or Semantic Kernel; unrelated feature gates remain off.",
+      "negative": "A new Odoo selector cron, inferred inventory, health commercial tier or direct peer transport is regression.",
+      "status": "NOT_RUN",
+      "evidence": "Planned. No product/runtime test executed by this planning pack."
+    }
+  ]
+}

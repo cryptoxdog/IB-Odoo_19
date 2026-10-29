@@ -1,0 +1,94 @@
+{
+  "locks": [
+    {
+      "id": "H-01",
+      "statement": "Exactly one scope: CEG graph health and enrichment feedback through Gate to EIE. No Offer Drafting, Web Lead PR329, Odoo Semantic Kernel, CRM writeback, payment, sales or procurement work.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-02",
+      "statement": "Current intended deployment is DISABLED. No environment variable or deployed configuration is changed by this pack. Eventual enablement needs fresh explicit release/operator approval.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-03",
+      "statement": "Code-level defaults for HEALTH_API_ENABLED, AUTO_ENRICH_VIA_GATE and GRAPH_INFERENCE_FEEDBACK_ENABLED remain false for fail-closed rollback.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-04",
+      "statement": "Health assessment/report is read-only. Public/canonical health-assess calls cannot incur paid enrichment side effects merely by viewing health.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-05",
+      "statement": "CEG exclusively owns health assessment, due entity discovery, ROI ordering and bounded scheduler. No additional Odoo health selector or local inference engine.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-06",
+      "statement": "Gate is the only CEG-to-EIE routing authority. `health-assess` is CEG-owned; `enrich` and `graph-inference-result` remain EIE-owned. No CEG->EIE direct peer call or worker impersonation.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-07",
+      "statement": "Tenant identity is canonical: signed packet tenant == domain id == Neo4j database; no payload override or cross-company/tenant data traversal.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-08",
+      "statement": "No job is dispatched without explicit current tenant/field allowlist, bounded queue/rate, source freshness, provider budget authorization and operation state.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-09",
+      "statement": "ROI estimates are advisory and cannot authorize paid spend alone. Existing assumed $1,000 deal value/expected improvement is not calibrated commercial evidence.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-10",
+      "statement": "Durable identity and recovery must cover operation+input revision+tenant+target fields. Retried, reordered or repeated jobs cannot multiply paid work or resurrect stale data.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-11",
+      "statement": "Transport acknowledgement, EIE accepted/durable result, graph sync and measured CEG health reassessment are different states; report each accurately.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-12",
+      "statement": "Graph-inference feedback is attributable, tenant-bound, rule-versioned, confidence-filtered, bounded and consumed on an authorized convergence pass; no inference from the result can recursively self-trigger indefinite work.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-13",
+      "statement": "EIE return-channel acceptance cannot silently discard work on queue-full, process restart or multi-worker routing; recoverable disposition is required before automation.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-14",
+      "statement": "Disable must stop new paid requests, scheduled jobs and retries without erasing evidence; read-only health may be disabled independently if unsafe.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-15",
+      "statement": "No activation based on unit mocks, feature flags printed true, an HTTP 200, queue length or a single packet. A real two-node Gate route, persistence and health change must be proven.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-16",
+      "statement": "Scope includes only minimal required changes at authoritative source owners. Reuse Gate SDK and existing scheduling/evidence storage when sufficient; no new framework, transport or infrastructure by default.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-17",
+      "statement": "Existing unrelated controls remain: health commercial tiers, GDPR erasure, unvalidated/dormant domain pack admission, legacy chassis and direct peer ingress are NOT enabled.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    },
+    {
+      "id": "H-18",
+      "statement": "Source-owner approval, accepted ADRs, independent code review, runtime tests and exact deployment configuration are separate from this planning document. Unknown never counts as proof.",
+      "status": "OPERATOR_SCOPE_AND_PROPOSED_SAFETY_INVARIANT"
+    }
+  ]
+}

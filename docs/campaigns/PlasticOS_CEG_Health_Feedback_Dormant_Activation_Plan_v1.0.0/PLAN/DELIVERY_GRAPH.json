@@ -1,0 +1,108 @@
+{
+  "format": "scoped-health-delivery-dag/v1",
+  "relation_meaning": "prerequisite -> dependent; never authority to execute",
+  "nodes": [
+    {
+      "id": "U00",
+      "title": "Read-only current-deployment/SDK/tenant/consumer census and source rebind",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U01",
+      "title": "Source-owner ADR/contract acceptance and minimal topology decision",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U02",
+      "title": "Gate health-assess owner, static registry and readiness proof",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U03",
+      "title": "CEG read-only health API, real tenant-safe loader, scheduled scan (still OFF)",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U04",
+      "title": "CEG bounded paid dispatch via Gate enrich with durable identity (still OFF)",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U05",
+      "title": "CEG feedback producer plus EIE durable acceptance/authorized convergence (still OFF)",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U06",
+      "title": "Unit, security, crash/replay and real 3-node integration tests with disabled defaults",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U07",
+      "title": "Isolated staging shadow only after permission; independently reviewed readiness and rollback",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "U08",
+      "title": "READY BUT DISABLED decision, not production activation",
+      "status": "NOT_STARTED"
+    }
+  ],
+  "edges": [
+    {
+      "source": "U00",
+      "target": "U01",
+      "relation": "requires"
+    },
+    {
+      "source": "U01",
+      "target": "U02",
+      "relation": "requires"
+    },
+    {
+      "source": "U01",
+      "target": "U03",
+      "relation": "requires"
+    },
+    {
+      "source": "U02",
+      "target": "U04",
+      "relation": "requires"
+    },
+    {
+      "source": "U03",
+      "target": "U04",
+      "relation": "requires"
+    },
+    {
+      "source": "U02",
+      "target": "U05",
+      "relation": "requires"
+    },
+    {
+      "source": "U03",
+      "target": "U05",
+      "relation": "requires"
+    },
+    {
+      "source": "U04",
+      "target": "U06",
+      "relation": "requires"
+    },
+    {
+      "source": "U05",
+      "target": "U06",
+      "relation": "requires"
+    },
+    {
+      "source": "U06",
+      "target": "U07",
+      "relation": "requires"
+    },
+    {
+      "source": "U07",
+      "target": "U08",
+      "relation": "requires"
+    }
+  ]
+}

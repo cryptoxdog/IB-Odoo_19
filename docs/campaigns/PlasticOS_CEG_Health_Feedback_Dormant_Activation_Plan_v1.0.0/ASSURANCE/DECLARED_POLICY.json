@@ -1,0 +1,79 @@
+{
+  "authority_ref": "User current turn 2026-10-29: defer #1, scope #2 only, keep disabled; safety/ownership invariants proposed for source-owner admission",
+  "assertions": [
+    {
+      "id": "disabled-currently",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/business_use_enabled",
+      "value": false
+    },
+    {
+      "id": "no-configuration-changes",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/pack_makes_config_change",
+      "value": false
+    },
+    {
+      "id": "no-activation-authorization",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/separate_activation_grant",
+      "value": null
+    },
+    {
+      "id": "pack-code-defaults-false",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/code_defaults_preserved_false",
+      "value": true
+    },
+    {
+      "id": "all-product-tests-unrun",
+      "kind": "equals",
+      "file": "PLAN/ACTIVATION_STATE.json",
+      "pointer": "/all_proofs",
+      "value": "NOT_RUN"
+    },
+    {
+      "id": "unique-locked-invariants",
+      "kind": "unique_field",
+      "file": "PLAN/LOCKS.json",
+      "pointer": "/locks",
+      "field": "id"
+    },
+    {
+      "id": "scan-before-dispatch",
+      "kind": "edge_exists",
+      "file": "PLAN/DELIVERY_GRAPH.json",
+      "source": "U03",
+      "target": "U04",
+      "relation": "requires"
+    },
+    {
+      "id": "integration-before-ready",
+      "kind": "edge_exists",
+      "file": "PLAN/DELIVERY_GRAPH.json",
+      "source": "U07",
+      "target": "U08",
+      "relation": "requires"
+    },
+    {
+      "id": "route-before-dispatch",
+      "kind": "edge_exists",
+      "file": "PLAN/DELIVERY_GRAPH.json",
+      "source": "U02",
+      "target": "U04",
+      "relation": "requires"
+    },
+    {
+      "id": "no-early-activation",
+      "kind": "edge_absent",
+      "file": "PLAN/DELIVERY_GRAPH.json",
+      "source": "U01",
+      "target": "U08",
+      "relation": "requires"
+    }
+  ]
+}

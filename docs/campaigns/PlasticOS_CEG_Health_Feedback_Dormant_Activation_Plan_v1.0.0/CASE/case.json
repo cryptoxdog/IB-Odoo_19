@@ -1,0 +1,1306 @@
+{
+  "schema": "plasticos.addon-planning-case/v0.2",
+  "case_id": "CEG-HEALTH-FEEDBACK-DORMANT-2026-10-29-v1",
+  "mode": "wip_alignment",
+  "target": {
+    "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+    "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+    "source_lock": "EVIDENCE/REVISIONS.json",
+    "constitution": {
+      "path": "docs/FEATURE_GATES.md",
+      "version": "current CEG documented feature-control policy, 2026-10-29",
+      "blob_sha": "ccc877ec77ff9fc3fa09cf641937d3a1bfa9e5fc",
+      "authority_class": "UNKNOWN"
+    },
+    "installed_target": {
+      "status": "UNOBSERVED",
+      "evidence": "Current hosted CEG/Gate/EIE builds and effective flags not accessible in this read-only planning turn; must be observed in U00."
+    },
+    "wip": {
+      "base_revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "head_revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "related_prs": [],
+      "test_evidence": "Read existing test files but executed zero repository tests; acceptance and runtime are NOT_RUN.",
+      "capabilities": [
+        {
+          "name": "CEG health assessment and ranking",
+          "behavior": "Code present with domain gap analysis and unit/mock tests.",
+          "disposition": "ALIGN",
+          "evidence": "E01-E04/E09-E12",
+          "preservation_test": "P03/P06/P07"
+        },
+        {
+          "name": "Gate enrich egress",
+          "behavior": "Source has SDK Gate request_enrichment, disabled by default.",
+          "disposition": "PRESERVE",
+          "evidence": "E07",
+          "preservation_test": "P09"
+        },
+        {
+          "name": "Nightly candidate source and scheduling",
+          "behavior": "No production loader or independent health scheduler caller found in inspected sources.",
+          "disposition": "ALIGN",
+          "evidence": "E02/E08",
+          "preservation_test": "P04/P05"
+        },
+        {
+          "name": "Graph inference output producer",
+          "behavior": "Producer exists, only admin emit_inference_feedback path in inspected source.",
+          "disposition": "ALIGN",
+          "evidence": "E05/E07",
+          "preservation_test": "P12/P13"
+        }
+      ]
+    }
+  },
+  "authority": {
+    "locked_decisions": [
+      {
+        "id": "D-H-01",
+        "text": "Exactly one scope: CEG graph health and enrichment feedback through Gate to EIE. No Offer Drafting, Web Lead PR329, Odoo Semantic Kernel, CRM writeback, payment, sales or procurement work.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-02",
+        "text": "Current intended deployment is DISABLED. No environment variable or deployed configuration is changed by this pack. Eventual enablement needs fresh explicit release/operator approval.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-03",
+        "text": "Code-level defaults for HEALTH_API_ENABLED, AUTO_ENRICH_VIA_GATE and GRAPH_INFERENCE_FEEDBACK_ENABLED remain false for fail-closed rollback.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-04",
+        "text": "Health assessment/report is read-only. Public/canonical health-assess calls cannot incur paid enrichment side effects merely by viewing health.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-05",
+        "text": "CEG exclusively owns health assessment, due entity discovery, ROI ordering and bounded scheduler. No additional Odoo health selector or local inference engine.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-06",
+        "text": "Gate is the only CEG-to-EIE routing authority. `health-assess` is CEG-owned; `enrich` and `graph-inference-result` remain EIE-owned. No CEG->EIE direct peer call or worker impersonation.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-07",
+        "text": "Tenant identity is canonical: signed packet tenant == domain id == Neo4j database; no payload override or cross-company/tenant data traversal.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-08",
+        "text": "No job is dispatched without explicit current tenant/field allowlist, bounded queue/rate, source freshness, provider budget authorization and operation state.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-09",
+        "text": "ROI estimates are advisory and cannot authorize paid spend alone. Existing assumed $1,000 deal value/expected improvement is not calibrated commercial evidence.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-10",
+        "text": "Durable identity and recovery must cover operation+input revision+tenant+target fields. Retried, reordered or repeated jobs cannot multiply paid work or resurrect stale data.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-11",
+        "text": "Transport acknowledgement, EIE accepted/durable result, graph sync and measured CEG health reassessment are different states; report each accurately.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-12",
+        "text": "Graph-inference feedback is attributable, tenant-bound, rule-versioned, confidence-filtered, bounded and consumed on an authorized convergence pass; no inference from the result can recursively self-trigger indefinite work.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-13",
+        "text": "EIE return-channel acceptance cannot silently discard work on queue-full, process restart or multi-worker routing; recoverable disposition is required before automation.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-14",
+        "text": "Disable must stop new paid requests, scheduled jobs and retries without erasing evidence; read-only health may be disabled independently if unsafe.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-15",
+        "text": "No activation based on unit mocks, feature flags printed true, an HTTP 200, queue length or a single packet. A real two-node Gate route, persistence and health change must be proven.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-16",
+        "text": "Scope includes only minimal required changes at authoritative source owners. Reuse Gate SDK and existing scheduling/evidence storage when sufficient; no new framework, transport or infrastructure by default.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-17",
+        "text": "Existing unrelated controls remain: health commercial tiers, GDPR erasure, unvalidated/dormant domain pack admission, legacy chassis and direct peer ingress are NOT enabled.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      },
+      {
+        "id": "D-H-18",
+        "text": "Source-owner approval, accepted ADRs, independent code review, runtime tests and exact deployment configuration are separate from this planning document. Unknown never counts as proof.",
+        "source": "User current turn: defer workstream 1; scope only #2; keep disabled; future activation only after tested."
+      }
+    ],
+    "open_material_decisions": [
+      "Source owner must decide the minimal existing durable operation/target store and no-spend read semantics; not an operator grant.",
+      "Operator-defined actual per-tenant hard provider budget, allowlist and release scope absent.",
+      "Exact automated feedback trigger and bounded EIE convergence scheduling require source-owner approval."
+    ],
+    "operator_blast_radius_gate": {
+      "id": "POS-INV-26",
+      "source": "Uploaded PlasticOS Strategic Development Kernel operator blast-radius rule applied methodologically to external source owners",
+      "applies": true
+    },
+    "plan_acceptance": {
+      "granted": false,
+      "digest": "",
+      "basis": "Working plan only; source-owner acceptance not obtained."
+    },
+    "coding_grant": {
+      "granted": false,
+      "digest": "",
+      "scope": "No code, PR, Gate registration, live flags, paid calls or release authorization."
+    },
+    "source_interfaces": [
+      {
+        "owner": "CEG",
+        "interface": "health-assess action and three permitted read-only subactions",
+        "status": "SOURCE_OBSERVED",
+        "evidence": "E05-E06; proposed read-only correction remains unadmitted"
+      },
+      {
+        "owner": "Gate",
+        "interface": "health-assess canonical owner registry and static graph action",
+        "status": "PROPOSED",
+        "evidence": "E13-E16; currently omitted"
+      },
+      {
+        "owner": "CEG",
+        "interface": "nightly health scan loader/queue->Gate paid dispatch",
+        "status": "PROPOSED",
+        "evidence": "E02-E04, E07-E08; no production loader/scheduler/dispatch observed"
+      },
+      {
+        "owner": "EIE",
+        "interface": "graph-inference-result receipt and subsequent convergence",
+        "status": "SOURCE_OBSERVED",
+        "evidence": "E20-E25; in-memory queue and future-pass consumption, durability unproven"
+      }
+    ]
+  },
+  "strategy": {
+    "user_problem": "CEG Health↔EIE feedback mechanism exists in fragments but enabling it risks incomplete routes, no candidates, unbounded provider spending and dropped/replayed work.",
+    "outcome": "Develop source-owned, tenant-safe, durable and budget-controlled health enrichment loop through Gate, fully tested but intentionally OFF until separate activation decision.",
+    "first_proof": "With all flags OFF the canonical health call reports disabled and produces zero Gate requests; in a separately authorized disposable test process, only HEALTH_API_ENABLED may turn ON to prove read-only missing-field assessment while paid flags remain OFF, then one controlled queued request yields a single Gate enrich and evidence-bound EIE/CEG result.",
+    "best_alternative": "Flip 3 environment flags ON and use current API/nightly queue.",
+    "reason_selected": "Rejected alternative: Gate health route absent from canonical registry, no default candidate loader/scheduler/queue dispatch, read-side paid action, EIE process-local target queue and uncalibrated ROI.",
+    "reversibility": "Keep code defaults OFF and no deployment changes; runtime kill switches cancel scheduled/queued work with evidence retained; versioned rollback only after later approval.",
+    "future_seam": "After source-owner approval, operator may independently activate read-only health, then paid enrichment and graph feedback in bounded tenant-specific rollout. No Odoo commercial dependency.",
+    "now_scope": [
+      "This source-bound plan, ADR proposals and full blast-radius accounting",
+      "Gate health-assess route and tests; CEG loader/scheduler/read-side safety, queued dispatch; EIE durable return and convergence trigger",
+      "Unit/restart/security/multi-node proofs; explicit ready-disabled and separate activation gates"
+    ],
+    "deferred": [
+      "Offer Drafting/workstream 1, PR #329 and all Odoo changes",
+      "PlasticOS Semantic Kernel, supply-demand backfill, outbound offers, automated negotiation",
+      "No automatic commercial tier upgrade, local intelligence fallback, other dormant flags"
+    ],
+    "non_goals": [
+      "No code or repository mutation authorized",
+      "No feature flags ON now",
+      "No live provider spending, production rollout or new infrastructure without sufficiency proof",
+      "No direct peer calls outside Gate or cross-tenant reads"
+    ],
+    "native_fit": [
+      {
+        "capability": "Neo4j tenant-specified graph reads",
+        "decision": "REUSE",
+        "owner": "CEG GraphDriver",
+        "source": "E08, CEG engine.graph.driver, source owner review still needed"
+      },
+      {
+        "capability": "Health scoring and queue",
+        "decision": "EXTEND",
+        "owner": "CEG engine.health",
+        "source": "E02-E04"
+      },
+      {
+        "capability": "Gate route/ownership",
+        "decision": "EXTEND",
+        "owner": "Gate action_ownership and node_registry",
+        "source": "E13-E19"
+      },
+      {
+        "capability": "EIE return channel",
+        "decision": "EXTEND",
+        "owner": "EIE GraphReturnChannel",
+        "source": "E20-E25"
+      },
+      {
+        "capability": "Transport",
+        "decision": "REUSE",
+        "owner": "CEG gate_egress/GateSDK",
+        "source": "E07"
+      }
+    ]
+  },
+  "source_census": {
+    "search_scope": "CEG main, Gate main, EIE main at pinned SHAs, direct health->Gate->EIE sources and tests, producer/consumer edges, runtime source inspection only; no Odoo runtime.",
+    "methods": [
+      "GitHub exact immutable compare, fetch_file and code-search of named call sites",
+      "Ownership/action/readiness/static registry cross-read",
+      "CEG health data/scheduler/transport, EIE graph feedback receive/consume inspection",
+      "Bounded source-only blast-radius and explicit runtime unknown ledger"
+    ],
+    "root_modules": [
+      "engine.health",
+      "engine.handlers",
+      "engine.gate_egress",
+      "engine.boot"
+    ],
+    "module_dispositions": [
+      {
+        "module": "engine.health",
+        "disposition": "EDIT",
+        "reason": "Owner of current health analysis and scan, read-side dispatch semantics",
+        "evidence": "E02-E04",
+        "test_obligation": "P03-P08"
+      },
+      {
+        "module": "engine.handlers",
+        "disposition": "EDIT",
+        "reason": "Health canonical dispatch and graph inference producer, not Gate admin",
+        "evidence": "E05",
+        "test_obligation": "P03/P12"
+      },
+      {
+        "module": "engine.gate_egress",
+        "disposition": "NO_CHANGE",
+        "reason": "Reuse current GateSDK egress pending idempotency proof",
+        "evidence": "E07",
+        "test_obligation": "P08/P09"
+      },
+      {
+        "module": "engine.boot",
+        "disposition": "EDIT",
+        "reason": "Lifecycle owns scheduler start/stop",
+        "evidence": "E08",
+        "test_obligation": "P05/P19"
+      },
+      {
+        "module": "engine.config",
+        "disposition": "NO_CHANGE",
+        "reason": "Feature defaults OFF and independent other flags",
+        "evidence": "E01",
+        "test_obligation": "P18/P21"
+      },
+      {
+        "module": "engine.graph",
+        "disposition": "NO_CHANGE",
+        "reason": "Reuse tenant-specific graph driver",
+        "evidence": "E08 and source-identified driver",
+        "test_obligation": "P04/P15"
+      },
+      {
+        "module": "engine.health.tests",
+        "disposition": "EDIT",
+        "reason": "Update mock tests and add integrated source tests",
+        "evidence": "E09-E11",
+        "test_obligation": "P16/P17"
+      },
+      {
+        "module": "engine.spec",
+        "disposition": "NO_CHANGE",
+        "reason": "Advertised CEG action already correct; Gate contract owns missing side",
+        "evidence": "E06",
+        "test_obligation": "P02"
+      }
+    ],
+    "extra_consumers": [
+      {
+        "id": "GATE-ROUTE",
+        "module_or_surface": "Constellation.Gate registry, readiness and ownership",
+        "disposition": "EDIT",
+        "reason": "Canonical action mismatch",
+        "evidence": "E13-E19",
+        "test_obligation": "P02/P09/P16"
+      },
+      {
+        "id": "EIE-RECEIVE",
+        "module_or_surface": "Enrichment.Inference.Engine feedback channel/convergence",
+        "disposition": "EDIT",
+        "reason": "Process local and not independently scheduled",
+        "evidence": "E20-E25",
+        "test_obligation": "P10/P11/P13/P14"
+      },
+      {
+        "id": "GATE-SDK",
+        "module_or_surface": "SDK transport/caller grant in deployed environment",
+        "disposition": "NO_CHANGE",
+        "reason": "Reuse current SDK; no new HTTP transport",
+        "evidence": "E07/E13, deployed unknown",
+        "test_obligation": "P01/P09/P15"
+      },
+      {
+        "id": "Odoo/Offer/Semantic",
+        "module_or_surface": "Other commercial/semantic repositories",
+        "disposition": "INDEPENDENT_EXCLUSION",
+        "reason": "Explicit user scope exclusion",
+        "evidence": "Operator user turn",
+        "test_obligation": "P21"
+      }
+    ],
+    "runtime_consumers": {
+      "status": "UNOBSERVED",
+      "evidence": "No live Neo4j tenants, SDK action grants, EIE replicas, current scheduled tasks, effective flags or provider billing data inspected."
+    },
+    "limits": [
+      "CEG/Gate/EIE are separate source authorities; supplied original Odoo kernel case plan validator cannot be asserted as cross-repo constitutional PASS.",
+      "No running system behavior or independently reproduced tests proved; Gate route requires source-owner ADR admission.",
+      "In-memory EIE queue reliability and real scheduler/operation state are unverified; unknown remains blocking."
+    ]
+  },
+  "invariants": {
+    "constitutional": [
+      {
+        "id": "ODOO-INV-01",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#1",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-02",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#2",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-03",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#3",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-04",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#4",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-05",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#5",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-06",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#6",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-07",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#7",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-08",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#8",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-09",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#9",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-10",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#10",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-11",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#11",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-12",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#12",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-13",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#13",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-14",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#14",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-15",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#15",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-16",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#16",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-17",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#17",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-18",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#18",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "ODOO-INV-19",
+        "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+        "source": "INVARIANTS.md#19",
+        "basis": "These Odoo 19-specific model/module rules are not constitutional authority over CEG/Gate/EIE. Transfer only POS-INV-26 methodology and adopt source-owner health invariants separately.",
+        "evidence": "Case target is CEG, Gate and EIE source repos, not IB-Odoo_19; original Odoo kernel untouched."
+      },
+      {
+        "id": "BAN001",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#BAN001",
+        "basis": "Preserve uploaded Odoo kernel BAN001 as a scoped source-avoidance constraint for this planning artifact; it is not declared as governing law for CEG.",
+        "evidence": "Original uploaded v0.2.0 kernel preserved byte-identical and scanned locally."
+      }
+    ],
+    "candidate_screening": {
+      "source": "SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "status": "SCREENED",
+      "relevant_ids": [],
+      "basis": "Odoo draft not admitted and not governing CEG/Gate/EIE; only operator blast-radius method POS-INV-26 applied to plan. No invented cross-repo constitutional application."
+    }
+  },
+  "effects": [
+    {
+      "id": "C01",
+      "owner": "CEG engine/config/settings.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/config/settings.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "health_api_enabled, auto_enrich_via_gate and graph_inference_feedback_enabled default False. health_commercial_mode_enabled also False; batch limits 100 entities/$10 while nightly scanner elsewhere defaults $50.",
+        "status": "OBSERVED",
+        "git_blob_sha": "119c8a16cfd436bd49e2b064bfba97defe0de3fb"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Three enable switches default false, plus unrelated safety switches.",
+      "after": "Preserve defaults false, separate readiness flags from activation; no live config change.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Settings defaults are a safety invariant; proof of effective future config belongs to release operator.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P18",
+        "P19",
+        "P21"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C02",
+      "owner": "CEG engine/spec.yaml",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/spec.yaml",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "CEG advertises health-assess along with match/sync/outcomes/resolve. It does not advertise admin or enrich.",
+        "status": "OBSERVED",
+        "git_blob_sha": "b1aeedd9c67917d3c4e6cc8dfad4d6013bd985c6"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Canonical health-assess already advertised.",
+      "after": "Preserve existing advertisement; Gate registry must align, no admin or enrich added.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Spec already correct at pinned revision; no CEG-side need to rename action.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P02",
+        "P03"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C03",
+      "owner": "CEG engine/handlers.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/handlers.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "health-assess is canonical three-subaction handler; emit_inference_feedback exists only as admin subaction, not accessible via health-assess route. Domain id can be caller-provided in admin payload; verify tenant binding.",
+        "status": "OBSERVED",
+        "git_blob_sha": "9d05bc24b13bf2ffa22955d20e6714c02acda8d4"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Graph-inference producer callable only via admin emit_inference_feedback; health route limited to three.",
+      "after": "Keep health route limited; wire feedback producer to existing authorized internal graph/rule event; remove unsafe payload-driven domain switching, add recursion and producer receipts.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "engine/handlers.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P03",
+        "P12",
+        "P13"
+      ],
+      "depends_on": [
+        "C04"
+      ],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C04",
+      "owner": "CEG engine/health/api.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/health/api.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "handle_health_assess automatically triggers Gate dispatch on enrich_now recommendation when allowed and flag on; handle_health_batch_assess only calculates estimates, reports dispatched=0, and scans caller-supplied list.",
+        "status": "OBSERVED",
+        "git_blob_sha": "b11f76e18b7930cb5aeb9e9c9c1982b0a8a55812"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Assessor currently auto-dispatches enrich_now if allowed; batch scans caller input, dispatched=0.",
+      "after": "Separate strictly read-only assess/batch/report from paid worker actions. Replace automatic read-side side effect with eligibility only; keep server-owned caps.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "engine/health/api.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P03",
+        "P06",
+        "P07"
+      ],
+      "depends_on": [
+        "C01"
+      ],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C05",
+      "owner": "CEG engine/health/nightly_health_scan.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/health/nightly_health_scan.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "run_nightly_health_scan builds ROI-ranked queue; without injected entity_loader returns []; no dispatch call; process-global scanned_this_run set; MAX_QUEUE=100 and default $50 estimate ceiling.",
+        "status": "OBSERVED",
+        "git_blob_sha": "b0658bc2966b8ab7ea190260f8ae9c4246d462bf"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "No production entity_loader returns []; top100 estimated queue only; global scanned set.",
+      "after": "Reuse GraphDriver tenant DB to obtain real candidates; stable paging/watermarks, stateful due selection, truthful zero/unavailable, queue output only with bounded policies.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "engine/health/nightly_health_scan.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P04",
+        "P05",
+        "P06",
+        "P07"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C06",
+      "owner": "CEG engine/health/enrichment_trigger.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/health/enrichment_trigger.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "trigger_reenrichment_v2 can use Gate request_enrichment with flag true; heuristic ROI assumes filling gaps and chooses average deal value from domain description or default $1000; financial ROI is estimate not proven observed value.",
+        "status": "OBSERVED",
+        "git_blob_sha": "95c70a4c9d2a6f2c5000e5dea79c607c17c335f0"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "ROI derived from assumed projected match probability and default deal value; request_enrichment returns Gate dispatch status.",
+      "after": "Keep ranking advisory; require explicit approved tenant budget and durable dispatch check; no hypothetical ROI used as spending authority; preserve one Gate egress.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "engine/health/enrichment_trigger.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P07",
+        "P08",
+        "P09"
+      ],
+      "depends_on": [
+        "C05"
+      ],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C07",
+      "owner": "CEG engine/boot.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/boot.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "GraphLifecycle starts GDS schedulers and compliance task but does not start nightly health scan; search found only run_nightly_health_scan definition, no caller.",
+        "status": "OBSERVED",
+        "git_blob_sha": "3629cae40ff4e498d1b2b3c10674075e483c912e"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Lifecycle schedules GDS jobs and compliance only; no health job.",
+      "after": "Wire existing approved lifecycle/scheduler to a scoped health worker with startup/shutdown single scheduler and OFF effective gate; reuse existing lifecycle, no new service by default.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "engine/boot.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P05",
+        "P18",
+        "P19"
+      ],
+      "depends_on": [
+        "C05"
+      ],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C08",
+      "owner": "CEG engine/gate_egress.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/gate_egress.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "One SDK Gate EIE egress for enrich and graph-inference-result with idempotency keys; response header failure checked; no direct peer transport. Enrichment key excludes explicit input/source revision.",
+        "status": "OBSERVED",
+        "git_blob_sha": "2b96ff343bd566cf2de449277a3f35665bdeec4d"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Gate-only SDK egress, fixed enrich keys without explicit input revision.",
+      "after": "Preserve SDK transport; before coding confirm idempotency key sufficiency and acknowledgement semantics. If revision-awareness cannot be enforced at workflow owner, open narrow amendment here, never direct HTTP.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Existing SDK is an adequate transport owner; its semantic retry identity needs independent proof, not speculative refactor.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P08",
+        "P09",
+        "P13"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C09",
+      "owner": "CEG tests/unit/test_health_api.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "tests/unit/test_health_api.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "Mocked orchestration tests cover tenant binding, batch cost ceilings, commercial mode and assess trigger. No real Neo4j loader/scheduler or complete multi-node dispatch demonstration.",
+        "status": "OBSERVED",
+        "git_blob_sha": "276310bf94df04884cb9dc9f0ed78470b182526a"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Current tests assert automatic trigger from read-path and mock analysis.",
+      "after": "Revise for side-effect-free health read, budget authority, real candidate integration and disabled gates; never weaken tenant/gate assertions.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "tests/unit/test_health_api.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/unit/test_health_engine.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "tests/architecture/test_seam_gate_only.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P03",
+        "P06",
+        "P16",
+        "P21"
+      ],
+      "depends_on": [
+        "C03",
+        "C04",
+        "C05",
+        "C06"
+      ],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C10",
+      "owner": "CEG docs/FEATURE_GATES.md",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "docs/FEATURE_GATES.md",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "Flags documented dormant; repo explicitly notes multi-node constellation orchestration gap.",
+        "status": "OBSERVED",
+        "git_blob_sha": "ccc877ec77ff9fc3fa09cf641937d3a1bfa9e5fc"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Docs report 3 dormant flags and separate commercial setting.",
+      "after": "Update expected proven readiness and staged enabling process without setting flags or falsely claiming live.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "docs/FEATURE_GATES.md",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P18",
+        "P19",
+        "P21"
+      ],
+      "depends_on": [
+        "C09"
+      ],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C11",
+      "owner": "CEG engine/health/health_schemas.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/health/health_schemas.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "SOURCE_IDENTIFIED_NOT_VERIFIED_FULLY [SOURCE_IDENTIFIED_REQUIRES_FULL_OWNER_INSPECTION]",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "HealthScanProfile and batch caps exist; no observed proven deficiency in exact schema.",
+      "after": "Reuse current typed profiles; amend schema only after an exact failed required contract test.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Preserve existing typed schemas and avoid speculative fields.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P04",
+        "P07"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C12",
+      "owner": "CEG engine/graph/driver.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/graph/driver.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "SOURCE_IDENTIFIED_NOT_VERIFIED_FULLY [SOURCE_IDENTIFIED_REQUIRES_FULL_OWNER_INSPECTION]",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "GraphDriver has explicit tenant database handling; not used by current scanner default.",
+      "after": "Use GraphDriver; do not invent new Neo4j client or tenant fallback.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "GraphDriver is existing source owner; no code change demonstrated necessary yet.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P04",
+        "P15"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    },
+    {
+      "id": "C13",
+      "owner": "CEG engine/inference_rule_registry.py",
+      "consumer": "CEG health engine, Gate producer and EIE return consumer",
+      "source": {
+        "path": "engine/inference_rule_registry.py",
+        "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+        "evidence": "SOURCE_IDENTIFIED_NOT_VERIFIED_FULLY [SOURCE_IDENTIFIED_REQUIRES_FULL_OWNER_INSPECTION]",
+        "status": "OBSERVED"
+      },
+      "reachability": [
+        "source owner -> internal CEG health and runtime",
+        "CEG health-> Gate -> EIE (only if explicitly admitted)"
+      ],
+      "before": "Authorized graph rule registry is consumed from admin path.",
+      "after": "Reuse authorized rules; no generic rule engine or autonomous rule expansion.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Existing rule registry supplies validated rule authorization; activation should wire it, not fork it.",
+      "migration": "Only versioned additive config/state/schema where necessary; do not change historical packets or tenant IDs.",
+      "recovery": "Retain evidence; disable scoped operation; reconcile unacknowledged requests and restore prior release after verifying snapshot.",
+      "security_impact": "Tenant-bound and fail-closed; no new permissions without owner admission.",
+      "proof_ids": [
+        "P12",
+        "P21"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed CEG SHA or source blob",
+        "Unexpected dynamic consumer",
+        "New security/caller policy or cross-repo contract mismatch"
+      ]
+    }
+  ],
+  "delivery": {
+    "units": [
+      {
+        "id": "U00",
+        "description": "Read-only current-deployment/SDK/tenant/consumer census and source rebind",
+        "effect_ids": [
+          "C11",
+          "C12"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "U01",
+        "description": "Source-owner ADR/contract acceptance and minimal topology decision",
+        "effect_ids": [
+          "C01",
+          "C02"
+        ],
+        "depends_on": [
+          "U00"
+        ]
+      },
+      {
+        "id": "U03",
+        "description": "CEG read-only health API, real tenant-safe loader, scheduled scan (still OFF)",
+        "effect_ids": [
+          "C04",
+          "C05",
+          "C07"
+        ],
+        "depends_on": [
+          "U01"
+        ]
+      },
+      {
+        "id": "U04",
+        "description": "CEG bounded paid dispatch via Gate enrich with durable identity (still OFF)",
+        "effect_ids": [
+          "C06",
+          "C08"
+        ],
+        "depends_on": [
+          "U03"
+        ]
+      },
+      {
+        "id": "U05",
+        "description": "CEG feedback producer plus EIE durable acceptance/authorized convergence (still OFF)",
+        "effect_ids": [
+          "C03",
+          "C13"
+        ],
+        "depends_on": [
+          "U03"
+        ]
+      },
+      {
+        "id": "U06",
+        "description": "Unit, security, crash/replay and real 3-node integration tests with disabled defaults",
+        "effect_ids": [
+          "C09"
+        ],
+        "depends_on": [
+          "U04",
+          "U05"
+        ]
+      },
+      {
+        "id": "U07",
+        "description": "Isolated staging shadow only after permission; independently reviewed readiness and rollback",
+        "effect_ids": [
+          "C10"
+        ],
+        "depends_on": [
+          "U06"
+        ]
+      }
+    ],
+    "proofs": [
+      {
+        "id": "P01",
+        "stage": "PRECODE",
+        "owner": "CEG/Gate/EIE source owners",
+        "positive": "Exact deployed image/SDK, effective route/caller grants and tenant/Neo4j DB are inventoried against pinned refs.",
+        "negative": "Mismatch, missing authority, stale pack or unknown dynamic consumer remains explicitly blocked.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P02",
+        "stage": "POSTCODE",
+        "owner": "Gate",
+        "positive": "health-assess has unique CEG owner, static and dynamic registration, and ready routing.",
+        "negative": "Cross-owner collision or unhealthy/missing CEG fails readiness and routes nowhere else.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P03",
+        "stage": "POSTCODE",
+        "owner": "CEG",
+        "positive": "health-assess supports exactly assess/batch/report and remains read-only under all flags.",
+        "negative": "No admin subaction exposed, no paid Gate request from read-only health call.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P04",
+        "stage": "POSTCODE",
+        "owner": "CEG",
+        "positive": "Neo4j loader retrieves due health entities from exact tenant database with stable pagination.",
+        "negative": "No-loader is classified unavailable, never a successful zero; cross-tenant reads rejected.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P05",
+        "stage": "POSTCODE",
+        "owner": "CEG",
+        "positive": "Scheduled health job runs only in explicitly authorized test context, chooses stable deduped entities and cancels cleanly.",
+        "negative": "Restart or multiple workers do not double-schedule, scan disabled tenant or run after kill-switch.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P06",
+        "stage": "POSTCODE",
+        "owner": "CEG",
+        "positive": "Healthy/missing-field cases produce correct readiness, prioritized target fields and traceable evidence.",
+        "negative": "Bad entity label, unknown field, nonexistent spec or poisoned provenance cannot become accepted target.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P07",
+        "stage": "POSTCODE",
+        "owner": "CEG",
+        "positive": "One run obeys per-tenant max entities, actual paid spend/calls/token ceilings, scope and audit.",
+        "negative": "Heuristic ROI, $50 nightly estimate or request-specified ceilings cannot raise server budget.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P08",
+        "stage": "POSTCODE",
+        "owner": "CEG",
+        "positive": "Durable operation identity survives restart with source revision and field-set digest; worker sends once.",
+        "negative": "Concurrent workers, clock/retry/mapping changes or reorders cannot multiply paid requests.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P09",
+        "stage": "POSTCODE",
+        "owner": "CEG/Gate",
+        "positive": "CEG uses Gate SDK enrich, receiving typed worker ack with correct entity and tenant.",
+        "negative": "Gate absent, bad signature, HTTP200 failure packet, wrong action/tenant not recorded success.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P10",
+        "stage": "POSTCODE",
+        "owner": "EIE",
+        "positive": "EIE persists accepted feedback targets in recoverable owner and reports durable accepted versus rejected counts.",
+        "negative": "Full process queue, restart, wrong process or duplicate packet cannot claim successfully consumed work.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P11",
+        "stage": "POSTCODE",
+        "owner": "EIE",
+        "positive": "Authorized converge pass consumes tenant+entity graph target exactly once with provenance.",
+        "negative": "Graph suggestion cannot overwrite stronger verified facts or cross another entity/tenant.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P12",
+        "stage": "POSTCODE",
+        "owner": "CEG",
+        "positive": "Graph-derived inference producer is triggered by authorized real event not via unavailable admin action, with rule whitelist and floor.",
+        "negative": "Unchanged evidence, unauthorized rule, low-confidence or cyclic graph-derived result does not cause new paid feedback.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P13",
+        "stage": "POSTCODE",
+        "owner": "CEG/Gate/EIE",
+        "positive": "Graph feedback traverses CEG→Gate graph-inference-result→EIE, stores and acknowledges exact outputs.",
+        "negative": "Unknown action, queue full, worker failure, wrong tenant or partial acceptance remains retryable/not completed.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P14",
+        "stage": "POSTCODE",
+        "owner": "EIE/CEG",
+        "positive": "EIE enrichment persists evidence and receives CEG graph-sync acknowledgement; CEG reassessment uses updated revision.",
+        "negative": "Transport accept or queued target alone does not count as refreshed graph health.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P15",
+        "stage": "PREMERGE",
+        "owner": "Security reviewers",
+        "positive": "No direct peer ingress, no privilege escalation, no payload tenant override, safe source allowlists and no secrets.",
+        "negative": "Adversarial tenant mismatch, missing production allowlist, forged headers and forbidden fields fail closed.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P16",
+        "stage": "PREMERGE",
+        "owner": "Source owners",
+        "positive": "All edited current tests, ownership/ADR/readiness registries and lifecycle paths pass at exact source heads.",
+        "negative": "One test suite passing from a detached source, mock-only integration, or suppressed failure is insufficient.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P17",
+        "stage": "PRERELEASE",
+        "owner": "Independent integration reviewer",
+        "positive": "Real Gate+CEG+EIE+Neo4j fixture proves scored deficiency→dispatch→EIE result→graph update→health improvement.",
+        "negative": "An empty queue, just an HTTP200, or one node fake cannot produce a green end-to-end receipt.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P18",
+        "stage": "PRERELEASE",
+        "owner": "Release operator",
+        "positive": "All three flags OFF in actual deployment until separate approval; ON tested only in authorized isolated fixture.",
+        "negative": "No flag flip, paid send, scheduled job or deployment implied by published code or plan.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P19",
+        "stage": "PRERELEASE",
+        "owner": "Release operator",
+        "positive": "Kill switches stop new queued/cached/retried sends and preserve evidence; rollback/restore exercised.",
+        "negative": "Previously queued retry cannot dispatch after disabled, and disabling does not delete evidence.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P20",
+        "stage": "PRERELEASE",
+        "owner": "Source-owner + independent reviewer",
+        "positive": "Exact final candidate revisions, real action registration, data/tenant boundaries, budgets and unresolved findings closed.",
+        "negative": "Any missing approval, unknown result, cost runaway, feedback recursion or source drift prevents activation.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      },
+      {
+        "id": "P21",
+        "stage": "PREMERGE",
+        "owner": "Portfolio boundary reviewer",
+        "positive": "No edits to Odoo, Offer Drafting, PR #329 or Semantic Kernel; unrelated feature gates remain off.",
+        "negative": "A new Odoo selector cron, inferred inventory, health commercial tier or direct peer transport is regression.",
+        "status": "NOT_RUN",
+        "evidence": "Planned. No product/runtime test executed by this planning pack."
+      }
+    ],
+    "migration_plan": "No automatic DB migration or graph rewrite. Reuse existing persistence until durable inbox proof shows a bounded additive schema is unavoidable. If new state, versioned tenant/operation records preserving previously accepted feedback and source identity, with migration and rollback tested before use.",
+    "recovery_plan": "Flags remain OFF. Later shutdown pauses leader/scheduler, atomically prevents new dispatch, preserves pending receipts and stops stale retries. Kill switch proven against queued jobs, then redeploy last accepted builds; reconcile missed work with source versions.",
+    "release_boundary": "Read-only planning only; no code/PR/merge/deploy/spend permission, no flags changed. After all code and runtime proofs, issue READY BUT DISABLED; require separate operator-specific activation command at exact release and tenant."
+  },
+  "readiness": {
+    "state": "PLAN_REVIEW",
+    "notes": "Operator scope locked, target remains OFF, source-observed blockers. CEG/Gate/EIE cross repo ADR admission, runtime census, durability proof and independent acceptance unresolved. Original Odoo validator cannot constitute cross-repo approval."
+  }
+}

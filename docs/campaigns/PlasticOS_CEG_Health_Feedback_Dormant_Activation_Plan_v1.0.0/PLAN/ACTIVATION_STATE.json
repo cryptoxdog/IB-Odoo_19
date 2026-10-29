@@ -1,0 +1,26 @@
+{
+  "package_version": "1.0.0",
+  "runtime_state": "UNKNOWN_NOT_OBSERVED",
+  "authorization": "NONE",
+  "business_use_enabled": false,
+  "pack_makes_config_change": false,
+  "required_current_deployment_target": {
+    "HEALTH_API_ENABLED": false,
+    "AUTO_ENRICH_VIA_GATE": false,
+    "GRAPH_INFERENCE_FEEDBACK_ENABLED": false
+  },
+  "desired_future_state_after_separate_approval": {
+    "HEALTH_API_ENABLED": true,
+    "AUTO_ENRICH_VIA_GATE": true,
+    "GRAPH_INFERENCE_FEEDBACK_ENABLED": true
+  },
+  "code_defaults_preserved_false": true,
+  "related_unrequested_flags": {
+    "HEALTH_COMMERCIAL_MODE_ENABLED": false,
+    "UNVALIDATED_DOMAIN_PACKS_ENABLED": false,
+    "DORMANT_DOMAIN_PACKS_ENABLED": false
+  },
+  "all_proofs": "NOT_RUN",
+  "separate_activation_grant": null,
+  "operator_decision": "PLAN_DORMANT_NOT_ACTIVATE"
+}

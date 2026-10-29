@@ -1,0 +1,13 @@
+{
+  "status": "PASS_PACKAGE_DECLARED_STRUCTURE_ONLY",
+  "errors": [],
+  "effect_groups": 24,
+  "proof_obligations": 21,
+  "delivery_units": 9,
+  "lock_count": 18,
+  "code_tests": "NOT_RUN",
+  "multi_node_proof": "NOT_RUN",
+  "independent_acceptance": "NOT_RUN",
+  "deployed_state": "UNKNOWN",
+  "activation": "NOT_AUTHORIZED"
+}

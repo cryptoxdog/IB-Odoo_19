@@ -1,0 +1,27 @@
+{
+  "observed": "2026-10-29",
+  "repositories": [
+    {
+      "key": "CEG",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "branch": "main",
+      "revision": "0d84ec8531baf604383c5ddc012f40aa84fc4b76"
+    },
+    {
+      "key": "GATE",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "branch": "main",
+      "revision": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7"
+    },
+    {
+      "key": "EIE",
+      "repository": "Quantum-L9/Enrichment.Inference.Engine",
+      "branch": "main",
+      "revision": "3f96eda98240789963b0e6534aa2151aed12658e"
+    }
+  ],
+  "source_method": "GitHub compare main with itself at immutable SHA plus exact fetch_file reads",
+  "source_revisions_only": true,
+  "runtime_deployed_sha": "UNKNOWN",
+  "operator_activation": "NOT_AUTHORIZED"
+}
