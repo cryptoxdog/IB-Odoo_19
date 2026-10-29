@@ -47,5 +47,8 @@ def migrate(cr, version):
     invalid = cr.fetchall()
     if invalid:
         raise RuntimeError(f"plasticos claim load links no longer match their transaction: {invalid}")
+    # Approved one-time cleanup: the preserve table exists only for this migration.
+    # Rollback is the pre-migrate copy, which is still in the transaction until commit.
+    # nosemgrep: plasticos-destructive-migration-sql-py
     cr.execute("DROP TABLE plasticos_claim_load_link_preserve")
     _logger.info("plasticos_claims post-migrate restored %s claim load links", restored)

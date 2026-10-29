@@ -95,6 +95,9 @@ def _align_columns(cr, table_name, renames):
                 sql.Identifier(old_name),
             )
         )
+        # Approved after the contradiction check and the copy into the destination column.
+        # Rollback is the still-open transaction; a failed run does not commit the drop.
+        # nosemgrep: plasticos-destructive-migration-sql-py
         cr.execute(
             sql.SQL("ALTER TABLE {} DROP COLUMN {}").format(sql.Identifier(table_name), sql.Identifier(old_name))
         )
