@@ -1,0 +1,140 @@
+{
+  "format": "enrichment-odoo-delivery-dag/v1",
+  "root_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+  "nodes": [
+    {
+      "id": "U00",
+      "lane": "Odoo-only",
+      "description": "Source/runtime/manifest/ADR evidence and scoped no-change Gate/matching contract review",
+      "effects": [
+        "E01",
+        "E02",
+        "E03",
+        "E04"
+      ]
+    },
+    {
+      "id": "U01",
+      "lane": "Odoo-only",
+      "description": "Security and dead local path remediation before adding review UX",
+      "effects": [
+        "E05",
+        "E06",
+        "E07",
+        "E08",
+        "E09"
+      ]
+    },
+    {
+      "id": "U02",
+      "lane": "Odoo-only",
+      "description": "Capture completed Gate results into immutable typed per-field proposal projections",
+      "effects": [
+        "E10",
+        "E11",
+        "E12",
+        "E13"
+      ]
+    },
+    {
+      "id": "U03",
+      "lane": "Odoo-only",
+      "description": "Human approval, legacy Inject rewire, durable atomic writeback and retry",
+      "effects": [
+        "E14",
+        "E15",
+        "E16"
+      ]
+    },
+    {
+      "id": "U04",
+      "lane": "Odoo-only",
+      "description": "Native Odoo review UX, contact tab, company rules, addon manifest/tests wiring",
+      "effects": [
+        "E17",
+        "E18",
+        "E19",
+        "E20"
+      ]
+    },
+    {
+      "id": "U05",
+      "lane": "Odoo-only",
+      "description": "Non-destructive upgrade, retired cron/privilege cleanup, precise ADR-012 correction and README",
+      "effects": [
+        "E21",
+        "E22",
+        "E23",
+        "E24",
+        "E25",
+        "E26"
+      ]
+    },
+    {
+      "id": "U06",
+      "lane": "Odoo-only",
+      "description": "Odoo 19 Enterprise tests, negative controls, QA and independent review",
+      "effects": [
+        "E27",
+        "E28",
+        "E29",
+        "E30"
+      ]
+    },
+    {
+      "id": "U07",
+      "lane": "Odoo-only",
+      "description": "Operator-specific Staging shadow readiness and explicit source exclusions, not production activation",
+      "effects": [
+        "E31",
+        "E32",
+        "E33"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "U00",
+      "target": "U01",
+      "relation": "requires"
+    },
+    {
+      "source": "U01",
+      "target": "U02",
+      "relation": "requires"
+    },
+    {
+      "source": "U02",
+      "target": "U03",
+      "relation": "requires"
+    },
+    {
+      "source": "U03",
+      "target": "U04",
+      "relation": "requires"
+    },
+    {
+      "source": "U04",
+      "target": "U05",
+      "relation": "requires"
+    },
+    {
+      "source": "U05",
+      "target": "U06",
+      "relation": "requires"
+    },
+    {
+      "source": "U06",
+      "target": "U07",
+      "relation": "requires"
+    }
+  ],
+  "non_dependencies": [
+    "EIE/CEG/Gate service source changes",
+    "CEG overnight scheduler",
+    "Offer workflow",
+    "Semantic Kernel"
+  ],
+  "terminal": "READY_BUT_DISABLED",
+  "code_and_activation_granted": false
+}

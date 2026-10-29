@@ -1,0 +1,8 @@
+{
+  "status": "PACKAGE_DECLARATION_PASS_RELEASE_BLOCKED",
+  "errors": [],
+  "effects": 33,
+  "product_proofs": "NOT_RUN",
+  "installed_runtime": "UNOBSERVED",
+  "authorization": "NOT_GRANTED"
+}

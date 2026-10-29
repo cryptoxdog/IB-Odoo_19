@@ -1,0 +1,807 @@
+{
+  "format": "enrichment-case-intent-trace/v1",
+  "operator_locks": [
+    {
+      "id": "L01",
+      "effects": [
+        "E01",
+        "E02",
+        "E03",
+        "E26",
+        "E31"
+      ],
+      "proofs": [
+        "P01",
+        "P02",
+        "P05",
+        "P14",
+        "P19",
+        "P20",
+        "P21",
+        "P26",
+        "P28",
+        "P31"
+      ]
+    },
+    {
+      "id": "L02",
+      "effects": [
+        "E10",
+        "E17",
+        "E20"
+      ],
+      "proofs": [
+        "P06",
+        "P07",
+        "P12",
+        "P16",
+        "P19",
+        "P22",
+        "P23",
+        "P24",
+        "P30"
+      ]
+    },
+    {
+      "id": "L03",
+      "effects": [
+        "E11",
+        "E14",
+        "E23",
+        "E27"
+      ],
+      "proofs": [
+        "P02",
+        "P05",
+        "P06",
+        "P07",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P25",
+        "P28",
+        "P29",
+        "P31"
+      ]
+    },
+    {
+      "id": "L04",
+      "effects": [
+        "E21",
+        "E22",
+        "E26"
+      ],
+      "proofs": [
+        "P01",
+        "P11",
+        "P19",
+        "P20",
+        "P21",
+        "P26",
+        "P28"
+      ]
+    },
+    {
+      "id": "L05",
+      "effects": [
+        "E07",
+        "E08",
+        "E09",
+        "E15"
+      ],
+      "proofs": [
+        "P03",
+        "P04",
+        "P07",
+        "P08",
+        "P09",
+        "P19",
+        "P20",
+        "P23"
+      ]
+    },
+    {
+      "id": "L06",
+      "effects": [
+        "E01",
+        "E02",
+        "E03",
+        "E26"
+      ],
+      "proofs": [
+        "P01",
+        "P02",
+        "P05",
+        "P14",
+        "P19",
+        "P21",
+        "P28",
+        "P31"
+      ]
+    },
+    {
+      "id": "L07",
+      "effects": [
+        "E10",
+        "E11",
+        "E14",
+        "E17"
+      ],
+      "proofs": [
+        "P02",
+        "P05",
+        "P06",
+        "P07",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P22",
+        "P29",
+        "P30",
+        "P31"
+      ]
+    },
+    {
+      "id": "L08",
+      "effects": [
+        "E01",
+        "E03",
+        "E14"
+      ],
+      "proofs": [
+        "P02",
+        "P07",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P16",
+        "P28",
+        "P29",
+        "P31"
+      ]
+    },
+    {
+      "id": "L09",
+      "effects": [
+        "E14",
+        "E19"
+      ],
+      "proofs": [
+        "P07",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P16",
+        "P23",
+        "P29"
+      ]
+    },
+    {
+      "id": "L10",
+      "effects": [
+        "E05",
+        "E06",
+        "E19"
+      ],
+      "proofs": [
+        "P04",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P23",
+        "P29"
+      ]
+    },
+    {
+      "id": "L11",
+      "effects": [
+        "E32"
+      ],
+      "proofs": [
+        "P08",
+        "P21",
+        "P28"
+      ]
+    },
+    {
+      "id": "L12",
+      "effects": [
+        "E10",
+        "E12",
+        "E14"
+      ],
+      "proofs": [
+        "P06",
+        "P07",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P20",
+        "P29",
+        "P30"
+      ]
+    },
+    {
+      "id": "L13",
+      "effects": [
+        "E11",
+        "E17"
+      ],
+      "proofs": [
+        "P02",
+        "P05",
+        "P06",
+        "P07",
+        "P15",
+        "P17",
+        "P22",
+        "P31"
+      ]
+    },
+    {
+      "id": "L14",
+      "effects": [
+        "E14",
+        "E16"
+      ],
+      "proofs": [
+        "P07",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P16",
+        "P18",
+        "P29"
+      ]
+    },
+    {
+      "id": "L15",
+      "effects": [
+        "E05",
+        "E06",
+        "E15"
+      ],
+      "proofs": [
+        "P04",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P20",
+        "P23",
+        "P29"
+      ]
+    },
+    {
+      "id": "L16",
+      "effects": [
+        "E23",
+        "E24",
+        "E26"
+      ],
+      "proofs": [
+        "P05",
+        "P07",
+        "P14",
+        "P21",
+        "P25",
+        "P28"
+      ]
+    },
+    {
+      "id": "L17",
+      "effects": [
+        "E01",
+        "E04",
+        "E09",
+        "E26",
+        "E32",
+        "E33"
+      ],
+      "proofs": [
+        "P01",
+        "P02",
+        "P08",
+        "P14",
+        "P19",
+        "P20",
+        "P21",
+        "P23",
+        "P24",
+        "P28",
+        "P31"
+      ]
+    },
+    {
+      "id": "L18",
+      "effects": [
+        "E17",
+        "E18",
+        "E19"
+      ],
+      "proofs": [
+        "P06",
+        "P07",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P21",
+        "P22",
+        "P23"
+      ]
+    },
+    {
+      "id": "L19",
+      "effects": [
+        "E07",
+        "E09",
+        "E21",
+        "E22"
+      ],
+      "proofs": [
+        "P01",
+        "P04",
+        "P11",
+        "P19",
+        "P20",
+        "P26"
+      ]
+    },
+    {
+      "id": "L20",
+      "effects": [
+        "E33"
+      ],
+      "proofs": [
+        "P01",
+        "P19",
+        "P24"
+      ]
+    },
+    {
+      "id": "L21",
+      "effects": [
+        "E05",
+        "E06",
+        "E11",
+        "E20",
+        "E27",
+        "E29"
+      ],
+      "proofs": [
+        "P02",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P09",
+        "P10",
+        "P11",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P22",
+        "P23",
+        "P24",
+        "P25",
+        "P29",
+        "P31"
+      ]
+    }
+  ],
+  "effects": [
+    {
+      "effect": "E01",
+      "unit": "U00",
+      "source": "plasticos_gate/services/gate_mappers.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P02",
+        "P14",
+        "P31"
+      ]
+    },
+    {
+      "effect": "E02",
+      "unit": "U00",
+      "source": "plasticos_gate/services/gate_config.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P01",
+        "P05",
+        "P19"
+      ]
+    },
+    {
+      "effect": "E03",
+      "unit": "U00",
+      "source": "plasticos_gate/services/gate_allowlists.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P02",
+        "P14",
+        "P28"
+      ]
+    },
+    {
+      "effect": "E04",
+      "unit": "U00",
+      "source": "plasticos_matching/__manifest__.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P21",
+        "P23"
+      ]
+    },
+    {
+      "effect": "E05",
+      "unit": "U01",
+      "source": "plasticos_enrichment/models/enrichment_run.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P04",
+        "P09",
+        "P11",
+        "P29"
+      ]
+    },
+    {
+      "effect": "E06",
+      "unit": "U01",
+      "source": "plasticos_enrichment/security/ir.model.access.csv",
+      "disposition": "EDIT",
+      "proofs": [
+        "P04",
+        "P10",
+        "P11",
+        "P23"
+      ]
+    },
+    {
+      "effect": "E07",
+      "unit": "U01",
+      "source": "plasticos_enrichment/hooks.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P04",
+        "P19",
+        "P20"
+      ]
+    },
+    {
+      "effect": "E08",
+      "unit": "U01",
+      "source": "plasticos_enrichment/models/enrichment_service.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P03",
+        "P08",
+        "P19",
+        "P23"
+      ]
+    },
+    {
+      "effect": "E09",
+      "unit": "U01",
+      "source": "plasticos_enrichment/data/cron.xml",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P19",
+        "P20"
+      ]
+    },
+    {
+      "effect": "E10",
+      "unit": "U02",
+      "source": "plasticos_enrichment/models/enrichment_proposal_line.py",
+      "disposition": "CREATE",
+      "proofs": [
+        "P06",
+        "P07",
+        "P12",
+        "P16",
+        "P30"
+      ]
+    },
+    {
+      "effect": "E11",
+      "unit": "U02",
+      "source": "plasticos_enrichment/models/enrichment_run.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P02",
+        "P05",
+        "P06",
+        "P15",
+        "P17",
+        "P31"
+      ]
+    },
+    {
+      "effect": "E12",
+      "unit": "U02",
+      "source": "plasticos_enrichment/models/enrichment_provenance.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P07",
+        "P15",
+        "P16",
+        "P20"
+      ]
+    },
+    {
+      "effect": "E13",
+      "unit": "U02",
+      "source": "plasticos_enrichment/models/enrichment_extraction.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P08",
+        "P20"
+      ]
+    },
+    {
+      "effect": "E14",
+      "unit": "U03",
+      "source": "plasticos_enrichment/models/enrichment_run.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P07",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P16",
+        "P29"
+      ]
+    },
+    {
+      "effect": "E15",
+      "unit": "U03",
+      "source": "plasticos_enrichment/models/enrichment_run.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P07",
+        "P08",
+        "P09",
+        "P20"
+      ]
+    },
+    {
+      "effect": "E16",
+      "unit": "U03",
+      "source": "plasticos_enrichment/models/enrichment_run.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P16",
+        "P18",
+        "P29"
+      ]
+    },
+    {
+      "effect": "E17",
+      "unit": "U04",
+      "source": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "disposition": "EDIT",
+      "proofs": [
+        "P06",
+        "P07",
+        "P22"
+      ]
+    },
+    {
+      "effect": "E18",
+      "unit": "U04",
+      "source": "plasticos_enrichment/views/res_partner_enrichment.xml",
+      "disposition": "EDIT",
+      "proofs": [
+        "P21",
+        "P22"
+      ]
+    },
+    {
+      "effect": "E19",
+      "unit": "U04",
+      "source": "plasticos_enrichment/security/record_rules.xml",
+      "disposition": "CREATE",
+      "proofs": [
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P23"
+      ]
+    },
+    {
+      "effect": "E20",
+      "unit": "U04",
+      "source": "plasticos_enrichment/__manifest__.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P19",
+        "P22",
+        "P23",
+        "P24"
+      ]
+    },
+    {
+      "effect": "E21",
+      "unit": "U05",
+      "source": "plasticos_enrichment/migrations/19.0.2.0.0/post-migrate.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P01",
+        "P19",
+        "P20",
+        "P26"
+      ]
+    },
+    {
+      "effect": "E22",
+      "unit": "U05",
+      "source": "plasticos_enrichment/migrations/19.0.2.5.6/post-migrate.py",
+      "disposition": "CREATE",
+      "proofs": [
+        "P01",
+        "P11",
+        "P19",
+        "P20",
+        "P26"
+      ]
+    },
+    {
+      "effect": "E23",
+      "unit": "U05",
+      "source": "docs/adr/ADR-012-crm-writeback-allowlist-provenance.md",
+      "disposition": "EDIT",
+      "proofs": [
+        "P05",
+        "P14",
+        "P25",
+        "P28"
+      ]
+    },
+    {
+      "effect": "E24",
+      "unit": "U05",
+      "source": "docs/adr/PROPOSED-enrichment-granular-approval.md",
+      "disposition": "CREATE",
+      "proofs": [
+        "P07",
+        "P14",
+        "P28"
+      ]
+    },
+    {
+      "effect": "E25",
+      "unit": "U05",
+      "source": "plasticos_enrichment/README.md",
+      "disposition": "EDIT",
+      "proofs": [
+        "P19",
+        "P23",
+        "P25"
+      ]
+    },
+    {
+      "effect": "E26",
+      "unit": "U05",
+      "source": "docs/adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P21",
+        "P28"
+      ]
+    },
+    {
+      "effect": "E27",
+      "unit": "U06",
+      "source": "plasticos_enrichment/tests/test_gate_enrichment_fallback.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P05",
+        "P07",
+        "P16",
+        "P17",
+        "P18",
+        "P25"
+      ]
+    },
+    {
+      "effect": "E28",
+      "unit": "U06",
+      "source": "plasticos_enrichment/tests/test_field_proposal_review.py",
+      "disposition": "CREATE",
+      "proofs": [
+        "P05",
+        "P06",
+        "P07",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P20",
+        "P22",
+        "P24"
+      ]
+    },
+    {
+      "effect": "E29",
+      "unit": "U06",
+      "source": "plasticos_security_base/tests/test_action_methods.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P07",
+        "P09",
+        "P25"
+      ]
+    },
+    {
+      "effect": "E30",
+      "unit": "U06",
+      "source": "tests/test_enrichment_gate_writeback.py",
+      "disposition": "EDIT",
+      "proofs": [
+        "P25",
+        "P32"
+      ]
+    },
+    {
+      "effect": "E31",
+      "unit": "U07",
+      "source": "plasticos_enrichment/models/enrichment_source.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P20",
+        "P26"
+      ]
+    },
+    {
+      "effect": "E32",
+      "unit": "U07",
+      "source": "plasticos_material_profile/__manifest__.py",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P08",
+        "P21",
+        "P28"
+      ]
+    },
+    {
+      "effect": "E33",
+      "unit": "U07",
+      "source": "plasticos_enrichment/data/sequence.xml",
+      "disposition": "NO_CHANGE",
+      "proofs": [
+        "P01",
+        "P19",
+        "P24"
+      ]
+    }
+  ]
+}

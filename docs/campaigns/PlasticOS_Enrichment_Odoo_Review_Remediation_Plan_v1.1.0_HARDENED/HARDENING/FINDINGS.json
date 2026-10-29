@@ -1,0 +1,241 @@
+{
+  "format": "enrichment-hardening-findings/v1",
+  "root_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+  "status": "SOURCE_OBSERVED_WITH_RUNTIME_FRONTIER",
+  "findings": [
+    {
+      "id": "F01",
+      "severity": "P0",
+      "name": "Broad base.group_user full CRUD",
+      "observed": "security/ir.model.access.csv grants base.group_user read/write/create/unlink on all four enrichment models; group roles alone cannot prevent forged audit/state.",
+      "effects": [
+        "E08",
+        "E09",
+        "E06"
+      ],
+      "required_proof": "Test direct RPC create/write/unlink, manager, employee, portal and cross-company.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F02",
+      "severity": "P0",
+      "name": "Bulk Inject circumvents per-field consent",
+      "observed": "action_inject -> _inject_gate_proposal applies all 8 allowlisted missing partner fields after one action.",
+      "effects": [
+        "E04",
+        "E05",
+        "E02"
+      ],
+      "required_proof": "Test pending/rejected fields cannot write, old Inject cannot bypass.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F03",
+      "severity": "P0",
+      "name": "ADR-012 contradicts current feature defaults",
+      "observed": "Accepted ADR-012 says auto_writeback=1 default; gate_icp_seed and gate_config require two explicit flags, both seeded 0. Existing tests exercise live mode.",
+      "effects": [
+        "E18",
+        "E21",
+        "E23"
+      ],
+      "required_proof": "Test both flags 1 still cannot silently apply during per-field-review campaign; retain historical ADR.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F04",
+      "severity": "P0",
+      "name": "Retired cron privilege grant",
+      "observed": "post_init_hook grants enrichment-manager group to system_cron; both old cron methods no-op/active=False. Actual installed membership and other uses unknown.",
+      "effects": [
+        "E14",
+        "E15"
+      ],
+      "required_proof": "Census actual user/group jobs; revoke narrowly only after no valid consumer.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F05",
+      "severity": "P0",
+      "name": "No run-level company/record rules",
+      "observed": "Enrichment run and provenance have partner but not native company scope; base.group_user CRUD broad and no addon-specific ir.rule seen.",
+      "effects": [
+        "E09",
+        "E02"
+      ],
+      "required_proof": "Test allowed-company and shared-partner rules; no partner creation.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F06",
+      "severity": "P1",
+      "name": "Legacy local inject remains reachable",
+      "observed": "action_inject on engine_used!=gate enters historical extracted-material profile create/merge, though crawl/extract/inference retired.",
+      "effects": [
+        "E05",
+        "E12"
+      ],
+      "required_proof": "Keep old data read-only; block fresh local profile creation from legacy branch.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F07",
+      "severity": "P1",
+      "name": "State guard can be bypassed",
+      "observed": "EnrichmentRun.write blocks edits on injected/failed runs only if state NOT in vals; a caller can include state and other fields together.",
+      "effects": [
+        "E06"
+      ],
+      "required_proof": "Direct RPC state+proposal tampering must fail; service-owned transition only.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F08",
+      "severity": "P1",
+      "name": "Aggregate confidence hidden or misrepresented",
+      "observed": "Run confidence_score computed solely from extraction_ids; Gate runs can show 0 despite EIE confidence. Missing confidence falls back to 1.0 on applied provenance.",
+      "effects": [
+        "E01",
+        "E07"
+      ],
+      "required_proof": "Separate run-level EIE confidence from extraction confidence; never fabricate per-field score.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F09",
+      "severity": "P1",
+      "name": "No field-level citation in mapped contract",
+      "observed": "Gate mapper maps EIE completed state and final_fields; aggregate provenance may include KB fragments, but no guaranteed field-level citation.",
+      "effects": [
+        "E03",
+        "E02"
+      ],
+      "required_proof": "Mark missing field citation honestly; permit human-supported attestation only under explicit rule.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F10",
+      "severity": "P1",
+      "name": "Unknown eligible field discarded or degrades",
+      "observed": "Completed response with no allowlisted fields returns False and Odoo reports degraded; no successful read-only evidence receipt is left.",
+      "effects": [
+        "E01",
+        "E03"
+      ],
+      "required_proof": "Distinguish no-writable-field from transport failure and retain bounded evidence.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F11",
+      "severity": "P1",
+      "name": "Auto-writeback code path still exists",
+      "observed": "Gate config dual flag may authorize immediate injection in action_execute without review; UI approval requirement conflicts.",
+      "effects": [
+        "E01",
+        "E04",
+        "E18"
+      ],
+      "required_proof": "Per-field review always enforced in scoped addon regardless of legacy toggle; preflight flags OFF.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F12",
+      "severity": "P1",
+      "name": "No native proposal line artifact",
+      "observed": "Only run.gate_proposal JSON, legacy committed provenance rows and Inject button; no per-field decision model.",
+      "effects": [
+        "E02",
+        "E03",
+        "E10"
+      ],
+      "required_proof": "Use minimal in-addon proposal line, preserve historical provenance meaning.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F13",
+      "severity": "P1",
+      "name": "No transaction-safe CAS/admission",
+      "observed": "_apply_converge_writeback tests partner[field_name] truthy; no typed snapshot freshness check, no per-line state audit, and concurrent edits possible.",
+      "effects": [
+        "E04",
+        "E07"
+      ],
+      "required_proof": "Lock target row, compare canonical snapshot, check company/ACL/allowlist inside one transaction.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F14",
+      "severity": "P1",
+      "name": "Retired cron has noupdate XML",
+      "observed": "cron.xml noupdate=1 and M5 migration forced inactive earlier; edited XML alone does not guarantee installed cron state.",
+      "effects": [
+        "E13",
+        "E15"
+      ],
+      "required_proof": "Read-only installed cron scan; versioned remediation may force retired IDs off, with explicit evidence.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F15",
+      "severity": "P1",
+      "name": "Existing tests assert legacy one-click and live mode",
+      "observed": "plasticos_enrichment/tests/test_gate_enrichment_fallback.py and plasticos_security_base/tests/test_action_methods.py assume Inject applies and both opt-in flags allow live.",
+      "effects": [
+        "E23",
+        "E25"
+      ],
+      "required_proof": "Revise positive/negative test expectations at their current owner, no weak assertions.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F16",
+      "severity": "P2",
+      "name": "README stale version + ambiguous wording",
+      "observed": "README frontmatter is 19.0.2.0.1 while manifest is 19.0.2.5.5; old misleading fallback log text remains.",
+      "effects": [
+        "E17",
+        "E12"
+      ],
+      "required_proof": "Align docs with installed source and fail-closed behavior without editing historical ADRs blindly.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F17",
+      "severity": "P2",
+      "name": "Historical review evidence must survive",
+      "observed": "Provenance is for committed writes, extracted material runs have historical local meaning, and source/crawl rows may be archived.",
+      "effects": [
+        "E07",
+        "E26",
+        "E15"
+      ],
+      "required_proof": "Immutable past rows; safe non-destructive migration and no fake backfilled approvals.",
+      "evidence_class": "OBSERVED"
+    },
+    {
+      "id": "F18",
+      "severity": "P2",
+      "name": "Source-only scope is incomplete",
+      "observed": "Actual Odoo.sh module state, ir.cron, server actions, ACL, groups, Odoo mail/attachments, tenant grants and live packet versions unobserved.",
+      "effects": [
+        "E28"
+      ],
+      "required_proof": "U00 mandatory read-only DB/Enterprise closure before code permission.",
+      "evidence_class": "UNOBSERVED_RUNTIME"
+    },
+    {
+      "id": "F19",
+      "severity": "P2",
+      "name": "Existing tests and tech debt include exact consumers",
+      "observed": "tests/test_enrichment_gate_writeback.py, tests/test_gate_match_contract.py, plasticos_security_base/tests/test_action_methods.py, source doc ADR-012 and debt fingerprints require dispositions.",
+      "effects": [
+        "E23",
+        "E25",
+        "E17",
+        "E18"
+      ],
+      "required_proof": "Source review plus negative regression and no unrelated performance baseline reshuffle.",
+      "evidence_class": "OBSERVED"
+    }
+  ]
+}

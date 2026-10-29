@@ -1,0 +1,2289 @@
+{
+  "schema": "plasticos.addon-planning-case/v0.2",
+  "case_id": "PLASTICOS-ENRICHMENT-ODOO-REMEDIATION-2026-10-29-v1.1.0-HARDENED",
+  "mode": "wip_alignment",
+  "target": {
+    "repository": "cryptoxdog/IB-Odoo_19",
+    "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+    "source_lock": "EVIDENCE/REPO_SOURCE_LOCK_CURRENT.json",
+    "constitution": {
+      "path": "INVARIANTS.md",
+      "version": "2.2.0",
+      "blob_sha": "c16e99c575a262ff6279f2202e5959f777b2fc6f",
+      "authority_class": "CONSTITUTIONAL"
+    },
+    "installed_target": {
+      "status": "UNOBSERVED",
+      "evidence": "No Odoo.sh live database/installed Enterprise registry inspection, company ACL state or field counts used in planning."
+    },
+    "wip": {
+      "base_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+      "head_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+      "related_prs": [],
+      "test_evidence": "No product/runtime tests executed. Existing Gate tests fetched at pinned source and their expected live-mode semantics inventoried.",
+      "capabilities": [
+        {
+          "name": "Manual Gate converge",
+          "behavior": "review-only Gate response; bulk Inject applies allowlisted missing fields",
+          "disposition": "ALIGN",
+          "evidence": "models/enrichment_run.py on Staging",
+          "preservation_test": "P03/P04/P05"
+        },
+        {
+          "name": "Retired local engine",
+          "behavior": "crawl/extract/inference methods raise or crons no-op",
+          "disposition": "PRESERVE",
+          "evidence": "models/enrichment_service.py and data/cron.xml",
+          "preservation_test": "P11"
+        }
+      ]
+    }
+  },
+  "authority": {
+    "locked_decisions": [
+      {
+        "id": "L01",
+        "text": "Only cryptoxdog/IB-Odoo_19 may change in the future. EIE, CEG, Constellation.Gate service and SDK contracts are read-only.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L02",
+        "text": "Retain and complete plasticos_enrichment as a single Odoo-native human approval and writeback shell, not a new addon.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L03",
+        "text": "Keep automatic CRM writeback OFF. No EIE-returned CRM fields may be applied before granular authorized user approval.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L04",
+        "text": "Preserve current data and audit through start-clean: no destructive table wipes, dropped evidence, or fabricated historical review.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L05",
+        "text": "Retired local crawl/extract/inference engine and both old cron entrypoints remain disabled and uncallable.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator and ADR-003/009/013",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L06",
+        "text": "Odoo is Gate consumer. Gate -> EIE is external intelligence authority; Odoo never bypasses Gate.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: ADR-003",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L07",
+        "text": "Approve or reject each proposed field. Run-level EIE confidence is not field-level confidence and missing citations are explicitly labeled.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L08",
+        "text": "Allowlist of eight `res.partner` fields is unchanged; all nonallowlisted fields are evidence-only and cannot write.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: ADR-012 current allowlist",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L09",
+        "text": "Native CRM existing nonempty/verified values win. Typed source snapshot freshness and approval must be rechecked under target row lock before write.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator and ADR-012",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L10",
+        "text": "Only authorized Odoo enrichment roles may review/apply. Server-side ACL, company rules and method guards must agree. No broad base.group_user CRUD.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator Odoo invariant",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L11",
+        "text": "Do not create res.partner for partnerless prospects. Current enrichment run remains existing partner-only.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator partner-after-PO",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L12",
+        "text": "Proposal is an immutable projection of stored Gate evidence; provenance records actual applied writes, not arbitrary approvals.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: ADR-012 semantic owner",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L13",
+        "text": "Human action with no field-level EIE citation must not silently invent one. Allow user-attested evidence where current policy permits, clearly distinguished and attributable.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator evidence authenticity",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L14",
+        "text": "No double apply, stale-value overwrite, partial unlogged write, or retry-induced duplicate outcome.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator and Odoo transaction invariant",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L15",
+        "text": "Run/field state machines deny arbitrary RPC state+payload mutation; preserve historical run records.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: security invariant",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L16",
+        "text": "Source/manifest/ADR changes must preserve source-owner meaning and current active INVARIANTS.md. Candidate POS draft is not constitutional.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: kernel authority router",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L17",
+        "text": "No new CEG overnight scheduler, ranked queue consumer, offering/matching, semantic kernel, or automatic EIE callback to Odoo.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator scope",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L18",
+        "text": "Use native Odoo model security, form/list/one2many, mail.thread and PostgreSQL row locking before adding new infrastructure.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator native reuse",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L19",
+        "text": "Migrate additively from actual installed module versions; preserve source UUID/packet/audit, disabled cron state and original DB+filestore snapshots.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator and Odoo upgrade",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L20",
+        "text": "No implementation, PR, merge, live paid calls, migration, deploy or activation is authorized by this planning ZIP.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator no mutation",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      },
+      {
+        "id": "L21",
+        "text": "Every material direct and transitive source effect has owner, file, disposition, safe migration, recovery, positive and negative proof; new consumer reopens affected plan.",
+        "source": "Operator instruction (this conversation) and source-owned ADR context: operator POS-INV-26",
+        "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+      }
+    ],
+    "open_material_decisions": [
+      "U00 installed Enterprise registry, current ACL record rules, group memberships, ir.cron noupdate flags, partner/company semantics, historical run/cardinality and migration version not observed.",
+      "U00 current deployed Gate request/packet source/provenance and exact SDK pin not observed; external repos are read-only, no assumed new fields.",
+      "U00 native role for applying specific partner fields must be approved by source owner; proposed enrichment User may review, Manager may apply only if current ACL/policy supports it.",
+      "U00 existing company-shared res.partner handling and cross-company record-rule exception policy require actual ORM proof before implementation."
+    ],
+    "operator_blast_radius_gate": {
+      "id": "POS-INV-26",
+      "source": "Operator instruction preserved at SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "applies": true
+    },
+    "plan_acceptance": {
+      "granted": false,
+      "digest": "",
+      "basis": "Revised candidate plan generated by audit; source-owner acceptance and independent review not obtained."
+    },
+    "coding_grant": {
+      "granted": false,
+      "digest": "",
+      "scope": "User authorized planning and ZIP hardening only; repository edits, publication, migration, paid calls, deployment and automatic writeback not authorized."
+    },
+    "source_interfaces": [
+      {
+        "owner": "plasticos_gate",
+        "interface": "build_converge_request, send_converge_action, map_converge_response, partner_writeback_from_converge",
+        "status": "SOURCE_OBSERVED",
+        "evidence": "2dc516aa29718b4545faf67e79ca225589ac6d7f: gate_mappers.py and builders.py, immutable blob pins in EVIDENCE/REPOSITORY_REVISION_AND_BLOBS.json; live Gate response pending"
+      },
+      {
+        "owner": "plasticos_enrichment",
+        "interface": "plasticos.enrichment.run gate_proposal, action_execute/retry/inject, provenance and field records",
+        "status": "SOURCE_OBSERVED",
+        "evidence": "2dc516aa29718b4545faf67e79ca225589ac6d7f enrichment models and views, plus registered runtime tests"
+      },
+      {
+        "owner": "native Odoo",
+        "interface": "res.partner, mail.thread, ir.rule, ir.model.access, ir.actions.act_window, read-only native review one2many",
+        "status": "SOURCE_OBSERVED",
+        "evidence": "Module source uses native Odoo APIs; precise installed Enterprise version/ACL and actions unknown"
+      }
+    ]
+  },
+  "strategy": {
+    "user_problem": "The existing Gate-connected Odoo addon returns EIE contact suggestions but its Inject action bulk-applies fields, security grants ordinary internal users full CRUD, ADR-012 has obsolete auto-writeback default language, and retired cron privileges/local injection remain.",
+    "outcome": "Complete one source-owned Odoo addon: safe Gate-only, review-only by default, native per-field approve/reject, secure and idempotent writeback with truthful evidence and fully preserved historical run/provenance. Keep cron/auto-writeback disabled.",
+    "first_proof": "At pinned Odoo 19 Enterprise, signed recorded-shape Gate converge for an existing company returns 3 eligible fields, one operator approves 2, rejects 1, and only 2 missing allowlisted fields are written exactly once with provenance, while base.user RPC, stale values, company mismatches and auto-writeback config all fail.",
+    "best_alternative": "Continue to use existing JSON gate_proposal and one-click Inject with current broad ACLs; do not add proposal lines.",
+    "reason_selected": "Bulk approval cannot produce individual, evidence-bound authorization or stable per-field conflict/receipt semantics; provenance already means committed writes and cannot safely double as pending proposals. One narrow proposal-line model in existing addon is justified; no new addon.",
+    "reversibility": "Unchanged original kernel and source evidence; additive proposal table with migration after installed version census; old run/provenance protected; auto-writeback off; source DB/filestore restore; no cron resurrection.",
+    "future_seam": "A future separately authorized Odoo consumer could handle source-owned CEG-ranked work without modifying EIE/CEG/Gate; this pack does not add the queue, scheduler or partnerless commercial creation.",
+    "now_scope": [
+      "Current Odoo source-only ADR/manifest/ACL/dynamic consumer census with U00 runtime frontier",
+      "Review-only Gate response receipt and secure candidate per-field proposal lines",
+      "Native Odoo Accept/Reject/Skip and Apply Approved with server-side CAS, company and role checks",
+      "Retire misleading executable local entrypoints and unsafe retired cron-group grant where source-backed",
+      "Migrate additively and preserve historical local/Gate evidence",
+      "Adjust existing source-owned tests/ADR-012 and add Odoo Enterprise tests"
+    ],
+    "deferred": [
+      "Autonomous overnight CEG health and Odoo consumer queue",
+      "EIE/CEG/Constellation.Gate service and Gate_SDK source changes",
+      "Automatic CRM writeback and partnerless lead enrichment",
+      "Semantic Kernel, Offer Drafting/Response, pricing and unrelated CRM import",
+      "Paid live provider requests"
+    ],
+    "non_goals": [
+      "No new Odoo addon or new external RPC route",
+      "No Odoo-local inference/crawler/extractor",
+      "No broad source removal of historical evidence",
+      "No proposed value directly overwrites existing nonempty or confirmed target",
+      "No runtime grant from a green plan validator"
+    ],
+    "native_fit": [
+      {
+        "capability": "CRM record owner",
+        "decision": "REUSE",
+        "owner": "native res.partner",
+        "source": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/res_partner.py"
+      },
+      {
+        "capability": "Converge trigger and evidence",
+        "decision": "REUSE",
+        "owner": "plasticos.enrichment.run",
+        "source": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_run.py"
+      },
+      {
+        "capability": "Committed write lineage",
+        "decision": "REUSE",
+        "owner": "plasticos.enrichment.provenance",
+        "source": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_provenance.py"
+      },
+      {
+        "capability": "Field decision pending state",
+        "decision": "EXTEND",
+        "owner": "New narrow plasticos.enrichment.proposal.line inside same addon",
+        "source": "EVIDENCE/HARDENING_FINDINGS F02/F12/F13: distinct semantic state; not new addon"
+      },
+      {
+        "capability": "User review interface",
+        "decision": "EXTEND",
+        "owner": "Native Odoo form/list/one2many and mail.thread",
+        "source": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/views/enrichment_run_views.xml"
+      },
+      {
+        "capability": "Transport and field allowlist",
+        "decision": "REUSE",
+        "owner": "plasticos_gate",
+        "source": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_gate/services/gate_mappers.py"
+      }
+    ]
+  },
+  "source_census": {
+    "search_scope": "Fresh full 30-manifest static Odoo Staging DAG pinned 2dc516aa29718b4545faf67e79ca225589ac6d7f; direct ORM/callsite/security/view/test/ADR search for enrichment, Gate, cron, historical importer and downstream consumers. No installed Enterprise/dynamic consumer proof.",
+    "methods": [
+      "Current Staging ref+immutable content/sha via GitHub connector",
+      "30 manifest active depends parsing excluding comments",
+      "GitHub code search for enrichment_run/action_inject/provenance/auto_writeback and test consumers",
+      "Source-read accepted ADR-003/009/010/012/013/017 and INVARIANTS.md",
+      "No live Odoo.sh/Supabase/Gate, no edit/patch/test of product code"
+    ],
+    "root_modules": [
+      "plasticos_enrichment",
+      "plasticos_gate"
+    ],
+    "module_dispositions": [
+      {
+        "module": "plasticos_enrichment",
+        "disposition": "EDIT",
+        "reason": "Only add-on code owner for native evidence and per-field review, security/wiring/migration and tests.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/__manifest__.py (blob 636647aaea9397a1125d76e7b7d894cc68b484f8)",
+        "test_obligation": "P05-P29 + Odoo Enterprise install/upgrade and no local engine."
+      },
+      {
+        "module": "plasticos_gate",
+        "disposition": "NO_CHANGE",
+        "reason": "Transport, allowlist and dual switch config sufficient for existing Gate result. New Odoo decision logic belongs in enrichment shell; no Gate schema/engine alteration.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_gate/services/gate_mappers.py (blob e755bc06ac51cb2d0161613e7bb46f7235290baf)",
+        "test_obligation": "P02/P05/P14 preserve mapping and fail-closed behavior."
+      },
+      {
+        "module": "plasticos_matching",
+        "disposition": "NO_CHANGE",
+        "reason": "Transitive dependent of plasticos_gate by current manifest; no changed Gate wire, and matching remains distinct.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_matching/__manifest__.py (blob db9f4edb74037a9a458a815d64761ac92d2c0f05)",
+        "test_obligation": "P23/P28 Gate match regression and no new addon cycle."
+      }
+    ],
+    "extra_consumers": [
+      {
+        "id": "EC01",
+        "module_or_surface": "native res.partner + mail.thread + ir.model.access + ir.rule",
+        "disposition": "EDIT",
+        "reason": "Target company/field rights and review-line evidence must be fully scoped, preserve native Odoo semantics.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/security/ir.model.access.csv blob 054061fbf09df792c9e61545c613e54891265bc9",
+        "test_obligation": "P10/P11/P12/P22/P24"
+      },
+      {
+        "id": "EC02",
+        "module_or_surface": "plasticos_material_profile and CRM partnerless workflow",
+        "disposition": "NO_CHANGE",
+        "reason": "Distinct source owner; legacy local material inject must stop without creating suppliers or changing CRM opportunity paths.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_run.py legacy branch",
+        "test_obligation": "P08/P21"
+      },
+      {
+        "id": "EC03",
+        "module_or_surface": "plasticos_security_base/tests/test_action_methods.py",
+        "disposition": "EDIT",
+        "reason": "Current test assumes one-click Inject writes; must change to prove new authorized per-field acceptance.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_security_base/tests/test_action_methods.py",
+        "test_obligation": "P09/P25"
+      },
+      {
+        "id": "EC04",
+        "module_or_surface": "tests/test_enrichment_gate_writeback.py and tests/test_gate_match_contract.py",
+        "disposition": "EDIT",
+        "reason": "Review-only changed semantics require updated source-level assertions while Gate dual-config contract tests stay valid.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/tests/test_enrichment_gate_writeback.py",
+        "test_obligation": "P25/P32"
+      },
+      {
+        "id": "EC05",
+        "module_or_surface": "Odoo.sh live ir.cron, ir.actions.server, base.automation, installed groups/ACL, rows and partner/company scopes",
+        "disposition": "INDEPENDENT_EXCLUSION",
+        "reason": "Current runtime not observed; no plan precode grant can close it by static source analysis.",
+        "evidence": "U00 blocking census; not an empty set.",
+        "test_obligation": "P01/P03/P04/P26"
+      },
+      {
+        "id": "EC06",
+        "module_or_surface": "EIE, CEG, Gate service and Gate_SDK",
+        "disposition": "NO_CHANGE",
+        "reason": "External contracts may be read and tested using recorded shapes. No cross-repo code edits, transport registration or scheduler.",
+        "evidence": "Operator explicit scope; ADR-003/009/010/017",
+        "test_obligation": "P02/P31/P28"
+      },
+      {
+        "id": "EC07",
+        "module_or_surface": "docs/campaigns/odoo_tech_debt/OPEN_REGISTER and baseline",
+        "disposition": "NO_CHANGE",
+        "reason": "Existing bounded-debt records include per-field provenance/search loops; any changed fingerprint must receive actual upstream fix proof, not quiet baseline suppression.",
+        "evidence": "https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/docs/adr/ADR-012-crm-writeback-allowlist-provenance.md plus current tech-debt source search",
+        "test_obligation": "P25/P32"
+      }
+    ],
+    "runtime_consumers": {
+      "status": "UNOBSERVED",
+      "evidence": "No read-only connected Odoo.sh Enterprise registry, cron/actions, existing enrichment/model rows, group memberships or configuration in this turn; P01-P04 U00."
+    },
+    "limits": [
+      "Odoo.sh installed module and live server actions/ACL/data unobserved",
+      "Real signed deployed Gate/EIE response and source evidence schema unobserved",
+      "No independent implementation acceptance or runtime test",
+      "Dynamic import/caller closure not proved by GitHub search alone"
+    ]
+  },
+  "invariants": {
+    "constitutional": [
+      {
+        "id": "ODOO-INV-01",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#1",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-02",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#2",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-03",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#3",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-04",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#4",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-05",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#5",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-06",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#6",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-07",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#7",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-08",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#8",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-09",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#9",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-10",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#10",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-11",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#11",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-12",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#12",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-13",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#13",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-14",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#14",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-15",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#15",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-16",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#16",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-17",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#17",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-18",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#18",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "ODOO-INV-19",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#19",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      },
+      {
+        "id": "BAN001",
+        "status": "APPLIES",
+        "source": "INVARIANTS.md#BAN001",
+        "basis": "Preserved original kernel constitution unchanged; confirm exact Odoo lock at implementation time.",
+        "evidence": "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md"
+      }
+    ],
+    "candidate_screening": {
+      "source": "SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "status": "SCREENED",
+      "relevant_ids": [
+        "POS-INV-01",
+        "POS-INV-05",
+        "POS-INV-10",
+        "POS-INV-17",
+        "POS-INV-19",
+        "POS-INV-20",
+        "POS-INV-22",
+        "POS-INV-24"
+      ],
+      "basis": "Screened relevant POS draft themes as CANDIDATE, not constitutional; POS-INV-26 is separately mandatory operator pre-code closure. Actual active INVARIANTS.md source lock unchanged."
+    }
+  },
+  "effects": [
+    {
+      "id": "E01",
+      "owner": "plasticos_gate",
+      "consumer": "Gate typed mapper, final_fields, status and allowlist",
+      "source": {
+        "path": "plasticos_gate/services/gate_mappers.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_gate/services/gate_mappers.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "e755bc06ac51cb2d0161613e7bb46f7235290baf"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Consume current completed-state response mapper unchanged; no EIE/CEG changes. New per-field reviewer is in plasticos_enrichment.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Current mapper already projects the 8 allowlisted partner fields and source result; adding Odoo decision logic to mapper would violate ownership.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P02",
+        "P14",
+        "P31"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E02",
+      "owner": "plasticos_gate",
+      "consumer": "Existing dual flag default OFF",
+      "source": {
+        "path": "plasticos_gate/services/gate_config.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_gate/services/gate_config.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "e1aa6cc37f87f248f6bffeee2e1da20d0ccf9564"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Preserve existing dual opt-in feature flag config. New Odoo enrichment run MUST take review path and not call immediate-write branch; ensure deployed flags are zero.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Config already requires two explicit flags; source defect is addon direct application and stale ADR-012, not Gate config.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P01",
+        "P05",
+        "P19"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E03",
+      "owner": "plasticos_gate",
+      "consumer": "Existing allowlist/seed/SDK",
+      "source": {
+        "path": "plasticos_gate/services/gate_allowlists.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_gate/services/gate_allowlists.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "782420f28650ef39f903bd06183ef11c93bd6452"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Retain existing 8-field write allowlist. Preserve signed SDK transport, request idempotency and default auto-writeback ICP 0.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Field list is accepted law; no change to recipient selection or source request is justified.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P02",
+        "P14",
+        "P28"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E04",
+      "owner": "plasticos_matching",
+      "consumer": "External consumer of Gate module",
+      "source": {
+        "path": "plasticos_matching/__manifest__.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_matching/__manifest__.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "db9f4edb74037a9a458a815d64761ac92d2c0f05"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Guard matching unaffected by enrichment review; preserve Gate dependency and all matching tests.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Independent Gate reverse dependent; no source/wiring or runtime matching effect is authorized.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P21",
+        "P23"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E05",
+      "owner": "plasticos_enrichment",
+      "consumer": "Audit model state and server methods",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_run.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_run.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "7307232d4abce258874b272d6a95e4dbb42560c2"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Replace weak write/unlink/state guards with service-owned transition policy; deny state-plus-evidence edits, add current Odoo company/owner validation without restoring local engine.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_run.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P04",
+        "P09",
+        "P11",
+        "P29"
+      ],
+      "depends_on": [
+        "E01"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E06",
+      "owner": "plasticos_enrichment",
+      "consumer": "Security groups and ACLs",
+      "source": {
+        "path": "plasticos_enrichment/security/ir.model.access.csv",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/security/ir.model.access.csv; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "054061fbf09df792c9e61545c613e54891265bc9"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Remove broad base.group_user full CRUD from run/source/extraction/provenance. Restrict proposal decisions to explicit enrichment user/manager and system-owner methods; no public/portal rights.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/security/ir.model.access.csv",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_enrichment/security/security.xml",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P04",
+        "P10",
+        "P11",
+        "P23"
+      ],
+      "depends_on": [
+        "E05"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E07",
+      "owner": "plasticos_enrichment",
+      "consumer": "Retired system cron manager grant",
+      "source": {
+        "path": "plasticos_enrichment/hooks.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/hooks.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "d6aa4367a8eeea18bcc77de82a8bfd06416ae91d"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Remove default enrichment-manager grant to inactive cron user when no proved authorized consumer; preserve other group memberships. Revocation of already-installed grant is a separate scoped migration.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/hooks.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P04",
+        "P19",
+        "P20"
+      ],
+      "depends_on": [
+        "E06"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E08",
+      "owner": "plasticos_enrichment",
+      "consumer": "Retired local inference service and material injector",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_service.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_service.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "79ae6e5a6200a5f987bf72cc121fee976ea206af"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Remove unreachable executable local engine helper paths after dynamic-consumer census; keep the historical service owner and explicit fail-closed/no-op APIs required by tests. No local material profile create.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_service.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P03",
+        "P08",
+        "P19",
+        "P23"
+      ],
+      "depends_on": [
+        "E05"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E09",
+      "owner": "plasticos_enrichment",
+      "consumer": "Retired historical cron definitions",
+      "source": {
+        "path": "plasticos_enrichment/data/cron.xml",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/data/cron.xml; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "305e4339c678fcc08614e4ebf005c080564816e3"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Keep both cron records inactive and their methods as no-ops; noupdate data may not reset installed state, so migration needs explicit DB check.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Retirement is accepted ADR; never reactivate or replace with an Odoo scorer.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P19",
+        "P20"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E10",
+      "owner": "plasticos_enrichment",
+      "consumer": "Field review data owner",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_proposal_line.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_proposal_line.py; no live runtime proof.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Add one narrow proposal-line model in the existing addon: unique (run,field) for Gate response, immutable target and source snapshot, separate review decision state and reviewer metadata; committed provenance remains separate.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_proposal_line.py",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P06",
+        "P07",
+        "P12",
+        "P16",
+        "P30"
+      ],
+      "depends_on": [
+        "E05",
+        "E06"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E11",
+      "owner": "plasticos_enrichment",
+      "consumer": "Gate response storage and proposal projection",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_run.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_run.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "7307232d4abce258874b272d6a95e4dbb42560c2"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Store EIE completed response snapshot/digest and aggregate evidence; on success enter review, create lines for eligible and evidence-only values; all partner writes deferred; no-eligible-fields becomes explicit no-action/evidence-only state, not fabricated failure.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_run.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P02",
+        "P05",
+        "P06",
+        "P15",
+        "P17",
+        "P31"
+      ],
+      "depends_on": [
+        "E10",
+        "E01",
+        "E02",
+        "E03"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E12",
+      "owner": "plasticos_enrichment",
+      "consumer": "Original provenance semantics",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_provenance.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_provenance.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "19ddaea78e3126807df51713c1885dfcc7ff1ee2"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Keep records as committed write/effect lineage, optionally add nullable reviewed_line_id for new changes; never reclassify old provenance as pending proposals. No fake aggregate confidence=1.0.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_provenance.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P07",
+        "P15",
+        "P16",
+        "P20"
+      ],
+      "depends_on": [
+        "E10"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E13",
+      "owner": "plasticos_enrichment",
+      "consumer": "Historic crawl/extraction evidence",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_extraction.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_extraction.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "c3a3deb8535e50a9aa2d274ec0ea84f1c960da63"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Preserve existing source, extraction and governance evidence. New Gate results are projected to proposal lines, not falsely inserted as AI material extractions.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Historic extraction table has its own old meaning; no schema rewrite or silent orphan removal.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P08",
+        "P20"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E14",
+      "owner": "plasticos_enrichment",
+      "consumer": "Per-line review and CAS apply",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_run.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_run.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "7307232d4abce258874b272d6a95e4dbb42560c2"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Server-side approve/reject/skip; apply only approved, still-empty, currently allowlisted partner fields under row lock, exact source snapshot comparison and company check. One partner.write with per-field provenance in same transaction; accurate partial statuses.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_run.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_enrichment/models/enrichment_proposal_line.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P07",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P16",
+        "P29"
+      ],
+      "depends_on": [
+        "E11",
+        "E12"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E15",
+      "owner": "plasticos_enrichment",
+      "consumer": "Legacy Inject and local profile write bypass",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_run.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_run.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "7307232d4abce258874b272d6a95e4dbb42560c2"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Keep action_inject as guarded compatibility route: require explicit line decisions, never auto-approve all, never execute retired local material injection. Legacy validated runs remain read-only.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_run.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P07",
+        "P08",
+        "P09",
+        "P20"
+      ],
+      "depends_on": [
+        "E14"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E16",
+      "owner": "plasticos_enrichment",
+      "consumer": "Gate retry/rollback and durable failure state",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_run.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_run.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "7307232d4abce258874b272d6a95e4dbb42560c2"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Preserve attempt identity, fail-closed typed exception, and separately committed failure evidence only after safe rollback. No leaked approval between attempts or unsafe commit of partner fields.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/models/enrichment_run.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P16",
+        "P18",
+        "P29"
+      ],
+      "depends_on": [
+        "E14"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E17",
+      "owner": "plasticos_enrichment",
+      "consumer": "Run native form/list/button and evidence",
+      "source": {
+        "path": "plasticos_enrichment/views/enrichment_run_views.xml",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/views/enrichment_run_views.xml; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "5aa91814c53a3eed7cef25e9206ece6447c8470a"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Add native one2many proposed changes with per-line decisions, known-vs-unknown confidence/source and Apply Approved. Remove naked Inject bulk approval; status and audit views remain.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/views/enrichment_run_views.xml",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P06",
+        "P07",
+        "P22"
+      ],
+      "depends_on": [
+        "E14",
+        "E15"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E18",
+      "owner": "plasticos_enrichment",
+      "consumer": "Native contact Enrichment tab",
+      "source": {
+        "path": "plasticos_enrichment/views/res_partner_enrichment.xml",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/views/res_partner_enrichment.xml; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "53079c057d5bf149c92e5a85df37c2fba9021a63"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Show pending review count and native read-only run/decision navigation on partner form; no new CRM or portal/website.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/views/res_partner_enrichment.xml",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_enrichment/models/res_partner.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P21",
+        "P22"
+      ],
+      "depends_on": [
+        "E17"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E19",
+      "owner": "plasticos_enrichment",
+      "consumer": "Company record rules and method permissions",
+      "source": {
+        "path": "plasticos_enrichment/security/record_rules.xml",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/security/record_rules.xml; no live runtime proof.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Declare company-scoped rules for run/source/proposal/provenance, including shared-partner policy; enforce Odoo role checks at action/write/confirm. Handle existing rows without company safely in migration.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/security/record_rules.xml",
+          "operation": "CREATE"
+        },
+        {
+          "path": "plasticos_enrichment/security/ir.model.access.csv",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P23"
+      ],
+      "depends_on": [
+        "E06",
+        "E10"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E20",
+      "owner": "plasticos_enrichment",
+      "consumer": "Addon import/manifest/registry/data order",
+      "source": {
+        "path": "plasticos_enrichment/__manifest__.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/__manifest__.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "636647aaea9397a1125d76e7b7d894cc68b484f8"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Version bump above source 19.0.2.5.5 after installed-version evidence; load rules/proposal UI/ACL/test exports with correct Odoo 19 ordering. No new dependency on CRM bridge or Gate peers.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/__manifest__.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_enrichment/models/__init__.py",
+          "operation": "EDIT"
+        },
+        {
+          "path": "plasticos_enrichment/tests/__init__.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P19",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "depends_on": [
+        "E10",
+        "E19"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E21",
+      "owner": "plasticos_enrichment",
+      "consumer": "Upgrade/migration owner",
+      "source": {
+        "path": "plasticos_enrichment/migrations/19.0.2.0.0/post-migrate.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/migrations/19.0.2.0.0/post-migrate.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "1f85d74778ed0a511a4c164cca8e5c5431cf18dd"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Preserve original mothball migration and all old audit. Plan a NEW versioned 19.0.2.5.6 migration candidate only after installed version census; close broad rights and retire actual installed crons with evidenced source refs.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Historical data migration is executed history; not safe to edit in place. Add a successor upgrade if necessary.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P01",
+        "P19",
+        "P20",
+        "P26"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E22",
+      "owner": "plasticos_enrichment",
+      "consumer": "Future versioned migration candidate",
+      "source": {
+        "path": "plasticos_enrichment/migrations/19.0.2.5.6/post-migrate.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/migrations/19.0.2.5.6/post-migrate.py; no live runtime proof.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Additive schema/data reconciliation: identify/harden broad ACLs and old cron grant, ensure company scope only when unambiguous, leave historic Gate/local runs without fabricated review decisions; quarantines reported. Candidate path requires installed-version validation.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/migrations/19.0.2.5.6/post-migrate.py",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P01",
+        "P11",
+        "P19",
+        "P20",
+        "P26"
+      ],
+      "depends_on": [
+        "E20",
+        "E07",
+        "E09",
+        "E21"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E23",
+      "owner": "Odoo ADR owner",
+      "consumer": "CRM writeback ADR default contradiction",
+      "source": {
+        "path": "docs/adr/ADR-012-crm-writeback-allowlist-provenance.md",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/docs/adr/ADR-012-crm-writeback-allowlist-provenance.md; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "0c0e0e51ff84d068489bade09295d8f84dfaf891"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Append narrowly scoped supersession: old 1-switch auto default is historical; current code 2-switch OFF; new Gate enrichment runs always need field-level review until separately authorized. Keep eight-field allowlist and provenance.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "docs/adr/ADR-012-crm-writeback-allowlist-provenance.md",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P05",
+        "P14",
+        "P25",
+        "P28"
+      ],
+      "depends_on": [
+        "E11",
+        "E14"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E24",
+      "owner": "Odoo ADR owner",
+      "consumer": "Proposed successor for per-field approval",
+      "source": {
+        "path": "docs/adr/PROPOSED-enrichment-granular-approval.md",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/docs/adr/PROPOSED-enrichment-granular-approval.md; no live runtime proof.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Proposed ADR for one source of truth, line review states, Gate-only fields, operator attestation, CAS, native ACL, audit and no auto-writeback; source owner assigns final numeric ADR ID.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "docs/adr/PROPOSED-enrichment-granular-approval.md",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P07",
+        "P14",
+        "P28"
+      ],
+      "depends_on": [
+        "E23"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E25",
+      "owner": "plasticos_enrichment",
+      "consumer": "Module README and version docs",
+      "source": {
+        "path": "plasticos_enrichment/README.md",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/README.md; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "3adf8424a7d5bd9c4326e84f6307ab7927fa394d"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Align frontmatter module version to target, replace false fallback/old default wording and document native review-only flow, disabled cron and external intelligence ownership.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/README.md",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P19",
+        "P23",
+        "P25"
+      ],
+      "depends_on": [
+        "E23"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E26",
+      "owner": "Odoo accepted ADR owners",
+      "consumer": "Existing external authority and trigger division",
+      "source": {
+        "path": "docs/adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/docs/adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "9addd94c6afe4ce4305bc6c28326b29d292208e2"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Preserve ADR-003/009/010/013/017 decisions: CEG ranks, EIE enriches, Gate routes, Odoo owns manual review; no CEG nightly queue adoption or new Odoo local selector.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Existing ADRs already assert proper separation; avoid unnecessary constitutional churn. ADR-012 is the actual needed correction.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P21",
+        "P28"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E27",
+      "owner": "plasticos_enrichment",
+      "consumer": "Existing runtime Gate review tests",
+      "source": {
+        "path": "plasticos_enrichment/tests/test_gate_enrichment_fallback.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/tests/test_gate_enrichment_fallback.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "997638c340e78d1e1d36a6347535909d44e16d64"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Replace tests asserting automatic live mode and one-click Inject with review-only even if config toggled, per-line identity/roles/CAS/idempotency and truthful no-eligible-fields, preserving transport failure tests.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/tests/test_gate_enrichment_fallback.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P05",
+        "P07",
+        "P16",
+        "P17",
+        "P18",
+        "P25"
+      ],
+      "depends_on": [
+        "E14",
+        "E15",
+        "E11"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E28",
+      "owner": "plasticos_enrichment",
+      "consumer": "New Odoo 19 Enterprise runtime tests",
+      "source": {
+        "path": "plasticos_enrichment/tests/test_field_proposal_review.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/tests/test_field_proposal_review.py; no live runtime proof.",
+        "status": "PROPOSED_NEW"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Add real ORM/Enterprise tests: 2 of 3 approval, source metadata, stale conflict, role/company, invalid fields, race, legacy history, disabled cron, install+upgrade. Register through tests/__init__.py.",
+      "disposition": "CREATE",
+      "paths": [
+        {
+          "path": "plasticos_enrichment/tests/test_field_proposal_review.py",
+          "operation": "CREATE"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P05",
+        "P06",
+        "P07",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P20",
+        "P22",
+        "P24"
+      ],
+      "depends_on": [
+        "E20",
+        "E27"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E29",
+      "owner": "plasticos_security_base",
+      "consumer": "Upstream security action-method regression consumer",
+      "source": {
+        "path": "plasticos_security_base/tests/test_action_methods.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_security_base/tests/test_action_methods.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "7215d3af74a2099e2736ef35c39f3dc8acea90ce"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Update test_action_inject to assert no old bulk bypass, then make new explicit review flow positive. Preserve all unrelated security-base tests.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "plasticos_security_base/tests/test_action_methods.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P07",
+        "P09",
+        "P25"
+      ],
+      "depends_on": [
+        "E15"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E30",
+      "owner": "Odoo test/release owner",
+      "consumer": "Source-level writeback regression and audit baseline",
+      "source": {
+        "path": "tests/test_enrichment_gate_writeback.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/tests/test_enrichment_gate_writeback.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "539a32813d62ef7e3dfdedaa003d72d4cfffea28"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Update source assertions for current class and guard semantics, keep convergence and allowlist proofs; do not reset tech-debt baseline or create unaudited skip.",
+      "disposition": "EDIT",
+      "paths": [
+        {
+          "path": "tests/test_enrichment_gate_writeback.py",
+          "operation": "EDIT"
+        }
+      ],
+      "no_change_basis": "",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P25",
+        "P32"
+      ],
+      "depends_on": [
+        "E27"
+      ],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E31",
+      "owner": "Odoo module owner",
+      "consumer": "Historical source and extract models",
+      "source": {
+        "path": "plasticos_enrichment/models/enrichment_source.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/models/enrichment_source.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "8879b9a8692313a896d29b4a825378de6a419576"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Keep source URLs, crawl status, extractions, source row UUIDs/IDs and attached evidence unchanged; no backfill from EIE to retired local extraction models.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "No active crawl/extract owner left; model remains needed to interpret old evidence.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P20",
+        "P26"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E32",
+      "owner": "Odoo module owner",
+      "consumer": "Existing material profile/partnerless CRM seam",
+      "source": {
+        "path": "plasticos_material_profile/__manifest__.py",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_material_profile/__manifest__.py; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "3f590b923e579c68382b1361bcdf3242a62312f6"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "No enrichment-initiated supplier partner, material profile creation or CRM/Won effect; only allowlisted existing partner fields.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Different commercial data owner; per-field CRM enrichment cannot become opportunity/material promotion.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P08",
+        "P21",
+        "P28"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    },
+    {
+      "id": "E33",
+      "owner": "Odoo primary operation owner",
+      "consumer": "Existing run sequence and retired scheduler independence",
+      "source": {
+        "path": "plasticos_enrichment/data/sequence.xml",
+        "revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+        "evidence": "Immutable current Staging source https://github.com/cryptoxdog/IB-Odoo_19/blob/2dc516aa29718b4545faf67e79ca225589ac6d7f/plasticos_enrichment/data/sequence.xml; no live runtime proof.",
+        "status": "OBSERVED",
+        "git_blob_sha": "4555e93dbbba4c0815f40f98be886df888a8caef"
+      },
+      "reachability": [
+        "ORM model/source call -> native Odoo record permissions -> Gate response projection -> reviewer -> allowed CRM write"
+      ],
+      "before": "Current pinned source as observed; see evidence register.",
+      "after": "Retain original run sequence, no new enrichment job or autonomous ranking scheduler; installed runtime safety must still be verified.",
+      "disposition": "NO_CHANGE",
+      "paths": [],
+      "no_change_basis": "Sequence is not a scheduled job and needs no new numbering semantics. No additional module should own ranking or duplicate enrichment state.",
+      "migration": "Do not infer installed row counts; additive migration gated by actual installed version, company/field-owner census and count-preserving backup.",
+      "recovery": "Review-only kill switch; restore exact DB+filestore from paired verified backup if required; preserve historical response/provenance.",
+      "security_impact": "No public, portal or cross-company write. Server rechecks role/company/field and retains verified run evidence.",
+      "proof_ids": [
+        "P01",
+        "P19",
+        "P24"
+      ],
+      "depends_on": [],
+      "invalidators": [
+        "Changed source blob or Staging head",
+        "Installed Enterprise fields/actions/rules differ",
+        "An undiscovered dynamic consumer or actual different external response"
+      ]
+    }
+  ],
+  "delivery": {
+    "units": [
+      {
+        "id": "U00",
+        "description": "Source/runtime/manifest/ADR evidence and scoped no-change Gate/matching contract review",
+        "effect_ids": [
+          "E01",
+          "E02",
+          "E03",
+          "E04"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "U01",
+        "description": "Security and dead local path remediation before adding review UX",
+        "effect_ids": [
+          "E05",
+          "E06",
+          "E07",
+          "E08",
+          "E09"
+        ],
+        "depends_on": [
+          "U00"
+        ]
+      },
+      {
+        "id": "U02",
+        "description": "Capture completed Gate results into immutable typed per-field proposal projections",
+        "effect_ids": [
+          "E10",
+          "E11",
+          "E12",
+          "E13"
+        ],
+        "depends_on": [
+          "U01"
+        ]
+      },
+      {
+        "id": "U03",
+        "description": "Human approval, legacy Inject rewire, durable atomic writeback and retry",
+        "effect_ids": [
+          "E14",
+          "E15",
+          "E16"
+        ],
+        "depends_on": [
+          "U02"
+        ]
+      },
+      {
+        "id": "U04",
+        "description": "Native Odoo review UX, contact tab, company rules, addon manifest/tests wiring",
+        "effect_ids": [
+          "E17",
+          "E18",
+          "E19",
+          "E20"
+        ],
+        "depends_on": [
+          "U03"
+        ]
+      },
+      {
+        "id": "U05",
+        "description": "Non-destructive upgrade, retired cron/privilege cleanup, precise ADR-012 correction and README",
+        "effect_ids": [
+          "E21",
+          "E22",
+          "E23",
+          "E24",
+          "E25",
+          "E26"
+        ],
+        "depends_on": [
+          "U04"
+        ]
+      },
+      {
+        "id": "U06",
+        "description": "Odoo 19 Enterprise tests, negative controls, QA and independent review",
+        "effect_ids": [
+          "E27",
+          "E28",
+          "E29",
+          "E30"
+        ],
+        "depends_on": [
+          "U05"
+        ]
+      },
+      {
+        "id": "U07",
+        "description": "Operator-specific Staging shadow readiness and explicit source exclusions, not production activation",
+        "effect_ids": [
+          "E31",
+          "E32",
+          "E33"
+        ],
+        "depends_on": [
+          "U06"
+        ]
+      }
+    ],
+    "proofs": [
+      {
+        "id": "P01",
+        "stage": "PRECODE",
+        "positive": "Observe installed Odoo.sh Enterprise module version, automation, ACL, company/partner scope and row counts.",
+        "negative": "No absent runtime row/cron is inferred from manifest, XML noupdate or static grep.",
+        "owner": "Odoo release operator",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P02",
+        "stage": "PRECODE",
+        "positive": "Exact source/current active eight-field mapper, signed Gate->EIE response shape and origin evidence bound at same source revision.",
+        "negative": "Unrecognized/rejected packet can never become reviewable writable values.",
+        "owner": "Odoo Gate boundary owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P03",
+        "stage": "PRECODE",
+        "positive": "Inventory all dynamic/explicit callers of action_inject, post_init_hook, local inference service and cron plus data class.",
+        "negative": "Legacy local consumer or hidden action is not silently disabled or dropped.",
+        "owner": "Odoo source & installed-registry reviewer",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P04",
+        "stage": "PRECODE",
+        "positive": "Verify current partner company semantics, shared partners, group XML IDs and admin/cron group grants.",
+        "negative": "No broad all-user mutation or unrelated cron rights silently preserved.",
+        "owner": "Odoo security owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P05",
+        "stage": "POSTCODE",
+        "positive": "Gate return recorded once and no partner fields written until individual approvals.",
+        "negative": "Both legacy auto-writeback switches set ON cannot bypass the new review action.",
+        "owner": "Odoo enrichment owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P06",
+        "stage": "POSTCODE",
+        "positive": "Proposed values include original typed snapshot, validated target field, run/packet metadata, status and evidence class.",
+        "negative": "Missing field-specific citations are visibly not labeled as EIE-provided sources.",
+        "owner": "Odoo model owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P07",
+        "stage": "POSTCODE",
+        "positive": "User approves 2 of 3 suggestions, rejects 1, and exactly 2 permitted/empty fields are written with factual provenance.",
+        "negative": "No rejection, skip or pending line writes; raw Gate JSON button cannot bulk bypass.",
+        "owner": "Odoo review owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P08",
+        "stage": "POSTCODE",
+        "positive": "Legacy material extraction is accessible as historical read-only evidence.",
+        "negative": "engine_used=local or historical validated run cannot invoke material profile create/write via Inject.",
+        "owner": "Odoo enrichment owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P09",
+        "stage": "POSTCODE",
+        "positive": "Direct RPC cannot mutate injected/failed/reviewed protected run fields or set terminal states without authorized action.",
+        "negative": "State plus gate_proposal in same write call is rejected; no sudo/context bypass.",
+        "owner": "Odoo security owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P10",
+        "stage": "POSTCODE",
+        "positive": "Portal/internal non-enrichment user denied write, full CRUD on runs/provenance removed, manager actions constrained.",
+        "negative": "Internal-user `base.group_user` grants cannot resurrect broader write, create or unlink.",
+        "owner": "Odoo security owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P11",
+        "stage": "POSTCODE",
+        "positive": "Distinct company and shared-partner review rules restrict visibility and act rights to permitted company/tenant.",
+        "negative": "Wrong company or mixed allowed_company_ids cannot approve/write, regardless of UI hiding.",
+        "owner": "Odoo security owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P12",
+        "stage": "POSTCODE",
+        "positive": "Target value/record company/source revision revalidated under real DB row lock before atomic write.",
+        "negative": "Concurrent partner change, renamed/remapped recipient or stale approval refuses/refreshes.",
+        "owner": "Odoo transaction owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P13",
+        "stage": "POSTCODE",
+        "positive": "Native existing nonempty, False, zero and missing values are classified by field schema as present/absent.",
+        "negative": "No truthiness accident treats existing confirmed zero as blank, or writes unsupported type.",
+        "owner": "Odoo model owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P14",
+        "stage": "POSTCODE",
+        "positive": "Approval writes only eight current allowlisted fields and creates exactly one source-attributed commit provenance per field.",
+        "negative": "EIE extra final_fields, comment or material_json cannot write arbitrary ORM fields.",
+        "owner": "Odoo Gate/writeback owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P15",
+        "stage": "POSTCODE",
+        "positive": "Missing confidence remains unknown with explicit run-level scope; KB version/packet/correlation are kept as observed.",
+        "negative": "Provenance never fabricates confidence 1.0 or field citation for packet without evidence.",
+        "owner": "Odoo evidence owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P16",
+        "stage": "POSTCODE",
+        "positive": "Repeated Apply Approved and same packet are idempotent with one receipt and coherent terminal/partial state.",
+        "negative": "No second write or duplicate provenance when rerun or two reviewers race.",
+        "owner": "Odoo transaction owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P17",
+        "stage": "POSTCODE",
+        "positive": "A no-allowlisted-field completed response is stored and classified as no-action/evidence-only.",
+        "negative": "It is neither misreported as Gate transport failure nor injected into CRM.",
+        "owner": "Odoo enrichment owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P18",
+        "stage": "POSTCODE",
+        "positive": "Retry after Gate failure preserves truthful durable state with correct logical attempt and no local fallback.",
+        "negative": "Second cursor/rollback deadlock, cache replay under same ID and phantom completed states fail.",
+        "owner": "Odoo runtime owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P19",
+        "stage": "POSTCODE",
+        "positive": "Old enrichment crons are inactive/no-op in new data and actual installed DB; post-install user privileges reviewed.",
+        "negative": "Module upgrade or XML noupdate cannot resurrect retired cron, service or system_cron broad rights.",
+        "owner": "Odoo security/migration owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P20",
+        "stage": "POSTCODE",
+        "positive": "Historical local runs/extractions/provenance and Gate packet IDs preserved with original semantics and counts.",
+        "negative": "Migration does not create approved lines for past data, delete evidence or relabel legacy run as verified.",
+        "owner": "Odoo migration owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P21",
+        "stage": "POSTCODE",
+        "positive": "Partnerless CRM prospect cannot accidentally create partner or get a writable enrichment run.",
+        "negative": "No synthetic res.partner for supplier before PO and no CRM/web-lead/offer changes.",
+        "owner": "CRM compatibility owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P22",
+        "stage": "POSTCODE",
+        "positive": "Contact Enrichment tab and Enrichment Run display line decisions, review evidence, status and chatter with native Odoo controls.",
+        "negative": "Unapproved user cannot use direct button/RPC to bypass server authorization.",
+        "owner": "Odoo UX owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P23",
+        "stage": "PREMERGE",
+        "positive": "Fresh complete source file/DAG census and registry XML/action/security reference tests pass.",
+        "negative": "No missing init, manifest XML ID, field integrity, addon cycle or module version regression.",
+        "owner": "Odoo integration owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P24",
+        "stage": "PREMERGE",
+        "positive": "Odoo 19 Enterprise Docker clean install and existing-database upgrade, security/role/record rule tests pass at exact SHA.",
+        "negative": "Pure pytest or Community-only success is not an Enterprise acceptance receipt.",
+        "owner": "Enterprise validation owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P25",
+        "stage": "PREMERGE",
+        "positive": "Current `test_gate_enrichment_fallback`, `test_action_methods` and allowlist fixtures enforce new review-only policy.",
+        "negative": "No old test claims live auto-writeback success as required behavior and no test weakened or skipped.",
+        "owner": "Test source owners",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P26",
+        "stage": "PRERELEASE",
+        "positive": "Database+filestore backup/restore and versioned additive migration rehearsal verifies exact counts and history.",
+        "negative": "Any loss or ambiguous company assignment quarantined; no destructive start clean.",
+        "owner": "Odoo release/migration owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P27",
+        "stage": "PRERELEASE",
+        "positive": "Isolated staging recorded-shape packet displays approve/reject choices and applies two fields with one original message.",
+        "negative": "No unapproved live EIE calls, paid work or automatic overnight dispatch.",
+        "owner": "Odoo release operator",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P28",
+        "stage": "PRERELEASE",
+        "positive": "Independent revision-bound code review covers all affected source/security/DB consumers and protects retired external authority.",
+        "negative": "Unaccepted new source/contract/role and unresolved P0 issue blocks merge/release.",
+        "owner": "Independent reviewer",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P29",
+        "stage": "POSTCODE",
+        "positive": "After each review step, audit linkage and line/run statuses match committed side effects; partial approvals truthful.",
+        "negative": "No phantom injected state when zero fields written and no stale pending decision left silently applied.",
+        "owner": "Odoo workflow owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P30",
+        "stage": "PRECODE",
+        "positive": "Review proposal-line versus provenance owner decision against actual ORM model/write consumers.",
+        "negative": "No new duplicate enrichment/supply model or semantic corruption of committed provenance.",
+        "owner": "Model source owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P31",
+        "stage": "POSTCODE",
+        "positive": "Gate contract incompatible or no-source evidence remains in secure review-only evidence, not writable by default.",
+        "negative": "No conversion of inferred/unknown values to business truth just from aggregate confidence.",
+        "owner": "CRM data owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      },
+      {
+        "id": "P32",
+        "stage": "PREMERGE",
+        "positive": "Technical-debt audit baseline/checks and M4 tombstone tests retain accuracy under changed run/refactor.",
+        "negative": "No resetting known findings or weakening Semgrep/ruff/test gates to pass.",
+        "owner": "Independent audit owner",
+        "status": "NOT_RUN",
+        "evidence": "Future proof obligation, no product/runtime tests executed in this planning pass."
+      }
+    ],
+    "migration_plan": "Migration evidence U00 first. New versioned additive migration candidate 19.0.2.5.6 only if installed upgrade chain permits. Retain all preexisting local, Gate, source, extraction, provenance, packet IDs, original migration script and XML IDs. Migrate grants/cron disabled state only from installed exact rows; quarantine unassignable company; do not mint historical review approval. Source identity and Odoo.sh DB+filestore snapshots required.",
+    "recovery_plan": "Pre-change native Odoo.sh DB+filestore backup pair plus isolated restore proof; no live paid calls. Remain review-only: disable Apply Approved action on issue, preserve valid run/proposal data and all history; restore code/data only from proven pair. Never restore local inference/crons, and never override res.partner by guessing a prior value.",
+    "release_boundary": "Planning only. Repository edits require separately authorized scope, accepted ADRs, U00 census and precode proof. Odoo Enterprise install/upgrade, failure/privacy and independent review required before PR/merge. Product auto_writeback remains OFF and no paid/overnight dispatch authorized by this ZIP."
+  },
+  "readiness": {
+    "state": "PLAN_REVIEW",
+    "notes": "Source-manifest/ADR/effect accounting re-aligned to current Staging and all source blobs; product runtime/installed Enterprise, actual Gate packet, source-owner admission and independent review remain UNKNOWN. No repo/production mutation or grant."
+  }
+}

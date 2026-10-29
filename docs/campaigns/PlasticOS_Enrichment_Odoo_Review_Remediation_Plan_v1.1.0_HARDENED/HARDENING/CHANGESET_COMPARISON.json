@@ -1,0 +1,25 @@
+{
+  "predecessor_sha256": "465cc9d2861ec3d94d18d11bbe7849c1ce23b3350ad4b3481b51d4729f922f87",
+  "old_file_count": 39,
+  "new_file_count_excluding_checksum": 69,
+  "removed_paths": [],
+  "changed_predecessor_paths": [
+    "ADR/ADR-PROPOSED-ODOO-ENRICHMENT-REVIEW.md",
+    "ADR/CHANGE_MATRIX.md",
+    "DELIVERY/GRAPH.md",
+    "DELIVERY/STOP_CONDITIONS.md",
+    "EVIDENCE/SOURCE_REGISTER.md",
+    "IMPLEMENTATION_LEDGER.md",
+    "INVARIANTS.md",
+    "README.md",
+    "REVIEW_UX_AND_DATA.md",
+    "SHA256SUMS.json",
+    "TESTS.md",
+    "VALIDATION/SUMMARY.json",
+    "VALIDATION/kernel_plan_gate.json",
+    "VALIDATION/kernel_plan_stderr.txt",
+    "case.json"
+  ],
+  "protected_kernel_members": 24,
+  "original_kernel_byte_identity": "PASS"
+}

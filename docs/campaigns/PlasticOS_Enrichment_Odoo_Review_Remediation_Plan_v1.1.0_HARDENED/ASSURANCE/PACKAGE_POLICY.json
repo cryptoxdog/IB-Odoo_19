@@ -1,0 +1,129 @@
+{
+  "authority_ref": "User request to harden Odoo-only enrichment plan while preserving uploaded kernel and keeping all product work disabled; operator locks L01-L21, especially L01/L03/L17/L20/L21.",
+  "allowed_changed_paths": [
+    "ADR/ADR-PROPOSED-ODOO-ENRICHMENT-REVIEW.md",
+    "ADR/CHANGE_MATRIX.md",
+    "DELIVERY/GRAPH.md",
+    "DELIVERY/STOP_CONDITIONS.md",
+    "EVIDENCE/SOURCE_REGISTER.md",
+    "IMPLEMENTATION_LEDGER.md",
+    "INVARIANTS.md",
+    "README.md",
+    "REVIEW_UX_AND_DATA.md",
+    "SHA256SUMS.json",
+    "TESTS.md",
+    "VALIDATION/SUMMARY.json",
+    "VALIDATION/kernel_plan_gate.json",
+    "VALIDATION/kernel_plan_stderr.txt",
+    "case.json"
+  ],
+  "must_remain_unchanged": [
+    "PLANNING_KERNEL/CORE/INVARIANT_ROUTING.md",
+    "PLANNING_KERNEL/CORE/PLANNING_KERNEL.md",
+    "PLANNING_KERNEL/CORE/REPO_INSTALLATION_ROUTE.md",
+    "PLANNING_KERNEL/CORE/SOURCE_DISCOVERY.md",
+    "PLANNING_KERNEL/MANIFEST.json",
+    "PLANNING_KERNEL/README.md",
+    "PLANNING_KERNEL/SCHEMA/case.schema.json",
+    "PLANNING_KERNEL/SOURCES/EXTRACTION_MAP.md",
+    "PLANNING_KERNEL/SOURCES/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+    "PLANNING_KERNEL/SOURCES/PREDECESSOR_MANIFEST_v0.1.0.json",
+    "PLANNING_KERNEL/SOURCES/RECURSIVE_ALIGNMENT_AUDIT.md",
+    "PLANNING_KERNEL/SOURCES/REPO_MANIFEST_SNAPSHOT.json",
+    "PLANNING_KERNEL/SOURCES/REPO_SOURCE_LOCK.json",
+    "PLANNING_KERNEL/SOURCES/VERSION_TRANSITION.md",
+    "PLANNING_KERNEL/TEMPLATES/CASE.template.json",
+    "PLANNING_KERNEL/TEMPLATES/IMPLEMENTATION_HANDOFF.md",
+    "PLANNING_KERNEL/TEMPLATES/STRATEGY_INTAKE.md",
+    "PLANNING_KERNEL/TEMPLATES/WIP_ALIGNMENT.md",
+    "PLANNING_KERNEL/VALIDATION.json",
+    "PLANNING_KERNEL/tools/impact_modules.py",
+    "PLANNING_KERNEL/tools/new_case.py",
+    "PLANNING_KERNEL/tools/test_negative_controls.py",
+    "PLANNING_KERNEL/tools/validate_case.py",
+    "PLANNING_KERNEL/tools/validate_pack.py"
+  ],
+  "assertions": [
+    {
+      "id": "no-code-grant",
+      "kind": "equals",
+      "file": "case.json",
+      "pointer": "/authority/coding_grant/granted",
+      "value": false
+    },
+    {
+      "id": "no-plan-self-acceptance",
+      "kind": "equals",
+      "file": "case.json",
+      "pointer": "/authority/plan_acceptance/granted",
+      "value": false
+    },
+    {
+      "id": "only-odoo-repo",
+      "kind": "equals",
+      "file": "case.json",
+      "pointer": "/target/repository",
+      "value": "cryptoxdog/IB-Odoo_19"
+    },
+    {
+      "id": "source-current",
+      "kind": "matches_file",
+      "file": "case.json",
+      "pointer": "/target/revision",
+      "other_file": "EVIDENCE/REPO_SOURCE_LOCK_CURRENT.json",
+      "other_pointer": "/revision"
+    },
+    {
+      "id": "live-db-not-observed",
+      "kind": "equals",
+      "file": "case.json",
+      "pointer": "/target/installed_target/status",
+      "value": "UNOBSERVED"
+    },
+    {
+      "id": "release-disabled",
+      "kind": "equals",
+      "file": "DELIVERY/DEPENDENCY_GRAPH.json",
+      "pointer": "/terminal",
+      "value": "READY_BUT_DISABLED"
+    },
+    {
+      "id": "no-activation-grant",
+      "kind": "equals",
+      "file": "DELIVERY/DEPENDENCY_GRAPH.json",
+      "pointer": "/code_and_activation_granted",
+      "value": false
+    },
+    {
+      "id": "lock-ids-unique",
+      "kind": "unique_field",
+      "file": "INVARIANTS/OPERATOR_LOCKS.json",
+      "pointer": "/locks",
+      "field": "id"
+    },
+    {
+      "id": "unit-order-00-to-01",
+      "kind": "edge_exists",
+      "file": "DELIVERY/DEPENDENCY_GRAPH.json",
+      "source": "U00",
+      "target": "U01",
+      "relation": "requires"
+    },
+    {
+      "id": "unit-order-06-to-07",
+      "kind": "edge_exists",
+      "file": "DELIVERY/DEPENDENCY_GRAPH.json",
+      "source": "U06",
+      "target": "U07",
+      "relation": "requires"
+    },
+    {
+      "id": "no-surprise-stage-u08",
+      "kind": "edge_absent",
+      "file": "DELIVERY/DEPENDENCY_GRAPH.json",
+      "source": "U07",
+      "target": "U08",
+      "relation": "requires"
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "format": "operator-planning-locks/v1",
+  "authority": "Operator requests in this conversation + cited accepted Odoo ADRs; not constitutional adoption",
+  "locks": [
+    {
+      "id": "L01",
+      "text": "Only cryptoxdog/IB-Odoo_19 may change in the future. EIE, CEG, Constellation.Gate service and SDK contracts are read-only.",
+      "source": "operator",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L02",
+      "text": "Retain and complete plasticos_enrichment as a single Odoo-native human approval and writeback shell, not a new addon.",
+      "source": "operator",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L03",
+      "text": "Keep automatic CRM writeback OFF. No EIE-returned CRM fields may be applied before granular authorized user approval.",
+      "source": "operator",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L04",
+      "text": "Preserve current data and audit through start-clean: no destructive table wipes, dropped evidence, or fabricated historical review.",
+      "source": "operator",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L05",
+      "text": "Retired local crawl/extract/inference engine and both old cron entrypoints remain disabled and uncallable.",
+      "source": "operator and ADR-003/009/013",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L06",
+      "text": "Odoo is Gate consumer. Gate -> EIE is external intelligence authority; Odoo never bypasses Gate.",
+      "source": "ADR-003",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L07",
+      "text": "Approve or reject each proposed field. Run-level EIE confidence is not field-level confidence and missing citations are explicitly labeled.",
+      "source": "operator",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L08",
+      "text": "Allowlist of eight `res.partner` fields is unchanged; all nonallowlisted fields are evidence-only and cannot write.",
+      "source": "ADR-012 current allowlist",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L09",
+      "text": "Native CRM existing nonempty/verified values win. Typed source snapshot freshness and approval must be rechecked under target row lock before write.",
+      "source": "operator and ADR-012",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L10",
+      "text": "Only authorized Odoo enrichment roles may review/apply. Server-side ACL, company rules and method guards must agree. No broad base.group_user CRUD.",
+      "source": "operator Odoo invariant",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L11",
+      "text": "Do not create res.partner for partnerless prospects. Current enrichment run remains existing partner-only.",
+      "source": "operator partner-after-PO",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L12",
+      "text": "Proposal is an immutable projection of stored Gate evidence; provenance records actual applied writes, not arbitrary approvals.",
+      "source": "ADR-012 semantic owner",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L13",
+      "text": "Human action with no field-level EIE citation must not silently invent one. Allow user-attested evidence where current policy permits, clearly distinguished and attributable.",
+      "source": "operator evidence authenticity",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L14",
+      "text": "No double apply, stale-value overwrite, partial unlogged write, or retry-induced duplicate outcome.",
+      "source": "operator and Odoo transaction invariant",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L15",
+      "text": "Run/field state machines deny arbitrary RPC state+payload mutation; preserve historical run records.",
+      "source": "security invariant",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L16",
+      "text": "Source/manifest/ADR changes must preserve source-owner meaning and current active INVARIANTS.md. Candidate POS draft is not constitutional.",
+      "source": "kernel authority router",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L17",
+      "text": "No new CEG overnight scheduler, ranked queue consumer, offering/matching, semantic kernel, or automatic EIE callback to Odoo.",
+      "source": "operator scope",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L18",
+      "text": "Use native Odoo model security, form/list/one2many, mail.thread and PostgreSQL row locking before adding new infrastructure.",
+      "source": "operator native reuse",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L19",
+      "text": "Migrate additively from actual installed module versions; preserve source UUID/packet/audit, disabled cron state and original DB+filestore snapshots.",
+      "source": "operator and Odoo upgrade",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L20",
+      "text": "No implementation, PR, merge, live paid calls, migration, deploy or activation is authorized by this planning ZIP.",
+      "source": "operator no mutation",
+      "status": "LOCKED_FOR_PLAN"
+    },
+    {
+      "id": "L21",
+      "text": "Every material direct and transitive source effect has owner, file, disposition, safe migration, recovery, positive and negative proof; new consumer reopens affected plan.",
+      "source": "operator POS-INV-26",
+      "status": "LOCKED_FOR_PLAN"
+    }
+  ]
+}

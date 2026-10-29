@@ -1,0 +1,23 @@
+path,repository,source_revision,source_blob_sha,operation,owner,unit,effect_ids,proof_ids
+plasticos_enrichment/models/enrichment_run.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,7307232d4abce258874b272d6a95e4dbb42560c2,EDIT,plasticos_enrichment,U01+U02+U03+U03+U03,E05;E11;E14;E15;E16,P02;P04;P05;P06;P07;P08;P09;P11;P12;P13;P14;P15;P16;P17;P18;P20;P29;P31
+plasticos_enrichment/security/ir.model.access.csv,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,054061fbf09df792c9e61545c613e54891265bc9,EDIT,plasticos_enrichment,U01+U04,E06;E19,P04;P10;P11;P12;P13;P23
+plasticos_enrichment/security/security.xml,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,e2f23baaf097c60854041f6d15f3978b698f8d59,EDIT,plasticos_enrichment,U01,E06,P04;P10;P11;P23
+plasticos_enrichment/hooks.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,d6aa4367a8eeea18bcc77de82a8bfd06416ae91d,EDIT,plasticos_enrichment,U01,E07,P04;P19;P20
+plasticos_enrichment/models/enrichment_service.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,79ae6e5a6200a5f987bf72cc121fee976ea206af,EDIT,plasticos_enrichment,U01,E08,P03;P08;P19;P23
+plasticos_enrichment/models/enrichment_proposal_line.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,,CREATE,plasticos_enrichment,U02+U03,E10;E14,P06;P07;P09;P12;P13;P14;P16;P29;P30
+plasticos_enrichment/models/enrichment_provenance.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,19ddaea78e3126807df51713c1885dfcc7ff1ee2,EDIT,plasticos_enrichment,U02,E12,P07;P15;P16;P20
+plasticos_enrichment/views/enrichment_run_views.xml,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,5aa91814c53a3eed7cef25e9206ece6447c8470a,EDIT,plasticos_enrichment,U04,E17,P06;P07;P22
+plasticos_enrichment/views/res_partner_enrichment.xml,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,53079c057d5bf149c92e5a85df37c2fba9021a63,EDIT,plasticos_enrichment,U04,E18,P21;P22
+plasticos_enrichment/models/res_partner.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,3452209f05960685a3181ecfd732576abbfce21f,EDIT,plasticos_enrichment,U04,E18,P21;P22
+plasticos_enrichment/security/record_rules.xml,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,,CREATE,plasticos_enrichment,U04,E19,P10;P11;P12;P13;P23
+plasticos_enrichment/__manifest__.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,636647aaea9397a1125d76e7b7d894cc68b484f8,EDIT,plasticos_enrichment,U04,E20,P19;P22;P23;P24
+plasticos_enrichment/models/__init__.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,e4fb4deaffccd1743d833ccef465fc9cc490e61d,EDIT,plasticos_enrichment,U04,E20,P19;P22;P23;P24
+plasticos_enrichment/tests/__init__.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,71872a7c39ac2b06ca60d0d3586de1b8c1fca96c,EDIT,plasticos_enrichment,U04,E20,P19;P22;P23;P24
+plasticos_enrichment/migrations/19.0.2.5.6/post-migrate.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,,CREATE,plasticos_enrichment,U05,E22,P01;P11;P19;P20;P26
+docs/adr/ADR-012-crm-writeback-allowlist-provenance.md,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,0c0e0e51ff84d068489bade09295d8f84dfaf891,EDIT,Odoo ADR owner,U05,E23,P05;P14;P25;P28
+docs/adr/PROPOSED-enrichment-granular-approval.md,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,,CREATE,Odoo ADR owner,U05,E24,P07;P14;P28
+plasticos_enrichment/README.md,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,3adf8424a7d5bd9c4326e84f6307ab7927fa394d,EDIT,plasticos_enrichment,U05,E25,P19;P23;P25
+plasticos_enrichment/tests/test_gate_enrichment_fallback.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,997638c340e78d1e1d36a6347535909d44e16d64,EDIT,plasticos_enrichment,U06,E27,P05;P07;P16;P17;P18;P25
+plasticos_enrichment/tests/test_field_proposal_review.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,,CREATE,plasticos_enrichment,U06,E28,P05;P06;P07;P10;P11;P12;P13;P14;P15;P16;P20;P22;P24
+plasticos_security_base/tests/test_action_methods.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,7215d3af74a2099e2736ef35c39f3dc8acea90ce,EDIT,plasticos_security_base,U06,E29,P07;P09;P25
+tests/test_enrichment_gate_writeback.py,cryptoxdog/IB-Odoo_19,2dc516aa29718b4545faf67e79ca225589ac6d7f,539a32813d62ef7e3dfdedaa003d72d4cfffea28,EDIT,Odoo test/release owner,U06,E30,P25;P32

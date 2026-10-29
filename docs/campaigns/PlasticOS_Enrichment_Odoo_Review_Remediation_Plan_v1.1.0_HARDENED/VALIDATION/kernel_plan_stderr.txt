@@ -1,0 +1,1 @@
+Historical stderr preserved in HISTORY/v1.0.0/VALIDATION/kernel_plan_stderr.txt; current plan/precode outcomes are in VALIDATION/kernel_plan_gate.json, kernel_plan_stderr.json and kernel_precode_stderr.json.

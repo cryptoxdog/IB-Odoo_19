@@ -1,0 +1,9 @@
+# Future bounded Cursor handoff (planning only; not dispatched)
+
+Before authorizing any code, bind a fresh head and complete U00 precode evidence. Feed the executor only `case.json`, current `EVIDENCE/REPO_SOURCE_LOCK_CURRENT.json`, exact owner-file ledger, locked invariants, proposed ADR text, and relevant tests. Do not unleash a repo-wide rewrite or assume source codes are deployed.
+
+Owner: `cryptoxdog/IB-Odoo_19`. Writable path candidates are listed *exclusively* under `PLAN/FILE_CHANGE_LEDGER.csv`, with CREATE/EDIT status and source blob. Protect external EIE/CEG/Constellation.Gate and SDK repos as READ-ONLY. Preserve unchanged accepted ADRs and historical M4 migration. No raw pushes; use the repo's current governed publication interface after explicit operator authorization. Do not merge, deploy or activate in the same coding grant unless independently authorized.
+
+Implement in units with upstream independent code review and actual Odoo 19 Enterprise install/upgrade. Every tested change must report exact base/head SHA, source files, actual commands, verified API shape, before/after data and company/role identities, gates, stdout and negative cases. Reopen only the affected closure if a new hidden consumer or source change is found; do not broaden into the Semantic Kernel, CRM opportunity matching, Offer Drafting, overnight queues or new CEG/EIE routes.
+
+Definition of ready-to-implement: exact installed source and permission census, source-owner acceptance of one proposal-line model and operator role policy, current signed Gate field metadata, precode proof receipts and separate coding scope. Definition of ready-to-merge: independent accepted code review, Enterprise suite, migration/restore, zero unauthorized CRM writes and all critical negatives. Production auto-writeback remains disabled.

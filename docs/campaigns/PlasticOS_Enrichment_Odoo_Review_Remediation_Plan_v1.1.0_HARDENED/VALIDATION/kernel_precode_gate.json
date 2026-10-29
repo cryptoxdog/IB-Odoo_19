@@ -1,0 +1,20 @@
+{
+  "gate": "precode",
+  "status": "FAIL",
+  "errors": [
+    "TARGET_ENV_UNKNOWN",
+    "OPEN_OPERATOR_DECISIONS",
+    "UNEXPLORED_DYNAMIC_CONSUMERS",
+    "OPEN_SOURCE_LIMITS: ['Odoo.sh installed module and live server actions/ACL/data unobserved', 'Real signed deployed Gate/EIE response and source evidence schema unobserved', 'No independent implementation acceptance or runtime test', 'Dynamic import/caller closure not proved by GitHub search alone']",
+    "PRECODE_PROOF_NOT_OBSERVED: P01",
+    "PRECODE_PROOF_NOT_OBSERVED: P02",
+    "PRECODE_PROOF_NOT_OBSERVED: P03",
+    "PRECODE_PROOF_NOT_OBSERVED: P04",
+    "PRECODE_PROOF_NOT_OBSERVED: P30",
+    "EXTERNAL_AUTHENTICATION_REQUIRED: offline planning tool never authorizes coding",
+    "UNAUTHENTICATED_OR_STALE_GRANT: plan_acceptance",
+    "UNAUTHENTICATED_OR_STALE_GRANT: coding_grant"
+  ],
+  "plan_digest_sha256": "65c1c06f4f5433c6847de77999e94c4e040eefaf13942b18187a51a2e5bdc063",
+  "caveat": "No real GitHub/DB/Enterprise access, no independent completeness proof, and no approval authentication are performed by this local validator."
+}

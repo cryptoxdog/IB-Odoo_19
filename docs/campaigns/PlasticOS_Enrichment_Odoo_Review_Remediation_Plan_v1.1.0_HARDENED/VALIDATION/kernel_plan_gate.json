@@ -1,0 +1,11 @@
+{
+  "gate": "plan",
+  "status": "FAIL",
+  "errors": [
+    "TARGET_ENV_UNKNOWN",
+    "OPEN_OPERATOR_DECISIONS",
+    "UNEXPLORED_DYNAMIC_CONSUMERS"
+  ],
+  "plan_digest_sha256": "65c1c06f4f5433c6847de77999e94c4e040eefaf13942b18187a51a2e5bdc063",
+  "caveat": "No real GitHub/DB/Enterprise access, no independent completeness proof, and no approval authentication are performed by this local validator."
+}

@@ -1,0 +1,27 @@
+{
+  "status": "PASS_PACKAGE_ACCOUNTING_RELEASE_BLOCKED",
+  "baseline_current_sha": "2dc516aa29718b4545faf67e79ca225589ac6d7f",
+  "predecessor_sha256": "465cc9d2861ec3d94d18d11bbe7849c1ce23b3350ad4b3481b51d4729f922f87",
+  "kernel_integrity": "PASS",
+  "kernel_members_unchanged": 24,
+  "fresh_manifest_modules": 30,
+  "file_change_paths": 22,
+  "effects": 33,
+  "operator_locks": 21,
+  "proofs": 32,
+  "units": 8,
+  "kernel_plan_gate": [
+    "TARGET_ENV_UNKNOWN",
+    "OPEN_OPERATOR_DECISIONS",
+    "UNEXPLORED_DYNAMIC_CONSUMERS"
+  ],
+  "current_source_schema_missing_blob_drift_errors": [],
+  "product_tests": "NOT_RUN",
+  "installed_enterprise": "UNOBSERVED",
+  "live_gate_eie_packet": "UNOBSERVED",
+  "independent_semantic_review": "NOT_RUN",
+  "coding_grant": false,
+  "production_activation": "NOT_AUTHORIZED",
+  "no_target_repo_files_changed": true,
+  "no_external_repo_writes": true
+}

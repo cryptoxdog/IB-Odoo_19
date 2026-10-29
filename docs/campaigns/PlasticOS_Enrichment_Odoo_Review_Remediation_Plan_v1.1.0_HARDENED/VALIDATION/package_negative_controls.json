@@ -1,0 +1,66 @@
+{
+  "status": "PASS_SYNTHETIC_NEGATIVE_CONTROLS",
+  "cases": [
+    {
+      "scenario": "grant coding",
+      "verdict": "REJECTED",
+      "reason": "coding unauthorized"
+    },
+    {
+      "scenario": "self accept",
+      "verdict": "REJECTED",
+      "reason": "plan self-accepted"
+    },
+    {
+      "scenario": "promote test",
+      "verdict": "REJECTED",
+      "reason": "runtime proof falsely passed"
+    },
+    {
+      "scenario": "activate",
+      "verdict": "REJECTED",
+      "reason": "false activation"
+    },
+    {
+      "scenario": "drift",
+      "verdict": "REJECTED",
+      "reason": "source revision drift"
+    },
+    {
+      "scenario": "external repo",
+      "verdict": "REJECTED",
+      "reason": "outside repository"
+    },
+    {
+      "scenario": "drop effect",
+      "verdict": "REJECTED",
+      "reason": "effects not allocated exactly once"
+    },
+    {
+      "scenario": "cycle graph",
+      "verdict": "REJECTED",
+      "reason": "delivery cycle"
+    },
+    {
+      "scenario": "lose lock",
+      "verdict": "REJECTED",
+      "reason": "operator invariants"
+    },
+    {
+      "scenario": "lose path",
+      "verdict": "REJECTED",
+      "reason": "file-change ledger not derived"
+    },
+    {
+      "scenario": "break trace",
+      "verdict": "REJECTED",
+      "reason": "trace dangling ref"
+    },
+    {
+      "scenario": "inject external source",
+      "verdict": "REJECTED",
+      "reason": "external owner in effects"
+    }
+  ],
+  "product_tests": "NOT_RUN"
+}

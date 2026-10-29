@@ -1,0 +1,10 @@
+{
+  "predecessor_filename": "PlasticOS_Enrichment_Odoo_Review_Remediation_Plan_v1.0.0.zip",
+  "predecessor_sha256": "465cc9d2861ec3d94d18d11bbe7849c1ce23b3350ad4b3481b51d4729f922f87",
+  "source_uploaded_kernel_filename": "PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0(7).zip",
+  "source_uploaded_kernel_sha256": "9be3d9c5f5ba9431636e9f96eebd89f215b75567c15917230a61c4928c6e11bb",
+  "new_version": "1.1.0-HARDENED",
+  "original_predecessor_modified": false,
+  "nested_original_kernel_members_preserved": 24,
+  "source_revision": "2dc516aa29718b4545faf67e79ca225589ac6d7f"
+}
