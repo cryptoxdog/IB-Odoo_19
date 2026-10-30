@@ -1,6 +1,6 @@
 {
     "name": "Plasticos — Security Base",
-    "version": "19.0.1.2.21",
+    "version": "19.0.1.2.23",
     "category": "Plasticos/Security",
     "summary": "Core RBAC roles, record rules, and private-partner flag for the Plasticos platform.",
     "description": """
@@ -21,6 +21,7 @@
         "account",
         "stock",
         "plasticos_transaction",
+        "plasticos_partner_import",
         "plasticos_intake",
         "plasticos_material_profile",
         "plasticos_facility_profile",

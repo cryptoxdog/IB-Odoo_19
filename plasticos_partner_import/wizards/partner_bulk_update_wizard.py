@@ -198,36 +198,17 @@ class PartnerBulkUpdateWizard(models.TransientModel):
 
         return self._return_notification(_("%d partner(s) updated with categories: %s") % (updated, tag_names))
 
+    def _apply_partner_privacy(self, partner):
+        """Security addon writes partner privacy. Base refuses the action."""
+        raise UserError(_("The is_private field is not available. Please install the plasticos_security_base module."))
+
     def _action_set_private(self):
         """Set private flag on selected partners."""
         updated = 0
         status = "Private" if self.is_private else "Public"
-
         for partner in self.partner_ids:
-            # Check if field exists (from plasticos_security_base)
-            if hasattr(partner, "is_private"):
-                old_status = "Private" if partner.is_private else "Public"
-                partner.is_private = self.is_private
-                partner.message_post(
-                    body=_(
-                        "Privacy changed from <b>%(old)s</b> to <b>%(new)s</b><br/>"
-                        "Reason: %(reason)s<br/>"
-                        "Updated by: %(user)s (Bulk Update)"
-                    )
-                    % {
-                        "old": old_status,
-                        "new": status,
-                        "reason": self.reason,
-                        "user": self.env.user.name,
-                    },
-                    message_type="notification",
-                )
-                updated += 1
-            else:
-                raise UserError(
-                    _("The is_private field is not available. Please install the plasticos_security_base module.")
-                )
-
+            self._apply_partner_privacy(partner)
+            updated += 1
         return self._return_notification(_("%d partner(s) marked as %s") % (updated, status))
 
     def _action_set_company_type(self):

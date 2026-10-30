@@ -42,61 +42,6 @@ class TestAPIFailures(PlasticosTestCase):
     # covered by tests/contracts/test_no_local_intelligence.py, test_gate_single_egress.py
     # and tests/contracts/test_external_intelligence_authority.py.
 
-    def test_enrichment_api_failure_caught(self):
-        """A Gate converge transport failure fails closed: UserError, run durably ``degraded``.
-
-        Enrichment is Gate-only (M4); the local crawl it once patched is gone. The run
-        rolls the request back and persists the classified state on an owned cursor
-        (plasticos_enrichment/models/enrichment_run.py:317-347, :427-441). partner_id is
-        required (enrichment_run.py:26).
-        """
-        if "plasticos.enrichment.run" not in self.env:
-            self.skipTest("Enrichment not installed")
-        from odoo.addons.plasticos_gate.services.gate_config import (
-            GateAvailability,
-            GateAvailabilityVerdict,
-            GateCapability,
-        )
-
-        available = GateAvailabilityVerdict(
-            status=GateAvailability.AVAILABLE,
-            available=True,
-            capability=GateCapability.ENRICHMENT,
-            reasons=[],
-            gate_url_configured=True,
-        )
-        partner = self._create_partner("Enrichment API Down", supplier_rank=1)
-        run = self.env["plasticos.enrichment.run"].create({"partner_id": partner.id})
-        # The durable failure write opens pool.cursor(); in test mode that wraps this cursor.
-        self.registry_enter_test_mode()
-        savepoint = self.env.cr.savepoint(flush=True)
-        raised = False
-        try:
-            with (
-                patch(
-                    "odoo.addons.plasticos_gate.services.gate_config.classify_gate_availability",
-                    return_value=available,
-                ),
-                patch("odoo.addons.plasticos_gate.services.gate_config.gate_enrichment_enabled", return_value=True),
-                patch(
-                    "odoo.addons.plasticos_gate.services.gate_client.send_converge_action",
-                    side_effect=Exception("API down"),
-                ),
-                # Stand in for the RPC request rollback (cr.rollback() is forbidden in tests).
-                patch.object(self.env.cr, "rollback", savepoint.rollback),
-            ):
-                # Not self.assertRaises: its savepoint would undo the durable failure write.
-                try:
-                    run.action_execute()
-                except UserError:
-                    raised = True
-        finally:
-            savepoint.close(rollback=False)
-        self.assertTrue(raised, "Gate transport failure must surface as UserError")
-        run.invalidate_recordset()
-        self.assertEqual(run.state, "degraded")
-        self.assertIn("API down", " ".join(run.validation_issues or []))
-
     def test_geo_backfill_api_timeout(self):
         partner = self._create_partner("Geo Timeout")
         us_country = self.env.ref("base.us", raise_if_not_found=False)

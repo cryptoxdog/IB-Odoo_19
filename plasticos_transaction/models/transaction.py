@@ -512,9 +512,11 @@ class PlasticosTransaction(models.Model):
         "Transaction reference must be unique.",
     )
 
-    @api.constrains("commission_override_pct")
     def _check_override_pct_range(self):
-        """Stub — overridden by plasticos_commission.transaction_commission."""
+        """Stub — overridden by plasticos_commission.transaction_commission.
+
+        The range check lives on that inherit, which owns commission_override_pct.
+        """
 
     # ── Default Delivery Term Helper ─────────────────────────
     def _get_default_delivery_term(self):
@@ -859,27 +861,33 @@ class PlasticosTransaction(models.Model):
 
     @api.depends("create_date")
     def _compute_compliance(self):
-        """Compute compliance status based on required documents.
-
-        NOTE: document_ids dependencies moved to plasticos_documents bridge
-        (transaction_docs_bridge.py) to avoid circular dependency. The bridge
-        module extends this compute with document-aware triggers.
+        """Default when Documents is absent. The documents bridge owns the service.
 
         Observational only. Document transitions must not post invoices, bills,
         or freight bills. Explicit Accounting ``action_post`` remains the posting
         command.
         """
-        if "plasticos.compliance.service" not in self.env:
-            for rec in self:
-                rec.compliance_status = "compliant"
-            return
-        service = self.env["plasticos.compliance.service"]
-
         for rec in self:
-            if service.is_compliant(PLASTICOS_TRANSACTION, rec.id):
-                rec.compliance_status = "compliant"
-            else:
-                rec.compliance_status = "missing"
+            rec.compliance_status = "compliant"
+
+    def _missing_close_documents(self, rec):
+        """Documents addon blocks close when required files are missing."""
+        return False
+
+    def _reconcile_new_transaction_loads(self, records):
+        return
+
+    def _lock_loads_for_party_write(self, vals):
+        return
+
+    def _refuse_loaded_sale_reassignment(self, vals):
+        return
+
+    def _reconcile_loads_after_party_write(self, vals):
+        return
+
+    def _refuse_unlink_with_loads(self, rec):
+        return
 
     def _auto_post_pending_invoices(self):
         """Post draft invoices/bills when an explicit caller asks.
@@ -943,8 +951,7 @@ class PlasticosTransaction(models.Model):
             if name and name != "New" and self.search([("name", "=", name)], limit=1):
                 raise ValidationError(f"Transaction reference '{name}' already exists.")
         records = super().create(vals_list)
-        if "plasticos.load" in self.env:
-            self.env["plasticos.load"]._reconcile_unlinked_for_transactions(records)
+        self._reconcile_new_transaction_loads(records)
         return records
 
     def write(self, vals):
@@ -954,38 +961,18 @@ class PlasticosTransaction(models.Model):
                 duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
                 if duplicate:
                     raise ValidationError(f"Transaction reference '{name}' already exists.")
-        if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
-            load_model = self.env["plasticos.load"]
-            # Lock sale order, then the transaction. The reverse order deadlocks
-            # with a load create that already holds the sale order.
-            sale_ids = set(self.mapped("sale_order_id").ids)
-            if vals.get("sale_order_id"):
-                sale_ids.add(vals["sale_order_id"])
-            load_model._lock_rows("sale_order", sale_ids)
-            load_model._lock_rows("plasticos_transaction", self.ids)
-            fields_to_refresh = ["sale_order_id"]
-            if "load_ids" in self._fields:
-                fields_to_refresh.append("load_ids")
-            self.invalidate_recordset(fields_to_refresh)
+        self._lock_loads_for_party_write(vals)
         for rec in self:
             self._validate_state_transition(rec, vals)
             self._validate_write_immutability(rec, vals)
             self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
             self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
-        if "sale_order_id" in vals and "load_ids" in self._fields and "plasticos.load" in self.env:
-            new_sale_id = vals.get("sale_order_id") or False
-            for rec in self:
-                if rec.sale_order_id.id != new_sale_id and rec.load_ids:
-                    raise ValidationError(
-                        f"Transaction {rec.name} has linked loads. "
-                        "Its sale order cannot be reassigned until the loads are lawfully resolved."
-                    )
+        self._refuse_loaded_sale_reassignment(vals)
         reopened = self.filtered(lambda rec: self._authorized_historical_reopen(rec, vals))
         res = super().write(vals)
         if reopened:
             self._post_historical_reopen(reopened)
-        if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
-            self.env["plasticos.load"]._reconcile_unlinked_for_transactions(self)
+        self._reconcile_loads_after_party_write(vals)
         return res
 
     def _validate_state_transition(self, rec, vals):
@@ -1065,8 +1052,7 @@ class PlasticosTransaction(models.Model):
                 raise UserError("Cannot delete transaction linked to accounting records.")
             if rec.state == "closed":
                 raise UserError("Closed transactions cannot be deleted.")
-            if "load_ids" in rec._fields and rec.load_ids:
-                raise UserError("Cannot delete a transaction that still has loads.")
+            self._refuse_unlink_with_loads(rec)
         return super().unlink()
 
     def _authorized_historical_reopen(self, rec, vals):
@@ -1153,10 +1139,8 @@ class PlasticosTransaction(models.Model):
             rec.state = "active"
 
     def action_close(self):
-        service_docs = self.env["plasticos.compliance.service"] if "plasticos.compliance.service" in self.env else None
-
         for rec in self:
-            self._validate_close_preconditions(rec, service_docs)
+            self._validate_close_preconditions(rec)
 
             self.env.cr.execute(
                 "SELECT pg_try_advisory_lock(hashtext(%s))",
@@ -1174,37 +1158,14 @@ class PlasticosTransaction(models.Model):
                 )
 
     def _lock_load_membership_for_milestone(self, rec):
-        """Serialize a milestone with load attach, reparent, and unlink.
-
-        Lock order is the sale order, then the transaction, then loads already
-        linked. The transaction lock lasts until this cursor ends. Membership
-        changes bump the parent row, so an earlier REPEATABLE READ snapshot
-        fails instead of advancing against loads it cannot see.
-        """
-        if "plasticos.load" not in self.env or "load_ids" not in rec._fields:
-            return
-        load_model = self.env["plasticos.load"]
-        if rec.sale_order_id:
-            load_model._lock_rows("sale_order", [rec.sale_order_id.id])
-        load_model._lock_rows("plasticos_transaction", [rec.id])
-        rec.invalidate_recordset(["state", "sale_order_id", "load_ids"])
-        load_model._lock_rows("plasticos_load", rec.load_ids.ids)
-        rec.load_ids.invalidate_recordset(["state", "transaction_id"])
+        """Logistics overrides this. Base transactions have no loads."""
+        return
 
     def _refuse_lagging_loads(self, rec, milestone, message):
-        """A transaction milestone requires every linked load to have reached it.
+        """Logistics overrides this. A transaction with no loads keeps its workflow."""
+        return
 
-        A transaction with no loads keeps its existing workflow, including a PO-only deal.
-        """
-        self._lock_load_membership_for_milestone(rec)
-        if "load_ids" not in rec._fields or not rec.load_ids or "plasticos.load" not in self.env:
-            return
-        blocking = self.env["plasticos.load"]._loads_blocking_milestone(rec.load_ids, milestone)
-        if blocking:
-            names = ", ".join(blocking.mapped("name"))
-            raise UserError(f"{message} Still open: {names}.")
-
-    def _validate_close_preconditions(self, rec, service_docs):
+    def _validate_close_preconditions(self, rec):
         """Guard all business rules that must pass before a transaction can be closed.
 
         Permission is checked before the membership lock so an unauthorized user
@@ -1221,8 +1182,7 @@ class PlasticosTransaction(models.Model):
         if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
             raise UserError("Vendor bills must be posted.")
         self._refuse_lagging_loads(rec, "closed", "Logistics must be closed.")
-        # An empty AbstractModel recordset is falsy: test for None, not truthiness.
-        if service_docs is not None and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id, purpose="close"):
+        if self._missing_close_documents(rec):
             raise UserError("Required documents missing.")
         if rec.gross_margin < 0:
             raise UserError("Cannot close transaction with negative gross margin.")

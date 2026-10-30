@@ -36,8 +36,6 @@
       "class": "PlasticosIntake",
       "methods": [
         "action_match_to_buyers",
-        "action_make_po",
-        "action_send_offers",
         "action_mark_processing",
         "action_mark_won",
         "action_mark_lost"
@@ -50,6 +48,21 @@
         "create",
         "write",
         "unlink"
+      ]
+    },
+    {
+      "file": "plasticos_offer/models/intake_offers_bridge.py",
+      "class": "PlasticosIntakeOffersBridge",
+      "methods": [
+        "action_send_offers",
+        "action_view_offers"
+      ]
+    },
+    {
+      "file": "plasticos_transaction/models/intake_bridge.py",
+      "class": "PlasticosIntakeTxBridge",
+      "methods": [
+        "action_make_po"
       ]
     }
   ]

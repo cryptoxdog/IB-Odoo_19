@@ -1827,10 +1827,8 @@ class TestErpWorksheetImport(TransactionCase):
 
     def _on_hand(self):
         quant = self.env["stock.quant"].search([])
-        layers = 0
-        if "stock.valuation.layer" in self.env:
-            layers = self.env["stock.valuation.layer"].search_count([])
-        return (sum(quant.mapped("quantity")), layers)
+        moves = self.env["stock.move"].search_count([]) if "stock.move" in self.env else 0
+        return (sum(quant.mapped("quantity")), moves)
 
     def _order(self, model_name, xml_id):
         data = self.Data.search(

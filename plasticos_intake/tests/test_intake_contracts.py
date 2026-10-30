@@ -13,7 +13,6 @@ Any change to these contracted fields/methods MUST update all consumers.
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
 
@@ -194,20 +193,6 @@ class TestIntakeMethodContract(PlasticosTestCase):
         super().setUpClass()
         cls.Intake = cls.env["plasticos.intake"]
 
-    # ── Status transition methods (offer, transaction bridges) ──
-    def test_action_send_offer_exists(self):
-        """matched -> offer_sent is action_send_offers (plasticos_intake/models/intake.py:897-939).
-
-        There is no singular ``action_send_offer``; the transition method must refuse to run
-        from any status other than ``matched``.
-        """
-        self.assertTrue(callable(getattr(self.Intake, "action_send_offers", None)))
-        intake = self._create_intake()
-        self.assertEqual(intake.status, "draft")
-        with self.assertRaises(UserError):
-            intake.action_send_offers()
-        self.assertEqual(intake.status, "draft")
-
     def test_action_mark_processing_exists(self):
         self.assertTrue(callable(getattr(self.Intake, "action_mark_processing", None)))
 
@@ -226,14 +211,6 @@ class TestIntakeMethodContract(PlasticosTestCase):
     # ── Buyer matching (plasticos_matching overrides this) ──
     def test_action_match_to_buyers_exists(self):
         self.assertTrue(callable(getattr(self.Intake, "action_match_to_buyers", None)))
-
-    # ── Offer flow (offer module overrides this) ──
-    def test_action_send_offers_exists(self):
-        self.assertTrue(callable(getattr(self.Intake, "action_send_offers", None)))
-
-    # ── PO creation (transaction bridge) ──
-    def test_action_make_po_exists(self):
-        self.assertTrue(callable(getattr(self.Intake, "action_make_po", None)))
 
     # ── Navigation actions (used in XML buttons) ──
     def test_navigation_actions_exist(self):

@@ -203,20 +203,6 @@
             <form>
                 <header>
                     <button
-                        name="action_send_offers"
-                        type="object"
-                        string="Send Offer"
-                        class="btn-primary"
-                        invisible="status != 'matched' or selected_count == 0"
-                    />
-                    <button
-                        name="action_make_po"
-                        type="object"
-                        string="Make PO (Won)"
-                        class="btn-success"
-                        invisible="status not in ('offer_sent', 'processing', 'matched')"
-                    />
-                    <button
                         name="action_mark_processing"
                         type="object"
                         string="Mark Processing"
@@ -263,11 +249,6 @@
                                 icon="fa-industry"
                                 invisible="not facility_id or facility_id == partner_id">
                             <span class="o_stat_text">Facility</span>
-                        </button>
-                        <button name="action_view_offers" type="object"
-                                class="oe_stat_button" icon="fa-tag"
-                                invisible="status not in ('offer_sent', 'processing', 'won')">
-                            <field name="offer_count" widget="statinfo" string="Offers"/>
                         </button>
                     </div>
 

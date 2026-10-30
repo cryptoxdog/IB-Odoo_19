@@ -496,13 +496,7 @@ class PlasticosLoad(models.Model):
             [("load_id", "=", self.id)], limit=1
         ):
             return True
-        return bool(
-            "plasticos.document" in self.env
-            and self.env["plasticos.document"].search_count(
-                [("load_id", "=", self.id), ("association_state", "=", "accepted")],
-                limit=1,
-            )
-        )
+        return False
 
     def _guard_transaction_parent(self, new_tx_id):
         """Keep a load on its current transaction. A failed write leaves that link.

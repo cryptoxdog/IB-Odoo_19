@@ -334,12 +334,13 @@ def build_gate_client_config(env) -> GateClientConfig:
     except ImportError as exc:
         raise GateIntegrationError(f"constellation_node_sdk not installed: {exc}", failure_class="permanent") from exc
     try:
-        return get_gate_client_config_from_env(
-            local_node=ODOO_NODE_NAME,
-            timeout_seconds=timeout,
-            max_timeout_ms=int(MAX_GATE_TIMEOUT_SECONDS * 1000),
-            allowed_gate_destination="gate",
-        )
+        overrides = {
+            "local_node": ODOO_NODE_NAME,
+            "timeout_seconds": timeout,
+            "max_timeout_ms": int(MAX_GATE_TIMEOUT_SECONDS * 1000),
+            "allowed_gate_destination": "gate",
+        }
+        return get_gate_client_config_from_env(**overrides)
     except ValueError as exc:
         raise GateIntegrationError(str(exc) or f"{ENV_GATE_URL} is required", failure_class="permanent") from exc
 

@@ -93,6 +93,13 @@ class PlasticosPolymer(models.Model):
                 rec._sync_product()
         return res
 
+    def _purchase_product(self):
+        """Return this polymer's product, creating it when the addon is installed."""
+        self.ensure_one()
+        if not self.product_id:
+            self._ensure_product()
+        return self.product_id
+
     def _ensure_product(self):
         """Create product if it doesn't exist."""
         self.ensure_one()

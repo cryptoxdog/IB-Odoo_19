@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import UserError
 
 
 class TestBatchNormalizeCron(PlasticosTestCase):
@@ -105,11 +106,23 @@ class TestBatchNormalizeCron(PlasticosTestCase):
             m_search.assert_not_called()
 
     def test_creates_automation_log(self):
-        """Normalized intake creates automation log entry."""
+        """Successful cron leaves the audit on the intake fields."""
         intake = self._create_intake()
         self.Intake.cron_batch_normalize()
-        # Log is written via _log_normalization — intake must still exist after cron.
-        self.assertTrue(intake.exists())
+        self.assertEqual(intake.match_status, "normalized")
+        self.assertTrue(intake.normalization_ts)
+        self.assertTrue(intake.last_packet_id)
+
+    def test_manual_validation_error_rolls_back(self):
+        """UserError rolls the intake write back with the button transaction."""
+        intake = self._create_intake()
+        before = (intake.match_status, intake.normalization_ts, intake.normalized)
+        errors = [{"field": "quantity_per_load_lbs", "message": "bad"}]
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            with patch.object(type(intake), "_validate_for_normalization", return_value=(errors, [])):
+                intake.action_normalize()
+        intake.invalidate_recordset()
+        self.assertEqual((intake.match_status, intake.normalization_ts, intake.normalized), before)
 
     def test_normalization_warnings_stored(self):
         """Non-blocking warnings are stored on the intake."""
