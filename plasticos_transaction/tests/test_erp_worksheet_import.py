@@ -1421,14 +1421,14 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertAlmostEqual(tx["60002"].commission_locked_amount, 168.28)
         self.assertAlmostEqual(tx["60003"].commission_locked_amount, 439.19)
         self.assertAlmostEqual(tx["60006"].commission_locked_amount, 75.5)
-        self.assertEqual(tx["60002"].commission_payout_state, "paid")
-        self.assertEqual(tx["60004"].commission_payout_state, "paid", "2026-05-31 is settled history")
-        self.assertEqual(tx["60005"].commission_payout_state, "unpaid", "2026-06-01 is on or after the cutoff")
+        self.assertFalse(tx["60002"].commission_payout_state)
+        self.assertFalse(tx["60004"].commission_payout_state, "Historic payment was not proved by date")
+        self.assertFalse(tx["60005"].commission_payout_state, "Historic payment was not proved by date")
+        self.assertTrue(all(t.legacy_erp_history for t in tx.values()))
         self.assertEqual(tx["60002"].sale_order_id.date_order.date(), date(2022, 1, 5))
-        # The payout model belongs to plasticos_commission, which depends on this module and
-        # not the reverse, so it is not referenced here. A locked "paid" state is what keeps the
-        # commission engine from generating a payout for settled history.
-        self.assertTrue(all(t.commission_payout_state in ("paid", "unpaid") for t in tx.values()))
+        # The payout model is in the dependent commission addon. Neither the
+        # historical date nor the source amount proves payment or liability.
+        self.assertTrue(all(not t.commission_payout_state for t in tx.values()))
 
     def test_native_import_normalizes_materials_and_replays(self):
         """Source-index rows go through realize and the shared normalizer."""
@@ -1778,6 +1778,52 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(self._snapshot(), before)
         self.assertEqual(replay.counts["transaction_lines"]["created"], 0)
         self.assertEqual(self._order("stock.location", "legacy_erp_inv_wks_62001"), dallas)
+
+    def _closed_import(self, status):
+        index = self._index()
+        self._worksheet_54839(index)
+        index.buysells["54839"]["status"] = status
+        self._run(index)
+        tx = self.Transaction.search([("name", "=", "54839")])
+        self.assertEqual(len(tx), 1)
+        self.assertEqual(tx.state, "closed")
+        self.assertTrue(tx.legacy_erp_history)
+        self.assertEqual(tx.legacy_erp_status, status)
+        moves = self._marked("account.move", "legacy_erp_")
+        self.assertTrue(moves)
+        self.assertEqual(set(moves.mapped("state")), {"draft"})
+        return tx, moves
+
+    def test_unrecognized_source_status_creates_a_closed_transaction(self):
+        self._closed_import("VOID?")
+
+    def test_commercial_source_cancellation_creates_a_closed_transaction_and_replay_keeps_reopen(self):
+        tx, moves = self._closed_import("X")
+        manager = self.env["res.users"].create(
+            {
+                "name": "Worksheet Reopen Manager",
+                "login": "worksheet_reopen_manager",
+                "group_ids": [
+                    Command.set(
+                        [
+                            self.env.ref("base.group_user").id,
+                            self.env.ref("plasticos_transaction.group_plasticos_manager").id,
+                        ]
+                    )
+                ],
+            }
+        )
+        tx.with_user(manager).action_reopen_historical("source X is provenance only")
+        index = self._index()
+        self._worksheet_54839(index)
+        index.buysells["54839"]["status"] = "X"
+        self._run(index)
+        tx.invalidate_recordset()
+        moves.invalidate_recordset()
+        self.assertEqual(tx.state, "active")
+        self.assertEqual(tx.legacy_erp_status, "X")
+        self.assertEqual(self.Transaction.search_count([("name", "=", "54839")]), 1)
+        self.assertEqual(set(moves.mapped("state")), {"draft"})
 
     def _on_hand(self):
         quant = self.env["stock.quant"].search([])

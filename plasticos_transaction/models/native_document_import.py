@@ -301,6 +301,7 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         buysell.get("ProblemNotes"), buysell.get("Notes"), buysell.get("BookingNo")
     )
     context.setdefault("states", {})[number] = worksheet_outcome(buysell.get("status"))
+    context.setdefault("raw_states", {})[number] = (buysell.get("status") or "").strip()
     context.setdefault("order_days", {})[number] = (_date(buysell.get("OrderDt")) or "")[:10]
     context.setdefault("trade_dates", {})[number] = trade_date(index, number)
     _remember_carrier(importer, context, partner_by_cp, number, index.deliveries_by_buysell.get(number, []))
@@ -1577,6 +1578,7 @@ def _confirm_context(context, costs) -> dict:
         "erp_commission_slots_by_origin": context.get("commission_slots") or {},
         "erp_note_by_origin": context.get("notes") or {},
         "erp_state_by_origin": context.get("states") or {},
+        "erp_raw_status_by_origin": context.get("raw_states") or {},
         "erp_carrier_by_origin": context.get("carriers") or {},
         "erp_order_day_by_origin": context.get("order_days") or {},
         "erp_documents_by_origin": context.get("documents") or {},

@@ -1,8 +1,4 @@
-from datetime import date
-
 from odoo import Command, fields, models
-
-COMMISSION_SETTLED_BEFORE = date(2026, 6, 1)
 
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 
@@ -28,10 +24,10 @@ class SaleOrder(models.Model):
         """Confirm the sale order and compile its transactions.
 
         A historical import (``import_mode``) compiles one transaction per
-        worksheet number on ``origin``, named with the worksheet number. An
-        invoiced worksheet is created closed. A worksheet still marked WORK
-        stays active. A live sale with no worksheet origin keeps the sequence
-        name and is activated.
+        worksheet number on ``origin``, named with the worksheet number. Every
+        created historical transaction starts Closed. Source status is
+        provenance only. Live sales retain the normal sequence and name and
+        are activated.
         """
         res = super().action_confirm()
         if self.env.context.get("import_mode"):
@@ -93,11 +89,11 @@ class SaleOrder(models.Model):
                 vals["carrier_id"] = carrier
             vals.update(self._worksheet_document_vals(worksheet))
         if historical:
-            outcome = (self.env.context.get("erp_state_by_origin") or {}).get(worksheet) or "closed"
-            if outcome == "closed":
-                vals["state"] = "closed"
-            elif outcome == "cancelled":
-                vals["state"] = "cancelled"
+            # Creation only. A replay that finds the worksheet name leaves the
+            # existing row, including an authorized reopen, untouched.
+            vals["legacy_erp_history"] = True
+            vals["legacy_erp_status"] = (self.env.context.get("erp_raw_status_by_origin") or {}).get(worksheet, "")
+            vals["state"] = "closed"
             if vals.get("name") == worksheet:
                 freight = (self.env.context.get("erp_freight_by_origin") or {}).get(worksheet) or 0.0
                 other = (self.env.context.get("erp_other_by_origin") or {}).get(worksheet) or 0.0
@@ -109,16 +105,15 @@ class SaleOrder(models.Model):
         return vals
 
     def _lock_historical_commission(self, vals: dict, worksheet: str) -> None:
-        """Stored worksheet commission. Deals ordered before the cutoff are already settled."""
+        """Store source commission amount without inventing a historical payment."""
         if "commission_locked" not in self.env[PLASTICOS_TRANSACTION]._fields:
             return
         amount = (self.env.context.get("erp_commission_by_origin") or {}).get(worksheet) or 0.0
         vals["commission_locked"] = True
         vals["commission_locked_amount"] = amount
-        order_day = fields.Date.to_date((self.env.context.get("erp_order_day_by_origin") or {}).get(worksheet) or None)
-        if order_day is None and self.date_order:
-            order_day = self.date_order.date()
-        vals["commission_payout_state"] = "paid" if order_day and order_day < COMMISSION_SETTLED_BEFORE else "unpaid"
+        # A source commission amount is evidence, not an unpaid or paid liability.
+        # Selection is intentionally unset; payout generation also excludes history.
+        vals["commission_payout_state"] = False
 
     def _post_worksheet_note(self, transaction, worksheet: str, sales: list[int]) -> None:
         """Sticky note, speech bubble, second commission recipient, and sibling orders go on the transaction log."""

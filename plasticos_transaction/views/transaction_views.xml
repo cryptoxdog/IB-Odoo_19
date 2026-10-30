@@ -130,6 +130,10 @@
                             invisible="state != 'draft'" class="btn-primary"/>
                     <button name="action_close" type="object" string="Close"
                             invisible="state not in ('delivered', 'invoiced')" class="btn-success"/>
+                    <button name="action_open_historical_reopen" type="object" string="Reopen Historical"
+                            invisible="not legacy_erp_history or state != 'closed'"
+                            groups="plasticos_transaction.group_plasticos_manager"/>
+                    <field name="legacy_erp_history" invisible="1"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,pending_supplier,supplier_ready,do_created,dispatched,in_transit,delivered,invoiced,closed"/>
                 </header>
                 <sheet>

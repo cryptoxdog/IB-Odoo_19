@@ -654,13 +654,17 @@ WORKSHEET_CANCELLED = "cancelled"
 
 
 def worksheet_outcome(status: str | None) -> str:
-    """Worksheet dropdown. WORK and NEW stay open. Invoiced stays closed."""
+    """Inventory-routing hint. Not the commercial transaction state.
+
+    Source ``X`` still excludes a cancelled inventory inbound: no stock event
+    and no commercial deal created from that exclusion. Every other code,
+    including blank and unrecognized codes, is eligible for a Closed commercial
+    transaction. The raw status is stored separately and is not a lifecycle.
+    """
     code = (status or "").strip().upper()
     if code == "X":
         return WORKSHEET_CANCELLED
-    if code in {"I", "C"}:
-        return "closed"
-    return "active"
+    return "closed"
 
 
 def worksheet_log(problem: str | None, notes: str | None, booking: str | None = None) -> str:

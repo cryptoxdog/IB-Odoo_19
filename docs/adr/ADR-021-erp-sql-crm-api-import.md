@@ -1,5 +1,10 @@
 # ADR-021: ERP Data Imports from SQL, CRM Data Imports from the API
 
+**Successor boundary:** [ADR-022](ADR-022-erp-historical-closure-and-accounting-opening-balances.md)
+records the operator's proposed historical closure and separately authorized
+QuickBooks/ERP residual accounting cutover. It does not supersede the single
+ERP SQL ingestion pipeline or authorize go-live posting.
+
 **Status:** Accepted  
 **Date:** 2026-10-01  
 **Deciders:** Igor Beylin  

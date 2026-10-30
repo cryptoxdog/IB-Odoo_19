@@ -145,9 +145,20 @@ def test_sale_note_joins_the_sticky_and_the_speech_bubble():
     assert worksheet_log("sticky", "bubble") == "sticky\n\nbubble"
     assert worksheet_log("sticky", "", "RQSTD PU APT") == "sticky\n\nRQSTD PU APT"
     assert worksheet_log("", "") == ""
-    assert worksheet_outcome("W") == "active"
+    assert worksheet_outcome("W") == "closed"
+    assert worksheet_outcome("WORK") == "closed"
+    assert worksheet_outcome("NEW") == "closed"
     assert worksheet_outcome("I") == "closed"
+    assert worksheet_outcome("C") == "closed"
+    assert worksheet_outcome("") == "closed"
+    assert worksheet_outcome(None) == "closed"
+    assert worksheet_outcome("  ") == "closed"
+    assert worksheet_outcome("VOID?") == "closed"
+    assert worksheet_outcome("not-a-status") == "closed"
+    # X remains the inventory-exclusion route. A commercial transaction created
+    # from X is Closed in sale_inherit; this helper must not materialize a deal.
     assert worksheet_outcome("X") == "cancelled"
+    assert worksheet_outcome(" x ") == "cancelled"
 
 
 def test_freight_vendor_is_the_nonzero_inland_freight_row():

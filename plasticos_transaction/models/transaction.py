@@ -12,6 +12,9 @@ RES_PARTNER = "res.partner"
 PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 _REFUND_TYPES = frozenset({"out_refund", "in_refund"})
+_HISTORICAL_REOPEN_ID = "plasticos_historical_reopen_id"
+_HISTORICAL_REOPEN_REASON = "plasticos_historical_reopen_reason"
+_MANAGER_GROUP = "plasticos_transaction.group_plasticos_manager"
 
 
 def _signed_move_total(moves) -> float:
@@ -42,6 +45,11 @@ class PlasticosTransaction(models.Model):
 
     sale_order_id = fields.Many2one("sale.order", ondelete="restrict")
     purchase_order_ids = fields.Many2many("purchase.order")
+    # Commercial archive provenance, not a payment/collection state.
+    legacy_erp_history = fields.Boolean(
+        string="Historical ERP Import", readonly=True, copy=False, index=True, default=False
+    )
+    legacy_erp_status = fields.Char(string="Source Worksheet Status", readonly=True, copy=False)
 
     # ── Partner References (harvested from linda_logistics_v6) ──
     supplier_id = fields.Many2one(
@@ -972,7 +980,10 @@ class PlasticosTransaction(models.Model):
                         f"Transaction {rec.name} has linked loads. "
                         "Its sale order cannot be reassigned until the loads are lawfully resolved."
                     )
+        reopened = self.filtered(lambda rec: self._authorized_historical_reopen(rec, vals))
         res = super().write(vals)
+        if reopened:
+            self._post_historical_reopen(reopened)
         if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
             self.env["plasticos.load"]._reconcile_unlinked_for_transactions(self)
         return res
@@ -1006,6 +1017,11 @@ class PlasticosTransaction(models.Model):
         Commission-specific guards (commission_rule_id, commission_locked) are
         enforced by plasticos_commission.transaction_commission.
         """
+        if rec.legacy_erp_history and ({"legacy_erp_history", "legacy_erp_status"} & vals.keys()):
+            raise UserError("Historical source identity and status are immutable.")
+        if rec.legacy_erp_history and "state" in vals and vals["state"] != rec.state:
+            if not self._authorized_historical_reopen(rec, vals):
+                raise UserError("Historical trade changes require a separately approved operations migration.")
         if "name" in vals:
             raise UserError("Transaction reference cannot be modified.")
         if rec.state == "closed":
@@ -1052,6 +1068,82 @@ class PlasticosTransaction(models.Model):
             if "load_ids" in rec._fields and rec.load_ids:
                 raise UserError("Cannot delete a transaction that still has loads.")
         return super().unlink()
+
+    def _authorized_historical_reopen(self, rec, vals):
+        """Closed historical -> Active, one record, manager, reason, state only.
+
+        The context keys are not sufficient on their own. A caller who forges
+        them still fails unless the record, group, transition, and field set match.
+        ``bypass_state_guard`` does not authorize this transition.
+        """
+        if set(vals) != {"state"} or vals.get("state") != "active":
+            return False
+        if rec.state != "closed" or not rec.legacy_erp_history:
+            return False
+        if self.env.context.get(_HISTORICAL_REOPEN_ID) != rec.id:
+            return False
+        if not (self.env.context.get(_HISTORICAL_REOPEN_REASON) or "").strip():
+            return False
+        return self.env.user.has_group(_MANAGER_GROUP)
+
+    def _post_historical_reopen(self, records):
+        reason = (self.env.context.get(_HISTORICAL_REOPEN_REASON) or "").strip()
+        when = fields.Datetime.now()
+        actor = self.env.user
+        body = (
+            f"Historical reopen by {actor.name} (user {actor.id}) at {when} UTC. "
+            "State changed from Closed to Active. "
+            f"Reason: {reason}"
+        )
+        for rec in records:
+            rec.message_post(
+                body=f"{body} Transaction {rec.name} (id {rec.id}).",
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
+
+    def action_reopen_historical(self, reason):
+        """Reopen one Closed imported transaction to Active. Replay will not close it again."""
+        if len(self) != 1:
+            raise UserError("Reopen one historical transaction at a time.")
+        reason = (reason or "").strip()
+        if not reason:
+            raise UserError("A reopen reason is required.")
+        rec = self
+        if not rec.legacy_erp_history:
+            raise UserError("Only an imported historical transaction can be reopened.")
+        if rec.state != "closed":
+            raise UserError("Only a Closed historical transaction can be reopened.")
+        if not self.env.user.has_group(_MANAGER_GROUP):
+            raise UserError("Only Plasticos Managers can reopen a historical transaction.")
+        status = rec.legacy_erp_status
+        invoice = rec.customer_invoice_id
+        rec.with_context(
+            **{
+                _HISTORICAL_REOPEN_ID: rec.id,
+                _HISTORICAL_REOPEN_REASON: reason,
+            }
+        ).write({"state": "active"})
+        if rec.legacy_erp_status != status or rec.customer_invoice_id != invoice or not rec.legacy_erp_history:
+            raise UserError("Historical reopen changed source identity.")
+        return True
+
+    def action_open_historical_reopen(self):
+        """Open the reason wizard for the one selected historical transaction."""
+        if len(self) != 1:
+            raise UserError("Reopen one historical transaction at a time.")
+        if not self.legacy_erp_history or self.state != "closed":
+            raise UserError("Only a Closed historical transaction can be reopened.")
+        if not self.env.user.has_group(_MANAGER_GROUP):
+            raise UserError("Only Plasticos Managers can reopen a historical transaction.")
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Reopen Historical Transaction",
+            "res_model": "plasticos.transaction.reopen.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_transaction_id": self.id},
+        }
 
     def action_activate(self):
         """Activate a draft transaction."""

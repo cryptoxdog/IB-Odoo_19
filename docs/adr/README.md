@@ -30,6 +30,7 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). The root
 | [ADR-019](ADR-019-documentation-convergence-supersession.md) | Documentation convergence & supersession map | Accepted |
 | [ADR-020](ADR-020-web-lead-inbound-port.md) | Web-lead inbound port (provider-neutral admission) | Accepted |
 | [ADR-021](ADR-021-erp-sql-crm-api-import.md) | ERP imports from SQL; CRM imports from the API; CSV is legacy | Accepted |
+| [ADR-022](ADR-022-erp-historical-closure-and-accounting-opening-balances.md) | Historical trade closure and separate QB/ERP opening residuals | Proposed / operator decision |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
 
 ## Namespaced ADR packs
