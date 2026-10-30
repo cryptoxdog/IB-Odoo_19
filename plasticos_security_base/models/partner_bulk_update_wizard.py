@@ -1,7 +1,7 @@
 from odoo import _, models
 
 
-class PlasticosPartnerBulkUpdateWizardPrivacy(models.Model):
+class PlasticosPartnerBulkUpdateWizardPrivacy(models.TransientModel):
     """Partner privacy writes stay in the module that owns is_private."""
 
     _inherit = "plasticos.partner.bulk.update.wizard"
