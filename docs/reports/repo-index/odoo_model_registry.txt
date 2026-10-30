@@ -10,8 +10,8 @@
 ./plasticos_accounting/__init__.py:16:        WHERE table_name = 'account_account' AND column_name = 'create_asset'
 ./plasticos_admin_dashboard/models/admin_dashboard.py:43:    _name = "plasticos.admin.kpi"
 ./plasticos_admin_dashboard/models/admin_dashboard.py:45:    _rec_name = "id"
-./plasticos_admin_dashboard/models/admin_dashboard.py:625:    _name = "plasticos.rep.performance"
-./plasticos_admin_dashboard/models/admin_dashboard.py:628:    _rec_name = "rep_name"
+./plasticos_admin_dashboard/models/admin_dashboard.py:639:    _name = "plasticos.rep.performance"
+./plasticos_admin_dashboard/models/admin_dashboard.py:642:    _rec_name = "rep_name"
 ./plasticos_automation/models/account_move_penalty.py:192:    _name = "plasticos.invoice.adjustment"
 ./plasticos_automation/models/automation_config.py:10:    _name = "plasticos.automation.config"
 ./plasticos_automation/models/automation_config.py:12:    _rec_name = "name"
@@ -32,36 +32,47 @@
 ./plasticos_commission/models/sales_dashboard.py:24:    _rec_name = "transaction_ref"
 ./plasticos_crm_bridge/migrations/19.0.1.1.0/pre-migrate.py:21:        WHERE table_name = 'crm_lead'
 ./plasticos_crm_bridge/migrations/19.0.1.1.0/pre-migrate.py:22:          AND column_name = 'x_vanillasoft_id'
-./plasticos_crm_sync/models/crm_call_event.py:5:    _name = "plasticos.crm.call.event"
+./plasticos_crm_sync/models/crm_call_event.py:7:    _name = "plasticos.crm.call.event"
 ./plasticos_crm_sync/models/crm_connection.py:21:    _name = "plasticos.crm.connection"
 ./plasticos_crm_sync/models/crm_external_ref.py:5:    _name = "plasticos.crm.external.ref"
-./plasticos_crm_sync/models/crm_external_table_row.py:5:    _name = "plasticos.crm.external.table.row"
+./plasticos_crm_sync/models/crm_external_table_row.py:7:    _name = "plasticos.crm.external.table.row"
 ./plasticos_crm_sync/models/crm_sync_orphan.py:5:    _name = "plasticos.crm.sync.orphan"
 ./plasticos_crm_sync/models/crm_sync_run.py:5:    _name = "plasticos.crm.sync.run"
-./plasticos_crm_sync/services/orchestrator.py:1389:        contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
+./plasticos_crm_sync/services/orchestrator.py:1901:        contact_name = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:24:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:25:        last_name="Lovelace",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:52:            first_name="Ada",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:53:            last_name="Lovelace",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:78:            user_name="Rep",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:96:            first_name="Bob",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:97:            last_name="Builder",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:186:        spaced = orch._lead_vals_from_dto(self._lead("vs-name", first_name="  Ada   ", last_name=" \n Lovelace  "))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:188:        blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:200:        exact = orch._lead_vals_from_dto(self._lead("vs-owner", owner_name="  CRM3 Exact Owner  "))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:202:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-missing", owner_name="No Such CRM3 Owner"))["user_id"])
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:203:        self.assertFalse(orch._lead_vals_from_dto(self._lead("vs-twin", owner_name="CRM3 Twin Owner"))["user_id"])
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:388:                    table_name="Materials",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:98:            first_name="Ada",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:99:            last_name="Lovelace",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:124:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:142:            first_name="Bob",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:143:            last_name="Builder",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:232:        spaced = orch._lead_vals_from_dto(self._lead("vs-name", first_name="  Ada   ", last_name=" \n Lovelace  "))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:234:        blank = orch._lead_vals_from_dto(self._lead("vs-blank", first_name="   ", last_name="\t"))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:315:        dto = self._lead("vs-owner-keep", owner_name="lm@ucsincny.com")
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:318:        kept = orch._upsert_lead(self.connection, self._lead("vs-owner-keep", owner_name="CRM3 Exact Owner"))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:324:            orch._upsert_lead(self.connection, self._lead("vs-owner-new-bad", owner_name="No Such CRM3 Owner"))
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:745:                    table_name="Materials",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1415:            owner_name="sa@scrapmanagement.com",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1513:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1562:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1745:                    table_name="Materials",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:27:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:28:        last_name="Lovelace",
 ./plasticos_dev_tools/tools/test_kb_integration.py:133:            WHERE table_name = 'plastic_ai_kb_config'
-./plasticos_documents/models/compliance_service.py:12:    _name = "plasticos.compliance.service"
-./plasticos_documents/models/document.py:10:    _name = "plasticos.document"
+./plasticos_documents/migrations/19.0.2.1.4/post-migrate.py:21:         WHERE table_name = 'plasticos_document'
+./plasticos_documents/migrations/19.0.2.1.4/post-migrate.py:22:           AND column_name = 'association_state'
+./plasticos_documents/models/compliance_service.py:17:    _name = "plasticos.compliance.service"
+./plasticos_documents/models/document.py:103:    _name = "plasticos.document"
 ./plasticos_documents/models/document_rule.py:5:    _name = "plasticos.document.rule"
 ./plasticos_documents/models/document_tag.py:5:    _name = "plasticos.document.tag"
 ./plasticos_documents/models/document_validation_matrix.py:10:    _name = "plasticos.document.validation.matrix"
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:176:               AND table_name = 'plasticos_column_align_probe'
 ./plasticos_documents_native/migrations/19.0.1.1.0/pre-migrate.py:38:            WHERE table_name = 'documents_document'
+./plasticos_documents_native/migrations/19.0.1.2.6/pre-migrate.py:24:         WHERE table_name = 'documents_document'
+./plasticos_documents_native/migrations/19.0.1.2.6/pre-migrate.py:25:           AND column_name = 'verified'
 ./plasticos_documents_native/models/document_sync.py:25:    _name = "plasticos.document.sync"
+./plasticos_documents_native/tests/test_verification_delegation.py:152:             WHERE table_name = 'documents_document'
+./plasticos_documents_native/tests/test_verification_delegation.py:153:               AND column_name = 'verified'
 ./plasticos_enrichment/models/enrichment_extraction.py:5:    _name = "plasticos.enrichment.extraction"
 ./plasticos_enrichment/models/enrichment_provenance.py:5:    _name = "plasticos.enrichment.provenance"
 ./plasticos_enrichment/models/enrichment_run.py:13:    _name = "plasticos.enrichment.run"
@@ -85,21 +96,23 @@
 ./plasticos_logistics/models/dispatch.py:10:    _name = "plasticos.dispatch"
 ./plasticos_logistics/models/freight_estimate.py:10:    _name = "plasticos.freight.estimate"
 ./plasticos_logistics/models/freight_governance.py:31:    _name = "plasticos.freight.event"
-./plasticos_logistics/models/freight_governance.py:68:    _name = "plasticos.freight.calibration.observation"
-./plasticos_logistics/models/freight_governance.py:150:    _name = "plasticos.rate.memory.reconciliation"
+./plasticos_logistics/models/freight_governance.py:72:    _name = "plasticos.freight.calibration.observation"
+./plasticos_logistics/models/freight_governance.py:154:    _name = "plasticos.rate.memory.reconciliation"
 ./plasticos_logistics/models/freight_quote.py:41:    _name = "plasticos.freight.quote.request"
 ./plasticos_logistics/models/freight_quote.py:384:    _name = "plasticos.freight.quote.recipient"
 ./plasticos_logistics/models/freight_quote.py:508:    _name = "plasticos.freight.quote"
-./plasticos_logistics/models/load.py:36:    _name = "plasticos.load"
+./plasticos_logistics/models/linda_request.py:154:    _name = "plasticos.logistics.request"
+./plasticos_logistics/models/linda_response.py:65:    _name = "plasticos.logistics.response"
+./plasticos_logistics/models/load.py:70:    _name = "plasticos.load"
 ./plasticos_logistics/models/load_dashboard.py:17:    _name = "plasticos.load.dashboard"
 ./plasticos_logistics/models/load_dashboard.py:20:    _rec_name = "load_ref"
-./plasticos_logistics/models/load_dashboard.py:83:            WHERE table_name = 'plasticos_transaction' AND column_name = 'load_id'
+./plasticos_logistics/models/load_dashboard.py:81:            WHERE table_name = 'plasticos_load' AND column_name = 'transaction_id'
 ./plasticos_logistics/models/rate_memory.py:6:    _name = "plasticos.rate.memory"
 ./plasticos_logistics/wizards/freight_actual_correction_wizard.py:8:    _name = "plasticos.freight.actual.correction.wizard"
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:11:    _name = "plasticos.load.bulk.update.wizard"
 ./plasticos_matching/migrations/19.0.1.0.1/pre-migrate.py:36:            WHERE table_name = 'plasticos_match_result'
 ./plasticos_matching/migrations/19.0.1.0.1/pre-migrate.py:58:        WHERE table_name = 'plasticos_match_result'
-./plasticos_matching/models/match_exclusion.py:10:    _name = "plasticos.match.exclusion"
+./plasticos_matching/models/match_exclusion.py:11:    _name = "plasticos.match.exclusion"
 ./plasticos_matching/models/match_orchestrator.py:61:    _name = "plasticos.match.orchestrator"
 ./plasticos_matching/models/match_result.py:17:    _name = "plasticos.match.result"
 ./plasticos_matching/models/match_result.py:21:    _rec_name = "display_name"
@@ -127,13 +140,15 @@
 ./plasticos_partner_import/__init__.py:120:        WHERE table_name = 'plasticos_load'
 ./plasticos_partner_import/migrations/19.0.1.1.0/pre-migrate.py:21:        WHERE table_name = 'plasticos_partner_bulk_update_wizard'
 ./plasticos_partner_import/migrations/19.0.1.1.0/pre-migrate.py:22:          AND column_name = 'x_private'
-./plasticos_partner_import/models/erp_import_service.py:80:    _name = "plasticos.erp.import"
+./plasticos_partner_import/models/erp_import_service.py:81:    _name = "plasticos.erp.import"
 ./plasticos_partner_import/models/partner_import_service.py:32:    _name = "plasticos.partner.import.service"
 ./plasticos_partner_import/models/validation.py:10:    _name = "plasticos.partner.import.validation"
 ./plasticos_partner_import/wizards/partner_bulk_update_wizard.py:11:    _name = "plasticos.partner.bulk.update.wizard"
 ./plasticos_partner_import/wizards/partner_import_wizard.py:25:    _name = "plasticos.partner.import.wizard"
 ./plasticos_security_base/migrations/19.0.1.1.0/pre-migrate.py:21:        WHERE table_name = 'res_partner'
 ./plasticos_security_base/migrations/19.0.1.1.0/pre-migrate.py:22:          AND column_name = 'x_private'
+./plasticos_security_base/tests/test_action_methods.py:115:        intake = self._make_intake(partner_id=False, pending_company_name="Match Test")
+./plasticos_security_base/tests/test_action_methods.py:578:        lead = self._make_lead(partner_id=False, partner_name="New Auto Co")
 ./plasticos_semantic_kernel/models/buyer_demand.py:12:    _name = "plasticos.buyer.demand"
 ./plasticos_semantic_kernel/models/buyer_demand.py:16:    _rec_name = "name"
 ./plasticos_semantic_kernel/models/capacity_observation.py:12:    _name = "plasticos.capacity.observation"
@@ -147,12 +162,13 @@
 ./plasticos_semantic_kernel/models/supply_opportunity.py:12:    _name = "plasticos.supply.opportunity"
 ./plasticos_semantic_kernel/models/supply_opportunity.py:16:    _rec_name = "name"
 ./plasticos_transaction/models/audit_cron.py:9:    _name = "plasticos.audit.cron"
-./plasticos_transaction/models/transaction.py:27:    _name = "plasticos.transaction"
+./plasticos_transaction/models/transaction.py:30:    _name = "plasticos.transaction"
 ./plasticos_transaction/models/transaction_import_service.py:42:    _name = "plasticos.transaction.import.service"
 ./plasticos_transaction/models/transaction_line.py:12:    _name = "plasticos.transaction.line"
 ./plasticos_transaction/wizards/transaction_bulk_assign_wizard.py:11:    _name = "plasticos.transaction.bulk.assign.wizard"
 ./plasticos_transaction/wizards/transaction_bulk_update_wizard.py:11:    _name = "plasticos.tx.bulk.wizard"
 ./plasticos_transaction/wizards/transaction_import_wizard.py:22:    _name = "plasticos.transaction.import.wizard"
+./plasticos_transaction/wizards/transaction_reopen_wizard.py:9:    _name = "plasticos.transaction.reopen.wizard"
 ./plasticos_web_leads/models/web_lead.py:209:    _name = "plasticos.web.lead"
 ./plasticos_web_leads/models/web_lead.py:213:    _rec_name = "lead_id"
 ./plasticos_web_leads/models/web_lead_api_key_wizard.py:7:    _name = "plasticos.web.lead.api.key.wizard"
@@ -180,8 +196,6 @@
 ./tests/runtime_gates/run_c6_replay_checkpoint.py:72:        last_name="L",
 ./tests/runtime_gates/run_f1_f3_full_import.py:121:            first_name="A",
 ./tests/runtime_gates/run_f1_f3_full_import.py:122:            last_name="L",
-./tests/test_action_methods.py:104:        intake = self._make_intake(partner_id=False, pending_company_name="Match Test")
-./tests/test_action_methods.py:474:        lead = self._make_lead(partner_id=False, partner_name="New Auto Co")
 ./tests/test_check_odoo_antipatterns.py:143:            _name = "plasticos.load"
 ./tests/test_check_odoo_antipatterns.py:158:            _name = "plasticos.load"
 ./tests/test_check_odoo_antipatterns.py:174:            _name = "plasticos.load"
@@ -194,7 +208,9 @@
 ./tests/test_crm_sync_full_import.py:74:        last_name="Lovelace",
 ./tests/test_crm_sync_full_import.py:753:        table_name="Grades",
 ./tests/test_erp_import_contract.py:58:    assert '_name = "plasticos.erp.import"' in service_source
-./tests/test_erp_import_contract.py:409:    assert '_name = "plasticos.' not in deal_source
+./tests/test_erp_import_contract.py:400:    assert '_name = "plasticos.' not in deal_source
+./tests/test_erp_import_contract.py:491:    _name = "res.partner"
+./tests/test_erp_import_contract.py:531:    _name = "res.partner"
 ./tests/test_gap_fixes.py:305:        view_name = "plasticos_rep_performance"
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
@@ -202,11 +218,19 @@
 ./tests/test_gate_match_contract.py:238:    _name = "res.partner"
 ./tests/test_gate_match_contract.py:263:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_match_receipts.py:49:    assert '_name = "plasticos.match.result.writer"' in source
-./tests/test_gate_sdk_invocation.py:243:    validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate")
+./tests/test_gate_sdk_invocation.py:243:    assert validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate") is None
+./tests/test_gate_sdk_invocation.py:247:        validate_outbound_gate_packet(packet, local_node="not-odoo", gate_node_name="gate")
+./tests/test_gate_sdk_invocation.py:249:        validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="not-gate")
 ./tests/test_launch_invariants_crm_enrichment.py:456:    _name = "plasticos.enrichment.run"
 ./tests/test_matching_gate_orchestrator.py:40:    assert '_name = "plasticos.match.exclusion"' in src
 ./tests/test_matching_gate_orchestrator.py:46:    assert '_name = "plasticos.match.run"' in src
+./tests/test_odoo_audit_field_attribution.py:31:    _name = "sample.order"
+./tests/test_odoo_audit_field_attribution.py:37:    tag_ids = fields.Many2many(comodel_name="sample.tag")
+./tests/test_odoo_audit_field_attribution.py:42:    _name = "sample.line"
+./tests/test_odoo_audit_field_attribution.py:49:    _name = "sample.tag"
+./tests/test_odoo_audit_field_attribution.py:55:    _name = "sample.prototype"
+./tests/test_odoo_audit_field_attribution.py:62:    _name = "sample.wrapped"
 ./tests/test_state_audit_containment.py:70:            _name = "plasticos.sample.load"
 ./tests/test_state_audit_containment.py:88:            _name = "plasticos.sample.load"
 ./tests/test_state_audit_containment.py:108:            _name = "plasticos.sample.load"
-./tests/test_weak_test_authority.py:254:            _name = "plasticos.thing"
+./tests/test_weak_test_authority.py:255:            _name = "plasticos.thing"
