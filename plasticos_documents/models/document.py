@@ -420,9 +420,7 @@ class PlasticosDocument(models.Model):
         transactions = self._get_related_transactions(self)
         attachments = self.attachment_id
         result = super().unlink()
-        if "documents.document" in self.env and attachments:
-            native = self.env["documents.document"].search([("attachment_id", "in", attachments.ids)])
-            native.invalidate_recordset(["verified", "verified_by", "verified_at", "override", "override_reason"])
+        self._invalidate_native_attachments(attachments)
         # Trigger recompute after delete (both flags AND compliance)
         if transactions:
             projected = transactions.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
@@ -432,14 +430,12 @@ class PlasticosDocument(models.Model):
         return result
 
     def _invalidate_native_projection(self):
-        """Drop cached native projections. Does not write a verification decision."""
-        if "documents.document" not in self.env:
-            return
-        attachments = self.mapped("attachment_id")
-        if not attachments:
-            return
-        native = self.env["documents.document"].search([("attachment_id", "in", attachments.ids)])
-        native.invalidate_recordset(["verified", "verified_by", "verified_at", "override", "override_reason"])
+        """Native Documents overrides this. Base has no Enterprise projection."""
+        return
+
+    def _invalidate_native_attachments(self, attachments):
+        """Native Documents overrides this after unlink."""
+        return
 
     def _trigger_transaction_recompute(self, records):
         """Trigger recomputation of doc-related fields on related transactions.
@@ -605,20 +601,8 @@ class PlasticosDocument(models.Model):
         )
 
     def _original_file_company(self, attachment):
-        """Company recorded on the native original, when that module is installed."""
-        if "documents.document" not in self.env or not attachment:
-            return self.env["res.company"]
-        natives = (
-            self.env["documents.document"]
-            .sudo()
-            .search(  # original company identity only; not an acceptance grant
-                [("attachment_id", "=", attachment.id), ("shortcut_document_id", "=", False)]
-            )
-        )
-        companies = natives.mapped("company_id")
-        if len(companies) > 1:
-            raise UserError("UNRESOLVED: the original file companies conflict.")
-        return companies[:1]
+        """Company recorded on the native original. Native Documents supplies it."""
+        return self.env["res.company"]
 
     def _resolved_subject_company(self, target):
         """Unique legal company of a visible subject. Does not invent env.company.

@@ -1,4 +1,5 @@
 from . import test_bridge_wiring_contracts
+from . import test_intake_make_po_contract
 from . import test_compliance_does_not_post
 from . import test_erp_worksheet_import
 from . import test_historical_reopen

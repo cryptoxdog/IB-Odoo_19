@@ -515,3 +515,34 @@ def _snapshot_conflicts(snapshot, legacy):
         if historical != current:
             return True
     return False
+
+
+class PlasticosDocumentNativeBridge(models.Model):
+    """Enterprise document lookups live on the addon that depends on documents."""
+
+    _inherit = "plasticos.document"
+
+    def _invalidate_native_projection(self):
+        attachments = self.mapped("attachment_id")
+        self._invalidate_native_attachments(attachments)
+
+    def _invalidate_native_attachments(self, attachments):
+        if not attachments:
+            return
+        native = self.env["documents.document"].search([("attachment_id", "in", attachments.ids)])
+        native.invalidate_recordset(["verified", "verified_by", "verified_at", "override", "override_reason"])
+
+    def _original_file_company(self, attachment):
+        if not attachment:
+            return self.env["res.company"]
+        natives = (
+            self.env["documents.document"]
+            .sudo()
+            .search(  # original company identity only; not an acceptance grant
+                [("attachment_id", "=", attachment.id), ("shortcut_document_id", "=", False)]
+            )
+        )
+        companies = natives.mapped("company_id")
+        if len(companies) > 1:
+            raise UserError("UNRESOLVED: the original file companies conflict.")
+        return companies[:1]

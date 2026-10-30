@@ -633,18 +633,9 @@ class PlasticosMaterialProfile(models.Model):
                 "Install 'plasticos_order_lines' from Apps to enable this feature."
             )
 
-        # Check if product module is installed and polymer has product_id field
-        product_id = False
-        product_uom_id = False
-        if hasattr(self.polymer_id, "product_id") and self.polymer_id.product_id:
-            product_id = self.polymer_id.product_id.id
-            product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
-        elif hasattr(self.polymer_id, "_ensure_product"):
-            # Product module installed but no product yet - create one
-            self.polymer_id._ensure_product()
-            if self.polymer_id.product_id:
-                product_id = self.polymer_id.product_id.id
-                product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
+        product = self.polymer_id._purchase_product()
+        product_id = product.id if product else False
+        product_uom_id = product.uom_id.id if product and product.uom_id else False
 
         line_vals = {
             "product_id": product_id,

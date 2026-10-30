@@ -433,11 +433,6 @@ class PlasticosIntake(models.Model):
         store=True,
         help="Highest match score among all buyer matches for this intake.",
     )
-    offer_count = fields.Integer(
-        string="Offers",
-        compute="_compute_offer_count",
-        help="Number of offers created from this intake.",
-    )
 
     @api.depends("match_line_ids", "match_line_ids.selected")
     def _compute_match_count(self):
@@ -450,14 +445,6 @@ class PlasticosIntake(models.Model):
         for rec in self:
             scores = rec.match_line_ids.mapped("match_score")
             rec.best_match_score = max(scores) if scores else 0.0
-
-    def _compute_offer_count(self):
-        if "plasticos.offer" not in self.env:
-            for rec in self:
-                rec.offer_count = 0
-            return
-        for rec in self:
-            rec.offer_count = self.env["plasticos.offer"].search_count([("intake_id", "=", rec.id)])
 
     @api.depends("name")
     def _compute_display_name(self):
@@ -693,19 +680,6 @@ class PlasticosIntake(models.Model):
             "res_id": self.facility_id.id,
         }
 
-    def action_view_offers(self):
-        self.ensure_one()
-        if "plasticos.offer" not in self.env:
-            return
-        return {
-            "type": "ir.actions.act_window",
-            "name": f"Offers — {self.name}",
-            "res_model": "plasticos.offer",
-            "view_mode": "list,form",
-            "domain": [("intake_id", "=", self.id)],
-            "context": {"default_intake_id": self.id},
-        }
-
     def action_view_matches(self):
         self.ensure_one()
         return {
@@ -893,110 +867,3 @@ class PlasticosIntake(models.Model):
             rec.match_line_ids.unlink()
             rec.status = "draft"
             rec.message_post(body="Reset to draft for editing.")
-
-    def action_send_offers(self):
-        """Create plasticos.offer records for each selected match line."""
-        self.ensure_one()
-        self._assert_status("matched")
-        selected = self.match_line_ids.filtered("selected")
-        if not selected:
-            raise UserError("Please select at least one buyer to send offers to.")
-
-        if not self.partner_id:
-            raise UserError("Cannot send offers without a supplier. Set the Company on this intake first.")
-
-        offer_model = "plasticos.offer"
-        if offer_model not in self.env:
-            raise UserError("Offer module not installed.\n\nInstall 'PlasticOS Offers' to enable offer creation.")
-
-        Offer = self.env[offer_model]
-        offers_created = Offer
-        for match in selected:
-            if not match.buyer_id:
-                _logger.warning(
-                    "Skipping match line %s — no buyer_id set (buyer_name=%s)",
-                    match.id,
-                    match.buyer_name,
-                )
-                continue
-            offer = Offer.create(
-                {
-                    "intake_id": self.id,
-                    "supplier_id": self.partner_id.id,
-                    "buyer_id": match.buyer_id.id,
-                    "price_per_lb": match.typical_price or 0.0,
-                    "quantity_lbs": float(self.quantity_per_load_lbs or 0),
-                }
-            )
-            offers_created |= offer
-
-        if not offers_created:
-            raise UserError(
-                "No offers were created. Ensure selected buyer match lines have a Buyer set.\n\n"
-                "Use the bulk assign wizard to assign buyers to unresolved match lines."
-            )
-
-        self.status = "offer_sent"
-        self.message_post(
-            body=(
-                f"Offers sent to {len(offers_created)} buyer(s): {', '.join(offers_created.mapped('buyer_id.name'))}"
-            ),
-            message_type="notification",
-            subtype_xmlid="mail.mt_note",
-        )
-
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Offers Created",
-            "res_model": offer_model,
-            "view_mode": "list,form",
-            "domain": [("intake_id", "=", self.id)],
-            "target": "current",
-        }
-
-    def action_make_po(self):
-        """Create transaction from intake and close as Won."""
-        self.ensure_one()
-        self._assert_status("offer_sent", "processing", "matched")
-
-        if not self.partner_id:
-            raise UserError("Cannot create PO without a supplier partner.")
-
-        if "plasticos.transaction" not in self.env:
-            raise UserError(
-                "Transaction module not installed.\n\nInstall 'PlasticOS Transactions' to enable PO creation."
-            )
-        Transaction = self.env["plasticos.transaction"]
-
-        tx_vals = {
-            "intake_id": self.id,
-            "supplier_id": self.partner_id.id,
-            "quantity": self.quantity_per_load_lbs,
-        }
-
-        if self.material_profile_id:
-            tx_vals["supplier_profile_id"] = self.material_profile_id.id
-
-        selected_match = self.match_line_ids.filtered("selected").sorted("match_score", reverse=True)[:1]
-        if selected_match:
-            buyer = self.env["res.partner"].search([("name", "=", selected_match.buyer_name)], limit=1)
-            if buyer:
-                tx_vals["buyer_id"] = buyer.id
-
-        tx = Transaction.create(tx_vals)
-
-        self.status = "won"
-        self.message_post(
-            body=f"PO created → Transaction "
-            f'<a href="#" data-oe-model="plasticos.transaction" '
-            f'data-oe-id="{tx.id}">{tx.name or tx.id}</a>'
-        )
-
-        return {
-            "type": "ir.actions.act_window",
-            "name": f"Transaction — {self.name}",
-            "res_model": "plasticos.transaction",
-            "res_id": tx.id,
-            "view_mode": "form",
-            "target": "current",
-        }

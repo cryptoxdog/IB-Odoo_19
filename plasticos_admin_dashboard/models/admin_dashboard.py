@@ -449,8 +449,6 @@ class PlasticosAdminKpi(models.Model):
             """)
             rec.ai_pending_review = cr.fetchone()[0] or 0
 
-            rec.last_refresh = fields.Datetime.now()
-
     @api.depends()
     def _compute_ai_config(self):
         for rec in self:
@@ -483,9 +481,10 @@ class PlasticosAdminKpi(models.Model):
     # ── Actions ───────────────────────────────────────────────────────────────
 
     def action_refresh(self):
-        """Force re-compute all KPIs."""
+        """Force re-compute all KPIs, then stamp the refresh time."""
         self._compute_kpis()
         self._compute_ai_config()
+        self.write({"last_refresh": fields.Datetime.now()})
         return True
 
     def action_open_sales_dashboard(self):

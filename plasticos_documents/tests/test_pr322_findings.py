@@ -6,9 +6,6 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.addons.plasticos_documents_native.tests.test_native_search_parity import (
-    TestNativeSearchParity,
-)
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
 
@@ -350,9 +347,3 @@ class TestPr322Findings(PlasticosTestCase):
         row.with_user(self.verifier).write({"tag_id": self.receiving.id})
         self.assertEqual(row.tag_id, self.receiving)
         self.assertFalse(row.verified)
-
-
-class TestPr322NativeSearch(TestNativeSearchParity):
-    """Run the native search truth table inside the Documents suite."""
-
-    allow_inherited_tests_method = True

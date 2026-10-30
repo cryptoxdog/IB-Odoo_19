@@ -1,4 +1,3 @@
-import json
 import logging
 import uuid
 
@@ -605,28 +604,10 @@ class PlasticosIntakeNormalizer(models.Model):
     # ═════════════════════════════════════════════════════
 
     def _log_normalization(self, action, errors):
-        """Write to plasticos.automation.log if the model exists."""
-        self.ensure_one()
-        if "plasticos.automation.log" not in self.env:
-            return
-        AutoLog = self.env["plasticos.automation.log"]
+        """The intake write that precedes this call is the audit.
 
-        detail = ""
-        if errors:
-            detail = json.dumps(errors, indent=2)
-
-        try:
-            AutoLog.create(
-                {
-                    "model_name": "plasticos.intake",
-                    "record_id": self.id,
-                    "action_type": f"normalize_{action}",
-                    "detail": detail or f"Packet {self.last_packet_id or 'N/A'}",
-                }
-            )
-        except Exception:
-            _logger.debug(
-                "Could not write automation log for intake %s",
-                self.name,
-                exc_info=True,
-            )
+        A second automation-log row is not created. Manual UserError rolls the
+        intake write back with the button transaction. Cron does not raise, so
+        those field writes stay.
+        """
+        return

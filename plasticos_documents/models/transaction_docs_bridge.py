@@ -1,6 +1,16 @@
 from odoo import api, fields, models
 
 
+class AccountMoveDocumentsCompliance(models.Model):
+    """Invoice posting checks documents before the native post."""
+
+    _inherit = "account.move"
+
+    def _missing_invoice_documents(self, transaction):
+        service = self.env["plasticos.compliance.service"]
+        return not service.is_compliant("plasticos.transaction", transaction.id, purpose="invoice")
+
+
 class PlasticosTransactionDocsBridge(models.Model):
     """Adds document_ids reverse + smart-button nav to transaction."""
 
@@ -29,8 +39,17 @@ class PlasticosTransactionDocsBridge(models.Model):
         "document_ids.tag_id",
     )
     def _compute_compliance(self):
-        """Override to add document_ids dependencies for auto-recompute."""
-        return super()._compute_compliance()
+        """Document-aware compliance. Base stays compliant when this addon is absent."""
+        service = self.env["plasticos.compliance.service"]
+        for rec in self:
+            if service.is_compliant("plasticos.transaction", rec.id):
+                rec.compliance_status = "compliant"
+            else:
+                rec.compliance_status = "missing"
+
+    def _missing_close_documents(self, rec):
+        service = self.env["plasticos.compliance.service"]
+        return not service.is_compliant("plasticos.transaction", rec.id, purpose="close")
 
     def action_view_documents(self):
         """Open documents linked to this transaction."""

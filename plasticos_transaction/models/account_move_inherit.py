@@ -83,6 +83,10 @@ class AccountMove(models.Model):
                 raise UserError("Cannot cancel invoice/bill linked to closed transaction.")
         return super().button_cancel()
 
+    def _missing_invoice_documents(self, transaction):
+        """Documents addon blocks posting when required files are missing."""
+        return False
+
     def action_post(self):
         """Post invoice/bill with compliance check BEFORE posting.
 
@@ -91,8 +95,6 @@ class AccountMove(models.Model):
         """
         if self._historical_source_ids():
             raise UserError("Archived ERP invoices, vendor bills and credits cannot be posted.")
-        service = self.env["plasticos.compliance.service"] if "plasticos.compliance.service" in self.env else None
-
         # Batch query: collect all invoice_origins for SO lookup
         out_invoice_origins = [
             rec.invoice_origin for rec in self if rec.move_type == "out_invoice" and rec.invoice_origin
@@ -120,12 +122,8 @@ class AccountMove(models.Model):
                 so = so_by_name.get(rec.invoice_origin)
                 if so and so.transaction_id and so.transaction_id.state == "closed":
                     raise UserError("A new invoice cannot be attached to a historically closed trade.")
-                if so and so.transaction_id:
-                    # An empty AbstractModel recordset is falsy: test for None, not truthiness.
-                    if service is not None and not service.is_compliant(
-                        "plasticos.transaction", so.transaction_id.id, purpose="invoice"
-                    ):
-                        raise UserError("Missing required documents for invoice posting.")
+                if so and so.transaction_id and self._missing_invoice_documents(so.transaction_id):
+                    raise UserError("Missing required documents for invoice posting.")
 
             # Block credit note post when reversed move is linked to closed transaction
             if rec.move_type in ("out_refund", "in_refund") and rec.reversed_entry_id:
