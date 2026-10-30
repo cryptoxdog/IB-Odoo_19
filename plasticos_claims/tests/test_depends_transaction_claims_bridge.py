@@ -10,9 +10,9 @@ The current canonical contract this suite pins:
   - ``claim_ids``            One2many plasticos.claim (inverse transaction_id)
   - ``claim_count``          stored compute over claim_ids
   - ``has_quality_claim``    stored compute — unresolved buyer_claim/inspection
-  - ``freight_chargebacks`` / ``lightweight_penalties`` — summed from RESOLVED
-    claims by case_type, with @api.depends so resolving a claim recomputes the
-    transaction without a manual call.
+  - ``freight_chargebacks`` / ``lightweight_penalties`` are manual transaction
+    amounts. Resolving or archiving a claim must not write them. A resolved
+    claim is not a booked credit (operator decision 2026-10-25).
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -21,7 +21,7 @@ from odoo.tests import tagged
 
 @tagged("post_install", "-at_install")
 class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
-    """Claim writes must propagate to the transaction via @api.depends."""
+    """Computed claim links recompute from claims. Manual recovery amounts do not."""
 
     @classmethod
     def setUpClass(cls):
@@ -65,25 +65,43 @@ class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
         self.assertEqual(claim.state, "resolved")
         self.assertFalse(self.tx.has_quality_claim)
 
-    def test_freight_chargeback_recovery_flows_to_transaction(self):
-        """Resolving a freight_chargeback claim sums into freight_chargebacks."""
-        claim = self._create_claim(case_type="freight_chargeback")
-        self.assertEqual(self.tx.freight_chargebacks, 0.0)
+    def test_freight_chargeback_resolve_preserves_manual_amount(self):
+        """Resolving and archiving a freight claim leaves the manual transaction amount.
 
+        Replaces test_freight_chargeback_recovery_flows_to_transaction.
+        """
+        self.tx.freight_chargebacks = 40.0
+        claim = self._create_claim(case_type="freight_chargeback")
         claim.write({"recovery_amount": 125.0, "resolution_note": "Carrier credit"})
         claim.action_resolve()
-        self.assertAlmostEqual(self.tx.freight_chargebacks, 125.0)
+        self.assertEqual(claim.state, "resolved")
+        self.assertAlmostEqual(claim.recovery_amount, 125.0)
+        self.assertAlmostEqual(self.tx.freight_chargebacks, 40.0)
+        claim.action_archive()
+        self.assertEqual(claim.state, "archived")
+        self.assertAlmostEqual(self.tx.freight_chargebacks, 40.0)
 
-    def test_lightweight_penalty_recovery_flows_to_transaction(self):
-        """Resolving a lightweight_penalty claim sums into lightweight_penalties."""
+    def test_lightweight_penalty_resolve_preserves_manual_amount(self):
+        """Resolving and archiving a lightweight claim leaves the manual transaction amount.
+
+        Replaces test_lightweight_penalty_recovery_flows_to_transaction.
+        """
+        self.tx.lightweight_penalties = 40.0
         claim = self._create_claim(case_type="lightweight_penalty")
-        self.assertEqual(self.tx.lightweight_penalties, 0.0)
-
         claim.write({"recovery_amount": 75.0, "resolution_note": "Underweight credit"})
         claim.action_resolve()
-        self.assertAlmostEqual(self.tx.lightweight_penalties, 75.0)
+        self.assertEqual(claim.state, "resolved")
+        self.assertAlmostEqual(claim.recovery_amount, 75.0)
+        self.assertAlmostEqual(self.tx.lightweight_penalties, 40.0)
+        claim.action_archive()
+        self.assertEqual(claim.state, "archived")
+        self.assertAlmostEqual(self.tx.lightweight_penalties, 40.0)
 
-    def test_unresolved_claim_contributes_no_recovery(self):
-        """Recoveries only count once the claim reaches state=resolved."""
+    def test_unresolved_claim_does_not_change_manual_recovery(self):
+        """An unresolved claim does not write the manual freight amount.
+
+        Replaces test_unresolved_claim_contributes_no_recovery.
+        """
+        self.tx.freight_chargebacks = 40.0
         self._create_claim(case_type="freight_chargeback", recovery_amount=500.0)
-        self.assertEqual(self.tx.freight_chargebacks, 0.0)
+        self.assertAlmostEqual(self.tx.freight_chargebacks, 40.0)

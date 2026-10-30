@@ -475,7 +475,7 @@ class TestAccountMoveComplianceGate(PlasticosTestCase):
 
 @tagged("post_install", "-at_install", "accounting", "critical")
 class TestHistoricalAutopostGuard(PlasticosTestCase):
-    """Document compliance updates readiness only. Explicit action_post still posts."""
+    """Document compliance updates readiness. Explicit posting of archival originals is refused."""
 
     @classmethod
     def setUpClass(cls):
@@ -663,28 +663,46 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         self.assertEqual(invoice.state, "posted")
 
     def test_direct_post_of_a_historical_draft_uses_normal_accounting(self):
-        """Explicit action_post still posts a dated historical draft and rejects an undated bill."""
+        """Explicit action_post refuses a dated historical invoice and an undated historical bill."""
+        payments = self.env["account.payment"].search_count([])
+        entries = self.env["account.move"].search_count([("move_type", "=", "entry")])
         invoice = self._move("out_invoice", origin="54839", invoice_date="2022-04-01")
         bill = self._move("in_invoice", origin="54839")
         self._mark(invoice, "legacy_erp_outinv_manual")
         self._mark(bill, "legacy_erp_ininv_manual")
-        invoice.action_post()
-        self.assertEqual(invoice.state, "posted")
-        with self.assertRaisesRegex(UserError, "The Bill/Refund date is required to validate this document."):
+        message = "Archived ERP invoices, vendor bills and credits cannot be posted."
+        with self.assertRaisesRegex(UserError, message):
+            invoice.action_post()
+        with self.assertRaisesRegex(UserError, message):
             bill.action_post()
+        self.assertEqual(invoice.state, "draft")
         self.assertEqual(bill.state, "draft")
+        self.assertEqual(self.env["account.payment"].search_count([]), payments)
+        self.assertEqual(self.env["account.move"].search_count([("move_type", "=", "entry")]), entries)
 
     def test_historical_marker_does_not_bypass_the_invoice_purpose_gate(self):
-        """A marked invoice whose origin is the sale name still requires the invoice document."""
-        self._isolate_invoice_rule("hist_autopost_purpose")
+        """Archive refusal wins on a marked invoice. A live invoice still needs its document, then posts."""
+        tag = self._isolate_invoice_rule("hist_autopost_purpose")
         tx = self._tx()
         sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": tx.id})
-        invoice = self._move("out_invoice", origin=sale.name, invoice_date="2026-10-24")
-        self._mark(invoice, "legacy_erp_outinv_purpose")
-        tx.customer_invoice_id = invoice
+        historical = self._move("out_invoice", origin=sale.name, invoice_date="2026-10-24")
+        self._mark(historical, "legacy_erp_outinv_purpose")
+        tx.customer_invoice_id = historical
+        with self.assertRaisesRegex(UserError, "Archived ERP invoices, vendor bills and credits cannot be posted."):
+            historical.action_post()
+        self.assertEqual(historical.state, "draft")
+
+        live_tx = self._tx()
+        live_sale = self.env["sale.order"].create({"partner_id": self.partner.id, "transaction_id": live_tx.id})
+        live = self._move("out_invoice", origin=live_sale.name, invoice_date="2026-10-24")
+        live_tx.customer_invoice_id = live
         with self.assertRaisesRegex(UserError, "Missing required documents for invoice posting."):
-            invoice.action_post()
-        self.assertEqual(invoice.state, "draft")
+            live.action_post()
+        self.assertEqual(live.state, "draft")
+        self._satisfy(live_tx, tag)
+        live.action_post()
+        self.assertEqual(live.state, "posted")
+        self.assertEqual(historical.state, "draft")
 
     def test_document_transition_does_not_post_or_roll_back_on_an_undated_bill(self):
         """Verifying the document leaves both moves draft. Explicit posting still enforces the bill date."""

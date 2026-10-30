@@ -119,17 +119,55 @@ class PlasticosCommissionPayout(models.Model):
         for rec in self:
             rec.commission_balance = (rec.commission_due or 0.0) - (rec.commission_paid or 0.0)
 
+    # ── Historical source guard: XMLID fallback protects pre-migration rows ─
+    def _historical_transaction_ids(self, transactions):
+        if not transactions:
+            return set()
+        marked = set(transactions.filtered("legacy_erp_history").ids)
+        sales = transactions.mapped("sale_order_id")
+        if not sales:
+            return marked
+        source_rows = (
+            self.env["ir.model.data"]
+            .sudo()
+            .search(
+                [
+                    ("module", "=", "plasticos_transaction"),
+                    ("model", "=", "sale.order"),
+                    ("res_id", "in", sales.ids),
+                    ("name", "=like", "legacy_erp_so_%"),
+                ]
+            )
+        )
+        source_sale_ids = {row.res_id for row in source_rows if row.name.startswith("legacy_erp_so_")}
+        marked.update(transactions.filtered(lambda tx: tx.sale_order_id.id in source_sale_ids).ids)
+        return marked
+
+    def _assert_no_historical_transactions(self):
+        transactions = self.mapped("transaction_ids")
+        if self._historical_transaction_ids(transactions):
+            raise UserError("Historical ERP commission cannot enter a new payout without approved liability migration.")
+
+    def write(self, vals):
+        result = super().write(vals)
+        if "transaction_ids" in vals:
+            self._assert_no_historical_transactions()
+        return result
+
     # ── Sequence ─────────────────────────────────────────────────────────────
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get("name", "/") == "/":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.commission.payout") or "/"
-        return super().create(vals_list)
+        payouts = super().create(vals_list)
+        payouts._assert_no_historical_transactions()
+        return payouts
 
     # ── State Actions ─────────────────────────────────────────────────────────
     def action_confirm(self):
         """Lock the transaction list and confirm the payout amount."""
+        self._assert_no_historical_transactions()
         for rec in self:
             if rec.state != "draft":
                 raise UserError("Only draft payouts can be confirmed.")
@@ -146,6 +184,7 @@ class PlasticosCommissionPayout(models.Model):
 
     def action_mark_paid(self):
         """Record payment. Sets commission_paid = commission_due and advances state."""
+        self._assert_no_historical_transactions()
         for rec in self:
             if rec.state != "confirmed":
                 raise UserError("Only confirmed payouts can be marked as paid.")
@@ -181,6 +220,8 @@ class PlasticosCommissionPayout(models.Model):
         Safe to call from cron or UI wizard.
         Returns new payout record, or False if no qualifying transactions found.
         """
+        if not period_start or not period_end or period_start > period_end:
+            raise UserError("Commission generation requires a valid earned-date period.")
         already_paid_tx_ids = self.search([("state", "in", ["confirmed", "paid"])]).mapped("transaction_ids").ids
 
         txs = self.env["plasticos.transaction"].search(
@@ -189,9 +230,14 @@ class PlasticosCommissionPayout(models.Model):
                 ("state", "=", "closed"),
                 ("commission_locked", "=", True),
                 ("commission_locked_amount", ">", 0),
+                ("commission_payout_state", "=", "unpaid"),
+                ("commission_earned_date", ">=", period_start),
+                ("commission_earned_date", "<=", period_end),
                 ("id", "not in", already_paid_tx_ids),
             ]
         )
+        source_history = self._historical_transaction_ids(txs)
+        txs = txs.filtered(lambda tx: tx.id not in source_history)
         if not txs:
             return False
 

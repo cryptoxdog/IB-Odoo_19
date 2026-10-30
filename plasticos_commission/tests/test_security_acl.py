@@ -34,6 +34,38 @@ class TestTransactionACL(PlasticosTestCase):
                 "group_ids": [(6, 0, [g for g in [base_grp_id, mgr_grp_id] if g])],
             }
         )
+        system_grp = cls.env.ref("base.group_system")
+        sales_grp = cls.env.ref("plasticos_security_base.group_sales_rep")
+        logistics_grp = cls.env.ref("plasticos_security_base.group_logistics")
+        accounting_grp = cls.env.ref("plasticos_security_base.group_accounting")
+        cls.system_user = cls.env["res.users"].create(
+            {
+                "name": "TX System",
+                "login": "tx_system",
+                "group_ids": [(6, 0, [g for g in [base_grp_id, system_grp.id] if g])],
+            }
+        )
+        cls.sales_user = cls.env["res.users"].create(
+            {
+                "name": "TX Sales",
+                "login": "tx_sales",
+                "group_ids": [(6, 0, [g for g in [base_grp_id, sales_grp.id] if g])],
+            }
+        )
+        cls.logistics_user = cls.env["res.users"].create(
+            {
+                "name": "TX Logistics",
+                "login": "tx_logistics",
+                "group_ids": [(6, 0, [g for g in [base_grp_id, logistics_grp.id] if g])],
+            }
+        )
+        cls.accounting_user = cls.env["res.users"].create(
+            {
+                "name": "TX Accounting",
+                "login": "tx_accounting",
+                "group_ids": [(6, 0, [g for g in [base_grp_id, accounting_grp.id] if g])],
+            }
+        )
         cls.supplier = cls.env["res.partner"].create({"name": "ACL Supplier", "is_company": True, "supplier_rank": 1})
         cls.buyer = cls.env["res.partner"].create({"name": "ACL Buyer", "is_company": True, "customer_rank": 1})
 
@@ -47,14 +79,79 @@ class TestTransactionACL(PlasticosTestCase):
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]["state"], tx.state)
 
-    def test_base_user_can_create(self):
-        tx = self._create_tx(user=self.base_user)
-        self.assertTrue(tx.id)
+    def test_base_user_cannot_create(self):
+        """Internal User is read-only. Create stays with sales, logistics, managers, and administrators."""
+        with self.assertRaises(AccessError):
+            self._create_tx(user=self.base_user)
+
+    def test_base_user_cannot_write(self):
+        tx = self._create_tx()
+        with self.assertRaises(AccessError):
+            tx.with_user(self.base_user).write({"quantity": 1.0})
 
     def test_base_user_cannot_unlink(self):
         tx = self._create_tx()
         with self.assertRaises(AccessError):
             tx.with_user(self.base_user).unlink()
+
+    def test_manager_can_create_and_write(self):
+        tx = self._create_tx(user=self.manager_user)
+        tx.write({"quantity": 4.0})
+        self.assertAlmostEqual(tx.quantity, 4.0, places=5)
+
+    def test_manager_cannot_unlink(self):
+        tx = self._create_tx(user=self.manager_user)
+        with self.assertRaises(AccessError):
+            tx.unlink()
+
+    def test_system_user_has_full_crud(self):
+        tx = self._create_tx(user=self.system_user)
+        tx.write({"quantity": 2.0})
+        self.assertAlmostEqual(tx.quantity, 2.0, places=5)
+        tx.unlink()
+        self.assertFalse(tx.exists())
+
+    def test_sales_rep_can_create_for_confirmation(self):
+        """Sale confirmation creates the header as the confirming user.
+
+        Sales already have create on plasticos.transaction. The salesperson
+        record rule allows a row whose user is the confirming user.
+        """
+        tx = (
+            self.env["plasticos.transaction"]
+            .with_user(self.sales_user)
+            .create(
+                {
+                    "supplier_id": self.supplier.id,
+                    "buyer_id": self.buyer.id,
+                    "user_id": self.sales_user.id,
+                }
+            )
+        )
+        self.assertTrue(tx.id)
+
+    def test_sales_rep_cannot_unlink(self):
+        tx = (
+            self.env["plasticos.transaction"]
+            .with_user(self.sales_user)
+            .create(
+                {
+                    "supplier_id": self.supplier.id,
+                    "buyer_id": self.buyer.id,
+                    "user_id": self.sales_user.id,
+                }
+            )
+        )
+        with self.assertRaises(AccessError):
+            tx.unlink()
+
+    def test_logistics_can_create(self):
+        tx = self._create_tx(user=self.logistics_user)
+        self.assertTrue(tx.id)
+
+    def test_accounting_cannot_create(self):
+        with self.assertRaises(AccessError):
+            self._create_tx(user=self.accounting_user)
 
     def test_base_user_cannot_write_tx_line(self):
         tx = self._create_tx()

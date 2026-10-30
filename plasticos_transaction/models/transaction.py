@@ -12,6 +12,9 @@ RES_PARTNER = "res.partner"
 PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 _REFUND_TYPES = frozenset({"out_refund", "in_refund"})
+_HISTORICAL_REOPEN_ID = "plasticos_historical_reopen_id"
+_HISTORICAL_REOPEN_REASON = "plasticos_historical_reopen_reason"
+_MANAGER_GROUP = "plasticos_transaction.group_plasticos_manager"
 
 
 def _signed_move_total(moves) -> float:
@@ -42,6 +45,11 @@ class PlasticosTransaction(models.Model):
 
     sale_order_id = fields.Many2one("sale.order", ondelete="restrict")
     purchase_order_ids = fields.Many2many("purchase.order")
+    # Commercial archive provenance, not a payment/collection state.
+    legacy_erp_history = fields.Boolean(
+        string="Historical ERP Import", readonly=True, copy=False, index=True, default=False
+    )
+    legacy_erp_status = fields.Char(string="Source Worksheet Status", readonly=True, copy=False)
 
     # ── Partner References (harvested from linda_logistics_v6) ──
     supplier_id = fields.Many2one(
@@ -946,12 +954,36 @@ class PlasticosTransaction(models.Model):
                 duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
                 if duplicate:
                     raise ValidationError(f"Transaction reference '{name}' already exists.")
+        if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
+            load_model = self.env["plasticos.load"]
+            # Lock sale order, then the transaction. The reverse order deadlocks
+            # with a load create that already holds the sale order.
+            sale_ids = set(self.mapped("sale_order_id").ids)
+            if vals.get("sale_order_id"):
+                sale_ids.add(vals["sale_order_id"])
+            load_model._lock_rows("sale_order", sale_ids)
+            load_model._lock_rows("plasticos_transaction", self.ids)
+            fields_to_refresh = ["sale_order_id"]
+            if "load_ids" in self._fields:
+                fields_to_refresh.append("load_ids")
+            self.invalidate_recordset(fields_to_refresh)
         for rec in self:
             self._validate_state_transition(rec, vals)
             self._validate_write_immutability(rec, vals)
             self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
             self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
+        if "sale_order_id" in vals and "load_ids" in self._fields and "plasticos.load" in self.env:
+            new_sale_id = vals.get("sale_order_id") or False
+            for rec in self:
+                if rec.sale_order_id.id != new_sale_id and rec.load_ids:
+                    raise ValidationError(
+                        f"Transaction {rec.name} has linked loads. "
+                        "Its sale order cannot be reassigned until the loads are lawfully resolved."
+                    )
+        reopened = self.filtered(lambda rec: self._authorized_historical_reopen(rec, vals))
         res = super().write(vals)
+        if reopened:
+            self._post_historical_reopen(reopened)
         if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
             self.env["plasticos.load"]._reconcile_unlinked_for_transactions(self)
         return res
@@ -985,6 +1017,11 @@ class PlasticosTransaction(models.Model):
         Commission-specific guards (commission_rule_id, commission_locked) are
         enforced by plasticos_commission.transaction_commission.
         """
+        if rec.legacy_erp_history and ({"legacy_erp_history", "legacy_erp_status"} & vals.keys()):
+            raise UserError("Historical source identity and status are immutable.")
+        if rec.legacy_erp_history and "state" in vals and vals["state"] != rec.state:
+            if not self._authorized_historical_reopen(rec, vals):
+                raise UserError("Historical trade changes require a separately approved operations migration.")
         if "name" in vals:
             raise UserError("Transaction reference cannot be modified.")
         if rec.state == "closed":
@@ -1032,6 +1069,82 @@ class PlasticosTransaction(models.Model):
                 raise UserError("Cannot delete a transaction that still has loads.")
         return super().unlink()
 
+    def _authorized_historical_reopen(self, rec, vals):
+        """Closed historical -> Active, one record, manager, reason, state only.
+
+        The context keys are not sufficient on their own. A caller who forges
+        them still fails unless the record, group, transition, and field set match.
+        ``bypass_state_guard`` does not authorize this transition.
+        """
+        if set(vals) != {"state"} or vals.get("state") != "active":
+            return False
+        if rec.state != "closed" or not rec.legacy_erp_history:
+            return False
+        if self.env.context.get(_HISTORICAL_REOPEN_ID) != rec.id:
+            return False
+        if not (self.env.context.get(_HISTORICAL_REOPEN_REASON) or "").strip():
+            return False
+        return self.env.user.has_group(_MANAGER_GROUP)
+
+    def _post_historical_reopen(self, records):
+        reason = (self.env.context.get(_HISTORICAL_REOPEN_REASON) or "").strip()
+        when = fields.Datetime.now()
+        actor = self.env.user
+        body = (
+            f"Historical reopen by {actor.name} (user {actor.id}) at {when} UTC. "
+            "State changed from Closed to Active. "
+            f"Reason: {reason}"
+        )
+        for rec in records:
+            rec.message_post(
+                body=f"{body} Transaction {rec.name} (id {rec.id}).",
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
+
+    def action_reopen_historical(self, reason):
+        """Reopen one Closed imported transaction to Active. Replay will not close it again."""
+        if len(self) != 1:
+            raise UserError("Reopen one historical transaction at a time.")
+        reason = (reason or "").strip()
+        if not reason:
+            raise UserError("A reopen reason is required.")
+        rec = self
+        if not rec.legacy_erp_history:
+            raise UserError("Only an imported historical transaction can be reopened.")
+        if rec.state != "closed":
+            raise UserError("Only a Closed historical transaction can be reopened.")
+        if not self.env.user.has_group(_MANAGER_GROUP):
+            raise UserError("Only Plasticos Managers can reopen a historical transaction.")
+        status = rec.legacy_erp_status
+        invoice = rec.customer_invoice_id
+        rec.with_context(
+            **{
+                _HISTORICAL_REOPEN_ID: rec.id,
+                _HISTORICAL_REOPEN_REASON: reason,
+            }
+        ).write({"state": "active"})
+        if rec.legacy_erp_status != status or rec.customer_invoice_id != invoice or not rec.legacy_erp_history:
+            raise UserError("Historical reopen changed source identity.")
+        return True
+
+    def action_open_historical_reopen(self):
+        """Open the reason wizard for the one selected historical transaction."""
+        if len(self) != 1:
+            raise UserError("Reopen one historical transaction at a time.")
+        if not self.legacy_erp_history or self.state != "closed":
+            raise UserError("Only a Closed historical transaction can be reopened.")
+        if not self.env.user.has_group(_MANAGER_GROUP):
+            raise UserError("Only Plasticos Managers can reopen a historical transaction.")
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Reopen Historical Transaction",
+            "res_model": "plasticos.transaction.reopen.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_transaction_id": self.id},
+        }
+
     def action_activate(self):
         """Activate a draft transaction."""
         for rec in self:
@@ -1060,11 +1173,30 @@ class PlasticosTransaction(models.Model):
                     [f"plasticos_transaction.close_{rec.id}"],
                 )
 
+    def _lock_load_membership_for_milestone(self, rec):
+        """Serialize a milestone with load attach, reparent, and unlink.
+
+        Lock order is the sale order, then the transaction, then loads already
+        linked. The transaction lock lasts until this cursor ends. Membership
+        changes bump the parent row, so an earlier REPEATABLE READ snapshot
+        fails instead of advancing against loads it cannot see.
+        """
+        if "plasticos.load" not in self.env or "load_ids" not in rec._fields:
+            return
+        load_model = self.env["plasticos.load"]
+        if rec.sale_order_id:
+            load_model._lock_rows("sale_order", [rec.sale_order_id.id])
+        load_model._lock_rows("plasticos_transaction", [rec.id])
+        rec.invalidate_recordset(["state", "sale_order_id", "load_ids"])
+        load_model._lock_rows("plasticos_load", rec.load_ids.ids)
+        rec.load_ids.invalidate_recordset(["state", "transaction_id"])
+
     def _refuse_lagging_loads(self, rec, milestone, message):
         """A transaction milestone requires every linked load to have reached it.
 
         A transaction with no loads keeps its existing workflow, including a PO-only deal.
         """
+        self._lock_load_membership_for_milestone(rec)
         if "load_ids" not in rec._fields or not rec.load_ids or "plasticos.load" not in self.env:
             return
         blocking = self.env["plasticos.load"]._loads_blocking_milestone(rec.load_ids, milestone)
@@ -1075,12 +1207,13 @@ class PlasticosTransaction(models.Model):
     def _validate_close_preconditions(self, rec, service_docs):
         """Guard all business rules that must pass before a transaction can be closed.
 
-        This method is called BEFORE acquiring any locks, so unauthorized users
-        are rejected immediately without holding database resources.
+        Permission is checked before the membership lock so an unauthorized user
+        does not hold the transaction row.
         """
         # Permission check first
         if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
             raise UserError("Only Plasticos Managers can close transactions.")
+        self._lock_load_membership_for_milestone(rec)
         if rec.state == "closed":
             raise UserError("Transaction is already closed.")
         if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
@@ -1124,6 +1257,7 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state not in ("do_created", "supplier_ready"):
                 raise UserError(
                     f"Cannot mark dispatched: transaction must be in 'DO Created' or "
@@ -1143,6 +1277,7 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state not in ("dispatched", "do_created", "in_progress"):
                 raise UserError(f"Cannot mark in transit: invalid current state (current: {rec.state}).")
             self._refuse_lagging_loads(
@@ -1159,6 +1294,7 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state != "in_transit":
                 raise UserError(
                     f"Cannot mark delivered: transaction must be in 'In Transit' state (current: {rec.state})."
