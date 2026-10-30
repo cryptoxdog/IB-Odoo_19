@@ -167,6 +167,40 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertEqual(conflict.unresolved, ("conflicting material evidence",))
         self.assertFalse(conflict.polymer)
 
+    def test_approved_vanillasoft_aliases_resolve_every_master(self):
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import _CRM_ALIASES  # noqa: PLC0415
+
+        for phrase in _CRM_ALIASES:
+            with self.subTest(phrase=phrase):
+                self.assertFalse(normalize_crm_material(self.env, phrase).unresolved)
+
+        for phrase, polymer, form, grade in (
+            ("PET Bottles", "PET", "BOTTLES", False),
+            ("HDPE Bottles - Natural", "HDPE", "BOTTLES", False),
+            ("HDPE Bottles - Z Bales", "HDPE", False, False),
+            ("HDPE Frac Melt", "HDPE", False, False),
+            ("PP Supersacs (Lined)", "PP", False, False),
+            ("IBC Totes (HMW-HDPE)", "HDPE_HMW", "TOTES", False),
+            ("MRP Export", "MRP", False, False),
+            ("LDPE Film B", "LDPE", "FILM", "B"),
+            ("Acetal", "POM", False, False),
+        ):
+            with self.subTest(phrase=phrase):
+                result = normalize_crm_material(self.env, phrase)
+                self.assertEqual(result.polymer.code, polymer)
+                self.assertEqual(result.form.code or False, form)
+                self.assertEqual(result.grade or False, grade)
+                self.assertFalse(result.attributes)
+
+        self.assertEqual(
+            normalize_material(self.env, "PET Bottles").unresolved,
+            ("unresolved material",),
+        )
+        self.assertEqual(
+            normalize_crm_material(self.env, "Bottles (HD/PET)").unresolved,
+            ("unresolved material",),
+        )
+
     def test_worksheet_import_still_calls_normalize_material(self):
         source = (
             Path(__file__).resolve().parents[2] / "plasticos_transaction/models/native_document_import.py"

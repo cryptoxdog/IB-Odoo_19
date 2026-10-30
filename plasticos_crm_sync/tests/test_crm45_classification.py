@@ -150,6 +150,43 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         self.assertIn("BLOCKED_NO_CRM_LEAD", self._messages(orch))
 
+    def _approved_person_upsert(self, person, external_id, ct_id):
+        self._erp_marker(person, ct_id)
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {external_id: ct_id}
+        orch._crosswalk_ready = True
+        leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
+        orch._upsert_lead(self.connection, self._lead(external_id, custom_fields={"Materials": "HDPE Drums"}))
+        self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
+        return orch
+
+    def test_person_material_lands_on_its_facility_without_a_facility_profile(self):
+        facility = self._facility("CRM45 Profileless Facility")
+        person = self.env["res.partner"].create({"name": "CRM45 Profileless", "parent_id": facility.id})
+        orch = self._approved_person_upsert(person, "crm45-profileless", "4502")
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        self.assertEqual(profiles.mapped("polymer_id.code"), ["HDPE"])
+        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertFalse(self.env["plasticos.facility.profile"].search([("partner_id", "=", facility.id)]))
+        self.assertFalse(any("facility unresolved" in message for message in self._messages(orch)))
+
+    def test_person_material_lands_on_the_person_when_the_site_is_ambiguous(self):
+        company = self.env["res.partner"].create({"name": "CRM45 Two Sites", "is_company": True})
+        for site in ("North", "South"):
+            self.env["res.partner"].create({"name": f"CRM45 {site}", "is_company": True, "parent_id": company.id})
+        person = self.env["res.partner"].create({"name": "CRM45 Two Sites Buyer", "parent_id": company.id})
+        orch = self._approved_person_upsert(person, "crm45-two-sites", "4503")
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", person.id)])
+        self.assertEqual(profiles.mapped("polymer_id.code"), ["HDPE"])
+        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertFalse(self.env["plasticos.material.profile"].search([("partner_id", "=", company.id)]))
+        self.assertFalse(any("facility unresolved" in message for message in self._messages(orch)))
+        replay = SyncOrchestrator(self.env)
+        replay._crosswalk = {"crm45-two-sites": "4503"}
+        replay._crosswalk_ready = True
+        replay._upsert_lead(self.connection, self._lead("crm45-two-sites", custom_fields={"Materials": "HDPE Drums"}))
+        self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", person.id)]), 1)
+
     def test_section_materials_do_not_broadcast_type_or_guess_pe(self):
         orch = SyncOrchestrator(self.env)
         lead = orch._upsert_lead(

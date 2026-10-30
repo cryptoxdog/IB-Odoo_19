@@ -1674,6 +1674,8 @@ class SyncOrchestrator:
         phrases = _dedupe_phrases(phrase for section in sections.values() for phrase in section["phrases"])
         detail = ", ".join(phrases) or "material evidence"
         partner, reason = _facility_for_material(lead)
+        if partner is None and lead.partner_id.parent_id:
+            partner = lead.partner_id
         if partner is None:
             self._append_classified_error(
                 lead.vanillasoft_id or str(lead.id),
@@ -1682,14 +1684,9 @@ class SyncOrchestrator:
             )
             return
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
-        if len(profiles) != 1:
-            self._append_classified_error(
-                lead.vanillasoft_id or str(lead.id),
-                f"facility unresolved: {len(profiles)} profiles: {detail}",
-                REQUIRED_MAPPING,
-            )
-            return
-        self._import_section_materials(lead, field_maps, partner=partner, facility_profile=profiles)
+        self._import_section_materials(
+            lead, field_maps, partner=partner, facility_profile=profiles if len(profiles) == 1 else None
+        )
 
     def _upsert_lead(self, connection, dto: CanonicalLead, adapter=None):
         """Identity-resolved lead upsert with deterministic classification.
@@ -2437,25 +2434,16 @@ class SyncOrchestrator:
                 if _parse_material_sections(dto.custom_fields).get("pps", {}).get("notes"):
                     self._append_classified_error(dto.external_id, "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING)
                 return
-        facility, reason = _facility_partner_for_person(partner)
-        if facility is None:
-            self._append_classified_error(dto.external_id, reason, REQUIRED_MAPPING)
-            return
-        profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", facility.id)])
-        if len(profiles) != 1:
-            self._append_classified_error(
-                dto.external_id,
-                f"facility unresolved: {len(profiles)} profiles",
-                REQUIRED_MAPPING,
-            )
-            return
+        facility, _reason = _facility_partner_for_person(partner)
+        owner = facility if facility is not None else partner
+        profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", owner.id)])
         try:
             with self.env.cr.savepoint():
                 self._import_section_materials(
                     self.env[CRM_LEAD].browse(),
                     (dto.custom_fields,),
-                    partner=facility,
-                    facility_profile=profiles,
+                    partner=owner,
+                    facility_profile=profiles if len(profiles) == 1 else None,
                     external_id=dto.external_id,
                 )
         except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted person

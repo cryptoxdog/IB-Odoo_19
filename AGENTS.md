@@ -690,3 +690,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 
 > **2026-10-23 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > these Agent Skills rows are retired. Cursor-Governance archived the packs out of live `skills/` discovery: `l9-governance-wiring`, `l9-harvest-pipeline`, `l9-inspect`, `l9-plan`, `l9-pr-analysis`, `l9-update-command`, and `l9-wire-skill-into-repo`. The tracked projections `.claude/skills/<name>`, their `.l9-managed-skills.json` entries, and their `.claude/README.md` rows were removed, as with the 2026-10-21 `l9-gmp-protocol` removal. Replacements: `l9-governance-wiring` → `l9-wire-into-repo` and `l9-governance-symlinks`; `l9-harvest-pipeline` → `/harvest` and `/use-harvest`; `l9-inspect` → `/inspect`; `l9-plan` → `l9-plan-simple` for ordinary plans (program-execution planning has no live owner); `l9-pr-analysis` → `l9-pr-remediation`; `l9-update-command` → `l9-dag-authoring`; `l9-wire-skill-into-repo` → `l9-wire-into-repo`. Do not re-add the skill symlinks.
+
+> **2026-10-30 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Never line "Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`" is superseded
+> by operator decision 2026-10-30. A material profile belongs to a partner. No facility profile is required.
+> The VanillaSoft import puts an approved contact's materials on its resolved facility partner. When that site
+> cannot be resolved, they go on the matched ERP contact person. A facility profile is used only when exactly one
+> already exists for that partner.
