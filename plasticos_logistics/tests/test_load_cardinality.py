@@ -2,11 +2,16 @@
 
 import importlib.util
 import threading
+import time
+from unittest.mock import patch
+
+from psycopg2 import errors as pg_errors
 
 from odoo import api, fields
 from odoo.addons.plasticos_logistics.models.load import (
     _FREIGHT_INTERNAL_WRITE,
     _FREIGHT_INTERNAL_WRITE_TOKEN,
+    PlasticosLoad,
 )
 from odoo.exceptions import UserError, ValidationError
 from odoo.modules.module import get_module_path
@@ -296,6 +301,231 @@ class TestLoadCardinality(TransactionCase):
         tx.action_mark_delivered()
         self.assertEqual(tx.state, "delivered")
 
+    def test_sale_order_change_with_linked_loads_is_atomic(self):
+        old_order, new_order = self._order(), self._order()
+        tx = self._transaction("TX-LOAD-SO-CHANGE", old_order)
+        load = self.env["plasticos.load"].create({"sale_order_id": old_order.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            tx.write({"sale_order_id": new_order.id})
+        self.assertEqual(tx.sale_order_id, old_order)
+        self.assertEqual(load.sale_order_id, old_order)
+        self.assertEqual(load.transaction_id, tx)
+
+        without_loads = self._transaction("TX-NO-LOAD-SO-CHANGE", old_order)
+        without_loads.write({"sale_order_id": new_order.id})
+        self.assertEqual(without_loads.sale_order_id, new_order)
+
+    def test_direct_parent_create_respects_the_join_milestone(self):
+        order = self._order()
+        tx = self._transaction("TX-LOAD-DIRECT", order)
+        load = (
+            self.env["plasticos.load"]
+            .with_context(plasticos_skip_load_parent_link=True)
+            .create({"sale_order_id": order.id, "transaction_id": tx.id})
+        )
+        tx.invalidate_recordset(["load_ids"])
+        self.assertEqual(load.transaction_id, tx)
+        self.assertEqual(tx.load_ids, load)
+        tx.with_context(bypass_state_guard=True).write({"state": "delivered"})
+        before = self.env["plasticos.load"].search_count([])
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env["plasticos.load"].with_context(plasticos_skip_load_parent_link=True).create(
+                {"sale_order_id": order.id, "transaction_id": tx.id}
+            )
+        self.assertEqual(self.env["plasticos.load"].search_count([]), before)
+        self.assertEqual(tx.load_ids, load)
+
+    def _assert_attach_blocks_behind_dispatch(self, label, attach):
+        """A draft attach started while dispatch holds the parent lock must not commit."""
+        created = {"loads": [], "transactions": [], "orders": [], "partners": [], "parameters": []}
+
+        def cleanup():
+            if created["loads"]:
+
+                def reset(env):
+                    loads = env["plasticos.load"].browse(created["loads"]).exists()
+                    loads.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
+                        {"state": "draft"}
+                    )
+
+                self._commit_in_new_session(reset)
+            self._erase_committed(created)
+
+        self.addCleanup(cleanup)
+
+        def build(env):
+            buyer = env["res.partner"].create({"name": f"{label} Buyer", "is_company": True, "customer_rank": 1})
+            supplier = env["res.partner"].create({"name": f"{label} Supplier", "is_company": True, "supplier_rank": 1})
+            order = env["sale.order"].create({"partner_id": buyer.id})
+            tx = env["plasticos.transaction"].create(
+                {
+                    "name": f"TX-{label}",
+                    "supplier_id": supplier.id,
+                    "buyer_id": buyer.id,
+                    "sale_order_id": order.id,
+                    "delivery_term": "appointment",
+                }
+            )
+            load = env["plasticos.load"].create({"sale_order_id": order.id})
+            load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write({"state": "dispatched"})
+            tx.with_context(bypass_state_guard=True).write({"state": "supplier_ready"})
+            created["partners"].extend([buyer.id, supplier.id])
+            created["orders"].append(order.id)
+            created["transactions"].append(tx.id)
+            created["loads"].append(load.id)
+            return order.id, tx.id
+
+        order_id, tx_id = self._commit_in_new_session(build)
+        entered = threading.Event()
+        release = threading.Event()
+        original = PlasticosLoad._loads_blocking_milestone
+
+        def pause_after_guard(load_model, loads, milestone):
+            result = original(load_model, loads, milestone)
+            if milestone == "dispatched":
+                entered.set()
+                if not release.wait(8):
+                    raise AssertionError("milestone guard barrier timed out")
+            return result
+
+        def advance(env):
+            env["plasticos.transaction"].browse(tx_id).action_mark_dispatched()
+            return True
+
+        attaching = (None, {"committed": False, "error": "load session did not start"})
+        sessions = []
+        with patch.object(PlasticosLoad, "_loads_blocking_milestone", pause_after_guard):
+            try:
+                advancing = self._start_session(advance)
+                sessions.append(advancing)
+                self.assertTrue(entered.wait(8), "milestone guard was not reached")
+                attaching = self._start_session(lambda env: attach(env, order_id, tx_id))
+                sessions.append(attaching)
+                attaching[0].join(0.5)
+                self.assertTrue(
+                    attaching[0].is_alive(),
+                    f"load joined while milestone guard was paused: {attaching[1]}",
+                )
+            finally:
+                release.set()
+                self._wait_sessions(sessions)
+
+        if attaching[1].get("result"):
+            created["loads"].append(attaching[1]["result"])
+        self.assertTrue(advancing[1].get("committed"), advancing[1].get("error"))
+        self.assertFalse(attaching[1].get("committed"), attaching[1])
+        self.assertTrue(
+            any(kind in attaching[1].get("error", "") for kind in ("ValidationError", "SerializationFailure")),
+            attaching[1].get("error", ""),
+        )
+        self.assertEqual(
+            self._read_committed("SELECT state FROM plasticos_transaction WHERE id = %s", (tx_id,)),
+            [("dispatched",)],
+        )
+        self.assertEqual(
+            self._read_committed(
+                "SELECT state FROM plasticos_load WHERE transaction_id = %s ORDER BY state",
+                (tx_id,),
+            ),
+            [("dispatched",)],
+        )
+
+    def test_zz_concurrent_late_load_cannot_appear_behind_a_milestone(self):
+        def attach(env, order_id, _tx_id):
+            return env["plasticos.load"].create({"name": "late-milestone-load", "sale_order_id": order_id}).id
+
+        self._assert_attach_blocks_behind_dispatch("MILESTONE-RACE", attach)
+
+    def test_zz_concurrent_direct_parent_cannot_join_behind_a_milestone(self):
+        def attach(env, order_id, tx_id):
+            return (
+                env["plasticos.load"]
+                .with_context(plasticos_skip_load_parent_link=True)
+                .create({"name": "late-direct-load", "sale_order_id": order_id, "transaction_id": tx_id})
+                .id
+            )
+
+        self._assert_attach_blocks_behind_dispatch("DIRECT-RACE", attach)
+
+    def test_zz_stale_snapshot_cannot_advance_over_newly_committed_load(self):
+        """A snapshot taken before a committed load must not advance the milestone."""
+        created = {"loads": [], "transactions": [], "orders": [], "partners": [], "parameters": []}
+
+        def cleanup():
+            def reset(env):
+                loads = env["plasticos.load"].browse(created["loads"]).exists()
+                loads.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write({"state": "draft"})
+
+            self._commit_in_new_session(reset)
+            self._erase_committed(created)
+
+        self.addCleanup(cleanup)
+
+        def build(env):
+            buyer = env["res.partner"].create({"name": "Snapshot Buyer", "is_company": True, "customer_rank": 1})
+            supplier = env["res.partner"].create({"name": "Snapshot Supplier", "is_company": True, "supplier_rank": 1})
+            order = env["sale.order"].create({"partner_id": buyer.id})
+            tx = env["plasticos.transaction"].create(
+                {
+                    "name": "TX-STALE-MILESTONE",
+                    "supplier_id": supplier.id,
+                    "buyer_id": buyer.id,
+                    "sale_order_id": order.id,
+                    "delivery_term": "appointment",
+                }
+            )
+            load = env["plasticos.load"].create({"sale_order_id": order.id})
+            load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write({"state": "dispatched"})
+            tx.with_context(bypass_state_guard=True).write({"state": "supplier_ready"})
+            created["partners"].extend([buyer.id, supplier.id])
+            created["orders"].append(order.id)
+            created["transactions"].append(tx.id)
+            created["loads"].append(load.id)
+            return order.id, tx.id
+
+        order_id, tx_id = self._commit_in_new_session(build)
+        entered = threading.Event()
+        release = threading.Event()
+
+        def stale_advance(env):
+            tx = env["plasticos.transaction"].browse(tx_id)
+            if tx.state != "supplier_ready":
+                raise AssertionError("unexpected initial state")
+            entered.set()
+            if not release.wait(8):
+                raise AssertionError("stale snapshot barrier timed out")
+            tx.action_mark_dispatched()
+            return True
+
+        session = self._start_session(stale_advance)
+        try:
+            self.assertTrue(entered.wait(8), "stale transaction never took its snapshot")
+
+            def attach(env):
+                return env["plasticos.load"].create({"name": "newly-committed-draft", "sale_order_id": order_id}).id
+
+            created["loads"].append(self._commit_in_new_session(attach))
+        finally:
+            release.set()
+            self._wait_sessions([session])
+
+        self.assertFalse(session[1].get("committed"), session[1])
+        self.assertTrue(
+            any(token in session[1].get("error", "") for token in ("SerializationFailure", "UserError")),
+            session[1].get("error", ""),
+        )
+        self.assertEqual(
+            self._read_committed("SELECT state FROM plasticos_transaction WHERE id = %s", (tx_id,)),
+            [("supplier_ready",)],
+        )
+        self.assertEqual(
+            self._read_committed(
+                "SELECT state FROM plasticos_load WHERE transaction_id = %s ORDER BY state",
+                (tx_id,),
+            ),
+            [("dispatched",), ("draft",)],
+        )
+
     def test_a_transaction_without_loads_can_still_be_dispatched(self):
         tx = self._transaction("TX-LOAD-PO")
         tx.with_context(bypass_state_guard=True).write({"state": "supplier_ready"})
@@ -394,19 +624,35 @@ class TestLoadCardinality(TransactionCase):
         registry = self.env.registry
 
         def run():
-            cursor = self._real_cursor()
-            try:
-                cursor.transaction = Transaction(registry)
-                env = api.Environment(cursor, self.env.uid, {})
-                outcome["result"] = work(env)
-                cursor.commit()
-                outcome["committed"] = True
-            except Exception as exc:
-                cursor.rollback()
-                outcome["committed"] = False
-                outcome["error"] = f"{type(exc).__name__}: {exc}"
-            finally:
-                cursor.close()
+            # Odoo retries serialization and deadlock conflicts at the request
+            # boundary. Membership bumps make overlapping load inserts conflict;
+            # a retry sees the committed sibling and can still commit.
+            for attempt in range(1, 6):
+                cursor = self._real_cursor()
+                try:
+                    cursor.transaction = Transaction(registry)
+                    env = api.Environment(cursor, self.env.uid, {})
+                    outcome["result"] = work(env)
+                    cursor.commit()
+                    outcome["committed"] = True
+                    outcome.pop("error", None)
+                    return
+                except (pg_errors.SerializationFailure, pg_errors.DeadlockDetected) as exc:
+                    cursor.rollback()
+                    outcome["committed"] = False
+                    outcome["result"] = None
+                    outcome["error"] = f"{type(exc).__name__}: {exc}"
+                    if attempt == 5:
+                        return
+                    time.sleep(0.05 * attempt)
+                except Exception as exc:
+                    cursor.rollback()
+                    outcome["committed"] = False
+                    outcome["result"] = None
+                    outcome["error"] = f"{type(exc).__name__}: {exc}"
+                    return
+                finally:
+                    cursor.close()
 
         thread = threading.Thread(target=run)
         thread.start()

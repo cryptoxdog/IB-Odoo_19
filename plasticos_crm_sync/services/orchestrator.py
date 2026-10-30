@@ -1433,8 +1433,9 @@ class SyncOrchestrator:
     def _load_approved_crosswalk(self) -> None:
         """Read the pinned CSV before any approved identity write.
 
-        An unset parameter leaves the existing importer in place. A set
-        parameter that fails the pinned digest aborts before those writes.
+        An empty parameter uses the crosswalk shipped with this module. A
+        parameter path replaces that file. A digest mismatch aborts before
+        those writes.
         """
         if getattr(self, "_crosswalk_ready", False):
             return

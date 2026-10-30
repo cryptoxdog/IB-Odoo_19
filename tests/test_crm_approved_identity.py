@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 
 import pytest
 
 from plasticos_crm_sync.adapters.base import EXCLUDED_SOURCE_FIELDS
 from plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
 from plasticos_crm_sync.services.approved_identity import (
+    CROSSWALK_FILE,
     PINNED_ERP_COUNT,
     PINNED_SHA256,
     PINNED_VS_COUNT,
@@ -25,15 +25,6 @@ from plasticos_crm_sync.services.approved_identity import (
 from plasticos_crm_sync.services.import_summary import REQUIRED_MAPPING
 from tests.test_crm_sync_classification import _harness, _lead, _Model, _outcomes
 
-ROOT = Path(__file__).resolve().parents[1]
-PACK_CSV = (
-    ROOT
-    / "Current Work - IGNORE"
-    / "10-17-26"
-    / "PlasticOS_CRM_ERP_Identity_GMP_STAGING_2"
-    / "03_APPROVED_CONTACT_CROSSWALK.csv"
-)
-
 
 def _csv(rows: list[tuple[str, str]]) -> str:
     lines = ["erp_ct_id,vanillasoft_contact_id", *[f"{ct},{vs}" for ct, vs in rows], ""]
@@ -41,24 +32,18 @@ def _csv(rows: list[tuple[str, str]]) -> str:
 
 
 def test_pinned_crosswalk_constants():
-    """Pins the constants only. It does not prove the operator file."""
-    assert PINNED_SHA256 == "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2"
-    assert PINNED_VS_COUNT == 763
-    assert PINNED_ERP_COUNT == 716
+    """The shipped file is the census these constants describe."""
+    assert PINNED_SHA256 == "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1"
+    assert PINNED_VS_COUNT == 759
+    assert PINNED_ERP_COUNT == 691
 
 
-def test_operator_crosswalk_file_matches_the_pinned_census():
-    # Legitimate exception (95-test-fix-policy): the operator file carries contact
-    # identities, is gitignored, and is never in CI. Without it the approved-file
-    # claim is UNVERIFIED and is reported as a skip, never as a pass.
-    # Removal trigger: a trusted, PII-free census input committed beside the receipt.
-    if not PACK_CSV.is_file():
-        pytest.skip(f"UNVERIFIED: operator crosswalk absent at {PACK_CSV.relative_to(ROOT)}")
-    raw = PACK_CSV.read_bytes()
+def test_packaged_crosswalk_file_matches_the_pinned_census():
+    raw = CROSSWALK_FILE.read_bytes()
     assert hashlib.sha256(raw).hexdigest() == PINNED_SHA256
     mapping = validate_crosswalk(raw.decode("utf-8"))
     assert len(mapping) == PINNED_VS_COUNT
-    assert len(set(mapping.values())) == PINNED_ERP_COUNT
+    assert len({ct_id for ct_id in mapping.values() if ct_id}) == PINNED_ERP_COUNT
     assert mapping["572648103"] == "2350001"
     assert mapping["1082805107"] == "192650001"
     assert "572648239" not in mapping

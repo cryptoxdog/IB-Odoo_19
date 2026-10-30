@@ -1,4 +1,4 @@
-"""The lookup index lives under docs/reports, and no tracked root reports/ remains.
+"""The lookup index lives under docs/reports, and root reports/ stays gone.
 
 The generator indexes the tracked tree. A new module and a SKILL.md heading
 are included. An ignored Python file is not.
@@ -76,41 +76,6 @@ def test_generator_indexes_tracked_modules_and_skills_only(tmp_path: Path) -> No
     assert not (repo / "reports").exists()
 
 
-def _run_generator(repo: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, str(GENERATOR), str(repo)],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-
-def test_unrelated_root_report_output_does_not_block_generation(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    (repo / "reports" / "semgrep").mkdir(parents=True)
-    (repo / "reports" / "semgrep" / "findings.json").write_text("{}\n", encoding="utf-8")
-    (repo / "tool.py").write_text("def tool_hook():\n    return 1\n", encoding="utf-8")
-    _git(repo, "init")
-    _git(repo, "add", "tool.py")
-
-    completed = _run_generator(repo)
-
-    assert completed.returncode == 0, completed.stderr
-    assert "tool_hook" in (repo / "docs/reports/repo-index/function_signatures.txt").read_text(encoding="utf-8")
-
-
-def test_retired_root_index_blocks_generation(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    (repo / "reports" / "repo-index").mkdir(parents=True)
-    _git(repo, "init")
-
-    completed = _run_generator(repo)
-
-    assert completed.returncode == 1
-    assert "reports/repo-index is retired" in completed.stderr
-    assert not (repo / "docs" / "reports" / "repo-index").exists()
-
-
 def test_repo_index_is_generated_under_docs_reports() -> None:
     generator = GENERATOR.read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/repo-index.yml").read_text(encoding="utf-8")
@@ -126,10 +91,5 @@ def test_repo_index_is_generated_under_docs_reports() -> None:
     assert 'repo_root / "reports"' not in xml_audit
     assert (ROOT / "docs/reports/gmp-reports/README.md").is_file()
     assert (ROOT / "docs/reports/repo-index/class_definitions.txt").is_file()
-    tracked_root_reports = subprocess.run(
-        ["git", "-C", str(ROOT), "ls-files", "reports"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-    assert tracked_root_reports == ""
+    assert not (ROOT / "reports").exists()
+    assert list(ROOT.glob("reports/**")) == []

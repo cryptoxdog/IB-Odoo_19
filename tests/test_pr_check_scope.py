@@ -160,6 +160,7 @@ def repo(tmp_path: Path) -> Repo:
             ("PR_CHECK_", "PR_BASE", "PR_SMOKE", "FAKE_", "COV_CORE_", "COVERAGE_", "PYTEST_", "TEST_PATHS")
         )
     }
+    env.pop("INSTALL_SMOKE_GATE", None)
     env.update(
         {
             "PATH": str(bindir) + os.pathsep + str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"],
@@ -274,7 +275,7 @@ def test_docs_only_gate_runs_no_collector_and_no_docker(repo: Repo) -> None:
     assert repo.receipt()["smoke"] == 0 and repo.receipt()["schema"] == "l9.pr-check-scope.v1"
 
 
-def test_addon_change_runs_audits_the_reached_tests_and_the_smoke(repo: Repo) -> None:
+def test_addon_change_runs_audits_and_reached_tests_without_a_fresh_install(repo: Repo) -> None:
     repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
     result = repo.run("full", FAKE_SMOKE_RC="1")
     assert result.returncode == 0, result.stdout + result.stderr
@@ -284,8 +285,17 @@ def test_addon_change_runs_audits_the_reached_tests_and_the_smoke(repo: Repo) ->
         "make audit-baseline",
         "make test-scoped [tests/test_addons.py tests/test_seed.py]",
     ]
-    assert "smoke --recheck" in calls and "make install-smoke" in calls
+    assert "smoke --recheck" not in calls and "make install-smoke" not in calls
+    assert "full install-smoke is optional" in result.stdout
     assert "make test" not in calls
+
+
+def test_addon_change_installs_when_the_smoke_gate_is_on(repo: Repo) -> None:
+    repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
+    result = repo.run("full", FAKE_SMOKE_RC="1", INSTALL_SMOKE_GATE="1")
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = repo.calls()
+    assert "smoke --recheck" in calls and "make install-smoke" in calls
 
 
 def test_test_only_change_runs_only_that_module_and_the_audits(repo: Repo) -> None:
@@ -313,7 +323,12 @@ def test_a_failing_scope_owner_keeps_the_whole_gate(repo: Repo) -> None:
     result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "whole gate" in result.stdout
-    assert repo.calls()[:3] == ["make audit", "make audit-baseline", "make test"] and "smoke --recheck" in repo.calls()
+    assert repo.calls()[:3] == ["make audit", "make audit-baseline", "make test"]
+    assert "smoke --recheck" not in repo.calls()
+    assert "full install-smoke is optional" in result.stdout
+    gated = repo.run("full", INSTALL_SMOKE_GATE="1")
+    assert gated.returncode == 0, gated.stdout + gated.stderr
+    assert "smoke --recheck" in repo.calls()
     assert not (repo.root / ".cache/pr-check/scope.json").exists(), "a stale receipt must not outlive a failed scope"
 
 
