@@ -49,7 +49,7 @@ class PlasticosIntakeOffersBridge(models.Model):
         if not self.partner_id:
             raise UserError("Cannot send offers without a supplier. Set the Company on this intake first.")
 
-        offers_created = self.env["plasticos.offer"]
+        offer_vals = []
         for match in selected:
             if not match.buyer_id:
                 _logger.warning(
@@ -58,7 +58,7 @@ class PlasticosIntakeOffersBridge(models.Model):
                     match.buyer_name,
                 )
                 continue
-            offer = offers_created.create(
+            offer_vals.append(
                 {
                     "intake_id": self.id,
                     "supplier_id": self.partner_id.id,
@@ -67,13 +67,14 @@ class PlasticosIntakeOffersBridge(models.Model):
                     "quantity_lbs": float(self.quantity_per_load_lbs or 0),
                 }
             )
-            offers_created |= offer
 
-        if not offers_created:
+        if not offer_vals:
             raise UserError(
                 "No offers were created. Ensure selected buyer match lines have a Buyer set.\n\n"
                 "Use the bulk assign wizard to assign buyers to unresolved match lines."
             )
+
+        offers_created = self.env["plasticos.offer"].create(offer_vals)
 
         self.status = "offer_sent"
         self.message_post(
