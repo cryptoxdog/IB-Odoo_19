@@ -80,7 +80,11 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertFalse(opportunity.user_id)
         self.assertFalse(opportunity.expected_revenue)
         self.assertEqual(self.Partner.search_count([]), partners_before)
-        self.assertEqual(lead.review_status, "pending")
+        self.assertEqual(lead.review_status, "clarification_required")
+        self.assertIn(
+            "Economic assessment is unavailable; broker review is required before commercial work.",
+            lead.review_required_reason or "",
+        )
         self.assertFalse(lead.review_snapshot_ids)
 
     def test_replay_is_idempotent_and_distinct_submission_is_separate(self):

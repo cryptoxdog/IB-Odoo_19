@@ -324,7 +324,7 @@ class TestCronInDomain(PlasticosTestCase):
         """Negative only. create_date cannot be aimed, and a new row is not old enough."""
         transaction = self._create_transaction(name="TX-CRON-SCALE", state="draft")
         self.assertTrue(transaction)
-        self.assertFalse(transaction.load_id)
+        self.assertFalse(transaction.load_ids)
         self.env["plasticos.transaction"].cron_check_scale_tickets()
         self.env["plasticos.transaction"].cron_check_scale_tickets()
         transaction.invalidate_recordset()
@@ -564,28 +564,57 @@ class TestCronInDomain(PlasticosTestCase):
         transaction.invalidate_recordset()
         self.assertFalse(transaction.delivery_order_id)
 
-    def test_compliance_audit_clears_verified_on_expired_document(self):
-        partner = self.env["res.partner"].create({"name": "Compliance Doc Co", "is_company": True})
+    def test_compliance_audit_keeps_verified_on_expired_document(self):
+        """The cron reports expired approvals. It does not clear verified."""
+        partner = self.env["res.partner"].create(
+            {"name": "Compliance Doc Co", "is_company": True, "customer_rank": 1, "supplier_rank": 1}
+        )
+        transaction = self.env["plasticos.transaction"].create(
+            {"supplier_id": partner.id, "buyer_id": partner.id, "quantity": 1}
+        )
+        verifier = self.env["res.users"].create(
+            {
+                "name": "Compliance Verifier",
+                "login": "compliance_audit_verifier",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            self.env.ref("base.group_user").id,
+                            self.env.ref("plasticos_documents.group_documents_user").id,
+                        ],
+                    )
+                ],
+            }
+        )
         attachment = self.env["ir.attachment"].create(
             {
                 "name": "compliance.txt",
                 "datas": "Y29tcGxpYW5jZQ==",
-                "res_model": "res.partner",
-                "res_id": partner.id,
+                "res_model": "documents.document",
+                "res_id": 0,
             }
         )
-        tag = self.env["plasticos.document.tag"].create({"name": "Compliance Tag", "code": f"CMP-{partner.id}"})
-        document = self.env["plasticos.document"].create(
+        tag = self.env["plasticos.document.tag"].create({"name": "Compliance Tag", "code": f"CMP-{transaction.id}"})
+        shell = self.env["plasticos.document"].create(
             {
                 "name": "Compliance Doc",
-                "res_model": "res.partner",
-                "res_id": partner.id,
+                "res_model": "documents.document",
+                "res_id": 0,
                 "attachment_id": attachment.id,
                 "tag_id": tag.id,
-                "verified": True,
-                "expiry_date": fields.Date.to_date("2000-01-01"),
             }
         )
+        document = shell.with_user(verifier).action_associate(
+            "plasticos.transaction",
+            transaction.id,
+            "compliance-audit-fixture",
+        )
+        document.with_user(verifier).action_verify()
+        self.assertTrue(document.verified)
+        self.assertFalse(document.is_expired)
+        document.write({"expiry_date": fields.Date.to_date("2000-01-01")})
         document.invalidate_recordset()
         self.assertTrue(document.verified)
         self.assertTrue(document.is_expired)
@@ -600,10 +629,11 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertLess(others, 500, f"document compliance domain already has {others} rows; limit is 500")
         self.env["plasticos.document"]._cron_compliance_audit()
         document.invalidate_recordset()
-        self.assertFalse(document.verified)
+        self.assertTrue(document.verified)
         self.env["plasticos.document"]._cron_compliance_audit()
         document.invalidate_recordset()
-        self.assertFalse(document.verified)
+        self.assertTrue(document.verified)
+        self.assertTrue(document.is_expired)
 
     def test_attachment_orphan_cron_deletes_missing_filestore_row(self):
         from odoo.tools import config
