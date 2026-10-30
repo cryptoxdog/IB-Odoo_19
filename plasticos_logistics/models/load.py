@@ -316,12 +316,41 @@ class PlasticosLoad(models.Model):
         # Taking the exclusive lock first keeps two creates from deadlocking
         # when both later try to upgrade that shared lock.
         self._lock_rows("sale_order", [vals.get("sale_order_id") for vals in vals_list])
+        self._lock_rows("plasticos_transaction", [vals.get("transaction_id") for vals in vals_list])
         records = super().create(vals_list)
         for rec in records:
             if rec.transaction_id:
                 rec._require_join_milestone(rec.transaction_id)
         records._link_unique_sale_order_transaction()
+        # A create that already names its parent does not go through write().
+        # Auto-linked loads bump the parent from that write.
+        direct_parent_ids = [vals.get("transaction_id") for vals in vals_list if vals.get("transaction_id")]
+        if direct_parent_ids:
+            records._touch_membership_epoch(direct_parent_ids)
         return records
+
+    def _touch_membership_epoch(self, parent_ids=None):
+        """Bump parent row versions when load membership changes.
+
+        Odoo cursors use REPEATABLE READ. SELECT FOR UPDATE does not show a
+        load committed after this snapshot, and it raises serialization_failure
+        only when the locked row was actually updated. A primary-key update
+        would cascade through foreign keys, so the bump writes write_date.
+        """
+        ids = {
+            row_id
+            for row_id in set(parent_ids or ()) | set(self.mapped("transaction_id").ids)
+            if isinstance(row_id, int)
+        }
+        if not ids:
+            return
+        ordered_ids = tuple(sorted(ids))
+        self._lock_rows("plasticos_transaction", ordered_ids)
+        self.env.cr.execute(
+            "UPDATE plasticos_transaction SET write_date = (clock_timestamp() AT TIME ZONE 'UTC') WHERE id IN %s",
+            [ordered_ids],
+        )
+        self.env["plasticos.transaction"].browse(ordered_ids).invalidate_recordset(["write_date"])
 
     def _lock_rows(self, table, ids):
         row_ids = tuple(sorted({row_id for row_id in ids if row_id}))
@@ -557,13 +586,22 @@ class PlasticosLoad(models.Model):
         return super().copy_data(default=default)
 
     def unlink(self):
+        # Delete and milestone reads share sale order, then transaction, then load.
+        parent_ids = self.mapped("transaction_id").ids
+        self._lock_rows("sale_order", self.mapped("sale_order_id").ids)
+        self._lock_rows("plasticos_transaction", parent_ids)
+        self._lock_rows("plasticos_load", self.ids)
+        self.invalidate_recordset(["transaction_id", "sale_order_id", "state"])
+        parent_ids = self.mapped("transaction_id").ids
         for rec in self:
             if rec._parent_link_is_protected():
                 raise UserError(
                     f"Load {rec.name} is dispatched or carries freight, dispatch, or accepted evidence "
                     "and cannot be deleted."
                 )
-        return super().unlink()
+        result = super().unlink()
+        self.env["plasticos.load"]._touch_membership_epoch(parent_ids)
+        return result
 
     def _compute_freight_evidence_counts(self):
         request_model = self.env["plasticos.freight.quote.request"]
@@ -626,7 +664,9 @@ class PlasticosLoad(models.Model):
                         "Recorded actual freight is immutable; use the attributed calibration correction workflow."
                     )
 
+        old_parent_ids = ()
         if "transaction_id" in vals:
+            old_parent_ids = self.mapped("transaction_id").ids
             self._guard_transaction_parent(vals.get("transaction_id"))
 
         for rec in self:
@@ -660,6 +700,8 @@ class PlasticosLoad(models.Model):
                     raise UserError(f"Load locked after dispatch. Cannot modify: {', '.join(sorted(blocked))}")
 
         res = super().write(vals)
+        if "transaction_id" in vals:
+            self._touch_membership_epoch(old_parent_ids)
 
         if "state" in vals and vals["state"] == "closed":
             for rec in self:
