@@ -1,0 +1,371 @@
+source_token,contacts,occurrences,workbook_category,status,rule,polymer,form,grade,source_type,attributes,note
+LDPE,1621,1699,EXACT,mapped,crm_code,LDPE,FILM,,,,
+HDPE,829,853,EXACT,mapped,crm_code,HDPE,,,,,
+PP,518,603,EXACT,mapped,crm_code,PP,,,,,
+Pallets,426,426,OPERATOR_APPROVED,mapped,worksheet_phrase,PLASTIC_PALLETS,,,,,
+PET Bottles,238,261,ALIAS,mapped,approved_alias,PET,BOTTLES,,,,
+MRP,218,262,EXACT,mapped,crm_code,MRP,,,,,
+PP Supersacs,213,213,ALIAS,mapped,worksheet_phrase,PP,,,,,
+LDPE Film A,193,197,OPERATOR_APPROVED,mapped,worksheet_phrase,LDPE,FILM,A,,,
+PET,183,183,EXACT,mapped,crm_code,PET,,,,,
+ABS,180,180,EXACT,mapped,crm_code,ABS,,,,,
+E-Waste,173,173,EXACT,mapped,crm_code,EWASTE,,,,,
+hdpe bottles,167,168,ALIAS,mapped,approved_alias,HDPE,BOTTLES,,,,
+LDPE Stretch Film,142,142,ALIAS,mapped,approved_alias,LDPE,FILM,,,,
+PC,141,141,EXACT,mapped,crm_code,PC,,,,,
+PET Industrial,138,138,ALIAS,mapped,approved_alias,PET,,,,,
+PS,111,111,EXACT,mapped,crm_code,PS,,,,,
+HIPS,101,101,EXACT,mapped,crm_code,HIPS,,,,,
+HDPE Bottles - Mixed Color,94,95,ALIAS,mapped,approved_alias,HDPE,BOTTLES,,,,
+HDPE Bottles - Natural,91,92,ALIAS,mapped,approved_alias,HDPE,BOTTLES,,,,
+LDPE Film B,90,90,ALIAS,mapped,approved_alias,LDPE,FILM,B,,,
+Acrylic / PMMA,87,87,ALIAS,mapped,approved_alias,PMMA,,,,,
+PVC,83,83,EXACT,mapped,crm_code,PVC,,,,,
+HDPE Frac Melt,77,77,ALIAS,mapped,approved_alias,HDPE,,,,,
+LDPE Film,77,77,ALIAS,mapped,worksheet_phrase,LDPE,FILM,,,,
+Nylon 6,76,76,ALIAS,mapped,approved_alias,NYLON,,,,,
+PVC Rigid,75,75,ALIAS,mapped,approved_alias,PVC,,,,,
+PET Strapping,72,72,ALIAS,mapped,approved_alias,PET,,,,,
+Nylon,68,68,EXACT,mapped,crm_code,NYLON,,,,,
+MRP Export,67,68,ALIAS,mapped,approved_alias,MRP,,,,,
+EPS,66,66,EXACT,mapped,crm_code,EPS,,,,,
+HDPE Drums (HMW-HDPE),65,65,EXPLICIT_HMW,mapped,worksheet_phrase,HDPE_HMW,DRUMS,,,,
+PC/ABS,63,63,NEW_MASTER_REQUIRED,mapped,worksheet_phrase,PC_ABS,,,POST_INDUSTRIAL,,
+PP Supersacs (Un-Lined),61,61,ALIAS,mapped,approved_alias,PP,,,,,
+HDPE-HMW,59,59,EXACT,mapped,crm_code,HDPE_HMW,,,,,
+HDPE Drums,58,62,EXISTING_GRADE_TEMPLATE,mapped,worksheet_phrase,HDPE,DRUMS,,,,
+PE,58,58,OPERATOR_APPROVED,mapped,worksheet_phrase,HDPE,,,,,
+PVC Flex,55,55,ALIAS,mapped,approved_alias,PVC,,,,,
+HDPE Buckets,47,48,ALIAS,mapped,approved_alias,HDPE,BUCKETS,,,,
+BOPP,46,46,EXACT,mapped,crm_code,BOPP,,,,,
+Nylon 6.6,45,45,ALIAS,mapped,approved_alias,NYLON,,,,,
+TPO,45,45,EXACT,mapped,crm_code,TPO,,,,,
+PP Regrind,38,38,ALIAS,mapped,approved_alias,PP,REGRIND,,,,
+PP Supersacs (Lined),37,37,ALIAS,mapped,approved_alias,PP,,,,,
+3-7,35,35,RECOMMENDED_REVIEW,mapped,worksheet_phrase,3_7_COMMINGLED_BOTTLES,BOTTLES,,POST_CONSUMER,,
+LDPE Post Industrial,35,35,ALIAS,mapped,approved_alias,LDPE,,,,,
+1-7,34,34,RECOMMENDED_REVIEW,mapped,worksheet_phrase,1_7_COMMINGLED_BOTTLES,BOTTLES,,POST_CONSUMER,,
+IBC Totes (HMW-HDPE),34,34,ALIAS,mapped,approved_alias,HDPE_HMW,TOTES,,,,
+HDPE Totes,29,29,ALIAS,mapped,approved_alias,HDPE,TOTES,,,,
+1-7 Commingled,28,28,RECOMMENDED_REVIEW,mapped,worksheet_phrase,1_7_COMMINGLED_BOTTLES,BOTTLES,,,,
+HDPE Bottles - Z Bales,26,26,ALIAS,mapped,approved_alias,HDPE,,,,,
+HDPE Crates,25,25,ALIAS,mapped,approved_alias,HDPE,CRATES,,,,
+Metal,25,25,EXACT,mapped,crm_code,METAL,,,,,
+MRP Domestic,25,25,ALIAS,mapped,approved_alias,MRP,,,,,
+LDPE Film Mixed Color,24,24,ALIAS,mapped,approved_alias,LDPE,FILM,,,,
+TPE,23,23,EXACT,mapped,crm_code,TPE,,,,,
+PP Parts,22,22,ALIAS,mapped,approved_alias,PP,PARTS,,,,
+LDPE Film C,21,21,ALIAS,mapped,approved_alias,LDPE,FILM,C,,,
+PET Bottles - 70/30 Curbside,21,21,ALIAS,mapped,approved_alias,PET,BOTTLES,,,,
+PP Bottles - Domestic Pack,21,21,ALIAS,mapped,approved_alias,PP,BOTTLES,,,,
+HDPE Toters (Roll-Out Carts),19,19,ALIAS,mapped,approved_alias,HDPE,,,,,
+MRP-A,17,17,ALIAS,mapped,approved_alias,MRP,,,,,
+TPO Bumpers,17,17,ALIAS,mapped,approved_alias,TPO,,,,,
+Acetal,15,15,ALIAS,mapped,approved_alias,POM,,,,,
+PP Purge,14,14,ALIAS,mapped,approved_alias,PP,PURGE,,,,
+PP Tubs/Lids,14,14,ALIAS,mapped,approved_alias,PP,,,,,
+HDPE Pipe,13,13,ALIAS,mapped,approved_alias,HDPE,,,,,
+PP Film (BOPP),13,13,RECOMMENDED_REVIEW,mapped,worksheet_phrase,BOPP,FILM,,,,
+MRP A,12,12,ALIAS,mapped,approved_alias,MRP,,,,,
+Plastic Pallets,12,12,EXACT,mapped,crm_code,PLASTIC_PALLETS,,,,,
+3-7 Commingled,11,11,RECOMMENDED_REVIEW,mapped,worksheet_phrase,3_7_COMMINGLED_BOTTLES,BOTTLES,,,,
+LD/LLDPE Thick/Stretch,11,11,ALIAS,mapped,approved_alias,LLDPE,,,,,
+PP Crates,11,11,ALIAS,mapped,approved_alias,PP,CRATES,,,,
+PP Repro,11,11,ALIAS,mapped,approved_alias,PP,,,,,
+Gaylord Boxes,10,10,EXACT,mapped,crm_code,GAYLORD_BOXES,,,,,
+LDPE Purge,8,8,ALIAS,mapped,approved_alias,LDPE,PURGE,,,,
+MRP - Export,8,8,ALIAS,mapped,approved_alias,MRP,,,,,
+PP Bottles,7,7,ALIAS,mapped,approved_alias,PP,BOTTLES,,,,
+HDPE Roto-Mold Tanks,6,6,ALIAS,mapped,approved_alias,HDPE,,,,,
+HDPE Corrugated Pipe,5,5,ALIAS,mapped,approved_alias,HDPE,,,,,
+LDPE Logs,5,5,ALIAS,mapped,approved_alias,LDPE,LOGS,,,,
+MRP - Domestic,5,5,ALIAS,mapped,approved_alias,MRP,,,,,
+PET Bottles - Deposit Bill,5,5,ALIAS,mapped,approved_alias,PET,BOTTLES,,,,
+HDPE Pill Bottles,4,4,ALIAS,mapped,approved_alias,HDPE,BOTTLES,,,,
+LDPE Thick Gauge,4,4,ALIAS,mapped,approved_alias,LDPE,,,,,
+LLDPE,4,4,EXACT,mapped,crm_code,LLDPE,,,,,
+MRP C&D,4,4,ALIAS,mapped,approved_alias,MRP,,,,,
+PC - PolyCarb,4,4,ALIAS,mapped,approved_alias,PC,,,,,
+HDPE Drip Tube,3,3,ALIAS,mapped,approved_alias,HDPE,,,,,
+LDPE Nursery Film,3,3,ALIAS,mapped,approved_alias,LDPE,FILM,,,,
+LDPE Redemption Bags,3,3,ALIAS,mapped,approved_alias,LDPE,,,,,
+MRP-B,3,3,ALIAS,mapped,approved_alias,MRP,,,,,
+PBT,3,3,EXACT,mapped,crm_code,PBT,,,,,
+E-Waste - Dark,2,2,ALIAS,mapped,approved_alias,EWASTE,,,,,
+LDPE Camelback,2,2,ALIAS,mapped,approved_alias,LDPE,,,,,
+LDPE Cotton Film,2,2,ALIAS,mapped,approved_alias,LDPE,FILM,,,,
+MRP Industrial,2,2,ALIAS,mapped,approved_alias,MRP,,,,,
+PA,2,2,ALIAS,mapped,approved_alias,NYLON,,,,,
+PP Bottles Domestic,2,2,ALIAS,mapped,approved_alias,PP,BOTTLES,,,,
+PP Hangers,2,2,ALIAS,mapped,approved_alias,PP,,,,,
+.01 FOB grade A MRP,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+Acrylic,1,1,ALIAS,mapped,approved_alias,PMMA,,,,,
+also mentioned they buy PP GF 25-50% - Black has golf material. Mention and request references.,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+and occ -,1,1,ALIAS,mapped,approved_alias,OCC,,,,,
+BOPP printed,1,1,ALIAS,mapped,approved_alias,BOPP,,,,,
+Crate grade HDPE,1,1,ALIAS,mapped,approved_alias,HDPE,CRATES,,,,
+curb sorted no MRP - cb and pich for future -,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+does marketing for 6 separate counties in maryland which generate MRP. Got on bid list,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+E-Waste - Light,1,1,ALIAS,mapped,approved_alias,EWASTE,,,,,
+ext218 - PP sacks,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+gas tanks and so on. PVC post industrial.,1,1,ALIAS,mapped,approved_alias,PVC,,,,,
+Generates EPS,1,1,ALIAS,mapped,approved_alias,EPS,,,,,
+generates pet,1,1,ALIAS,mapped,approved_alias,PET,,,,,
+had mrp and sacks. Had loads of all.,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+Has 2 loads of LDPE film,1,1,ALIAS,mapped,approved_alias,LDPE,FILM,,,,
+has ftl's of LDPE film from commercial dryer,1,1,ALIAS,mapped,approved_alias,LDPE,FILM,,,,
+has mrp and everything else.,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+has MRP and has C grade Film,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+has MRP B+,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+Has non-wove PP,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+has pp sacks,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+has PP Super Sacks with Carbon Black Residue,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+Has some colored EPS. Sometimes has white EPS he needs to sell.,1,1,ALIAS,mapped,approved_alias,EPS,,,,,
+HDPE bott,1,1,ALIAS,mapped,approved_alias,HDPE,,,,,
+hdpe bottles.,1,1,ALIAS,mapped,approved_alias,HDPE,BOTTLES,,,,
+HDPE Dumpster Lids,1,1,ALIAS,mapped,approved_alias,HDPE,,,,,
+HDPE Gas Tanks,1,1,ALIAS,mapped,approved_alias,HDPE,,,,,
+HDPE-,1,1,EXACT,mapped,crm_code,HDPE,,,,,
+HMW-HDPE/Dunnage,1,1,ALIAS,mapped,approved_alias,HDPE_HMW,,,,,
+LDPE House Wrap,1,1,ALIAS,mapped,approved_alias,LDPE,,,,,
+LDPE Money bags and shrink wrap.,1,1,ALIAS,mapped,approved_alias,LDPE,,,,,
+LDPE Rolls,1,1,ALIAS,mapped,approved_alias,LDPE,ROLLSTOCK,,,,
+mentioned: PP super sacsk,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+MRP looks like Grade B,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+PC regrind.,1,1,ALIAS,mapped,approved_alias,PC,REGRIND,,,,
+PET baled,1,1,ALIAS,mapped,approved_alias,PET,,,,,
+PET bott,1,1,ALIAS,mapped,approved_alias,PET,,,,,
+PET preforms,1,1,ALIAS,mapped,approved_alias,PET,,,,,
+plastic & textile nylon,1,1,ALIAS,mapped,approved_alias,NYLON,,,,,
+PP Battery Casing,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+PP bins and other grades. Seems to be marketing direct with prices as high as .25 for film.,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+PP rolls,1,1,ALIAS,mapped,approved_alias,PP,ROLLSTOCK,,,,
+PP Super Sack offered 0.06/lb. has 30k now,1,1,ALIAS,mapped,approved_alias,PP,,,,,
+quote on MRP. 0.05/lb and 0.12/lb,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+should have other stuff. We sold him PVC,1,1,ALIAS,mapped,approved_alias,PVC,,,,,
+should have tons of MRP,1,1,ALIAS,mapped,approved_alias,MRP,,,,,
+They generate HDPE,1,1,ALIAS,mapped,approved_alias,HDPE,,,,,
+they mostly work with PET bottles.,1,1,ALIAS,mapped,approved_alias,PET,BOTTLES,,,,
+1-7 commingled bottles,,,CODE_ONLY,mapped,worksheet_phrase,1_7_COMMINGLED_BOTTLES,BOTTLES,,POST_CONSUMER,,approved in code; not a token in the October 14 workbook
+3-7 commingled bottles,,,CODE_ONLY,mapped,worksheet_phrase,3_7_COMMINGLED_BOTTLES,BOTTLES,,POST_CONSUMER,,approved in code; not a token in the October 14 workbook
+90 clear ldpe film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,C,,,approved in code; not a token in the October 14 workbook
+95 clear ldpe film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,B,,clean,approved in code; not a token in the October 14 workbook
+99 clear ldpe film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,A,,clean dry,approved in code; not a token in the October 14 workbook
+explicit hmw-hdpe drums,,,CODE_ONLY,mapped,worksheet_phrase,HDPE_HMW,DRUMS,,,,approved in code; not a token in the October 14 workbook
+ldpe grade a film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,A,,clean dry,approved in code; not a token in the October 14 workbook
+ldpe grade b film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,B,,clean,approved in code; not a token in the October 14 workbook
+ldpe grade c film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,C,,,approved in code; not a token in the October 14 workbook
+pc-abs,,,CODE_ONLY,mapped,worksheet_phrase,PC_ABS,,,POST_INDUSTRIAL,,approved in code; not a token in the October 14 workbook
+Bottles (HD/PET),9,9,ALIAS,held,,,,,,,held: names two polymers (HDPE and PET); workbook proposed PET
+Fiber,39,39,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+1 & 2 Bottles,29,29,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Engineering Grades,18,18,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Drip Tube,15,15,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+1-7 Bottles,14,14,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing polymer MIXED is a mixed/co-mingled resin identity; 1-7 includes resin classes 1 and 2, unlike 3-7"
+3-7 Mixed Plastic,12,12,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing MRP = Mixed Rigid Plastic, likely closest match for 3-7 postconsumer rigid mix"
+Strapping,8,8,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+LDPE/HDPE Grocery Film,6,6,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+Bottles,5,5,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Pellets/Resin,5,5,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Waste Plastic,4,4,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+film,3,3,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+clear film,2,2,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+rigids,2,2,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+super sacks,2,2,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+1-7 mrp,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+3-7 Bottles,1,1,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing MRP = Mixed Rigid Plastic, likely closest match for 3-7 postconsumer rigid mix"
+Acrylic. Interested in buying PVC from us.,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+co-mingled 1-7 all plastics,1,1,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing polymer MIXED is a mixed/co-mingled resin identity; 1-7 includes resin classes 1 and 2, unlike 3-7"
+does 2-3 rigid loads a month.,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Engineering Grades (Nylon/PC/PMMA),1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+generates 1-7 and mixed bags.,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+generates ABS and Acrylic sign scrap,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+has 3-7,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+left a vm 6/6,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+left a vm on 7/6/09.,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+low volume at first. 1 -2 bales a week.,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Mixed Film,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+MRP - pp sack clean food grade - LDPE,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+MRP 3-7,1,1,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing MRP = Mixed Rigid Plastic, likely closest match for 3-7 postconsumer rigid mix"
+MRP quoted .085sell price of .12 for his PVC p/u,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+Paper,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+PC -ABS T65. Virgin spec 8 IZOD. Molded once.,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+PC-ABS-LDPE Stretch,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+PET HDPE bottle only combo loads 1 per quarter - just sold.1/12 Next in march.,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+Plastic,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+PP nonwoven. generates clean ABS,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+probably won't get it.. But if it will.. We whisper… 6/3,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+TPU,10,10,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Textile,6,6,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Foam - PU,5,5,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+PVB,5,5,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+UBC,5,5,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+TPV,4,4,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Other,3,3,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Compression Molded,2,2,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+etc.,2,2,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+IBC Totes (HMW),2,2,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Knock-Down Crates,2,2,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+.22,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+0.12/lb on gas tanks,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+1 load of rigids. 1/23/14,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+3 loads of film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+3 weeks!,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+3/9 has sorted bottles,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+4/19 has buckets with residue,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+50/50 loads of camel back/stretch.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+600+750/36K=.0375 sell as B .12,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+98 film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+ag,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Ag program,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Albert Circconi,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+aluminum,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+and green/black strapping.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+and regrind,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+and so on.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Automotive bales,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+baled on roll ends.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+became a disaster.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+black film.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Black/White Silage Film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Broker,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+bubble wrap,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Bumpers -offered 0.06/lb,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+buying SPC,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+call and ask for Nathan,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+call back.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+called,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+called me back,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+carl alm,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+chopped banding - combo loads only,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+combustible petroleums,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+complete mix,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+crates,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Dave Gelharn,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+did 2 loads with him,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+diesel,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+different gauges 10-62,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+directed to them by cannon and sons,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Distribution Center,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+do a very small amount,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+does a load a month.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+don't bail.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+double for National. Not current.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Double: not current,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+faxed over pricing,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+films,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Finally spoke to Buford,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+follow up,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+follow up.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Frank is operations manager,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Gas Pipe,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Gas Tanks,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+gets rigid,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+getting 0.10/lb,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+givving it to westrock.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+glass,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+going to be a tough nut to crack,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+got her on phone,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+grade b film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+grocery,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+hangers,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has 2 harris balers,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has 3 facilities,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has B super sacks.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has BOL.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Has C & D buckets,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has film indeed.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has grade A & B film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has mats,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has mixed roll stock,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has rigids and other plastics,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+has weight issue,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+he doesn't like that number.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+head lights,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+heavy weights. Good guy.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+HMW,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+hmw drums,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+howard no longer works there.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+hydraulic fuel,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+I need to drive up there,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+I offered 0.05/lb,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Import/Foreign,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+IV 72 - clear,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+ld,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+left a vm for kurt on contact date.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Left a VM on 3rd,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+left emmette a vm on the 11th,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+light load.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+local guy.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Long Island – Main Office:,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+matress foam,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Milk Crates Baled,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+mixed buckets,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Mixed Rigid Plastics,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+mixed rigids shit quality,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+MSW,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Need to further Qualify,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+need to know what they thought.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+New York 11590,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+no more drums,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+nobody is aware of anybody here…,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+offerd 0.01/lb -0.02/lb,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+offered 0.05/lb for his material,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+offered 0.17/lb on film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+offered him 0.02/lb,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+offered him 0.08/lb,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+offered lead,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+on 3-17,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Penn Mar asked me to call John,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+PI plastic,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+post consume bottles,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+printed as well - .42 baled,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+quoted 0.015/lb on his rigids.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+quoted him 0.18/lb on film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+raff,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+regrinds.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Rich has plastic regrind mostly,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+right next door to hopewell nursery,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+rolls,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Royal Oak Recycling Ohio,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Runs a huge Jersey and brooklyn MRF,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Sarah Denis might be new contact,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+secretary said they do plastics.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Sending me app for downstream,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+sends his stuff to town of southold,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+sent e-mail should add me on bid.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+sent tammy an e-mail,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+ships PE,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+should get me pictures today.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+should have plastic scrap,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+should start bidding soon.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+should start doing that too.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+should try back shortly.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+some on rolls. Non laminated,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+sorted bottles,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+spoke to a guy named Les,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+spoke to chris,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+spoke to David,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+spoke to him finally,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Steve Luteri passed lead,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Stretch,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+structural foam,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+they received,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+They sell mixed PE film,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+they ship films,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+today!,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+totes,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+under contract with apc,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Uses dom as I use liotta,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+VISIT,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+visited facility,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+waiting till he gets 38k.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+walmart 95,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+wants .04 FOB or wont bale it,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+wants 0.12/lb across,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+wants to sit on his material.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+wants us to bid on everything,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Westbury,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+wonderful lady,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+WV is simple grinder/shredder op.,1,1,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material

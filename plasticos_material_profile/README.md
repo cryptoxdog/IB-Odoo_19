@@ -130,15 +130,10 @@ Master tag model for material condition flags.
 
 ---
 
-## Constraint
+## Partner
 
-```python
-@api.constrains('partner_id')
-def _check_partner_is_facility(self):
-    # Profiles may only be created for partners where is_facility = True
-```
-
-After the boolean cleanup, this constraint was updated to use `is_facility` (from `plasticos_material_profile.res_partner`) instead of `parent_id`. Standalone companies can now have material profiles.
+A material profile belongs to a partner: a facility site or a company contact person (operator decision
+2026-10-30). No facility profile is required. The `partner_id` domain requires a partner with a parent.
 
 ---
 
