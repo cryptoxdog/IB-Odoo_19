@@ -18,9 +18,10 @@ from pathlib import Path
 
 CROSSWALK_PARAM = "plasticos_crm_sync.approved_contact_crosswalk"
 CROSSWALK_HEADER = ("erp_ct_id", "vanillasoft_contact_id")
-PINNED_SHA256 = "f22c707a7b6fceba40a20fa393e0c8887e3f05a8d183865ca28f0ccfc16fede2"
-PINNED_VS_COUNT = 763
-PINNED_ERP_COUNT = 716
+CROSSWALK_FILE = Path(__file__).resolve().parents[1] / "data" / "approved_contact_crosswalk.csv"
+PINNED_SHA256 = "9aa6fcd0eee9fedf106c23090fa32b24c2faacc1576531c4f4fcc846663b72c1"
+PINNED_VS_COUNT = 759
+PINNED_ERP_COUNT = 691
 XMLID_MODULE = "plasticos_transaction"
 CONTACT_NOTE_KEY = "Notes"
 MOBILE_PHONE_NAMES = frozenset({"mobile", "mobile 1", "mobile 2", "cell"})
@@ -99,13 +100,14 @@ def validate_crosswalk(
     for line_no, row in enumerate(reader, start=2):
         if not row or (len(row) == 1 and row[0] == ""):
             continue
-        if len(row) != 2 or not row[0].isdigit() or not row[1].isdigit():
+        if len(row) != 2 or not row[1].isdigit() or (row[0] and not row[0].isdigit()):
             raise CrosswalkError(f"approved crosswalk row {line_no} is not two numeric source IDs")
         ct_id, vs_id = row
         if vs_id in mapping and mapping[vs_id] != ct_id:
             raise CrosswalkError(f"VanillaSoft {vs_id} maps to more than one ERP CT_ID")
         mapping[vs_id] = ct_id
-        erp_ids.add(ct_id)
+        if ct_id:
+            erp_ids.add(ct_id)
     if len(mapping) != expected_vs or len(erp_ids) != expected_erp:
         raise CrosswalkError(
             f"approved crosswalk census {len(mapping)} VanillaSoft / {len(erp_ids)} ERP "
@@ -115,10 +117,11 @@ def validate_crosswalk(
 
 
 def load_crosswalk_map(env) -> dict[str, str] | None:
-    """Load the pinned file, or ``None`` when the parameter is unset.
+    """Load the packaged crosswalk, or the parameter path when one is set.
 
-    A set parameter that is missing or mismatched raises. An environment with
-    no ``ir.config_parameter`` model (pure-python fakes) has no crosswalk.
+    An empty parameter uses the file shipped in this module. A set parameter
+    that is missing or mismatched raises. An environment with no
+    ``ir.config_parameter`` model (pure-python fakes) has no crosswalk.
     """
     try:
         model = env["ir.config_parameter"]
@@ -126,11 +129,9 @@ def load_crosswalk_map(env) -> dict[str, str] | None:
         return None
     icp = model.sudo() if hasattr(model, "sudo") else model
     path = (icp.get_param(CROSSWALK_PARAM) or "").strip()
-    if not path:
-        return None
-    file_path = Path(path)
+    file_path = Path(path) if path else CROSSWALK_FILE
     if not file_path.is_file():
-        raise CrosswalkError(f"approved crosswalk file is missing: {path}")
+        raise CrosswalkError(f"approved crosswalk file is missing: {file_path}")
     return validate_crosswalk(file_path.read_text(encoding="utf-8"))
 
 

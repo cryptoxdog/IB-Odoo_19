@@ -1,0 +1,128 @@
+{
+  "package": "Cursor ERP+CRM Import PR Isolation / Enterprise Diagnostics",
+  "version": "2.4.0",
+  "date": "2026-10-24",
+  "predecessor_zip": "Cursor_Import_PR_Isolation_Enterprise_Runbook_v2.3.0.zip",
+  "predecessor_sha256": "e5ac4b0a0b12b3868debb18c0473fc534af3c67a8e370fe57e0a6e32a3e38c6f",
+  "classification": "pre-merge Enterprise diagnostic of PR 301 and PR 303; findings for operator remediation; not permission to patch",
+  "source_snapshot": {
+    "repo": "cryptoxdog/IB-Odoo_19",
+    "Staging": "2a3b9cda9b127c284d12f98bf35ab0344a500d10",
+    "PR301": "cc3f8cbb90d7f57c58de75af9d893d8ac2ed4c79",
+    "PR303": "190c497bdea1362cad87e231c713efdcd25240d4",
+    "dynamic_refresh_required": true,
+    "PR303_implementation_baseline": "702ebaf77d987dc844e2758bd354b2ecef4f26cd",
+    "PR303_delta": "Five new docs only: docs/reports/evidence/pr303-cursor-handoff/*.md",
+    "M301": "b91937fb26020d097391cb142fce35e9c8434cd2",
+    "M301_tree": "187b69b8fbaa0add60089e5e4b783cbc85d853fa",
+    "M303": "190c497bdea1362cad87e231c713efdcd25240d4",
+    "BOTH": "1606626ee845e1eb64a525cb0c39fc8140de9db3",
+    "BOTH_tree": "203986bc9553955ee86e7c683ae4a563b900dafb",
+    "note": "M301 is Staging merged with PR301 because the PR tip does not contain Staging. M303 head tree equals its merge onto Staging. BOTH is a clean union."
+  },
+  "fixtures": {
+    "source": "config/test_env_fixture.conf",
+    "parity": "enterprise_only",
+    "template_mutation_authorized": false
+  },
+  "execution": {
+    "only_existing_tests": true,
+    "each_pr_exact_sha_separate_worktree": true,
+    "automatic_remediation": false,
+    "operator_approval_for_every_change": true,
+    "final_integration_gate": "both_tree_runs_in_this_campaign",
+    "known_ce_failures": {
+      "failed": 7,
+      "errors": 1,
+      "total_reported": 807,
+      "moved_modules_reported": 39,
+      "moved_tests_reported": 605,
+      "status": "REPORTED_NOT_ENTERPRISE_VERIFIED"
+    },
+    "pr303_diagnostic_complete_requires_all_green": false,
+    "pr303_merge_ready": "NOT_PROVEN_AND_NOT_AUTHORIZED",
+    "trees": [
+      "Staging",
+      "M301",
+      "M303",
+      "BOTH"
+    ],
+    "evidence": "docs/reports/evidence/pr301-pr303-premerge-enterprise-<date>/"
+  },
+  "exclusions": [
+    "logistics feature tests",
+    "Community fallback",
+    "new/rebuilt/re-stamped Enterprise fixture",
+    "unauthorized code/test/docs changes",
+    "new PR or silent merging",
+    "applied ERP/VanillaSoft import without separate operator authorization"
+  ],
+  "files": [
+    {
+      "file": "00_READ_FIRST.md",
+      "size": 5394,
+      "sha256": "6968746940a91132090515cfc99abdfcc7726891a3362395d9a14f3e8e5ec001"
+    },
+    {
+      "file": "01_SOURCE_AND_FIXTURE_ADMISSION.md",
+      "size": 11508,
+      "sha256": "edf69467c04161a63b7396aee7847e7e21c3d0a3807c23e48dda65048855f90d"
+    },
+    {
+      "file": "02_PR_BEHAVIOR_MATRIX.md",
+      "size": 4054,
+      "sha256": "45cf51ce7e7f54d6de643676fb4ebf5b183aa096a5805719c0fc006f3f853637"
+    },
+    {
+      "file": "03_EXECUTION_SEQUENCE.md",
+      "size": 15900,
+      "sha256": "894fc0a1e99f65e892755d6fe4d968c842381018d29bfa0bd081f41fdcd7b46e"
+    },
+    {
+      "file": "04_FINDINGS_AND_APPROVAL.md",
+      "size": 12858,
+      "sha256": "237310c323c92477ce7882bb13b8008840436b621ca000c18e3a0b84527e1181"
+    },
+    {
+      "file": "05_CURSOR_HANDOFF.md",
+      "size": 2245,
+      "sha256": "e6f745cac8e27d4d6fa17d2e9b75bd96fced56b669ac96023a6b31d6b86be882"
+    },
+    {
+      "file": "06_FINAL_COHESION_GATE.md",
+      "size": 15994,
+      "sha256": "db33eb0ed05ed8d922d421fcbce14ecde361c549426e763ff326dc81805a1f8d"
+    },
+    {
+      "file": "07_EXACT_PREFLIGHT_AND_RUN_COMMANDS.md",
+      "size": 13252,
+      "sha256": "96bae2cdab640398d1785d046f23c50389d6b99b7d0a68d704f1f185ebfb768b"
+    },
+    {
+      "file": "08_EVIDENCE_AND_APPROVAL_PACKET.md",
+      "size": 6935,
+      "sha256": "c57639c956558b53f33998510ee730c9668dc324583456701f62860753319b30"
+    },
+    {
+      "file": "09_SCOPE_AND_LIMITATIONS.md",
+      "size": 7540,
+      "sha256": "a643e403c2ce0afde5e6d28f41dc8533bd5be76bb7c37c98c51620e0e86edab4"
+    },
+    {
+      "file": "10_PR303_PUBLISHED_HANDOFF_ACCEPTANCE.md",
+      "size": 7846,
+      "sha256": "e99129990c8722538b0a66a5bdaaa8de06b760c1d090937104c973c239480248"
+    },
+    {
+      "file": "BEHAVIOR_CATALOG.csv",
+      "size": 18002,
+      "sha256": "f208bfb2fc0839a840ff0ea1eab12e0109c02269ac4ad8f9e1d0a36ab09e04cb"
+    },
+    {
+      "file": "CHANGELOG.md",
+      "size": 6219,
+      "sha256": "7fedcab8ef505757af1713b0466d0ff0d894b9086c3d3f25e3da71010e3ddcfe"
+    }
+  ],
+  "predecessor_version": "2.3.1"
+}
