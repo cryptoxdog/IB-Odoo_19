@@ -65,9 +65,10 @@ class PlasticosTransactionDocs(models.Model):
         """
         if "plasticos.compliance.service" not in self.env:
             for tx in self:
-                tx.missing_supplier_docs = False
-                tx.missing_carrier_docs = False
-                tx.missing_buyer_docs = False
+                projected = tx.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+                projected.missing_supplier_docs = False
+                projected.missing_carrier_docs = False
+                projected.missing_buyer_docs = False
             return
 
         matrix_model = self.env["plasticos.document.validation.matrix"]
@@ -91,9 +92,10 @@ class PlasticosTransactionDocs(models.Model):
             )
             missing_set = set(missing_codes) if missing_codes else set()
 
-            tx.missing_supplier_docs = bool(missing_set & supplier_tags)
-            tx.missing_carrier_docs = bool(missing_set & carrier_tags)
-            tx.missing_buyer_docs = bool(missing_set & buyer_tags)
+            projected = tx.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+            projected.missing_supplier_docs = bool(missing_set & supplier_tags)
+            projected.missing_carrier_docs = bool(missing_set & carrier_tags)
+            projected.missing_buyer_docs = bool(missing_set & buyer_tags)
 
     # ── Business Day Calculation ───────────────────────────────────
 
