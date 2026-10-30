@@ -8,7 +8,7 @@ Nothing below goes into Git: not the permit files, the census, run directories, 
 
 1. The Production database is the admitted empty-business-data target. A reset or a fresh database is a separate operator decision.
 2. The Odoo.sh build runs the reviewed commit, and its checkout is clean. `release_sha` must equal `git rev-parse HEAD` of the addon checkout.
-3. The current go-live ERP SQL snapshot is restored. It is read-only, reachable only from the Odoo.sh host, and stays unchanged through both ERP phases. `cieTrade_SM` from 2026-10-18 is a rehearsal source, not go-live authority.
+3. The current go-live ERP SQL snapshot is restored. It is read-only, reachable only from the Odoo.sh host, and stays unchanged through both ERP phases. The local ERP database restored 2026-10-18 is a rehearsal source, not go-live authority.
 4. The VanillaSoft incremental cron (`plasticos_crm_sync.cron_crm_sync_all`) is inactive, and outbound mail is held.
 5. Export `ERP_SQL_SERVER`, `ERP_SQL_DATABASE`, `ERP_SQL_USER` and `ERP_SQL_PASSWORD` in the SSH session only.
 

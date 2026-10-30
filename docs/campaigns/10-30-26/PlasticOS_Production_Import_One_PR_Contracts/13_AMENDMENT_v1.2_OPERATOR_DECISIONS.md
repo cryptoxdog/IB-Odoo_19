@@ -19,7 +19,7 @@
 2. **Cohort census.** The 4,876-ID census (`vanillasoft_contact_id,decision`, no PII) was never in Git. It is built operator-side from the private snapshot and operator matrix. Under D3 it reaches the runner as an external path plus a declared digest. The runner enforces the 763 / 18 / 4,095 partition and the YES ⇔ (crosswalk ∪ four omitted duplicates) identity.
 3. **Cutover graph.** `PlasticOS_Plan_Graph_Overnight_Cutover_2026-10-30.zip` (files 23, 26, 27) is not in the repository. The deferrals attributed to file 26 rest on the operator's statement in this campaign, not on source the agent could read.
 4. **Governance observation.** The local Cursor-Governance checkout was `69c0f67`, 8 commits behind the `f47c256` observed in v1.1. Under D1 this no longer gates publication.
-5. **Rehearsal source.** A local SQL Server container holds `cieTrade_SM`, restored 2026-10-18. It is a disposable rehearsal source only. It is not go-live authority, and it does not satisfy the "current go-live ERP SQL snapshot" invariant.
+5. **Rehearsal source.** A local SQL Server container holds an ERP database restored 2026-10-18. It is a disposable rehearsal source only. It is not go-live authority, and it does not satisfy the "current go-live ERP SQL snapshot" invariant.
 
 ## Design bindings that implement D2 and D3
 
