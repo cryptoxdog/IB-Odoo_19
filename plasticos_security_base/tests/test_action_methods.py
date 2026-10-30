@@ -339,12 +339,21 @@ class TestOfferActions(PlasticosTestCase):
             offer.action_reject()
             self.assertEqual(offer.state, "rejected")
 
-    def test_action_accept_creates_transaction(self):
+    def test_action_accept_leaves_transaction_unlinked(self):
+        """Acceptance sets state only and links no transaction.
+
+        Replaces test_action_accept_creates_transaction. Sale-order confirmation
+        is what creates a transaction.
+        """
         offer = self._make_offer(state="sent")
-        if hasattr(offer, "action_accept"):
-            offer.action_accept()
-            if hasattr(offer, "transaction_id"):
-                self.assertTrue(offer.transaction_id)
+        tx_before = self.env["plasticos.transaction"].search_count([])
+        so_before = self.env["sale.order"].search_count([])
+        offer.action_accept()
+        self.assertEqual(offer.state, "accepted")
+        self.assertEqual(offer.accepted_by, self.env.user)
+        self.assertFalse(offer.transaction_id)
+        self.assertEqual(self.env["plasticos.transaction"].search_count([]), tx_before)
+        self.assertEqual(self.env["sale.order"].search_count([]), so_before)
 
     def test_cron_expire_offers_expires_sent_offer(self):
         # Expiry is the daily cron over valid_until, not a button (offer.py:483-504).

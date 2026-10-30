@@ -48,24 +48,33 @@ class TestOfferBridge(PlasticosTestCase):
         vals.update(kw)
         return self.env["plasticos.offer"].create(vals)
 
-    def test_offer_accept_creates_transaction(self):
-        offer = self._make_offer()
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-        if hasattr(offer, "action_accept"):
-            offer.action_accept()
-            if hasattr(offer, "transaction_id"):
-                self.assertTrue(offer.transaction_id)
+    def test_offer_accept_leaves_transaction_unlinked(self):
+        """Acceptance sets state only and links no transaction.
 
-    def test_transaction_links_back_to_offer(self):
+        Replaces test_offer_accept_creates_transaction. Sale-order confirmation
+        is what creates a transaction.
+        """
         offer = self._make_offer()
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-        if hasattr(offer, "action_accept") and hasattr(offer, "transaction_id"):
-            offer.action_accept()
-            tx = offer.transaction_id
-            if hasattr(tx, "offer_id"):
-                self.assertEqual(tx.offer_id.id, offer.id)
+        offer.action_send()
+        tx_before = self.env["plasticos.transaction"].search_count([])
+        so_before = self.env["sale.order"].search_count([])
+        offer.action_accept()
+        self.assertEqual(offer.state, "accepted")
+        self.assertEqual(offer.accepted_by, self.env.user)
+        self.assertFalse(offer.transaction_id)
+        self.assertEqual(self.env["plasticos.transaction"].search_count([]), tx_before)
+        self.assertEqual(self.env["sale.order"].search_count([]), so_before)
+
+    def test_offer_accept_does_not_link_a_transaction(self):
+        """Acceptance does not write offer.transaction_id, and the transaction has no offer_id.
+
+        Replaces test_transaction_links_back_to_offer.
+        """
+        offer = self._make_offer()
+        offer.action_send()
+        offer.action_accept()
+        self.assertFalse(offer.transaction_id)
+        self.assertNotIn("offer_id", self.env["plasticos.transaction"]._fields)
 
     def test_offer_reject_no_transaction(self):
         offer = self._make_offer(state="sent")

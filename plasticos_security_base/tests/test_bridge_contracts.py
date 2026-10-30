@@ -588,7 +588,10 @@ class TestClaimModelContract(PlasticosTestCase):
         self.assertEqual(field.type, "selection")
 
     def test_claim_case_type_has_required_values(self):
-        """case_type values used by _compute_chargebacks_penalties."""
+        """buyer_claim, freight_chargeback, and lightweight_penalty exist as case types.
+
+        They do not compute the transaction amounts.
+        """
         field = self.fields.get("case_type")
         values = [s[0] for s in field.selection]
         # These are used in transaction_claims.py
@@ -628,7 +631,10 @@ class TestOfferModelContract(PlasticosTestCase):
         self.assertEqual(field.comodel_name, "plasticos.intake")
 
     def test_offer_has_transaction_id(self):
-        """transaction_id links to created transaction after acceptance."""
+        """transaction_id exists on the offer and targets plasticos.transaction.
+
+        Acceptance does not write it.
+        """
         field = self.fields.get("transaction_id")
         self.assertIsNotNone(field, "transaction_id field missing")
         self.assertEqual(field.type, "many2one")
@@ -657,10 +663,10 @@ class TestOfferModelContract(PlasticosTestCase):
             self.assertIn(state, values, f"Missing required state: {state}")
 
     def test_offer_has_action_accept(self):
-        """action_accept creates transaction from offer."""
+        """action_accept exists and changes offer state only."""
         self.assertTrue(
             hasattr(self.Offer, "action_accept"),
-            "action_accept method missing — critical for transaction creation!",
+            "action_accept method missing",
         )
 
     def test_offer_has_action_send(self):
