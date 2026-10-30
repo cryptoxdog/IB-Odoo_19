@@ -1,6 +1,8 @@
 # Handoff: October 25 test contract, then the blocked security closure
 
 **Date:** 2026-10-30
+**Pull request:** https://github.com/cryptoxdog/IB-Odoo_19/pull/347
+**Test-contract commit:** `9a5785741cb34062912766ea9eefe9acd59fe9e0`
 **Base:** `Staging` at `42556d2e` (merge of PR #342)
 **Branch:** `test/align-october-25-contract`
 **Worktree:** the sibling checkout created for this publication. The original workspace is still `Staging` and is dirty with unrelated campaign files. Do not run `make commit` or `make pr` there.
