@@ -12,6 +12,9 @@ from odoo.exceptions import AccessError, UserError
 from odoo.modules.module import get_module_path
 from odoo.tests.common import tagged
 
+from .test_native_search_parity import TestNativeSearchParity
+from .test_verification_delegation import TestNativeVerificationDelegation
+
 
 def _migration():
     path = get_module_path("plasticos_documents") + "/migrations/19.0.2.1.4/post-migrate.py"
