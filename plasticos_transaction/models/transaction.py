@@ -947,10 +947,9 @@ class PlasticosTransaction(models.Model):
                 if duplicate:
                     raise ValidationError(f"Transaction reference '{name}' already exists.")
         if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
-            # Same lock order as load assignment: sale order, then transaction.
-            # Taking the transaction first deadlocks with a load create that
-            # already holds the sale order.
             load_model = self.env["plasticos.load"]
+            # Lock sale order, then the transaction. The reverse order deadlocks
+            # with a load create that already holds the sale order.
             sale_ids = set(self.mapped("sale_order_id").ids)
             if vals.get("sale_order_id"):
                 sale_ids.add(vals["sale_order_id"])
