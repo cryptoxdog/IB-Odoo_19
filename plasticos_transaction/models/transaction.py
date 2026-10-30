@@ -946,11 +946,32 @@ class PlasticosTransaction(models.Model):
                 duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
                 if duplicate:
                     raise ValidationError(f"Transaction reference '{name}' already exists.")
+        if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
+            load_model = self.env["plasticos.load"]
+            # Lock sale order, then the transaction. The reverse order deadlocks
+            # with a load create that already holds the sale order.
+            sale_ids = set(self.mapped("sale_order_id").ids)
+            if vals.get("sale_order_id"):
+                sale_ids.add(vals["sale_order_id"])
+            load_model._lock_rows("sale_order", sale_ids)
+            load_model._lock_rows("plasticos_transaction", self.ids)
+            fields_to_refresh = ["sale_order_id"]
+            if "load_ids" in self._fields:
+                fields_to_refresh.append("load_ids")
+            self.invalidate_recordset(fields_to_refresh)
         for rec in self:
             self._validate_state_transition(rec, vals)
             self._validate_write_immutability(rec, vals)
             self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
             self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
+        if "sale_order_id" in vals and "load_ids" in self._fields and "plasticos.load" in self.env:
+            new_sale_id = vals.get("sale_order_id") or False
+            for rec in self:
+                if rec.sale_order_id.id != new_sale_id and rec.load_ids:
+                    raise ValidationError(
+                        f"Transaction {rec.name} has linked loads. "
+                        "Its sale order cannot be reassigned until the loads are lawfully resolved."
+                    )
         res = super().write(vals)
         if {"supplier_id", "buyer_id", "sale_order_id"} & set(vals) and "plasticos.load" in self.env:
             self.env["plasticos.load"]._reconcile_unlinked_for_transactions(self)
@@ -1060,11 +1081,30 @@ class PlasticosTransaction(models.Model):
                     [f"plasticos_transaction.close_{rec.id}"],
                 )
 
+    def _lock_load_membership_for_milestone(self, rec):
+        """Serialize a milestone with load attach, reparent, and unlink.
+
+        Lock order is the sale order, then the transaction, then loads already
+        linked. The transaction lock lasts until this cursor ends. Membership
+        changes bump the parent row, so an earlier REPEATABLE READ snapshot
+        fails instead of advancing against loads it cannot see.
+        """
+        if "plasticos.load" not in self.env or "load_ids" not in rec._fields:
+            return
+        load_model = self.env["plasticos.load"]
+        if rec.sale_order_id:
+            load_model._lock_rows("sale_order", [rec.sale_order_id.id])
+        load_model._lock_rows("plasticos_transaction", [rec.id])
+        rec.invalidate_recordset(["state", "sale_order_id", "load_ids"])
+        load_model._lock_rows("plasticos_load", rec.load_ids.ids)
+        rec.load_ids.invalidate_recordset(["state", "transaction_id"])
+
     def _refuse_lagging_loads(self, rec, milestone, message):
         """A transaction milestone requires every linked load to have reached it.
 
         A transaction with no loads keeps its existing workflow, including a PO-only deal.
         """
+        self._lock_load_membership_for_milestone(rec)
         if "load_ids" not in rec._fields or not rec.load_ids or "plasticos.load" not in self.env:
             return
         blocking = self.env["plasticos.load"]._loads_blocking_milestone(rec.load_ids, milestone)
@@ -1075,12 +1115,13 @@ class PlasticosTransaction(models.Model):
     def _validate_close_preconditions(self, rec, service_docs):
         """Guard all business rules that must pass before a transaction can be closed.
 
-        This method is called BEFORE acquiring any locks, so unauthorized users
-        are rejected immediately without holding database resources.
+        Permission is checked before the membership lock so an unauthorized user
+        does not hold the transaction row.
         """
         # Permission check first
         if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
             raise UserError("Only Plasticos Managers can close transactions.")
+        self._lock_load_membership_for_milestone(rec)
         if rec.state == "closed":
             raise UserError("Transaction is already closed.")
         if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
@@ -1124,6 +1165,7 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state not in ("do_created", "supplier_ready"):
                 raise UserError(
                     f"Cannot mark dispatched: transaction must be in 'DO Created' or "
@@ -1143,6 +1185,7 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state not in ("dispatched", "do_created", "in_progress"):
                 raise UserError(f"Cannot mark in transit: invalid current state (current: {rec.state}).")
             self._refuse_lagging_loads(
@@ -1159,6 +1202,7 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state != "in_transit":
                 raise UserError(
                     f"Cannot mark delivered: transaction must be in 'In Transit' state (current: {rec.state})."
