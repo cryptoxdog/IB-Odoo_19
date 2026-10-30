@@ -512,9 +512,11 @@ class PlasticosTransaction(models.Model):
         "Transaction reference must be unique.",
     )
 
-    @api.constrains("commission_override_pct")
     def _check_override_pct_range(self):
-        """Stub — overridden by plasticos_commission.transaction_commission."""
+        """Stub — overridden by plasticos_commission.transaction_commission.
+
+        The range check lives on that inherit, which owns commission_override_pct.
+        """
 
     # ── Default Delivery Term Helper ─────────────────────────
     def _get_default_delivery_term(self):

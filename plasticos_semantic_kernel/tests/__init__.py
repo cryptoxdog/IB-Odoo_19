@@ -1,1 +1,1 @@
-# Test package — Odoo TransactionCase tests land in later tasks
+from . import test_crm_sync_collision

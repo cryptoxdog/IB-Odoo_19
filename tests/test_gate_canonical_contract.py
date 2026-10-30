@@ -197,7 +197,7 @@ def test_gate_destination_is_sdk_owned_not_set_in_odoo():
         "authority (pack ADR-002). Let the SDK default apply."
     )
     config_src = (ROOT / "plasticos_gate" / "services" / "gate_config.py").read_text(encoding="utf-8")
-    assert 'allowed_gate_destination="gate"' in config_src, (
+    assert '"allowed_gate_destination": "gate"' in config_src, (
         "GateClientConfig must pin allowed_gate_destination='gate' so the SDK "
         "enforces Gate-only egress on Odoo's behalf."
     )
