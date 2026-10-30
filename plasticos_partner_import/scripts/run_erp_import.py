@@ -41,6 +41,7 @@ def run(
     layer: str | None = None,
     database=None,
     after_stage=None,
+    on_payload=None,
 ) -> dict:
     """Execute the ERP import, print an accounting report, and emit the
     shared import-run summary (``contracts/schemas/draft/import-run-summary``).
@@ -60,6 +61,8 @@ def run(
             database. It takes precedence over ``payload_root``.
         after_stage: ``callable(layer_name, payload)`` run after each partner
             stage, before anything commits. Raising aborts the run.
+        on_payload: ``callable(payload)`` run once the source is loaded and
+            before any stage writes. Raising aborts the run.
 
     Returns:
         The import report produced by ``plasticos.erp.import`` with a
@@ -76,6 +79,7 @@ def run(
         layer=layer,
         database=database,
         after_stage=after_stage,
+        on_payload=on_payload,
     )
 
     if not dry_run:

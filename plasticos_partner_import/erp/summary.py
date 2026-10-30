@@ -56,9 +56,11 @@ unit's lines) are evidence of a broken run, never relabelled as rejected.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 
-__all__ = ["import_run_summary", "run_exit_status", "utc_now"]
+__all__ = ["data_verdict", "exceptions_digest", "import_run_summary", "run_exit_status", "utc_now"]
 
 SUMMARY_SOURCE = "erp"
 # ``source_counts`` key that tallies rows already counted in their own table.
@@ -167,3 +169,49 @@ def run_exit_status(result: dict, *, dry_run: bool = False, layer: str | None = 
         return 0
     summary = result.get("summary") or {}
     return 1 if summary.get("final_status") == "failed" else 0
+
+
+# Native documents are realized as draft account.move with no payment. No
+# approved mapping from ERP posting/settlement status exists, so historical
+# accounting state is never accepted by an import run.
+ACCOUNTING_STATE = "draft_unposted"
+ACCOUNTING_ACCEPTANCE = "BLOCKED_ARCHITECTURE"
+
+
+def exceptions_digest(summary: dict) -> str:
+    """Digest of what a run left open: status, rejected count and every reported error reference."""
+    errors = sorted(
+        (str(row.get("record_ref") or ""), str(row.get("message") or "")) for row in summary.get("errors") or []
+    )
+    body = {
+        "final_status": summary.get("final_status"),
+        "records_rejected": summary.get("records_rejected"),
+        "errors": errors,
+    }
+    return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def data_verdict(result: dict, *, partners_only: bool = False) -> dict:
+    """Data acceptance of an applied run, separate from its process exit status.
+
+    Exit 0 means the script completed: a ``partial`` run exits 0. The verdict
+    says whether the data is complete: only a ``success`` summary with no
+    run-level failure is. Open exceptions are the summary's rejected rows and
+    error references; ``exceptions_digest`` lets an operator accept exactly
+    that set and nothing else.
+    """
+    summary = result.get("summary") or {}
+    failures = result.get("failures") or []
+    status = summary.get("final_status") or "unknown"
+    complete = status == "success" and not failures
+    verdict = {
+        "final_status": status,
+        "data_complete": complete,
+        "open_exceptions": int(summary.get("records_rejected") or 0) + len(failures),
+        "run_failures": [str(row.get("check") or "?") for row in failures],
+        "exceptions_digest": exceptions_digest(summary),
+    }
+    if not partners_only:
+        verdict["accounting_state"] = ACCOUNTING_STATE
+        verdict["accounting_acceptance"] = ACCOUNTING_ACCEPTANCE
+    return verdict

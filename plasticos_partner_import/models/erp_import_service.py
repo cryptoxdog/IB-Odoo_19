@@ -95,6 +95,7 @@ class PlasticosErpImport(models.AbstractModel):
         layer: str | None = None,
         database=None,
         after_stage=None,
+        on_payload=None,
     ) -> dict:
         """Run the import and return an accounting report.
 
@@ -121,6 +122,10 @@ class PlasticosErpImport(models.AbstractModel):
             after_stage: ``callable(layer_name, payload)`` invoked after each
                 partner stage that wrote (not in a dry run). Raising aborts the
                 run before any commit; the caller rolls back.
+            on_payload: ``callable(payload)`` invoked once the source is
+                loaded and before any stage writes (not in a dry run). The
+                Production permit check binds the loaded rows here; raising
+                aborts the run with nothing written.
 
         Returns:
             Per-entity created/updated/skipped/rejected counts plus every
@@ -145,6 +150,8 @@ class PlasticosErpImport(models.AbstractModel):
         else:
             only = None
         payload = reader.load_payload(payload_root, only=only, database=database)
+        if on_payload is not None and not dry_run:
+            on_payload(payload)
         index = source_index.build_source_index(payload)
         _logger.info("ERP payload loaded (%s from %s): %s", payload.kind.value, payload.origin, payload.row_counts())
 
