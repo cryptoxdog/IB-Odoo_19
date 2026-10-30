@@ -227,8 +227,10 @@ else:
 if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
     pass
 else:
-    # Auto calculate penalties when invoice is posted and linked to transaction
-    for invoice in records.filtered(lambda i: i.move_type in ['out_invoice', 'in_invoice'] and i.transaction_id and not i.has_penalty):
+    # Opening items are excluded during the financial shadow period.
+    allow_cutover = ('plasticos_cutover_opening' not in records._fields or
+                     env['ir.config_parameter'].sudo().get_param('plasticos_accounting.cutover_handover_enabled') == '1')
+    for invoice in records.filtered(lambda i: i.move_type in ['out_invoice', 'in_invoice'] and i.transaction_id and not i.has_penalty and (allow_cutover or not i.plasticos_cutover_opening)):
         try:
             invoice.calculate_penalties()
             if invoice.has_penalty:

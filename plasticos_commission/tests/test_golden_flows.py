@@ -544,6 +544,7 @@ class TestGoldenCommissionCalculation(PlasticosTestCase):
 
         self.Tx._apply_close(tx)
         self.assertTrue(tx.commission_locked)
+        self.assertTrue(tx.commission_earned_date)
         self.assertAlmostEqual(tx.commission_locked_amount, expected, places=2)
         self.assertAlmostEqual(tx.commission_amount, expected, places=2)
 

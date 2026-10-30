@@ -49,6 +49,14 @@ class PlasticosTransactionCommission(models.Model):
         help="Tracks whether the commission on this transaction has been paid out.",
     )
 
+    commission_earned_date = fields.Date(
+        string="Commission Earned On",
+        readonly=True,
+        copy=False,
+        index=True,
+        help="Recorded on an actual live close, never guessed for historical ERP trades.",
+    )
+
     # ── Commission Compute ────────────────────────────────────────────────────
 
     @api.depends(
@@ -103,4 +111,5 @@ class PlasticosTransactionCommission(models.Model):
         amount = service.compute_commission(rec)
         rec.commission_locked_amount = amount
         rec.commission_locked = True
+        rec.commission_earned_date = fields.Date.context_today(rec)
         super()._apply_close(rec)

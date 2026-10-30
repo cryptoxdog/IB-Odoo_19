@@ -100,7 +100,15 @@ buyer, and date together. The rest carry an explicit reason
 (`no material payable`, `no settled receipt`, `no GPLedger trade date`), and 2
 ambiguous-supplier rows are left unresolved rather than picked.
 
-### Historical state — derived, not read
+### Historical state — forensic reconstruction, not the live importer state authority
+
+The table below is an archived diagnostic reconstruction only. As specified
+by proposed ADR-022, every historical transaction the importer creates
+starts Closed, whatever the raw worksheet status. Excluded rows are not
+created. Original worksheet status is retained as provenance. A Manager may
+reopen one Closed historical transaction with a reason. Neither forensic
+settlement evidence nor an outstanding invoice may activate a historical trade.
+Opening unpaid accounting items require a separately reconciled cutoff.
 
 The source has no status column, so state is derived from settlement evidence:
 
@@ -111,7 +119,7 @@ The source has no status column, so state is derived from settlement evidence:
 | `delivered` | delivery leg exists, never booked | 104 |
 | `draft` | lines only | 886 |
 
-This replaces the retired service's flat `state="closed"` for every row.
+This historic derived-state model is not an active import lifecycle contract.
 
 ---
 
@@ -406,7 +414,7 @@ asserts. For the record, what it did differently:
 | Source | one root `ERP.WksDetail.csv` sample | the full tracked export (10 tables) |
 | Parties | none — no `supplier_id`, no `buyer_id` | reconstructed from proven joins |
 | PO approval date | none | reconstructed from `min(GPLedger.TradeDt)`; persists to native `purchase.order.date_approve` when historical PO realization exists |
-| State | hardcoded `closed` for every row | derived from settlement evidence |
+| State | formerly hardcoded `closed` | created historical trades start Closed; raw status is provenance; settlement is independently reconciled at cutoff |
 | Partners / contacts / roles | not imported | imported deterministically |
 | Atomicity | `cr.commit()` every 100 records | one savepoint per `BuySellNo` |
 | Unknown UOM | silently defaulted to `L` | flagged as an anomaly |
