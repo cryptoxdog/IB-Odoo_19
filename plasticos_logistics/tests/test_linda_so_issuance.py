@@ -40,8 +40,11 @@ class TestLindaSoIssuance(PlasticosTestCase):
         cls.company = cls.env.company
         cls.config = cls.env["plasticos.automation.config"].get_config()
         cls.config.sale_approval_threshold = 1000000.0
-        cls.salesperson = new_test_user(
-            cls.env, login="linda_so_sales", groups="sales_team.group_sale_salesman", email="sales@example.com"
+        cls.logistics_user = new_test_user(
+            cls.env,
+            login="linda_so_logistics",
+            groups="plasticos_security_base.group_logistics",
+            email="logistics@example.com",
         )
         cls.buyer = cls.env["res.partner"].create(
             {"name": "Northwind Compounding", "is_company": True, "customer_rank": 1, "email": "buy@northwind.example"}
@@ -134,10 +137,10 @@ class TestLindaSoIssuance(PlasticosTestCase):
         self._set_mode("live")
         po_count = self.env[PURCHASE_ORDER].search_count([])
         load_count = self.env["plasticos.load"].search_count([])
-        # A salesperson may confirm only their own orders (native record rule).
-        so = self._new_so(user_id=self.salesperson.id)
+        # Logistics can write a sale order and cannot create one. The order is created as superuser.
+        so = self._new_so(user_id=self.logistics_user.id)
 
-        so.with_user(self.salesperson).action_confirm()
+        so.with_user(self.logistics_user).action_confirm()
 
         self.assertEqual(so.state, "sale")
         request = self._requests(so)
@@ -747,18 +750,18 @@ class TestLindaSoIssuance(PlasticosTestCase):
             self.assertEqual(so.state, "cancel")
             self.assertFalse(self._notices(so), key)
 
-    def test_sales_user_cancel_records_notice_but_cannot_forge_one(self):
+    def test_logistics_user_cancel_records_notice_but_cannot_forge_one(self):
         """AC-20: an authorized cancel records the notice via Linda's sudo; the user cannot forge or edit."""
-        so, first = self._sent_so(user_id=self.salesperson.id)
-        so.with_user(self.salesperson).action_cancel()
+        so, first = self._sent_so(user_id=self.logistics_user.id)
+        so.with_user(self.logistics_user).action_cancel()
         notice = self._notices(so)
         self.assertEqual(notice.state, "queued")
-        as_user = notice.with_user(self.salesperson)
+        as_user = notice.with_user(self.logistics_user)
         for vals in ({"state": "sent"}, {"recipient_email": "attacker@example.com"}):
             with self.assertRaises(AccessError):
                 as_user.write(vals)
         with self.assertRaises(AccessError):
-            self.Request.with_user(self.salesperson).create(
+            self.Request.with_user(self.logistics_user).create(
                 {
                     "company_id": self.company.id,
                     "purpose": SO_CANCEL,
