@@ -9,22 +9,23 @@
 # Modes:
 #   fast  — audit-quick + pytest (local iteration only; not publication)
 #   full  — local blocking static audit (make audit) + audit baseline +
-#           pure-Python tests + local Odoo install-smoke (when its load inputs
-#           changed) + remote PR feedback (when available) (make pr-check)
+#           pure-Python tests + remote PR feedback (when available) (make pr-check)
 #
 # full runs only what the branch changed can reach. scripts/pr_check_scope.py
 # compares the branch with origin/$PR_BASE (committed range, working tree,
 # untracked files) and decides: the static audits run when any non-documentation
 # path changed; pytest runs only the test modules touched by, or reading, the
-# changed paths (the whole suite when the harness changed); install-smoke runs
-# only when an addon load input or an installer input changed. Every doubt
-# keeps the whole gate. GitHub ci.yml still runs everything on the PR.
+# changed paths (the whole suite when the harness changed). The full Docker
+# install is optional. INSTALL_SMOKE_GATE=1 restores it for an addon load
+# input or an installer input. Every doubt keeps the audit and pytest gate.
+# GitHub ci.yml still runs everything on the PR.
 #
 # Env:
 #   PR_BASE=<branch>          publication base (default: Staging)
 #   PR_CHECK_SCOPE=full       run the whole gate regardless of what changed
 #   PR_CHECK_JOBS=N           parallel make jobs (default: 4)
 #   PR_CHECK_SKIP_REMOTE=1    skip GitHub/Sonar/review sync
+#   INSTALL_SMOKE_GATE=1      restore the full install as a gate (default: off)
 #   PR_CHECK_SKIP_SMOKE=1     skip Docker install-smoke
 #   PR_CHECK_FORCE_SMOKE=1    ignore install-smoke evidence and install again
 #   PR_CHECK_SMOKE_CACHE=0    disable evidence reuse (always install when not skipped)
@@ -68,6 +69,10 @@ unset PR_CHECK_SKIP_SMOKE PR_SMOKE_BYPASS
 maybe_install_smoke() {
   if [ "${SMOKE_SKIP}" = "1" ]; then
     log "→ install-smoke skipped"
+    return 0
+  fi
+  if [ "${INSTALL_SMOKE_GATE:-0}" != "1" ]; then
+    log "→ full install-smoke is optional (INSTALL_SMOKE_GATE=1 restores the gate)"
     return 0
   fi
 

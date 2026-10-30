@@ -440,6 +440,7 @@ def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
         env["HOME"] = str(tmp_path / "gov-home")
     env["GIT_CONFIG_NOSYSTEM"] = "1"
     env["GIT_CONFIG_GLOBAL"] = os.devnull
+    env.pop("INSTALL_SMOKE_GATE", None)
     env.update(extra)
     return env
 
@@ -467,7 +468,7 @@ def _assert_no_push(seq: Path) -> None:
 def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     _seed_open_pr(tmp_path, repo)
-    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0")
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", INSTALL_SMOKE_GATE="1")
     output = proc.stdout + proc.stderr
     assert proc.returncode == 0, output
     text = _seq(seq)
@@ -733,9 +734,18 @@ def _push(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.Co
     )
 
 
-def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:
+def test_full_install_is_optional_and_resolve_still_runs(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     proc = _push(repo, tmp_path, "fix/example")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = _seq(seq)
+    assert text.index("smoke --resolve") < text.index("make ") < text.index("\npush\n")
+    assert "smoke --recheck" not in text
+
+
+def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    proc = _push(repo, tmp_path, "fix/example", INSTALL_SMOKE_GATE="1")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     text = _seq(seq)
     assert text.index("gitleaks ") < text.index("smoke --resolve") < text.index("make ")
@@ -816,7 +826,7 @@ def test_accepting_pre_push_hook_runs_once_and_publishes_validated_head(tmp_path
     repo, seq = _init_repo(tmp_path)
     bare, seeded = _bare_remote(tmp_path, repo)
     _seed_open_pr(tmp_path, repo)
-    env = {"REAL_REMOTE": str(bare)}
+    env = {"REAL_REMOTE": str(bare), "INSTALL_SMOKE_GATE": "1"}
     if entry == "make_pr":
         proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", **env)
     else:
@@ -924,8 +934,8 @@ def test_scope_receipt_without_smoke_inputs_skips_only_the_recheck(tmp_path: Pat
         repo2, seq2 = _init_repo(tmp_path / name)
         (repo2 / ".cache" / "pr-check").mkdir(parents=True)
         _write(repo2 / ".cache" / "pr-check" / "scope.json", receipt)
-        assert _push(repo2, tmp_path / name, "fix/example").returncode == 0
-        assert "smoke --recheck" in _seq(seq2), "RECHECK: only an explicit smoke=0 receipt skips it"
+        assert _push(repo2, tmp_path / name, "fix/example", INSTALL_SMOKE_GATE="1").returncode == 0
+        assert "smoke --recheck" in _seq(seq2), "RECHECK: with the gate on, only an explicit smoke=0 receipt skips it"
 
 
 def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
