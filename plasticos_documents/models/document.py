@@ -425,9 +425,10 @@ class PlasticosDocument(models.Model):
             native.invalidate_recordset(["verified", "verified_by", "verified_at", "override", "override_reason"])
         # Trigger recompute after delete (both flags AND compliance)
         if transactions:
-            transactions._compute_missing_doc_flags()
-            if hasattr(transactions, "_compute_compliance"):
-                transactions._compute_compliance()
+            projected = transactions.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+            projected._compute_missing_doc_flags()
+            if hasattr(projected, "_compute_compliance"):
+                projected._compute_compliance()
         return result
 
     def _invalidate_native_projection(self):
@@ -448,10 +449,11 @@ class PlasticosDocument(models.Model):
         """
         transactions = self._get_related_transactions(records)
         if transactions:
-            transactions._compute_missing_doc_flags()
+            projected = transactions.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+            projected._compute_missing_doc_flags()
             # Issue 3 fix: compliance_status depends on documents too
-            if hasattr(transactions, "_compute_compliance"):
-                transactions._compute_compliance()
+            if hasattr(projected, "_compute_compliance"):
+                projected._compute_compliance()
 
     def _association_conflict_reason(self):
         """A stored transaction pointer must agree with the accepted load's parent."""
