@@ -1,0 +1,23 @@
+{
+  "schema_name": "L9 Coding Agent Execution Contract",
+  "source_version": "1.1.0",
+  "package_revision": "v1.2_AMENDED",
+  "amendment": "13_AMENDMENT_v1.2_OPERATOR_DECISIONS.md",
+  "operator_decisions": ["D1_repo_local_make_pr", "D2_procedural_permit_icp_consumption", "D3_private_inputs_external_runtime", "D4_revisioned_amendment"],
+  "validation": "LOCAL_STRUCTURAL_AND_POLICY_CHECKS_ONLY",
+  "contract_count": 6,
+  "required_fields_all_present": true,
+  "unique_contract_ids": true,
+  "one_repository_one_pr": true,
+  "source_snapshot": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+  "governance_source_observed": "f47c256b2c282b51a22b416f28466d60018e299f",
+  "l9_authority_source_observed": "3dcdeaae355b6de08562993f705084d7a3714bfd",
+  "canonical_projection_verified": false,
+  "real_gar_compiler_delegation": "NOT_RUN",
+  "tests_executed": "SEE_CAMPAIGN_RECEIPT",
+  "implementation": "SEE_CAMPAIGN_RECEIPT",
+  "production_access": "UNKNOWN",
+  "deployment": "NOT_AUTHORIZED",
+  "operator_prod_import": "NOT_AUTHORIZED",
+  "statement": "Schema/policy validation confirms pack consistency only; zero runtime, authority, GAR compiler, hosted connectivity, CI or Production acceptance is implied."
+}

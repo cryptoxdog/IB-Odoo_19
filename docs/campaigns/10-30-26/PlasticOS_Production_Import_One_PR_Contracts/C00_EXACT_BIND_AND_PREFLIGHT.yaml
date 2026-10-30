@@ -1,0 +1,201 @@
+contract_id: PLASTICOS.PROD_IMPORT.20261030.C00
+objective: Bind the actual current Staging baseline and owner graph for one import-enable PR; perform available
+  read-only hosted/source probes and classify absent runtime evidence as cutover BLOCKED/UNKNOWN, without blocking
+  safe offline implementation or authorizing Production writes.
+target:
+  repository_or_artifact: https://github.com/cryptoxdog/IB-Odoo_19
+  base_revision: 42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a
+  branch_or_worktree: feat/production-erp-crm-bootstrap (one proposed isolated worktree; bind actual branch
+    + SHA in C00)
+authority_refs:
+- 'Operator 2026-10-30: one seam, one PR, as many coding contracts as required; no worksheet image/document
+  attachment imports; production ERP + VanillaSoft history after promotion'
+- Uploaded L9 Coding Agent Execution Contract(9).md v1.1.0
+- https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/adr/ADR-021-erp-sql-crm-api-import.md
+- https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/INVARIANTS.md
+- https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/CURSOR_EXECUTION_CONTRACT.md
+- Existing governing repository rules and current canonical L9 authority, where independently verified; absent
+  authority must be recorded UNKNOWN rather than assumed
+- 'Observed target Staging snapshot: https://github.com/cryptoxdog/IB-Odoo_19/commit/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a;
+  rebind to actual current integration head before edits/publication'
+- 'Observed Cursor-Governance source snapshot: https://github.com/Quantum-L9/Cursor-Governance/commit/f47c256b2c282b51a22b416f28466d60018e299f;
+  not the publication owner under amendment v1.2 D1'
+- 'Amendment v1.2 (13_AMENDMENT_v1.2_OPERATOR_DECISIONS.md): operator decisions D1-D4, 2026-10-30; prevails
+  over conflicting v1.1 text'
+- 'Observed Quantum-L9/.github snapshot: https://github.com/Quantum-L9/.github/commit/3dcdeaae355b6de08562993f705084d7a3714bfd;
+  canonical consumer projection + independent PASS receipts NOT_VERIFIED'
+- 'Operator latest decision: worksheet images and document-to-transaction attachments are deferred; six contracts
+  together form one PR only'
+- 'Odoo 19 official Odoo.sh shell and interruption documentation: https://www.odoo.com/documentation/19.0/administration/odoo_sh/getting_started/branches.html;
+  https://www.odoo.com/documentation/19.0/administration/odoo_sh/advanced.html'
+in_scope:
+- Read-only dependency census across actual import entrypoints, source readers, Odoo.sh environment, config,
+  manifests, current test suite and 345/346 interactions.
+- Check current Production database identity, installed import/CRM addons and business-partner census read-only;
+  determine fresh/contaminated target without deleting it.
+- Read-only verified Odoo.sh shell availability, config/data paths, Python SQL driver and release package;
+  read-only ERP SQL connectivity to current authoritative restored backup.
+- Validate current snapshot vs live VanillaSoft ContactID population, crosswalk private input hashes, credentials/endpoint
+  visibility without revealing them; verify old per-ID API fetch and source total.
+- Identify whether historical accounting state/status is source-bound and approved; record this separately
+  from native Odoo draft invoice behavior.
+- Determine source host/network topology and whether allowed direct SQL source is reachable from the intended
+  Odoo.sh execution environment; no port exposure or data copy.
+out_of_scope:
+- Worksheet images, historical document binaries, and attaching images/documents to transactions (fully deferred)
+- Historical ERP CSV/grid as an alternative production source; rewriting ADR-021 transport or adding a second
+  ETL pipeline
+- New EIE, CEG, Gate, matching, enrichment, AI, website, export or warehouse workflows
+- AWS DR rollout, broad business acceptance, bulk historical document recovery
+- Changing authorization or core accounting semantics just to make tests pass
+- 'Merging PR #345/#346 or repairing their independent unresolved failures outside direct regression scope'
+- Actual Odoo.sh Production deployment, destructive reset, Production data write, real overnight import or
+  enabling outbound integrations
+- Any second PR, raw git push, unapproved repo write, or change outside the bounded import ownership
+locked_invariants:
+- One PR to Staging covers the entire Production import enablement seam; all coding contracts are sequential
+  phases of that one branch and one PR, not separate PRs.
+- ERP SQL Server -> existing reader.py PROJECTION_SCRIPTS -> SourceIndex -> native Odoo ORM/importer; no new
+  CSV-driven source of truth.
+- ERP first (explicitly active companies/contacts; no ineligible Contact IsActive aliases or inactive partner
+  creation), then commercial documents, then full VanillaSoft historical ContactID cohort + current delta.
+- Native Odoo sale.order, purchase.order and account.move are commercial document owners; transaction is compiled
+  from confirmed sale.order, never directly bulk written.
+- Source-native ERP keys and VanillaSoft ContactIDs are identity; no fuzzy name, phone, email, Odoo ID, or
+  unapproved crosswalk matching.
+- Approved 763 / rejected 18 / pending 4095 decisions; 759 approved VanillaSoft crosswalk IDs and four duplicate-omitted
+  IDs are preserved and reverified on input bytes. Pending IDs remain CRM leads, not ERP partner bindings.
+- Every imported source row gets a consistent created/updated/unchanged/rejected or named exception disposition;
+  material failure never reported as a green complete run.
+- Odoo.sh Production writes are forbidden by default and may only be enabled by an exact-target, operator-authorized,
+  explicitly bounded path; never bypass environment detection or rename target to suppress checks.
+- No live SMTP, Linda SO/PO issuance, procurement, calls, external side effects, or overlapping CRM cron on
+  historical import. Existing import_mode/skip_procurement behavior must remain verified.
+- 'Preserve all non-import features and existing local/uncommitted work; no regression of ten-test closure
+  work, PR #346 sale/load integration, or protected source semantics.'
+- Whole-run resume must be idempotent across crash-after-write/before-checkpoint and duplicate replay; no infinite
+  retry or unattended unbounded execution.
+- No unapproved accounting posting, settlement, payment creation, or status fabrication. Source-accurate historical
+  statuses remain a separately proven contract and cannot be silently redefined as all draft.
+- Promotion does not authorize destruction of legacy Production data; any reset or new Odoo.sh database is
+  a separate operator action.
+- 'Separate proof gates: an implementation PR may be published with transparent NOT_RUN live-host probes and
+  known inherited test failures; this cannot be described as import-ready, merge-ready or Production-ready
+  until all relevant gates actually pass.'
+- A current go-live ERP SQL snapshot is immutable through both ERP phases and carries source identity, extraction
+  time, table counts and a secure read-only access proof; old fixture grids and the October 3 backup are never
+  live cutover authority.
+- A first-time Production import is permitted only into an explicitly admitted empty-business-data target;
+  any reset, fresh database replacement or override of contaminated data requires a separate operator decision,
+  never an automatic side effect of this PR.
+acceptance_criteria:
+- 'Pin current Staging SHA and existing PR ledger, choose one isolated clean worktree, preserve unrelated changes.
+  Do not require waiting for #345 or #346 to merge; if those PRs later land, rebase/rebind and independently
+  retest intersecting owners before PR publication or merge.'
+- Live topology matrix names Odoo.sh build/branch/database, installed addons, Odoo CLI entrypoint, ERP reader
+  source, driver and egress statuses as PROVEN, NOT_RUN, BLOCKED or UNKNOWN with evidence. Unavailable live
+  access never becomes PASS and does not, alone, block safe local coding.
+- Production business-partner census recorded read-only when access exists; when host access is not available
+  record NOT_RUN and the exact proof request. Never assume an empty target or authorize delete/reset.
+- Historical 4,876-ID cohort and private input hash observations recorded where access permits; missing private
+  inputs are an explicit NOT_RUN proof request, never a guessed digest confirmation. Do not include PII.
+- Accounting document state semantics either confirmed with source owner evidence or explicitly marked BLOCKED_ARCHITECTURE,
+  not implemented from inference.
+- C01-C05 may implement offline after source authority, scope, exact writable worktree and modification permissions
+  are bound; host-only prerequisites may remain UNKNOWN for final Production-import readiness. Any unresolved
+  material security or accounting semantics block only their affected execution or acceptance slices.
+forbidden_actions:
+- No actual Production writes, Odoo.sh deployment, reset, PR merge or cutover during implementation/validation.
+- No arbitrary production bypass flags, ODOO_STAGE spoofing, environment rename, direct SQL INSERT/UPDATE to
+  source, or privileged open SQL Server endpoint.
+- No raw git push, gh pr create or API publication; one final repository-local make pr (Makefile pr ->
+  scripts/make_push_pipeline.sh, base Staging) only, per amendment v1.2 D1.
+- No export of customer PII, CRM crosswalk, credentials, private source databases or contact notes to GitHub/PR/test
+  receipts.
+- No gating suppression or automatic status changes to hide full-suite errors, failed import rows, DNC, or
+  rejected identities.
+- Do not run a continuous daemon/background process inside Odoo.sh, uncontrolled cron, automatic email/stock
+  side effects or a bulk modified-after API pretending to cover historical CRM.
+- Do not deploy this contract ZIP or run its example scripts in Production; code publication does not authorize
+  Promotion, first Production writes, ERP source mutation, CRM provider writes or emailing customers.
+validation_obligations:
+- Source-only tests/inspections of installed code; no live Production write and no command based on guessed
+  Make targets.
+- Produce actual Odoo.sh source/driver and old API ID read-only probes WHEN accessible; if not, record named
+  NOT_RUN/UNKNOWN. A code PR may proceed with simulated negative tests, but the combined overnight cutover
+  is blocked until the real probes pass.
+- Capture tests/baseline names/counts and current installed module states.
+- 'Report separately: code implementation evidence, final candidate Enterprise regression proof, Odoo.sh read-only
+  hosting proof, actual Production import authorization, and post-run data acceptance. No earlier phase may
+  imply a later PASS.'
+- 'Capture exact owner census: production refusal, source read, ORM writer, source snapshot/partner active
+  exclusion, historical SO confirmation -> transaction, CRM ref/crosswalk, call import, cron scheduler, native
+  notifications and payment context.'
+- Read-only probes must not invoke production Odoo shell write transactions; Odoo.sh web-editor interactive
+  shells may auto-commit. Sensitive access/probe logs are sanitized and stored privately.
+delivery_mode: Read-only evidence dossier stored in the shared one-PR worktree or private workspace, no publication
+implementation_discretion: Local details within named existing owners only; no provider, data-source, security,
+  identity or accounting semantic revision.
+external_action_permissions:
+- Read-only inspections of authorized repositories and target environments where accessible.
+- Edit and test a single bounded local worktree in the writable repository after rebind.
+- One PR publication to Staging by the repository-local make pr terminal ceremony only (amendment v1.2 D1),
+  after review of that publication source and once all code-gated phases pass; operational NOT_RUN/BLOCKED items
+  cannot be called import-ready.
+- No permission to merge, deploy, modify Odoo.sh Production data, modify SQL Server, rotate secrets or run
+  full Production imports.
+unresolved_unknowns:
+- Odoo.sh production build/DB ID, hostname, SSH rights and whether a fresh DB exists.
+- Whether ERP SQL source is reachable securely from Odoo.sh and which current backup snapshot is authoritative.
+- 'Historical accounting-status requirements are a separate semantic gate: if unresolved, do not change native
+  posting code or certify full accounting data acceptance; permit independent import-runner fixes.'
+- Actual ability to run read-only proof on host; leave BLOCKED if inaccessible.
+- Host access, current SQL backup and live CRM credentials are operational cutover preconditions, not automatic
+  blockers to offline coding, focused tests or one PR publication. If unverified, mark IMPORT_READY=BLOCKED/UNKNOWN,
+  not PASS.
+inspection_scope:
+- Makefile
+- scripts/test_env.sh
+- plasticos_partner_import/**
+- plasticos_transaction/models/native_document_import.py
+- plasticos_crm_sync/**
+- plasticos_crm_bridge/**
+- tests/test_erp_*
+- config/odoo_module_order.yaml
+- docs/adr/ADR-021*
+- go-live source-chain docs
+- Odoo.sh actual read-only runtime
+- Cursor-Governance SSOT read-only
+modification_scope: []
+readiness_claim: DISCOVERY_REPORT_ONLY_NOT_IMPLEMENTATION_AUTHORIZATION
+baseline_expectations:
+- 'Staging source snapshot 42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a; #345 head 76c7d0bf0e3b449be367ebd82de74273f303ad7b
+  and #346 head 26f97308885a638c45d957ef9767b5e1dd00ed4c both open on 2026-10-30. New coding work may start
+  from an exact verified current Staging head without waiting for these unrelated merges; rebind/rebase, inspect
+  collisions and retest before publication/merge.'
+- 'Known last reported full Enterprise test suite 1,103 tests with 8 failures, 2 errors on #346 evidence; validate
+  current baseline independently and separate existing failures from candidate regressions.'
+- Current importer guard rejects ODOO_STAGE=production or production-looking DB names. Existing Makefile import-erp
+  is Docker/local-first.
+- Current active-only contact exclusion exists via mapping.contact_exclusion and erp_import_service; do not
+  reimplement it.
+- Current CRM 4,876-ID runner hardcodes /mnt/extra-addons/Current Work - IGNORE; current full bulk modified-after
+  API is not a historical importer.
+- Current ERP native document importer creates draft account.move and no posting/payment; actual historical
+  status parity is not established.
+- ERP source go-live-day SQL backup, Odoo.sh source reachability, Odoo.sh installed module configuration, runtime
+  tool access and Production data cleanliness unverified.
+preservation_obligations:
+- Keep original ADR-021/approved crosswalk law and source identity markers intact; preserve duplicate-safe
+  replay.
+- Keep CRM warnings with reason and explicit held/failed classes; Do Not Call is preserved as contact restriction.
+- Keep native documents, SO-confirm/transaction compile, purchase/invoice/bill semantics and source payables
+  reconciliation; no new transaction writer.
+- Keep original source owner negative tests effective; add new positive Production-approved test rather than
+  deleting deny tests.
+- No unapproved new addon/model/IR model schema or runtime dependency; minimal owner changes, tests and operator
+  documentation only.
+- Preserve existing native Odoo.sh protection and rollback checkpoint; AWS recovery implementation and broad
+  business UAT are deferred without expanding this coding seam.
+- Preserve the accurate distinction between historical cohort completion, current-source delta completeness,
+  and unproven live total; never claim all contacts loaded solely from the 4,876-ID historical snapshot.

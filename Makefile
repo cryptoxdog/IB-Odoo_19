@@ -1029,6 +1029,7 @@ import-erp:
 			-e ERP_SQL_PASSWORD="$(ERP_SQL_PASSWORD)" \
 			-e ERP_SQL_PORT="$(ERP_SQL_PORT)" \
 			-e ERP_SQL_DRIVER="$(ERP_SQL_DRIVER)" \
+			-e ERP_PROBE="$(ERP_PROBE)" \
 			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_partner_import/scripts/import_erp_shell.py; \
 	elif [ -n "$$TEST_ENV_VERIFIED_CLONE" ]; then \
 		echo "❌ test-env refused: $(ODOO_DB_NAME) was verified on the Docker stack and Docker is unreachable; the no-Docker harness is another server" >&2; exit 2; \
@@ -1042,6 +1043,7 @@ import-erp:
 		ERP_SQL_SERVER="$(ERP_SQL_SERVER)" ERP_SQL_DATABASE="$(ERP_SQL_DATABASE)" \
 		ERP_SQL_USER="$(ERP_SQL_USER)" ERP_SQL_PASSWORD="$(ERP_SQL_PASSWORD)" \
 		ERP_SQL_PORT="$(ERP_SQL_PORT)" ERP_SQL_DRIVER="$(ERP_SQL_DRIVER)" \
+		ERP_PROBE="$(ERP_PROBE)" \
 		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
 			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
 			--addons-path="$$src/odoo/addons,$(CURDIR)" \

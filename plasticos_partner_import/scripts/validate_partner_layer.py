@@ -48,6 +48,14 @@ PRODUCTION_STAGE = "production"
 PRODUCTION_NAME_MARKERS = ("production", "prod")
 # The check that must pass before any stage writes.
 DATABASE_CHECK = "database"
+# The one database a verified one-use Production permit admitted in this
+# process (``erp/production_permit.py``). Only ``import_erp_shell.py`` sets it.
+_PRODUCTION_ADMISSION: dict[str, str | None] = {"database": None}
+
+
+def admit_production(database_name: str) -> None:
+    """Lift the production refusal for exactly ``database_name``, after the shell verified a permit for it."""
+    _PRODUCTION_ADMISSION["database"] = database_name
 
 
 class LayerRejected(RuntimeError):
@@ -197,7 +205,7 @@ def check_full_run_extension(env, failures: list[str], installed: set[str] | Non
 
 
 def check_database(env, failures: list[str]) -> None:
-    """The target is the declared disposable database, not production, with the modules the import needs."""
+    """The target is the declared database, not production unless a permit admitted it, with the modules needed."""
     # Direct SQL justification: the connected database's own name is the identity being verified.
     env.cr.execute("SELECT current_database()")
     name = env.cr.fetchone()[0]
@@ -207,10 +215,14 @@ def check_database(env, failures: list[str]) -> None:
     elif name != target:
         _fail(failures, f"database is {name}, expected the declared target {target}")
     stage = (os.environ.get(ODOO_STAGE_ENV) or "").strip().lower()
-    if stage == PRODUCTION_STAGE:
-        _fail(failures, f"{ODOO_STAGE_ENV}=production: the ERP import never runs on a production database")
+    admitted = bool(name) and stage == PRODUCTION_STAGE and _PRODUCTION_ADMISSION["database"] == name
+    if stage == PRODUCTION_STAGE and not admitted:
+        _fail(
+            failures,
+            f"{ODOO_STAGE_ENV}=production: the ERP import writes production only under a verified one-use permit",
+        )
     lowered = (name or "").lower()
-    if any(marker in lowered for marker in PRODUCTION_NAME_MARKERS):
+    if any(marker in lowered for marker in PRODUCTION_NAME_MARKERS) and not admitted:
         _fail(failures, f"database {name} identifies as production")
     required = required_modules()
     wanted = list(USA_MODULES) + list(required)
