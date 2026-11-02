@@ -24,6 +24,7 @@
 ./plasticos_crm_sync/views/crm_sync_run_views.xml
 ./plasticos_crm_sync/views/menu.xml
 ./plasticos_crm_sync/views/res_config_settings_views.xml
+./plasticos_crm_sync/views/res_partner_sync_views.xml
 ./plasticos_documents/views/document_extension_views.xml
 ./plasticos_documents/views/document_rule_views.xml
 ./plasticos_documents/views/document_tag_views.xml
@@ -49,6 +50,7 @@
 ./plasticos_intake_normalizer/views/normalizer_config_views.xml
 ./plasticos_logistics/views/freight_actual_correction_wizard_views.xml
 ./plasticos_logistics/views/freight_views.xml
+./plasticos_logistics/views/linda_response_views.xml
 ./plasticos_logistics/views/load_bulk_update_wizard_views.xml
 ./plasticos_logistics/views/load_dashboard_views.xml
 ./plasticos_logistics/views/load_ux.xml
@@ -67,6 +69,7 @@
 ./plasticos_material_profile/views/polymer_views.xml
 ./plasticos_material_profile/views/process_type_views.xml
 ./plasticos_material_profile/views/source_type_views.xml
+./plasticos_offer/views/intake_offers_bridge_views.xml
 ./plasticos_offer/views/offer_bulk_action_wizard_views.xml
 ./plasticos_offer/views/offer_ux.xml
 ./plasticos_offer/views/offer_views.xml
@@ -90,6 +93,7 @@
 ./plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml
 ./plasticos_transaction/views/transaction_bulk_update_wizard_views.xml
 ./plasticos_transaction/views/transaction_import_wizard_views.xml
+./plasticos_transaction/views/transaction_reopen_wizard_views.xml
 ./plasticos_transaction/views/transaction_ux.xml
 ./plasticos_transaction/views/transaction_views.xml
 ./plasticos_web_leads/views/lead_bulk_action_wizard_views.xml
