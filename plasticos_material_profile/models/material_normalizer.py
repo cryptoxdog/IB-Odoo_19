@@ -194,11 +194,9 @@ _CRM_ALIASES = {
         "they mostly work with pet bottles.": ("PET", "BOTTLES", None),
     }.items()
 }
-_CRM_ALIASES |= {
-    "hdpe frac melt": ("HDPE", None, None, ("frac_melt",), None),
-    "pvc rigid": ("PVC", None, None, ("rigid",), None),
-    "ldpe thick gauge": ("LDPE", None, None, ("thick_gauge",), None),
-}
+_CRM_ALIASES["hdpe frac melt"] = ("HDPE", None, None, ("frac_melt",), None)
+_CRM_ALIASES["pvc rigid"] = ("PVC", None, None, ("rigid",), None)
+_CRM_ALIASES["ldpe thick gauge"] = ("LDPE", None, None, ("thick_gauge",), None)
 
 
 class MaterialNormalization:
