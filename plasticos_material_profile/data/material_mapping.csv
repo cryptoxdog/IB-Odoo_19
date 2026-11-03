@@ -20,7 +20,7 @@ material,pet,PET,vanillasoft:Material (LDPE);vanillasoft:Materials,0,183,mapped,
 material,e-waste,E-Waste,vanillasoft:Materials,0,173,mapped,crm_code,EWASTE,,,,,,,,,
 material,hdpe bottles,HDPE Bottles,erp:InvoiceDesc;vanillasoft:Material (LDPE);vanillasoft:Materials;vanillasoft:Materials (MRF's),2,167,mapped,approved_alias,HDPE,BOTTLES,,,,,,,,
 material,mixed rigid plastics - grade a,Mixed Rigid Plastics - Grade A,erp:InvoiceDesc,163,0,mapped,names_one_polymer,MRP,,,,,,,,,
-material,pp copolymer inj 5-10mi,PP COPOLYMER INJ 5-10MI,erp:InvoiceDesc,152,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp copolymer inj 5-10mi,PP COPOLYMER INJ 5-10MI,erp:InvoiceDesc,152,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
 material,ldpe stretch film,LDPE Stretch Film,erp:InvoiceDesc;vanillasoft:Material (LDPE),9,142,mapped,approved_alias,LDPE,FILM,,,,,,,,
 material,hdpe bottles - mixed color,HDPE Bottles - Mixed Color,erp:InvoiceDesc;vanillasoft:Materials;vanillasoft:Materials (MRF's),55,94,mapped,approved_alias,HDPE,BOTTLES,,,,,,,,
 material,mixed pallets,Mixed Pallets,erp:InvoiceDesc,149,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,
@@ -40,10 +40,10 @@ material,hdpe drums,HDPE Drums,erp:InvoiceDesc;vanillasoft:Material (HDPE);vanil
 material,pvc,PVC,vanillasoft:Material (LDPE);vanillasoft:Materials,0,83,mapped,crm_code,PVC,,,,,,,,,
 material,pp tubs & lids,PP Tubs & Lids,erp:InvoiceDesc,81,0,mapped,names_one_polymer,PP,PARTS,,,,,,,,
 material,hdpe pallets,HDPE Pallets,erp:InvoiceDesc,80,0,mapped,names_one_polymer,HDPE,PALLETS,,,,,,,,
-material,pp co-polymer scrap,PP Co-Polymer Scrap,erp:InvoiceDesc,80,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp co-polymer scrap,PP Co-Polymer Scrap,erp:InvoiceDesc,80,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
 material,pet strapping,PET Strapping,erp:InvoiceDesc;vanillasoft:Materials,7,72,mapped,approved_alias,PET,,,,,,,,,
 material,hdpe frac melt,HDPE Frac Melt,erp:InvoiceDesc;vanillasoft:Material (HDPE),1,77,mapped,approved_alias,HDPE,,,,,,,,,
-material,hdpe rigids grade b,HDPE RIGIDS GRADE B,erp:InvoiceDesc,78,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,hdpe rigids grade b,HDPE RIGIDS GRADE B,erp:InvoiceDesc,78,0,mapped,names_one_polymer,HDPE,,,rigid,,,,,,
 material,nylon 6,Nylon 6,vanillasoft:Materials,0,76,mapped,approved_alias,NYLON,,,,,,,,,
 material,pp pallets - clean,PP Pallets - Clean,erp:InvoiceDesc,76,0,mapped,names_one_polymer,PP,PALLETS,,clean,,,,,,
 material,pvc rigid,PVC Rigid,vanillasoft:Materials,0,75,mapped,approved_alias,PVC,,,,,,,,,
@@ -80,12 +80,12 @@ material,#7 mixed pallets,#7 Mixed Pallets,erp:InvoiceDesc,43,0,mapped,names_one
 material,gowns,Gowns,erp:InvoiceDesc,43,0,not_material,not_material,,,,,,,,,,not a material (2026-11-03 decision)
 material,ldpe bags w/ print,LDPE Bags w/ Print,erp:InvoiceDesc,43,0,mapped,names_one_polymer,LDPE,,,,,,,,,
 material,lldpe black repro,LLDPE Black Repro,erp:InvoiceDesc,43,0,mapped,names_one_polymer,LLDPE,,,repro,,BLACK,,,,
-material,pp copolymer inj 10-20mi,PP Copolymer Inj 10-20MI,erp:InvoiceDesc,43,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp copolymer inj 10-20mi,PP Copolymer Inj 10-20MI,erp:InvoiceDesc,43,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
 material,hdpe injection 5-10mi,HDPE INJECTION 5-10MI,erp:InvoiceDesc,42,0,mapped,names_one_polymer,HDPE,,,,,,,injection,,
 material,pe-mchollywood,PE-MCHollywood,erp:InvoiceDesc,41,0,mapped,names_one_polymer,HDPE,,,,,MIXED,,,,
 material,ldpe film - grade b,LDPE Film - Grade B,erp:InvoiceDesc,40,0,mapped,names_one_polymer,LDPE,FILM,,,,,,,,
 material,pa66 parts and purge,PA66 Parts and Purge,erp:InvoiceDesc,40,0,mapped,names_one_polymer,NYLON,,,,,,,,,
-material,fiber,Fiber,vanillasoft:Materials,0,39,ambiguous,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
+material,fiber,Fiber,vanillasoft:Materials,0,39,not_material,not_material,,,,,,,,,,not a material (2026-11-03 decision)
 material,hdpe hmw ext pre work needed,HDPE HMW Ext Pre Work Needed,erp:InvoiceDesc,39,0,mapped,names_one_polymer,HDPE_HMW,,,,,,,,,
 material,pp pallets,PP Pallets,erp:InvoiceDesc,38,0,mapped,names_one_polymer,PP,PALLETS,,,,,,,,
 material,pp supersacs (lined),PP Supersacs (Lined),vanillasoft:Material (PPS),0,37,mapped,approved_alias,PP,,,,,,,,,
@@ -136,9 +136,9 @@ material,mrp domestic,MRP Domestic,vanillasoft:Material (MRP);vanillasoft:Materi
 material,pe feedstock clean & dry mostly clear film baled,PE Feedstock clean & dry mostly clear film baled,erp:InvoiceDesc,25,0,mapped,names_one_polymer,HDPE,FILM,,clean dry,,CLEAR,,,,
 material,ldpe film mixed color,LDPE Film Mixed Color,vanillasoft:Material (LDPE);vanillasoft:Materials,0,24,mapped,approved_alias,LDPE,FILM,,,,,,,,
 material,commingled 1-7 bottles,Commingled 1-7 bottles,erp:InvoiceDesc,23,0,mapped,names_one_polymer,1_7_COMMINGLED_BOTTLES,BOTTLES,POST_CONSUMER,,,,,,,
-material,hdpe frac melt shred,HDPE Frac Melt Shred,erp:InvoiceDesc,23,0,mapped,names_one_polymer,HDPE,SHRED,,,,,,,,
+material,hdpe frac melt shred,HDPE Frac Melt Shred,erp:InvoiceDesc,23,0,mapped,names_one_polymer,HDPE,SHRED,,frac_melt,,,,,,
 material,tpe,TPE,vanillasoft:Materials,0,23,mapped,crm_code,TPE,,,,,,,,,
-material,hdpe frac melt sheet regrind,HDPE Frac Melt Sheet Regrind,erp:InvoiceDesc,22,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,hdpe frac melt sheet regrind,HDPE Frac Melt Sheet Regrind,erp:InvoiceDesc,22,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
 material,hdpe/pp transitional purge regrind (frac melt),HDPE/PP transitional purge regrind (Frac melt),erp:InvoiceDesc,22,0,ambiguous,,,,,,,,,,,names polymers HDPE PP
 material,pvc fencing from c&d,PVC fencing from C&D,erp:InvoiceDesc,22,0,mapped,names_one_polymer,PVC,,,,,,,,,
 material,freight charge,Freight Charge,erp:InvoiceDesc,21,0,not_material,not_material,,,,,,,,,,not a material (2026-11-03 decision)
@@ -151,20 +151,20 @@ material,pet bottles - 70/30 curbside,PET Bottles - 70/30 Curbside,vanillasoft:M
 material,pet clear bottle in original boxes,PET Clear Bottle in Original Boxes,erp:InvoiceDesc,21,0,mapped,names_one_polymer,PET,,,,,CLEAR,,,,
 material,pp bottles - domestic pack,PP Bottles - Domestic Pack,vanillasoft:Materials (MRF's),0,21,mapped,approved_alias,PP,BOTTLES,,,,,,,,
 material,ldpe w/surlyn - natural purge blocks,LDPE W/Surlyn - Natural Purge Blocks,erp:InvoiceDesc,20,0,mapped,names_one_polymer,LDPE,PURGE,,,,NATURAL,,,,
-material,hdpe frac melt regrind,HDPE Frac Melt Regrind,erp:InvoiceDesc,19,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
+material,hdpe frac melt regrind,HDPE Frac Melt Regrind,erp:InvoiceDesc,19,0,mapped,names_one_polymer,HDPE,REGRIND,,frac_melt,,,,,,
 material,hdpe natural,HDPE Natural,erp:InvoiceDesc,19,0,mapped,names_one_polymer,HDPE,,,,,NATURAL,,,,
 material,hdpe toters (roll-out carts),HDPE Toters (Roll-Out Carts),vanillasoft:Material (HDPE),0,19,mapped,approved_alias,HDPE,,,,,,,,,
 material,ldpe a film,LDPE A Film,erp:InvoiceDesc,19,0,mapped,worksheet_phrase,LDPE,FILM,,clean dry,A,,,,,
 material,pp bales,PP Bales,erp:InvoiceDesc,19,0,mapped,names_one_polymer,PP,BALES,,,,,,,,
 material,pp purge - white,PP Purge - White,erp:InvoiceDesc,19,0,mapped,names_one_polymer,PP,PURGE,,,,WHITE,,,,
 material,pp white regrind (has evoh content),PP white regrind (has evoh content),erp:InvoiceDesc,19,0,mapped,names_one_polymer,PP,REGRIND,,,,WHITE,,,,
-material,engineering grades,Engineering Grades,vanillasoft:Materials,0,18,ambiguous,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
+material,engineering grades,Engineering Grades,vanillasoft:Materials,0,18,not_material,not_material,,,,,,,,,,not a material (2026-11-03 decision)
 material,hd-mcstruc-foam,HD-MCStruc-Foam,erp:InvoiceDesc,18,0,mapped,names_one_polymer,HDPE,,,,,MIXED,,,,
 material,"hdpe-p mixed parts 12,560 lb 0.02 251.20","HDPE-P MIXED PARTS 12,560 lb 0.02 251.20",erp:InvoiceDesc,18,0,mapped,names_one_polymer,HDPE,PARTS,,,,,,,,
 material,pp tubs/lids,PP Tubs/Lids,erp:InvoiceDesc;vanillasoft:Material (PP),4,14,mapped,approved_alias,PP,,,,,,,,,
 material,hdpe pepsi crates,HDPE Pepsi crates,erp:InvoiceDesc,17,0,mapped,names_one_polymer,HDPE,CRATES,,,,,,,,
 material,hdpe pipe,HDPE Pipe,erp:InvoiceDesc;vanillasoft:Material (HDPE),4,13,mapped,approved_alias,HDPE,,,,,,,,,
-material,knockdown bins - not repairable,Knockdown Bins - Not Repairable,erp:InvoiceDesc,17,0,mapped,names_one_polymer,HDPE,CRATES,,,,,,,,repairable wording kept in profile notes; no attribute master
+material,knockdown bins - not repairable,Knockdown Bins - Not Repairable,erp:InvoiceDesc,17,0,mapped,names_one_polymer,HDPE,CRATES,,not_repairable,,,,,,
 material,pet bottles - post industrial,PET Bottles - Post Industrial,erp:InvoiceDesc,17,0,mapped,names_one_polymer,PET,BOTTLES,POST_INDUSTRIAL,,,,,,,
 material,plastic pallets - no metal/fiberglass,Plastic Pallets - No Metal/Fiberglass,erp:InvoiceDesc,17,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,no_metal,,,,,,
 material,1-7 bottles,1-7 bottles,erp:InvoiceDesc;vanillasoft:Materials;vanillasoft:Materials (MRF's),2,14,mapped,approved_alias,1_7_COMMINGLED_BOTTLES,BOTTLES,POST_CONSUMER,,,,,,,
@@ -308,7 +308,7 @@ material,gaylords of amazon returns,Gaylords of Amazon Returns,erp:InvoiceDesc,6
 material,hdpe / ldpe regrind,HDPE / LDPE Regrind,erp:InvoiceDesc,6,0,ambiguous,,,,,,,,,,,names polymers HDPE LDPE
 material,hdpe bottle regrind,HDPE Bottle Regrind,erp:InvoiceDesc,6,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
 material,hdpe containers,HDPE Containers,erp:InvoiceDesc,6,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe frac melt shred (soap/detergent residue),HDPE Frac Melt Shred (Soap/Detergent Residue),erp:InvoiceDesc,6,0,mapped,names_one_polymer,HDPE,SHRED,,,,,,,,
+material,hdpe frac melt shred (soap/detergent residue),HDPE Frac Melt Shred (Soap/Detergent Residue),erp:InvoiceDesc,6,0,mapped,names_one_polymer,HDPE,SHRED,,frac_melt,,,,,,
 material,hdpe injection,HDPE Injection,erp:InvoiceDesc,6,0,mapped,names_one_polymer,HDPE,,,,,,,injection,,
 material,hdpe pill bottles,HDPE Pill Bottles,erp:InvoiceDesc;vanillasoft:Material (HDPE),2,4,mapped,approved_alias,HDPE,BOTTLES,,,,,,,,
 material,hdpe roto-mold tanks,HDPE Roto-Mold Tanks,vanillasoft:Material (HDPE),0,6,mapped,approved_alias,HDPE,,,,,,,,,
@@ -326,7 +326,7 @@ material,pc clear sheet scrap w/masking,PC Clear Sheet Scrap W/Masking,erp:Invoi
 material,pc color face shields,PC Color Face Shields,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PC,,,,,,,,,
 material,pet regrind w/ pp contamination,PET Regrind W/ PP Contamination,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PET,REGRIND,,pp_contaminated,,,,,,
 material,"pp (homopoly purge, 5 melt, upto 3% ash content)","PP (homopoly purge, 5 melt, upto 3% ash content)",erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,PURGE,,,,,,,,
-material,pp co-polymer purge scrap,PP Co-Polymer Purge Scrap,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,PURGE,,,,,,,,
+material,pp co-polymer purge scrap,PP Co-Polymer Purge Scrap,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,PURGE,,copolymer,,,,,,
 material,pp corrugated (sheet/rolls/bales),PP Corrugated (Sheet/Rolls/Bales),erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp flower pots,PP Flower Pots,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp gf regrind - black,PP GF Regrind - Black,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,REGRIND,,,,BLACK,,,,
@@ -409,7 +409,7 @@ material,hd totes,HD Totes,erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE,TOT
 material,hdpe / ldpe containers,HDPE / LDPE Containers,erp:InvoiceDesc,4,0,ambiguous,,,,,,,,,,,names polymers HDPE LDPE
 material,hdpe drums/jugs,HDPE Drums/Jugs,erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE,DRUMS,,,,,,,,
 material,hdpe flower pots,HDPE Flower Pots,erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe frac melt repro - mixed color,HDPE Frac Melt Repro - Mixed Color,erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE,,,repro,,MIXED,,,,
+material,hdpe frac melt repro - mixed color,HDPE Frac Melt Repro - Mixed Color,erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE,,,frac_melt repro,,MIXED,,,,
 material,hdpe frac sheet (no metal),HDPE Frac Sheet (No Metal),erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE,SHEET,,no_metal,,,,,,
 material,hdpe frac utility grade,HDPE FRAC UTILITY GRADE,erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe hmw ext pre-work needed,HDPE HMW EXT PRE-WORK NEEDED,erp:InvoiceDesc,4,0,mapped,names_one_polymer,HDPE_HMW,,,,,,,,,
@@ -449,14 +449,14 @@ material,plastic dunnage with staples and wood,Plastic Dunnage With Staples and 
 material,polyethylene feedstock clean & dry mostly clear baled film,Polyethylene Feedstock Clean & Dry Mostly Clear baled Film,erp:InvoiceDesc,4,0,unknown,,,,,,,,,,,names no polymer master
 material,postal pallets,Postal Pallets,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,
 material,pp 7-8 melt regrind,PP 7-8 Melt Regrind,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,REGRIND,,,,,,,,
-material,pp copolymer,PP Copolymer,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp nonwoven,PP NonWoven,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp copolymer,PP Copolymer,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
+material,pp nonwoven,PP NonWoven,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,non_woven,,,,,,
 material,pp repro - mixed color,PP Repro - Mixed Color,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,repro,,MIXED,,,,
 material,pp sanko w/rubber,PP SANKO W/RUBBER,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp strapping,PP Strapping,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp/hd regrind,PP/HD Regrind,erp:InvoiceDesc,4,0,ambiguous,,,,,,,,,,,names polymers HDPE PP
 material,ps baled trays,PS Baled Trays,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PS,,,,,,,,,
-material,pvc rigid - no weather stripping,PVC Rigid - No Weather Stripping,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PVC,,,,,,,,,
+material,pvc rigid - no weather stripping,PVC Rigid - No Weather Stripping,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PVC,,,rigid,,,,,,
 material,red totes on casters,Red Totes On Casters,erp:InvoiceDesc,4,0,unknown,,,,,,,,,,,names no polymer master
 material,supersacs - grade a,Supersacs - Grade A,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,tpv,TPV,vanillasoft:Materials,0,4,mapped,crm_code,TPV,,,,,,,,,polymer master added 2026-11-03
@@ -483,7 +483,7 @@ material,hd repro - grey,HD Repro - Grey,erp:InvoiceDesc,3,0,mapped,names_one_po
 material,hd-mchd with fiberglass,HD-MCHD with Fiberglass,erp:InvoiceDesc,3,0,ambiguous,,,,,,,,,,,names polymers FIBERGLASS HDPE
 material,hdpe and pp pallets,HDPE and PP Pallets,erp:InvoiceDesc,3,0,ambiguous,,,,,,,,,,,names polymers HDPE PP
 material,hdpe automotive totes,HDPE Automotive Totes,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,TOTES,,,,,,,,
-material,hdpe blowmold frac melt,HDPE BLOWMOLD FRAC MELT,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,hdpe blowmold frac melt,HDPE BLOWMOLD FRAC MELT,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
 material,hdpe caulk tube regrind w/metal,HDPE Caulk Tube Regrind W/Metal,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,REGRIND,,with_metal,,,,,,
 material,hdpe color bales,HDPE Color Bales,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,BALES,,,,,,,,
 material,hdpe conduit scrap (clean) - parts/purge - no gel/oil,HDPE Conduit Scrap (CLEAN) - Parts/Purge - No Gel/Oil,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,,,clean,,,,,,
@@ -493,13 +493,13 @@ material,hdpe drip tube,HDPE Drip Tube,vanillasoft:Material (HDPE),0,3,mapped,ap
 material,hdpe drum regrind,HDPE Drum Regrind,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
 material,hdpe drums (cut up),HDPE Drums (Cut Up),erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,DRUMS,,,,,,,,
 material,hdpe drums in bales,HDPE Drums in Bales,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe frac melt loose,HDPE Frac Melt Loose,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,LOOSE,,,,,,,,
-material,hdpe frac melt shred & regrind,HDPE Frac Melt Shred & Regrind,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,hdpe frac melt loose,HDPE Frac Melt Loose,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,LOOSE,,frac_melt,,,,,,
+material,hdpe frac melt shred & regrind,HDPE Frac Melt Shred & Regrind,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
 material,hdpe hmw drum shred,HDPE HMW Drum Shred,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE_HMW,SHRED,,,,,,,,
 material,hdpe hmw drums 5-8hlmi w/label,HDPE HMW DRUMS 5-8HLMI W/LABEL,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE_HMW,DRUMS,,,,,,,,
 material,hdpe hmw ext 5-16hlmi,HDPE HMW EXT 5-16HLMI,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE_HMW,,,,,,,,,
 material,hdpe hmw ext 8-16hlm1,HDPE HMW EXT 8-16HLM1,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE_HMW,,,,,,,,,
-material,hdpe hmw frac melt pallets,HDPE HMW Frac Melt Pallets,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE_HMW,PALLETS,,,,,,,,
+material,hdpe hmw frac melt pallets,HDPE HMW Frac Melt Pallets,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE_HMW,PALLETS,,frac_melt,,,,,,
 material,hdpe hmw regrind,HDPE HMW Regrind,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE_HMW,REGRIND,,,,,,,,
 material,hdpe low melt drum regrind,HDPE Low Melt Drum Regrind,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
 material,hdpe macro bins,HDPE Macro Bins,erp:InvoiceDesc,3,0,mapped,names_one_polymer,HDPE,,,,,,,,,
@@ -570,7 +570,7 @@ material,pp corrugated sheet,PP Corrugated Sheet,erp:InvoiceDesc,3,0,mapped,name
 material,pp hangers,PP Hangers,erp:InvoiceDesc;vanillasoft:Material (PP),1,2,mapped,approved_alias,PP,,,,,,,,,
 material,pp knockdowns w/ metal,PP Knockdowns W/ Metal,erp:InvoiceDesc,3,0,mapped,names_one_polymer,PP,CRATES,,with_metal,,,,,,
 material,pp natural trays (as per sample),PP natural trays (as per sample),erp:InvoiceDesc,3,0,mapped,names_one_polymer,PP,,,,,NATURAL,,,,
-material,pp nonwoven rolls (on pallets),PP NonWoven Rolls (On Pallets),erp:InvoiceDesc,3,0,mapped,names_one_polymer,PP,PALLETS,,,,,,,,
+material,pp nonwoven rolls (on pallets),PP NonWoven Rolls (On Pallets),erp:InvoiceDesc,3,0,mapped,names_one_polymer,PP,PALLETS,,non_woven,,,,,,
 material,pp regrind (40-60 melt),PP Regrind (40-60 Melt),erp:InvoiceDesc,3,0,mapped,names_one_polymer,PP,REGRIND,,,,,,,,
 material,pp sanko,PP Sanko,erp:InvoiceDesc,3,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp shred,PP Shred,erp:InvoiceDesc,3,0,mapped,names_one_polymer,PP,SHRED,,,,,,,,
@@ -672,7 +672,7 @@ material,hdpe drums - blue,HDPE Drums - BLUE,erp:InvoiceDesc,2,0,mapped,names_on
 material,hdpe drums/jerry can bales,HDPE Drums/Jerry Can Bales,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe dunnage - orange,HDPE Dunnage - Orange,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE,,,,,ORANGE,,,,
 material,hdpe floor sweeps,HDPE Floor Sweeps,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe frac melt from sheet stock no fr,HDPE Frac Melt from Sheet stock no FR,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE,SHEET,,,,,,,,
+material,hdpe frac melt from sheet stock no fr,HDPE Frac Melt from Sheet stock no FR,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE,SHEET,,frac_melt,,,,,,
 material,hdpe hand totes,HDPE Hand Totes,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE,TOTES,,,,,,,,
 material,hdpe hmw,HDPE HMW,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE_HMW,,,,,,,,,
 material,hdpe hmw drum regrind - with soapy residue,HDPE HMW Drum Regrind - With Soapy Residue,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE_HMW,REGRIND,,,,,,,,
@@ -780,7 +780,7 @@ material,mixed dunnage trays - belts removed,Mixed Dunnage trays - Belts removed
 material,mixed pallet,Mixed Pallet,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,
 material,mixed pallets & hdpe totes,Mixed Pallets & HDPE Totes,erp:InvoiceDesc,2,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,mixed pallets - no metal,Mixed Pallets - no metal,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,no_metal,,,,,,
-material,mixed rigid plastics,Mixed Rigid Plastics,erp:InvoiceDesc;vanillasoft:Material (LDPE),1,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
+material,mixed rigid plastics,Mixed Rigid Plastics,erp:InvoiceDesc;vanillasoft:Material (LDPE),1,1,mapped,names_one_polymer,MRP,,,,,,,,,
 material,moisture deduction,Moisture Deduction,erp:InvoiceDesc,2,0,unknown,,,,,,,,,,,names no polymer master
 material,mortar mixer,Mortar Mixer,erp:InvoiceDesc,2,0,unknown,,,,,,,,,,,names no polymer master
 material,mrp - mixed rigid plastics,MRP - Mixed Rigid Plastics,erp:InvoiceDesc,2,0,mapped,names_one_polymer,MRP,,,,,,,,,
@@ -836,21 +836,21 @@ material,plastic rolls,Plastic Rolls,erp:InvoiceDesc,2,0,unknown,,,,,,,,,,,names
 material,pmma clear sheet,PMMA Clear Sheet,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PMMA,SHEET,,,,CLEAR,,,,
 material,post industrial bopp film rolls & bales,Post Industrial BOPP Film Rolls & Bales,erp:InvoiceDesc,2,0,mapped,names_one_polymer,BOPP,,POST_INDUSTRIAL,,,,,,,
 material,pp 11-20 melt,PP 11-20 melt,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp bale wrap (woven pp film),PP Bale Wrap (Woven PP Film),erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,FILM,,,,,,,,
+material,pp bale wrap (woven pp film),PP Bale Wrap (Woven PP Film),erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,FILM,,woven,,,,,,
 material,pp bins,PP Bins,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp black - 15 melt,PP Black - 15 Melt,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,BLACK,,,,
 material,pp bottle cap regrind,PP bottle cap regrind,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,REGRIND,,,,,,,,
 material,pp bottles domestic,PP Bottles Domestic,vanillasoft:Materials,0,2,mapped,approved_alias,PP,BOTTLES,,,,,,,,
 material,pp cap regrind,PP Cap Regrind,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,REGRIND,,,,,,,,
-material,pp co polymer inj 5-10mi,PP Co Polymer Inj 5-10MI,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp co polymer inj 5-10mi,PP Co Polymer Inj 5-10MI,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
 material,pp co-polyer scrap,PP Co-Polyer Scrap,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp co-polymer inj 5-10mi,PP Co-Polymer Inj 5-10MI,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp copolymer inj 5-10,PP COPOLYMER INJ 5-10,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp co-polymer inj 5-10mi,PP Co-Polymer Inj 5-10MI,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
+material,pp copolymer inj 5-10,PP COPOLYMER INJ 5-10,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
 material,pp corrugated bales with paper inserts and labels,PP Corrugated Bales with Paper inserts and Labels,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp cups (post industrial),PP Cups (Post Industrial),erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,POST_INDUSTRIAL,,,,,,,
 material,pp cups with paper label,PP cups with paper label,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp dogfood bags,PP Dogfood Bags,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp frac melt parts & purge,PP Frac Melt Parts & Purge,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp frac melt parts & purge,PP Frac Melt Parts & Purge,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,frac_melt,,,,,,
 material,pp loose,PP LOOSE,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,LOOSE,,,,,,,,
 material,pp pet food bags,PP Pet Food Bags,erp:InvoiceDesc,2,0,ambiguous,,,,,,,,,,,names polymers PET PP
 material,pp plates,PP Plates,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
@@ -873,7 +873,7 @@ material,pp trays - natural,PP Trays - Natural,erp:InvoiceDesc,2,0,mapped,names_
 material,"pp tubs & lids (#4, #5 & #7) - no pet bottles/clamshells","PP Tubs & Lids (#4, #5 & #7) - NO PET BOTTLES/CLAMSHELLS",erp:InvoiceDesc,2,0,ambiguous,,,,,,,,,,,names polymers PET PP
 material,pp virgin pellets,PP Virgin Pellets,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,PELLETS,,,,,,,,
 material,pp white purge,PP White Purge,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,PURGE,,,,WHITE,,,,
-material,pp woven rolls - white (on pallets),PP Woven Rolls - White (On Pallets),erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,PALLETS,,,,WHITE,,,,
+material,pp woven rolls - white (on pallets),PP Woven Rolls - White (On Pallets),erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,PALLETS,,woven,,WHITE,,,,
 material,pp-blksanko,PP-BLKSanko,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp-mcsanko for flt,PP-MCSanko for FLT,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,,,,,MIXED,,,,
 material,pp/pe filled,PP/PE Filled,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP_PE,,,,,,,,,
@@ -1081,8 +1081,8 @@ material,commingled bottles one and two,Commingled bottles one and two,erp:Invoi
 material,complete mix,complete mix,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
 material,compression molded parts,Compression Molded Parts,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
 material,computer chips / parts,Computer Chips / Parts,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
-material,contaminated hdpe frac melt,CONTAMINATED HDPE FRAC MELT,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,contaminated hdpe/rigids,Contaminated HDPE/Rigids,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,contaminated hdpe frac melt,CONTAMINATED HDPE FRAC MELT,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
+material,contaminated hdpe/rigids,Contaminated HDPE/Rigids,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,rigid,,,,,,
 material,contaminated hips,Contaminated HIPS,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HIPS,,,,,,,,,
 material,contaminated ldpe/lldpe,CONTAMINATED LDPE/LLDPE,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,names polymers LDPE LLDPE
 material,contaminated trays,Contaminated Trays,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
@@ -1137,7 +1137,7 @@ material,e-waste housing,E-Waste Housing,erp:InvoiceDesc,1,0,mapped,names_one_po
 material,ecoprime natural pcr resin,EcoPrime Natural PCR Resin,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
 material,emi model rm-12-5-20 powered belt conveyor:,EMI MODEL RM-12-5-20 POWERED BELT CONVEYOR:,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
 material,empty collapsible totes,EMPTY COLLAPSIBLE TOTES,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
-material,engineering grades (nylon/pc/pmma),Engineering Grades (Nylon/PC/PMMA),vanillasoft:Materials,0,1,ambiguous,,,,,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+material,engineering grades (nylon/pc/pmma),Engineering Grades (Nylon/PC/PMMA),vanillasoft:Materials,0,1,not_material,not_material,,,,,,,,,,not a material (2026-11-03 decision)
 material,epe - pink,EPE - Pink,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
 material,epe - white,EPE - White,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
 material,epp - black,EPP - Black,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
@@ -1227,7 +1227,7 @@ material,hd bottle purge,HD Bottle Purge,erp:InvoiceDesc,1,0,mapped,names_one_po
 material,hd bottle/purge bales,HD Bottle/Purge Bales,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hd buckets,HD Buckets,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,BUCKETS,,,,,,,,
 material,hd color,HD Color,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hd frac melt - omni,HD Frac Melt - Omni,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,hd frac melt - omni,HD Frac Melt - Omni,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
 material,hd frac regrind - bottle grade,HD Frac Regrind - Bottle Grade,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
 material,hd garbage cans,HD Garbage Cans,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hd hmw repro - gray,HD HMW Repro - Gray,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE_HMW,,,repro,,GRAY,,,,
@@ -1329,21 +1329,21 @@ material,hdpe film purge as per pictures - no contamination pure hdpe,HDPE film 
 material,hdpe filter scrap,HDPE Filter Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe filter scrap - 4 stacks (trial shipment),HDPE Filter Scrap - 4 Stacks (Trial Shipment),erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe floorsweep,HDPE Floorsweep,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,FLOORSWEEP,,,,,,,,
-material,hdpe frac melt (floor sweep),HDPE Frac Melt (Floor Sweep),erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe frac melt - milk jugs - natural and white color mixed,HDPE frac melt - milk jugs - Natural and white color mixed,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe frac melt bottle grade regrind,HDPE Frac Melt Bottle Grade Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
-material,hdpe frac melt bottle purge,HDPE Frac Melt Bottle Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PURGE,,,,,,,,
-material,hdpe frac melt bottle regrind w/ paper label,HDPE Frac Melt Bottle Regrind W/ Paper Label,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
-material,hdpe frac melt bottles - mixed color,HDPE Frac Melt Bottles - Mixed Color,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,BOTTLES,,,,MIXED,,,,
-material,hdpe frac melt corrugated bales,HDPE Frac Melt Corrugated Bales,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe frac melt natural resin,HDPE Frac Melt Natural Resin,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,NATURAL,,,,
-material,hdpe frac melt parts,HDPE Frac Melt Parts,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PARTS,,,,,,,,
-material,hdpe frac melt purge,HDPE Frac Melt Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PURGE,,,,,,,,
-material,hdpe frac melt regrind mixed color,HDPE Frac melt Regrind mixed color,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,,,MIXED,,,,
+material,hdpe frac melt (floor sweep),HDPE Frac Melt (Floor Sweep),erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
+material,hdpe frac melt - milk jugs - natural and white color mixed,HDPE frac melt - milk jugs - Natural and white color mixed,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
+material,hdpe frac melt bottle grade regrind,HDPE Frac Melt Bottle Grade Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,frac_melt,,,,,,
+material,hdpe frac melt bottle purge,HDPE Frac Melt Bottle Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PURGE,,frac_melt,,,,,,
+material,hdpe frac melt bottle regrind w/ paper label,HDPE Frac Melt Bottle Regrind W/ Paper Label,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,frac_melt,,,,,,
+material,hdpe frac melt bottles - mixed color,HDPE Frac Melt Bottles - Mixed Color,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,BOTTLES,,frac_melt,,MIXED,,,,
+material,hdpe frac melt corrugated bales,HDPE Frac Melt Corrugated Bales,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
+material,hdpe frac melt natural resin,HDPE Frac Melt Natural Resin,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,NATURAL,,,,
+material,hdpe frac melt parts,HDPE Frac Melt Parts,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PARTS,,frac_melt,,,,,,
+material,hdpe frac melt purge,HDPE Frac Melt Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PURGE,,frac_melt,,,,,,
+material,hdpe frac melt regrind mixed color,HDPE Frac melt Regrind mixed color,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,frac_melt,,MIXED,,,,
 material,hdpe frac purge regrind,HDPE Frac Purge Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe frac regrind - bottle grade,HDPE Frac Regrind - Bottle Grade,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,,,,,,,
 material,hdpe frac utility,HDPE Frac Utility,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe fractional melt cuttings,HDPE Fractional Melt Cuttings,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,hdpe fractional melt cuttings,HDPE Fractional Melt Cuttings,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,,,,,
 material,hdpe garbage totes loose,HDPE garbage totes loose,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe gas tanks,HDPE Gas Tanks,vanillasoft:Materials,0,1,mapped,approved_alias,HDPE,,,,,,,,,
 material,hdpe hmw black/yellow pipe regrind,HDPE HMW black/yellow Pipe regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE_HMW,REGRIND,,,,,,,,
@@ -1401,7 +1401,7 @@ material,hdpe mixed injection purge,HDPE Mixed Injection Purge,erp:InvoiceDesc,1
 material,hdpe mixed pallets,HDPE Mixed Pallets,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PALLETS,,,,,,,,
 material,hdpe natural bales,HDPE Natural Bales,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,BALES,,,,NATURAL,,,,
 material,"hdpe natural bottles, bat wings","HDPE natural Bottles, bat wings",erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,BOTTLES,,,,NATURAL,,,,
-material,"hdpe natural frac melt ""bat wings""","HDPE Natural Frac Melt ""Bat Wings""",erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,NATURAL,,,,
+material,"hdpe natural frac melt ""bat wings""","HDPE Natural Frac Melt ""Bat Wings""",erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,frac_melt,,NATURAL,,,,
 material,hdpe natural milk jugs,HDPE Natural Milk Jugs,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,NATURAL,,,,
 material,hdpe natural purge regrind,HDPE Natural Purge Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,NATURAL,,,,
 material,hdpe natural regrind,HDPE Natural Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,REGRIND,,,,NATURAL,,,,
@@ -1427,8 +1427,8 @@ material,hdpe postal trays / pallets,HDPE Postal Trays / Pallets,erp:InvoiceDesc
 material,hdpe purge,HDPE purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,PURGE,,,,,,,,
 material,hdpe repro,HDPE Repro,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,repro,,,,,,
 material,hdpe repro from buckets and pales,HDPE Repro from Buckets and pales,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,BUCKETS,,repro,,,,,,
-material,hdpe rigids grade n,HDPE Rigids Grade N,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
-material,hdpe rigids gradr b,HDPE Rigids Gradr B,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
+material,hdpe rigids grade n,HDPE Rigids Grade N,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,rigid,,,,,,
+material,hdpe rigids gradr b,HDPE Rigids Gradr B,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,rigid,,,,,,
 material,hdpe rolls,HDPE Rolls,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe roto,HDPE Roto,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,hdpe roto recovered from roto w/metal,Hdpe Roto Recovered From Roto W/Metal,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,with_metal,,,,,,
@@ -1561,7 +1561,7 @@ material,knock-down bins,Knock-Down Bins,erp:InvoiceDesc,1,0,mapped,names_one_po
 material,kraton,Kraton,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
 material,landfill charge,Landfill Charge,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
 material,landfill material,Landfill Material,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
-material,ld,ld,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
+material,ld,ld,vanillasoft:Material (LDPE),0,1,mapped,names_one_polymer,LDPE,,,,,,,,,
 material,ld film,LD Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,FILM,,,,,,,,
 material,ld totes with metal,LD Totes With Metal,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,TOTES,,with_metal,,,,,,
 material,ld/lldpe repro,LD/LLDPE Repro,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,names polymers LDPE LLDPE
@@ -1612,7 +1612,7 @@ material,ldpe foam repro (blue),LDPE foam repro (blue),erp:InvoiceDesc,1,0,mappe
 material,ldpe grade a minus film,LDPE Grade A Minus Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,FILM,,,,,,,,
 material,ldpe house wrap,LDPE House Wrap,vanillasoft:Material (LDPE),0,1,mapped,approved_alias,LDPE,,,,,,,,,
 material,ldpe mixed color in gaylords,LDPE Mixed Color In Gaylords,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,,,,MIXED,,,,
-material,ldpe mixed color thick gauge film,LDPE Mixed Color Thick Gauge Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,FILM,,,,MIXED,,,,
+material,ldpe mixed color thick gauge film,LDPE Mixed Color Thick Gauge Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,FILM,,thick_gauge,,MIXED,,,,
 material,ldpe money bags and shrink wrap.,LDPE Money bags and shrink wrap.,vanillasoft:Material (LDPE),0,1,mapped,approved_alias,LDPE,,,,,,,,,
 material,ldpe natural,LDPE Natural,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,,,,NATURAL,,,,
 material,ldpe pellet,LDPE Pellet,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,,,,,,,,
@@ -1737,7 +1737,7 @@ material,new york 11590,New York 11590,vanillasoft:Material (LDPE),0,1,unknown,,
 material,no more drums,no more drums,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
 material,nobody is aware of anybody here…,nobody is aware of anybody here…,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
 material,non-recyclable material,NON-RECYCLABLE MATERIAL,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,names no polymer master
-material,non-repairable/scrap knockdowns ((4)48x45x39 & (5)48x45x34,Non-Repairable/Scrap Knockdowns ((4)48x45x39 & (5)48x45x34,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,CRATES,,,,,,,,repairable wording kept in profile notes; no attribute master
+material,non-repairable/scrap knockdowns ((4)48x45x39 & (5)48x45x34,Non-Repairable/Scrap Knockdowns ((4)48x45x39 & (5)48x45x34,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,CRATES,,not_repairable,,,,,,
 material,non-standard knockdown containers,Non-Standard Knockdown Containers,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,CRATES,,,,,,,,
 material,non-standard knockdowns in need of repair,Non-Standard Knockdowns in need of repair,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,CRATES,,,,,,,,
 material,npc siam uniform pallets,NPC Siam Uniform Pallets,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,
@@ -1782,7 +1782,7 @@ material,pc clear,PC Clear,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,,,,,C
 material,pc clear cutoff w/ masking,PC Clear Cutoff w/ Masking,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,,,,,CLEAR,,,,
 material,pc clear parts,PC Clear Parts,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,PARTS,,,,CLEAR,,,,
 material,pc clear sheet scrap,PC Clear Sheet Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,SHEET,,,,CLEAR,,,,
-material,pc high heat (sabic lexan™ copolymer xht2141 pc),PC High Heat (SABIC LEXAN™ Copolymer XHT2141 PC),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,,,,,,,,,
+material,pc high heat (sabic lexan™ copolymer xht2141 pc),PC High Heat (SABIC LEXAN™ Copolymer XHT2141 PC),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,,,copolymer,,,,,,
 material,pc ht clear pellet,PC HT Clear Pellet,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,,,,,CLEAR,,,,
 material,pc oversized loose sheet,PC Oversized Loose Sheet,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,,,,,,,,,
 material,pc regrind - contaminated,PC Regrind - Contaminated,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PC,REGRIND,,,,,,,,
@@ -1974,15 +1974,15 @@ material,pp cap regrind - fs,PP Cap Regrind - FS,erp:InvoiceDesc,1,0,mapped,name
 material,pp caps,PP Caps,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp carseats,PP Carseats,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp clear rolls,PP Clear Rolls,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,CLEAR,,,,
-material,pp co polymer scrap,PP CO Polymer Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp co-polymer,PP Co-Polymer,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp co-polymer inj 10-20mi,PP Co-Polymer Inj 10-20MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp co polymer scrap,PP CO Polymer Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
+material,pp co-polymer,PP Co-Polymer,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
+material,pp co-polymer inj 10-20mi,PP Co-Polymer Inj 10-20MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
 material,pp containers,PP Containers,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp copolymenr,PP CoPolymenr,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp copolymer inj 5-10 mi,PP Copolymer Inj 5-10 MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp copolymer inj 5-1mi,PP COPOLYMER INJ 5-1MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp copolymer inj 5-20mi,PP COPOLYMER INJ 5-20MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
-material,pp copolymer unj 10-20 mi,PP Copolymer Unj 10-20 MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp copolymer inj 5-10 mi,PP Copolymer Inj 5-10 MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
+material,pp copolymer inj 5-1mi,PP COPOLYMER INJ 5-1MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
+material,pp copolymer inj 5-20mi,PP COPOLYMER INJ 5-20MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
+material,pp copolymer unj 10-20 mi,PP Copolymer Unj 10-20 MI,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,copolymer,,,,,,
 material,pp corner boards,PP Corner Boards,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp corrugated - black,PP Corrugated - Black,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,CORRUGATED,,,,BLACK,,,,
 material,pp corrugated - color,PP Corrugated - COLOR,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,CORRUGATED,,,,,,,,
@@ -1997,7 +1997,7 @@ material,pp cup regrind with print,PP cup regrind with print,erp:InvoiceDesc,1,0
 material,pp dunnage,PP Dunnage,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp erosion control netting,PP Erosion Control Netting,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp film on rolls (natural),PP Film On Rolls (Natural),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,FILM,,,,NATURAL,,,,
-material,pp frac melt shred,PP Frac Melt Shred,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,SHRED,,,,,,,,
+material,pp frac melt shred,PP Frac Melt Shred,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,SHRED,,frac_melt,,,,,,
 material,pp gf injection regrind (under 35%),PP GF Injection Regrind (under 35%),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,REGRIND,,,,,,injection,,
 material,pp glass filled pellet & regrind,PP Glass Filled Pellet & Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,REGRIND,,,,,glass,,,
 material,pp glassfilled scrap,PP Glassfilled Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
@@ -2009,7 +2009,7 @@ material,pp inj 10-30mi 5-30% tf,PP INJ 10-30MI 5-30% TF,erp:InvoiceDesc,1,0,map
 material,pp injection,PP Injection,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,injection,,
 material,pp mix,Pp mix,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp mixed color - unground,PP Mixed Color - Unground,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,MIXED,,,,
-material,pp mixed color pre consumer frac melt sheet - regrind,PP Mixed Color Pre Consumer Frac Melt Sheet - REGRIND,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,MIXED,,,,
+material,pp mixed color pre consumer frac melt sheet - regrind,PP Mixed Color Pre Consumer Frac Melt Sheet - REGRIND,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,frac_melt,,MIXED,,,,
 material,pp natural purge,PP Natural Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,PURGE,,,,NATURAL,,,,
 material,pp natural tubes,PP Natural Tubes,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,NATURAL,,,,
 material,pp no break regrind,PP No Break Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,REGRIND,,,,,,,,
@@ -2022,7 +2022,7 @@ material,pp pallets with metal,PP pallets with metal,erp:InvoiceDesc,1,0,mapped,
 material,pp parts (new on pallets),PP parts (new on pallets),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp parts - unfilled,PP Parts - UNFILLED,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,PARTS,,,,,,,,
 material,pp parts - unfilled (black),PP Parts - Unfilled (Black),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,PARTS,,,,BLACK,,,,
-material,pp parts: frac melt - unfilled (black),PP Parts: Frac Melt - Unfilled (Black),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,PARTS,,,,BLACK,,,,
+material,pp parts: frac melt - unfilled (black),PP Parts: Frac Melt - Unfilled (Black),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,PARTS,,frac_melt,,BLACK,,,,
 material,pp peanut bags (reusable),PP peanut bags (reusable),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,reusable,,,,,,
 material,pp pepsi pallets,PP pepsi pallets,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,PALLETS,,,,,,,,
 material,pp post industrial bales,PP Post Industrial Bales,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,BALES,POST_INDUSTRIAL,,,,,,,
@@ -2034,9 +2034,9 @@ material,pp regrind - clean,PP Regrind - Clean,erp:InvoiceDesc,1,0,mapped,names_
 material,pp regrind - downgraded,PP Regrind - Downgraded,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,REGRIND,,,,,,,,
 material,pp regrind - white and grey,PP Regrind - White and Grey,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,REGRIND,,,,,,,,
 material,pp regrind with 1% acetal,PP Regrind with 1% Acetal,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,names polymers POM PP
-material,pp regrind: frac melt - unfilled (black),PP Regrind: Frac Melt - Unfilled (Black),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,REGRIND,,,,BLACK,,,,
+material,pp regrind: frac melt - unfilled (black),PP Regrind: Frac Melt - Unfilled (Black),erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,REGRIND,,frac_melt,,BLACK,,,,
 material,pp regring - black,PP Regring - Black,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,BLACK,,,,
-material,pp rigid,PP Rigid,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
+material,pp rigid,PP Rigid,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,rigid,,,,,,
 material,pp rings,PP Rings,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp sacks with liners,PP Sacks with Liners,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PP,,,,,,,,,
 material,pp salt & pepper bl pellet w/2% white pvc pellet,PP Salt & Pepper Bl Pellet W/2% White PVC Pellet,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,names polymers PP PVC
@@ -2127,7 +2127,7 @@ material,pvc post industrial skins,PVC Post Industrial Skins,erp:InvoiceDesc,1,0
 material,pvc regrind - black,PVC Regrind - Black,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,REGRIND,,,,BLACK,,,,
 material,pvc regrind - mixed color,PVC Regrind - Mixed Color,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,REGRIND,,,,MIXED,,,,
 material,pvc regrind from fencing and profiling only,PVC Regrind from fencing and profiling only,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,REGRIND,,,,,,,,
-material,pvc rigid sheet scrap,PVC Rigid Sheet Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,SHEET,,,,,,,,
+material,pvc rigid sheet scrap,PVC Rigid Sheet Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,SHEET,,rigid,,,,,,
 material,pvc semi-rigid,PVC semi-rigid,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,,,,,,,,,
 material,pvc sheet scrap,PVC Sheet Scrap,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,SHEET,,,,,,,,
 material,"pvc shudders, and trim in boxes - white and tan","PVC Shudders, and trim in boxes - white and tan",erp:InvoiceDesc,1,0,mapped,names_one_polymer,PVC,,,,,WHITE,,,,
@@ -2170,7 +2170,7 @@ material,sending me app for downstream,Sending me app for downstream,vanillasoft
 material,sends his stuff to town of southold,sends his stuff to town of southold,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
 material,sent e-mail should add me on bid.,sent e-mail should add me on bid.,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,call-note text; kept as a note
 material,sent tammy an e-mail,sent tammy an e-mail,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
-material,ships pe,ships PE,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,no Odoo polymer master for this material
+material,ships pe,ships PE,vanillasoft:Material (LDPE),0,1,mapped,names_one_polymer,HDPE,,,,,,,,,
 material,should get me pictures today.,should get me pictures today.,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,call-note text; kept as a note
 material,should have other stuff. we sold him pvc,should have other stuff. We sold him PVC,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,call-note text; kept as a note
 material,should have plastic scrap,should have plastic scrap,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,call-note text; kept as a note
@@ -2276,29 +2276,38 @@ form,post industrial,Post Industrial,vanillasoft:Material Form,0,12,mapped,sourc
 form,sheet,Sheet,vanillasoft:Form (PP),0,11,mapped,form_master,,SHEET,,,,,,,,
 form,post consumer,Post Consumer,vanillasoft:Material Form,0,9,mapped,source_type_master,,,POST_CONSUMER,,,,,,,
 form,logs,Logs,vanillasoft:Form (LDPE),0,8,mapped,form_master,,LOGS,,,,,,,,
-form,fiber,Fiber,vanillasoft:Material Form,0,6,unknown,,,,,,,,,,,matches no master; kept in profile notes
+form,fiber,Fiber,vanillasoft:Material Form,0,6,not_material,not_material,,,,,,,,,,do not map (2026-11-03 decision)
 form,baled,Baled,vanillasoft:Material Form,0,4,mapped,web_lead_vocabulary,,BALES,,,,,,,,
 form,floorsweep,Floorsweep,vanillasoft:Material Form,0,4,mapped,form_master,,FLOORSWEEP,,,,,,,,
+form,rigid,Rigid,vanillasoft:Material Form,0,4,mapped,attributes_master,,,,rigid,,,,,,
 form,virgin,Virgin,vanillasoft:Form (LDPE),0,2,mapped,web_lead_vocabulary,,,PRIME,,,,,,,
 form,flakes,Flakes,vanillasoft:Material Form,0,1,mapped,web_lead_vocabulary,,FLAKE,,,,,,,,
 type,post consumer,Post Consumer,vanillasoft:Material Type,0,2606,mapped,source_type_master,,,POST_CONSUMER,,,,,,,
 type,post industrial,Post Industrial,vanillasoft:Material Type,0,1086,mapped,source_type_master,,,POST_INDUSTRIAL,,,,,,,
 type,stretch film (thin),Stretch Film (Thin),vanillasoft:Type (LDPE),0,288,mapped,hint_decision,,FILM,,,,,,,,
 type,film,Film,vanillasoft:Material Type,0,159,mapped,form_master,,FILM,,,,,,,,
+type,rigid,Rigid,vanillasoft:Material Type,0,103,mapped,attributes_master,,,,rigid,,,,,,
 type,injection,Injection,vanillasoft:Type (HDPE);vanillasoft:Type (PP),0,72,mapped,process_type_master,,,,,,,,injection,,
+type,frac melt,Frac Melt,vanillasoft:Type (HDPE),0,62,mapped,attributes_master,,,,frac_melt,,,,,,
 type,hmw,HMW,vanillasoft:Type (HDPE),0,58,mapped,material_phrase,HDPE_HMW,,,,,,,,,material phrase in a hint field
+type,thick gauge,Thick Gauge,vanillasoft:Type (LDPE),0,53,mapped,attributes_master,,,,thick_gauge,,,,,,
 type,repro,Repro,vanillasoft:Material Type,0,46,mapped,attributes_master,,,,repro,,,,,,
+type,copolymer,Copolymer,vanillasoft:Type (PP),0,33,mapped,attributes_master,,,,copolymer,,,,,,
+type,homopolymer,Homopolymer,vanillasoft:Type (PP),0,33,mapped,attributes_master,,,,homopolymer,,,,,,
 type,blow mold,Blow Mold,vanillasoft:Type (HDPE);vanillasoft:Type (PP),0,25,mapped,process_type_master,,,,,,,,blow_mold,,
 type,pellets,Pellets,vanillasoft:Material Type,0,20,mapped,form_master,,PELLETS,,,,,,,,
 type,virgin,Virgin,vanillasoft:Material Type,0,18,mapped,web_lead_vocabulary,,,PRIME,,,,,,,
 type,agricultural,Agricultural,vanillasoft:Material Type,0,16,mapped,source_type_master,,,AGRICULTURAL,,,,,,,
 type,re-useable,Re-Useable,vanillasoft:Material Type;vanillasoft:Type (PPS),0,16,mapped,attribute_spelling,,,,reusable,,,,,,
 type,talc filled,Talc Filled,vanillasoft:Type (PP),0,15,mapped,filler_type_master,,,,,,,talc,,,
+type,non-woven,Non-Woven,vanillasoft:Type (PP),0,14,mapped,attributes_master,,,,non_woven,,,,,,
 type,extrusion,Extrusion,vanillasoft:Type (HDPE);vanillasoft:Type (LDPE),0,10,mapped,process_type_master,,,,,,,,extrusion,,
 type,glass filled,Glass Filled,vanillasoft:Type (PP),0,9,mapped,filler_type_master,,,,,,,glass,,,
+type,nonwoven,Nonwoven,vanillasoft:Material Type,0,8,mapped,attribute_spelling,,,,non_woven,,,,,,
 type,e-waste,E-Waste,vanillasoft:Material Type,0,7,mapped,material_phrase,EWASTE,,,,,,,,,material phrase in a hint field
+type,woven,Woven,vanillasoft:Type (PP),0,7,mapped,attributes_master,,,,woven,,,,,,
 type,densified,Densified,vanillasoft:Material Type;vanillasoft:Type (LDPE),0,5,mapped,form_master,,DENSIFIED,,,,,,,,
-type,fiber,Fiber,vanillasoft:Material Type,0,3,unknown,,,,,,,,,,,matches no master; kept in profile notes
+type,fiber,Fiber,vanillasoft:Material Type,0,3,not_material,not_material,,,,,,,,,,do not map (2026-11-03 decision)
 type,roto mold,Roto Mold,vanillasoft:Type (HDPE),0,3,mapped,hint_decision,,,,,,,,rotomold,,
 type,printed,Printed,vanillasoft:Type (LDPE),0,2,mapped,attributes_master,,,,printed,,,,,,
 type,purge,Purge,vanillasoft:Type (LDPE),0,1,mapped,form_master,,PURGE,,,,,,,,

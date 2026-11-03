@@ -153,6 +153,8 @@ NOT_MATERIAL = tuple(
         r"^disposal\b",
         r"^bad bales?$",
         r"^roofing shingles$",
+        r"^fiber$",
+        r"^engineering grades\b",
         r"^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$",
     )
 )
@@ -161,6 +163,7 @@ NEGATED_FIBERGLASS = (
     (re.compile(r"\bno fiberglass\b"), " "),
     (re.compile(r"\bld/hd\b"), "ldpe"),
     (re.compile(r"-mcnon-struc\b"), " "),
+    (re.compile(r"\bsemi-rigid\b"), "semirigid"),
     (re.compile(r"-mc(?=[a-z])"), " mc "),
 )
 CALL_NOTES = frozenset(
@@ -247,6 +250,12 @@ ATTRIBUTE_WORDS = {
     "no_print": ("unprinted", "non-printed", "non printed"),
     "pp_contaminated": ("w/ pp contamination", "with pp contamination", "pp contamination", "pp contaminated"),
     "pvc_contaminated": ("w/ pvc contamination", "with pvc contamination", "pvc contamination", "pvc contaminated"),
+    "not_repairable": ("non-repairable", "non repairable", "unrepairable"),
+    "rigid": ("rigids",),
+    "frac_melt": ("frac-melt", "fractional melt"),
+    "copolymer": ("co-polymer", "co polymer"),
+    "homopolymer": ("homo-polymer", "homo polymer"),
+    "non_woven": ("nonwoven", "non woven", "non-wove"),
 }
 FILLER_WORDS = {"talc": ("talc filler", "talc-filled")}
 HINT_TARGETS = ("source_type", "form", "attributes", "filler_type", "process_type")
@@ -511,10 +520,25 @@ def find_all(text: str, words) -> tuple[set[str], str]:
     return found, text
 
 
+def shield(text: str, phrases) -> tuple[str, dict[str, str]]:
+    """Hide polymer phrases that contain an attribute word, e.g. 'mixed rigid plastic'."""
+    hidden = {}
+    for phrase in phrases:
+        pattern = word_pattern(phrase)
+        if pattern.search(text):
+            token = f"zzshield{len(hidden)}zz"
+            hidden[token] = phrase
+            text = pattern.sub(token, text)
+    return text, hidden
+
+
 def suggest_material(key: str, vocab) -> dict:
     for pattern, replacement in NEGATED_FIBERGLASS:
         key = pattern.sub(replacement, key)
+    key, hidden = shield(key, vocab["shielded"])
     attributes, text = find_all(key, vocab["attribute"])
+    for token, phrase in hidden.items():
+        text = text.replace(token, phrase)
     colors, text = find_all(text, vocab["color"])
     polymers, text = find_all(text, vocab["polymer"])
     fillers, text = find_all(text, vocab["filler"])
@@ -592,10 +616,10 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
     old = previous.get(key)
     if old and old["status"] in {"pending_decision", "held"}:
         return {"status": "ambiguous", "rule": "", "note": old["note"] or GENERIC_LABEL}
-    if old and old["status"] == "no_master":
-        return {"status": "unknown", "rule": "", "note": old["note"]}
     found = suggest_material(key, vocab)
     polymers = found["polymers"]
+    if old and old["status"] == "no_master" and len(polymers) != 1:
+        return {"status": "unknown", "rule": "", "note": old["note"]}
     detail = {
         "form": next(iter(found["forms"])) if len(found["forms"]) == 1 else "",
         "source_type": next(iter(found["sources"])) if len(found["sources"]) == 1 else "",
@@ -610,8 +634,6 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
         polymers = {"PP"}
     if not polymers and re.search(r"\bknock-?downs?\b", key):
         polymers = {"HDPE"}
-    if re.search(r"\brepairable\b", key):
-        detail["note"] = "repairable wording kept in profile notes; no attribute master"
     if len(polymers) == 1:
         polymer = next(iter(polymers))
         if polymer in PALLET_POLYMERS:
@@ -629,6 +651,8 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
 
 def classify_hint(key, rules, masters, web_words) -> dict[str, str]:
     """A form or type value. Both columns carry source, form, attribute, filler, and process words."""
+    if any(pattern.search(key) for pattern in NOT_MATERIAL):
+        return {"status": "not_material", "rule": "not_material", "note": "do not map (2026-11-03 decision)"}
     for column in HINT_TARGETS:
         code = exact_master(key, masters[MASTER_OF[column]])
         if code:
@@ -686,6 +710,11 @@ def build(erp: Path, vanillasoft: Path, workbook_path: Path | None) -> list[dict
         "filler": vocabulary(masters, "filler", FILLER_WORDS, skip={"other"}, codes=False),
         "process": vocabulary(masters, "process", PROCESS_WORDS, skip={"other"}),
     }
+    vocab["shielded"] = [
+        word
+        for word, _code in vocab["polymer"]
+        if any(word != spelling and word_pattern(spelling).search(word) for spelling, _ in vocab["attribute"])
+    ]
     census = Census()
     read_erp(erp, census)
     read_vanillasoft(vanillasoft, census)
