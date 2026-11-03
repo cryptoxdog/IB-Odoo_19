@@ -15,7 +15,6 @@ MATCH_PRE = ROOT / "plasticos_matching/migrations/19.0.3.0.0/pre-migrate.py"
 MATCH_POST = ROOT / "plasticos_matching/migrations/19.0.3.0.0/post-migrate.py"
 ENR_PRE = ROOT / "plasticos_enrichment/migrations/19.0.2.0.0/pre-migrate.py"
 ENR_POST = ROOT / "plasticos_enrichment/migrations/19.0.2.0.0/post-migrate.py"
-DATA_MAP = ROOT / "docs/migrations/MOTHBALL_DATA_MAP.md"
 MANIFEST = ROOT / "plasticos_matching/__manifest__.py"
 
 
@@ -28,7 +27,7 @@ def _load_coord():
 
 
 def test_required_m5_files_exist():
-    for path in (COORD, MATCH_PRE, MATCH_POST, ENR_PRE, ENR_POST, DATA_MAP):
+    for path in (COORD, MATCH_PRE, MATCH_POST, ENR_PRE, ENR_POST):
         assert path.is_file(), path
 
 
@@ -88,12 +87,17 @@ def test_post_migrate_sets_gate_only_markers():
     assert "gate_only" in ENR_POST.read_text(encoding="utf-8")
 
 
-def test_data_map_documents_retained_and_discardable():
-    src = DATA_MAP.read_text(encoding="utf-8")
-    assert "Retained" in src
-    assert "plasticos.match.run" in src
-    assert "Discardable" in src
-    assert "does **not** drop" in src.lower() or "does not drop" in src.lower()
+def test_inventory_documents_retained_and_discardable():
+    """The coordinator's inventory is the SSOT for retained vs discardable surfaces."""
+    mod = _load_coord()
+    inv = mod.inventory()
+    assert "plasticos.match.run" in inv["retained_models"]
+    assert "plasticos.enrichment.provenance" in inv["retained_models"]
+    assert inv["discardable_catalog"], "discardable catalog must not be empty"
+    assert inv["uninstall"]["automatic"] is False
+    assert any("drop" in action.lower() for action in inv["forbidden_actions"]), (
+        "inventory must forbid destructive drops"
+    )
 
 
 def test_dry_run_cli_json():
