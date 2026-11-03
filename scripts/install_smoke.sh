@@ -41,12 +41,13 @@ fi
 resolve_module_lists() {
   local scope canon_custom
   scope="${ODOO_INSTALL_SMOKE_SCOPE:-all}"
+  CANON_CUSTOM="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --all-installable 2>/dev/null || true)"
   if [ "$scope" = "ordered" ]; then
     canon_custom="$(python3 "$ROOT/scripts/get_odoo_module_order.py" 2>/dev/null || true)"
   else
-    canon_custom="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --all-installable 2>/dev/null || true)"
+    # The default scope is the canonical list itself; resolve it once.
+    canon_custom="$CANON_CUSTOM"
   fi
-  CANON_CUSTOM="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --all-installable 2>/dev/null || true)"
   CANON_ENTERPRISE="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --section docker_enterprise_modules 2>/dev/null || true)"
   CUSTOM_MODULES="${ODOO_REBUILD_MODULES:-${canon_custom}}"
   ENTERPRISE_MODULES="${ODOO_ENTERPRISE_MODULES:-${CANON_ENTERPRISE:-none}}"
@@ -108,9 +109,13 @@ print(hashlib.sha256(json.dumps(service, sort_keys=True, separators=(",", ":")).
 '
 }
 
+# input_snapshot [binding] — a caller that has just resolved runtime_binding for
+# the same moment may pass it; otherwise the snapshot resolves its own.
 input_snapshot() {
-  local binding
-  binding="$(runtime_binding)" || return 2
+  local binding="${1:-}"
+  if [ -z "$binding" ]; then
+    binding="$(runtime_binding)" || return 2
+  fi
   python3 - "$ROOT" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" "$ENTERPRISE_REALPATH" \
     "$binding" "$SMOKE_NETWORK_MODE" "$ODOO_DB_HOST" "$ODOO_DB_PORT" <<'PY'
 import hashlib
@@ -452,8 +457,8 @@ recheck_evidence() {
   lists_are_canonical || refuse_smoke "recheck requires the full canonical module lists"
   acquire_smoke_lock
   [ -f "$EVIDENCE_FILE" ] || { echo "install-smoke evidence is absent" >&2; return 1; }
-  live="$(input_snapshot)" || return 2
   binding="$(runtime_binding)" || return 2
+  live="$(input_snapshot "$binding")" || return 2
   image_id="$(docker image inspect --format '{{.Id}}' "${binding%%$'\n'*}" 2>/dev/null || true)"
   pg_cid="$(docker compose -p "$ODOO_COMPOSE_PROJECT" ps -q db 2>/dev/null || true)"
   pg_image=""
@@ -665,11 +670,22 @@ if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
   _CHECK_MODULES="${ENTERPRISE_MODULES},${CUSTOM_MODULES}"
 fi
 IFS=',' read -r -a _smoke_modules <<< "${_CHECK_MODULES}"
+# One query for every module's state (the shape recheck_evidence reads), not one
+# docker exec per module. A failed query leaves no rows, so every required
+# module is reported missing and the run fails.
+ALL_STATES="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \
+  "SELECT name || '=' || state FROM ir_module_module ORDER BY name;" 2>/dev/null | tr -d '\r')" || ALL_STATES=""
+ALL_STATES=$'\n'"${ALL_STATES}"$'\n'
 for mod in "${_smoke_modules[@]}"; do
   mod="$(echo "$mod" | xargs)"
   [ -z "$mod" ] && continue
-  STATE="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \
-    "SELECT state FROM ir_module_module WHERE name = '$mod';" 2>/dev/null | tr -d '\r' || true)"
+  STATE=""
+  if [[ "$ALL_STATES" == *$'\n'"${mod}=installed"$'\n'* ]]; then
+    STATE="installed"
+  elif [[ "$ALL_STATES" == *$'\n'"${mod}="* ]]; then
+    STATE="${ALL_STATES#*$'\n'"${mod}="}"
+    STATE="${STATE%%$'\n'*}"
+  fi
   if [ "$STATE" = "installed" ]; then
     echo "  ✅ $mod"
     STATE_PAIRS="${STATE_PAIRS}${mod}=installed"$'\n'
