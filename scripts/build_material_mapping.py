@@ -67,6 +67,7 @@ COLUMNS = (
     "source_type",
     "attributes",
     "grade",
+    "grade_template",
     "color",
     "filler_type",
     "process_type",
@@ -409,6 +410,8 @@ def load_grade_templates() -> dict[str, dict[str, str]]:
                 row[column] = code
             elif name == "name":
                 row["name"] = collapse(field.text)
+            elif name == "code":
+                row["grade_template"] = collapse(field.text)
             elif name == "is_clean" and collapse(field.text) == "True":
                 row["attributes"].append("clean")
             elif name == "no_metal" and collapse(field.text) == "True":
@@ -578,6 +581,50 @@ def singular_plural(key: str, table: dict[str, str]) -> str | None:
             if code:
                 return code
     return None
+
+
+GRADE_A = re.compile(r"(?:\bgrade a|\bldpe a|\bfilm a|\ba film)(?![\w/+-])(?! minus)")
+BALED = re.compile(r"\bbaled?\b|\bbales\b")
+
+
+def drum_template(key, row):
+    return row["polymer"] == "HDPE" and row["form"] == "DRUMS"
+
+
+def ibc_template(key, row):
+    return row["polymer"] == "HDPE_HMW" and row["form"] == "TOTES" and re.search(r"\bibc\b", key)
+
+
+def ldpe_film_a_template(key, row):
+    return row["polymer"] == "LDPE" and row["form"] in {"", "FILM"} and (row["grade"] == "A" or GRADE_A.search(key))
+
+
+TEMPLATE_MATCH = (
+    ("HDPE_DRUMS", drum_template),
+    ("IBC_TOTES", ibc_template),
+    ("LDPE_FILM_A", ldpe_film_a_template),
+)
+
+
+def apply_template(key: str, row: dict[str, str], templates) -> None:
+    """Route a mapped material to its grade template; the template fills only empty columns."""
+    if row["field_role"] != "material" or row["status"] != "mapped" or row["grade_template"]:
+        return
+    by_code = {template["grade_template"]: template for template in templates.values()}
+    for code, matches in TEMPLATE_MATCH:
+        if not matches(key, row):
+            continue
+        template = by_code[code]
+        row["grade_template"] = code
+        for column in ("form", "source_type", "color"):
+            row[column] = row[column] or template.get(column, "")
+        if not row["packaging_type"]:
+            row["packaging_type"] = "bales" if BALED.search(key) else template.get("packaging_type", "")
+        attributes = set(row["attributes"].split()) | set(template.get("attributes", "").split())
+        row["attributes"] = " ".join(sorted(attributes))
+        if code == "LDPE_FILM_A":
+            row["grade"] = row["grade"] or "A"
+        return
 
 
 def spec_row(spec) -> dict[str, str]:
@@ -756,6 +803,7 @@ def build(erp: Path, vanillasoft: Path, workbook_path: Path | None) -> list[dict
             }
         )
         row.update(result)
+        apply_template(key, row, templates)
         rows.append(row)
     rows.sort(
         key=lambda row: (
