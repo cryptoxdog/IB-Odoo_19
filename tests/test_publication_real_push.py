@@ -219,3 +219,112 @@ def test_synthetic_run_forwards_a_literal_to_ref(tmp_path: Path) -> None:
     )
     [entry] = _log(tmp_path)
     assert entry["PRE_COMMIT_TO_REF"] == "HEAD"
+
+
+# --- the revised pre-push stage, under real git and real pre-commit ----------
+
+GATE_HOOK_IDS = ("gitleaks-push", "pr-validate")
+
+
+def _gate_hooks() -> list[dict]:
+    """gitleaks-push and pr-validate exactly as .pre-commit-config.yaml declares them."""
+    yaml = pytest.importorskip("yaml")
+    config = yaml.safe_load((ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    hooks = {hook["id"]: hook for repo in config["repos"] for hook in repo["hooks"]}
+    pre_push = [
+        hook["id"]
+        for repo in config["repos"]
+        for hook in repo["hooks"]
+        if "pre-push" in (hook.get("stages") or config.get("default_stages") or ["pre-push"])
+    ]
+    assert pre_push[-2:] == list(GATE_HOOK_IDS), pre_push
+    return [hooks[hook_id] for hook_id in GATE_HOOK_IDS]
+
+
+def _gate_repo(tmp_path: Path) -> tuple[Path, Path, dict[str, str], Path]:
+    """Work repo whose pre-push stage is the real gate hooks, with stub make/gitleaks."""
+    yaml = pytest.importorskip("yaml")
+    seq = tmp_path / "seq.log"
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    for name, body in (("make", "MAKE_RC"), ("gitleaks", "GITLEAKS_RC")):
+        stub = bindir / name
+        stub.write_text(f'#!/bin/bash\necho "{name} $*" >> "{seq}"\nexit "${{{body}:-0}}"\n', encoding="utf-8")
+        stub.chmod(0o755)
+    env = _env(tmp_path, PATH=f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}")
+    repo = tmp_path / "work"
+    bare = tmp_path / "origin.git"
+    repo.mkdir()
+    (repo / "scripts").mkdir()
+    shutil.copy(ROOT / "scripts" / "pre_push_validate.sh", repo / "scripts" / "pre_push_validate.sh")
+    config = {"default_stages": ["pre-commit"], "repos": [{"repo": "local", "hooks": _gate_hooks()}]}
+    (repo / ".pre-commit-config.yaml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    subprocess.run([GIT, "init", "-q", "--bare", str(bare)], env=env, check=True)
+    _git(repo, env, "init", "-q", "-b", "fix/example")
+    _git(repo, env, "add", ".")
+    _git(repo, env, "commit", "-q", "-m", "init")
+    _git(repo, env, "remote", "add", "origin", str(bare))
+    # Seed the remote without a push, so the next push is an ordinary update.
+    subprocess.run(
+        [GIT, "--git-dir", str(bare), "fetch", "-q", str(repo), "fix/example:refs/heads/fix/example"],
+        env=env,
+        check=True,
+    )
+    assert PRE_COMMIT
+    subprocess.run(
+        [PRE_COMMIT, "install", "--hook-type", "pre-push"], cwd=repo, env=env, check=True, capture_output=True
+    )
+    _commit(repo, env, "next")
+    return repo, bare, env, seq
+
+
+def _gate_seq(seq: Path) -> list[str]:
+    return seq.read_text(encoding="utf-8").splitlines() if seq.exists() else []
+
+
+def _push_head(repo: Path, env: dict[str, str], **extra: str) -> subprocess.CompletedProcess[str]:
+    return _git(repo, {**env, **extra}, "push", "origin", "HEAD:refs/heads/fix/example", check=False)
+
+
+def test_direct_push_runs_gitleaks_then_pr_check_and_publishes(tmp_path: Path) -> None:
+    repo, bare, env, seq = _gate_repo(tmp_path)
+    head = _git(repo, env, "rev-parse", "HEAD").stdout.strip()
+    proc = _push_head(repo, env)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _gate_seq(seq) == ["gitleaks detect --config .gitleaks.toml --redact --exit-code 2", "make pr-check"]
+    assert _remote_ref(bare, env, "refs/heads/fix/example") == head
+
+
+def test_direct_push_with_failing_pr_check_leaves_the_remote_unchanged(tmp_path: Path) -> None:
+    repo, bare, env, seq = _gate_repo(tmp_path)
+    before = _remote_ref(bare, env, "refs/heads/fix/example")
+    proc = _push_head(repo, env, MAKE_RC="2")
+    assert proc.returncode != 0
+    assert "make pr-check failed" in proc.stdout + proc.stderr
+    assert _remote_ref(bare, env, "refs/heads/fix/example") == before
+
+
+def test_gitleaks_finding_stops_the_stage_before_pr_check(tmp_path: Path) -> None:
+    repo, bare, env, seq = _gate_repo(tmp_path)
+    before = _remote_ref(bare, env, "refs/heads/fix/example")
+    proc = _push_head(repo, env, GITLEAKS_RC="2")
+    assert proc.returncode != 0
+    assert _gate_seq(seq) == ["gitleaks detect --config .gitleaks.toml --redact --exit-code 2"], "fail_fast"
+    assert _remote_ref(bare, env, "refs/heads/fix/example") == before
+
+
+def test_publisher_bound_push_skips_both_heavy_hooks(tmp_path: Path) -> None:
+    repo, bare, env, seq = _gate_repo(tmp_path)
+    head = _git(repo, env, "rev-parse", "HEAD").stdout.strip()
+    proc = _push_head(repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/example")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _gate_seq(seq) == []
+    assert _remote_ref(bare, env, "refs/heads/fix/example") == head
+
+
+def test_binding_for_another_branch_still_runs_the_gate(tmp_path: Path) -> None:
+    repo, bare, env, seq = _gate_repo(tmp_path)
+    head = _git(repo, env, "rev-parse", "HEAD").stdout.strip()
+    proc = _push_head(repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/other")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _gate_seq(seq) == ["gitleaks detect --config .gitleaks.toml --redact --exit-code 2", "make pr-check"]

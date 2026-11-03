@@ -110,7 +110,9 @@ def test_direct_push_runs_the_full_gate(work: tuple[Path, Path, str], mode: str)
     repo, seq, head = work
     proc = _run(repo, mode, _push_env(head))
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    expected = "gitleaks detect --config .gitleaks.toml --redact --exit-code 2" if mode == "gitleaks" else "make pr-check"
+    expected = (
+        "gitleaks detect --config .gitleaks.toml --redact --exit-code 2" if mode == "gitleaks" else "make pr-check"
+    )
     assert _seq(seq).splitlines() == [expected]
 
 
