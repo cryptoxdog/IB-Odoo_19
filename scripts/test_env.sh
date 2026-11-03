@@ -286,20 +286,32 @@ lease_holders() {
               WHERE l.locktype = 'advisory' AND l.granted AND a.application_name LIKE 'plasticos-test-env:%'"
 }
 # lease <key> exclusive|shared — blocks until granted or TEST_ENV_LOCK_TIMEOUT.
+# An uncontended grant arrives within milliseconds, so the first checks are
+# close together. The pauses (centiseconds) add up to exactly 2s, where a
+# still-waiting run reports who holds the lease, and then repeat at 1s as a
+# held lease always has. The limit is measured on the wall clock (SECONDS),
+# not by counting sleeps. SECONDS has whole-second resolution, so the wait ends
+# only once the difference exceeds the limit: never earlier than LOCK_TIMEOUT,
+# at most ~2s later.
 lease() {
-  local key="$1" fn="pg_advisory_lock" token waited=0
+  local key="$1" fn="pg_advisory_lock" token start="$SECONDS" slept=0 step=0 cs
+  local -a pause=(5 10 20 40 80 45 100)
   [ "$2" = "shared" ] && fn="pg_advisory_lock_shared"
   lease_open
   token="granted-$RANDOM$RANDOM"
   printf "SELECT %s(hashtextextended('%s:%s', 0)); SELECT '%s';\n" "$fn" "$SCHEMA" "$key" "$token" >&9
   until grep -qx "$token" "$LEASE_DIR/out"; do
     kill -0 "$LEASE_PID" 2>/dev/null || die "lease session ended: $(cat "$LEASE_DIR/out")"
-    if [ "$waited" -eq 2 ]; then
+    if [ "$slept" -eq 200 ]; then
       echo "→ waiting for lease '$key' (held by: $(lease_holders))"
     fi
-    [ "$waited" -ge "$LOCK_TIMEOUT" ] && die "timed out after ${LOCK_TIMEOUT}s waiting for lease '$key'"
-    sleep 1
-    waited=$((waited + 1))
+    [ $((SECONDS - start)) -gt "$LOCK_TIMEOUT" ] && die "timed out after ${LOCK_TIMEOUT}s waiting for lease '$key'"
+    cs="${pause[$step]}"
+    sleep "$((cs / 100)).$((cs % 100 / 10))$((cs % 10))"
+    slept=$((slept + cs))
+    if [ "$step" -lt $((${#pause[@]} - 1)) ]; then
+      step=$((step + 1))
+    fi
   done
 }
 unlease() {
