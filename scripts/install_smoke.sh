@@ -673,7 +673,8 @@ IFS=',' read -r -a _smoke_modules <<< "${_CHECK_MODULES}"
 # One query for every module's state (the shape recheck_evidence reads), not one
 # docker exec per module. A failed query leaves no rows, so every required
 # module is reported missing and the run fails.
-ALL_STATES="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \
+ALL_STATES="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -X -v ON_ERROR_STOP=1 \
+  -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \
   "SELECT name || '=' || state FROM ir_module_module ORDER BY name;" 2>/dev/null | tr -d '\r')" || ALL_STATES=""
 ALL_STATES=$'\n'"${ALL_STATES}"$'\n'
 for mod in "${_smoke_modules[@]}"; do
