@@ -697,3 +697,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > The VanillaSoft import puts an approved contact's materials on its resolved facility partner. When that site
 > cannot be resolved, they go on the matched ERP contact person. A facility profile is used only when exactly one
 > already exists for that partner.
+
+> **2026-11-03 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-10-21 sentence "Code debt stays in `docs/campaigns/odoo_tech_debt`" is superseded. PR #355 retired
+> that tracker (`00_README.md`, `OPEN_REGISTER.json`, `OPEN_REGISTER.md`, `_build_register.py`), and no
+> repository debt tracker replaces it. `workflow_state.md` remains the operational state of open campaigns.
+> `docs/erp_import_mapping.md` stays: it is the ERP import mapping authority cited by
+> `plasticos_partner_import/erp/mapping_status.py`, ADR-022 and the source-layer tests.

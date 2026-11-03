@@ -2,7 +2,7 @@
 
 Hand-edited operational state, as of 2026-10-21. No script writes this file.
 
-This page names the open campaigns. Code findings stay in [`docs/campaigns/odoo_tech_debt`](docs/campaigns/odoo_tech_debt/00_README.md), which remains the debt tracker. `memory-bank/` is retired. Session resume is [l9-graphiti-memory](https://github.com/Quantum-L9/l9-graphiti-memory).
+This page names the open campaigns. The former debt tracker `docs/campaigns/odoo_tech_debt` was retired on 2026-11-03 (PR #355); no repository debt tracker replaces it. `memory-bank/` is retired. Session resume is [l9-graphiti-memory](https://github.com/Quantum-L9/l9-graphiti-memory).
 
 ## Now
 
