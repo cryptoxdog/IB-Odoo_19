@@ -323,16 +323,29 @@ def _stateful(
     )
 
 
-def _fingerprint(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+def _status(tmp_path: Path, root: Path = ROOT, **env: str) -> dict:
+    """One `status` observation: its fingerprint, addon source and input lines.
+
+    Callers that need several values of the same unchanged state read them from
+    one observation. Nothing is cached: every call runs the script again.
+    """
     status = _stateful(tmp_path, {}, "status", root=root, **env)
     assert status.returncode == 0, status.stderr
-    return re.search(r"fingerprint:\s+([0-9a-f]{64})", status.stdout).group(1)
+    return {
+        "fingerprint": re.search(r"fingerprint:\s+([0-9a-f]{64})", status.stdout).group(1),
+        "source": re.search(r"source:\s+([0-9a-f]{64})", status.stdout).group(1),
+        "inputs": [
+            line.split("  input  ", 1)[1] for line in status.stdout.splitlines() if line.startswith("  input  ")
+        ],
+    }
+
+
+def _fingerprint(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+    return _status(tmp_path, root=root, **env)["fingerprint"]
 
 
 def _source(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
-    status = _stateful(tmp_path, {}, "status", root=root, **env)
-    assert status.returncode == 0, status.stderr
-    return re.search(r"source:\s+([0-9a-f]{64})", status.stdout).group(1)
+    return _status(tmp_path, root=root, **env)["source"]
 
 
 def _template(fp: str) -> tuple[str, str]:
@@ -371,9 +384,7 @@ def _ee_clone(fp: str) -> str:
 
 
 def _inputs(tmp_path: Path, **env: str) -> list[str]:
-    status = _stateful(tmp_path, {}, "status", **env)
-    assert status.returncode == 0, status.stderr
-    return [line.split("  input  ", 1)[1] for line in status.stdout.splitlines() if line.startswith("  input  ")]
+    return _status(tmp_path, **env)["inputs"]
 
 
 def _sha256(text: str) -> str:
@@ -460,8 +471,8 @@ def test_fixture_admitted_for_other_inputs_is_refused_by_name(tmp_path, key):
 def test_fixture_recorded_with_addon_source_is_certified_without_a_rebuild(tmp_path):
     """F261-1: a fixture admitted while addon source was in its fp is proved by its inputs file."""
     env = _enterprise(tmp_path)
-    fp = _fingerprint(tmp_path, **env)
-    current = _inputs(tmp_path, **env)
+    observed = _status(tmp_path, **env)
+    fp, current = observed["fingerprint"], observed["inputs"]
     at = next(i for i, line in enumerate(current) if line.startswith("config="))
     recorded = current[:at] + ["addons=" + "e" * 64] + current[at:]
     text = "\n".join(recorded) + "\n"
