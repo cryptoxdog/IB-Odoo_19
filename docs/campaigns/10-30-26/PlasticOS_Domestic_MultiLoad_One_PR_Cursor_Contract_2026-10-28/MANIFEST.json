@@ -3,7 +3,14 @@
   "pack": "PlasticOS Domestic Multi-Load Foundation: Cursor Coding Contract",
   "contract_id": "PLASTICOS.DOMESTIC.MULTILOAD.ONE_PR.2026-10-28",
   "created": "2026-10-28",
-  "execution_status": "NOT_EXECUTED",
+  "execution_status": "SUPERSEDED_IMPLEMENTED_UPSTREAM",
+  "superseded_audit": {
+    "date": "2026-11-03",
+    "implemented_by": "PR chain ending in #339 (2dc516aa29718b4545faf67e79ca225589ac6d7f, merged 2026-10-29)",
+    "audit_record": "10_EXECUTION_STATUS_AUDIT_2026-11-03.md",
+    "pack_receipt_filled": false,
+    "do_not_execute": true
+  },
   "source_observation_sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
   "fresh_source_binding_required": true,
   "predecessor_documents_pr_merge_required": true,
@@ -14,8 +21,9 @@
   "files": [
     {
       "path": "00_START_HERE.md",
-      "sha256": "17cbb5a0f2b41af3bbbdafbdcf6e963607fd220348513d7064449716f4cb6bb4",
-      "bytes": 4435
+      "sha256": "8e4a8711c58c9f1e792b6100f9fcebc7da205f75d56e6dad3800f8c6925ddd5b",
+      "bytes": 4871,
+      "note": "supersession banner added 2026-11-03; original sha256 17cbb5a0f2b41af3bbbdafbdcf6e963607fd220348513d7064449716f4cb6bb4"
     },
     {
       "path": "01_CURSOR_CODING_CONTRACT.md",
@@ -61,6 +69,11 @@
       "path": "09_OWNER_BOUNDARIES.md",
       "sha256": "19a1ca9af2c2b732848a0a4372ff001205f580a1f7d59a42461d42617da9d07b",
       "bytes": 3337
+    },
+    {
+      "path": "10_EXECUTION_STATUS_AUDIT_2026-11-03.md",
+      "sha256": "211b0eef26a9d2e3d08f6e9ec34d00dcb7c5e6acda258cf999c4a0c2652785c7",
+      "bytes": 6192
     }
   ]
 }

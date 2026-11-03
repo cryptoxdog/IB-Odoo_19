@@ -1,6 +1,12 @@
 # PlasticOS domestic multi-load foundation | Cursor execution pack
 
-**Contract status:** USER-AUTHORIZED FOR FUTURE EXECUTION, NOT EXECUTED.  
+> **⚠️ SUPERSEDED (2026-11-03): DO NOT EXECUTE.** The campaign's mission was implemented
+> and merged into `Staging` on 2026-10-29 through the PR chain ending in PR #339
+> (`2dc516aa`). All ML-ROOT and ML-CONS items are resolved in current code. See
+> `10_EXECUTION_STATUS_AUDIT_2026-11-03.md` for the per-claim verification. This pack is
+> retained as a historical contract record only.
+
+**Contract status:** SUPERSEDED — IMPLEMENTED UPSTREAM (was: USER-AUTHORIZED FOR FUTURE EXECUTION, NOT EXECUTED).  
 **Contract ID:** `PLASTICOS.DOMESTIC.MULTILOAD.ONE_PR.2026-10-28`  
 **Target:** `cryptoxdog/IB-Odoo_19`, **Staging**, one subsequent feature PR.  
 **Source evidence:** `Staging@04bd0594a7c9dcad53d9c45fc65276d76817c112` as independently inspected October 28, 2026. Not a frozen execution base.  
