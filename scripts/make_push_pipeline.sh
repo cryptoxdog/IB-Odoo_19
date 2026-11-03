@@ -127,6 +127,11 @@ echo "  ${CURRENT} → ${BASE}"
 echo "══════════════════════════════════════════════════════"
 echo ""
 
+# L4 runs twice: here, before any local work, and again inside
+# git_push_with_pr.sh at the push boundary, after its validation gate.
+# git_push_with_pr.sh owns that gate on every attempt (pre-push hooks may not
+# run at all on a retry); the pre-push stage is bound to it so the candidate is
+# validated once (scripts/pre_push_validate.sh).
 echo "→ L4 release check (before local gate and before any remote mutation)..."
 bash scripts/git_push_with_pr.sh --check-l4
 echo ""
