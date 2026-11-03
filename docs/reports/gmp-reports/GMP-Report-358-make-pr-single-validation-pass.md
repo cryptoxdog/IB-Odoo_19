@@ -1,0 +1,84 @@
+# GMP-358 — make pr: one validation pass per publication attempt
+
+**Task:** `/l9-plan-build` of plan `make_pr_single_validation_pass_32909105` (revision 2), T1–T10.
+**Branch:** `fix/make-pr-single-validation-pass` (worktree `wt-make-pr-validation`)
+**Base:** `Staging` `9ee917e7521d64d0e759afd2fdef8198d4c32b30`
+**PR:** [#358](https://github.com/cryptoxdog/IB-Odoo_19/pull/358) → `Staging`
+**Seam status:** green locally (153 targeted tests, ruff, shellcheck, all commit-stage hooks, root-file gate). CI green on `f338bf6`; CI on the final head is pending at the time of writing.
+
+## Plan gates
+
+| Gate | Result |
+|---|---|
+| `validate_plan_document.py` | PASS |
+| Section receipt (`validate_plan_section_receipt.py`, cursor-build) | PASS |
+| Kernel receipt: Improve → Recursive Alignment → Validate & Repair (`validate_plan_kernel_receipt.py`) | PASS, with nine recorded deltas from T1 evidence and the operator's sanctioned-commands instruction |
+| MEMORY_PREFETCH | namespace `ib-odoo-19`, snapshot `4f53cda1…5ed12ab4`, 0 records checked, 0 conflicts, `memory-phase-lock/v2` |
+
+The governance GMP executor was not used. It writes reports to a root `reports/gmp/` directory, which this
+repository forbids (AGENTS.md 2026-10-21), and its finalize step commits and publishes on its own. The run contract
+(lock, ground truth, verify, evidence) was applied by hand. Commits went through `make commit`; publication through
+`make pr-nosmoke`. The executor defect is recorded in the governance session-debt ledger.
+
+## Todos
+
+| Todo | Result | Commit |
+|---|---|---|
+| T1 counterexample first | Real git + pre-commit 4.7.0 characterization (root push has no refs; up-to-date push reaches the hook with no ref lines and pre-commit runs nothing; new ref to an existing commit runs no hook; multi-ref binds the first ref only; `--to-ref HEAD` is literal) and a `make pr` no-op retry guard. 67 tests passed on unmodified scripts. | `8803dba` |
+| T2 `scripts/pre_push_validate.sh` | `gitleaks` and `gate` modes; push-ref matrix; five-field publisher binding; fail-closed refusals. | `0019ef5` |
+| T3 `.pre-commit-config.yaml` | `default_stages: [pre-commit]`; pre-push = 10 hooks incl. `check-xml`; 23 scanners commit-only; `gitleaks-push` wrapped with `fail_fast`; `pr-validate` appended. Marker commit subject `ALLOW-ROOT-DELETION: .pre-commit-config.yaml — …`. | `cee7748` |
+| T4 `scripts/git_push_with_pr.sh` | Clears inherited binding; gate unconditional; second L4 at the push boundary; one refspec with binding; verbatim push-failure text. | `3b10c64` |
+| T5 `scripts/make_push_pipeline.sh` | Comment only. | `3b10c64` |
+| T6 `tests/test_make_pr_publication.py` | Order, one pr-check / one gitleaks / two L4, binding env and one refspec on push, L4 denial at the boundary, forged inherited binding, push-failure text. | `3b10c64` |
+| T7 `tests/test_pre_push_validate.py`, real-gate tests | 28 script tests; 5 real-runner gate tests using the hook definitions from the real config. | `0019ef5`, `669585b`, `f338bf6` |
+| T8 docs | AGENTS.md dated correction (additive), CLAUDE.md hook count, `docs/LOCAL_DEV_SETUP.md` hook install step. | `f5ac764` |
+| T9 benchmark | Disposable clones, 3 runs per phase, all phases exit 0. Local `make pr` validation 89.54 s → 67.57 s median (−21.97 s, −24.5%); direct push 45.22 s → 72.87 s. Details in `docs/reports/make-pr-validation-consolidation.md`. | this commit |
+| T10 publication | `8803dba` via `make pr-nosmoke`; `f338bf6` via `make pr-nosmoke` after `make pr` refused at `install-smoke --resolve` (no readable Odoo Enterprise checkout in the container; branch changes no smoke input). | — |
+
+Operator-authorized change outside the original lock: `.github/workflows/ci.yml` pure-tests install line gains
+`pre-commit==4.7.0` (`7e65817`), answering the Codex review finding that the real-runner tests always skipped in CI.
+
+## Validation
+
+| Check | Command | Result |
+|---|---|---|
+| V1 | `bash -n` + `shellcheck` on the three publication scripts | PASS |
+| V2/V7/V8/V9 | `pytest tests/test_make_pr_publication.py tests/test_pre_push_validate.py tests/test_publication_real_push.py tests/test_pr_check_scope.py tests/test_remote_feedback_revision.py tests/contracts/test_no_local_intelligence.py tests/test_repo_dependency_integrity.py` | 153 passed, 0 skipped |
+| V3 | `pre-commit validate-config` + pre-push inventory probe | PASS: 39 hooks, 10 at pre-push, exact expected list |
+| V4 | `ci.yml` versus `Staging` | One added pin only (operator-authorized) |
+| V5 | `ruff check .`, `ruff format --check .`, `pre-commit run --all-files` | PASS (33 commit-stage hooks) |
+| V6 | consolidation report | mapping, push-ref matrix, threat model, 3+3 timings |
+| V7a | `validate_root_file_protection.py --base origin/Staging --head HEAD` | PASS: AGENTS.md additive, `.pre-commit-config.yaml` justified by marker, CLAUDE.md managed |
+| Live | `make pr-nosmoke` publishing `f338bf6` | publisher gate once; pre-push stage ran the 10 new hooks, none of the 23 scanners |
+
+## Review findings
+
+| Finding | Disposition |
+|---|---|
+| Copilot (medium): skip the real-runner module when `git` is missing too | Fixed in `f338bf6`; thread resolved |
+| Codex (P2): real-runner tests always skip in CI | Fixed in `7e65817` (operator-authorized `ci.yml` pin) |
+
+## Deviations and evidence corrections
+
+- Revision 2 said git does not invoke pre-push on an up-to-date push. T1 showed git does invoke it, with no ref
+  lines; pre-commit then runs nothing. The conclusion (the hook cannot own the gate) is unchanged.
+- `make commit` takes a one-line message, so the `ALLOW-ROOT-DELETION` marker is the whole subject of `cee7748`
+  rather than a body line. The root-file gate accepts it; commitizen's changelog will not list that commit.
+- The first two benchmark attempts were discarded: wrong ruff / no pytest on PATH, then a harness that compared
+  different scopes and re-used tracking refs. Only the corrected third run is reported.
+- `workflow_state.md` was not updated: it lists open campaigns only and has no change log.
+
+## Rollback
+
+Before merge: close PR #358 and delete `origin/fix/make-pr-single-validation-pass` (human). After merge: a
+corrective PR into `Staging` restoring `.pre-commit-config.yaml`, `scripts/git_push_with_pr.sh`,
+`scripts/make_push_pipeline.sh`, `tests/test_make_pr_publication.py`, `.github/workflows/ci.yml`, `AGENTS.md`,
+`CLAUDE.md` and `docs/LOCAL_DEV_SETUP.md` from `9ee917e`, and deleting `scripts/pre_push_validate.sh`,
+`tests/test_pre_push_validate.py`, `tests/test_publication_real_push.py` and the two reports. No force-push, no
+`git revert` of foreign commits. Installed hooks need no change.
+
+## Follow-up
+
+Priority D (`pr_check_remote_feedback.py` SHA-first) and Priority E (`apply_pr_kernel_metadata.sh` single label
+fetch) remain a separate plan. Measured remote feedback is about 2 s per run, so both are low value. The bound push
+still spends about 23 s in hygiene and contract-test hooks.
