@@ -52,7 +52,14 @@ repos:
 
 
 def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
-    env = {key: value for key, value in os.environ.items() if not key.startswith(("PRE_COMMIT_", "GIT_"))}
+    # COV_CORE_*/COVERAGE_* would make every pre-commit and probe subprocess write a
+    # coverage file without this repo's coverage config, which breaks pytest-cov's
+    # combine step (same exclusion as tests/test_make_pr_publication.py::_env).
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("PRE_COMMIT_", "GIT_", "COV_CORE_", "COVERAGE_"))
+    }
     env.update(
         GIT_CONFIG_NOSYSTEM="1",
         GIT_CONFIG_GLOBAL=os.devnull,

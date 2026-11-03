@@ -58,7 +58,7 @@ def _base_env(tmp_path: Path) -> dict[str, str]:
     env = {
         key: value
         for key, value in os.environ.items()
-        if not key.startswith(("PRE_COMMIT_", "L9_PUBLISH_", "GIT_", "PR_SMOKE_"))
+        if not key.startswith(("PRE_COMMIT_", "L9_PUBLISH_", "GIT_", "PR_SMOKE_", "COV_CORE_", "COVERAGE_"))
     }
     env.update(
         PATH=f"{tmp_path / 'bin'}{os.pathsep}{env.get('PATH', '')}",
