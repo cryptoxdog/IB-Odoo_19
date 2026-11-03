@@ -4,7 +4,7 @@
 **Branch:** `fix/make-pr-single-validation-pass` (worktree `wt-make-pr-validation`)
 **Base:** `Staging` `9ee917e7521d64d0e759afd2fdef8198d4c32b30`
 **PR:** [#358](https://github.com/cryptoxdog/IB-Odoo_19/pull/358) → `Staging`
-**Seam status:** green locally (153 targeted tests, ruff, shellcheck, all commit-stage hooks, root-file gate). CI green on `f338bf6`; CI on the final head is pending at the time of writing.
+**Seam status:** green locally (153 targeted tests, ruff, shellcheck, all commit-stage hooks, root-file gate). CI green on `f338bf6`; red on `0738308` (coverage combine), fixed in `0490514` and `8cc9f03` (see Incident).
 
 ## Plan gates
 
@@ -67,6 +67,21 @@ Operator-authorized change outside the original lock: `.github/workflows/ci.yml`
 - The first two benchmark attempts were discarded: wrong ruff / no pytest on PATH, then a harness that compared
   different scopes and re-used tracking refs. Only the corrected third run is reported.
 - `workflow_state.md` was not updated: it lists open campaigns only and has no change log.
+
+## Incident and fixes after publication (2026-11-03)
+
+| Event | Detail |
+|---|---|
+| CI red on `0738308` | Pure Python Tests: 2008 passed, then pytest-cov `DataError` at combine. Once `pre-commit` was installed in CI, the real-runner tests' `pre-commit` and probe subprocesses inherited `COV_CORE_*` and wrote coverage files without this repo's config. Fixed in `0490514` (strip `COV_CORE_*` / `COVERAGE_*`, as `tests/test_make_pr_publication.py::_env` already did). |
+| Local direct push corrupted the local repo | A direct `git push` from the linked worktree ran `pr-validate` → `make pr-check` inside the hook. Git runs hooks with an absolute `GIT_DIR` in a linked worktree, so test fixtures calling `git -C <tmp>` acted on the real repository: commits on the branch, `core.bare = true` in the shared config, index replaced. Nothing reached GitHub; `Staging` and the remote branch were untouched. |
+| Recovery | Backup ref `refs/l9/incident/pre-push-gitdir-20261103` and a worktree patch captured first. `core.bare` restored. Branch moved back with an operator-authorized `git reset --soft 0490514a` (hard reset is never waived on this surface), index restored with `git restore --staged --source=HEAD -- .`. Worktree files were intact. |
+| Root-cause fix | `8cc9f03`: `scripts/pre_push_validate.sh` unsets every `git rev-parse --local-env-vars` variable before `make pr-check`. Regression test `test_pr_check_runs_without_the_hooks_repo_local_git_variables` failed before the fix (nested `git -C <other>` resolved to the hook's repo) and passes after. |
+| Why the earlier evidence missed it | The real-runner gate tests stub `make`. `make pr`'s own push is bound, so the hook never ran `make pr-check` during publication. The benchmark clones are plain clones, whose hooks get a relative `GIT_DIR`, so their direct-push timings stand. |
+| Publication | `8cc9f03` via `make pr-nosmoke` (operator instruction; `L9_FULL_PYTEST_AUTHORIZED` set with that reason): 2010 passed, 48 skipped; pre-push gate passed. |
+
+Other publication-path findings: `make commit` breaks on an apostrophe in `m=` (single-quoted `MSG`); the
+governance push gate parsed a shell redirection `>` as a branch name; a compound command is checked against
+the L4 receipt as a whole, so `authorize-release` must run as its own command before `make commit`.
 
 ## Rollback
 
