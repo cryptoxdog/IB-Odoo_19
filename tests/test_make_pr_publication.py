@@ -938,6 +938,35 @@ def test_scope_receipt_without_smoke_inputs_skips_only_the_recheck(tmp_path: Pat
         assert "smoke --recheck" in _seq(seq2), "RECHECK: with the gate on, only an explicit smoke=0 receipt skips it"
 
 
+def test_no_op_retry_still_validates_before_pr_verification(tmp_path: Path) -> None:
+    """F1: origin already holds the validated SHA, so the push carries no ref.
+
+    Git still calls the hook but sends it no ref lines, and pre-commit then runs
+    no configured hook (tests/test_publication_real_push.py). The publisher's own
+    gate must still run pr-check and gitleaks exactly once before the pull
+    request is verified.
+    """
+    repo, seq = _init_repo(tmp_path)
+    bare = tmp_path / "remote.git"
+    subprocess.run([REAL_GIT, "init", "--bare", str(bare)], check=True, capture_output=True)
+    subprocess.run(
+        [REAL_GIT, "-C", str(bare), "fetch", str(repo), "fix/example:refs/heads/fix/example"],
+        check=True,
+        capture_output=True,
+    )
+    assert _remote_sha(bare) == _head(repo)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", REAL_REMOTE=str(bare))
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 0, output
+    text = _seq(seq)
+    assert _remote_sha(bare) == _head(repo)
+    assert text.count("make ") == 1, text
+    assert text.count("gitleaks ") == 1, text
+    assert text.index("make ") < text.index("\npush\n")
+    assert "Open PR #222" in output
+
+
 def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     proc = _push(repo, tmp_path, "fix/example", MAKE_DIRTY="1")
