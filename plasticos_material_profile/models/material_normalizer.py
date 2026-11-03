@@ -83,10 +83,8 @@ _CRM_ALIASES = {
         "hdpe bottles - natural": ("HDPE", "BOTTLES", None),
         "ldpe film b": ("LDPE", "FILM", "B"),
         "acrylic / pmma": ("PMMA", None, None),
-        "hdpe frac melt": ("HDPE", None, None),
         "ldpe film": ("LDPE", "FILM", None),
         "nylon 6": ("NYLON", None, None),
-        "pvc rigid": ("PVC", None, None),
         "pet strapping": ("PET", None, None),
         "mrp export": ("MRP", None, None),
         "pp supersacs (un-lined)": ("PP", None, None),
@@ -126,7 +124,6 @@ _CRM_ALIASES = {
         "mrp - domestic": ("MRP", None, None),
         "pet bottles - deposit bill": ("PET", "BOTTLES", None),
         "hdpe pill bottles": ("HDPE", "BOTTLES", None),
-        "ldpe thick gauge": ("LDPE", None, None),
         "mrp c&d": ("MRP", None, None),
         "pc - polycarb": ("PC", None, None),
         "hdpe drip tube": ("HDPE", None, None),
@@ -196,6 +193,11 @@ _CRM_ALIASES = {
         "they generate hdpe": ("HDPE", None, None),
         "they mostly work with pet bottles.": ("PET", "BOTTLES", None),
     }.items()
+}
+_CRM_ALIASES |= {
+    "hdpe frac melt": ("HDPE", None, None, ("frac_melt",), None),
+    "pvc rigid": ("PVC", None, None, ("rigid",), None),
+    "ldpe thick gauge": ("LDPE", None, None, ("thick_gauge",), None),
 }
 
 

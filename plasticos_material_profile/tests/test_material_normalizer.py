@@ -178,7 +178,6 @@ class TestMaterialNormalizer(TransactionCase):
             ("PET Bottles", "PET", "BOTTLES", False),
             ("HDPE Bottles - Natural", "HDPE", "BOTTLES", False),
             ("HDPE Bottles - Z Bales", "HDPE", False, False),
-            ("HDPE Frac Melt", "HDPE", False, False),
             ("PP Supersacs (Lined)", "PP", False, False),
             ("IBC Totes (HMW-HDPE)", "HDPE_HMW", "TOTES", False),
             ("MRP Export", "MRP", False, False),
@@ -191,6 +190,17 @@ class TestMaterialNormalizer(TransactionCase):
                 self.assertEqual(result.form.code or False, form)
                 self.assertEqual(result.grade or False, grade)
                 self.assertFalse(result.attributes)
+
+        for phrase, polymer, attribute in (
+            ("HDPE Frac Melt", "HDPE", "frac_melt"),
+            ("PVC Rigid", "PVC", "rigid"),
+            ("LDPE Thick Gauge", "LDPE", "thick_gauge"),
+        ):
+            with self.subTest(phrase=phrase):
+                result = normalize_crm_material(self.env, phrase)
+                self.assertEqual(result.polymer.code, polymer)
+                self.assertFalse(result.form)
+                self.assertEqual(result.attributes.mapped("code"), [attribute])
 
         self.assertEqual(
             normalize_material(self.env, "PET Bottles").unresolved,
