@@ -1,0 +1,98 @@
+{
+  "schema": "evidence.assessment/v1",
+  "target": {
+    "locator": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "artifact_type": "repo",
+    "revision": "e78af874604890f8adb6b049694f93c48311eab4"
+  },
+  "review_mode": "validation_review",
+  "authority_basis": [],
+  "adapters": [
+    "Read-only GitHub connector: pinned current and introduction source, parent CRM path, PR #259, targeted tests",
+    "ChatGPT Library: original October 14 v2 material mapping workbook and October 22 diagnostic receipt",
+    "Source-bound Python execution of unmodified normalizer with in-memory master lookup stub; not Odoo runtime",
+    "Two delegated read-only history/test inspections; root independently fetched the supporting files"
+  ],
+  "findings": [
+    {
+      "finding_id": "F-001",
+      "finding_fingerprint": "e80220d74c13c6c674077cea8dc18e11d6b1756603bb4ad26e27edbd317251cd",
+      "fingerprint_basis": {
+        "subject": "cryptoxdog/IB-Odoo_19",
+        "location": "plasticos_material_profile/models/material_normalizer.py:normalize_material",
+        "finding_type": "defect",
+        "rule_key": "documented-exact-material-inputs-rejected-before-master-lookup"
+      },
+      "title": "All 23 workbook EXACT inputs are rejected before canonical master lookup, including LDPE, HDPE and PP",
+      "artifact_type": "repo",
+      "finding_type": "defect",
+      "basis_class": "observational",
+      "severity": 4,
+      "blast_radius": 3,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "October 14 workbook POLYMER MAPPING rows 342-364; current source e78af874; introduction source 75622e3; Material_Mapping_Source_Check.json",
+        "location": "https://github.com/cryptoxdog/IB-Odoo_19/blob/e78af874604890f8adb6b049694f93c48311eab4/plasticos_material_profile/models/material_normalizer.py#L60-L84",
+        "support_type": "cross_source",
+        "excerpt_or_summary": "Library file file_0000000022e481f5bfa0df24d7e0b476, rendered lines 454-476, records 23 EXACT mappings. Unmodified normalizers at introduction 75622e310ef9897001500e9f9d3f5cd84977bfc2 (19 phrases) and current e78af874 (23 phrases) resolve 0/23; every case returns unresolved material with zero master lookups. Five known/unknown controls pass at each revision. PR #259 introduced this path; parent 3c249765 has no material application at the end of admitted lead upsert. The omission is present at introduction; no later removal of working support is demonstrated.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Exact source identities documented in the mapping workbook do not become normalized polymers through this CRM material path. The current common-code warnings are consistent with this implementation omission. Exact overnight recovery count and persisted-row consequences were not measured by this source check.",
+      "status": "open"
+    },
+    {
+      "finding_id": "F-002",
+      "finding_fingerprint": "0e0d718ab7954544050c46500b1d14b040b991d73c6524757954a62cdf56759c",
+      "fingerprint_basis": {
+        "subject": "cryptoxdog/IB-Odoo_19",
+        "location": "plasticos_material_profile/tests/test_material_normalizer.py; plasticos_crm_sync/tests/test_orchestrator_upsert.py",
+        "finding_type": "gap",
+        "rule_key": "positive-mapping-tests-omit-exact-workbook-inputs-and-comma-format"
+      },
+      "title": "Relevant positive tests exercise the curated phrases and alternate separators, omitting ordinary exact-code coverage",
+      "artifact_type": "repo",
+      "finding_type": "gap",
+      "basis_class": "observational",
+      "severity": 3,
+      "blast_radius": 3,
+      "recurrence": "Unknown",
+      "confidence": "confirmed",
+      "evidence": {
+        "source": "Pinned normalizer and orchestrator tests; earlier profile-reuse test module",
+        "location": "https://github.com/cryptoxdog/IB-Odoo_19/blob/e78af874604890f8adb6b049694f93c48311eab4/plasticos_material_profile/tests/test_material_normalizer.py#L17-L59 ; https://github.com/cryptoxdog/IB-Odoo_19/blob/e78af874604890f8adb6b049694f93c48311eab4/plasticos_crm_sync/tests/test_orchestrator_upsert.py#L424-L456",
+        "support_type": "direct",
+        "excerpt_or_summary": "The normalizer positive cases enumerate the same 23 special phrases as the implementation; bare LDPE, HDPE and PP are absent. The three-material integration test supplies HDPE Drums newline LDPE Film newline PP Supersacs and asserts HDPE/LDPE/PP outputs. Earlier CRM-4 helper tests pass an already-resolved polymer record and do not exercise string resolution. These tests can pass while the documented bare-code and comma-list input cases remain unsupported.",
+        "fact_or_inference": "fact"
+      },
+      "impact": "Passing these selected cases establishes phrase handling and profile mechanics, but cannot establish complete implementation of the documented material mapping.",
+      "status": "open"
+    }
+  ],
+  "unknowns": [
+    {
+      "item": "Exact behavior of unpublished overnight commit 607a64b897cb73b19adeea1b867990c5bf556189",
+      "reason": "The diagnostic identifies a local-only revision; this assessment is pinned to published Staging and introduction history. No live clone or provider was accessed.",
+      "material": false
+    },
+    {
+      "item": "Measured recovery across all 4002 overnight signals and every ambiguous/approved workbook entry",
+      "reason": "Outside this bounded source/history review; aggregate warning counts do not establish token-level recovery.",
+      "material": false
+    },
+    {
+      "item": "Behavior of separate legacy import routes outside plasticos_crm_sync",
+      "reason": "The historical conclusion is confined to the API material path introduced by PR #259.",
+      "material": false
+    }
+  ],
+  "convergence": {
+    "status": "converged",
+    "passes": 1,
+    "material_changes_after_final_pass": false,
+    "improvement_estimate_remaining_percent": "Unknown",
+    "final_confidence": "Unknown",
+    "stop_condition": "Completed bounded comparison of documented EXACT mappings, current source, introduction source, parent API path and relevant positive tests. Unmodified source reproduction confirms the omission in both versions. Findings remain open; this is not a repair, import-acceptance, merge-readiness or deployment verdict."
+  },
+  "assessment_status": "complete"
+}

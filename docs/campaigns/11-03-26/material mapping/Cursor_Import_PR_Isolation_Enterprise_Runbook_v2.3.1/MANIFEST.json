@@ -1,0 +1,114 @@
+{
+  "package": "Cursor ERP+CRM Import PR Isolation / Enterprise Diagnostics",
+  "version": "2.3.1",
+  "date": "2026-10-25",
+  "predecessor_zip": "Cursor_Import_PR_Isolation_Enterprise_Runbook_v2.3.0.zip",
+  "predecessor_sha256": "e5ac4b0a0b12b3868debb18c0473fc534af3c67a8e370fe57e0a6e32a3e38c6f",
+  "classification": "operator-controlled diagnostic runbook only, not permission for code changes",
+  "source_snapshot": {
+    "repo": "cryptoxdog/IB-Odoo_19",
+    "Staging": "2a3b9cda9b127c284d12f98bf35ab0344a500d10",
+    "PR301": "cc3f8cbb90d7f57c58de75af9d893d8ac2ed4c79",
+    "PR303": "190c497bdea1362cad87e231c713efdcd25240d4",
+    "dynamic_refresh_required": true,
+    "PR303_implementation_baseline": "702ebaf77d987dc844e2758bd354b2ecef4f26cd",
+    "PR303_delta": "Five new docs only: docs/reports/evidence/pr303-cursor-handoff/*.md"
+  },
+  "fixtures": {
+    "source": "config/test_env_fixture.conf",
+    "parity": "enterprise_only",
+    "template_mutation_authorized": false
+  },
+  "execution": {
+    "only_existing_tests": true,
+    "each_pr_exact_sha_separate_worktree": true,
+    "automatic_remediation": false,
+    "operator_approval_for_every_change": true,
+    "final_integration_gate": "conditional_approved_SHA_and_import_authorization",
+    "known_ce_failures": {
+      "failed": 7,
+      "errors": 1,
+      "total_reported": 807,
+      "moved_modules_reported": 39,
+      "moved_tests_reported": 605,
+      "status": "REPORTED_NOT_ENTERPRISE_VERIFIED"
+    },
+    "pr303_diagnostic_complete_requires_all_green": false,
+    "pr303_merge_ready": "NOT_PROVEN_AND_NOT_AUTHORIZED"
+  },
+  "exclusions": [
+    "logistics feature tests",
+    "Community fallback",
+    "new/rebuilt/re-stamped Enterprise fixture",
+    "unauthorized code/test/docs changes",
+    "new PR or silent merging",
+    "applied ERP/VanillaSoft import without separate operator authorization"
+  ],
+  "files": [
+    {
+      "file": "00_READ_FIRST.md",
+      "size": 9325,
+      "sha256": "7b5332c86912e115a190738f3430b851485191e775fbe98c00b008fc2d27ac9f"
+    },
+    {
+      "file": "01_SOURCE_AND_FIXTURE_ADMISSION.md",
+      "size": 11316,
+      "sha256": "8d60aeebc7192eba08c6d52e9b4b60d6c1bdfa35225ddce24e56d468424a6a42"
+    },
+    {
+      "file": "02_PR_BEHAVIOR_MATRIX.md",
+      "size": 16452,
+      "sha256": "e5992b511a08f3767d818dad1fe34951189a88667e1db5f19e5810becc87137d"
+    },
+    {
+      "file": "03_EXECUTION_SEQUENCE.md",
+      "size": 16490,
+      "sha256": "02fb6710bfef42f1d95a905383d8a933d066efcda68c442caf3acb991ecc0799"
+    },
+    {
+      "file": "04_FINDINGS_AND_APPROVAL.md",
+      "size": 12660,
+      "sha256": "c568d1eab28f774bea1a2c8e2c6da06a2948576e0894b076fb051f17375591dd"
+    },
+    {
+      "file": "05_CURSOR_HANDOFF.md",
+      "size": 5859,
+      "sha256": "930fe0956aca902b0a6a6884d2b7f2f4a06078e9bc85f204753710fbb9615df9"
+    },
+    {
+      "file": "06_FINAL_COHESION_GATE.md",
+      "size": 16451,
+      "sha256": "6fc764c75d92c7c4e381d8e6ed26fbd12c08624208438d103af969a1b49d5b93"
+    },
+    {
+      "file": "07_EXACT_PREFLIGHT_AND_RUN_COMMANDS.md",
+      "size": 13163,
+      "sha256": "bbb03c389e31dec3ec31a6694f61fd215b5d518e2216d0ca9fa4132a616fcf03"
+    },
+    {
+      "file": "08_EVIDENCE_AND_APPROVAL_PACKET.md",
+      "size": 6880,
+      "sha256": "bc850b8937e1d170e25ff5c9e77a631b8ae42aa61629edc29b3a187ce3b6bb42"
+    },
+    {
+      "file": "09_SCOPE_AND_LIMITATIONS.md",
+      "size": 6988,
+      "sha256": "efa5bfb841e8b036ef72100a3cd7e50a00fff6254a4295de432a846940ad3884"
+    },
+    {
+      "file": "10_PR303_PUBLISHED_HANDOFF_ACCEPTANCE.md",
+      "size": 7528,
+      "sha256": "64adda7c0e8c74a38b95adffc115722cec65f9c05c9fc95b33a461d67e195618"
+    },
+    {
+      "file": "BEHAVIOR_CATALOG.csv",
+      "size": 18069,
+      "sha256": "75567441c16c3aa0972f7258a3fd5ba307771a1b3219613d3c0e42ab05f2c589"
+    },
+    {
+      "file": "CHANGELOG.md",
+      "size": 5200,
+      "sha256": "7eb70aa83ae0fab33df1c39dd7813a92129e9638d6f337e607f637df0658d8ec"
+    }
+  ]
+}

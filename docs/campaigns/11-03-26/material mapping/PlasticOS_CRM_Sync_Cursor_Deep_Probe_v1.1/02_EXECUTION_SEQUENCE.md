@@ -1,0 +1,37 @@
+# CRM diagnostic execution | one scoped cohort, no repair loop
+
+## Phase 0 | source/test reachability and preflight
+
+Execute `01_SAFETY_AND_PREFLIGHT.md`. Inventory all reachable CRM execution entrypoints/consumers: transport/API parser -> DTO -> owner/identity crosswalk -> existing ERP partner or lead -> material/facility -> calls/custom rows -> run counters/status -> replay. Inspect the actual Odoo addon tests import graph (`tests/__init__.py` and manifest) before calling a collected test; identify `tests/` root modules that use Odoo APIs but are excluded from pytest. Mark those `NOT_COLLECTED`, not PASS. Record the entire 43-row inventory first.
+
+## Phase 1 | rapid pure tests, static mapping and falsifiers
+
+- Select existing CRM-focused pure tests under `tests/` by **test inventory**, including full-import, completeness, adapter/parser, owner crosswalk, approved identity, history, source/field mapping, committed metrics and selected contact-only ERP contracts. Run with `PYTHONDONTWRITEBYTECODE=1`, pytest cache disabled, captured exit/stderr, collection count and selected node IDs. Exclude broad non-CRM pure tests and installed-addon `odoo.tests.TransactionCase` modules from pytest.
+- Determine whether tests distinguish each behavior, not just mention its module. For material false-green specifically, separately inspect: `_material_inputs`, `_store_normalized_materials`, `_apply_approved_materials`, `_apply_contact_materials`, `_sync_tables_for_lead`, `CUSTOM_TABLES_REQUIRED`, `_completion`, `import_summary.build_run_summary`, and manual/cron behavior. Observe actual code/version differences; never assume historical evidence is current.
+- Enumerate all 96 field census identities **from authoritative source field workbook/report plus live provider schema**. #295 PR description has category totals, **not necessarily every exact field name**. If absent, record `FIELD_INVENTORY_NOT_PROVEN`, do not fabricate 96 rows. Track `field name`, `origin/provider path`, `current user-authorized disposition`, source present, Odoo target/readback, per-field mismatches. Distinguish 44 deferred candidates from launch-critical polymer/form fields. No speculative mapping.
+
+## Phase 2 | one combined Enterprise ORM lane
+
+Subject to proven no-repair fixture/image gates, one *new* owned clone, one combined module test scope:
+
+`plasticos_crm_sync,plasticos_crm_bridge,plasticos_material_profile,plasticos_facility_profile,plasticos_partner_import`
+
+At the observed runner this is accepted by `make test-module m=<comma-list> ODOO_TEST_DB=<new-unique-clone>`; validate it still is before executing. This upgrades the entire declared PlasticOS roster **on the clone** (normal behavior) and runs registered tests in the chosen CRM scope. Extract actual method IDs and executed/start/completion evidence by module, verify combined Odoo summary, receipt head/source/fingerprint, then split independent PASS/FAIL verdicts into catalog rows. A green aggregate is not a field-fidelity or end-to-end source proof.
+
+Only if diagnostic ambiguity remains, run **targeted** module isolation (`plasticos_crm_sync` or another verified module) in a *second new clone*, with an explicit discriminating question and receipt. Do not routinely clone five times. Module with zero registered methods is `NOT_COLLECTED`; test roots not wired into addon remain unknown for ORM even if pure parser tests pass. No #303 test moves in this step.
+
+## Phase 3 | authenticated provider source introspection (GET/read only)
+
+Verify existing credentials are bound to authorized project and methods are truly source-read-only; never display the secret. For each supported provider read API, record endpoint name, documented time bound, paginator/cursor, returned count and error classification, but no PII. Run **bounded** field-path/material samples for source variants (not a broad brute-force scrape). A 30-day `/Contacts` response is only an incremental sample; test the old-floor hypothesis carefully within provider policy (no repeated expensive 400 loops). An *independent* authoritative full-history export or count is required for any full-census claim; absent it, emit `EXTERNAL_SOURCE_CENSUS_BLOCKED` and continue other nondependent probes.
+
+Specifically locate the actual source representation of material phrases, multi-section material-form fields and custom-table entries. Check stable `data_id` behavior, optional table failures, disabled phones, deleted/archived state, owner email, stage/source, call timestamps/result/comments. If a field does not appear, record **not observed in sample**, not **does not exist**. A count-only provider source cannot certify field values.
+
+## Phase 4 | owned-clone CRM import and readback, if separately safe
+
+This lane is **conditional** on verified provider read access, exact source scope, E2E side-effect containment and an authenticated clone-only guarded importer. Choose a new and separately owned E2E clone (not the module suite clone). If provider can only serve recent contacts, optionally do a **bounded partial-window import**, clearly stamped `PARTIAL_WINDOW` with its exact cutoff; never call it `full`. Do not try an unsupported 2019 floor repeatedly, spoof modified timestamps, or introduce ad hoc provider endpoints. If complete source enumeration is blocked, leave full-history acceptance `NOT_PROVEN` regardless of successful subset import.
+
+On the **same E2E clone**, prove persisted before/after comparisons for each source ID in tested scope: approved ERP-person vs standalone CRM lead, unmodified ERP-owned fields, accurate salesperson Odoo login including preexisting owner backfill, native fields and source-labelled context, every enabled phone/fax/extension, all relevant materials by `(polymer, form)` at the correct lead/facility, call owner/timestamp/result, stable custom row identities, run status and watermarks. Label a source/target mismatch with the first wrong boundary and testable counterexample. Replay exactly the **same immutable source snapshot** if the provider can guarantee it; if source changes, classify replay result as non-comparable, not idempotent. Use clone-only synthetic fixtures to exercise archive/restore and failure injection when native tests permit; do not edit real VanillaSoft.
+
+## Phase 5 | one verification pass then handoff
+
+Re-observe every retained finding, field inventory gap, uncollected mandatory ORM path and source census uncertainty once, only with a new discriminating probe if truly needed. Group symptoms into minimum **proven** root causes. Produce `03_EVIDENCE_AND_CLOSEOUT.md` artifacts and invoke packaged result validator. Conclude with separate outcomes `DIAGNOSTIC=COMPLETE|PARTIAL|BLOCKED` and `CRM_PROMOTION=PASS|FAIL|NOT_PROVEN`. With a known missing required field, status-gap, or blocked full-history census, **CRM_PROMOTION cannot be PASS** even if all selected suites are green. Stop before code editing or delegation to coding agent.

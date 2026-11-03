@@ -1,0 +1,13 @@
+# Cursor CRM Sync diagnostic contract v1.1
+
+**Mission:** Execute **Step 1 diagnosis only** on `cryptoxdog/IB-Odoo_19` latest merged `Staging`, verifying the complete CRM sync vertical (not all ERP modules) using **the provided ZIP as the executable evidence/coverage contract**. Do not change product code, tests, fixtures, templates, images, credentials, history, PRs or any live data. Do not start a remediation campaign.
+
+**Binding:** Resolve the exact current `origin/Staging` SHA, confirm clean detached worktree and existing Enterprise Docker fixture, prove its exact source/addon and Enterprise mounts, pin raw log/native receipt/test method identities. Prior observed SHA `2a3b9cda9b127c284d12f98bf35ab0344a500d10` is a starting reference only. No #301/#303 or Linda code changes, test relocations or PR lanes.
+
+**Plan:** (1) source/field/test reachability and preflight; (2) targeted pure tests; (3) **one combined CRM-addon ORM test lane** on one owned new clone; (4) bounded authenticated VanillaSoft read-only schema/full-history census (historical 31-day lookback rejected); (5) if safe, a separate owned-clone import/readback/unchanged-source replay; (6) one verification pass and exact-root-cause remediation proposals. Clone only when safe; no template/image repair. Existing test_env helper runs `compose build` even for status, so check safety before invoking it.
+
+**43 behaviors:** preserve IDs in `CRM_BEHAVIOR_CATALOG.csv`, expand only actual reachable CRM behaviors. Prove source-to-Odoo approved ERP-person identity, standalone lead identity, owner login (sa@ Tiffany; ss@ Mack), 96 fields/44 pending dispositions, all enabled phones and address/note/source fields, multiple `(polymer,form)` persisted profiles, correct facility ownership, source custom table + call histories, truthful failed/partial run status, correct watermarks, and replay. Distinguish stale code and API limitations from reproducible current failure.
+
+**Output:** evidence directory outside repo with `COVERAGE_MATRIX.csv`, `SOURCE_FIELD_LEDGER.csv`, source census, actual Odoo test logs/receipts + method census, environment pre/post proof, root-cause surgical map, operator-only unresolved decisions and candidate future coding contracts; run `validate_results.py` for structural completeness. Always report independently `DIAGNOSTIC=COMPLETE|PARTIAL|BLOCKED` and `CRM_PROMOTION=PASS|FAIL|NOT_PROVEN`; never claim source completeness from green tests or a 30-day source sample.
+
+**Stop:** no code edits, PRs, make pr, deployments, data changes outside owned clones, unsupported source APIs or automatic remediation. Read `00_START_HERE.md` through `05_CURSOR_PASTE.md` before execution.

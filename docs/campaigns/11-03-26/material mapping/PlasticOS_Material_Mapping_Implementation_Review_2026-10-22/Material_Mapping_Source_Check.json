@@ -1,0 +1,701 @@
+{
+  "review": "material mapping implementation omission",
+  "method": "Unmodified source functions at two immutable commits executed with an in-memory master lookup stub. This checks resolver control flow, not an Odoo database or import.",
+  "workbook": {
+    "file_id": "file_0000000022e481f5bfa0df24d7e0b476",
+    "library_file_id": "libfile_7ba525a4393481919fbd9e66a32553da",
+    "name": "VanillaSoft_Odoo_Polymer_and_ERP_Mapping_2026-10-14_v2.xlsx",
+    "lines": "454-476"
+  },
+  "results": [
+    {
+      "label": "introduction",
+      "revision": "75622e310ef9897001500e9f9d3f5cd84977bfc2",
+      "source_blob": "ccce82e95ba0b9b4788cb1af496b95a4c363a57e",
+      "source_url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/75622e310ef9897001500e9f9d3f5cd84977bfc2/plasticos_material_profile/models/material_normalizer.py",
+      "phrase_count": 19,
+      "workbook_exact_cases": 23,
+      "exact_cases_resolved": 0,
+      "cases": [
+        {
+          "workbook_index": 342,
+          "input": "LDPE",
+          "expected_polymer": "LDPE",
+          "historical_distinct_contacts": 1621,
+          "historical_occurrences": 1699,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 343,
+          "input": "HDPE",
+          "expected_polymer": "HDPE",
+          "historical_distinct_contacts": 829,
+          "historical_occurrences": 853,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 344,
+          "input": "PP",
+          "expected_polymer": "PP",
+          "historical_distinct_contacts": 518,
+          "historical_occurrences": 603,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 345,
+          "input": "MRP",
+          "expected_polymer": "MRP",
+          "historical_distinct_contacts": 218,
+          "historical_occurrences": 262,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 346,
+          "input": "PET",
+          "expected_polymer": "PET",
+          "historical_distinct_contacts": 183,
+          "historical_occurrences": 183,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 347,
+          "input": "ABS",
+          "expected_polymer": "ABS",
+          "historical_distinct_contacts": 180,
+          "historical_occurrences": 180,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 348,
+          "input": "E-Waste",
+          "expected_polymer": "EWASTE",
+          "historical_distinct_contacts": 173,
+          "historical_occurrences": 173,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 349,
+          "input": "PC",
+          "expected_polymer": "PC",
+          "historical_distinct_contacts": 141,
+          "historical_occurrences": 141,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 350,
+          "input": "PS",
+          "expected_polymer": "PS",
+          "historical_distinct_contacts": 111,
+          "historical_occurrences": 111,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 351,
+          "input": "HIPS",
+          "expected_polymer": "HIPS",
+          "historical_distinct_contacts": 101,
+          "historical_occurrences": 101,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 352,
+          "input": "PVC",
+          "expected_polymer": "PVC",
+          "historical_distinct_contacts": 83,
+          "historical_occurrences": 83,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 353,
+          "input": "Nylon",
+          "expected_polymer": "NYLON",
+          "historical_distinct_contacts": 68,
+          "historical_occurrences": 68,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 354,
+          "input": "EPS",
+          "expected_polymer": "EPS",
+          "historical_distinct_contacts": 66,
+          "historical_occurrences": 66,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 355,
+          "input": "HDPE-HMW",
+          "expected_polymer": "HDPE_HMW",
+          "historical_distinct_contacts": 59,
+          "historical_occurrences": 59,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 356,
+          "input": "BOPP",
+          "expected_polymer": "BOPP",
+          "historical_distinct_contacts": 46,
+          "historical_occurrences": 46,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 357,
+          "input": "TPO",
+          "expected_polymer": "TPO",
+          "historical_distinct_contacts": 45,
+          "historical_occurrences": 45,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 358,
+          "input": "Metal",
+          "expected_polymer": "METAL",
+          "historical_distinct_contacts": 25,
+          "historical_occurrences": 25,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 359,
+          "input": "TPE",
+          "expected_polymer": "TPE",
+          "historical_distinct_contacts": 23,
+          "historical_occurrences": 23,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 360,
+          "input": "Plastic Pallets",
+          "expected_polymer": "PLASTIC_PALLETS",
+          "historical_distinct_contacts": 12,
+          "historical_occurrences": 12,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 361,
+          "input": "Gaylord Boxes",
+          "expected_polymer": "GAYLORD_BOXES",
+          "historical_distinct_contacts": 10,
+          "historical_occurrences": 10,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 362,
+          "input": "LLDPE",
+          "expected_polymer": "LLDPE",
+          "historical_distinct_contacts": 4,
+          "historical_occurrences": 4,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 363,
+          "input": "PBT",
+          "expected_polymer": "PBT",
+          "historical_distinct_contacts": 3,
+          "historical_occurrences": 3,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 364,
+          "input": "HDPE-",
+          "expected_polymer": "HDPE",
+          "historical_distinct_contacts": 1,
+          "historical_occurrences": 1,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        }
+      ],
+      "controls": [
+        {
+          "input": "LDPE Film",
+          "actual_polymer": "LDPE",
+          "master_lookups": 2,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "HDPE Drums",
+          "actual_polymer": "HDPE",
+          "master_lookups": 2,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "PP Supersacs",
+          "actual_polymer": "PP",
+          "master_lookups": 1,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "PC/ABS",
+          "actual_polymer": "PC_ABS",
+          "master_lookups": 2,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "mystery fluff",
+          "actual_polymer": null,
+          "master_lookups": 0,
+          "expected_behavior_confirmed": true
+        }
+      ]
+    },
+    {
+      "label": "current_staging",
+      "revision": "e78af874604890f8adb6b049694f93c48311eab4",
+      "source_blob": "628a136f783de6146a5a020215f0c501a335e7c2",
+      "source_url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/e78af874604890f8adb6b049694f93c48311eab4/plasticos_material_profile/models/material_normalizer.py",
+      "phrase_count": 23,
+      "workbook_exact_cases": 23,
+      "exact_cases_resolved": 0,
+      "cases": [
+        {
+          "workbook_index": 342,
+          "input": "LDPE",
+          "expected_polymer": "LDPE",
+          "historical_distinct_contacts": 1621,
+          "historical_occurrences": 1699,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 343,
+          "input": "HDPE",
+          "expected_polymer": "HDPE",
+          "historical_distinct_contacts": 829,
+          "historical_occurrences": 853,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 344,
+          "input": "PP",
+          "expected_polymer": "PP",
+          "historical_distinct_contacts": 518,
+          "historical_occurrences": 603,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 345,
+          "input": "MRP",
+          "expected_polymer": "MRP",
+          "historical_distinct_contacts": 218,
+          "historical_occurrences": 262,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 346,
+          "input": "PET",
+          "expected_polymer": "PET",
+          "historical_distinct_contacts": 183,
+          "historical_occurrences": 183,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 347,
+          "input": "ABS",
+          "expected_polymer": "ABS",
+          "historical_distinct_contacts": 180,
+          "historical_occurrences": 180,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 348,
+          "input": "E-Waste",
+          "expected_polymer": "EWASTE",
+          "historical_distinct_contacts": 173,
+          "historical_occurrences": 173,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 349,
+          "input": "PC",
+          "expected_polymer": "PC",
+          "historical_distinct_contacts": 141,
+          "historical_occurrences": 141,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 350,
+          "input": "PS",
+          "expected_polymer": "PS",
+          "historical_distinct_contacts": 111,
+          "historical_occurrences": 111,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 351,
+          "input": "HIPS",
+          "expected_polymer": "HIPS",
+          "historical_distinct_contacts": 101,
+          "historical_occurrences": 101,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 352,
+          "input": "PVC",
+          "expected_polymer": "PVC",
+          "historical_distinct_contacts": 83,
+          "historical_occurrences": 83,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 353,
+          "input": "Nylon",
+          "expected_polymer": "NYLON",
+          "historical_distinct_contacts": 68,
+          "historical_occurrences": 68,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 354,
+          "input": "EPS",
+          "expected_polymer": "EPS",
+          "historical_distinct_contacts": 66,
+          "historical_occurrences": 66,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 355,
+          "input": "HDPE-HMW",
+          "expected_polymer": "HDPE_HMW",
+          "historical_distinct_contacts": 59,
+          "historical_occurrences": 59,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 356,
+          "input": "BOPP",
+          "expected_polymer": "BOPP",
+          "historical_distinct_contacts": 46,
+          "historical_occurrences": 46,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 357,
+          "input": "TPO",
+          "expected_polymer": "TPO",
+          "historical_distinct_contacts": 45,
+          "historical_occurrences": 45,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 358,
+          "input": "Metal",
+          "expected_polymer": "METAL",
+          "historical_distinct_contacts": 25,
+          "historical_occurrences": 25,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 359,
+          "input": "TPE",
+          "expected_polymer": "TPE",
+          "historical_distinct_contacts": 23,
+          "historical_occurrences": 23,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 360,
+          "input": "Plastic Pallets",
+          "expected_polymer": "PLASTIC_PALLETS",
+          "historical_distinct_contacts": 12,
+          "historical_occurrences": 12,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 361,
+          "input": "Gaylord Boxes",
+          "expected_polymer": "GAYLORD_BOXES",
+          "historical_distinct_contacts": 10,
+          "historical_occurrences": 10,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 362,
+          "input": "LLDPE",
+          "expected_polymer": "LLDPE",
+          "historical_distinct_contacts": 4,
+          "historical_occurrences": 4,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 363,
+          "input": "PBT",
+          "expected_polymer": "PBT",
+          "historical_distinct_contacts": 3,
+          "historical_occurrences": 3,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        },
+        {
+          "workbook_index": 364,
+          "input": "HDPE-",
+          "expected_polymer": "HDPE",
+          "historical_distinct_contacts": 1,
+          "historical_occurrences": 1,
+          "actual_polymer": null,
+          "unresolved": [
+            "unresolved material"
+          ],
+          "master_lookups": 0,
+          "matches_expected": false
+        }
+      ],
+      "controls": [
+        {
+          "input": "LDPE Film",
+          "actual_polymer": "LDPE",
+          "master_lookups": 2,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "HDPE Drums",
+          "actual_polymer": "HDPE",
+          "master_lookups": 2,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "PP Supersacs",
+          "actual_polymer": "PP",
+          "master_lookups": 1,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "PC/ABS",
+          "actual_polymer": "PC_ABS",
+          "master_lookups": 2,
+          "expected_behavior_confirmed": true
+        },
+        {
+          "input": "mystery fluff",
+          "actual_polymer": null,
+          "master_lookups": 0,
+          "expected_behavior_confirmed": true
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "No Odoo/Enterprise execution",
+    "No provider request, source database access, importer run, Git publication, or repo modification",
+    "Historical workbook contact counts are not overnight warning counts and cannot be summed as distinct people"
+  ]
+}
