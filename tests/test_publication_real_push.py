@@ -25,7 +25,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 PRE_COMMIT = shutil.which("pre-commit")
 GIT = shutil.which("git")
-pytestmark = pytest.mark.skipif(PRE_COMMIT is None, reason="pre-commit is not installed in this job")
+pytestmark = pytest.mark.skipif(
+    PRE_COMMIT is None or GIT is None, reason="pre-commit or git is not installed in this job"
+)
 
 PROBE = """\
 import json, os, sys
