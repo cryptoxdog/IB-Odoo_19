@@ -697,3 +697,16 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > The VanillaSoft import puts an approved contact's materials on its resolved facility partner. When that site
 > cannot be resolved, they go on the matched ERP contact person. A facility profile is used only when exactly one
 > already exists for that partner.
+
+> **2026-11-03 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the "36 hooks" counts above (Commands block and the Pre-commit Hooks table heading) are superseded:
+> `.pre-commit-config.yaml` declares **39** hooks and `default_stages: [pre-commit]`. The pre-push stage is
+> 10 hooks: `check-xml`, `check-yaml`, `end-of-file-fixer`, `trailing-whitespace`, `check-added-large-files`,
+> `check-merge-conflict`, `phantom-enum-values`, `manifest-contract`, `gitleaks-push`, and `pr-validate`.
+> The 23 whole-tree Odoo scanners in the table run at commit time only. They still run inside `make pr-check`
+> (`make audit`) and in `ci.yml`, but no longer a third time at push. `make pr` (`scripts/git_push_with_pr.sh`)
+> owns an unconditional gate on every attempt (gitleaks, smoke resolve, `make pr-check`, smoke recheck), then a
+> second L4 check immediately before `git push`. Its push alone carries a binding that `scripts/pre_push_validate.sh`
+> honours only for that exact SHA, clean `HEAD`, `origin`, and target branch, so each attempt validates once.
+> Every other push runs the full gate in the hook. A direct `git push` is validated but is not publication
+> (no L4, no PR). Supported push forms and the threat model are in `docs/reports/make-pr-validation-consolidation.md`.
