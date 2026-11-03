@@ -1,0 +1,244 @@
+"""scripts/pre_push_validate.sh: the pre-push gate a direct push depends on.
+
+The script runs as a pre-commit hook; here it is driven with the environment
+pre-commit gives it, and with stub `make` and `gitleaks` that log each call.
+Nothing here needs pre-commit, so the suite runs in every CI job.
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "scripts" / "pre_push_validate.sh"
+GIT = shutil.which("git")
+BASH = shutil.which("bash")
+
+
+def _write(path: Path, text: str) -> None:
+    path.write_text(text, encoding="utf-8")
+    path.chmod(0o755)
+
+
+@pytest.fixture
+def work(tmp_path: Path) -> tuple[Path, Path, str]:
+    assert GIT and BASH
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    seq = tmp_path / "seq.log"
+    env = _base_env(tmp_path)
+    subprocess.run([GIT, "init", "-q", "-b", "fix/example"], cwd=repo, env=env, check=True)
+    (repo / "README.md").write_text("fixture\n", encoding="utf-8")
+    (repo / ".gitignore").write_text(".cache/\n", encoding="utf-8")
+    subprocess.run([GIT, "add", "README.md", ".gitignore"], cwd=repo, env=env, check=True)
+    subprocess.run([GIT, "commit", "-q", "-m", "init"], cwd=repo, env=env, check=True)
+    _write(
+        bindir / "make",
+        f"""#!/bin/bash
+echo "make $*" >> "{seq}"
+if [[ "${{MAKE_MOVES_HEAD:-0}}" == "1" ]]; then
+  echo moved > moved.txt
+fi
+exit "${{MAKE_RC:-0}}"
+""",
+    )
+    _write(bindir / "gitleaks", f'#!/bin/bash\necho "gitleaks $*" >> "{seq}"\nexit "${{GITLEAKS_RC:-0}}"\n')
+    head = subprocess.check_output([GIT, "rev-parse", "HEAD"], cwd=repo, env=env, text=True).strip()
+    return repo, seq, head
+
+
+def _base_env(tmp_path: Path) -> dict[str, str]:
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("PRE_COMMIT_", "L9_PUBLISH_", "GIT_", "PR_SMOKE_"))
+    }
+    env.update(
+        PATH=f"{tmp_path / 'bin'}{os.pathsep}{env.get('PATH', '')}",
+        GIT_CONFIG_NOSYSTEM="1",
+        GIT_CONFIG_GLOBAL=os.devnull,
+        GIT_AUTHOR_NAME="Test",
+        GIT_AUTHOR_EMAIL="test@example.com",
+        GIT_COMMITTER_NAME="Test",
+        GIT_COMMITTER_EMAIL="test@example.com",
+    )
+    return env
+
+
+def _push_env(head: str, **extra: str) -> dict[str, str]:
+    """The variables pre-commit 4.7.0 exports for an ordinary update push."""
+    env = {
+        "PRE_COMMIT_FROM_REF": "0" * 39 + "1",
+        "PRE_COMMIT_TO_REF": head,
+        "PRE_COMMIT_REMOTE_NAME": "origin",
+        "PRE_COMMIT_REMOTE_URL": "https://github.com/cryptoxdog/IB-Odoo_19.git",
+        "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/fix/example",
+        "PRE_COMMIT_LOCAL_BRANCH": head,
+    }
+    env.update(extra)
+    return env
+
+
+def _bound(head: str, **extra: str) -> dict[str, str]:
+    binding = {"L9_PUBLISH_VALIDATED_SHA": head, "L9_PUBLISH_TARGET": "fix/example"}
+    binding.update(extra)
+    return _push_env(head, **binding)
+
+
+def _run(repo: Path, mode: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    assert BASH
+    full = _base_env(repo.parent)
+    full.update(env)
+    return subprocess.run(
+        [BASH, str(SCRIPT), mode], cwd=repo, env=full, capture_output=True, text=True, check=False, timeout=30
+    )
+
+
+def _seq(seq: Path) -> str:
+    return seq.read_text(encoding="utf-8") if seq.exists() else ""
+
+
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+def test_direct_push_runs_the_full_gate(work: tuple[Path, Path, str], mode: str) -> None:
+    repo, seq, head = work
+    proc = _run(repo, mode, _push_env(head))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    expected = "gitleaks detect --config .gitleaks.toml --redact --exit-code 2" if mode == "gitleaks" else "make pr-check"
+    assert _seq(seq).splitlines() == [expected]
+
+
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+def test_exact_publisher_binding_skips_the_duplicate_work(work: tuple[Path, Path, str], mode: str) -> None:
+    repo, seq, head = work
+    proc = _run(repo, mode, _bound(head))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "validated by make pr in this process" in proc.stdout
+    assert _seq(seq) == ""
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("L9_PUBLISH_VALIDATED_SHA", "f" * 40),
+        ("L9_PUBLISH_TARGET", ""),
+        ("L9_PUBLISH_TARGET", "fix/other"),
+        ("PRE_COMMIT_REMOTE_NAME", "upstream"),
+        ("PRE_COMMIT_REMOTE_BRANCH", "refs/heads/fix/other"),
+    ],
+)
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+def test_any_binding_mismatch_runs_the_full_gate(
+    work: tuple[Path, Path, str], mode: str, field: str, value: str
+) -> None:
+    repo, seq, head = work
+    proc = _run(repo, mode, _bound(head, **{field: value}))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "validated by make pr" not in proc.stdout
+    assert _seq(seq) != "", f"a {field} mismatch skipped validation"
+
+
+def test_failing_pr_check_refuses(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "gate", _push_env(head, MAKE_RC="2"))
+    assert proc.returncode == 1
+    assert "make pr-check failed" in proc.stderr
+
+
+@pytest.mark.parametrize("rc", ["1", "2"])
+def test_gitleaks_failure_or_finding_refuses(work: tuple[Path, Path, str], rc: str) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "gitleaks", _push_env(head, GITLEAKS_RC=rc))
+    assert proc.returncode == 1
+    assert "gitleaks detect failed" in proc.stderr
+
+
+def test_missing_gitleaks_refuses(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    (repo.parent / "bin" / "gitleaks").unlink()
+    env = _push_env(head, PATH=f"{repo.parent / 'bin'}{os.pathsep}/usr/bin{os.pathsep}/bin")
+    assert BASH
+    if shutil.which("gitleaks", path=env["PATH"]):
+        env["PATH"] = str(repo.parent / "bin")
+        bindir = repo.parent / "bin"
+        for tool in ("git", "bash", "env"):
+            found = shutil.which(tool)
+            assert found
+            (bindir / tool).symlink_to(found)
+    proc = _run(repo, "gitleaks", env)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "gitleaks is not on PATH" in proc.stderr
+
+
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+def test_root_history_push_is_refused(work: tuple[Path, Path, str], mode: str) -> None:
+    repo, seq, head = work
+    env = _push_env(head)
+    del env["PRE_COMMIT_TO_REF"]
+    del env["PRE_COMMIT_FROM_REF"]
+    proc = _run(repo, mode, env)
+    assert proc.returncode == 1
+    assert "root of history is not supported" in proc.stderr
+    assert _seq(seq) == ""
+
+
+def test_outside_a_pre_push_is_refused(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "gate", {})
+    assert proc.returncode == 1
+    assert "runs only as a pre-push hook" in proc.stderr
+    assert _seq(seq) == ""
+
+
+def test_pushing_a_commit_other_than_head_is_refused(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "gate", _push_env("e" * 40))
+    assert proc.returncode == 1
+    assert "is not the checked-out HEAD" in proc.stderr
+    assert _seq(seq) == ""
+
+
+def test_a_forged_binding_for_another_head_is_refused_not_honoured(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "gate", _bound("e" * 40))
+    assert proc.returncode == 1
+    assert "is not the checked-out HEAD" in proc.stderr
+    assert _seq(seq) == ""
+
+
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+def test_dirty_tree_is_refused_even_with_a_binding(work: tuple[Path, Path, str], mode: str) -> None:
+    repo, seq, head = work
+    (repo / "README.md").write_text("changed\n", encoding="utf-8")
+    proc = _run(repo, mode, _bound(head))
+    assert proc.returncode == 1
+    assert "not clean" in proc.stderr
+    assert _seq(seq) == ""
+
+
+def test_worktree_change_during_validation_is_refused(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "gate", _push_env(head, MAKE_MOVES_HEAD="1"))
+    assert proc.returncode == 1
+    assert "changed during validation" in proc.stderr
+
+
+def test_smoke_bypass_is_not_a_direct_push_switch(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "gate", _push_env(head, PR_SMOKE_BYPASS="docs only"))
+    assert proc.returncode == 1
+    assert "applies only to make pr-nosmoke" in proc.stderr
+    assert _seq(seq) == ""
+
+
+def test_unknown_mode_is_refused(work: tuple[Path, Path, str]) -> None:
+    repo, seq, head = work
+    proc = _run(repo, "all", _push_env(head))
+    assert proc.returncode == 1
+    assert "usage" in proc.stderr
