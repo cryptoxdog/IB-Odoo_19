@@ -81,6 +81,14 @@ case "${mode}" in
     if [[ -n "${bypass// /}" ]]; then
       refuse "PR_SMOKE_BYPASS applies only to make pr-nosmoke, not to a direct push"
     fi
+    # Git runs hooks with GIT_DIR and other repo-local variables set (GIT_DIR is
+    # absolute in a linked worktree). make pr-check runs test fixtures that call
+    # git in their own temporary repositories; inherited, these variables point
+    # those calls at this repository (2026-11-03: fixtures committed onto the
+    # branch and set core.bare). Clear them; git finds this repo from the cwd.
+    while IFS= read -r git_var; do
+      unset "${git_var}"
+    done < <(git rev-parse --local-env-vars)
     if ! make pr-check; then
       refuse "make pr-check failed"
     fi

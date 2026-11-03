@@ -244,3 +244,32 @@ def test_unknown_mode_is_refused(work: tuple[Path, Path, str]) -> None:
     proc = _run(repo, "all", _push_env(head))
     assert proc.returncode == 1
     assert "usage" in proc.stderr
+
+
+def test_pr_check_runs_without_the_hooks_repo_local_git_variables(work: tuple[Path, Path, str], tmp_path: Path) -> None:
+    """Git runs hooks with GIT_DIR set (absolute in a linked worktree).
+
+    make pr-check runs test fixtures that call `git -C <their own temp repo>`.
+    Inherited, GIT_DIR points those calls at this repository: on 2026-11-03 a
+    direct push from a linked worktree let fixtures commit onto the branch and
+    set core.bare. The gate must clear git's repo-local variables first.
+    """
+    repo, seq, head = work
+    assert GIT
+    other = tmp_path / "other"
+    other.mkdir()
+    subprocess.run([GIT, "init", "-q", str(other)], env=_base_env(tmp_path), check=True)
+    probe = tmp_path / "probe.log"
+    _write(
+        repo.parent / "bin" / "make",
+        f"""#!/bin/bash
+env | grep -E '^(GIT_DIR|GIT_WORK_TREE|GIT_INDEX_FILE|GIT_COMMON_DIR|GIT_PREFIX)=' >> "{probe}" || true
+echo "toplevel=$(git -C "{other}" rev-parse --show-toplevel)" >> "{probe}"
+exit 0
+""",
+    )
+    git_dir = subprocess.check_output([GIT, "rev-parse", "--absolute-git-dir"], cwd=repo, text=True).strip()
+    proc = _run(repo, "gate", _push_env(head, GIT_DIR=git_dir, GIT_WORK_TREE=str(repo)))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    lines = probe.read_text(encoding="utf-8").splitlines()
+    assert lines == [f"toplevel={other.resolve()}"], lines
