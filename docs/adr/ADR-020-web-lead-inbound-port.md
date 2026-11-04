@@ -25,7 +25,7 @@ Cognito Forms posts JSON to a URL configured per form, retries HTTP 4xx/5xx up t
 
 ## Consequences
 
-- Cognito Forms Submit Entry Endpoint posts directly to `/api/v1/web-lead/inbound/cognito?access_token=<api_key>`. n8n is no longer on the path.
+- The inbound route lets a form tool post directly to `/api/v1/web-lead/inbound/<provider_key>`. As of 2026-11-04 the live quote form (Cognito `ScrapManagementInc1`, form 4) still posts to n8n workflow `5NjFkIFOBDWsMLyk`. That workflow posts the raw Cognito JSON with a Bearer credential to Production `POST /api/v1/cognito-webhook` and stays on the path. The direct Cognito cutover below has not been done.
 - A replacement form tool is one new `adapters/<tool>.py` plus one line in `adapters/registry.py`, plus credentials. The controller, `admit_inbound`, and triage do not change.
 - Synchronous triage still runs inside the webhook request. If a staging measurement shows Cognito timing out, a later ADR must move triage off the request. That change is not part of this decision.
 - Cognito REST file recovery and a Settings JSON field map are deferred.
@@ -36,7 +36,7 @@ Cognito Forms posts JSON to a URL configured per form, retries HTTP 4xx/5xx up t
 2. Set `ODOO_WEB_LEAD_WEBHOOK_PATH` to `/api/v1/web-lead/inbound/cognito`.
 3. Point the Cognito Submit Entry Endpoint at `https://<staging-host>/api/v1/web-lead/inbound/cognito?access_token=<api_key>`.
 4. Submit one real form on staging and confirm one `plasticos.web.lead` with `provider_key=cognito` and a single triage run. Record the request duration.
-5. After that submission succeeds, retire the n8n workflow and the Infisical names `N8N_API_KEY`, `N8N_API_URL`, and `N8N_WORKFLOW_HOST`.
+5. After that submission succeeds, retire the n8n workflow and the Infisical names `N8N_API_KEY`, `N8N_API_URL`, and `N8N_WORKFLOW_HOST`. Not done: n8n remains the Cognito ingress for Production, and these names are still in use.
 
 ## Compliance
 
