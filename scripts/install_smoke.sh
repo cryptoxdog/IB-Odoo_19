@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Local Odoo install-smoke gate — fail closed before GitHub.
 #
-# Builds the Docker image (xmlsec + requirements), ensures enterprise addons
-# are available, drops a dedicated DB, installs the configured module set with
-# --stop-after-init, and exits non-zero on install failure or ERROR/CRITICAL/
-# Traceback in the log.
+# Proves the current source loads on a clone of the pinned Enterprise template
+# (config/test_env_fixture.conf). The from-empty install lives in
+# scripts/test_env.sh template and runs on first admission and on
+# `make test-env-rebuild`, not on every smoke. Exits non-zero when the fixture
+# is unproven, the roster upgrade fails, or a required module is not installed.
 #
 # Usage:
 #   ./scripts/install_smoke.sh
@@ -177,11 +178,11 @@ EVIDENCE_FILE="$ROOT/.cache/pr-check/install-smoke.sha"
 
 acquire_smoke_lock() {
   local wait="${SMOKE_LOCK_WAIT:-30}" daemon
-  # All worktrees for this account and daemon use one resource lock. A worktree
-  # path is deliberately NOT part of the lock key. Python fcntl supports macOS.
+  # All worktrees for this account and daemon share one stack lock. The clone
+  # name contains the worktree and is deliberately not part of the key.
   daemon="$(docker info --format '{{.ID}}')" || refuse_smoke "cannot identify Docker daemon"
   [ -n "$daemon" ] || refuse_smoke "Docker daemon identity is empty"
-  SMOKE_LOCK_FILE="$(python3 - "$daemon" "$ODOO_COMPOSE_PROJECT" "$SMOKE_DB_ALLOWED" <<'PY'
+  SMOKE_LOCK_FILE="$(python3 - "$daemon" "$ODOO_COMPOSE_PROJECT" <<'PY'
 import hashlib
 import os
 import sys
@@ -241,9 +242,9 @@ case "$SMOKE_NETWORK_MODE" in
     ;;
 esac
 
-# The only database this script may terminate or drop. An environment value is
-# not authorization; it must match this name after the endpoint is proven.
-SMOKE_DB_ALLOWED="odoo_install_smoke"
+# The only database this script may upgrade: this worktree's fixture clone.
+# An environment value is not authorization; it must match that name.
+SMOKE_DB_ALLOWED="$(bash "$ROOT/scripts/test_env.sh" smoke-name)"
 
 resolve_module_lists
 
@@ -449,11 +450,15 @@ fi
 smoke_db_oid() {
   docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -X -v ON_ERROR_STOP=1 \
     -U "$POSTGRES_USER" -d postgres -t -A -c \
-    "SELECT oid FROM pg_database WHERE datname = 'odoo_install_smoke';" 2>/dev/null | tr -d '\r'
+    "SELECT oid FROM pg_database WHERE datname = '${SMOKE_DB}';" 2>/dev/null | tr -d '\r'
+}
+
+fixture_identity() {
+  bash "$ROOT/scripts/test_env.sh" identity
 }
 
 recheck_evidence() {
-  local live binding image_id pg_cid pg_image states expected db_oid
+  local live binding image_id pg_cid pg_image states expected db_oid identity fixture_fp fixture_source
   lists_are_canonical || refuse_smoke "recheck requires the full canonical module lists"
   acquire_smoke_lock
   [ -f "$EVIDENCE_FILE" ] || { echo "install-smoke evidence is absent" >&2; return 1; }
@@ -465,16 +470,20 @@ recheck_evidence() {
   if [ -n "$pg_cid" ]; then
     pg_image="$(docker inspect --format '{{.Image}}' "$pg_cid" 2>/dev/null || true)"
   fi
+  identity="$(fixture_identity)" || return 1
+  fixture_fp="$(printf '%s\n' "$identity" | sed -n 's/^fingerprint=//p')"
+  fixture_source="$(printf '%s\n' "$identity" | sed -n 's/^source=//p')"
   states="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -X -v ON_ERROR_STOP=1 \
     -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \
     "SELECT name || '=' || state FROM ir_module_module ORDER BY name;" 2>/dev/null)" || return 1
   db_oid="$(smoke_db_oid)" || return 1
   expected="${ENTERPRISE_MODULES},${CUSTOM_MODULES}"
-  python3 - "$EVIDENCE_FILE" "$live" "$image_id" "$pg_image" "$SMOKE_DB" "$db_oid" "$states" "$expected" <<'PY'
+  python3 - "$EVIDENCE_FILE" "$live" "$image_id" "$pg_image" "$SMOKE_DB" "$db_oid" "$states" "$expected" \
+    "$fixture_fp" "$fixture_source" <<'PY' || return 1
 import json
 import sys
 from pathlib import Path
-path, live, image_id, pg_image, database, db_oid, states_raw, inventory = sys.argv[1:]
+path, live, image_id, pg_image, database, db_oid, states_raw, inventory, fingerprint, source = sys.argv[1:]
 try:
     record = json.loads(Path(path).read_text(encoding="utf-8"))
 except (OSError, ValueError):
@@ -482,12 +491,18 @@ except (OSError, ValueError):
 if not isinstance(record, dict):
     raise SystemExit("install-smoke evidence miss: record must be an object")
 problems = []
-for key, value in (("snapshot", live), ("image_id", image_id),
-                   ("postgres_image_id", pg_image), ("database", database),
-                   ("database_oid", db_oid)):
+for key, value in (
+    ("snapshot", live),
+    ("image_id", image_id),
+    ("postgres_image_id", pg_image),
+    ("database", database),
+    ("database_oid", db_oid),
+    ("fingerprint", fingerprint),
+    ("source", source),
+):
     if not value or record.get(key) != value:
         problems.append(key + " changed")
-if record.get("evidence_version") != 3:
+if record.get("evidence_version") != 4:
     problems.append("unqualified evidence version")
 expected = {name: "installed" for name in inventory.split(",") if name}
 if record.get("states") != expected:
@@ -507,6 +522,14 @@ PY
 if [ "$SMOKE_MODE" = "recheck" ]; then
   recheck_evidence
   exit 0
+fi
+
+# A matching receipt is the load gate. The from-empty install stays in the template.
+if [ "${PR_CHECK_FORCE_SMOKE:-0}" != "1" ] && lists_are_canonical; then
+  if recheck_evidence; then
+    echo "install-smoke evidence matches; not upgrading"
+    exit 0
+  fi
 fi
 
 acquire_smoke_lock
@@ -562,78 +585,30 @@ if lists_are_canonical; then
   [ -n "$INSTALL_IMAGE_ID" ] || refuse_smoke "installer image identity is empty"
 fi
 
-if [ "$SMOKE_DB" != "odoo_install_smoke" ]; then
-  echo "❌ install-smoke refused: smoke database identity was not proven" >&2
-  exit 2
-fi
-echo "→ Dropping smoke DB 'odoo_install_smoke'..."
-docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
-  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'odoo_install_smoke' AND pid <> pg_backend_pid();" \
-  >/dev/null 2>&1 || true
-docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
-  -c "DROP DATABASE IF EXISTS \"odoo_install_smoke\";" >/dev/null
-
-SMOKE_CONTAINER="${ODOO_COMPOSE_PROJECT}-install-smoke-$$-${RANDOM}"
-cleanup_smoke_container() {
-  docker rm -f "$SMOKE_CONTAINER" >/dev/null 2>&1 || true
-}
-# Unique name owned only by this invocation; cleanup never targets the DB service.
-trap cleanup_smoke_container EXIT
-echo "→ Installing modules (--stop-after-init)..."
+case "$SMOKE_DB" in
+  odoo | postgres | template0 | template1 | odoo_install_smoke | odoo_test_tpl_* | odoo_test_bld_*)
+    echo "❌ install-smoke refused: smoke database identity was not proven" >&2
+    exit 2
+    ;;
+esac
+echo "→ Admitting the pinned fixture and upgrading $SMOKE_DB..."
 set +e
-# Passing CLI arguments to `docker compose run odoo-test` replaces the service
-# `command`, so its --addons-path is lost and the image's odoo.conf
-# (/mnt/extra-addons only) applies: Enterprise modules then install as
-# "missing". The addons path is therefore always passed explicitly here.
-ADDONS_PATH="/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons"
-if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
-  ADDONS_PATH="/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons"
-fi
-if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
-  # The official Odoo image entrypoint appends DB arguments after CLI input.
-  # Set its HOST/PORT/USER/PASSWORD contract so it preserves host-network values.
-  RUN_ARGS=(
-    docker run --name "$SMOKE_CONTAINER" --network host
-    -e "HOST=$ODOO_DB_HOST"
-    -e "PORT=$ODOO_DB_PORT"
-    -e "USER=$POSTGRES_USER"
-    -e "PASSWORD=$POSTGRES_PASSWORD"
-    -v "$ROOT:/mnt/extra-addons"
-  )
-  if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
-    RUN_ARGS+=(-v "$ENTERPRISE_REALPATH:/mnt/enterprise:ro")
-  fi
-  "${RUN_ARGS[@]}" "$SMOKE_IMAGE" \
-    --addons-path="$ADDONS_PATH" \
-    -d "$SMOKE_DB" \
-    --db_host="$ODOO_DB_HOST" \
-    --db_port="$ODOO_DB_PORT" \
-    --db_user="$POSTGRES_USER" \
-    --db_password="$POSTGRES_PASSWORD" \
-    -i "$ALL_MODULES" \
-    --without-demo=all \
-    --log-level=info \
-    --stop-after-init 2>&1 | tee "$LOG_FILE"
-else
-  docker compose -p "$ODOO_COMPOSE_PROJECT" run --no-deps --name "$SMOKE_CONTAINER" \
-    odoo-test \
-    --addons-path="$ADDONS_PATH" \
-    -d "$SMOKE_DB" \
-    --db_host="$ODOO_DB_HOST" \
-    --db_port="$ODOO_DB_PORT" \
-    --db_user="$POSTGRES_USER" \
-    --db_password="$POSTGRES_PASSWORD" \
-    -i "$ALL_MODULES" \
-    --without-demo=all \
-    --log-level=info \
-    --stop-after-init 2>&1 | tee "$LOG_FILE"
-fi
+bash "$ROOT/scripts/test_env.sh" template 2>&1 | tee "$LOG_FILE"
 EXIT_CODE=${PIPESTATUS[0]}
 set -e
-
+if [ "$EXIT_CODE" -ne 0 ]; then
+  echo "❌ install-smoke refused: the pinned fixture is not admitted. Run: make test-env-rebuild" >&2
+  echo "   Log: $LOG_FILE" >&2
+  exit "$EXIT_CODE"
+fi
+bash "$ROOT/scripts/test_env.sh" clone "$SMOKE_DB"
+set +e
+bash "$ROOT/scripts/test_env.sh" upgrade "$SMOKE_DB" 2>&1 | tee -a "$LOG_FILE"
+EXIT_CODE=${PIPESTATUS[0]}
+set -e
 if [ "$EXIT_CODE" -ne 0 ]; then
   echo "" >&2
-  echo "❌ install-smoke FAILED (odoo exit $EXIT_CODE)" >&2
+  echo "❌ install-smoke FAILED (fixture upgrade exit $EXIT_CODE)" >&2
   echo "   Log: $LOG_FILE" >&2
   exit "$EXIT_CODE"
 fi
@@ -708,10 +683,16 @@ if lists_are_canonical; then
     echo "install-smoke inputs changed during install; evidence not written" >&2
     exit 1
   fi
-  actual_image="$(docker inspect --format '{{.Image}}' "$SMOKE_CONTAINER")"
   current_image="$(docker image inspect --format '{{.Id}}' "$SMOKE_IMAGE")"
-  if [ "$actual_image" != "$INSTALL_IMAGE_ID" ] || [ "$current_image" != "$INSTALL_IMAGE_ID" ]; then
+  if [ "$current_image" != "$INSTALL_IMAGE_ID" ]; then
     echo "install-smoke actual installer image changed; evidence not written" >&2
+    exit 1
+  fi
+  FIXTURE_IDENTITY="$(fixture_identity)"
+  FIXTURE_FP="$(printf '%s\n' "$FIXTURE_IDENTITY" | sed -n 's/^fingerprint=//p')"
+  FIXTURE_SOURCE="$(printf '%s\n' "$FIXTURE_IDENTITY" | sed -n 's/^source=//p')"
+  if [ -z "$FIXTURE_FP" ] || [ -z "$FIXTURE_SOURCE" ]; then
+    echo "install-smoke fixture identity is empty; evidence not written" >&2
     exit 1
   fi
 fi
@@ -732,21 +713,42 @@ if lists_are_canonical; then
   pg_image="$(docker inspect --format '{{.Image}}' "$pg_cid")"
   db_oid="$(smoke_db_oid)"
   python3 - "$EVIDENCE_FILE" "$CUSTOM_MODULES" "$ENTERPRISE_MODULES" "$ENTERPRISE_REALPATH" "$POST_SNAPSHOT" \
-    "$INSTALL_IMAGE_ID" "$pg_image" "$SMOKE_DB" "$db_oid" "$STATE_PAIRS" <<'PY'
+    "$INSTALL_IMAGE_ID" "$pg_image" "$SMOKE_DB" "$db_oid" "$STATE_PAIRS" \
+    "$FIXTURE_FP" "$FIXTURE_SOURCE" <<'PY'
 import json
 import os
 import pathlib
 import sys
 import tempfile
-path, custom, enterprise, realpath, snapshot, image_id, pg_image, database, db_oid, pairs = sys.argv[1:]
+(
+    path, custom, enterprise, realpath, snapshot, image_id, pg_image, database, db_oid, pairs,
+    fingerprint, source,
+) = sys.argv[1:]
 states = dict(line.split("=", 1) for line in pairs.splitlines() if "=" in line)
 expected = {name: "installed" for name in (enterprise + "," + custom).split(",") if name}
-if states != expected or not image_id or not pg_image or not db_oid.isdigit():
+if (
+    states != expected
+    or not image_id
+    or not pg_image
+    or not db_oid.isdigit()
+    or len(fingerprint) != 64
+    or len(source) != 64
+):
     raise SystemExit("cannot publish incomplete installation evidence")
-record = {"evidence_version": 3, "custom": custom, "enterprise": enterprise,
-          "enterprise_realpath": realpath, "snapshot": snapshot, "image_id": image_id,
-          "postgres_image_id": pg_image, "database": database, "database_oid": db_oid,
-          "states": states}
+record = {
+    "evidence_version": 4,
+    "custom": custom,
+    "enterprise": enterprise,
+    "enterprise_realpath": realpath,
+    "snapshot": snapshot,
+    "image_id": image_id,
+    "postgres_image_id": pg_image,
+    "database": database,
+    "database_oid": db_oid,
+    "fingerprint": fingerprint,
+    "source": source,
+    "states": states,
+}
 target = pathlib.Path(path)
 target.parent.mkdir(parents=True, exist_ok=True)
 fd, temporary = tempfile.mkstemp(prefix=".install-smoke-", dir=target.parent)

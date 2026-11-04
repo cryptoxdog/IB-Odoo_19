@@ -106,6 +106,23 @@ def _run(
     if inspect_json is not None:
         inspect_json = inspect_json.replace(str(ROOT), str(repo))
     log_path = tmp_path / "docker.log"
+    (repo / "scripts/test_env.sh").write_text(
+        "#!/usr/bin/env bash\n"
+        'case "${1:-}" in\n'
+        "  smoke-name) echo odoo_test_smoke_guard; exit 0 ;;\n"
+        "esac\n"
+        f'echo "test_env $*" >> {str(log_path)!r}\n'
+        'case "${1:-}" in\n'
+        "  identity)\n"
+        f"    echo fingerprint={'a' * 64}\n"
+        f"    echo source={'b' * 64}\n"
+        "    ;;\n"
+        "  template|clone|upgrade) exit 0 ;;\n"
+        "  *) exit 2 ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    (repo / "scripts/test_env.sh").chmod(0o755)
     bindir = tmp_path / "bin"
     bindir.mkdir()
     stub = bindir / "docker"
@@ -260,15 +277,15 @@ def test_default_compose_identity_reaches_the_scratch_install(tmp_path: Path) ->
     output = proc.stdout + proc.stderr
     assert proc.returncode == 0, output
     log = _docker_log(tmp_path)
-    assert "DROP DATABASE IF EXISTS" in log
-    assert "odoo_install_smoke" in log
-    assert "pg_terminate_backend" in log
+    assert "DROP DATABASE" not in log
+    assert "odoo_install_smoke" not in log
+    assert "pg_terminate_backend" not in log
     assert "build odoo-test" in log
-    assert "--stop-after-init" in log
-    assert 'DROP DATABASE IF EXISTS \\"odoo\\"' not in log
+    assert "test_env template" in log
+    assert "test_env clone odoo_test_smoke_guard" in log
+    assert "test_env upgrade odoo_test_smoke_guard" in log
     assert "datname = 'odoo'" not in log
-    drop_at = log.index("DROP DATABASE")
-    assert log.index("build odoo-test") < drop_at
+    assert log.index("build odoo-test") < log.index("test_env template")
 
 
 def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> None:
@@ -290,9 +307,10 @@ def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> Non
     output = proc.stdout + proc.stderr
     assert proc.returncode == 0, output
     log = _docker_log(tmp_path)
-    assert log.index("inspect abc123") < log.index("DROP DATABASE")
-    assert "DROP DATABASE IF EXISTS" in log and "odoo_install_smoke" in log
-    assert "--stop-after-init" in log
+    assert log.index("inspect abc123") < log.index("test_env template")
+    assert "DROP DATABASE" not in log
+    assert "odoo_install_smoke" not in log
+    assert "test_env upgrade odoo_test_smoke_guard" in log
 
 
 def test_recheck_is_the_smoke_evidence_gate() -> None:

@@ -390,8 +390,44 @@ enterprise_revision() {
       } | sha256 | cut -c1-16)"
     fi
   else
-    echo "tree:$(content_digest tree "$dir")"
+    echo "tree:$(enterprise_tree_digest "$dir")"
   fi
+}
+
+# A broken Enterprise gitdir used to hash every file on each invocation.
+# Reuse the digest while the newest file mtime is unchanged. A changed tree
+# still changes the fingerprint, and the pinned template then needs
+# `make test-env-rebuild`.
+enterprise_tree_digest() {
+  local dir="$1" cache newest digest recorded_dir recorded_mtime recorded_digest
+  cache="$EVIDENCE_DIR/enterprise-tree.cache"
+  newest="$(python3 - "$dir" <<'PY'
+import os
+import sys
+
+root = sys.argv[1]
+newest = 0
+for dirpath, dirnames, filenames in os.walk(root):
+    dirnames[:] = [name for name in dirnames if name != ".git"]
+    for name in filenames:
+        try:
+            newest = max(newest, os.stat(os.path.join(dirpath, name)).st_mtime_ns)
+        except OSError:
+            continue
+print(newest)
+PY
+)"
+  if [ -f "$cache" ]; then
+    IFS=$'\t' read -r recorded_dir recorded_mtime recorded_digest <"$cache"
+    if [ "$recorded_dir" = "$dir" ] && [ "$recorded_mtime" = "$newest" ] && [ -n "$recorded_digest" ]; then
+      printf '%s' "$recorded_digest"
+      return 0
+    fi
+  fi
+  digest="$(content_digest tree "$dir")"
+  mkdir -p "$EVIDENCE_DIR"
+  printf '%s\t%s\t%s\n' "$dir" "$newest" "$digest" >"$cache"
+  printf '%s' "$digest"
 }
 
 ODOO_IMAGE=""
@@ -406,11 +442,39 @@ print(json.load(sys.stdin)["services"]["odoo"].get("image") or "")')"
   local out
   out="$(compose build --quiet odoo 2>&1)" || die "building $ODOO_IMAGE failed: $out"
 }
-# The image's layers and runtime config. Not .Id: with the containerd image
-# store every cached rebuild gets a new index digest (provenance timestamps)
-# for byte-identical content.
+# Layers plus the runtime identity. Compose project labels and the Compose
+# version are not part of it: a Compose upgrade must not abandon an admitted
+# template. Not .Id: with the containerd image store every cached rebuild gets
+# a new index digest (provenance timestamps) for byte-identical content.
+# A non-JSON inspect result (the safety stub) is hashed as-is.
 image_id() {
-  echo "content:$(docker image inspect --format '{{json .RootFS.Layers}}{{json .Config}}' "$ODOO_IMAGE" | sha256)"
+  local digest
+  digest="$(docker image inspect --format '{{json .RootFS.Layers}}{{json .Config}}' "$ODOO_IMAGE" | python3 -c '
+import hashlib
+import json
+import sys
+
+raw = sys.stdin.read()
+decoder = json.JSONDecoder()
+try:
+    layers, index = decoder.raw_decode(raw)
+    config, _ = decoder.raw_decode(raw, index)
+    payload = json.dumps(
+        {
+            "layers": layers,
+            "entrypoint": config.get("Entrypoint"),
+            "cmd": config.get("Cmd"),
+            "env": config.get("Env"),
+            "user": config.get("User"),
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+except json.JSONDecodeError:
+    payload = raw
+print(hashlib.sha256(payload.encode()).hexdigest())
+')"
+  echo "content:$digest"
 }
 
 fingerprint_inputs() {
@@ -447,6 +511,14 @@ template_ready() {
     [ "$(field "$comment" parity)" = "$PARITY" ] && [ "$(field "$comment" fp)" = "$FP" ]
 }
 
+# Evidence directories: this run, then every worktree of this repository.
+evidence_dirs() {
+  echo "$EVIDENCE_DIR"
+  if [ "$EVIDENCE_DIR" = "$ROOT/.l9/runtime/test-env" ]; then
+    git -C "$ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree \(.*\)$/\1\/.l9\/runtime\/test-env/p'
+  fi
+}
+
 # Recorded inputs file of $TEMPLATE_DB from this run's evidence or any checkout
 # of this repository (a worktree counts) whose content hashes to the fp on the
 # database, or "". A file that hashes to that fp is the one the build recorded.
@@ -458,12 +530,24 @@ fixture_evidence() {
       echo "$file"
       return 0
     fi
-  done < <(
-    echo "$EVIDENCE_DIR"
-    if [ "$EVIDENCE_DIR" = "$ROOT/.l9/runtime/test-env" ]; then
-      git -C "$ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree \(.*\)$/\1\/.l9\/runtime\/test-env/p'
+  done < <(evidence_dirs)
+}
+
+# The inputs file for this template name, even when it hashes to an older
+# generation than the comment. It is a diff baseline, not admission proof.
+surviving_inputs() {
+  local dir file
+  while IFS= read -r dir; do
+    file="$dir/${TEMPLATE_DB}.inputs.txt"
+    if [ -f "$file" ]; then
+      echo "$file"
+      return 0
     fi
-  )
+  done < <(evidence_dirs)
+}
+
+changed_input_keys() {
+  diff <(grep -v '^addons=' "$1") <(printf '%s\n' "$2") | sed -n 's/^[<>] \([^=]*\)=.*/\1/p' | sort -u | paste -sd, - || true
 }
 
 # The pinned fixture exists but its fp is not the current fingerprint. It was
@@ -472,23 +556,34 @@ fixture_evidence() {
 # and, apart from the old addons= line, equals the current inputs line for line.
 # Otherwise it is refused, naming what changed. It is never rebuilt here.
 certify_pinned_fixture() {
-  local comment stored evidence changed current
+  local comment stored evidence changed current survivor
   comment="$(db_comment "$TEMPLATE_DB")"
   is_ours "$comment" && [ "$(field "$comment" role)" = "template" ] && [ "$(field "$comment" state)" = "ready" ] &&
     [ "$(field "$comment" parity)" = "$PARITY" ] ||
     refuse "$TEMPLATE_DB exists but is not an admitted template (comment: '$comment'); not touching it"
   stored="$(field "$comment" fp)"
   evidence="$(fixture_evidence "$stored")"
-  [ -n "$evidence" ] ||
-    refuse "$TEMPLATE_DB is unproven for the current inputs: it was admitted for fp ${stored:0:16}, current inputs are ${FP:0:16}, and no recorded inputs file in a checkout of this repository hashes to its fp. The fixture is not rebuilt or replaced"
   # One reading of the inputs decides, stamps, and is recorded; it must be the
   # reading FP was computed from.
   current="$(fingerprint_inputs)"
   [ "$(printf '%s\n' "$current" | sha256)" = "$FP" ] ||
     refuse "the runtime inputs changed while this run was checking $TEMPLATE_DB; run it again"
+  if [ -z "$evidence" ]; then
+    # A surviving file that does not hash to the comment is not proof and
+    # cannot re-stamp. When its lines differ, name the keys. Either way the
+    # database is left untouched.
+    survivor="$(surviving_inputs)"
+    if [ -n "$survivor" ]; then
+      changed="$(changed_input_keys "$survivor" "$current")"
+      if [ -n "$changed" ]; then
+        refuse "$TEMPLATE_DB is incompatible with the current inputs: ${changed} changed since the surviving record (recorded in ${survivor#"$ROOT"/}; it does not hash to fp ${stored:0:16}). The fixture is not rebuilt or replaced. Run: make test-env-rebuild"
+      fi
+    fi
+    refuse "$TEMPLATE_DB is unproven for the current inputs: it was admitted for fp ${stored:0:16}, current inputs are ${FP:0:16}, and no recorded inputs file in a checkout of this repository hashes to its fp. The fixture is not rebuilt or replaced. Run: make test-env-rebuild"
+  fi
   if [ "$(grep -v '^addons=' "$evidence")" != "$current" ]; then
-    changed="$(diff <(grep -v '^addons=' "$evidence") <(printf '%s\n' "$current") | sed -n 's/^[<>] \([^=]*\)=.*/\1/p' | sort -u | paste -sd, -)" || true
-    refuse "$TEMPLATE_DB is incompatible with the current inputs: ${changed:-the recorded inputs} changed since it was admitted (recorded in ${evidence#"$ROOT"/}). The fixture is not rebuilt or replaced"
+    changed="$(changed_input_keys "$evidence" "$current")"
+    refuse "$TEMPLATE_DB is incompatible with the current inputs: ${changed:-the recorded inputs} changed since it was admitted (recorded in ${evidence#"$ROOT"/}). The fixture is not rebuilt or replaced. Run: make test-env-rebuild"
   fi
   set_comment "$TEMPLATE_DB" "$(printf '%s' "$comment" | sed "s| fp=[^ ]*| fp=$FP|")"
   mkdir -p "$EVIDENCE_DIR"
@@ -829,6 +924,42 @@ retire_own_templates() {
     echo "→ retired $name ($(field "$comment" role) for superseded inputs)"
     unlease "$key" exclusive
   done
+}
+
+# Drop one database this owner admitted, and only that role. A foreign comment
+# is refused. This is the recovery `make test-env-rebuild` uses; `template`
+# itself never drops an existing pinned database.
+drop_pinned_database() {
+  local name="$1" role="$2" comment
+  db_exists "$name" || return 0
+  comment="$(db_comment "$name")"
+  is_ours "$comment" ||
+    refuse "$name exists and is not a test-env database (comment: '$comment'); not dropping it"
+  [ "$(field "$comment" role)" = "$role" ] ||
+    refuse "$name role is '$(field "$comment" role)', not $role; not dropping it"
+  psql_admin "ALTER DATABASE \"$name\" WITH IS_TEMPLATE false ALLOW_CONNECTIONS true" >/dev/null
+  psql_admin "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$name' AND pid <> pg_backend_pid()" >/dev/null
+  odoo_db "drop-${name: -16}" drop "$name"
+  rm -f "$EVIDENCE_DIR/${name}.inputs.txt"
+}
+
+# Operator recovery when image, Postgres, roster, config, or Enterprise drift
+# leaves the pinned template unproven. Refuses when the template is already
+# admitted for the current inputs. Drops only that template and the build
+# database for the current fingerprint, then admits it again.
+rebuild_pinned_template() {
+  [ -n "$PINNED_TEMPLATE" ] ||
+    refuse "make test-env-rebuild is the enterprise fixture; there is no pinned community template"
+  if template_ready; then
+    refuse "$TEMPLATE_DB is already admitted for the current inputs; not rebuilding it"
+  fi
+  lease "tpl:$TEMPLATE_DB" exclusive
+  drop_pinned_database "$TEMPLATE_DB" template
+  drop_pinned_database "$BUILD_DB" build
+  unlease "tpl:$TEMPLATE_DB" exclusive
+  TEST_ENV_ALLOW_NEW_TEMPLATE="$PINNED_TEMPLATE"
+  export TEST_ENV_ALLOW_NEW_TEMPLATE
+  build_template
 }
 
 # ---------------------------------------------------------------------------
@@ -1182,14 +1313,18 @@ main() {
       echo "$DEFAULT_CLONE"
       exit 0
       ;;
-    clone | drop | assert-clone) validate_clone_name "${2:-$DEFAULT_CLONE}" ;;
+    smoke-name)
+      echo "odoo_test_smoke_${OWNER}"
+      exit 0
+      ;;
+    clone | drop | assert-clone | upgrade) validate_clone_name "${2:-$DEFAULT_CLONE}" ;;
     run)
       validate_clone_name "${2:-}"
       parse_run "$2" "${@:3}"
       ;;
-    template | status) ;;
+    template | status | rebuild | identity) ;;
     *)
-      echo "usage: $0 template | clone [db] | run <db> -- <odoo args> | assert-clone <db> | drop <db> | status | name" >&2
+      echo "usage: $0 template | rebuild | clone [db] | upgrade <db> | run <db> -- <odoo args> | assert-clone <db> | drop <db> | status | identity | name | smoke-name" >&2
       exit 2
       ;;
   esac
@@ -1199,7 +1334,21 @@ main() {
   compute_fingerprint
   case "$command" in
     template) build_template ;;
+    rebuild) rebuild_pinned_template ;;
+    identity)
+      echo "fingerprint=$FP"
+      echo "source=$(addon_source)"
+      ;;
     clone) clone_template "${2:-$DEFAULT_CLONE}" ;;
+    upgrade)
+      target="$2"
+      lease "db:$target" exclusive
+      assert_clone "$target"
+      TEST_SOURCE="$(addon_source)"
+      ensure_clone_upgraded "$target"
+      echo "fingerprint=$FP"
+      echo "source=$TEST_SOURCE"
+      ;;
     assert-clone) assert_clone "$2" ;;
     drop)
       lease "db:$2" exclusive

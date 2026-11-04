@@ -26,8 +26,8 @@ must not reach GitHub via the Makefile path.
 2. `ci/check_xml_module_ref_deps.py`
 3. Ensure Postgres up (`odoo19` project)
 4. `docker compose build odoo-test`
-5. Drop/create `odoo_install_smoke`
-6. `odoo-test -i <modules> --without-demo=all --stop-after-init`
+5. `scripts/test_env.sh template` (reuse the pinned fixture; `make test-env-rebuild` if it is unproven)
+6. Clone this worktree's smoke database and upgrade the PlasticOS roster on it
 7. Scan log for **registry** fatals (not post_init application ERRORs)
 8. Verify each custom module `ir_module_module.state = installed`
 9. Prove `import xmlsec` inside the image

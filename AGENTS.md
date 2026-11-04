@@ -726,3 +726,18 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > **2026-11-04 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > `make pr base=<branch>` stacks onto an open feature branch whose pull request targets `Staging`.
 > Production stays refused. Merge the parent pull request into `Staging` first.
+
+> **2026-11-04 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make install-smoke`, and the smoke wave inside `make pr` / `make pr-check`, clone the database named in
+> `config/test_env_fixture.conf` and upgrade the PlasticOS roster on that clone. They do not drop
+> `odoo_install_smoke` or install from an empty database. The from-empty install remains
+> `scripts/test_env.sh template`, which runs on first admission and on `make test-env-rebuild`.
+> `make test-env-rebuild` is the operator recovery when the image, Postgres major, module roster,
+> configuration, or Enterprise checkout no longer matches the admitted template. It refuses when that
+> template is already admitted for the current inputs. Do not set `TEST_ENV_ALLOW_NEW_TEMPLATE` by hand.
+> Smoke runs when `scripts/pr_check_scope.py` says an addon load input or an installer input changed.
+> A documentation-only scope, `PR_CHECK_SKIP_SMOKE=1`, and `make pr-nosmoke reason=...` still skip it.
+> `INSTALL_SMOKE_GATE` is no longer required. `l9-pr-integration-testing` in this repo uses the same
+> fixture: `scripts/test_env.sh clone` and `scripts/test_env.sh run` on the host compose stack.
+> Another database and the toolchain-image quick path are not an Odoo runtime result here.
+> An unproven fixture stops at `make test-env-rebuild`.

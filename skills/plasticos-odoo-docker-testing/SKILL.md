@@ -8,8 +8,8 @@ tags: [plasticos, odoo, docker, install-smoke, testing, staging, gate]
 owner: igor_beylin
 status: active
 disable-model-invocation: false
-version: 1.1.0
-updated: 2026-10-17
+version: 1.2.0
+updated: 2026-11-04
 ---
 
 # PlasticOS Odoo Docker Testing
@@ -29,8 +29,9 @@ Gate-shell / security_base regressions (2026-08).
 |-------|------|
 | Env | Docker Desktop up; compose project `odoo19`; `odoo-enterprise` symlink present |
 | Order SSOT | `config/odoo_module_order.yaml` + `scripts/get_odoo_module_order.py` must match Gate architecture |
-| Load gate | `make install-smoke` must PASS before claiming Staging-ready |
-| Runtime | `make test-odoo` / `make test-module m=…` clone only `config/test_env_fixture.conf`. Do not use another database or create a new template |
+| Load gate | `make install-smoke` must PASS before claiming Staging-ready. It clones `config/test_env_fixture.conf` and upgrades the roster |
+| Runtime | `make test-odoo` / `make test-module m=…` clone only `config/test_env_fixture.conf`. Do not use another database. `make test-env-rebuild` is the only template rebuild |
+| Integration | `l9-pr-integration-testing` in this repo runs `scripts/test_env.sh clone` and `scripts/test_env.sh run` against that template on the host compose stack. Another database, `odoo_install_smoke`, a from-empty install, and the toolchain-image quick path are blocked. An unproven fixture stops at `make test-env-rebuild` |
 | Remote | Odoo.sh Staging rebuild / SSH only after local Docker green |
 | Architecture | Gate shells (`plasticos_matching`, `plasticos_enrichment`) install; deleted local engines never install |
 

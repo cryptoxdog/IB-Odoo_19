@@ -7,7 +7,7 @@
 | Project name | `odoo19` (`ODOO_COMPOSE_PROJECT`, default) |
 | DB service | `db` (Postgres) |
 | Smoke runner | `odoo-test` (built from repo `Dockerfile` — includes xmlsec) |
-| Smoke DB | `odoo_install_smoke` (`ODOO_INSTALL_SMOKE_DB`) |
+| Smoke DB | this worktree's clone of the runtime test template (`scripts/test_env.sh smoke-name`) |
 | Runtime test template | `config/test_env_fixture.conf` (`odoo_test_tpl_ee_c9e8a81f52f23680`) |
 | Runtime test DB | worktree clone of that template (`scripts/test_env.sh name`) |
 
