@@ -69,6 +69,7 @@
 ./plasticos_material_profile/data/material_attribute_data.xml
 ./plasticos_material_profile/data/material_color_data.xml
 ./plasticos_material_profile/data/material_form_data.xml
+./plasticos_material_profile/data/material_grade_data.xml
 ./plasticos_material_profile/data/packaging_type_data.xml
 ./plasticos_material_profile/data/polymer_data.xml
 ./plasticos_material_profile/data/process_type_data.xml
