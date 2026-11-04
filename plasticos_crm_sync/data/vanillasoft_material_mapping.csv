@@ -31,7 +31,7 @@ MRP Export,67,68,ALIAS,mapped,approved_alias,MRP,,,,,
 EPS,66,66,EXACT,mapped,crm_code,EPS,,,,,
 HDPE Drums (HMW-HDPE),65,65,EXPLICIT_HMW,mapped,worksheet_phrase,HDPE_HMW,DRUMS,,,,
 PC/ABS,63,63,NEW_MASTER_REQUIRED,mapped,worksheet_phrase,PC_ABS,,,POST_INDUSTRIAL,,
-PP Supersacs (Un-Lined),61,61,ALIAS,mapped,approved_alias,PP,,,,,
+PP Supersacs (Un-Lined),61,61,ALIAS,mapped,approved_alias,PP,,,,unlined,
 HDPE-HMW,59,59,EXACT,mapped,crm_code,HDPE_HMW,,,,,
 HDPE Drums,58,62,EXISTING_GRADE_TEMPLATE,mapped,worksheet_phrase,HDPE,DRUMS,,,,
 PE,58,58,OPERATOR_APPROVED,mapped,worksheet_phrase,HDPE,,,,,
@@ -163,15 +163,15 @@ Engineering Grades,18,18,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source
 Drip Tube,15,15,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
 1-7 Bottles,14,14,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing polymer MIXED is a mixed/co-mingled resin identity; 1-7 includes resin classes 1 and 2, unlike 3-7"
 3-7 Mixed Plastic,12,12,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing MRP = Mixed Rigid Plastic, likely closest match for 3-7 postconsumer rigid mix"
-Strapping,8,8,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Strapping,8,8,OPERATOR_APPROVED,mapped,worksheet_phrase,PET,,,,,
 LDPE/HDPE Grocery Film,6,6,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
 Bottles,5,5,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
 Pellets/Resin,5,5,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
 Waste Plastic,4,4,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
 film,3,3,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-clear film,2,2,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-rigids,2,2,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-super sacks,2,2,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+clear film,2,2,OPERATOR_APPROVED,mapped,worksheet_phrase,LLDPE,FILM,,,,
+rigids,2,2,OPERATOR_APPROVED,mapped,worksheet_phrase,MRP,,,,,
+super sacks,2,2,OPERATOR_APPROVED,mapped,worksheet_phrase,PP,,,,lined,
 1-7 mrp,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
 3-7 Bottles,1,1,RECOMMENDED_REVIEW,pending_decision,,,,,,,"Recommendation: existing MRP = Mixed Rigid Plastic, likely closest match for 3-7 postconsumer rigid mix"
 Acrylic. Interested in buying PVC from us.,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review

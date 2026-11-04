@@ -397,9 +397,15 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         calls = []
         original = material_normalizer.normalize_material
 
-        def wrapped(env, description, grade_evidence=None, structured=None):
+        def wrapped(env, description, grade_evidence=None, structured=None, *, crm_aliases=False):
             calls.append(description)
-            return original(env, description, grade_evidence=grade_evidence, structured=structured)
+            return original(
+                env,
+                description,
+                grade_evidence=grade_evidence,
+                structured=structured,
+                crm_aliases=crm_aliases,
+            )
 
         with patch.object(material_normalizer, "normalize_material", wrapped):
             lead = orch._upsert_lead(self.connection, dto)
@@ -749,9 +755,15 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         calls = []
         original = material_normalizer.normalize_material
 
-        def wrapped(env, description, grade_evidence=None, structured=None):
+        def wrapped(env, description, grade_evidence=None, structured=None, *, crm_aliases=False):
             calls.append(description)
-            return original(env, description, grade_evidence=grade_evidence, structured=structured)
+            return original(
+                env,
+                description,
+                grade_evidence=grade_evidence,
+                structured=structured,
+                crm_aliases=crm_aliases,
+            )
 
         with patch.object(material_normalizer, "normalize_material", wrapped):
             orch._sync_tables_for_lead(self.connection, Adapter(), "vs-table-mat", lead)
@@ -2221,6 +2233,49 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
         self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
+
+    def test_super_sacks_replay_fills_empty_packaging_and_keeps_a_different_color(self):
+        facility = self._facility("Super Sack Replay")
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, self._lead("vs-sacks"))
+        lead.partner_id = facility
+        orch._upsert_lead(self.connection, self._lead("vs-sacks", custom_fields={"Materials": "Super Sacks"}))
+        profile = self._profiles(facility)
+        self.assertEqual(profile.polymer_id.code, "PP")
+        self.assertEqual(profile.material_grade_id.code, "SUPERACS")
+        self.assertEqual(profile.packaging_type_id.code, "bales")
+        self.assertEqual(profile.material_attribute_ids.mapped("code"), ["lined"])
+        red = self.env["plasticos.material.color"].search([("code", "=", "RED")], limit=1)
+        profile.write({"packaging_type_id": False, "color_id": red.id})
+        orch.error_rows.clear()
+        orch._upsert_lead(self.connection, self._lead("vs-sacks", custom_fields={"Materials": "Super Sacks"}))
+        profile = self._profiles(facility)
+        self.assertEqual(profile.packaging_type_id.code, "bales")
+        self.assertEqual(profile.color_id.code, "RED")
+        self.assertEqual(profile.material_attribute_ids.mapped("code"), ["lined"])
+        self.assertFalse(any(row.get("category") == REQUIRED_MAPPING for row in orch.error_rows))
+
+    def test_regrind_replay_reports_a_different_color_and_still_links_attributes(self):
+        facility = self._facility("Regrind Replay")
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, self._lead("vs-regrind"))
+        lead.partner_id = facility
+        phrase = "ldpe/lldpe clear repro"
+        orch._upsert_lead(self.connection, self._lead("vs-regrind", custom_fields={"Materials": phrase}))
+        profile = self._profiles(facility)
+        self.assertEqual(profile.color_id.code, "CLEAR")
+        self.assertEqual(profile.packaging_type_id.code, "gaylords")
+        red = self.env["plasticos.material.color"].search([("code", "=", "RED")], limit=1)
+        profile.write({"color_id": red.id, "packaging_type_id": False, "material_attribute_ids": [Command.clear()]})
+        orch.error_rows.clear()
+        orch._upsert_lead(self.connection, self._lead("vs-regrind", custom_fields={"Materials": phrase}))
+        profile = self._profiles(facility)
+        self.assertEqual(profile.color_id.code, "RED")
+        self.assertEqual(profile.packaging_type_id.code, "gaylords")
+        self.assertEqual(profile.material_attribute_ids.mapped("code"), ["repro"])
+        self.assertTrue(any(row.get("category") == REQUIRED_MAPPING for row in orch.error_rows))
 
     def test_worksheet_normalizer_rejects_bare_ldpe_and_conflicts(self):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material

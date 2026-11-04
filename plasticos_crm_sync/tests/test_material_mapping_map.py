@@ -5,10 +5,16 @@ from pathlib import Path
 
 from odoo.addons.plasticos_material_profile.grade_codes import FORMER_FORM_CODES
 from odoo.addons.plasticos_material_profile.models import material_normalizer
-from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_crm_material
+from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
 from odoo.tests import TransactionCase, tagged
 
+
+def normalize_crm_material(env, description, grade_evidence=None, structured=None):
+    return normalize_material(env, description, grade_evidence=grade_evidence, structured=structured, crm_aliases=True)
+
+
 MAP_FILE = Path(__file__).resolve().parents[1] / "data" / "vanillasoft_material_mapping.csv"
+MATRIX_FILE = Path(__file__).resolve().parents[2] / "plasticos_material_profile" / "data" / "material_mapping.csv"
 
 
 @tagged("post_install", "-at_install")
@@ -48,7 +54,13 @@ class TestVanillaSoftMaterialMap(TransactionCase):
 
     def test_every_importer_phrase_is_in_the_map(self):
         listed = {" ".join(row["source_token"].split()).casefold() for row in self.rows if row["status"] == "mapped"}
+        with MATRIX_FILE.open(newline="", encoding="utf-8") as handle:
+            matrix = {
+                " ".join(row["match_key"].split()).casefold()
+                for row in csv.DictReader(handle)
+                if row["field_role"] == "material" and row["status"] == "mapped"
+            }
         for table in ("_SPECS", "_CRM_EXACT", "_CRM_ALIASES"):
             for phrase in getattr(material_normalizer, table):
                 with self.subTest(table=table, phrase=phrase):
-                    self.assertIn(phrase, listed)
+                    self.assertTrue(phrase in listed or phrase in matrix, phrase)

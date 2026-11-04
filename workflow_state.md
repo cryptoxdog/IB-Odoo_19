@@ -16,3 +16,7 @@ Two import campaigns are open. Each campaign's own contract is the task.
 | [Full ERP, then full VanillaSoft](docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/README.md) | Partners, commercial documents, then all 4,876 VanillaSoft IDs. Delegation and inputs only. No Docker import has been executed. |
 
 Held apart from those packs: [Mack PR #197](docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/README.md). That pull request stays unmerged.
+
+## Accepted debt
+
+`plasticos.material.profile.sub_grade` is a free `Char`, hidden on the form, with `TODO: Define sub-grade logic`. The letters A, B, and C are literals in `plasticos_material_profile/models/material_normalizer.py` and are copied onto that field. There is no grade master for them. Accepted 2026-11-04; no grade master is added for this.
