@@ -3,8 +3,8 @@
 
 Every distinct material, form, type, and color value in the two sources gets one row
 per field role. Every target is an existing ``plasticos_material_profile`` master
-(polymer, form, source type, attribute, color, filler, process, packaging); the only
-additions are the polymers the operator approved on 2026-11-03 (``NEW_POLYMERS``).
+(polymer, form, source type, attribute, color, filler, process, packaging) read from the
+module's seed XML. The polymers the operator approved on 2026-11-03 are seeded there.
 
 Statuses:
     mapped             import rule
@@ -127,14 +127,6 @@ CALL_SENTENCE = re.compile(
 GENERIC_LABEL = "generic label; fits more than one polymer"
 COMMINGLED = {"1_7_COMMINGLED_BOTTLES", "3_7_COMMINGLED_BOTTLES"}
 PALLET_POLYMERS = {"PLASTIC_PALLETS", "WOOD_PALLETS"}
-NEW_POLYMERS = {"TPU", "TEXTILE", "PU_FOAM", "PVB", "UBC", "TPV", "FIBERGLASS", "WOOD_PALLETS", "AUTO_PARTS"}
-NEW_POLYMER_NAMES = {
-    "PU_FOAM": "PU Foam",
-    "TEXTILE": "Textile",
-    "FIBERGLASS": "Fiberglass",
-    "WOOD_PALLETS": "Wood Pallets",
-    "AUTO_PARTS": "Auto Parts",
-}
 NOT_MATERIAL = tuple(
     re.compile(pattern)
     for pattern in (
@@ -314,8 +306,6 @@ def load_masters() -> dict[str, dict[str, str]]:
             if fields.get("code"):
                 table[fields["code"]] = fields.get("name") or fields["code"]
         masters[name] = table
-    for code in NEW_POLYMERS:
-        masters["polymer"].setdefault(code, NEW_POLYMER_NAMES.get(code, code))
     process_codes = _import_repo_module("plasticos_process_codes", PROFILE / "process_codes.py")
     masters["process"] = {code: process_codes.PROCESS_LABELS[code] for code in process_codes.PROCESS_CODES}
     return masters
@@ -653,8 +643,6 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
     if key in rules:
         spec, rule = rules[key]
         row = {"status": "mapped", "rule": rule, **spec_row(spec)}
-        if spec[0] in NEW_POLYMERS:
-            row["note"] = "polymer master added 2026-11-03"
         if template and template.get("polymer") == row["polymer"] and template.get("form", "") in {"", row["form"]}:
             row["packaging_type"] = template.get("packaging_type", "")
         return row
@@ -688,8 +676,6 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
         if polymer in COMMINGLED:
             detail["form"] = detail["form"] or "BOTTLES"
             detail["source_type"] = detail["source_type"] or "POST_CONSUMER"
-        if polymer in NEW_POLYMERS and not detail.get("note"):
-            detail["note"] = "polymer master added 2026-11-03"
         return {"status": "mapped", "rule": "names_one_polymer", "polymer": polymer, **detail}
     if len(polymers) > 1:
         return {"status": "ambiguous", "rule": "", "note": "names polymers " + " ".join(sorted(polymers))}

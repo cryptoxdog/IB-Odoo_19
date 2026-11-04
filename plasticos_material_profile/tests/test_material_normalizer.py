@@ -99,6 +99,14 @@ class TestMaterialNormalizer(TransactionCase):
         bottles = self.env["plasticos.polymer"].search([("code", "=", "3_7_COMMINGLED_BOTTLES")], limit=1)
         other = self.env["plasticos.material.profile"].create({"partner_id": self.partner.id, "polymer_id": bottles.id})
         self.assertEqual(other.polymer, "3_7_COMMINGLED_BOTTLES")
+        # The nine polymers the operator approved on 2026-11-03 are seeded and project too.
+        for code in ("TPU", "TPV", "PVB", "PU_FOAM", "TEXTILE", "UBC", "FIBERGLASS", "WOOD_PALLETS", "AUTO_PARTS"):
+            seeded = self.env["plasticos.polymer"].search([("code", "=", code)])
+            self.assertEqual(len(seeded), 1, code)
+            approved = self.env["plasticos.material.profile"].create(
+                {"partner_id": self.partner.id, "polymer_id": seeded.id}
+            )
+            self.assertEqual(approved.polymer, code)
 
     def test_bare_ldpe_stays_unresolved_for_the_worksheet_resolver(self):
         with patch(

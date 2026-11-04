@@ -106,7 +106,7 @@ material,pet trays (clear),PET Trays (CLEAR),erp:InvoiceDesc,32,0,mapped,names_o
 material,tubs,Tubs,erp:InvoiceDesc,32,0,mapped,approved_alias,PP,PARTS,,,,,,,,,
 material,hdpe injection (low melt),HDPE Injection (Low Melt),erp:InvoiceDesc,31,0,mapped,names_one_polymer,HDPE,,,,,,,,injection,,
 material,ldpe mixed color repro,LDPE Mixed Color Repro,erp:InvoiceDesc,31,0,mapped,names_one_polymer,LDPE,,,repro,,,MIXED,,,,
-material,mixed auto parts,Mixed Auto Parts,erp:InvoiceDesc,30,0,mapped,names_one_polymer,AUTO_PARTS,,,,,,,,,,polymer master added 2026-11-03
+material,mixed auto parts,Mixed Auto Parts,erp:InvoiceDesc,30,0,mapped,names_one_polymer,AUTO_PARTS,,,,,,,,,,
 material,pet clamshells,PET Clamshells,erp:InvoiceDesc,30,0,mapped,names_one_polymer,PET,,,,,,,,,,
 material,pp parts,PP Parts,erp:InvoiceDesc;vanillasoft:Material (PP),8,22,mapped,approved_alias,PP,PARTS,,,,,,,,,
 material,1 & 2 bottles,1 & 2 Bottles,vanillasoft:Materials (MRF's),0,29,ambiguous,,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
@@ -118,8 +118,8 @@ material,hdpe & hmw pallets,HDPE & HMW Pallets,erp:InvoiceDesc,28,0,ambiguous,,,
 material,hdpe s/f pre work needed,HDPE S/F PRE WORK NEEDED,erp:InvoiceDesc,28,0,mapped,names_one_polymer,HDPE,,,,,,,,,,
 material,metal,Metal,erp:InvoiceDesc;vanillasoft:Materials,3,25,mapped,crm_code,METAL,,,,,,,,,,
 material,pp #5 pack,PP #5 pack,erp:InvoiceDesc,28,0,mapped,names_one_polymer,PP,,,,,,,,,,
-material,wood pallets – reusable non-standard,Wood Pallets – Reusable Non-Standard,erp:InvoiceDesc,28,0,mapped,approved_alias,WOOD_PALLETS,PALLETS,,reusable,,,,,,,polymer master added 2026-11-03
-material,wood pallets – reusable standard,Wood Pallets – Reusable Standard,erp:InvoiceDesc,28,0,mapped,approved_alias,WOOD_PALLETS,PALLETS,,reusable,,,,,,,polymer master added 2026-11-03
+material,wood pallets – reusable non-standard,Wood Pallets – Reusable Non-Standard,erp:InvoiceDesc,28,0,mapped,approved_alias,WOOD_PALLETS,PALLETS,,reusable,,,,,,,
+material,wood pallets – reusable standard,Wood Pallets – Reusable Standard,erp:InvoiceDesc,28,0,mapped,approved_alias,WOOD_PALLETS,PALLETS,,reusable,,,,,,,
 material,hdpe bottles - z bales,HDPE Bottles - Z Bales,erp:InvoiceDesc;vanillasoft:Materials (MRF's),1,26,mapped,approved_alias,HDPE,,,,,,,,,,
 material,hdpe injection grade b,HDPE INJECTION GRADE B,erp:InvoiceDesc,27,0,mapped,names_one_polymer,HDPE,,,,,,,,injection,,
 material,hdpe toters - roll out bins (wheels/axles removed),HDPE Toters - Roll Out Bins (Wheels/Axles Removed),erp:InvoiceDesc,27,0,mapped,names_one_polymer,HDPE,,,,,,,,,,
@@ -128,7 +128,7 @@ material,hdpe inj - pre work needed,HDPE INJ - PRE WORK NEEDED,erp:InvoiceDesc,2
 material,mixed pallets #7,Mixed Pallets #7,erp:InvoiceDesc,26,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,,
 material,mixed plastic material,MIXED PLASTIC MATERIAL,erp:InvoiceDesc,26,0,mapped,names_one_polymer,MRP,,,,,,,,,,
 material,tpo bumpers,TPO Bumpers,erp:InvoiceDesc;vanillasoft:Material (PP);vanillasoft:Materials,9,17,mapped,approved_alias,TPO,,,,,,,,,,
-material,wood pallets,Wood Pallets,erp:InvoiceDesc,26,0,mapped,approved_alias,WOOD_PALLETS,PALLETS,,reusable,,,,,,,polymer master added 2026-11-03
+material,wood pallets,Wood Pallets,erp:InvoiceDesc,26,0,mapped,approved_alias,WOOD_PALLETS,PALLETS,,reusable,,,,,,,
 material,dumping fees - trash,DUMPING FEES - TRASH,erp:InvoiceDesc,25,0,not_material,not_material,,,,,,,,,,,not a material (2026-11-03 decision)
 material,metal w/ plastics - no value,METAL W/ PLASTICS - NO VALUE,erp:InvoiceDesc,25,0,mapped,names_one_polymer,METAL,,,no_value,,,,,,,
 material,mixed pallet load,Mixed pallet load,erp:InvoiceDesc,25,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,,
@@ -173,7 +173,7 @@ material,hdpe compression grade,HDPE COMPRESSION GRADE,erp:InvoiceDesc,16,0,mapp
 material,pet trays -black,PET Trays -BLACK,erp:InvoiceDesc,16,0,mapped,names_one_polymer,PET,,,,,,BLACK,,,,
 material,acetal,Acetal,vanillasoft:Materials,0,15,mapped,approved_alias,POM,,,,,,,,,,
 material,drip tube,Drip Tube,vanillasoft:Materials,0,15,mapped,approved_alias,HDPE,,,,,,,,,,
-material,fiberglass - no value,Fiberglass - NO VALUE,erp:InvoiceDesc,15,0,mapped,names_one_polymer,FIBERGLASS,,,no_value,,,,,,,polymer master added 2026-11-03
+material,fiberglass - no value,Fiberglass - NO VALUE,erp:InvoiceDesc,15,0,mapped,names_one_polymer,FIBERGLASS,,,no_value,,,,,,,
 material,pp corrugated sheets,PP Corrugated Sheets,erp:InvoiceDesc,15,0,mapped,names_one_polymer,PP,CORRUGATED,,,,,,,,,
 material,pp crates,PP Crates,erp:InvoiceDesc;vanillasoft:Material (PP),4,11,mapped,approved_alias,PP,CRATES,,,,,,,,,
 material,water weight,WATER WEIGHT,erp:InvoiceDesc,15,0,not_material,not_material,,,,,,,,,,,not a material (2026-11-03 decision)
@@ -223,10 +223,10 @@ material,hdpe toters,HDPE Toters,erp:InvoiceDesc,10,0,mapped,names_one_polymer,H
 material,ldpe hsn bags,LDPE HSN Bags,erp:InvoiceDesc,10,0,mapped,names_one_polymer,LDPE,,,,,,,,,,
 material,ldpe repro,LDPE Repro,erp:InvoiceDesc,10,0,mapped,names_one_polymer,LDPE,,,repro,,,,,,,
 material,ldpe resin,LDPE Resin,erp:InvoiceDesc,10,0,mapped,names_one_polymer,LDPE,,,,,,,,,,
-material,pallets with metal/fiberglass,Pallets With Metal/Fiberglass,erp:InvoiceDesc,10,0,mapped,names_one_polymer,FIBERGLASS,PALLETS,,with_metal,,,,,,,polymer master added 2026-11-03
+material,pallets with metal/fiberglass,Pallets With Metal/Fiberglass,erp:InvoiceDesc,10,0,mapped,names_one_polymer,FIBERGLASS,PALLETS,,with_metal,,,,,,,
 material,pet clear trays,PET Clear Trays,erp:InvoiceDesc,10,0,mapped,names_one_polymer,PET,,,,,,CLEAR,,,,
 material,pvc post industrial window profile regrind,PVC Post Industrial Window Profile Regrind,erp:InvoiceDesc,10,0,mapped,names_one_polymer,PVC,REGRIND,POST_INDUSTRIAL,,,,,,,,
-material,tpu,TPU,vanillasoft:Materials,0,10,mapped,crm_code,TPU,,,,,,,,,,polymer master added 2026-11-03
+material,tpu,TPU,vanillasoft:Materials,0,10,mapped,crm_code,TPU,,,,,,,,,,
 material,acrylic sheets,Acrylic Sheets,erp:InvoiceDesc,9,0,mapped,names_one_polymer,PMMA,,,,,,,,,,
 material,aluminum cans,Aluminum Cans,erp:InvoiceDesc,9,0,unknown,,,,,,,,,,,,names no polymer master
 material,bottles (hd/pet),Bottles (HD/PET),vanillasoft:Materials,0,9,ambiguous,,,,,,,,,,,,held: names two polymers (HDPE and PET); workbook proposed PET
@@ -335,11 +335,11 @@ material,pp syringe in original boxes,PP Syringe in Original Boxes,erp:InvoiceDe
 material,pp uniform pallets,PP Uniform Pallets,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,PALLETS,,,,,,,,,
 material,pvc regrind,PVC Regrind,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PVC,REGRIND,,,,,,,,,
 material,spc-a,SPC-A,erp:InvoiceDesc,6,0,unknown,,,,,,,,,,,,names no polymer master
-material,textile,Textile,vanillasoft:Materials,0,6,mapped,crm_code,TEXTILE,,,,,,,,,,polymer master added 2026-11-03
+material,textile,Textile,vanillasoft:Materials,0,6,mapped,crm_code,TEXTILE,,,,,,,,,,
 material,baled hdpe shred,Baled HDPE Shred,erp:InvoiceDesc,5,0,mapped,names_one_polymer,HDPE,SHRED,,,,,,,,,
 material,bottles,Bottles,vanillasoft:Materials,0,5,ambiguous,,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
 material,bulky rigid plastic,Bulky Rigid Plastic,erp:InvoiceDesc,5,0,mapped,names_one_polymer,MRP,,,,,,,,,,
-material,foam - pu,Foam - PU,vanillasoft:Materials,0,5,mapped,approved_alias,PU_FOAM,,,,,,,,,,polymer master added 2026-11-03
+material,foam - pu,Foam - PU,vanillasoft:Materials,0,5,mapped,approved_alias,PU_FOAM,,,,,,,,,,
 material,hdpe 55 gallon drums,HDPE 55 Gallon Drums,erp:InvoiceDesc,5,0,mapped,names_one_polymer,HDPE,DRUMS,,,,HDPE_DRUMS,,,,loose,
 material,hdpe bread trays (stacked on pallets),HDPE Bread Trays (Stacked on pallets),erp:InvoiceDesc,5,0,mapped,names_one_polymer,HDPE,PALLETS,,,,,,,,,
 material,hdpe carts w/ wheels and rivets - dirty,HDPE Carts W/ Wheels and Rivets - Dirty,erp:InvoiceDesc,5,0,mapped,names_one_polymer,HDPE,,,,,,,,,,
@@ -386,10 +386,10 @@ material,pp supersacs - reuseable,PP Supersacs - REUSEABLE,erp:InvoiceDesc,5,0,m
 material,pp/hd trays,PP/HD Trays,erp:InvoiceDesc,5,0,ambiguous,,,,,,,,,,,,names polymers HDPE PP
 material,pptf regrind,PPTF Regrind,erp:InvoiceDesc,5,0,unknown,,,,,,,,,,,,names no polymer master
 material,ppuf pallet,PPUF PALLET,erp:InvoiceDesc,5,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,,
-material,pvb,PVB,vanillasoft:Materials,0,5,mapped,crm_code,PVB,,,,,,,,,,polymer master added 2026-11-03
+material,pvb,PVB,vanillasoft:Materials,0,5,mapped,crm_code,PVB,,,,,,,,,,
 material,pvc regrind white/gray,PVC Regrind white/gray,erp:InvoiceDesc,5,0,mapped,names_one_polymer,PVC,REGRIND,,,,,,,,,
 material,pvc sheet (post industrial),PVC Sheet (Post Industrial),erp:InvoiceDesc,5,0,mapped,names_one_polymer,PVC,SHEET,POST_INDUSTRIAL,,,,,,,,
-material,ubc,UBC,vanillasoft:Materials,0,5,mapped,crm_code,UBC,,,,,,,,,,polymer master added 2026-11-03
+material,ubc,UBC,vanillasoft:Materials,0,5,mapped,crm_code,UBC,,,,,,,,,,
 material,white and black buckets with water soluable residue,White and black buckets with water soluable residue,erp:InvoiceDesc,5,0,unknown,,,,,,,,,,,,names no polymer master
 material,2026-03-07 00:00:00,2026-03-07 00:00:00,erp:InvoiceDesc,4,0,not_material,not_material,,,,,,,,,,,not a material (2026-11-03 decision)
 material,3-7 mixed bottles,3-7 Mixed Bottles,erp:InvoiceDesc,4,0,mapped,names_one_polymer,3_7_COMMINGLED_BOTTLES,BOTTLES,POST_CONSUMER,,,,,,,,
@@ -459,7 +459,7 @@ material,ps baled trays,PS Baled Trays,erp:InvoiceDesc,4,0,mapped,names_one_poly
 material,pvc rigid - no weather stripping,PVC Rigid - No Weather Stripping,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PVC,,,rigid,,,,,,,
 material,red totes on casters,Red Totes On Casters,erp:InvoiceDesc,4,0,unknown,,,,,,,,,,,,names no polymer master
 material,supersacs - grade a,Supersacs - Grade A,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PP,,,,,,,,,,
-material,tpv,TPV,vanillasoft:Materials,0,4,mapped,crm_code,TPV,,,,,,,,,,polymer master added 2026-11-03
+material,tpv,TPV,vanillasoft:Materials,0,4,mapped,crm_code,TPV,,,,,,,,,,
 material,various e-scrap,Various E-Scrap,erp:InvoiceDesc,4,0,unknown,,,,,,,,,,,,names no polymer master
 material,vinyl siding,Vinyl Siding,erp:InvoiceDesc,4,0,mapped,names_one_polymer,PVC,,,,,,,,,,
 material,waste plastic,Waste Plastic,vanillasoft:Materials,0,4,ambiguous,,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
@@ -907,7 +907,7 @@ material,thermoform pallets in bales,Thermoform Pallets In Bales,erp:InvoiceDesc
 material,toyota totes,TOYOTA TOTES,erp:InvoiceDesc,2,0,unknown,,,,,,,,,,,,names no polymer master
 material,toyota totes - stacked on pallets,Toyota Totes - Stacked On Pallets,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,,
 material,tpe santoprene 103-40 regrind,TPE Santoprene 103-40 Regrind,erp:InvoiceDesc,2,0,mapped,names_one_polymer,TPE,REGRIND,,,,,,,,,
-material,tpv santorene resin,TPV Santorene Resin,erp:InvoiceDesc,2,0,mapped,names_one_polymer,TPV,,,,,,,,,,polymer master added 2026-11-03
+material,tpv santorene resin,TPV Santorene Resin,erp:InvoiceDesc,2,0,mapped,names_one_polymer,TPV,,,,,,,,,,
 material,trailer dolly,Trailer Dolly,erp:InvoiceDesc,2,0,unknown,,,,,,,,,,,,names no polymer master
 material,trash,Trash,erp:InvoiceDesc,2,0,not_material,not_material,,,,,,,,,,,not a material (2026-11-03 decision)
 material,tubs and lids,Tubs and lids,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PP,PARTS,,,,,,,,,
@@ -1000,7 +1000,7 @@ material,all blue plastic pallets,All Blue Plastic Pallets,erp:InvoiceDesc,1,0,m
 material,all clear only - no color as per pics,ALL clear only - no color as per pics,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,names no polymer master
 material,also mentioned they buy pp gf 25-50% - black has golf material. mention and request references.,also mentioned they buy PP GF 25-50% - Black has golf material. Mention and request references.,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,,call-note text; kept as a note
 material,aluminum,aluminum,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,no Odoo polymer master for this material
-material,aluminum ubc,Aluminum UBC,erp:InvoiceDesc,1,0,mapped,names_one_polymer,UBC,,,,,,,,,,polymer master added 2026-11-03
+material,aluminum ubc,Aluminum UBC,erp:InvoiceDesc,1,0,mapped,names_one_polymer,UBC,,,,,,,,,,
 material,and green/black strapping.,and green/black strapping.,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,no Odoo polymer master for this material
 material,and occ -,and occ -,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,,call-note text; kept as a note (2026-11-03 decision)
 material,and regrind,and regrind,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,no Odoo polymer master for this material
@@ -1925,7 +1925,7 @@ material,petg trays,PETG Trays,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,names no p
 material,pi plastic,PI plastic,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,no Odoo polymer master for this material
 material,plastic,Plastic,vanillasoft:Materials,0,1,ambiguous,,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
 material,plastic & textile nylon,plastic & textile nylon,vanillasoft:Materials,0,1,mapped,approved_alias,NYLON,,,,,,,,,,
-material,plastic core plugs / textile cores,Plastic Core Plugs / Textile Cores,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TEXTILE,,,,,,,,,,polymer master added 2026-11-03
+material,plastic core plugs / textile cores,Plastic Core Plugs / Textile Cores,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TEXTILE,,,,,,,,,,
 material,plastic dunnage,Plastic Dunnage,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,names no polymer master
 material,plastic dunnage with staples,Plastic Dunnage With Staples,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,names no polymer master
 material,plastic palets,Plastic Palets,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,names no polymer master
@@ -2207,8 +2207,8 @@ material,tpe runners,TPE Runners,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TP
 material,tpo bumpers covers,TPO Bumpers Covers,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TPO,,,,,,,,,,
 material,tpo bumpers from body shops,TPO Bumpers from Body Shops,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TPO,,,,,,,,,,
 material,tpo natural widespec pellet,TPO Natural Widespec Pellet,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TPO,,,,,,NATURAL,,,,
-material,tpv regrind,TPV Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TPV,REGRIND,,,,,,,,,polymer master added 2026-11-03
-material,tpv santoprene 103-40 parts / purge,TPV Santoprene 103-40 Parts / Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TPV,,,,,,,,,,polymer master added 2026-11-03
+material,tpv regrind,TPV Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TPV,REGRIND,,,,,,,,,
+material,tpv santoprene 103-40 parts / purge,TPV Santoprene 103-40 Parts / Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,TPV,,,,,,,,,,
 material,trader joe pallets hdpe/pp,Trader Joe pallets hdpe/pp,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,,names polymers HDPE PP
 material,transportation/recycling/destruction,Transportation/Recycling/Destruction,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,names no polymer master
 material,trash - landfill,Trash - Landfill,erp:InvoiceDesc,1,0,not_material,not_material,,,,,,,,,,,not a material (2026-11-03 decision)
