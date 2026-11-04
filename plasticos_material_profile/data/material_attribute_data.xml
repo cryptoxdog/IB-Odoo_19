@@ -115,4 +115,60 @@
       <field name="sequence">180</field>
     </record>
   </data>
+  <data noupdate="1">
+    <record id="attr_repairable" model="plasticos.material.attribute">
+      <field name="name">Repairable</field>
+      <field name="code">repairable</field>
+      <field name="description">Damaged items (e.g., knockdown bins) that can be repaired for reuse.</field>
+      <field name="sequence">190</field>
+    </record>
+    <record id="attr_not_repairable" model="plasticos.material.attribute">
+      <field name="name">Not Repairable</field>
+      <field name="code">not_repairable</field>
+      <field name="description">Damaged items (e.g., knockdown bins) that cannot be repaired; scrap for grinding.</field>
+      <field name="sequence">200</field>
+    </record>
+    <record id="attr_rigid" model="plasticos.material.attribute">
+      <field name="name">Rigid</field>
+      <field name="code">rigid</field>
+      <field name="description">Rigid plastic (molded parts, containers), as opposed to film or flexible material.</field>
+      <field name="sequence">210</field>
+    </record>
+    <record id="attr_frac_melt" model="plasticos.material.attribute">
+      <field name="name">Frac Melt</field>
+      <field name="code">frac_melt</field>
+      <field name="description">Fractional melt index (below 1 g/10 min), typical of film and blow-mold grades.</field>
+      <field name="sequence">220</field>
+    </record>
+    <record id="attr_thick_gauge" model="plasticos.material.attribute">
+      <field name="name">Thick Gauge</field>
+      <field name="code">thick_gauge</field>
+      <field name="description">Heavy-gauge film or sheet.</field>
+      <field name="sequence">230</field>
+    </record>
+    <record id="attr_copolymer" model="plasticos.material.attribute">
+      <field name="name">Copolymer</field>
+      <field name="code">copolymer</field>
+      <field name="description">Copolymer grade (e.g., PP copolymer).</field>
+      <field name="sequence">240</field>
+    </record>
+    <record id="attr_homopolymer" model="plasticos.material.attribute">
+      <field name="name">Homopolymer</field>
+      <field name="code">homopolymer</field>
+      <field name="description">Homopolymer grade (e.g., PP homopolymer).</field>
+      <field name="sequence">250</field>
+    </record>
+    <record id="attr_non_woven" model="plasticos.material.attribute">
+      <field name="name">Non-Woven</field>
+      <field name="code">non_woven</field>
+      <field name="description">Non-woven fabric or sheet (e.g., PP non-woven).</field>
+      <field name="sequence">260</field>
+    </record>
+    <record id="attr_woven" model="plasticos.material.attribute">
+      <field name="name">Woven</field>
+      <field name="code">woven</field>
+      <field name="description">Woven fabric (e.g., woven PP bags, super sacks).</field>
+      <field name="sequence">270</field>
+    </record>
+  </data>
 </odoo>

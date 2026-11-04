@@ -262,5 +262,70 @@
       <field name="category">commodity</field>
       <field name="sequence">237</field>
     </record>
+
+    <!-- ── Approved by the operator 2026-11-03 (material mapping matrix) ── -->
+    <record id="polymer_tpu" model="plasticos.polymer">
+      <field name="name">TPU</field>
+      <field name="code">TPU</field>
+      <field name="full_name">Thermoplastic Polyurethane</field>
+      <field name="category">engineering</field>
+      <field name="sequence">192</field>
+    </record>
+    <record id="polymer_tpv" model="plasticos.polymer">
+      <field name="name">TPV</field>
+      <field name="code">TPV</field>
+      <field name="full_name">Thermoplastic Vulcanizate</field>
+      <field name="category">engineering</field>
+      <field name="sequence">194</field>
+    </record>
+    <record id="polymer_pvb" model="plasticos.polymer">
+      <field name="name">PVB</field>
+      <field name="code">PVB</field>
+      <field name="full_name">Polyvinyl Butyral</field>
+      <field name="category">specialty</field>
+      <field name="sequence">225</field>
+    </record>
+    <record id="polymer_pu_foam" model="plasticos.polymer">
+      <field name="name">PU Foam</field>
+      <field name="code">PU_FOAM</field>
+      <field name="full_name">Polyurethane Foam</field>
+      <field name="category">specialty</field>
+      <field name="sequence">226</field>
+    </record>
+    <record id="polymer_textile" model="plasticos.polymer">
+      <field name="name">Textile</field>
+      <field name="code">TEXTILE</field>
+      <field name="full_name">Textile</field>
+      <field name="category">specialty</field>
+      <field name="sequence">320</field>
+    </record>
+    <record id="polymer_ubc" model="plasticos.polymer">
+      <field name="name">UBC</field>
+      <field name="code">UBC</field>
+      <field name="full_name">Used Beverage Containers</field>
+      <field name="category">specialty</field>
+      <field name="sequence">315</field>
+    </record>
+    <record id="polymer_fiberglass" model="plasticos.polymer">
+      <field name="name">Fiberglass</field>
+      <field name="code">FIBERGLASS</field>
+      <field name="full_name">Fiberglass</field>
+      <field name="category">specialty</field>
+      <field name="sequence">325</field>
+    </record>
+    <record id="polymer_wood_pallets" model="plasticos.polymer">
+      <field name="name">Wood Pallets</field>
+      <field name="code">WOOD_PALLETS</field>
+      <field name="full_name">Wood Pallets</field>
+      <field name="category">specialty</field>
+      <field name="sequence">330</field>
+    </record>
+    <record id="polymer_auto_parts" model="plasticos.polymer">
+      <field name="name">Auto Parts</field>
+      <field name="code">AUTO_PARTS</field>
+      <field name="full_name">Auto Parts</field>
+      <field name="category">specialty</field>
+      <field name="sequence">335</field>
+    </record>
   </data>
 </odoo>

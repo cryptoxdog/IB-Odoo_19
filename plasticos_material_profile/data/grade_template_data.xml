@@ -236,4 +236,15 @@
     </record>
 
   </data>
+  <data noupdate="1">
+    <record id="grade_ibc_totes" model="plasticos.grade.template">
+      <field name="name">IBC Totes</field>
+      <field name="code">IBC_TOTES</field>
+      <field name="polymer_id" ref="polymer_hdpe_hmw"/>
+      <field name="form_id" ref="form_totes"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">135</field>
+    </record>
+  </data>
 </odoo>
