@@ -138,184 +138,134 @@
 ./ci/weak_test_fixer.py:45:import sys
 ./ci/weak_test_fixer.py:46:from pathlib import Path
 ./ci/weak_test_fixer.py:363:    from path_filters import SKIP_DIR_PARTS, skip_path
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:4:import argparse
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:5:import json
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:6:from pathlib import Path
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:8:from validate_case import reverse_dependents
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:4:import argparse
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:5:import json
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:6:from pathlib import Path
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:4:import copy
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:5:import json
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:6:import sys
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:7:from pathlib import Path
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:10:from validate_case import check, plan_digest, reverse_dependents
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:4:from __future__ import annotations
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:6:import argparse
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:7:import copy
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:8:import hashlib
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:9:import json
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:10:import re
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:11:import sys
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:12:from pathlib import Path
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:68:        from jsonschema import Draft202012Validator
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:4:import hashlib
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:5:import json
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:6:import sys
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:7:from pathlib import Path
-./docs/campaigns/10-30-26/PlasticOS_Production_Import_One_PR_Contracts/12_VALIDATE_PACKAGE.py:4:import hashlib
-./docs/campaigns/10-30-26/PlasticOS_Production_Import_One_PR_Contracts/12_VALIDATE_PACKAGE.py:5:import json
-./docs/campaigns/10-30-26/PlasticOS_Production_Import_One_PR_Contracts/12_VALIDATE_PACKAGE.py:6:import pathlib
-./docs/campaigns/10-30-26/PlasticOS_Production_Import_One_PR_Contracts/12_VALIDATE_PACKAGE.py:7:import sys
-./docs/campaigns/10-30-26/PlasticOS_Production_Import_One_PR_Contracts/12_VALIDATE_PACKAGE.py:9:import yaml
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:4:from __future__ import annotations
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:6:import argparse
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:7:import difflib
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:8:import re
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:9:import subprocess
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:10:import sys
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:11:from pathlib import Path
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:52:from __future__ import annotations
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:54:import glob
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:55:import os
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:56:import re
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:57:from pathlib import Path
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:59:import psycopg2
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:3:import importlib.util
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:4:import subprocess
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:5:import tempfile
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:6:import unittest
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:7:from pathlib import Path
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:74:        import py_compile
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:143:        import os
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:144:        import sys
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:145:        import types
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:146:        from unittest.mock import patch
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:4:import argparse
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:5:import json
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:6:from pathlib import Path
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:8:from validate_case import reverse_dependents
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:4:import argparse
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:5:import json
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:6:from pathlib import Path
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:4:import copy
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:5:import json
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:6:import sys
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:7:from pathlib import Path
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:10:from validate_case import check, plan_digest, reverse_dependents
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:4:from __future__ import annotations
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:6:import argparse
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:7:import copy
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:8:import hashlib
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:9:import json
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:10:import re
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:11:import sys
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:12:from pathlib import Path
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:68:        from jsonschema import Draft202012Validator
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:4:import hashlib
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:5:import json
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:6:import sys
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:7:from pathlib import Path
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:17:import json
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:18:import logging
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:19:import re
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:20:from pathlib import Path
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:90:    from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:17:import csv
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:18:import json
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:19:import logging
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:20:import re
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:21:from pathlib import Path
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:121:    from odoo.addons.plasticos_crm_sync.services.approved_identity import OMITTED_DUPLICATE_VS_IDS
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:122:    from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:4:import argparse
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:5:import json
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:6:from pathlib import Path
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:8:from validate_case import reverse_dependents
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/new_case.py:4:import argparse
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/new_case.py:5:import json
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/new_case.py:6:from pathlib import Path
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:4:import copy
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:5:import json
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:6:import sys
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:7:from pathlib import Path
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:10:from validate_case import check, plan_digest, reverse_dependents
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:4:from __future__ import annotations
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:6:import argparse
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:7:import copy
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:8:import hashlib
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:9:import json
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:10:import re
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:11:import sys
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:12:from pathlib import Path
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:68:        from jsonschema import Draft202012Validator
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:4:import hashlib
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:5:import json
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:6:import sys
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:7:from pathlib import Path
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:4:import copy
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:5:import json
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:6:from pathlib import Path
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:8:from validate_package import records_errors
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:4:from __future__ import annotations
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:6:import argparse
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:7:import hashlib
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:8:import importlib.util
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:9:import json
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:10:import re
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:11:import sys
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:12:from pathlib import Path
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:3:import shutil
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:4:import sys
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:5:import tempfile
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:6:import unittest
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:7:from pathlib import Path
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:10:from validate_campaign_pack import validate
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:63:        import json
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:64:        from hashlib import sha256
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:1:import sys
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:2:import unittest
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:3:from pathlib import Path
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:6:    import yaml
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:11:    from validate_slice_receipt import check
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:8:import csv
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:9:import hashlib
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:10:import io
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:11:import json
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:12:import re
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:13:import sys
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:14:from pathlib import Path
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:9:import re
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:10:import sys
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:11:from pathlib import Path
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:14:    import yaml
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:8:from __future__ import annotations
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:10:import csv
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:11:import json
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:12:import re
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:13:import subprocess
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:14:import sys
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:15:from pathlib import Path
-./docs/campaigns/odoo_tech_debt/_build_register.py:4:from __future__ import annotations
-./docs/campaigns/odoo_tech_debt/_build_register.py:6:import ast
-./docs/campaigns/odoo_tech_debt/_build_register.py:7:import collections
-./docs/campaigns/odoo_tech_debt/_build_register.py:8:import hashlib
-./docs/campaigns/odoo_tech_debt/_build_register.py:9:import io
-./docs/campaigns/odoo_tech_debt/_build_register.py:10:import json
-./docs/campaigns/odoo_tech_debt/_build_register.py:11:import os
-./docs/campaigns/odoo_tech_debt/_build_register.py:12:import re
-./docs/campaigns/odoo_tech_debt/_build_register.py:13:import subprocess
-./docs/campaigns/odoo_tech_debt/_build_register.py:14:import sys
-./docs/campaigns/odoo_tech_debt/_build_register.py:15:import tarfile
-./docs/campaigns/odoo_tech_debt/_build_register.py:16:import tempfile
-./docs/campaigns/odoo_tech_debt/_build_register.py:17:from datetime import UTC, datetime
-./docs/campaigns/odoo_tech_debt/_build_register.py:18:from pathlib import Path
-./docs/campaigns/odoo_tech_debt/_build_register.py:219:    from baseline_utils import compute_fingerprint, diff_findings, load_baseline
-./docs/campaigns/odoo_tech_debt/_build_register.py:220:    from business_logic_audit import BusinessLogicAudit
-./docs/campaigns/odoo_tech_debt/_build_register.py:221:    from odoo_audit import OdooAudit
-./docs/campaigns/odoo_tech_debt/_build_register.py:222:    from performance_audit import PerformanceAudit
-./docs/campaigns/odoo_tech_debt/_build_register.py:223:    from security_audit import SecurityAudit
-./docs/campaigns/odoo_tech_debt/_build_register.py:224:    from test_audit import TestAudit
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:8:from __future__ import annotations
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:10:import csv
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:11:import json
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:12:import re
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:13:import subprocess
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:14:import sys
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:15:from pathlib import Path
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:4:from __future__ import annotations
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:6:import argparse
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:7:import difflib
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:8:import re
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:9:import subprocess
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:10:import sys
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:11:from pathlib import Path
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:52:from __future__ import annotations
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:54:import glob
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:55:import os
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:56:import re
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:57:from pathlib import Path
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:59:import psycopg2
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:3:import importlib.util
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:4:import subprocess
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:5:import tempfile
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:6:import unittest
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:7:from pathlib import Path
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:74:        import py_compile
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:143:        import os
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:144:        import sys
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:145:        import types
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:146:        from unittest.mock import patch
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:4:import argparse
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:6:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/impact_modules.py:8:from validate_case import reverse_dependents
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:4:import argparse
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/new_case.py:6:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:4:import copy
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:6:import sys
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:7:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:10:from validate_case import check, plan_digest, reverse_dependents
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:4:from __future__ import annotations
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:6:import argparse
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:7:import copy
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:8:import hashlib
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:9:import json
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:10:import re
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:11:import sys
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:12:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:68:        from jsonschema import Draft202012Validator
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:4:import hashlib
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:6:import sys
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:7:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:17:import json
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:18:import logging
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:19:import re
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:20:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:90:    from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:17:import csv
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:18:import json
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:19:import logging
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:20:import re
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:21:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:121:    from odoo.addons.plasticos_crm_sync.services.approved_identity import OMITTED_DUPLICATE_VS_IDS
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:122:    from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:4:import argparse
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:6:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/impact_modules.py:8:from validate_case import reverse_dependents
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/new_case.py:4:import argparse
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/new_case.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/new_case.py:6:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:4:import copy
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:6:import sys
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:7:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:10:from validate_case import check, plan_digest, reverse_dependents
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:4:from __future__ import annotations
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:6:import argparse
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:7:import copy
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:8:import hashlib
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:9:import json
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:10:import re
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:11:import sys
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:12:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:68:        from jsonschema import Draft202012Validator
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:4:import hashlib
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:6:import sys
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:7:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:4:import copy
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:5:import json
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:6:from pathlib import Path
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/test_package_negative_controls.py:8:from validate_package import records_errors
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:4:from __future__ import annotations
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:6:import argparse
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:7:import hashlib
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:8:import importlib.util
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:9:import json
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:10:import re
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:11:import sys
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:12:from pathlib import Path
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:3:import shutil
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:4:import sys
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:5:import tempfile
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:6:import unittest
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:7:from pathlib import Path
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:10:from validate_campaign_pack import validate
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:63:        import json
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:64:        from hashlib import sha256
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:1:import sys
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:2:import unittest
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:3:from pathlib import Path
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:6:    import yaml
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:11:    from validate_slice_receipt import check
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:8:import csv
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:9:import hashlib
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:10:import io
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:11:import json
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:12:import re
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:13:import sys
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:14:from pathlib import Path
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:9:import re
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:10:import sys
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:11:from pathlib import Path
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:14:    import yaml
 ./plasticos_accounting/__init__.py:1:import logging
 ./plasticos_admin_dashboard/__init__.py:1:from . import models
 ./plasticos_admin_dashboard/models/__init__.py:1:from . import admin_dashboard
@@ -3003,18 +2953,19 @@
 ./tests/test_make_pr_publication.py:6:from __future__ import annotations
 ./tests/test_make_pr_publication.py:8:import json
 ./tests/test_make_pr_publication.py:9:import os
-./tests/test_make_pr_publication.py:10:import shutil
-./tests/test_make_pr_publication.py:11:import subprocess
-./tests/test_make_pr_publication.py:12:import sys
-./tests/test_make_pr_publication.py:13:from pathlib import Path
-./tests/test_make_pr_publication.py:15:import pytest
-./tests/test_make_pr_publication.py:29:import json
-./tests/test_make_pr_publication.py:30:import os
-./tests/test_make_pr_publication.py:31:import subprocess
-./tests/test_make_pr_publication.py:32:import sys
-./tests/test_make_pr_publication.py:33:from urllib.parse import parse_qsl
-./tests/test_make_pr_publication.py:700:    from pr_autopilot import atomic_push
-./tests/test_make_pr_publication.py:1197:    import re
+./tests/test_make_pr_publication.py:10:import re
+./tests/test_make_pr_publication.py:11:import shutil
+./tests/test_make_pr_publication.py:12:import subprocess
+./tests/test_make_pr_publication.py:13:import sys
+./tests/test_make_pr_publication.py:14:from pathlib import Path
+./tests/test_make_pr_publication.py:16:import pytest
+./tests/test_make_pr_publication.py:30:import json
+./tests/test_make_pr_publication.py:31:import os
+./tests/test_make_pr_publication.py:32:import subprocess
+./tests/test_make_pr_publication.py:33:import sys
+./tests/test_make_pr_publication.py:34:from urllib.parse import parse_qsl
+./tests/test_make_pr_publication.py:733:    from pr_autopilot import atomic_push
+./tests/test_make_pr_publication.py:1260:    import re
 ./tests/test_makefile_failure_propagation.py:11:from __future__ import annotations
 ./tests/test_makefile_failure_propagation.py:13:import os
 ./tests/test_makefile_failure_propagation.py:14:import shutil
@@ -3123,6 +3074,12 @@
 ./tests/test_pr_check_scope.py:15:from pathlib import Path
 ./tests/test_pr_check_scope.py:17:import pytest
 ./tests/test_pr_check_scope.py:349:    from pr_check_scope import select_tests  # noqa: E402
+./tests/test_pre_push_validate.py:8:from __future__ import annotations
+./tests/test_pre_push_validate.py:10:import os
+./tests/test_pre_push_validate.py:11:import shutil
+./tests/test_pre_push_validate.py:12:import subprocess
+./tests/test_pre_push_validate.py:13:from pathlib import Path
+./tests/test_pre_push_validate.py:15:import pytest
 ./tests/test_pristine_runtime_seams.py:15:import ast
 ./tests/test_pristine_runtime_seams.py:16:import re
 ./tests/test_pristine_runtime_seams.py:17:from pathlib import Path
@@ -3136,6 +3093,14 @@
 ./tests/test_projection_outcome_schemas.py:7:from pathlib import Path
 ./tests/test_projection_outcome_schemas.py:9:import pytest
 ./tests/test_projection_outcome_schemas.py:15:from projection_outcome_schemas import (  # noqa: E402
+./tests/test_publication_real_push.py:13:from __future__ import annotations
+./tests/test_publication_real_push.py:15:import json
+./tests/test_publication_real_push.py:16:import os
+./tests/test_publication_real_push.py:17:import shutil
+./tests/test_publication_real_push.py:18:import subprocess
+./tests/test_publication_real_push.py:19:from pathlib import Path
+./tests/test_publication_real_push.py:21:import pytest
+./tests/test_publication_real_push.py:31:import json, os, sys
 ./tests/test_rate_memory_retirement.py:3:from __future__ import annotations
 ./tests/test_rate_memory_retirement.py:5:import importlib.util
 ./tests/test_rate_memory_retirement.py:6:import sys
@@ -3214,8 +3179,9 @@
 ./tests/test_test_env_safety.py:17:from pathlib import Path
 ./tests/test_test_env_safety.py:19:import pytest
 ./tests/test_test_env_safety.py:216:import json, os, sys
-./tests/test_test_env_safety.py:258:    import re
-./tests/test_test_env_safety.py:371:    import hashlib
+./tests/test_test_env_safety.py:261:    import re, time
+./tests/test_test_env_safety.py:391:    import hashlib
+./tests/test_test_env_safety.py:1103:    import time
 ./tests/test_transaction_bill_open.py:3:from pathlib import Path
 ./tests/test_transaction_profit_snapshot.py:7:from pathlib import Path
 ./tests/test_triage_pipeline.py:6:from __future__ import annotations

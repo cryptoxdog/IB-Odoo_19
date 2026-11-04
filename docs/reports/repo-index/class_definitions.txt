@@ -19,15 +19,15 @@
 ./ci/weak_test_fixer.py:283:class _LocalHelpers:
 ./ci/weak_test_fixer.py:324:class _Resolver:
 ./ci/weak_test_fixer.py:368:class WeakTestFixer:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:15:class TestModel:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:35:class BuilderTests(unittest.TestCase):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:130:class RuntimeBindingSafetyTests(unittest.TestCase):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:150:        class Cursor:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:163:        class Conn:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:59:class _SignalCapture(logging.Handler):
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:62:class _SignalCapture(logging.Handler):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:15:class PackValidatorTest(unittest.TestCase):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:15:class ReceiptTests(unittest.TestCase):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:15:class TestModel:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:35:class BuilderTests(unittest.TestCase):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:130:class RuntimeBindingSafetyTests(unittest.TestCase):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:150:        class Cursor:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:163:        class Conn:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:59:class _SignalCapture(logging.Handler):
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:62:class _SignalCapture(logging.Handler):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:15:class PackValidatorTest(unittest.TestCase):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:15:class ReceiptTests(unittest.TestCase):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:36:class PlasticosAdminKpi(models.Model):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:630:class PlasticosRepPerformance(models.Model):
 ./plasticos_automation/models/account_move_penalty.py:8:class AccountMovePenalty(models.Model):
@@ -641,7 +641,7 @@
 ./tests/test_gate_sdk_invocation.py:91:class _Env:
 ./tests/test_gate_sdk_invocation.py:106:class _FakeGate:
 ./tests/test_gate_sdk_invocation.py:201:    class _SeamClient(_SdkGateClient):
-./tests/test_install_smoke_evidence.py:134:class Site:
+./tests/test_install_smoke_evidence.py:133:class Site:
 ./tests/test_launch_invariants_crm_enrichment.py:437:class _FakeValue:
 ./tests/test_launch_invariants_crm_enrichment.py:445:class _FakePartner:
 ./tests/test_launch_invariants_crm_enrichment.py:455:class _FakeRun:

@@ -3,26 +3,24 @@
 ./README.md:1:# PlasticOS · Odoo 19
 ./ci/baselines/README.md:1:# Audit baselines — per-finding allowlist, not a count
 ./contracts/schemas/README.md:1:# Odoo PlasticOS payload schemas
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md:1:# PlasticOS Strategic Addon Development Kernel | v0.2.0
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md:28:# External dependency for complete draft-2020-12 schema validation: jsonschema.
 ./docs/README_INDEX.md:1:# PlasticOS IB-Odoo 19 — README Index
 ./docs/adr/README.md:1:# Architecture Decision Records (ADRs)
 ./docs/adr/gate-integration/README.md:1:# Gate Integration ADR Pack
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/README.md:1:# Mack PR #197 | source-bound execution pack v1
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md:1:# PlasticOS Strategic Addon Development Kernel | v0.2.0
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md:28:# External dependency for complete draft-2020-12 schema validation: jsonschema.
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/README.md:1:# Cursor delegation: ERP contacts, then VanillaSoft crosswalk only
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/README.md:1:# Cursor delegation: full ERP import, then full VanillaSoft CRM import
-./docs/campaigns/PlasticOS_Export/EXPORT_BRS/MODULE_DESIGN/plasticos_export/README.md:1:# PlasticOS Export
-./docs/campaigns/PlasticOS_Export/EXPORT_BRS/README.md:7:# PlasticOS Export BRS v2.0.0
-./docs/campaigns/PlasticOS_Export/EXPORT_BRS/REFINED_BRS/README.md:1:# Refined Export BRS: implementation reading set
-./docs/campaigns/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/README_PRIVATE_DO_NOT_COMMIT.md:1:# Restricted source evidence, not a repository payload
-./docs/campaigns/PlasticOS_Inventory_Inbound_Only_Cursor_2026-10-22/README.md:1:# PlasticOS: Inventory-bound worksheet import, one concern only
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/ADR/README.md:1:# ADR admission map
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/README.md:1:# PlasticOS Strategic Addon Development Kernel | v0.2.0
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/README.md:28:# External dependency for complete draft-2020-12 schema validation: jsonschema.
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/README.md:1:# PlasticOS Semantic Kernel: Activation, Integration and Wiring
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/README.md:1:# Scrap Management | Odoo.sh + Independent AWS Disaster Recovery
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/README.md:1:# Mack PR #197 | source-bound execution pack v1
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md:1:# PlasticOS Strategic Addon Development Kernel | v0.2.0
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md:28:# External dependency for complete draft-2020-12 schema validation: jsonschema.
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/README.md:1:# Cursor delegation: ERP contacts, then VanillaSoft crosswalk only
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/README.md:1:# Cursor delegation: full ERP import, then full VanillaSoft CRM import
+./docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/MODULE_DESIGN/plasticos_export/README.md:1:# PlasticOS Export
+./docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/README.md:7:# PlasticOS Export BRS v2.0.0
+./docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/REFINED_BRS/README.md:1:# Refined Export BRS: implementation reading set
+./docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/README_PRIVATE_DO_NOT_COMMIT.md:1:# Restricted source evidence, not a repository payload
+./docs/campaigns/future-add-ons/PlasticOS_Inventory_Inbound_Only_Cursor_2026-10-22/README.md:1:# PlasticOS: Inventory-bound worksheet import, one concern only
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/ADR/README.md:1:# ADR admission map
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/README.md:1:# PlasticOS Strategic Addon Development Kernel | v0.2.0
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/README.md:28:# External dependency for complete draft-2020-12 schema validation: jsonschema.
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/README.md:1:# PlasticOS Semantic Kernel: Activation, Integration and Wiring
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/README.md:1:# Scrap Management | Odoo.sh + Independent AWS Disaster Recovery
 ./plasticos_accounting/README.md:13:# Plasticos Accounting
 ./plasticos_automation/README.md:13:# Plasticos Automation
 ./plasticos_base/README.md:13:# Plasticos Base

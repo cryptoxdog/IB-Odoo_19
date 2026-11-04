@@ -95,68 +95,63 @@
 ./ci/weak_test_fixer.py:399:    def _extract_operations(self, func_node):
 ./ci/weak_test_fixer.py:407:    def _suggest_assertions(self, operations):
 ./ci/weak_test_fixer.py:420:    def iter_test_files(self):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:33:    def walk(node, trace):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:87:    def add(code, msg=""):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:90:    def require(value, key):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:270:    def predecessors(uid):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:16:    def _check_request_shape(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:23:    def test_identical_retry_returns_prior_receipt_without_second_activity(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:36:    def setUp(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:59:    def test_exact_fixture_generates_applyable_patch(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:79:    def test_wrong_branch_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:84:    def test_dirty_worktree_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:89:    def test_changed_remote_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:94:    def test_lookalike_host_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:99:    def test_https_origin_is_accepted(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:103:    def test_stale_head_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:110:    def test_missing_model_anchor_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:114:    def test_duplicate_test_anchor_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:118:    def test_existing_helper_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:131:    def setUp(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:142:    def _run_binding(self, *, db="odoo_test_mack_fixture", host="/tmp", marker="role=clone owner=mack", expect=None):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:151:            def __enter__(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:154:            def __exit__(self, *_args):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:157:            def execute(self, statement):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:160:            def fetchone(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:164:            def cursor(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:167:            def close(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:170:        def connect(**kwargs):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:191:    def test_owned_disposable_allows_binding(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:194:    def test_refuses_non_disposable_db_before_any_connection(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:197:    def test_refuses_remote_host_before_any_connection(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:200:    def test_refuses_database_without_ownership_marker(self):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:33:    def walk(node, trace):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:87:    def add(code, msg=""):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:90:    def require(value, key):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:270:    def predecessors(uid):
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:62:    def __init__(self) -> None:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:66:    def emit(self, record: logging.LogRecord) -> None:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:65:    def __init__(self) -> None:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:69:    def emit(self, record: logging.LogRecord) -> None:
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:33:    def walk(node, trace):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:87:    def add(code, msg=""):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:90:    def require(value, key):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:270:    def predecessors(uid):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:22:    def visit(node):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:39:    def need(v, msg):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:65:    def ancestors(n):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:16:    def setUp(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:21:    def tearDown(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:24:    def test_pristine(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:27:    def assert_rejected(self, rel, original, changed):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:35:    def test_tampered_bytes(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:38:    def test_missing_trace_row(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:45:    def test_broken_access_header(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:52:    def test_unscheduled_5th_slot(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:55:    def test_missing_file(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:60:    def test_unresolved_reference_even_when_hashes_are_rebuilt(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:16:    def base(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:36:    def test_fixture_passes_structural_only(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:39:    def test_unknown_restoration_fails(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:45:    def test_open_issue_fails(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:51:    def test_blocked_is_not_pass(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:58:    def test_hourly_contract_cannot_pass_as_daily(self):
-./docs/campaigns/odoo_tech_debt/_build_register.py:250:    def add(row: dict) -> None:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:16:    def _check_request_shape(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:23:    def test_identical_retry_returns_prior_receipt_without_second_activity(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:36:    def setUp(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:59:    def test_exact_fixture_generates_applyable_patch(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:79:    def test_wrong_branch_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:84:    def test_dirty_worktree_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:89:    def test_changed_remote_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:94:    def test_lookalike_host_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:99:    def test_https_origin_is_accepted(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:103:    def test_stale_head_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:110:    def test_missing_model_anchor_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:114:    def test_duplicate_test_anchor_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:118:    def test_existing_helper_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:131:    def setUp(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:142:    def _run_binding(self, *, db="odoo_test_mack_fixture", host="/tmp", marker="role=clone owner=mack", expect=None):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:151:            def __enter__(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:154:            def __exit__(self, *_args):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:157:            def execute(self, statement):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:160:            def fetchone(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:164:            def cursor(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:167:            def close(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:170:        def connect(**kwargs):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:191:    def test_owned_disposable_allows_binding(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:194:    def test_refuses_non_disposable_db_before_any_connection(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:197:    def test_refuses_remote_host_before_any_connection(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:200:    def test_refuses_database_without_ownership_marker(self):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:33:    def walk(node, trace):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:87:    def add(code, msg=""):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:90:    def require(value, key):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:270:    def predecessors(uid):
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:62:    def __init__(self) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:66:    def emit(self, record: logging.LogRecord) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:65:    def __init__(self) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:69:    def emit(self, record: logging.LogRecord) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:33:    def walk(node, trace):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:87:    def add(code, msg=""):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:90:    def require(value, key):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:270:    def predecessors(uid):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:22:    def visit(node):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:39:    def need(v, msg):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:65:    def ancestors(n):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:16:    def setUp(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:21:    def tearDown(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:24:    def test_pristine(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:27:    def assert_rejected(self, rel, original, changed):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:35:    def test_tampered_bytes(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:38:    def test_missing_trace_row(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:45:    def test_broken_access_header(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:52:    def test_unscheduled_5th_slot(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:55:    def test_missing_file(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:60:    def test_unresolved_reference_even_when_hashes_are_rebuilt(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:16:    def base(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:36:    def test_fixture_passes_structural_only(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:39:    def test_unknown_restoration_fails(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:45:    def test_open_issue_fails(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:51:    def test_blocked_is_not_pass(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:58:    def test_hourly_contract_cannot_pass_as_daily(self):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:189:    def _compute_kpis(self):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:453:    def _compute_ai_config(self):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:474:    def _get_or_create(self):
@@ -3464,11 +3459,11 @@
 ./tests/test_gate_sdk_invocation.py:129:    def _reply(self, request, wire, payload):
 ./tests/test_gate_sdk_invocation.py:145:    def _handle(self, request: httpx.Request) -> httpx.Response:
 ./tests/test_gate_sdk_invocation.py:204:        def __init__(self, config, *, transport=None):
-./tests/test_install_smoke_evidence.py:140:    def receipt(self) -> Path:
-./tests/test_install_smoke_evidence.py:143:    def run(self, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
-./tests/test_install_smoke_evidence.py:154:    def configure(self, **values: object) -> None:
-./tests/test_install_smoke_evidence.py:159:    def calls(self) -> list[dict]:
-./tests/test_install_smoke_evidence.py:163:    def establish(self, **env: str) -> dict:
+./tests/test_install_smoke_evidence.py:139:    def receipt(self) -> Path:
+./tests/test_install_smoke_evidence.py:142:    def run(self, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
+./tests/test_install_smoke_evidence.py:153:    def configure(self, **values: object) -> None:
+./tests/test_install_smoke_evidence.py:158:    def calls(self) -> list[dict]:
+./tests/test_install_smoke_evidence.py:162:    def establish(self, **env: str) -> dict:
 ./tests/test_launch_invariants_crm_enrichment.py:438:    def __init__(self, value):
 ./tests/test_launch_invariants_crm_enrichment.py:441:    def __bool__(self):
 ./tests/test_launch_invariants_crm_enrichment.py:448:    def __init__(self, partner_id):
