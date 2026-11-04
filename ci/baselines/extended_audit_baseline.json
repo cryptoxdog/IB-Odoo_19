@@ -315,141 +315,11 @@
       "message": "ORM .search_count() inside loop (query in loop)"
     },
     {
-      "fingerprint": "c425b97d30baa725",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/freight_estimate.py",
-      "line": 83,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "afd796ea4ef03bdb",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/freight_governance.py",
-      "line": 117,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "7d0c8ee14ccd9631",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/freight_quote.py",
-      "line": 135,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
       "fingerprint": "9a67c59761b586aa",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
       "file": "plasticos_logistics/models/freight_quote.py",
       "line": 629,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "12a520cd78523550",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 316,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "670a7c33576ad45e",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 317,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "6010dcff30531442",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 492,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "7e2913d5b6d13f2f",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 498,
-      "model": null,
-      "field": null,
-      "message": "ORM .create() inside loop (mutation in loop)"
-    },
-    {
-      "fingerprint": "8a3be482baa91c4c",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 606,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "7a63f7ea80657cb0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 706,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "e0c5d3363ea22c4a",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 709,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "1f83723fc564052c",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 772,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "3348fdeb82d3f957",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 891,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "11554bc8c48159c0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 1212,
       "model": null,
       "field": null,
       "message": "ORM .search_count() inside loop (query in loop)"
@@ -723,16 +593,6 @@
       "model": null,
       "field": null,
       "message": "ORM .create() inside loop (mutation in loop)"
-    },
-    {
-      "fingerprint": "8e1992604279258f",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 438,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
     },
     {
       "fingerprint": "c45c2c4ad7188980",
