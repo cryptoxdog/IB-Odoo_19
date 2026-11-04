@@ -327,5 +327,28 @@
       <field name="category">specialty</field>
       <field name="sequence">335</field>
     </record>
+    <!-- ── Approved by the operator 2026-11-04 ── -->
+    <record id="polymer_ldpe_lldpe" model="plasticos.polymer">
+      <field name="name">LDPE/LLDPE</field>
+      <field name="code">LDPE_LLDPE</field>
+      <field name="full_name">LDPE / LLDPE Mix</field>
+      <field name="resin_id_code">4</field>
+      <field name="category">commodity</field>
+      <field name="sequence">45</field>
+    </record>
+    <record id="polymer_pet_hdpe" model="plasticos.polymer">
+      <field name="name">PET/HDPE</field>
+      <field name="code">PET_HDPE</field>
+      <field name="full_name">PET / HDPE Mix</field>
+      <field name="category">commodity</field>
+      <field name="sequence">72</field>
+    </record>
+    <record id="polymer_fiber" model="plasticos.polymer">
+      <field name="name">Fiber</field>
+      <field name="code">FIBER</field>
+      <field name="full_name">Fiber</field>
+      <field name="category">specialty</field>
+      <field name="sequence">322</field>
+    </record>
   </data>
 </odoo>

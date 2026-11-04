@@ -22,17 +22,12 @@ class PlasticosMaterialProfile(models.Model):
         store=True,
     )
 
-    @api.depends("polymer_id", "form_id")
+    @api.depends("polymer_id", "material_grade_id", "form_id")
     def _compute_display_name(self):
         for rec in self:
-            polymer = rec.polymer_id.name if rec.polymer_id else ""
-            form = rec.form_id.name if rec.form_id else ""
-            if polymer and form:
-                rec.display_name = f"{polymer} {form}"
-            elif polymer:
-                rec.display_name = polymer
-            else:
-                rec.display_name = f"Profile #{rec.id}"
+            parts = [rec.polymer_id.name, rec.material_grade_id.name, rec.form_id.name]
+            name = " ".join(part for part in parts if part)
+            rec.display_name = name if rec.polymer_id else f"Profile #{rec.id}"
 
     partner_id = fields.Many2one(
         "res.partner",
@@ -66,11 +61,13 @@ class PlasticosMaterialProfile(models.Model):
             ("HDPE_HMW", "HDPE HMW"),
             ("LDPE", "LDPE"),
             ("LLDPE", "LLDPE"),
+            ("LDPE_LLDPE", "LDPE/LLDPE"),
             ("PLASTIC_PALLETS", "Plastic Pallets"),
             ("3_7_COMMINGLED_BOTTLES", "3-7 Commingled Bottles"),
             ("1_7_COMMINGLED_BOTTLES", "1-7 Commingled Bottles"),
             ("GAYLORD_BOXES", "Gaylord Boxes"),
             ("PET", "PET"),
+            ("PET_HDPE", "PET/HDPE"),
             ("ABS", "ABS"),
             ("HIPS", "HIPS"),
             ("PS", "PS"),
@@ -101,9 +98,11 @@ class PlasticosMaterialProfile(models.Model):
             ("OCC", "OCC"),
             ("METAL", "Metal"),
             ("TEXTILE", "Textile"),
+            ("FIBER", "Fiber"),
             ("FIBERGLASS", "Fiberglass"),
             ("WOOD_PALLETS", "Wood Pallets"),
             ("AUTO_PARTS", "Auto Parts"),
+            ("OTHER", "Other"),
         ],
         string="Polymer Code",
         compute="_compute_polymer_code",
@@ -132,6 +131,16 @@ class PlasticosMaterialProfile(models.Model):
         store=True,
         index=True,
         help="Auto-populated from form_id. Kept for backward compatibility.",
+    )
+
+    # ── Material Grade (what the items were before processing) ──
+    material_grade_id = fields.Many2one(
+        "plasticos.material.grade",
+        string="Material Grade",
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="What the material was before processing (Drums, Totes, Pallets). Optional.",
     )
 
     # ── Color (Many2one to master) ───────────────────────────
@@ -304,14 +313,6 @@ class PlasticosMaterialProfile(models.Model):
         string="Load Frequency",
     )
 
-    # ── Origin Form (what it was before processing) ──────────
-    origin_form_id = fields.Many2one(
-        "plasticos.material.form",
-        string="Origin Form",
-        help="What the material was before processing (Drums, Bottles, Film). Optional.",
-        ondelete="restrict",
-    )
-
     # ── Packaging ────────────────────────────────────────────
     packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
@@ -399,15 +400,17 @@ class PlasticosMaterialProfile(models.Model):
     # ═════════════════════════════════════════════════════════
 
     _unique_partner_polymer_form = models.UniqueIndex(
-        "(partner_id, polymer_id, form_id) NULLS NOT DISTINCT WHERE partner_id IS NOT NULL",
-        "A facility may only have one profile per polymer + form combination.",
+        "(partner_id, polymer_id, form_id, material_grade_id) NULLS NOT DISTINCT WHERE partner_id IS NOT NULL",
+        "A facility may only have one profile per polymer + form + material grade combination.",
     )
 
-    def _check_unique_triple_before_save(self, partner_id, polymer_id, form_id, exclude_id=None):
-        """Check for duplicate partner+polymer+form before SQL insert.
+    def _check_unique_triple_before_save(
+        self, partner_id, polymer_id, form_id, material_grade_id=None, exclude_id=None
+    ):
+        """Check for duplicate partner+polymer+form+grade before SQL insert.
 
-        An empty form is a real identity key, so one unspecified profile is allowed
-        per partner and polymer.
+        An empty form or grade is a real identity key, so one unspecified profile is
+        allowed per partner, polymer, and the other key.
         """
         if not partner_id or not polymer_id:
             return
@@ -415,6 +418,7 @@ class PlasticosMaterialProfile(models.Model):
             ("partner_id", "=", partner_id),
             ("polymer_id", "=", polymer_id),
             ("form_id", "=", form_id or False),
+            ("material_grade_id", "=", material_grade_id or False),
         ]
         if exclude_id:
             domain.append(("id", "!=", exclude_id))
@@ -425,9 +429,11 @@ class PlasticosMaterialProfile(models.Model):
                 self.env["plasticos.material.form"].browse(form_id) if form_id else self.env["plasticos.material.form"]
             )
             form_label = form.name or "unspecified"
+            grade = self.env["plasticos.material.grade"].browse(material_grade_id or [])
+            grade_label = grade.name or "unspecified"
             raise ValidationError(
                 f"A material profile already exists for {partner.name} "
-                f"with polymer '{polymer.name}' and form '{form_label}'."
+                f"with polymer '{polymer.name}', form '{form_label}', and material grade '{grade_label}'."
             )
 
     # ═════════════════════════════════════════════════════════
@@ -589,6 +595,7 @@ class PlasticosMaterialProfile(models.Model):
                 vals.get("partner_id"),
                 vals.get("polymer_id"),
                 vals.get("form_id"),
+                vals.get("material_grade_id"),
             )
         records = super().create(vals_list)
         for record in records:
@@ -600,8 +607,11 @@ class PlasticosMaterialProfile(models.Model):
             partner_id = vals.get("partner_id", record.partner_id.id)
             polymer_id = vals.get("polymer_id", record.polymer_id.id)
             form_id = vals.get("form_id", record.form_id.id)
-            if "partner_id" in vals or "polymer_id" in vals or "form_id" in vals:
-                self._check_unique_triple_before_save(partner_id, polymer_id, form_id, exclude_id=record.id)
+            material_grade_id = vals.get("material_grade_id", record.material_grade_id.id)
+            if {"partner_id", "polymer_id", "form_id", "material_grade_id"} & set(vals):
+                self._check_unique_triple_before_save(
+                    partner_id, polymer_id, form_id, material_grade_id, exclude_id=record.id
+                )
         res = super().write(vals)
         for rec in self:
             rec._emit_material_packet()
@@ -633,10 +643,10 @@ class PlasticosMaterialProfile(models.Model):
 
         line_vals = {
             "product_id": product_id,
-            "name": f"{self.polymer_id.name} - {self.partner_id.name}",
             "product_qty": 1,
-            "product_uom": product_uom_id,
+            "product_uom_id": product_uom_id,
             "material_profile_id": self.id,
+            "material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
             "color_id": self.color_id.id if self.color_id else False,
             "form_id": self.form_id.id if self.form_id else False,
             "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
@@ -644,6 +654,8 @@ class PlasticosMaterialProfile(models.Model):
             "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
             "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
         }
+        material = POLine.new(line_vals).material_description or self.display_name
+        line_vals["name"] = f"{material} - {self.partner_id.name}"
 
         return {
             "type": "ir.actions.act_window",
@@ -667,6 +679,8 @@ class PlasticosMaterialProfile(models.Model):
                 "partner_id": rec.partner_id.id,
                 "polymer": rec.polymer_id.code if rec.polymer_id else None,
                 "polymer_name": rec.polymer_id.name if rec.polymer_id else None,
+                "material_grade": rec.material_grade_id.code if rec.material_grade_id else None,
+                "material_grade_name": rec.material_grade_id.name if rec.material_grade_id else None,
                 "form": rec.form_id.code if rec.form_id else None,
                 "form_name": rec.form_id.name if rec.form_id else None,
                 "color": rec.color_id.code if rec.color_id else None,
@@ -770,9 +784,11 @@ class PlasticosMaterialProfile(models.Model):
             raise ValidationError("No material images to send. Upload images first.")
 
         polymer_name = self.polymer_id.name if self.polymer_id else "Material"
+        grade_name = self.material_grade_id.name if self.material_grade_id else ""
         form_name = self.form_id.name if self.form_id else ""
         partner_name = self.partner_id.name if self.partner_id else ""
-        subject = f"Material Images: {polymer_name} {form_name} — {partner_name}".strip()
+        material_name = " ".join(part for part in (polymer_name, grade_name, form_name) if part)
+        subject = f"Material Images: {material_name} — {partner_name}".strip()
 
         return {
             "type": "ir.actions.act_window",
@@ -789,6 +805,7 @@ class PlasticosMaterialProfile(models.Model):
                     f"<p>Please find attached material images for:</p>"
                     f"<ul>"
                     f"<li><b>Polymer:</b> {polymer_name}</li>"
+                    f"<li><b>Material Grade:</b> {grade_name}</li>"
                     f"<li><b>Form:</b> {form_name}</li>"
                     f"<li><b>Facility:</b> {partner_name}</li>"
                     f"</ul>"

@@ -428,7 +428,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertFalse(film.source_type_id)
         self.assertEqual(set(film.material_attribute_ids.mapped("code")), {"clean", "dry"})
         self.assertIn("99 Clear LDPE Film", film.freeform_notes or "")
-        self.assertEqual(profiles["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(profiles["HDPE"].material_grade_id.code, "DRUMS")
         self.assertFalse(profiles["HDPE"].sub_grade)
         self.assertFalse(profiles["HDPE"].material_attribute_ids)
         self.assertFalse(profiles["PC_ABS"].form_id)
@@ -791,7 +791,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         profiles = self._profiles(facility)
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP"})
-        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
         self.assertFalse(by_polymer["LDPE"].sub_grade)
         self.assertFalse(by_polymer["LDPE"].material_attribute_ids)
@@ -827,7 +827,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         profiles = self._profiles(facility)
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP", "PC_ABS", "PLASTIC_PALLETS"})
-        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
         self.assertFalse(by_polymer["PP"].form_id)
         self.assertFalse(by_polymer["PC_ABS"].form_id)
@@ -872,7 +872,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         profiles = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP"})
-        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
         self.assertFalse(by_polymer["PP"].form_id)
         self.assertFalse(profiles.mapped("partner_id"))
@@ -927,11 +927,11 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
         self.assertEqual(by_polymer["LDPE"].sub_grade, "A")
         self.assertFalse(by_polymer["LDPE"].material_attribute_ids)
-        self.assertEqual(by_polymer["3_7_COMMINGLED_BOTTLES"].form_id.code, "BOTTLES")
+        self.assertEqual(by_polymer["3_7_COMMINGLED_BOTTLES"].material_grade_id.code, "BOTTLES")
         self.assertFalse(by_polymer["3_7_COMMINGLED_BOTTLES"].source_type_id)
-        self.assertEqual(by_polymer["1_7_COMMINGLED_BOTTLES"].form_id.code, "BOTTLES")
+        self.assertEqual(by_polymer["1_7_COMMINGLED_BOTTLES"].material_grade_id.code, "BOTTLES")
         self.assertFalse(by_polymer["1_7_COMMINGLED_BOTTLES"].source_type_id)
-        self.assertEqual(by_polymer["HDPE_HMW"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE_HMW"].material_grade_id.code, "DRUMS")
         ids = {code: profile.id for code, profile in by_polymer.items()}
         orch._upsert_lead(self.connection, dto)
         replayed = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
@@ -986,8 +986,14 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         location = self._facility("Already Profiled")
         existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
         pp = self.env["plasticos.polymer"].search([("code", "=", "PP")], limit=1)
+        supersacs = self.env["plasticos.material.grade"].search([("code", "=", "SUPERACS")], limit=1)
         existing_pp = self.env["plasticos.material.profile"].create(
-            {"partner_id": location.id, "polymer_id": pp.id, "freeform_notes": "already there"}
+            {
+                "partner_id": location.id,
+                "polymer_id": pp.id,
+                "material_grade_id": supersacs.id,
+                "freeform_notes": "already there",
+            }
         )
         orch = SyncOrchestrator(self.env)
         dto = self._lead(
@@ -1037,7 +1043,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         profiles = self._profiles(company)
         self.assertEqual(len(profiles), 1)
         self.assertEqual(profiles.polymer_id.code, "HDPE")
-        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertEqual(profiles.material_grade_id.code, "DRUMS")
         self.assertEqual(lead.facility_profile_id.partner_id, company)
         profile_id = profiles.id
         facility_id = lead.facility_profile_id.id
@@ -1090,14 +1096,14 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         location = self._facility("Collision Mill")
         existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
         hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
-        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        drums = self.env["plasticos.material.grade"].search([("code", "=", "DRUMS")], limit=1)
         source = self.env["plasticos.source.type"].search([("code", "=", "POST_INDUSTRIAL")], limit=1)
         existing = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": location.id,
                 "facility_profile_id": existing_facility.id,
                 "polymer_id": hdpe.id,
-                "form_id": drums.id,
+                "material_grade_id": drums.id,
                 "freeform_notes": "already there",
             }
         )
@@ -1112,7 +1118,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
                 "partner_id": location.id,
                 "facility_id": location.id,
                 "polymer_id": hdpe.id,
-                "form_id": drums.id,
+                "form_id": self.env["plasticos.material.form"].search([("code", "=", "OTHER")], limit=1).id,
+                "material_grade_id": drums.id,
                 "quantity_per_load_lbs": 1000,
                 "material_profile_id": provisional.id,
             }
@@ -1168,13 +1175,13 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         location = self._facility("Follower Mill")
         existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
         hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
-        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        drums = self.env["plasticos.material.grade"].search([("code", "=", "DRUMS")], limit=1)
         existing = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": location.id,
                 "facility_profile_id": existing_facility.id,
                 "polymer_id": hdpe.id,
-                "form_id": drums.id,
+                "material_grade_id": drums.id,
             }
         )
         comment = self.env.ref("mail.mt_comment")
@@ -1248,13 +1255,13 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         location = self._facility("Scheduled Mill")
         existing_facility = self.env["plasticos.facility.profile"].create({"partner_id": location.id})
         hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
-        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        drums = self.env["plasticos.material.grade"].search([("code", "=", "DRUMS")], limit=1)
         existing = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": location.id,
                 "facility_profile_id": existing_facility.id,
                 "polymer_id": hdpe.id,
-                "form_id": drums.id,
+                "material_grade_id": drums.id,
             }
         )
         orch = SyncOrchestrator(self.env)
@@ -1283,12 +1290,12 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         company = self.env["res.partner"].create({"name": "Canonical Mill", "is_company": True})
         self.assertTrue(company.is_facility)
         hdpe = self.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
-        drums = self.env["plasticos.material.form"].search([("code", "=", "DRUMS")], limit=1)
+        drums = self.env["plasticos.material.grade"].search([("code", "=", "DRUMS")], limit=1)
         existing = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": company.id,
                 "polymer_id": hdpe.id,
-                "form_id": drums.id,
+                "material_grade_id": drums.id,
                 "freeform_notes": "already canonical",
             }
         )
@@ -2041,7 +2048,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
-        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
         ids = {code: profile.id for code, profile in by_polymer.items()}
         orch._upsert_lead(self.connection, dto)
         replayed = self._lead_profiles(lead)
@@ -2065,7 +2072,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(set(profiles.mapped("polymer_id.code")), {"LDPE", "HDPE"})
         self.assertEqual(len(profiles), 2)
         self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE").form_id.code, "FILM")
-        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").form_id.code, "DRUMS")
+        self.assertEqual(
+            profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").material_grade_id.code, "DRUMS"
+        )
         self.assertTrue(any("type hint is not contact-unique" in row["message"] for row in orch.error_rows))
         self.assertFalse(any("Roll" == row["message"] or "Film" == row["message"] for row in orch.error_rows))
 
@@ -2086,7 +2095,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(set(profiles.mapped("polymer_id.code")), {"HDPE", "PP"})
         self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE"))
         self.assertFalse(profiles.filtered(lambda profile: profile.form_id.code == "FILM"))
-        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").form_id.code, "DRUMS")
+        self.assertEqual(
+            profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").material_grade_id.code, "DRUMS"
+        )
         self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "PP").form_id)
 
     def test_mixed_delimiters_and_repeated_phrases_stay_unique(self):
@@ -2102,7 +2113,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(set(profiles.mapped("polymer_id.code")), {"LDPE", "HDPE", "PP"})
         self.assertEqual(len(profiles), 3)
         self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "LDPE").form_id.code, "FILM")
-        self.assertEqual(profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").form_id.code, "DRUMS")
+        self.assertEqual(
+            profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").material_grade_id.code, "DRUMS"
+        )
         self.assertFalse(profiles.filtered(lambda profile: profile.polymer_id.code == "PP").form_id)
 
     def test_unknown_comma_phrase_stays_unresolved(self):
@@ -2148,7 +2161,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
-        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
         self.assertEqual(run.contacts_failed, 0)
         ids = {code: profile.id for code, profile in by_polymer.items()}
         self._run_connection(connection, [dto])
@@ -2175,7 +2188,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
-        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
         self.assertEqual(
             self.env["plasticos.facility.profile"].search_count([("partner_id", "=", facility.id)]),
             1,
@@ -2207,7 +2220,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"LDPE", "HDPE"})
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
-        self.assertEqual(by_polymer["HDPE"].form_id.code, "DRUMS")
+        self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
 
     def test_worksheet_normalizer_rejects_bare_ldpe_and_conflicts(self):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material

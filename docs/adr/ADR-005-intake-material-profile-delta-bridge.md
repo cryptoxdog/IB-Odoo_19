@@ -43,7 +43,7 @@ All intake → profile mapping logic lives in **`plasticos_material_profile`** (
 `build_intake_to_profile_bridge_payload(intake)` returns a JSON-safe dict for normalizers/matchers:
 
 **Required profile-aligned keys:**  
-`polymer_id`, `form_id`, `color_id`, `source_type_id`, `origin_form_id`, `origin_process_type`, `material_attribute_ids`, `filler_type_id`, `filler_pct`, `quantity_per_load_lbs`, `loads_per_month`, `lat`, `lon`, `melt_flow_index`, `density`, `moisture_percent`, `contamination_percent`.
+`polymer_id`, `form_id`, `color_id`, `source_type_id`, `material_grade_id`, `origin_process_type`, `material_attribute_ids`, `filler_type_id`, `filler_pct`, `quantity_per_load_lbs`, `loads_per_month`, `lat`, `lon`, `melt_flow_index`, `density`, `moisture_percent`, `contamination_percent`.
 
 **Derived feature (payload only):**  
 `has_residue` — boolean from `compute_has_residue_feature()`, never read from `material.profile` ORM.

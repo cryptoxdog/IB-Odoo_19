@@ -5,30 +5,27 @@ Every layer that references form codes MUST import from here:
   - facility_profile.py ``form_preference_id`` (Many2one to material.form)
   - graph_service.py Cypher form-equipment gate
   - matcher.py Gate 2 form comparison
-  - tests/test_form_enum_alignment.py drift-prevention tests
+  - tests/test_material_grade_codes.py drift-prevention tests
 
 Adding or removing a form code here will cause drift-prevention tests to
-fail until every downstream consumer is updated.
+fail until every downstream consumer is updated. Material grades (drums,
+totes, pallets) are not forms; they live in ``grade_codes.py``.
 """
 
 # ── Canonical form codes (must match material_form_data.xml) ─────────
 # Sorted alphabetically for deterministic comparison. UPPERCASE convention.
 FORM_CODES: tuple[str, ...] = (
     "BALES",
-    "BOTTLES",
-    "BUCKETS",
     "CHOPPED",
     "CORRUGATED",
-    "CRATES",
     "DENSIFIED",
-    "DRUMS",
     "FILM",
     "FLAKE",
     "FLOORSWEEP",
+    "FLUFF",
     "LOGS",
     "LOOSE",
     "OTHER",
-    "PALLETS",
     "PARTS",
     "PELLETS",
     "POWDER",
@@ -37,7 +34,6 @@ FORM_CODES: tuple[str, ...] = (
     "ROLLSTOCK",
     "SHEET",
     "SHRED",
-    "TOTES",
 )
 
 # ── Equipment-gated forms ────────────────────────────────────────────

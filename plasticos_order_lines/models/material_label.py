@@ -12,6 +12,7 @@ def projected_material(line):
     """
     specs = []
     for record in (
+        line.material_grade_id,
         line.color_id,
         line.filler_type_id,
         line.form_id,

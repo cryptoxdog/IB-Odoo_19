@@ -683,6 +683,7 @@ test-module:
 # Does not stage, commit, or publish a dirty workspace.
 # Any base other than Staging is refused before push.
 # Usage: make pr
+# 2026-11-04: make pr base=<branch> stacks onto an open parent PR's branch (scripts/pr_stack_parent.sh); Production stays refused before push.
 pr:
 	@bash scripts/make_push_pipeline.sh "" "$(b)" "$(if $(base),$(base),Staging)" 1 0
 

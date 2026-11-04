@@ -3,6 +3,7 @@
 import csv
 from pathlib import Path
 
+from odoo.addons.plasticos_material_profile.grade_codes import FORMER_FORM_CODES
 from odoo.addons.plasticos_material_profile.models import material_normalizer
 from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_crm_material
 from odoo.tests import TransactionCase, tagged
@@ -26,7 +27,12 @@ class TestVanillaSoftMaterialMap(TransactionCase):
                 result = normalize_crm_material(self.env, row["source_token"])
                 self.assertFalse(result.unresolved)
                 self.assertEqual(result.polymer.code, row["polymer"])
-                self.assertEqual(result.form.code or "", row["form"])
+                if row["form"] in FORMER_FORM_CODES:
+                    # IBC totes moved to their own IBC_TOTES grade.
+                    self.assertFalse(result.form)
+                    self.assertIn(row["form"], result.material_grade.code or "")
+                else:
+                    self.assertEqual(result.form.code or "", row["form"])
                 self.assertEqual(result.grade or "", row["grade"])
                 self.assertEqual(result.source_type.code or "", row["source_type"])
                 self.assertEqual(sorted(result.attributes.mapped("code")), sorted(row["attributes"].split()))

@@ -11,7 +11,7 @@ alwaysApply: true
 make pr
 ```
 
-`make pr` checks the feature branch, runs L4, runs the local gates, pushes once, and opens or reuses the pull request into `Staging`. Merge is a separate human decision.
+`make pr` checks the feature branch, runs L4, runs the local gates, pushes once, and opens or reuses the pull request into `Staging`. `make pr base=<branch>` stacks onto an open parent pull request whose base is `Staging`. Merge is a separate human decision.
 
 Use **`make commit`** separately to stage and commit. The commit target does not launch `make pr`.
 

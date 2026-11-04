@@ -724,6 +724,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > (no L4, no PR). Supported push forms and the threat model are in `docs/reports/make-pr-validation-consolidation.md`.
 
 > **2026-11-04 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr base=<branch>` stacks onto an open feature branch whose pull request targets `Staging`.
+> Production stays refused. Merge the parent pull request into `Staging` first.
+
+> **2026-11-04 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > `make install-smoke`, and the smoke wave inside `make pr` / `make pr-check`, clone the database named in
 > `config/test_env_fixture.conf` and upgrade the PlasticOS roster on that clone. They do not drop
 > `odoo_install_smoke` or install from an empty database. The from-empty install remains

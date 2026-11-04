@@ -53,7 +53,7 @@ Do **not** add these to `plasticos.material.profile`:
 
 These exist on **both** models with the same meaning and are copied across the bridge:
 
-`polymer_id`, `form_id`, `color_id`, `source_type_id`, `origin_form_id`, `origin_process_type`, `material_attribute_ids`, `filler_type_id`, `filler_pct`, `quantity_per_load_lbs`, `loads_per_month`, `lat`, `lon`.
+`polymer_id`, `form_id`, `color_id`, `source_type_id`, `material_grade_id`, `origin_process_type`, `material_attribute_ids`, `filler_type_id`, `filler_pct`, `quantity_per_load_lbs`, `loads_per_month`, `lat`, `lon`.
 
 `source_type_id` is **required** in bridge payloads and profile alignment logic (not optional enrichment).
 

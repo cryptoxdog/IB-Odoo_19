@@ -7,7 +7,7 @@
     This is what the material IS now (not what it was, not how it's packaged)
     Examples: "LDPE Film" or "HDPE Regrind" or "PP Pellets"
 
-    Origin Forms (Drums, Buckets, Bottles) are separate - use origin_form_id
+    Material grades (Drums, Buckets, Bottles, Pallets, Crates, Totes) are separate - use material_grade_id
     Packaging (Bales, Gaylords) are separate - use packaging_type_id
     -->
     <record id="form_bale" model="plasticos.material.form">
@@ -64,6 +64,12 @@
       <field name="description">Shredded material.</field>
       <field name="sequence">80</field>
     </record>
+    <record id="form_fluff" model="plasticos.material.form">
+      <field name="name">Fluff</field>
+      <field name="code">FLUFF</field>
+      <field name="description">Light, low-bulk-density granulated or shredded material, typically from film or fiber.</field>
+      <field name="sequence">85</field>
+    </record>
     <record id="form_densified" model="plasticos.material.form">
       <field name="name">Densified</field>
       <field name="code">DENSIFIED</field>
@@ -100,24 +106,6 @@
       <field name="description">Factory floor sweepings, mixed contamination.</field>
       <field name="sequence">140</field>
     </record>
-    <record id="form_drums" model="plasticos.material.form">
-      <field name="name">Drums</field>
-      <field name="code">DRUMS</field>
-      <field name="description">Plastic drums and barrels (55-gallon, etc.). Use as Origin Form.</field>
-      <field name="sequence">160</field>
-    </record>
-    <record id="form_buckets" model="plasticos.material.form">
-      <field name="name">Buckets</field>
-      <field name="code">BUCKETS</field>
-      <field name="description">Plastic buckets and pails (5-gallon, etc.). Use as Origin Form.</field>
-      <field name="sequence">170</field>
-    </record>
-    <record id="form_bottles" model="plasticos.material.form">
-      <field name="name">Bottles</field>
-      <field name="code">BOTTLES</field>
-      <field name="description">Plastic bottles (milk jugs, detergent, water, etc.). Use as Origin Form.</field>
-      <field name="sequence">180</field>
-    </record>
     <record id="form_other" model="plasticos.material.form">
       <field name="name">Other</field>
       <field name="code">OTHER</field>
@@ -129,24 +117,6 @@
       <field name="code">LOOSE</field>
       <field name="description">Loose bulk material (unbaled).</field>
       <field name="sequence">155</field>
-    </record>
-    <record id="form_pallets" model="plasticos.material.form">
-      <field name="name">Pallets</field>
-      <field name="code">PALLETS</field>
-      <field name="description">Plastic pallets or pallet parts.</field>
-      <field name="sequence">165</field>
-    </record>
-    <record id="form_crates" model="plasticos.material.form">
-      <field name="name">Crates</field>
-      <field name="code">CRATES</field>
-      <field name="description">Injection molded crates (dairy, produce, etc.).</field>
-      <field name="sequence">175</field>
-    </record>
-    <record id="form_totes" model="plasticos.material.form">
-      <field name="name">Totes</field>
-      <field name="code">TOTES</field>
-      <field name="description">Reusable plastic totes, bins, and bulk containers.</field>
-      <field name="sequence">176</field>
     </record>
     <record id="form_corrugated" model="plasticos.material.form">
       <field name="name">Corrugated</field>

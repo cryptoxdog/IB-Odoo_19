@@ -10,6 +10,7 @@
     <field name="arch" type="xml">
       <list editable="bottom">
         <field name="polymer_id"/>
+        <field name="material_grade_id" optional="show"/>
         <field name="form_id"/>
         <field name="color_id"/>
         <field name="source_type_id"/>
@@ -89,6 +90,7 @@
                   <field name="source_type_id" string="Source Type"/>
                   <field name="polymer_id"/>
                   <field name="sub_grade" invisible="1"/>
+                  <field name="material_grade_id"/>
                   <field name="form_id"/>
                   <field name="color_id"/>
                   <!-- color_flexibility moved to Buyer Fields tab -->
@@ -116,7 +118,6 @@
                   <field name="max_lot_size_lbs" invisible="1"/>
                   <field name="monthly_volume_lbs"/>
                   <field name="frequency" string="Load Frequency"/>
-                  <field name="origin_form_id" string="Origin Form"/>
                 </group>
                 <group string="Geography">
                   <field name="lat"/>

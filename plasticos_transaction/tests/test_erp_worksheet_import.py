@@ -1488,7 +1488,7 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(drums.product_id.default_code, "GRADE-SHARED")
         self.assertNotEqual(drums.product_id, grade_a.product_id)
         self.assertEqual(drums.product_id.product_tmpl_id.polymer_id.code, "HDPE")
-        self.assertEqual(drums.form_id.code, "DRUMS")
+        self.assertEqual(drums.material_grade_id.code, "DRUMS")
         self.assertFalse(drums.material_attribute_ids)
         self.assertFalse(unknown.product_id.product_tmpl_id.polymer_id)
         self.assertEqual(unknown.product_id.default_code, "GRADE-UNKNOWN")
