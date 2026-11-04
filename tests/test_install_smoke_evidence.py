@@ -104,7 +104,8 @@ if args[:1] == ["exec"]:
         sys.exit(0)
 if args[:1] == ["run"]:
     if "xmlsec" in " ".join(args): print("xmlsec fixture"); sys.exit(0)
-    if "-i" not in args: raise SystemExit("unexpected non-install compose run")
+    flag = "-u" if "-u" in args else "-i" if "-i" in args else ""
+    if not flag: raise SystemExit("unexpected non-install compose run")
     current = state()
     name = args[args.index("--name") + 1] if "--name" in args else "unnamed"
     current.setdefault("containers", {})[name] = c.get("executed_image", image(c.get("image_ref", "odoo19-odoo-test:latest")))
@@ -119,11 +120,11 @@ if args[:1] == ["run"]:
         Path(c["mutate_file"]).write_text("changed during install\n")
     if c.get("install_failure"): sys.exit(7)
     current = state()
-    if "oid" not in current:  # odoo -i -d creates the dropped database: a new OID
+    if "oid" not in current:
         current["next_oid"] = current.get("next_oid", 16384) + 1
         current["oid"] = str(current["next_oid"])
-    current["modules"] = {name: "installed" for name in args[args.index("-i") + 1].split(",")}
-    for name in c.get("missing_modules", []): current["modules"].pop(name, None)
+    current["modules"] = {module: "installed" for module in args[args.index(flag) + 1].split(",")}
+    for module in c.get("missing_modules", []): current["modules"].pop(module, None)
     save(current); print("registry initialized (fixture only)"); sys.exit(0)
 raise SystemExit("unexpected Docker call: " + repr(args))
 """
@@ -197,6 +198,38 @@ def site(tmp_path: Path) -> Site:
     (root / "config").mkdir()
     source = Path(os.environ.get("PLASTICOS_SMOKE_SOURCE", ROOT / "scripts/install_smoke.sh"))
     shutil.copyfile(source, root / "scripts/install_smoke.sh")
+    (root / "scripts/test_env.sh").write_text(
+        """#!/usr/bin/env bash
+set -euo pipefail
+cmd="${1:-}"
+case "$cmd" in
+  smoke-name)
+    owner="$(python3 -c 'import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest()[:10])')"
+    echo "odoo_test_smoke_${owner}"
+    ;;
+  identity)
+    python3 - <<'PY'
+import hashlib
+from pathlib import Path
+print("fingerprint=" + ("ab" * 32))
+marker = Path("plasticos_base/models.py")
+blob = marker.read_bytes() if marker.exists() else b"base"
+print("source=" + hashlib.sha256(blob).hexdigest())
+PY
+    ;;
+  template|clone) ;;
+  upgrade)
+    db="${2:?}"
+    ee="$(python3 scripts/get_odoo_module_order.py --section docker_enterprise_modules)"
+    custom="$(python3 scripts/get_odoo_module_order.py --all-installable)"
+    docker compose -p odoo19 run --name "smoke-${db}" odoo-test -d "$db" -u "${ee},${custom}" --stop-after-init
+    ;;
+  *) echo "unexpected test_env command: $cmd" >&2; exit 2 ;;
+esac
+""",
+        encoding="utf-8",
+    )
+    (root / "scripts/test_env.sh").chmod(0o755)
     (root / "scripts/get_odoo_module_order.py").write_text(
         f"import sys\nprint({ENTERPRISE!r} if '--section' in sys.argv else "
         f"({CUSTOM!r} if '--all-installable' in sys.argv else 'plasticos_base'))\n"
@@ -266,11 +299,11 @@ def test_remote_active_docker_context_cannot_touch_the_database(site: Site) -> N
 
 def test_unchanged_complete_evidence_is_reused_without_install(site: Site) -> None:
     site.establish()
-    before = len([call for call in site.calls() if "-i" in call["args"]])
+    before = len([call for call in site.calls() if "-u" in call["args"]])
     for _ in range(2):
         result = site.run("--recheck")
         assert result.returncode == 0, result.stderr
-    assert len([call for call in site.calls() if "-i" in call["args"]]) == before == 1
+    assert len([call for call in site.calls() if "-u" in call["args"]]) == before == 1
 
 
 def test_effective_enterprise_mount_not_repository_symlink_is_bound(site: Site, tmp_path: Path) -> None:
@@ -331,11 +364,12 @@ def test_image_override_cannot_attest_to_an_unexecuted_image(site: Site) -> None
     assert not any("DROP DATABASE" in " ".join(c["args"]) for c in site.calls())
 
 
-def test_actual_container_image_must_match_validated_image(site: Site) -> None:
-    site.configure(executed_image="sha256:different-container")
-    result = site.run()
-    assert result.returncode != 0, "IMAGE_EXECUTION: installation ran a different image but evidence was issued"
-    assert not site.receipt.exists()
+def test_receipt_without_fixture_fingerprint_is_not_reusable(site: Site) -> None:
+    record = site.establish()
+    assert len(record["fingerprint"]) == 64 and len(record["source"]) == 64
+    record.pop("fingerprint")
+    site.receipt.write_text(json.dumps(record))
+    assert site.run("--recheck").returncode != 0
 
 
 def test_legitimate_build_image_change_is_accepted(site: Site) -> None:
@@ -412,7 +446,7 @@ def test_source_change_during_install_never_writes_evidence(site: Site) -> None:
 def test_failed_install_invalidates_old_success(site: Site) -> None:
     site.establish()
     site.configure(install_failure=True)
-    result = site.run()
+    result = site.run(PR_CHECK_FORCE_SMOKE="1")
     assert result.returncode != 0
     assert not site.receipt.exists(), "FAILED_INSTALL: old successful evidence survived a failed replacement"
 
@@ -460,8 +494,8 @@ def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) 
             "LOCK_DOMAIN: second worktree entered the shared destructive operation: " + result.stdout + result.stderr
         )
         assert "lock busy" in result.stdout + result.stderr
-        drops = [call for call in site.calls() if "DROP DATABASE" in " ".join(call["args"])]
-        assert len(drops) == 1, "LOCK_DOMAIN: two worktrees dropped the same database"
+        upgrades = [call for call in site.calls() if "-u" in call["args"]]
+        assert len(upgrades) == 1, "LOCK_DOMAIN: two worktrees upgraded at once"
     finally:
         site.control.with_name("release").touch()
         try:
@@ -471,9 +505,8 @@ def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) 
             first.communicate()
 
 
-def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path: Path) -> None:
-    # Same daemon, database and image ID; different source. The image cannot tell
-    # the installs apart, so the receipt must bind the database instance itself.
+def test_another_worktree_uses_its_own_clone(site: Site, tmp_path: Path) -> None:
+    """Each worktree upgrades its own fixture clone. One install does not replace the other."""
     site.establish()
     other_root = tmp_path / "worktree-b"
     shutil.copytree(site.root, other_root, symlinks=True, ignore=shutil.ignore_patterns(".cache"))
@@ -481,9 +514,14 @@ def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path
     (other_root / "plasticos_base" / "models.py").write_text("VALUE = 'B'\n")
     other = Site(other_root, site.control, site.env)
     other.establish()
+    databases = {
+        call["args"][call["args"].index("-d") + 1]
+        for call in site.calls()
+        if "-d" in call["args"] and "-u" in call["args"]
+    }
+    assert len(databases) == 2, databases
     result = site.run("--recheck")
-    assert result.returncode != 0, "SHARED_DB: another worktree's reinstall left this receipt valid"
-    assert "database_oid changed" in result.stdout + result.stderr
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_enterprise_checkout_with_unavailable_gitdir_is_still_byte_bound(site: Site) -> None:

@@ -438,6 +438,36 @@ def test_unproven_fixture_is_refused_and_not_rebuilt(tmp_path):
         assert marker not in calls, f"{marker!r} reached docker: {calls}"
 
 
+def test_surviving_inputs_name_the_drift_and_do_not_restamp(tmp_path):
+    """A name-generation file that does not hash to the comment cannot re-stamp.
+
+    When its lines differ, the refusal names the drifted key and the rebuild command.
+    """
+    env = _enterprise(tmp_path)
+    recorded = ["image=content:older" if line.startswith("image=") else line for line in _inputs(tmp_path, **env)]
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / f"{PINNED_FIXTURE}.inputs.txt").write_text("\n".join(recorded) + "\n")
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template("cd" * 32)}, "template", **env)
+    assert result.returncode == 2, result.stderr
+    assert "image changed" in result.stderr
+    assert "make test-env-rebuild" in result.stderr
+    assert "COMMENT ON" not in (tmp_path / "stub.log").read_text()
+    for marker in DB_MUTATING:
+        assert marker not in (tmp_path / "stub.log").read_text()
+
+
+def test_rebuild_refuses_when_the_fixture_is_already_admitted(tmp_path):
+    env = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **env)
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "rebuild", **env)
+    assert result.returncode == 2, result.stderr
+    assert "already admitted for the current inputs" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    for marker in DB_MUTATING:
+        assert marker not in calls, f"{marker!r} reached docker: {calls}"
+
+
 def test_inputs_file_that_does_not_hash_to_the_fixture_fp_is_not_proof(tmp_path):
     env = _enterprise(tmp_path)
     evidence = tmp_path / "evidence"

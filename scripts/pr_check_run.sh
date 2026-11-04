@@ -15,20 +15,20 @@
 # compares the branch with origin/$PR_BASE (committed range, working tree,
 # untracked files) and decides: the static audits run when any non-documentation
 # path changed; pytest runs only the test modules touched by, or reading, the
-# changed paths (the whole suite when the harness changed). The full Docker
-# install is optional. INSTALL_SMOKE_GATE=1 restores it for an addon load
-# input or an installer input. Every doubt keeps the audit and pytest gate.
-# GitHub ci.yml still runs everything on the PR.
+# changed paths (the whole suite when the harness changed). Docker smoke runs
+# when an addon load input or an installer input changed. It clones the pinned
+# fixture and upgrades the roster; it does not install from an empty database.
+# Every doubt keeps the audit and pytest gate. GitHub ci.yml still runs
+# everything on the PR.
 #
 # Env:
 #   PR_BASE=<branch>          publication base (default: Staging)
 #   PR_CHECK_SCOPE=full       run the whole gate regardless of what changed
 #   PR_CHECK_JOBS=N           parallel make jobs (default: 4)
 #   PR_CHECK_SKIP_REMOTE=1    skip GitHub/Sonar/review sync
-#   INSTALL_SMOKE_GATE=1      restore the full install as a gate (default: off)
 #   PR_CHECK_SKIP_SMOKE=1     skip Docker install-smoke
-#   PR_CHECK_FORCE_SMOKE=1    ignore install-smoke evidence and install again
-#   PR_CHECK_SMOKE_CACHE=0    disable evidence reuse (always install when not skipped)
+#   PR_CHECK_FORCE_SMOKE=1    ignore install-smoke evidence and upgrade again
+#   PR_CHECK_SMOKE_CACHE=0    disable evidence reuse (always upgrade when not skipped)
 #
 # Usage:
 #   scripts/pr_check_run.sh fast
@@ -71,11 +71,6 @@ maybe_install_smoke() {
     log "→ install-smoke skipped"
     return 0
   fi
-  if [ "${INSTALL_SMOKE_GATE:-0}" != "1" ]; then
-    log "→ full install-smoke is optional (INSTALL_SMOKE_GATE=1 restores the gate)"
-    return 0
-  fi
-
   local use_cache="${PR_CHECK_SMOKE_CACHE:-1}"
   local force="${PR_CHECK_FORCE_SMOKE:-0}"
   local rc
@@ -93,7 +88,7 @@ maybe_install_smoke() {
       log "→ install-smoke recheck refused"
       return 2
     fi
-    log "→ install-smoke evidence miss; running a fresh install"
+    log "→ install-smoke evidence miss; upgrading the fixture clone"
   fi
 
   "${MAKE}" --no-print-directory install-smoke

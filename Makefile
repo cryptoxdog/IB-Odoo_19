@@ -1130,3 +1130,12 @@ pr-nosmoke:
 test-scoped:
 	@echo "→ Pure-Python tests reached by the changed files: $(TEST_PATHS)"
 	python3 -m pytest $(TEST_PATHS) -q
+
+# 2026-11-04 — recover the pinned Enterprise fixture when its image, Postgres,
+# module roster, configuration, or Enterprise checkout no longer matches.
+# Refuses when the template is already admitted for the current inputs.
+# Drops only that template and its current build database, then admits it again.
+# Do not set TEST_ENV_ALLOW_NEW_TEMPLATE by hand for a source edit.
+.PHONY: test-env-rebuild
+test-env-rebuild:
+	bash scripts/test_env.sh rebuild

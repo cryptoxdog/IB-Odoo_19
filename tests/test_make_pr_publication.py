@@ -767,13 +767,12 @@ def _push(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.Co
     )
 
 
-def test_full_install_is_optional_and_resolve_still_runs(tmp_path: Path) -> None:
+def test_scoped_smoke_recheck_runs_without_a_gate_switch(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     proc = _push(repo, tmp_path, "fix/example")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     text = _seq(seq)
-    assert text.index("smoke --resolve") < text.index("make ") < text.index("\npush\n")
-    assert "smoke --recheck" not in text
+    assert text.index("smoke --resolve") < text.index("make ") < text.index("smoke --recheck") < text.index("\npush\n")
 
 
 def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:

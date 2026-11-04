@@ -150,9 +150,6 @@ fi
 case "${PR_CHECK_FORCE_SMOKE:-0}" in
   1|true|True|yes) refuse "PR_CHECK_FORCE_SMOKE is set" ;;
 esac
-# Default off. make pr-check reads the same value and skips the fresh install.
-export INSTALL_SMOKE_GATE="${INSTALL_SMOKE_GATE:-0}"
-
 require_pre_push_enforcement
 
 if ! command -v gitleaks >/dev/null 2>&1; then
@@ -184,9 +181,9 @@ fi
 if [[ "$(git rev-parse HEAD)" != "${LOCAL_SHA}" ]] || [[ -n "$(git status --porcelain)" ]]; then
   refuse "HEAD or the worktree changed during validation"
 fi
-# With INSTALL_SMOKE_GATE=1, make pr-check's receipt decides the recheck.
-# A change that reaches no addon or installer input needs no recheck. No
-# receipt (the bypass branch above, or a failed scope) means recheck.
+# make pr-check's receipt decides the recheck. A change that reaches no addon
+# or installer input needs no recheck. No receipt (the bypass branch above, or
+# a failed scope) means recheck.
 smoke_needed() {
   python3 - .cache/pr-check/scope.json <<'PY'
 import json
@@ -198,7 +195,7 @@ except (OSError, ValueError, AttributeError):
 sys.exit(0 if needed else 1)
 PY
 }
-if [[ "${INSTALL_SMOKE_GATE}" == "1" ]] && [[ "${SMOKE_BYPASS}" != "1" ]] && smoke_needed && ! bash scripts/install_smoke.sh --recheck; then
+if [[ "${SMOKE_BYPASS}" != "1" ]] && smoke_needed && ! bash scripts/install_smoke.sh --recheck; then
   refuse "install-smoke --recheck rejected the live evidence"
 fi
 
