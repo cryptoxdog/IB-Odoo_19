@@ -37,11 +37,15 @@ from pathlib import Path
 
 try:
     from defusedxml import ElementTree as ET
+
+    DEFUSED_XML = True
 except ImportError:
-    # Fallback: this script parses only the repository's own tracked seed XML
-    # (plasticos_material_profile/data/*.xml), never untrusted input. Python 3.8+
-    # stdlib etree refuses external-entity declarations by default.
+    # Fallback for the repository's own tracked seed XML only
+    # (plasticos_material_profile/data/*.xml). The --workbook XLSX is outside input,
+    # so load_workbook() refuses to parse it without defusedxml.
     import xml.etree.ElementTree as ET  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+
+    DEFUSED_XML = False
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "plasticos_material_profile"
@@ -347,17 +351,20 @@ def load_workbook(path: Path | None) -> dict[str, dict[str, str]]:
     """POLYMER MAPPING rows of the October 14 decision workbook, keyed by match key."""
     if path is None:
         return {}
-    archive = zipfile.ZipFile(path)
-    shared = []
-    if "xl/sharedStrings.xml" in archive.namelist():
-        root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
-        shared = ["".join(t.text or "" for t in si.iter(XLSX + "t")) for si in root.findall(XLSX + "si")]
-    book = ET.fromstring(archive.read("xl/workbook.xml"))
-    rels = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
-    targets = {rel.get("Id"): rel.get("Target").lstrip("/").replace("xl/", "") for rel in rels}
-    sheet = next(item for item in book.find(XLSX + "sheets") if item.get("name") == "POLYMER MAPPING")
+    if not DEFUSED_XML:
+        raise SystemExit("--workbook needs defusedxml to parse XLSX XML safely: pip install defusedxml")
+    with zipfile.ZipFile(path) as archive:
+        shared = []
+        if "xl/sharedStrings.xml" in archive.namelist():
+            root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+            shared = ["".join(t.text or "" for t in si.iter(XLSX + "t")) for si in root.findall(XLSX + "si")]
+        book = ET.fromstring(archive.read("xl/workbook.xml"))
+        rels = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+        targets = {rel.get("Id"): rel.get("Target").lstrip("/").replace("xl/", "") for rel in rels}
+        sheet = next(item for item in book.find(XLSX + "sheets") if item.get("name") == "POLYMER MAPPING")
+        sheet_xml = ET.fromstring(archive.read("xl/" + targets[sheet.get(XLSX_REL)]))
     rows = []
-    for row in ET.fromstring(archive.read("xl/" + targets[sheet.get(XLSX_REL)])).iter(XLSX + "row"):
+    for row in sheet_xml.iter(XLSX + "row"):
         values = {}
         for cell in row.findall(XLSX + "c"):
             column = re.match(r"[A-Z]+", cell.get("r")).group()

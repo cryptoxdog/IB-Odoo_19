@@ -346,7 +346,7 @@ fi
 #           transaction_import (legacy CSV import uses Char fields for historical data),
 #           build_material_mapping (writes material_mapping.csv rows, no ORM)
 echo -n "Checking string writes to Many2one fields... "
-MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' | grep -v 'ai_normalizer' | grep -v 'build_material_mapping' || true)
+MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' | grep -v 'ai_normalizer' | grep -v '^scripts/build_material_mapping\.py:' || true)
 if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
