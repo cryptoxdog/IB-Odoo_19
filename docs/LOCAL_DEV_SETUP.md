@@ -121,6 +121,22 @@ make pr-check      # full local pre-push gate (when ready to push) — GitHub CI
 
 Pyright/Pylance is **editor-only** (`typeCheckingMode = basic` in `pyproject.toml`). It is not run in CI. Mypy is **advisory** (CI `run_advisory`, `make mypy-check`, `pre-commit run mypy --hook-stage manual`) and never blocks a commit, push, or merge.
 
+### Git hooks
+
+Install all three hook types once per clone. `make pr` refuses to publish without the pre-push hook.
+
+```bash
+pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+```
+
+The pre-push stage runs file hygiene (`check-xml`, `check-yaml`, end-of-file, trailing whitespace,
+large files, merge markers), two contract tests, the full `gitleaks` scan, and `pr-validate`
+(`make pr-check`). When `make pr` publishes, it has already run that gate for the exact commit, so the
+hook skips the duplicate work. A direct `git push` runs the full gate. It must push the checked-out,
+clean `HEAD`, and `make pr-check` calls GitHub for remote feedback, so `gh` must be authenticated.
+Direct pushes are validated but are not publication: `make pr` remains the only way to open or update
+a PR into `Staging`.
+
 ---
 
 ## 6. Odoo runtime (optional — not required for editor autocomplete)

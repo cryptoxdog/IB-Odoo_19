@@ -64,8 +64,10 @@ if "config" in args:
     sys.exit(0)
 if "pg_isready" in args:
     sys.exit(0)
-if any("SELECT state FROM ir_module_module" in arg for arg in args):
-    print("installed")
+if any("SELECT name || '=' || state FROM ir_module_module" in arg for arg in args):
+    # The installer reads every module state in one query; the fixture's module
+    # order stub names exactly one custom module and no Enterprise modules.
+    print("plasticos_base=installed")
     sys.exit(0)
 if "xmlsec" in " ".join(args):
     print("xmlsec stub")

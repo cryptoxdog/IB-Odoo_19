@@ -102,7 +102,7 @@ class PlasticosMaterialProfile(models.Model):
 - `_name` MUST be a string literal — NEVER `_name = SOME_CONSTANT`
 - Every `fields.Many2one` MUST have `ondelete=` parameter
 - Cross-addon imports MUST be inside functions (lazy loading), never at module top level
-- Run `pre-commit run --all-files` before committing (runs all 36 hooks)
+- Run `pre-commit run --all-files` before committing (runs every commit-stage hook; 39 hooks are configured, 10 of them at pre-push — see the AGENTS.md 2026-11-03 correction)
 - Run `ruff check --fix . && ruff format .` before committing (line length = **120**, not 100)
 - Run `python3 scripts/check_module_wiring.py` before committing
 - Follow the **CI Compliance Checklist** in `AGENTS.md` — CI will reject PRs that skip these steps
@@ -160,7 +160,7 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **Structured Reasoning** → `@.cursor-commands/skills/l9-structured-reasoning/SKILL.md`
 - **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)
 - **System Invariants** → `INVARIANTS.md` (18 invariants with CI enforcement map)
-- **ADRs (canonical)** → `docs/adr/README.md` (index); Gate hub → `docs/adr/ADR-002-gate-hub-phased-autonomy.md` + `docs/adr/ADR-003-single-external-intelligence-authority.md`; convergence → ADR-009–019; phases → ADR-002 §3, ADR-016, ADR-018. `docs/roadmap/` is empty. `memory-bank/` is retired. Operational state is `workflow_state.md`. Code debt is `docs/campaigns/odoo_tech_debt`.
+- **ADRs (canonical)** → `docs/adr/README.md` (index); Gate hub → `docs/adr/ADR-002-gate-hub-phased-autonomy.md` + `docs/adr/ADR-003-single-external-intelligence-authority.md`; convergence → ADR-009–019; phases → ADR-002 §3, ADR-016, ADR-018. `docs/roadmap/` is empty. `memory-bank/` is retired. Operational state is `workflow_state.md`. `docs/campaigns/odoo_tech_debt` was retired on 2026-11-03 (PR #355); no repository debt tracker replaces it.
 - **Intake vs material profile** → `docs/adr/ADR-004-intake-vs-material-profile-domain-split.md`, `docs/adr/ADR-005-intake-material-profile-delta-bridge.md`
 
 <!-- BEGIN L9 FORMATTER OWNERSHIP (generated — do not edit) -->

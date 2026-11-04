@@ -8,6 +8,16 @@ exclude: |
     odoo-enterprise/.*
   )$
 
+# Stage ownership (2026-11-03). A hook with no `stages` runs at commit only.
+# The pre-push stage is deliberately small: file hygiene that nothing else
+# enforces (check-xml covers XML outside plasticos_*, which make audit does
+# not), two contract tests, the full gitleaks scan, and pr-validate, which runs
+# make pr-check for a direct push. The 23 whole-tree Odoo scanners stay at
+# commit time and run again inside make pr-check (make audit) and in ci.yml;
+# they no longer run a third time at push. make pr owns an unconditional gate
+# of its own and binds this stage to it (scripts/pre_push_validate.sh).
+default_stages: [pre-commit]
+
 repos:
   # Python linting with ruff (fast, replaces flake8/isort/pyupgrade)
   # IMPORTANT: Keep this rev, ci.yml (ruff==0.16.0), and pyproject.toml
@@ -28,24 +38,30 @@ repos:
     hooks:
       - id: check-xml
         exclude: ^docs/
+        stages: [pre-commit, pre-push]
 
       - id: check-yaml
         args: [--allow-multiple-documents]
         exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$|^docs/'
+        stages: [pre-commit, pre-push]
 
       - id: end-of-file-fixer
         exclude: ^docs/|^plasticos_partner_import/erp_extracted_data/bulk/
+        stages: [pre-commit, pre-push]
 
       - id: trailing-whitespace
         exclude: ^docs/|^plasticos_partner_import/erp_extracted_data/bulk/
+        stages: [pre-commit, pre-push]
 
       - id: check-added-large-files
         args: ['--maxkb=1000']
         # ERP extract grids are multi-MB fixtures (largest ~7MB).
         # The historical VanillaSoft contact snapshot is an operator input tracked under campaigns.
         exclude: ^plasticos_partner_import/erp_extracted_data/bulk/|^docs/campaigns/.*/PRIVATE_INPUTS/
+        stages: [pre-commit, pre-push]
 
       - id: check-merge-conflict
+        stages: [pre-commit, pre-push]
 
   # Commit message validation (conventional commits: feat:, fix:, docs:, etc.)
   - repo: https://github.com/compilerla/conventional-pre-commit
@@ -74,28 +90,28 @@ repos:
         entry: ./scripts/check_odoo_patterns.sh
         language: script
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: no-local-intelligence
         name: No local-intelligence authority drift (M8 — blocking)
         entry: python3 ci/check_no_local_intelligence.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: module-wiring
         name: Module dependency wiring check
         entry: python3 scripts/check_module_wiring.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: cron-invariants
         name: Cron invariant check
         entry: python3 tools/cron_invariant_check.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: banned-identifier
         name: BAN001 legacy vendor identifier prohibition
@@ -109,105 +125,105 @@ repos:
         entry: python3 ci/check_circular_deps.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: orphan-model-refs
         name: Orphan model reference check
         entry: python3 ci/check_orphan_model_refs.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: package-init
         name: Package __init__.py check
         entry: python3 ci/check_package_init.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: xpath-stability
         name: XPath anchor stability check
         entry: python3 ci/check_xpath_stability.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: odoo19-hooks
         name: Odoo 19 hook pattern check
         entry: python3 ci/check_odoo19_hooks.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: odoo19-xml
         name: Odoo 19 XML pattern check
         entry: python3 ci/check_odoo19_xml.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: field-integrity
         name: Field integrity check
         entry: python3 ci/check_field_integrity.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: model-inheritance
         name: Model inheritance pattern check
         entry: python3 ci/check_model_inheritance.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: orm-integrity
         name: ORM integrity check
         entry: python3 ci/check_orm_integrity.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: constraint-patterns
         name: Constraint pattern check
         entry: python3 ci/check_constraint_patterns.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: disabled-actions
         name: Disabled action reference check
         entry: python3 ci/check_disabled_actions.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: odoo-antipatterns
         name: Odoo anti-pattern check (Python idioms)
         entry: python3 ci/check_odoo_antipatterns.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: automation-field-refs
         name: Automation field reference check
         entry: python3 ci/check_automation_field_refs.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: state-guard-bypass
         name: State guard bypass check
         entry: python3 ci/check_state_guard_bypass.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: acl-completeness
         name: ACL completeness check
         entry: python3 ci/check_acl_completeness.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: phantom-enum-values
         name: Phantom enum value check
@@ -228,28 +244,28 @@ repos:
         entry: python3 ci/check_pipeline_v2_guard.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: dev-tools-fence
         name: plasticos_dev_tools production fence
         entry: python3 ci/check_dev_tools_fence.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: critical-manifest
         name: Critical manifest check
         entry: python3 ci/check_critical_manifest.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: enhanced-audit
         name: Enhanced XML ID and dependency audit
         entry: python3 ci/enhanced_audit.py
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
   # Secret detection — uses locally installed gitleaks (brew install gitleaks)
   # bypasses pre-commit managed download due to macOS SSL cert issues
@@ -264,10 +280,25 @@ repos:
 
       - id: gitleaks-push
         name: gitleaks (full repo scan on push)
-        entry: gitleaks detect --config .gitleaks.toml --redact --exit-code 2
+        # Full scan (`gitleaks detect --config .gitleaks.toml --redact --exit-code 2`)
+        # unless make pr already ran it for exactly this push.
+        entry: bash scripts/pre_push_validate.sh gitleaks
         language: system
         stages: [pre-push]
         pass_filenames: false
+        fail_fast: true
+
+      # Last pre-push hook: make pr-check for a direct push. make pr runs its own
+      # gate before every push attempt and binds this hook to it, so the same
+      # candidate is not validated twice (scripts/pre_push_validate.sh).
+      - id: pr-validate
+        name: make pr-check (direct push gate)
+        entry: bash scripts/pre_push_validate.sh gate
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
+        require_serial: true
 
   # Python type checking — ADVISORY, same as ci.yml (run_advisory) and
   # `make mypy-check`. Manual stage only, so ordinary commit/push never blocks on

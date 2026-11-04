@@ -691,9 +691,34 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > **2026-10-23 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > these Agent Skills rows are retired. Cursor-Governance archived the packs out of live `skills/` discovery: `l9-governance-wiring`, `l9-harvest-pipeline`, `l9-inspect`, `l9-plan`, `l9-pr-analysis`, `l9-update-command`, and `l9-wire-skill-into-repo`. The tracked projections `.claude/skills/<name>`, their `.l9-managed-skills.json` entries, and their `.claude/README.md` rows were removed, as with the 2026-10-21 `l9-gmp-protocol` removal. Replacements: `l9-governance-wiring` → `l9-wire-into-repo` and `l9-governance-symlinks`; `l9-harvest-pipeline` → `/harvest` and `/use-harvest`; `l9-inspect` → `/inspect`; `l9-plan` → `l9-plan-simple` for ordinary plans (program-execution planning has no live owner); `l9-pr-analysis` → `l9-pr-remediation`; `l9-update-command` → `l9-dag-authoring`; `l9-wire-skill-into-repo` → `l9-wire-into-repo`. Do not re-add the skill symlinks.
 
+> **2026-11-03 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-10-21 sentence "Code debt stays in `docs/campaigns/odoo_tech_debt`" is superseded. PR #355 retired
+> that tracker (`00_README.md`, `OPEN_REGISTER.json`, `OPEN_REGISTER.md`, `_build_register.py`), and no
+> repository debt tracker replaces it. `workflow_state.md` remains the operational state of open campaigns.
+> `docs/erp_import_mapping.md` stays: it is the ERP import mapping authority cited by
+> `plasticos_partner_import/erp/mapping_status.py`, ADR-022 and the source-layer tests.
+
 > **2026-10-30 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > the Never line "Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`" is superseded
 > by operator decision 2026-10-30. A material profile belongs to a partner. No facility profile is required.
 > The VanillaSoft import puts an approved contact's materials on its resolved facility partner. When that site
 > cannot be resolved, they go on the matched ERP contact person. A facility profile is used only when exactly one
 > already exists for that partner.
+
+> **2026-11-03 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the "36 hooks" counts above (Commands block and the Pre-commit Hooks table heading) are superseded:
+> `.pre-commit-config.yaml` declares **39** hooks and `default_stages: [pre-commit]`. The pre-push stage is
+> 10 hooks: `check-xml`, `check-yaml`, `end-of-file-fixer`, `trailing-whitespace`, `check-added-large-files`,
+> `check-merge-conflict`, `phantom-enum-values`, `manifest-contract`, `gitleaks-push`, and `pr-validate`.
+> The 23 whole-tree Odoo scanners in the table are commit-stage hooks only. All 23 still run inside `make pr-check`
+> (`make audit`, including `scripts/run_audit_integrity.sh`), but no longer a second time at push. 20 of them also
+> run in `ci.yml` (`cron-invariants` through `tests/test_cron_invariants.py`); `constraint-patterns`,
+> `disabled-actions`, and `automation-field-refs` do not, so `ci.yml` does not re-check those three.
+> `make pr` (`scripts/git_push_with_pr.sh`)
+> owns an unconditional gate on every attempt (gitleaks, smoke resolve, `make pr-check`, smoke recheck), then a
+> second L4 check immediately before `git push`. Its push alone carries a binding that `scripts/pre_push_validate.sh`
+> honours only for that exact SHA, clean `HEAD`, `origin`, and target branch, and only when `L9_PUBLISH_PID` names a
+> live ancestor whose argv[0] or argv[1] is `scripts/git_push_with_pr.sh` (unreadable ancestry fails closed), so
+> each attempt validates once. Every other push, including a direct `git push` that sets the binding variables
+> itself, runs the full gate in the hook. A direct `git push` is validated but is not publication
+> (no L4, no PR). Supported push forms and the threat model are in `docs/reports/make-pr-validation-consolidation.md`.
