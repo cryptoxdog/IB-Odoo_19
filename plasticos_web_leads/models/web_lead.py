@@ -1107,10 +1107,12 @@ class PlasticosWebLead(models.Model):
 
         Polymer = self.env["plasticos.polymer"]
         Form = self.env["plasticos.material.form"]
+        Grade = self.env["plasticos.material.grade"]
         SourceType = self.env["plasticos.source.type"]
 
         polymer_rec = _lookup(Polymer, polymer_code, "other")
         form_rec = _lookup(Form, form_code, "other")
+        grade_rec = _lookup(Grade, form_code, None)
         source_type_rec = _lookup(SourceType, source_type_code, "post_consumer")
 
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
@@ -1120,6 +1122,7 @@ class PlasticosWebLead(models.Model):
             "source_lead_id": self.id,
             "polymer_id": polymer_rec.id if polymer_rec else False,
             "form_id": form_rec.id if form_rec else False,
+            "material_grade_id": grade_rec.id if grade_rec else False,
             "source_type_id": source_type_rec.id if source_type_rec else False,
             "lead_source_id": web_lead_source.id if web_lead_source else False,
             "quantity_per_load_lbs": qty_per_load,

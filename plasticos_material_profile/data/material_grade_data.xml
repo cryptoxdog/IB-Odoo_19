@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+  <!--
+  Material Grades - what the items were before processing (drums, totes, pallets).
+  A grade is not a physical form: "HDPE Drums" is polymer HDPE, grade Drums.
+  Codes must match grade_codes.py (tests/test_material_grade_codes.py).
+  -->
+  <record id="material_grade_buckets" model="plasticos.material.grade">
+    <field name="name">Buckets</field>
+    <field name="code">BUCKETS</field>
+    <field name="description">Plastic buckets and pails (5-gallon, etc.).</field>
+    <field name="sequence">10</field>
+  </record>
+  <record id="material_grade_drums" model="plasticos.material.grade">
+    <field name="name">Drums</field>
+    <field name="code">DRUMS</field>
+    <field name="description">Plastic drums and barrels (55-gallon, etc.).</field>
+    <field name="sequence">20</field>
+  </record>
+  <record id="material_grade_superacs" model="plasticos.material.grade">
+    <field name="name">Superacs</field>
+    <field name="code">SUPERACS</field>
+    <field name="description">Bulk bags (FIBCs / super sacks).</field>
+    <field name="sequence">30</field>
+  </record>
+  <record id="material_grade_trays" model="plasticos.material.grade">
+    <field name="name">Trays</field>
+    <field name="code">TRAYS</field>
+    <field name="description">Plastic trays.</field>
+    <field name="sequence">40</field>
+  </record>
+  <record id="material_grade_lids" model="plasticos.material.grade">
+    <field name="name">Lids</field>
+    <field name="code">LIDS</field>
+    <field name="description">Plastic lids and caps.</field>
+    <field name="sequence">50</field>
+  </record>
+  <record id="material_grade_tubs_lids" model="plasticos.material.grade">
+    <field name="name">Tubs/Lids</field>
+    <field name="code">TUBS_LIDS</field>
+    <field name="description">Plastic tubs with their lids.</field>
+    <field name="sequence">60</field>
+  </record>
+  <record id="material_grade_totes" model="plasticos.material.grade">
+    <field name="name">Totes</field>
+    <field name="code">TOTES</field>
+    <field name="description">Reusable plastic totes, bins, and bulk containers.</field>
+    <field name="sequence">70</field>
+  </record>
+  <record id="material_grade_toters" model="plasticos.material.grade">
+    <field name="name">Toters</field>
+    <field name="code">TOTERS</field>
+    <field name="description">Wheeled refuse and recycling carts.</field>
+    <field name="sequence">80</field>
+  </record>
+  <record id="material_grade_ibc_totes" model="plasticos.material.grade">
+    <field name="name">IBC Totes</field>
+    <field name="code">IBC_TOTES</field>
+    <field name="description">Intermediate bulk container totes.</field>
+    <field name="sequence">90</field>
+  </record>
+  <record id="material_grade_liners" model="plasticos.material.grade">
+    <field name="name">Liners</field>
+    <field name="code">LINERS</field>
+    <field name="description">Plastic liners (drum, box, or bag liners).</field>
+    <field name="sequence">100</field>
+  </record>
+  <record id="material_grade_drip_tube" model="plasticos.material.grade">
+    <field name="name">Drip Tube</field>
+    <field name="code">DRIP_TUBE</field>
+    <field name="description">Agricultural drip irrigation tube.</field>
+    <field name="sequence">110</field>
+  </record>
+  <record id="material_grade_pallets" model="plasticos.material.grade">
+    <field name="name">Pallets</field>
+    <field name="code">PALLETS</field>
+    <field name="description">Plastic pallets or pallet parts.</field>
+    <field name="sequence">120</field>
+  </record>
+  <record id="material_grade_bottles" model="plasticos.material.grade">
+    <field name="name">Bottles</field>
+    <field name="code">BOTTLES</field>
+    <field name="description">Plastic bottles (milk jugs, detergent, water, etc.).</field>
+    <field name="sequence">130</field>
+  </record>
+  <record id="material_grade_strapping" model="plasticos.material.grade">
+    <field name="name">Strapping</field>
+    <field name="code">STRAPPING</field>
+    <field name="description">Plastic strapping and banding.</field>
+    <field name="sequence">140</field>
+  </record>
+  <record id="material_grade_crates" model="plasticos.material.grade">
+    <field name="name">Crates</field>
+    <field name="code">CRATES</field>
+    <field name="description">Injection molded crates (dairy, produce, etc.).</field>
+    <field name="sequence">150</field>
+  </record>
+  <record id="material_grade_bumpers" model="plasticos.material.grade">
+    <field name="name">Bumpers</field>
+    <field name="code">BUMPERS</field>
+    <field name="description">Automotive bumpers and bumper covers.</field>
+    <field name="sequence">160</field>
+  </record>
+  <record id="material_grade_returns" model="plasticos.material.grade">
+    <field name="name">Returns</field>
+    <field name="code">RETURNS</field>
+    <field name="description">Returned or rejected goods.</field>
+    <field name="sequence">170</field>
+  </record>
+  <record id="material_grade_dunnage" model="plasticos.material.grade">
+    <field name="name">Dunnage</field>
+    <field name="code">DUNNAGE</field>
+    <field name="description">Plastic dunnage and protective packaging inserts.</field>
+    <field name="sequence">180</field>
+  </record>
+  <record id="material_grade_stretch_film" model="plasticos.material.grade">
+    <field name="name">Stretch Film</field>
+    <field name="code">STRETCH_FILM</field>
+    <field name="description">Stretch and pallet wrap film.</field>
+    <field name="sequence">190</field>
+  </record>
+  <record id="material_grade_occ" model="plasticos.material.grade">
+    <field name="name">OCC</field>
+    <field name="code">OCC</field>
+    <field name="description">Old corrugated containers.</field>
+    <field name="sequence">200</field>
+  </record>
+  <record id="material_grade_trash" model="plasticos.material.grade">
+    <field name="name">Trash</field>
+    <field name="code">TRASH</field>
+    <field name="description">Mixed waste and trash.</field>
+    <field name="sequence">210</field>
+  </record>
+  <record id="material_grade_sheet" model="plasticos.material.grade">
+    <field name="name">Sheet</field>
+    <field name="code">SHEET</field>
+    <field name="description">Sheet goods as supplied (distinct from the Sheet form).</field>
+    <field name="sequence">220</field>
+  </record>
+</odoo>

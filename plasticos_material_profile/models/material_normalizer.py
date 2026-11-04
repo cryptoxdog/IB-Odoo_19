@@ -9,38 +9,39 @@ from __future__ import annotations
 # Exact phrases only. Unknown stays unspecified: no inferred source, cleanliness,
 # dryness, or other attribute, and no mapping onto the OTHER polymer.
 # A form is set only when the phrase names that form. An unknown form stays empty;
-# identity does not require inventing one.
+# identity does not require inventing one. The last slot is the material grade code
+# (what the items were: drums, totes, pallets), set only when the phrase names it.
 _SPECS = {
-    "99 clear ldpe film": ("LDPE", "FILM", None, ("clean", "dry"), "A"),
-    "ldpe grade a film": ("LDPE", "FILM", None, ("clean", "dry"), "A"),
-    "95 clear ldpe film": ("LDPE", "FILM", None, ("clean",), "B"),
-    "ldpe grade b film": ("LDPE", "FILM", None, ("clean",), "B"),
-    "90 clear ldpe film": ("LDPE", "FILM", None, (), "C"),
-    "ldpe grade c film": ("LDPE", "FILM", None, (), "C"),
-    "pp film (bopp)": ("BOPP", "FILM", None, (), None),
-    "pc/abs": ("PC_ABS", None, "POST_INDUSTRIAL", (), None),
-    "pc-abs": ("PC_ABS", None, "POST_INDUSTRIAL", (), None),
-    "3-7": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "3-7 commingled bottles": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "1-7": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "1-7 commingled bottles": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "pe": ("HDPE", None, None, (), None),
-    "pallets": ("PLASTIC_PALLETS", None, None, (), None),
-    "hdpe drums": ("HDPE", "DRUMS", None, (), None),
-    "explicit hmw-hdpe drums": ("HDPE_HMW", "DRUMS", None, (), None),
-    "hdpe drums (hmw-hdpe)": ("HDPE_HMW", "DRUMS", None, (), None),
-    "ldpe film": ("LDPE", "FILM", None, (), None),
-    "ldpe film a": ("LDPE", "FILM", None, (), "A"),
-    "3-7 commingled": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", None, (), None),
-    "1-7 commingled": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", None, (), None),
-    "pp supersacs": ("PP", None, None, (), None),
+    "99 clear ldpe film": ("LDPE", "FILM", None, ("clean", "dry"), "A", None),
+    "ldpe grade a film": ("LDPE", "FILM", None, ("clean", "dry"), "A", None),
+    "95 clear ldpe film": ("LDPE", "FILM", None, ("clean",), "B", None),
+    "ldpe grade b film": ("LDPE", "FILM", None, ("clean",), "B", None),
+    "90 clear ldpe film": ("LDPE", "FILM", None, (), "C", None),
+    "ldpe grade c film": ("LDPE", "FILM", None, (), "C", None),
+    "pp film (bopp)": ("BOPP", "FILM", None, (), None, None),
+    "pc/abs": ("PC_ABS", None, "POST_INDUSTRIAL", (), None, None),
+    "pc-abs": ("PC_ABS", None, "POST_INDUSTRIAL", (), None, None),
+    "3-7": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "3-7 commingled bottles": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "1-7": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "1-7 commingled bottles": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "pe": ("HDPE", None, None, (), None, None),
+    "pallets": ("PLASTIC_PALLETS", None, None, (), None, None),
+    "hdpe drums": ("HDPE", None, None, (), None, "DRUMS"),
+    "explicit hmw-hdpe drums": ("HDPE_HMW", None, None, (), None, "DRUMS"),
+    "hdpe drums (hmw-hdpe)": ("HDPE_HMW", None, None, (), None, "DRUMS"),
+    "ldpe film": ("LDPE", "FILM", None, (), None, None),
+    "ldpe film a": ("LDPE", "FILM", None, (), "A", None),
+    "3-7 commingled": ("3_7_COMMINGLED_BOTTLES", None, None, (), None, "BOTTLES"),
+    "1-7 commingled": ("1_7_COMMINGLED_BOTTLES", None, None, (), None, "BOTTLES"),
+    "pp supersacs": ("PP", None, None, (), None, "SUPERACS"),
 }
 
 # CRM lead phrases that are not worksheet phrases. The whole collapsed
 # description must match. A hit in ``_SPECS`` wins and never reaches this table.
 # Bare LDPE is film. A trailing hyphen on HDPE- stays HDPE, distinct from HDPE-HMW.
 _CRM_EXACT = {
-    key: (polymer, form, None, (), None)
+    key: (polymer, form, None, (), None, None)
     for key, polymer, form in (
         ("ldpe", "LDPE", "FILM"),
         ("nylon", "NYLON", None),
@@ -69,142 +70,151 @@ _CRM_EXACT = {
 }
 
 # Operator-approved VanillaSoft aliases (POLYMER MAPPING sheet, ALIAS rows, approved 2026-10-30).
-# Polymer is the sheet's code. A form is set only when the phrase names exactly one form master.
+# Polymer is the sheet's code. A form is set only when the phrase names exactly one form master;
+# the last slot is the material grade the phrase names.
 # The whole collapsed description must match; ``_SPECS`` and ``_CRM_EXACT`` win over this table.
 _CRM_ALIASES = {
-    key: (polymer, form, None, (), grade)
-    for key, (polymer, form, grade) in {
-        "pet bottles": ("PET", "BOTTLES", None),
-        "pp supersacs": ("PP", None, None),
-        "hdpe bottles": ("HDPE", "BOTTLES", None),
-        "ldpe stretch film": ("LDPE", "FILM", None),
-        "pet industrial": ("PET", None, None),
-        "hdpe bottles - mixed color": ("HDPE", "BOTTLES", None),
-        "hdpe bottles - natural": ("HDPE", "BOTTLES", None),
-        "ldpe film b": ("LDPE", "FILM", "B"),
-        "acrylic / pmma": ("PMMA", None, None),
-        "ldpe film": ("LDPE", "FILM", None),
-        "nylon 6": ("NYLON", None, None),
-        "pet strapping": ("PET", None, None),
-        "mrp export": ("MRP", None, None),
-        "pp supersacs (un-lined)": ("PP", None, None),
-        "pvc flex": ("PVC", None, None),
-        "hdpe buckets": ("HDPE", "BUCKETS", None),
-        "nylon 6.6": ("NYLON", None, None),
-        "pp regrind": ("PP", "REGRIND", None),
-        "pp supersacs (lined)": ("PP", None, None),
-        "ldpe post industrial": ("LDPE", None, None),
-        "ibc totes (hmw-hdpe)": ("HDPE_HMW", "TOTES", None),
-        "hdpe totes": ("HDPE", "TOTES", None),
-        "hdpe bottles - z bales": ("HDPE", None, None),
-        "hdpe crates": ("HDPE", "CRATES", None),
-        "mrp domestic": ("MRP", None, None),
-        "ldpe film mixed color": ("LDPE", "FILM", None),
-        "pp parts": ("PP", "PARTS", None),
-        "ldpe film c": ("LDPE", "FILM", "C"),
-        "pet bottles - 70/30 curbside": ("PET", "BOTTLES", None),
-        "pp bottles - domestic pack": ("PP", "BOTTLES", None),
-        "hdpe toters (roll-out carts)": ("HDPE", None, None),
-        "mrp-a": ("MRP", None, None),
-        "tpo bumpers": ("TPO", None, None),
-        "acetal": ("POM", None, None),
-        "pp purge": ("PP", "PURGE", None),
-        "pp tubs/lids": ("PP", None, None),
-        "hdpe pipe": ("HDPE", None, None),
-        "mrp a": ("MRP", None, None),
-        "ld/lldpe thick/stretch": ("LLDPE", None, None),
-        "pp crates": ("PP", "CRATES", None),
-        "pp repro": ("PP", None, None),
-        "ldpe purge": ("LDPE", "PURGE", None),
-        "mrp - export": ("MRP", None, None),
-        "pp bottles": ("PP", "BOTTLES", None),
-        "hdpe roto-mold tanks": ("HDPE", None, None),
-        "hdpe corrugated pipe": ("HDPE", None, None),
-        "ldpe logs": ("LDPE", "LOGS", None),
-        "mrp - domestic": ("MRP", None, None),
-        "pet bottles - deposit bill": ("PET", "BOTTLES", None),
-        "hdpe pill bottles": ("HDPE", "BOTTLES", None),
-        "mrp c&d": ("MRP", None, None),
-        "pc - polycarb": ("PC", None, None),
-        "hdpe drip tube": ("HDPE", None, None),
-        "ldpe nursery film": ("LDPE", "FILM", None),
-        "ldpe redemption bags": ("LDPE", None, None),
-        "mrp-b": ("MRP", None, None),
-        "e-waste - dark": ("EWASTE", None, None),
-        "ldpe camelback": ("LDPE", None, None),
-        "ldpe cotton film": ("LDPE", "FILM", None),
-        "mrp industrial": ("MRP", None, None),
-        "pa": ("NYLON", None, None),
-        "pp bottles domestic": ("PP", "BOTTLES", None),
-        "pp hangers": ("PP", None, None),
-        ".01 fob grade a mrp": ("MRP", None, None),
-        "acrylic": ("PMMA", None, None),
+    key: (polymer, form, None, (), grade, material_grade)
+    for key, (polymer, form, grade, material_grade) in {
+        "pet bottles": ("PET", None, None, "BOTTLES"),
+        "pp supersacs": ("PP", None, None, "SUPERACS"),
+        "hdpe bottles": ("HDPE", None, None, "BOTTLES"),
+        "ldpe stretch film": ("LDPE", "FILM", None, "STRETCH_FILM"),
+        "pet industrial": ("PET", None, None, None),
+        "hdpe bottles - mixed color": ("HDPE", None, None, "BOTTLES"),
+        "hdpe bottles - natural": ("HDPE", None, None, "BOTTLES"),
+        "ldpe film b": ("LDPE", "FILM", "B", None),
+        "acrylic / pmma": ("PMMA", None, None, None),
+        "ldpe film": ("LDPE", "FILM", None, None),
+        "nylon 6": ("NYLON", None, None, None),
+        "pet strapping": ("PET", None, None, "STRAPPING"),
+        "mrp export": ("MRP", None, None, None),
+        "pp supersacs (un-lined)": ("PP", None, None, "SUPERACS"),
+        "pvc flex": ("PVC", None, None, None),
+        "hdpe buckets": ("HDPE", None, None, "BUCKETS"),
+        "nylon 6.6": ("NYLON", None, None, None),
+        "pp regrind": ("PP", "REGRIND", None, None),
+        "pp supersacs (lined)": ("PP", None, None, "SUPERACS"),
+        "ldpe post industrial": ("LDPE", None, None, None),
+        "ibc totes (hmw-hdpe)": ("HDPE_HMW", None, None, "IBC_TOTES"),
+        "hdpe totes": ("HDPE", None, None, "TOTES"),
+        "hdpe bottles - z bales": ("HDPE", None, None, None),
+        "hdpe crates": ("HDPE", None, None, "CRATES"),
+        "mrp domestic": ("MRP", None, None, None),
+        "ldpe film mixed color": ("LDPE", "FILM", None, None),
+        "pp parts": ("PP", "PARTS", None, None),
+        "ldpe film c": ("LDPE", "FILM", "C", None),
+        "pet bottles - 70/30 curbside": ("PET", None, None, "BOTTLES"),
+        "pp bottles - domestic pack": ("PP", None, None, "BOTTLES"),
+        "hdpe toters (roll-out carts)": ("HDPE", None, None, "TOTERS"),
+        "mrp-a": ("MRP", None, None, None),
+        "tpo bumpers": ("TPO", None, None, "BUMPERS"),
+        "acetal": ("POM", None, None, None),
+        "pp purge": ("PP", "PURGE", None, None),
+        "pp tubs/lids": ("PP", None, None, None),
+        "hdpe pipe": ("HDPE", None, None, None),
+        "mrp a": ("MRP", None, None, None),
+        "ld/lldpe thick/stretch": ("LLDPE", None, None, None),
+        "pp crates": ("PP", None, None, "CRATES"),
+        "pp repro": ("PP", None, None, None),
+        "ldpe purge": ("LDPE", "PURGE", None, None),
+        "mrp - export": ("MRP", None, None, None),
+        "pp bottles": ("PP", None, None, "BOTTLES"),
+        "hdpe roto-mold tanks": ("HDPE", None, None, None),
+        "hdpe corrugated pipe": ("HDPE", None, None, None),
+        "ldpe logs": ("LDPE", "LOGS", None, None),
+        "mrp - domestic": ("MRP", None, None, None),
+        "pet bottles - deposit bill": ("PET", None, None, "BOTTLES"),
+        "hdpe pill bottles": ("HDPE", None, None, "BOTTLES"),
+        "mrp c&d": ("MRP", None, None, None),
+        "pc - polycarb": ("PC", None, None, None),
+        "hdpe drip tube": ("HDPE", None, None, None),
+        "ldpe nursery film": ("LDPE", "FILM", None, None),
+        "ldpe redemption bags": ("LDPE", None, None, None),
+        "mrp-b": ("MRP", None, None, None),
+        "e-waste - dark": ("EWASTE", None, None, None),
+        "ldpe camelback": ("LDPE", None, None, None),
+        "ldpe cotton film": ("LDPE", "FILM", None, None),
+        "mrp industrial": ("MRP", None, None, None),
+        "pa": ("NYLON", None, None, None),
+        "pp bottles domestic": ("PP", None, None, "BOTTLES"),
+        "pp hangers": ("PP", None, None, None),
+        ".01 fob grade a mrp": ("MRP", None, None, None),
+        "acrylic": ("PMMA", None, None, None),
         "also mentioned they buy pp gf 25-50% - black has golf material. mention and request references.": (
             "PP",
             None,
             None,
+            None,
         ),
-        "and occ -": ("OCC", None, None),
-        "bopp printed": ("BOPP", None, None),
-        "crate grade hdpe": ("HDPE", "CRATES", None),
-        "curb sorted no mrp - cb and pich for future -": ("MRP", None, None),
-        "does marketing for 6 separate counties in maryland which generate mrp. got on bid list": ("MRP", None, None),
-        "e-waste - light": ("EWASTE", None, None),
-        "ext218 - pp sacks": ("PP", None, None),
-        "gas tanks and so on. pvc post industrial.": ("PVC", None, None),
-        "generates eps": ("EPS", None, None),
-        "generates pet": ("PET", None, None),
-        "had mrp and sacks. had loads of all.": ("MRP", None, None),
-        "has 2 loads of ldpe film": ("LDPE", "FILM", None),
-        "has ftl's of ldpe film from commercial dryer": ("LDPE", "FILM", None),
-        "has mrp and everything else.": ("MRP", None, None),
-        "has mrp and has c grade film": ("MRP", None, None),
-        "has mrp b+": ("MRP", None, None),
-        "has non-wove pp": ("PP", None, None),
-        "has pp sacks": ("PP", None, None),
-        "has pp super sacks with carbon black residue": ("PP", None, None),
-        "has some colored eps. sometimes has white eps he needs to sell.": ("EPS", None, None),
-        "hdpe bott": ("HDPE", None, None),
-        "hdpe bottles.": ("HDPE", "BOTTLES", None),
-        "hdpe dumpster lids": ("HDPE", None, None),
-        "hdpe gas tanks": ("HDPE", None, None),
-        "hmw-hdpe/dunnage": ("HDPE_HMW", None, None),
-        "ldpe house wrap": ("LDPE", None, None),
-        "ldpe money bags and shrink wrap.": ("LDPE", None, None),
-        "ldpe rolls": ("LDPE", "ROLLSTOCK", None),
-        "mentioned: pp super sacsk": ("PP", None, None),
-        "mrp looks like grade b": ("MRP", None, None),
-        "pc regrind.": ("PC", "REGRIND", None),
-        "pet baled": ("PET", None, None),
-        "pet bott": ("PET", None, None),
-        "pet preforms": ("PET", None, None),
-        "plastic & textile nylon": ("NYLON", None, None),
-        "pp battery casing": ("PP", None, None),
+        "and occ -": ("OCC", None, None, None),
+        "bopp printed": ("BOPP", None, None, None),
+        "crate grade hdpe": ("HDPE", None, None, "CRATES"),
+        "curb sorted no mrp - cb and pich for future -": ("MRP", None, None, None),
+        "does marketing for 6 separate counties in maryland which generate mrp. got on bid list": (
+            "MRP",
+            None,
+            None,
+            None,
+        ),
+        "e-waste - light": ("EWASTE", None, None, None),
+        "ext218 - pp sacks": ("PP", None, None, None),
+        "gas tanks and so on. pvc post industrial.": ("PVC", None, None, None),
+        "generates eps": ("EPS", None, None, None),
+        "generates pet": ("PET", None, None, None),
+        "had mrp and sacks. had loads of all.": ("MRP", None, None, None),
+        "has 2 loads of ldpe film": ("LDPE", "FILM", None, None),
+        "has ftl's of ldpe film from commercial dryer": ("LDPE", "FILM", None, None),
+        "has mrp and everything else.": ("MRP", None, None, None),
+        "has mrp and has c grade film": ("MRP", None, None, None),
+        "has mrp b+": ("MRP", None, None, None),
+        "has non-wove pp": ("PP", None, None, None),
+        "has pp sacks": ("PP", None, None, None),
+        "has pp super sacks with carbon black residue": ("PP", None, None, None),
+        "has some colored eps. sometimes has white eps he needs to sell.": ("EPS", None, None, None),
+        "hdpe bott": ("HDPE", None, None, None),
+        "hdpe bottles.": ("HDPE", None, None, "BOTTLES"),
+        "hdpe dumpster lids": ("HDPE", None, None, None),
+        "hdpe gas tanks": ("HDPE", None, None, None),
+        "hmw-hdpe/dunnage": ("HDPE_HMW", None, None, None),
+        "ldpe house wrap": ("LDPE", None, None, None),
+        "ldpe money bags and shrink wrap.": ("LDPE", None, None, None),
+        "ldpe rolls": ("LDPE", "ROLLSTOCK", None, None),
+        "mentioned: pp super sacsk": ("PP", None, None, None),
+        "mrp looks like grade b": ("MRP", None, None, None),
+        "pc regrind.": ("PC", "REGRIND", None, None),
+        "pet baled": ("PET", None, None, None),
+        "pet bott": ("PET", None, None, None),
+        "pet preforms": ("PET", None, None, None),
+        "plastic & textile nylon": ("NYLON", None, None, None),
+        "pp battery casing": ("PP", None, None, None),
         "pp bins and other grades. seems to be marketing direct with prices as high as .25 for film.": (
             "PP",
             None,
             None,
+            None,
         ),
-        "pp rolls": ("PP", "ROLLSTOCK", None),
-        "pp super sack offered 0.06/lb. has 30k now": ("PP", None, None),
-        "quote on mrp. 0.05/lb and 0.12/lb": ("MRP", None, None),
-        "should have other stuff. we sold him pvc": ("PVC", None, None),
-        "should have tons of mrp": ("MRP", None, None),
-        "they generate hdpe": ("HDPE", None, None),
-        "they mostly work with pet bottles.": ("PET", "BOTTLES", None),
+        "pp rolls": ("PP", "ROLLSTOCK", None, None),
+        "pp super sack offered 0.06/lb. has 30k now": ("PP", None, None, None),
+        "quote on mrp. 0.05/lb and 0.12/lb": ("MRP", None, None, None),
+        "should have other stuff. we sold him pvc": ("PVC", None, None, None),
+        "should have tons of mrp": ("MRP", None, None, None),
+        "they generate hdpe": ("HDPE", None, None, None),
+        "they mostly work with pet bottles.": ("PET", None, None, "BOTTLES"),
     }.items()
 }
-_CRM_ALIASES["hdpe frac melt"] = ("HDPE", None, None, ("frac_melt",), None)
-_CRM_ALIASES["pvc rigid"] = ("PVC", None, None, ("rigid",), None)
-_CRM_ALIASES["ldpe thick gauge"] = ("LDPE", None, None, ("thick_gauge",), None)
+_CRM_ALIASES["hdpe frac melt"] = ("HDPE", None, None, ("frac_melt",), None, None)
+_CRM_ALIASES["pvc rigid"] = ("PVC", None, None, ("rigid",), None, None)
+_CRM_ALIASES["ldpe thick gauge"] = ("LDPE", None, None, ("thick_gauge",), None, None)
 
 
 class MaterialNormalization:
     """One material phrase resolved to existing masters, or left unresolved."""
 
-    def __init__(self, source_description, polymer, form, source_type, attributes, grade, unresolved):
+    def __init__(self, source_description, polymer, form, source_type, attributes, grade, unresolved, material_grade):
         self.source_description = source_description
         self.polymer = polymer
+        self.material_grade = material_grade
         self.form = form
         self.source_type = source_type
         self.attributes = attributes
@@ -272,15 +282,20 @@ def normalize_crm_material(env, description, grade_evidence=None, structured=Non
 
 
 def _realize(env, source, spec):
-    polymer_code, form_code, source_code, attribute_codes, grade = spec
+    polymer_code, form_code, source_code, attribute_codes, grade, material_grade_code = spec
     polymer, polymer_missing = _master(env, "plasticos.polymer", polymer_code)
+    material_grade, material_grade_missing = _master(env, "plasticos.material.grade", material_grade_code)
     form, form_missing = _master(env, "plasticos.material.form", form_code)
     source_type, source_missing = _master(env, "plasticos.source.type", source_code)
     attributes, attribute_missing = _attributes(env, attribute_codes)
-    unresolved = tuple(item for item in (polymer_missing, form_missing, source_missing, *attribute_missing) if item)
+    unresolved = tuple(
+        item
+        for item in (polymer_missing, material_grade_missing, form_missing, source_missing, *attribute_missing)
+        if item
+    )
     if unresolved:
         return _empty(env, source, unresolved)
-    return MaterialNormalization(source, polymer, form, source_type, attributes, grade, ())
+    return MaterialNormalization(source, polymer, form, source_type, attributes, grade, (), material_grade)
 
 
 def _empty(env, source, unresolved):
@@ -292,6 +307,7 @@ def _empty(env, source, unresolved):
         env["plasticos.material.attribute"].browse(),
         None,
         unresolved,
+        env["plasticos.material.grade"].browse(),
     )
 
 

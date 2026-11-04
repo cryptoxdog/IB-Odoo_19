@@ -1449,7 +1449,7 @@ def _create_grade_product(importer, xml_id, grade, description):
 
 
 def _material_line_values(importer, model_name, existing, normalized):
-    """Form, source, and attributes that the normalizer actually resolved.
+    """Material grade, form, source, and attributes that the normalizer actually resolved.
 
     An empty attribute set is unspecified. It does not clear attributes already
     stored on the line, and a replay that already has the resolved attributes
@@ -1457,6 +1457,8 @@ def _material_line_values(importer, model_name, existing, normalized):
     """
     values = {}
     fields = importer.env[model_name]._fields
+    if normalized.material_grade and "material_grade_id" in fields:
+        values["material_grade_id"] = normalized.material_grade.id
     if normalized.form and "form_id" in fields:
         values["form_id"] = normalized.form.id
     if normalized.source_type and "source_type_id" in fields:

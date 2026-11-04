@@ -88,3 +88,15 @@ class TestNullableFormUniqueness(TransactionCase):
         self.assertNotEqual(specified.id, unspecified.id)
         self.assertEqual(specified.form_id, self.form)
         self.assertFalse(unspecified.form_id)
+
+    def test_two_grades_without_form_both_save_and_a_repeated_grade_raises(self):
+        Grade = self.env["plasticos.material.grade"]
+        drums = Grade.search([("code", "=", "DRUMS")], limit=1)
+        buckets = Grade.search([("code", "=", "BUCKETS")], limit=1)
+        base = {"partner_id": self.partner.id, "polymer_id": self.polymer.id, "form_id": False}
+        first = self.profile.create({**base, "material_grade_id": drums.id})
+        second = self.profile.create({**base, "material_grade_id": buckets.id})
+        ungraded = self.profile.create(base)
+        self.assertEqual(len(first | second | ungraded), 3)
+        with self.assertRaises(ValidationError):
+            self.profile.create({**base, "material_grade_id": drums.id})

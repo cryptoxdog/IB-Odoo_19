@@ -310,7 +310,7 @@ class CrmLeadPlastOS(models.Model):
             ("form_id", "form_id"),
             ("color_id", "color_id"),
             ("source_type_id", "source_type_id"),
-            ("origin_form_id", "origin_form_id"),
+            ("material_grade_id", "material_grade_id"),
             ("packaging_type_id", "packaging_type_id"),
             ("filler_type_id", "filler_type_id"),
         ):

@@ -2281,6 +2281,7 @@ class SyncOrchestrator:
                     normalized.polymer,
                     normalized.form,
                     note_line=normalized.source_description,
+                    grades=normalized.material_grade,
                 )
             elif partner is not None:
                 profile = profiles.reuse_facility_polymer_profile(
@@ -2288,6 +2289,7 @@ class SyncOrchestrator:
                     normalized.polymer,
                     normalized.form,
                     note_line=normalized.source_description,
+                    grades=normalized.material_grade,
                 )
             else:
                 raise ValidationError("A facility profile is required.")
@@ -2346,13 +2348,17 @@ class SyncOrchestrator:
             if normalized.unresolved or not normalized.polymer:
                 continue
             form_id = normalized.form.id if len(normalized.form) == 1 else False
-            identities.append((normalized.polymer.id, form_id))
+            grade = normalized.material_grade
+            grade_id = grade.id if len(grade) == 1 else False
+            identities.append((normalized.polymer.id, form_id, grade_id))
         chosen = profiles.browse()
         if len(set(identities)) == 1 and identities:
-            polymer_id, form_id = identities[0]
+            polymer_id, form_id, grade_id = identities[0]
             chosen = profiles.filtered(
-                lambda profile, polymer_id=polymer_id, form_id=form_id: (
-                    profile.polymer_id.id == polymer_id and (profile.form_id.id or False) == form_id
+                lambda profile, polymer_id=polymer_id, form_id=form_id, grade_id=grade_id: (
+                    profile.polymer_id.id == polymer_id
+                    and (profile.form_id.id or False) == form_id
+                    and (profile.material_grade_id.id or False) == grade_id
                 )
             )
         if len(chosen) != 1:

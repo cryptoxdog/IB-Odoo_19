@@ -3,7 +3,7 @@
 
 Every distinct material, form, type, and color value in the two sources gets one row
 per field role. Every target is an existing ``plasticos_material_profile`` master
-(polymer, form, source type, attribute, color, filler, process, packaging) read from the
+(polymer, material grade, form, source type, attribute, color, filler, process, packaging) read from the
 module's seed XML. The polymers the operator approved on 2026-11-03 are seeded there.
 
 Statuses:
@@ -67,6 +67,7 @@ COLUMNS = (
     "status",
     "rule",
     "polymer",
+    "material_grade",
     "form",
     "source_type",
     "attributes",
@@ -82,7 +83,7 @@ STATUSES = {"mapped", "not_material", "note_not_material", "ambiguous", "unknown
 ROLE_ORDER = {"material": 0, "form": 1, "type": 2, "color": 3}
 
 # Operator decisions of 2026-11-03.
-GRADE_A_FILM = ("LDPE", "FILM", None, ("clean", "dry"), "A")
+GRADE_A_FILM = ("LDPE", "FILM", None, ("clean", "dry"), "A", None)
 DECIDED_SPECS = {
     "ldpe film a": GRADE_A_FILM,
     "ldpe a film": GRADE_A_FILM,
@@ -91,35 +92,35 @@ DECIDED_SPECS = {
     "99% clear ldpe film": GRADE_A_FILM,
 }
 DECIDED_CODES = {
-    "tpu": ("TPU", None, None, (), None),
-    "textile": ("TEXTILE", None, None, (), None),
-    "pvb": ("PVB", None, None, (), None),
-    "ubc": ("UBC", None, None, (), None),
-    "tpv": ("TPV", None, None, (), None),
+    "tpu": ("TPU", None, None, (), None, None),
+    "textile": ("TEXTILE", None, None, (), None, None),
+    "pvb": ("PVB", None, None, (), None, None),
+    "ubc": ("UBC", None, None, (), None, None),
+    "tpv": ("TPV", None, None, (), None, None),
 }
 DECIDED_ALIASES = {
-    "foam - pu": ("PU_FOAM", None, None, (), None),
-    "mrp - grade a": ("MRP", None, None, (), None),
-    "mrp-a": ("MRP", None, None, (), None),
-    "mrp a": ("MRP", None, None, (), None),
-    "mrp-b": ("MRP", None, None, (), None),
-    "mrp a domestic quality": ("MRP", None, None, (), None),
-    "wood pallets": ("WOOD_PALLETS", "PALLETS", None, ("reusable",), None),
-    "wood pallets – reusable standard": ("WOOD_PALLETS", "PALLETS", None, ("reusable",), None),
-    "wood pallets – reusable non-standard": ("WOOD_PALLETS", "PALLETS", None, ("reusable",), None),
-    "super sacks": ("PP", None, None, (), None),
-    "ibc totes (hmw)": ("HDPE_HMW", "TOTES", None, (), None),
-    "hmw drums": ("HDPE_HMW", "DRUMS", None, (), None),
-    "hmw": ("HDPE_HMW", None, None, (), None),
-    "1-7 bottles": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "co-mingled 1-7 all plastics": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "1-7 mrp": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "3-7 mixed plastic": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "3-7 bottles": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "mrp 3-7": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", (), None),
-    "tubs": ("PP", "PARTS", None, (), None),
-    "knock-down crates": ("HDPE", "CRATES", None, (), None),
-    "drip tube": ("HDPE", None, None, (), None),
+    "foam - pu": ("PU_FOAM", None, None, (), None, None),
+    "mrp - grade a": ("MRP", None, None, (), None, None),
+    "mrp-a": ("MRP", None, None, (), None, None),
+    "mrp a": ("MRP", None, None, (), None, None),
+    "mrp-b": ("MRP", None, None, (), None, None),
+    "mrp a domestic quality": ("MRP", None, None, (), None, None),
+    "wood pallets": ("WOOD_PALLETS", None, None, ("reusable",), None, "PALLETS"),
+    "wood pallets – reusable standard": ("WOOD_PALLETS", None, None, ("reusable",), None, "PALLETS"),
+    "wood pallets – reusable non-standard": ("WOOD_PALLETS", None, None, ("reusable",), None, "PALLETS"),
+    "super sacks": ("PP", None, None, (), None, "SUPERACS"),
+    "ibc totes (hmw)": ("HDPE_HMW", None, None, (), None, "IBC_TOTES"),
+    "hmw drums": ("HDPE_HMW", None, None, (), None, "DRUMS"),
+    "hmw": ("HDPE_HMW", None, None, (), None, None),
+    "1-7 bottles": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "co-mingled 1-7 all plastics": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "1-7 mrp": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "3-7 mixed plastic": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "3-7 bottles": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "mrp 3-7": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
+    "tubs": ("PP", "PARTS", None, (), None, None),
+    "knock-down crates": ("HDPE", None, None, (), None, "CRATES"),
+    "drip tube": ("HDPE", None, None, (), None, None),
 }
 CONTACT_TEXT = re.compile(
     r"@|\d{3}[\s.)-]*\d{3}[\s.-]+\d{4}|\b(?:phone|fax|tel|cell|call|spoke to|spoke with|ext\.?\s*\d)\b"
@@ -226,8 +227,13 @@ POLYMER_WORDS["MRP"] = (
 COLOR_WORDS = {"MIXED": ("mc",), "GRAY": ("grey",)}
 FORM_WORDS = {
     "PARTS": ("tubs & lids", "tubs and lids", "tubs"),
+}
+GRADE_WORDS = {
     "CRATES": ("knock-down crates", "knockdown bins", "knockdowns", "knockdown", "knock-down"),
 }
+# The free-text rule names only the six grades that were forms before 2026-11; other grade
+# words (trash, liners, lids) recur in unrelated or negated text.
+TEXT_RULE_GRADES = {"BOTTLES", "BUCKETS", "CRATES", "DRUMS", "PALLETS", "TOTES"}
 NO_SUGGEST_POLYMERS = {"OTHER", "MIXED"}
 NO_SUGGEST_ATTRIBUTES = {"mixed"}
 NO_SUGGEST_FORMS = {"OTHER"}
@@ -255,10 +261,11 @@ ATTRIBUTE_WORDS = {
     "non_woven": ("nonwoven", "non woven", "non-wove"),
 }
 FILLER_WORDS = {"talc": ("talc filler", "talc-filled")}
-HINT_TARGETS = ("source_type", "form", "attributes", "filler_type", "process_type")
+HINT_TARGETS = ("source_type", "form", "material_grade", "attributes", "filler_type", "process_type")
 MASTER_OF = {
     "packaging_type": "packaging",
     "source_type": "source_type",
+    "material_grade": "material_grade",
     "form": "form",
     "attributes": "attribute",
     "filler_type": "filler",
@@ -294,6 +301,7 @@ def load_masters() -> dict[str, dict[str, str]]:
     masters: dict[str, dict[str, str]] = {}
     for name, filename in (
         ("polymer", "polymer_data.xml"),
+        ("material_grade", "material_grade_data.xml"),
         ("form", "material_form_data.xml"),
         ("source_type", "source_type_data.xml"),
         ("attribute", "material_attribute_data.xml"),
@@ -387,6 +395,7 @@ def load_grade_templates() -> dict[str, dict[str, str]]:
     refs = {}
     for filename, _prefix, column in (
         ("polymer_data.xml", "polymer_", "polymer"),
+        ("material_grade_data.xml", "material_grade_", "material_grade"),
         ("material_form_data.xml", "form_", "form"),
         ("source_type_data.xml", "source_", "source_type"),
         ("material_color_data.xml", "color_", "color"),
@@ -544,9 +553,11 @@ def suggest_material(key: str, vocab) -> dict:
     fillers, text = find_all(text, vocab["filler"])
     processes, text = find_all(text, vocab["process"])
     forms, text = find_all(text, vocab["form"])
+    grades, text = find_all(text, vocab["material_grade"])
     sources, _text = find_all(text.replace("-", " "), vocab["source"])
     return {
         "polymers": polymers,
+        "grades": grades,
         "forms": forms,
         "sources": sources,
         "attributes": attributes,
@@ -585,11 +596,13 @@ BALED = re.compile(r"\bbaled?\b|\bbales\b")
 
 
 def drum_template(key, row):
-    return row["polymer"] == "HDPE" and row["form"] == "DRUMS"
+    return row["polymer"] == "HDPE" and row["material_grade"] == "DRUMS"
 
 
 def ibc_template(key, row):
-    return row["polymer"] == "HDPE_HMW" and row["form"] == "TOTES" and re.search(r"\bibc\b", key)
+    return (
+        row["polymer"] == "HDPE_HMW" and row["material_grade"] in {"TOTES", "IBC_TOTES"} and re.search(r"\bibc\b", key)
+    )
 
 
 def ldpe_film_a_template(key, row):
@@ -613,7 +626,7 @@ def apply_template(key: str, row: dict[str, str], templates) -> None:
             continue
         template = by_code[code]
         row["grade_template"] = code
-        for column in ("form", "source_type", "color"):
+        for column in ("material_grade", "form", "source_type", "color"):
             row[column] = row[column] or template.get(column, "")
         if not row["packaging_type"]:
             row["packaging_type"] = "bales" if BALED.search(key) else template.get("packaging_type", "")
@@ -625,9 +638,10 @@ def apply_template(key: str, row: dict[str, str], templates) -> None:
 
 
 def spec_row(spec) -> dict[str, str]:
-    polymer, form, source, attributes, grade = spec
+    polymer, form, source, attributes, grade, material_grade = spec
     return {
         "polymer": polymer or "",
+        "material_grade": material_grade or "",
         "form": form or "",
         "source_type": source or "",
         "attributes": " ".join(attributes),
@@ -650,7 +664,12 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
     if key in rules:
         spec, rule = rules[key]
         row = {"status": "mapped", "rule": rule, **spec_row(spec)}
-        if template and template.get("polymer") == row["polymer"] and template.get("form", "") in {"", row["form"]}:
+        if (
+            template
+            and template.get("polymer") == row["polymer"]
+            and template.get("form", "") in {"", row["form"]}
+            and template.get("material_grade", "") in {"", row["material_grade"]}
+        ):
             row["packaging_type"] = template.get("packaging_type", "")
         return row
     if template:
@@ -663,6 +682,7 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
     if old and old["status"] == "no_master" and len(polymers) != 1:
         return {"status": "unknown", "rule": "", "note": old["note"]}
     detail = {
+        "material_grade": next(iter(found["grades"])) if len(found["grades"]) == 1 else "",
         "form": next(iter(found["forms"])) if len(found["forms"]) == 1 else "",
         "source_type": next(iter(found["sources"])) if len(found["sources"]) == 1 else "",
         "attributes": " ".join(sorted(found["attributes"])),
@@ -679,9 +699,9 @@ def classify_material(key, rules, previous, vocab, workbook, templates) -> dict[
     if len(polymers) == 1:
         polymer = next(iter(polymers))
         if polymer in PALLET_POLYMERS:
-            detail["form"] = "PALLETS"
+            detail["material_grade"] = "PALLETS"
         if polymer in COMMINGLED:
-            detail["form"] = detail["form"] or "BOTTLES"
+            detail["material_grade"] = detail["material_grade"] or "BOTTLES"
             detail["source_type"] = detail["source_type"] or "POST_CONSUMER"
         return {"status": "mapped", "rule": "names_one_polymer", "polymer": polymer, **detail}
     if len(polymers) > 1:
@@ -713,9 +733,11 @@ def classify_hint(key, rules, masters, web_words) -> dict[str, str]:
         }
     if key in web_words:
         column, code = web_words[key]
+        if column == "form" and code in masters["material_grade"]:
+            column = "material_grade"
         if code in masters[MASTER_OF[column]] and code != "OTHER":
             return {"status": "mapped", "rule": "web_lead_vocabulary", column: code}
-    for column in ("form", "source_type"):
+    for column in ("form", "material_grade", "source_type"):
         code = singular_plural(key, masters[MASTER_OF[column]])
         if code:
             return {"status": "mapped", "rule": f"{column}_plural", column: code}
@@ -742,6 +764,9 @@ def build(erp: Path, vanillasoft: Path, workbook_path: Path | None) -> list[dict
     vocab = {
         "polymer": vocabulary(masters, "polymer", POLYMER_WORDS, NO_SUGGEST_POLYMERS),
         "form": vocabulary(masters, "form", FORM_WORDS, skip=NO_SUGGEST_FORMS),
+        "material_grade": vocabulary(
+            masters, "material_grade", GRADE_WORDS, skip=set(masters["material_grade"]) - TEXT_RULE_GRADES
+        ),
         "source": vocabulary(masters, "source_type"),
         "attribute": [
             item for item in vocabulary(masters, "attribute", ATTRIBUTE_WORDS) if item[1] not in NO_SUGGEST_ATTRIBUTES
@@ -820,6 +845,7 @@ def check(rows, masters) -> None:
         seen.add(ident)
         for column, kind in (
             ("polymer", "polymer"),
+            ("material_grade", "material_grade"),
             ("form", "form"),
             ("source_type", "source_type"),
             ("color", "color"),

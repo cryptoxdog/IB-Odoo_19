@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.tools import get_lang
 
 from .material_label import projected_material
 
@@ -26,6 +27,12 @@ class PurchaseOrderLine(models.Model):
     )
 
     # ── Material Specification Fields ─────────────────────────────
+    material_grade_id = fields.Many2one(
+        "plasticos.material.grade",
+        string="Material Grade",
+        index=True,
+        ondelete="restrict",
+    )
     color_id = fields.Many2one(
         "plasticos.material.color",
         string="Color",
@@ -69,13 +76,14 @@ class PurchaseOrderLine(models.Model):
         string="Material Description",
         compute="_compute_material_description",
         store=True,
-        help="Product, then color, filler, form, packaging, source, and attributes.",
+        help="Product, then material grade, color, filler, form, packaging, source, and attributes.",
     )
 
     @api.depends(
         "product_id",
         "product_id.name",
         "product_id.polymer_id",
+        "material_grade_id",
         "color_id",
         "form_id",
         "packaging_type_id",
@@ -101,6 +109,7 @@ class PurchaseOrderLine(models.Model):
             self.product_id = profile.polymer_id.product_id.id
 
         # Pre-fill material fields
+        self.material_grade_id = profile.material_grade_id.id if profile.material_grade_id else False
         self.color_id = profile.color_id.id if profile.color_id else False
         self.form_id = profile.form_id.id if profile.form_id else False
         self.packaging_type_id = profile.packaging_type_id.id if profile.packaging_type_id else False
@@ -109,6 +118,20 @@ class PurchaseOrderLine(models.Model):
         self.material_attribute_ids = (
             [(6, 0, profile.material_attribute_ids.ids)] if profile.material_attribute_ids else [(5,)]
         )
+        if self.product_id:
+            product_lang = self.product_id.with_context(
+                lang=get_lang(self.env, self.partner_id.lang).code,
+                partner_id=None,
+                company_id=self.company_id.id,
+            )
+            self.name = self._get_product_purchase_description(product_lang)
+
+    def _get_product_purchase_description(self, product_lang):
+        """Print the material description above Odoo's product description."""
+        description = super()._get_product_purchase_description(product_lang)
+        if self.material_description:
+            return f"{self.material_description}\n{description}"
+        return description
 
     # ── Navigation Actions (Jump To) ────────────────────────────
     def action_view_material_profile(self):

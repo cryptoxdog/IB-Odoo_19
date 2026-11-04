@@ -1,2 +1,3 @@
 from . import test_onchange_purchase_order_line_plasticos
 from . import test_onchange_sale_order_line_plasticos
+from . import test_material_grade_naming

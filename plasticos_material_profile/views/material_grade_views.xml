@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- ── List View ───────────────────────────────────────── -->
+  <record id="plasticos_material_grade_view_list" model="ir.ui.view">
+    <field name="name">plasticos.material.grade.list</field>
+    <field name="model">plasticos.material.grade</field>
+    <field name="arch" type="xml">
+      <list editable="bottom">
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="description"/>
+        <field name="active" widget="boolean_toggle"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- ── Action ──────────────────────────────────────────── -->
+  <record id="plasticos_material_grade_action" model="ir.actions.act_window">
+    <field name="name">Material Grades</field>
+    <field name="res_model">plasticos.material.grade</field>
+    <field name="view_mode">list</field>
+    <field name="context">{'active_test': False}</field>
+  </record>
+
+  <!-- Menu: PlasticOS → Configuration → Material Grades -->
+  <menuitem id="menu_material_grades"
+            name="Material Grades"
+            parent="menu_plasticos_config"
+            action="plasticos_material_grade_action"
+            sequence="5"/>
+</odoo>
