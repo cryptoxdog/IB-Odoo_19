@@ -313,9 +313,9 @@
 ./plasticos_material_profile/models/material_profile.py:31:                rec.display_name = f"{polymer} {form}"
 ./plasticos_material_profile/models/material_profile.py:33:                rec.display_name = polymer
 ./plasticos_material_profile/models/material_profile.py:35:                rec.display_name = f"Profile #{rec.id}"
-./plasticos_material_profile/models/material_profile.py:763:        polymer_name = self.polymer_id.name if self.polymer_id else "Material"
-./plasticos_material_profile/models/material_profile.py:764:        form_name = self.form_id.name if self.form_id else ""
-./plasticos_material_profile/models/material_profile.py:765:        partner_name = self.partner_id.name if self.partner_id else ""
+./plasticos_material_profile/models/material_profile.py:772:        polymer_name = self.polymer_id.name if self.polymer_id else "Material"
+./plasticos_material_profile/models/material_profile.py:773:        form_name = self.form_id.name if self.form_id else ""
+./plasticos_material_profile/models/material_profile.py:774:        partner_name = self.partner_id.name if self.partner_id else ""
 ./plasticos_material_profile/models/packaging_type.py:13:    _name = "plasticos.packaging.type"
 ./plasticos_material_profile/models/polymer.py:6:    _name = "plasticos.polymer"
 ./plasticos_material_profile/models/polymer.py:16:    full_name = fields.Char(

@@ -463,6 +463,7 @@
 ./scripts/audit/schema_audit.py:10:class SchemaAudit:
 ./scripts/audit/security_audit.py:85:class SecurityAudit:
 ./scripts/audit/test_audit.py:26:class TestAudit:
+./scripts/build_material_mapping.py:445:class Census:
 ./scripts/check_external_intelligence_readiness.py:52:    class _ICP:
 ./scripts/check_external_intelligence_readiness.py:56:    class _Env:
 ./scripts/evidence_odoo_mapping_consumer.py:13:class MappingProjection:

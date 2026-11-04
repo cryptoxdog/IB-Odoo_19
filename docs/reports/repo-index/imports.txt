@@ -1397,7 +1397,7 @@
 ./plasticos_material_profile/tests/test_material_normalizer.py:4:from unittest.mock import patch
 ./plasticos_material_profile/tests/test_material_normalizer.py:6:from odoo.addons.plasticos_material_profile.models.material_normalizer import (
 ./plasticos_material_profile/tests/test_material_normalizer.py:10:from odoo.tests import TransactionCase, tagged
-./plasticos_material_profile/tests/test_material_normalizer.py:171:        from odoo.addons.plasticos_material_profile.models.material_normalizer import _CRM_ALIASES  # noqa: PLC0415
+./plasticos_material_profile/tests/test_material_normalizer.py:179:        from odoo.addons.plasticos_material_profile.models.material_normalizer import _CRM_ALIASES  # noqa: PLC0415
 ./plasticos_material_profile/tests/test_material_profile_intake_delta_contract.py:3:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_material_profile/tests/test_material_profile_intake_delta_contract.py:4:from odoo.tests.common import tagged
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:3:import uuid
@@ -2146,6 +2146,18 @@
 ./scripts/audit/xml_field_audit.py:11:from collections import defaultdict
 ./scripts/audit/xml_field_audit.py:12:from datetime import datetime
 ./scripts/audit/xml_field_audit.py:13:from pathlib import Path
+./scripts/build_material_mapping.py:26:from __future__ import annotations
+./scripts/build_material_mapping.py:28:import argparse
+./scripts/build_material_mapping.py:29:import ast
+./scripts/build_material_mapping.py:30:import csv
+./scripts/build_material_mapping.py:31:import importlib.util
+./scripts/build_material_mapping.py:32:import re
+./scripts/build_material_mapping.py:33:import sys
+./scripts/build_material_mapping.py:34:import zipfile
+./scripts/build_material_mapping.py:35:from collections import defaultdict
+./scripts/build_material_mapping.py:36:from pathlib import Path
+./scripts/build_material_mapping.py:39:    from defusedxml import ElementTree as ET
+./scripts/build_material_mapping.py:46:    import xml.etree.ElementTree as ET  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
 ./scripts/build_pr_body.py:4:from __future__ import annotations
 ./scripts/build_pr_body.py:6:import subprocess
 ./scripts/build_pr_body.py:7:import sys
@@ -2982,6 +2994,13 @@
 ./tests/test_matching_gate_orchestrator.py:3:from __future__ import annotations
 ./tests/test_matching_gate_orchestrator.py:5:import ast
 ./tests/test_matching_gate_orchestrator.py:6:from pathlib import Path
+./tests/test_material_mapping_masters.py:13:from __future__ import annotations
+./tests/test_material_mapping_masters.py:15:import ast
+./tests/test_material_mapping_masters.py:16:import csv
+./tests/test_material_mapping_masters.py:17:import importlib.util
+./tests/test_material_mapping_masters.py:18:from pathlib import Path
+./tests/test_material_mapping_masters.py:20:import pytest
+./tests/test_material_mapping_masters.py:21:from defusedxml import ElementTree
 ./tests/test_material_profile_intake_delta_bridge_pure.py:3:import importlib.util
 ./tests/test_material_profile_intake_delta_bridge_pure.py:4:import sys
 ./tests/test_material_profile_intake_delta_bridge_pure.py:5:import types
