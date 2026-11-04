@@ -691,6 +691,13 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > **2026-10-23 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > these Agent Skills rows are retired. Cursor-Governance archived the packs out of live `skills/` discovery: `l9-governance-wiring`, `l9-harvest-pipeline`, `l9-inspect`, `l9-plan`, `l9-pr-analysis`, `l9-update-command`, and `l9-wire-skill-into-repo`. The tracked projections `.claude/skills/<name>`, their `.l9-managed-skills.json` entries, and their `.claude/README.md` rows were removed, as with the 2026-10-21 `l9-gmp-protocol` removal. Replacements: `l9-governance-wiring` → `l9-wire-into-repo` and `l9-governance-symlinks`; `l9-harvest-pipeline` → `/harvest` and `/use-harvest`; `l9-inspect` → `/inspect`; `l9-plan` → `l9-plan-simple` for ordinary plans (program-execution planning has no live owner); `l9-pr-analysis` → `l9-pr-remediation`; `l9-update-command` → `l9-dag-authoring`; `l9-wire-skill-into-repo` → `l9-wire-into-repo`. Do not re-add the skill symlinks.
 
+> **2026-11-03 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-10-21 sentence "Code debt stays in `docs/campaigns/odoo_tech_debt`" is superseded. PR #355 retired
+> that tracker (`00_README.md`, `OPEN_REGISTER.json`, `OPEN_REGISTER.md`, `_build_register.py`), and no
+> repository debt tracker replaces it. `workflow_state.md` remains the operational state of open campaigns.
+> `docs/erp_import_mapping.md` stays: it is the ERP import mapping authority cited by
+> `plasticos_partner_import/erp/mapping_status.py`, ADR-022 and the source-layer tests.
+
 > **2026-10-30 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > the Never line "Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`" is superseded
 > by operator decision 2026-10-30. A material profile belongs to a partner. No facility profile is required.

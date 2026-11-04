@@ -1,0 +1,36 @@
+# DORA META | component: GitHub Actions Kernel | version: 1.0.0 | ring: R5 | layer: developer_support
+---
+file: GITHUB_ACTIONS_KERNEL.yaml
+version: "1.0.0"
+ring: R5
+category: developer_support
+kernel_id: github_actions_kernel.v1
+requires: [DEVELOPER_CORE_KERNEL]
+
+init:
+  on_load: activate
+  verify: [workflow_checks_defined]
+  announce: false
+
+checks:
+  - triggers
+  - permissions
+  - secrets_handling
+  - caching
+  - job_dependencies
+  - artifact_uploads
+  - merge_gate_logic
+
+load_when: [ci_cd_workflow_generation, github_actions_review, workflow_design]
+
+hard_bans:
+  - "MUST NOT emit workflows with hardcoded secrets."
+  - "MUST NOT use wildcard permissions."
+
+convergence_footer:
+  status: converged
+  threshold: "changed_tokens / total_tokens < 0.05"
+  pass_count: 1
+  final_ratio: 0.017
+  artifact_type: yaml_kernel
+  naming_compliance: snake_case_verified
