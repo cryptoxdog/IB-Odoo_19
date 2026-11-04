@@ -22,6 +22,7 @@ FORM_CODES: tuple[str, ...] = (
     "FILM",
     "FLAKE",
     "FLOORSWEEP",
+    "FLUFF",
     "LOGS",
     "LOOSE",
     "OTHER",

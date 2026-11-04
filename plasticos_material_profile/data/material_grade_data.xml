@@ -17,6 +17,12 @@
     <field name="description">Plastic drums and barrels (55-gallon, etc.).</field>
     <field name="sequence">20</field>
   </record>
+  <record id="material_grade_jerry_cans" model="plasticos.material.grade">
+    <field name="name">Jerry Cans</field>
+    <field name="code">JERRY_CANS</field>
+    <field name="description">Plastic jerry cans and carboys, usually HDPE.</field>
+    <field name="sequence">25</field>
+  </record>
   <record id="material_grade_superacs" model="plasticos.material.grade">
     <field name="name">Superacs</field>
     <field name="code">SUPERACS</field>
@@ -40,6 +46,24 @@
     <field name="code">TUBS_LIDS</field>
     <field name="description">Plastic tubs with their lids.</field>
     <field name="sequence">60</field>
+  </record>
+  <record id="material_grade_cups" model="plasticos.material.grade">
+    <field name="name">Cups</field>
+    <field name="code">CUPS</field>
+    <field name="description">Plastic cups (drink, portion and yogurt cups).</field>
+    <field name="sequence">62</field>
+  </record>
+  <record id="material_grade_jars" model="plasticos.material.grade">
+    <field name="name">Jars</field>
+    <field name="code">JARS</field>
+    <field name="description">Plastic jars and wide-mouth containers.</field>
+    <field name="sequence">64</field>
+  </record>
+  <record id="material_grade_flower_pots" model="plasticos.material.grade">
+    <field name="name">Flower Pots</field>
+    <field name="code">FLOWER_POTS</field>
+    <field name="description">Plastic flower and nursery pots and trays.</field>
+    <field name="sequence">66</field>
   </record>
   <record id="material_grade_totes" model="plasticos.material.grade">
     <field name="name">Totes</field>
@@ -71,6 +95,18 @@
     <field name="description">Agricultural drip irrigation tube.</field>
     <field name="sequence">110</field>
   </record>
+  <record id="material_grade_pipe" model="plasticos.material.grade">
+    <field name="name">Pipe</field>
+    <field name="code">PIPE</field>
+    <field name="description">Plastic pipe and conduit, including corrugated pipe.</field>
+    <field name="sequence">115</field>
+  </record>
+  <record id="material_grade_tubing" model="plasticos.material.grade">
+    <field name="name">Tubing</field>
+    <field name="code">TUBING</field>
+    <field name="description">Flexible plastic tubing and hose (other than drip tube).</field>
+    <field name="sequence">117</field>
+  </record>
   <record id="material_grade_pallets" model="plasticos.material.grade">
     <field name="name">Pallets</field>
     <field name="code">PALLETS</field>
@@ -89,17 +125,41 @@
     <field name="description">Plastic strapping and banding.</field>
     <field name="sequence">140</field>
   </record>
+  <record id="material_grade_cornerboards" model="plasticos.material.grade">
+    <field name="name">Cornerboards</field>
+    <field name="code">CORNERBOARDS</field>
+    <field name="description">Plastic corner boards and edge protectors used to secure loads.</field>
+    <field name="sequence">145</field>
+  </record>
+  <record id="material_grade_core_plugs" model="plasticos.material.grade">
+    <field name="name">Core Plugs</field>
+    <field name="code">CORE_PLUGS</field>
+    <field name="description">Plastic core plugs and end caps for film and paper rolls.</field>
+    <field name="sequence">147</field>
+  </record>
   <record id="material_grade_crates" model="plasticos.material.grade">
     <field name="name">Crates</field>
     <field name="code">CRATES</field>
     <field name="description">Injection molded crates (dairy, produce, etc.).</field>
     <field name="sequence">150</field>
   </record>
+  <record id="material_grade_knockdown_bins" model="plasticos.material.grade">
+    <field name="name">Knockdown Bins</field>
+    <field name="code">KNOCKDOWN_BINS</field>
+    <field name="description">Collapsible (knock-down) bulk bins and containers.</field>
+    <field name="sequence">155</field>
+  </record>
   <record id="material_grade_bumpers" model="plasticos.material.grade">
     <field name="name">Bumpers</field>
     <field name="code">BUMPERS</field>
     <field name="description">Automotive bumpers and bumper covers.</field>
     <field name="sequence">160</field>
+  </record>
+  <record id="material_grade_siding" model="plasticos.material.grade">
+    <field name="name">Siding</field>
+    <field name="code">SIDING</field>
+    <field name="description">Vinyl or plastic house siding and trim.</field>
+    <field name="sequence">165</field>
   </record>
   <record id="material_grade_returns" model="plasticos.material.grade">
     <field name="name">Returns</field>
@@ -119,22 +179,34 @@
     <field name="description">Stretch and pallet wrap film.</field>
     <field name="sequence">190</field>
   </record>
+  <record id="material_grade_silage_film" model="plasticos.material.grade">
+    <field name="name">Silage Film</field>
+    <field name="code">SILAGE_FILM</field>
+    <field name="description">Agricultural silage and bunker cover film.</field>
+    <field name="sequence">192</field>
+  </record>
+  <record id="material_grade_nursery_film" model="plasticos.material.grade">
+    <field name="name">Nursery Film</field>
+    <field name="code">NURSERY_FILM</field>
+    <field name="description">Greenhouse and nursery film.</field>
+    <field name="sequence">194</field>
+  </record>
   <record id="material_grade_occ" model="plasticos.material.grade">
     <field name="name">OCC</field>
     <field name="code">OCC</field>
     <field name="description">Old corrugated containers.</field>
     <field name="sequence">200</field>
   </record>
+  <record id="material_grade_disposal_fee" model="plasticos.material.grade">
+    <field name="name">Disposal Fee</field>
+    <field name="code">DISPOSAL_FEE</field>
+    <field name="description">Material charged a disposal fee rather than purchased.</field>
+    <field name="sequence">205</field>
+  </record>
   <record id="material_grade_trash" model="plasticos.material.grade">
     <field name="name">Trash</field>
     <field name="code">TRASH</field>
     <field name="description">Mixed waste and trash.</field>
     <field name="sequence">210</field>
-  </record>
-  <record id="material_grade_sheet" model="plasticos.material.grade">
-    <field name="name">Sheet</field>
-    <field name="code">SHEET</field>
-    <field name="description">Sheet goods as supplied (distinct from the Sheet form).</field>
-    <field name="sequence">220</field>
   </record>
 </odoo>

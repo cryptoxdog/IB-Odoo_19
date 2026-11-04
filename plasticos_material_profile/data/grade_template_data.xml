@@ -136,6 +136,16 @@
       <field name="sequence">130</field>
     </record>
 
+    <record id="grade_hdpe_jerry_cans" model="plasticos.grade.template">
+      <field name="name">HDPE Jerry Cans</field>
+      <field name="code">HDPE_JERRY_CANS</field>
+      <field name="polymer_id" ref="polymer_hdpe"/>
+      <field name="material_grade_id" ref="material_grade_jerry_cans"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">135</field>
+    </record>
+
     <record id="grade_pp_corrugated" model="plasticos.grade.template">
       <field name="name">PP Corrugated</field>
       <field name="code">PP_CORRUGATED</field>

@@ -170,5 +170,77 @@
       <field name="description">Woven fabric (e.g., woven PP bags, super sacks).</field>
       <field name="sequence">270</field>
     </record>
+    <record id="attr_lined" model="plasticos.material.attribute">
+      <field name="name">Lined</field>
+      <field name="code">lined</field>
+      <field name="description">Has an inner liner (e.g., lined super sacks or boxes).</field>
+      <field name="sequence">280</field>
+    </record>
+    <record id="attr_unlined" model="plasticos.material.attribute">
+      <field name="name">Unlined</field>
+      <field name="code">unlined</field>
+      <field name="description">No inner liner.</field>
+      <field name="sequence">290</field>
+    </record>
+    <record id="attr_igps" model="plasticos.material.attribute">
+      <field name="name">iGPS</field>
+      <field name="code">igps</field>
+      <field name="description">iGPS pooled plastic pallets.</field>
+      <field name="sequence">300</field>
+    </record>
+    <record id="attr_washed" model="plasticos.material.attribute">
+      <field name="name">Washed</field>
+      <field name="code">washed</field>
+      <field name="description">Material has been washed.</field>
+      <field name="sequence">310</field>
+    </record>
+    <record id="attr_unwashed" model="plasticos.material.attribute">
+      <field name="name">Un-Washed</field>
+      <field name="code">unwashed</field>
+      <field name="description">Material has not been washed.</field>
+      <field name="sequence">320</field>
+    </record>
+    <record id="attr_structural_foam" model="plasticos.material.attribute">
+      <field name="name">Structural Foam</field>
+      <field name="code">structural_foam</field>
+      <field name="description">Structural foam grade (foamed core, solid skin), typical of molded pallets and bins.</field>
+      <field name="sequence">330</field>
+    </record>
+    <record id="attr_full_bottom" model="plasticos.material.attribute">
+      <field name="name">Full Bottom</field>
+      <field name="code">full_bottom</field>
+      <field name="description">Gaylord with a full (solid) bottom.</field>
+      <field name="sequence">340</field>
+    </record>
+    <record id="attr_half_bottom" model="plasticos.material.attribute">
+      <field name="name">Half Bottom</field>
+      <field name="code">half_bottom</field>
+      <field name="description">Gaylord with a half (partial-flap) bottom.</field>
+      <field name="sequence">350</field>
+    </record>
+    <record id="attr_with_lids" model="plasticos.material.attribute">
+      <field name="name">With Lids</field>
+      <field name="code">with_lids</field>
+      <field name="description">Gaylords supplied with their lids.</field>
+      <field name="sequence">360</field>
+    </record>
+    <record id="attr_trim" model="plasticos.material.attribute">
+      <field name="name">Trim</field>
+      <field name="code">trim</field>
+      <field name="description">Trim scrap (edge trim or skeletal trim from film, sheet or thermoforming).</field>
+      <field name="sequence">370</field>
+    </record>
+    <record id="attr_with_rubber" model="plasticos.material.attribute">
+      <field name="name">With Rubber</field>
+      <field name="code">with_rubber</field>
+      <field name="description">Contains rubber (e.g., gaskets, seals or overmolded rubber parts).</field>
+      <field name="sequence">380</field>
+    </record>
+    <record id="attr_pre_work_needed" model="plasticos.material.attribute">
+      <field name="name">Pre-Work Needed</field>
+      <field name="code">pre_work_needed</field>
+      <field name="description">Needs sorting, cutting, cleaning or other preparation before it can be processed.</field>
+      <field name="sequence">390</field>
+    </record>
   </data>
 </odoo>

@@ -81,9 +81,14 @@ def build_body(base: str) -> str:
         stat = _run("git", "show", "--stat", "--oneline", "-1")
 
     if not _TEMPLATE.is_file():
-        return _fallback_body(base, commits, stat)
-    template = _TEMPLATE.read_text(encoding="utf-8")
-    return fill_template(template, commits=commits, stat=stat)
+        body = _fallback_body(base, commits, stat)
+    else:
+        template = _TEMPLATE.read_text(encoding="utf-8")
+        body = fill_template(template, commits=commits, stat=stat)
+    if base != "Staging":
+        note = f"Stacked on `{base}`; merge that branch's pull request into Staging first."
+        body = f"{note}\n\n{body}"
+    return body
 
 
 def main() -> int:

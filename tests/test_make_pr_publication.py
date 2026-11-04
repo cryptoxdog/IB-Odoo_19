@@ -20,7 +20,12 @@ PIPELINE = "scripts/make_push_pipeline.sh"
 PUSH = "scripts/git_push_with_pr.sh"
 PRE_COMMIT_ARGS = "ARGS=(hook-impl --config=.pre-commit-config.yaml --hook-type=pre-push)"
 REPO = "cryptoxdog/IB-Odoo_19"
-PRODUCTION_SCRIPTS = ("make_push_pipeline.sh", "git_open_pr.sh", "apply_pr_kernel_metadata.sh")
+PRODUCTION_SCRIPTS = (
+    "make_push_pipeline.sh",
+    "git_open_pr.sh",
+    "apply_pr_kernel_metadata.sh",
+    "pr_stack_parent.sh",
+)
 
 # A REST-only `gh`, shaped like a cloud session: `gh auth status`, `gh pr ...`,
 # `gh label ...` and `gh api graphql` are refused (HTTP 403). `gh api` answers
@@ -704,6 +709,91 @@ def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     proc = subprocess.run(
         ["bash", "scripts/git_open_pr.sh", "fix/example", "Production"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=_env(tmp_path),
+        timeout=30,
+    )
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "destination must be Staging" in (proc.stdout + proc.stderr)
+    assert _seq(seq) == ""
+
+
+def _plant_parent(repo: Path, sha: str) -> None:
+    subprocess.run(
+        [REAL_GIT, "update-ref", "refs/remotes/origin/feat/parent", sha],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_stacked_base_without_parent_pr_refuses_before_push(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    parent = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    _plant_parent(repo, parent)
+    proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 1, output
+    assert "stacked parent feat/parent has no open PR into Staging" in output
+    _assert_no_push(seq)
+    assert "l4 " not in _seq(seq)
+
+
+def test_stacked_base_with_parent_pr_opens_pr_into_parent(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    parent = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    _plant_parent(repo, parent)
+    _commit(repo, "feat: child")
+    _set_gh_state(tmp_path, pulls=[_rest_pr(361, "feat/parent", parent)])
+    proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 0, output
+    created = [pr for pr in _gh_state(tmp_path)["pulls"] if pr["head"]["ref"] == "fix/example"]
+    assert len(created) == 1, _gh_state(tmp_path)
+    assert created[0]["base"]["ref"] == "feat/parent"
+    assert "Stacked on `feat/parent`" in created[0]["body"]
+    lookups = [
+        call
+        for call in _gh_calls(tmp_path)
+        if call["method"] == "GET"
+        and call["path"].endswith("/pulls")
+        and call["params"].get("head") == "cryptoxdog:feat/parent"
+    ]
+    assert lookups, _gh_calls(tmp_path)
+    assert lookups[0]["params"] == {"state": "open", "base": "Staging", "head": "cryptoxdog:feat/parent"}
+    assert "\npush\n" in f"\n{_seq(seq)}\n"
+
+
+def test_stacked_base_not_containing_parent_refuses(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    _commit(repo, "feat: child")
+    subprocess.run([REAL_GIT, "checkout", "--orphan", "side"], cwd=repo, check=True, capture_output=True)
+    (repo / "side.txt").write_text("side\n", encoding="utf-8")
+    subprocess.run([REAL_GIT, "add", "side.txt"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        [REAL_GIT, "-c", "user.email=test@example.com", "-c", "user.name=Test", "commit", "-m", "side"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    side = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    subprocess.run([REAL_GIT, "checkout", "fix/example"], cwd=repo, check=True, capture_output=True)
+    _plant_parent(repo, side)
+    _set_gh_state(tmp_path, pulls=[_rest_pr(361, "feat/parent", side)])
+    proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 1, output
+    assert "HEAD does not contain origin/feat/parent" in output
+    _assert_no_push(seq)
+
+
+def test_lowercase_main_base_refuses_before_any_gh_call(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    proc = subprocess.run(
+        ["bash", "scripts/git_open_pr.sh", "fix/example", "main"],
         cwd=repo,
         capture_output=True,
         text=True,
