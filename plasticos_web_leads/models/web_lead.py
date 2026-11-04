@@ -59,7 +59,6 @@ REJECTED_LEAD_PREFIX = "REJ-"
 
 # ── Pallet weight assumption when no lbs given ───────────────────────────────
 _LBS_PER_PALLET_ASSUMPTION = 1_500  # conservative: typical plastic pallet
-_FORM_TERM_CRATE = "crate"
 
 # ═══════════════════════════════════════════════════════════
 # Mapping helpers — translate AI output to Odoo field values
@@ -90,46 +89,6 @@ _POLYMER_NORMALIZE: dict[str, str] = {
     "pla": "PET",
     "e-waste": "EWASTE",
     "ewaste": "EWASTE",
-}
-
-_FORM_NORMALIZE: dict[str, str] = {
-    "bale": "BALES",
-    "baled": "BALES",
-    "bales": "BALES",
-    "regrind": "REGRIND",
-    "flake": "FLAKE",
-    "flakes": "FLAKE",
-    "pellet": "PELLETS",
-    "pellets": "PELLETS",
-    "rollstock": "ROLLSTOCK",
-    "purge": "PURGE",
-    "lump": "OTHER",
-    "lumps": "OTHER",
-    "film": "FILM",
-    "fluff": "FLUFF",
-    "sheet": "SHEET",
-    "powder": "POWDER",
-    "parts": "PARTS",
-    "part": "PARTS",
-    "pallet": "PALLETS",
-    "pallets": "PALLETS",
-    "tote": "TOTES",
-    "totes": "TOTES",
-    _FORM_TERM_CRATE: "CRATES",
-    "crates": "CRATES",
-    "re-useable": "OTHER",
-    "reuseable": "OTHER",
-    "reusable": "OTHER",
-    "bottle": "BOTTLES",
-    "bottles": "BOTTLES",
-    "drum": "DRUMS",
-    "drums": "DRUMS",
-    "bucket": "BUCKETS",
-    "buckets": "BUCKETS",
-    "pail": "BUCKETS",
-    "pails": "BUCKETS",
-    "roll": "ROLLSTOCK",
-    "rolls": "ROLLSTOCK",
 }
 
 _SOURCE_NORMALIZE: dict[str, str] = {
@@ -960,9 +919,6 @@ class PlasticosWebLead(models.Model):
         """
         merged: dict[str, Any] = {}
 
-        polymer_raw = (ai_data.get("polymer") or "").lower().strip()
-        merged["polymer"] = _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw or None)
-        merged["form"] = _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None)
         merged["color"] = (ai_data.get("color") or "").lower().strip() or None
         merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
         merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
@@ -983,32 +939,15 @@ class PlasticosWebLead(models.Model):
             else raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or ""
         ) or ""
 
-        # Explicit item words in a seller submission are deterministic material
-        # hints. They permit the reusable-item policy to recognize pallets,
-        # totes, or crates; polymer identity alone never changes the threshold.
-        # Pallet, tote, and crate are checked first so a lead naming both keeps
-        # the reusable-item code.
-        if not merged["form"]:
-            declared_material = " ".join(
-                str(value or "")
-                for value in (
-                    canonical.get("material_description"),
-                    canonical.get("material_composition_text"),
-                    raw.get("DescribeYourMaterial"),
-                    raw.get("WhatIsIt"),
-                )
-            ).lower()
-            for term, form_code in (
-                ("pallet", "PALLETS"),
-                ("tote", "TOTES"),
-                ("crate", "CRATES"),
-                ("drum", "DRUMS"),
-                ("bucket", "BUCKETS"),
-                ("pail", "BUCKETS"),
-            ):
-                if term in declared_material:
-                    merged["form"] = form_code
-                    break
+        declared_material = " ".join(
+            str(value or "")
+            for value in (
+                canonical.get("material_description"),
+                canonical.get("material_composition_text"),
+                raw.get("DescribeYourMaterial"),
+                raw.get("WhatIsIt"),
+            )
+        )
 
         # ── Weight fallback cascade ────────────────────────────────────
         if quantity_evidence is not None:
@@ -1046,14 +985,13 @@ class PlasticosWebLead(models.Model):
         merged["estimated_lbs"] = lbs
         merged["lbs_source"] = lbs_source
 
-        # ── Vision overrides for form/color/contamination ──────────────
+        # ── Vision color and contamination; form is classified below ──
+        observed_form = ""
         if vision_results:
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
             if best_vision:
-                v_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
-                if v_form and not merged["form"]:
-                    merged["form"] = v_form
+                observed_form = best_vision.get("observed_form") or ""
                 v_color = (best_vision.get("observed_color") or "").lower().strip()
                 if v_color and not merged["color"]:
                     merged["color"] = v_color
@@ -1062,12 +1000,72 @@ class PlasticosWebLead(models.Model):
                     merged["contamination_notes"] = best_vision.get("contamination_notes")
                 merged["vision_summary"] = best_vision.get("visual_summary", "")
 
-        # One code was picked above; the grade registry decides whether it is a
-        # form or what the items were. Classification reads both slots.
-        from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
-
-        merged["form"], merged["material_grade"] = split_material_code(merged["form"], GRADE_CODES)
+        self._apply_normalized_material(merged, declared_material, ai_data, observed_form)
         return merged
+
+    def _apply_normalized_material(self, merged, declared_material, ai_data, observed_form):
+        """Fill polymer, form, and grade from the shared normalizer.
+
+        The seller phrase fills first. A later answer fills only an empty slot.
+        Two answers that name different codes for one slot leave that slot empty.
+        Item words inside an unresolved phrase set a grade or a form and never
+        a polymer, so the worksheet phrase ``pallets`` is not applied to one
+        word inside a longer description.
+        """
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+            GRADE_WORD_PRIORITY,
+            classify_material_word,
+            normalize_material,
+        )
+
+        merged["polymer"] = None
+        merged["form"] = None
+        merged["material_grade"] = None
+        blocked: set[str] = set()
+
+        def fill(slot, code):
+            if not code or slot in blocked:
+                return
+            current = merged.get(slot)
+            if not current:
+                merged[slot] = code
+            elif current != code:
+                merged[slot] = None
+                blocked.add(slot)
+
+        def apply_result(result):
+            if result.unresolved:
+                return
+            fill("polymer", result.polymer.code or None)
+            fill("form", result.form.code or None)
+            fill("material_grade", result.material_grade.code or None)
+
+        text = " ".join(str(declared_material or "").split())
+        if text:
+            apply_result(normalize_material(self.env, text))
+            form_code = None
+            grades = []
+            for token in text.split():
+                word_form, word_grade = classify_material_word(token)
+                if word_form and form_code is None:
+                    form_code = word_form
+                if word_grade:
+                    grades.append(word_grade)
+            if form_code and not merged.get("form") and "form" not in blocked:
+                merged["form"] = form_code
+            if grades and not merged.get("material_grade") and "material_grade" not in blocked:
+                merged["material_grade"] = next(
+                    (code for code in GRADE_WORD_PRIORITY if code in grades),
+                    grades[0],
+                )
+
+        polymer_raw = (ai_data.get("polymer") or "").lower().strip()
+        fill("polymer", _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw or None))
+        ai_form = str(ai_data.get("form") or "").strip()
+        if ai_form:
+            apply_result(normalize_material(self.env, ai_form))
+        if str(observed_form or "").strip():
+            apply_result(normalize_material(self.env, observed_form))
 
     # ═══════════════════════════════════════════════════════════
     # HOT Lead Processing

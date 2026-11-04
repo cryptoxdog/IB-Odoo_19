@@ -68,3 +68,32 @@ class TestWebLeadMaterialGrade(TransactionCase):
 
         self.assertEqual(merged["form"], "FILM")
         self.assertIsNone(merged["material_grade"])
+
+    def test_drums_keep_the_vision_regrind_form(self):
+        lead = self._lead("grade-drums", "HDPE drums", "500 lbs")
+
+        merged = lead._merge_ai_and_vision({}, [{"observed_form": "regrind", "confidence": 0.9}])
+
+        self.assertEqual(merged["material_grade"], "DRUMS")
+        self.assertEqual(merged["form"], "REGRIND")
+        intake = lead._create_intake(merged, self.config)
+        self.assertEqual(intake.form_id.code, "REGRIND")
+        self.assertNotEqual(intake.form_id, self.form_other)
+        self.assertEqual(intake.material_grade_id.code, "DRUMS")
+
+    def test_film_and_buckets_stay_on_separate_slots(self):
+        lead = self._lead("grade-both", "buckets", "500 lbs")
+
+        merged = lead._merge_ai_and_vision({"form": "film"}, [])
+
+        self.assertEqual(merged["form"], "FILM")
+        self.assertEqual(merged["material_grade"], "BUCKETS")
+
+    def test_item_words_from_the_ai_are_grades(self):
+        lead = self._lead("grade-items", "scrap", "500 lbs")
+
+        for word, grade in (("pallet", "PALLETS"), ("drum", "DRUMS"), ("bucket", "BUCKETS")):
+            with self.subTest(word=word):
+                merged = lead._merge_ai_and_vision({"form": word}, [])
+                self.assertEqual(merged["material_grade"], grade)
+                self.assertFalse(merged["form"])

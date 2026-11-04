@@ -1,13 +1,12 @@
 """Web-lead material identity: one code splits to a form or a grade, and HOT/COLD does not move.
 
 Pure: loads the grade and form registries, the split helper, the economic policy, and the
-broker snapshot builder by file path. ``_FORM_NORMALIZE`` is read from ``web_lead.py``
-source because that module imports Odoo.
+broker snapshot builder by file path. Form and grade words are read from the normalizer,
+which does not import Odoo.
 """
 
 from __future__ import annotations
 
-import ast
 import importlib.util
 import sys
 import types
@@ -46,16 +45,9 @@ GRADE_CODES = GRADES.GRADE_CODES
 FORM_CODES = FORMS.FORM_CODES
 
 
-def _form_normalize_values() -> list[str]:
-    tree = ast.parse((WEB_LEADS_MODELS / "web_lead.py").read_text(encoding="utf-8"))
-    for node in tree.body:
-        if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", None) == "_FORM_NORMALIZE":
-            assert isinstance(node.value, ast.Dict)
-            return [value.value for value in node.value.values if isinstance(value, ast.Constant)]
-    raise AssertionError("_FORM_NORMALIZE not found in web_lead.py")
-
-
-FORM_NORMALIZE_VALUES = sorted(set(_form_normalize_values()))
+NORMALIZER = _load(PROFILE / "models" / "material_normalizer.py", "_web_lead_identity_normalizer")
+FORM_WORD_CODES = sorted(set(NORMALIZER._FORM_WORDS.values()))
+GRADE_WORD_CODES = sorted(set(NORMALIZER._GRADE_WORDS.values()))
 
 
 def _eligibility(lbs: float, *, polymer=None, form=None, grade=None):
@@ -74,9 +66,10 @@ def test_grade_and_form_registries_are_disjoint() -> None:
     assert not set(GRADE_CODES) & set(FORM_CODES)
 
 
-def test_every_web_lead_material_code_is_a_form_or_a_grade() -> None:
-    known = set(GRADE_CODES) | set(FORM_CODES)
-    assert [code for code in FORM_NORMALIZE_VALUES if code not in known] == []
+def test_normalizer_word_tables_keep_forms_and_grades_apart() -> None:
+    assert [code for code in FORM_WORD_CODES if code not in FORM_CODES] == []
+    assert [code for code in GRADE_WORD_CODES if code not in GRADE_CODES] == []
+    assert not set(NORMALIZER._FORM_WORDS) & set(NORMALIZER._GRADE_WORDS)
 
 
 @pytest.mark.parametrize("code", GRADE_CODES)
@@ -96,7 +89,7 @@ def test_split_upper_cases_and_treats_empty_as_unknown() -> None:
 
 
 @pytest.mark.parametrize("lbs", [7_900.0, 8_500.0, 10_500.0])
-@pytest.mark.parametrize("code", [*FORM_NORMALIZE_VALUES, None])
+@pytest.mark.parametrize("code", [*FORM_WORD_CODES, None])
 def test_split_keeps_every_hot_cold_decision(code, lbs: float) -> None:
     form, grade = split_material_code(code, GRADE_CODES)
     before = _eligibility(lbs, polymer="HDPE", form=code)
