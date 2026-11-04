@@ -12,7 +12,7 @@ Two import campaigns are open. Each campaign's own contract is the task.
 
 | Campaign | Scope |
 |---|---|
-| [Daytime contacts, then crosswalk](docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/README.md) | Active ERP contacts, then the 763 crosswalk IDs. Commercial documents stay out. |
-| [Full ERP, then full VanillaSoft](docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/README.md) | Partners, commercial documents, then all 4,876 VanillaSoft IDs. Delegation and inputs only. No Docker import has been executed. |
+| [Daytime contacts, then crosswalk](docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/README.md) | Active ERP contacts, then the 763 crosswalk IDs. Commercial documents stay out. |
+| [Full ERP, then full VanillaSoft](docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/README.md) | Partners, commercial documents, then all 4,876 VanillaSoft IDs. Delegation and inputs only. No Docker import has been executed. |
 
-Held apart from those packs: [Mack PR #197](docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/README.md). That pull request stays unmerged.
+Held apart from those packs: [Mack PR #197](docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/README.md). That pull request stays unmerged.
