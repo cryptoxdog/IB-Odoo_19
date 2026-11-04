@@ -255,9 +255,18 @@ if args[:1] == ["inspect"]:
     }]))
 if args[:1] == ["exec"] and "-i" in args and "-c" not in args:
     # The lease session: every request ends with SELECT '<token>'; answer it.
-    import re
+    # STUB_LEASE_DELAY holds a grant like a competing owner would, STUB_LEASE_WRONG_TOKEN
+    # answers a grant with a token that is not the requested one, STUB_LEASE_DIE ends
+    # the session instead of granting. Releases are always answered.
+    import re, time
     for line in sys.stdin:
         for token in re.findall(r"SELECT '([a-z]+-[0-9]+)';", line):
+            if token.startswith("granted-"):
+                if os.environ.get("STUB_LEASE_DIE"):
+                    sys.exit(1)
+                time.sleep(float(os.environ.get("STUB_LEASE_DELAY", "0")))
+                if os.environ.get("STUB_LEASE_WRONG_TOKEN"):
+                    token = "granted-0" + token.split("-", 1)[1]
             sys.stdout.write(token + chr(10))
             sys.stdout.flush()
     sys.exit(0)
@@ -314,16 +323,29 @@ def _stateful(
     )
 
 
-def _fingerprint(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+def _status(tmp_path: Path, root: Path = ROOT, **env: str) -> dict:
+    """One `status` observation: its fingerprint, addon source and input lines.
+
+    Callers that need several values of the same unchanged state read them from
+    one observation. Nothing is cached: every call runs the script again.
+    """
     status = _stateful(tmp_path, {}, "status", root=root, **env)
     assert status.returncode == 0, status.stderr
-    return re.search(r"fingerprint:\s+([0-9a-f]{64})", status.stdout).group(1)
+    return {
+        "fingerprint": re.search(r"fingerprint:\s+([0-9a-f]{64})", status.stdout).group(1),
+        "source": re.search(r"source:\s+([0-9a-f]{64})", status.stdout).group(1),
+        "inputs": [
+            line.split("  input  ", 1)[1] for line in status.stdout.splitlines() if line.startswith("  input  ")
+        ],
+    }
+
+
+def _fingerprint(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+    return _status(tmp_path, root=root, **env)["fingerprint"]
 
 
 def _source(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
-    status = _stateful(tmp_path, {}, "status", root=root, **env)
-    assert status.returncode == 0, status.stderr
-    return re.search(r"source:\s+([0-9a-f]{64})", status.stdout).group(1)
+    return _status(tmp_path, root=root, **env)["source"]
 
 
 def _template(fp: str) -> tuple[str, str]:
@@ -362,9 +384,7 @@ def _ee_clone(fp: str) -> str:
 
 
 def _inputs(tmp_path: Path, **env: str) -> list[str]:
-    status = _stateful(tmp_path, {}, "status", **env)
-    assert status.returncode == 0, status.stderr
-    return [line.split("  input  ", 1)[1] for line in status.stdout.splitlines() if line.startswith("  input  ")]
+    return _status(tmp_path, **env)["inputs"]
 
 
 def _sha256(text: str) -> str:
@@ -451,8 +471,8 @@ def test_fixture_admitted_for_other_inputs_is_refused_by_name(tmp_path, key):
 def test_fixture_recorded_with_addon_source_is_certified_without_a_rebuild(tmp_path):
     """F261-1: a fixture admitted while addon source was in its fp is proved by its inputs file."""
     env = _enterprise(tmp_path)
-    fp = _fingerprint(tmp_path, **env)
-    current = _inputs(tmp_path, **env)
+    observed = _status(tmp_path, **env)
+    fp, current = observed["fingerprint"], observed["inputs"]
     at = next(i for i, line in enumerate(current) if line.startswith("config="))
     recorded = current[:at] + ["addons=" + "e" * 64] + current[at:]
     text = "\n".join(recorded) + "\n"
@@ -1061,3 +1081,38 @@ def test_retirement_protects_detached_build_stages():
     assert refs.count("|| return 1") >= 3
     assert 'references="$(template_references "$name")" ||' in retire
     assert 'if [ -n "$references" ]; then' in retire
+
+
+# ---------------------------------------------------------------------------
+# Leases: `drop` takes the database lease before anything else, and an absent
+# database is refused only after the lease is granted. That refusal is the proof
+# the lease was (or was not) held.
+# ---------------------------------------------------------------------------
+def _drop(tmp_path: Path, **env: str) -> subprocess.CompletedProcess:
+    return _stateful(tmp_path, {}, "drop", "odoo_test_a", **env)
+
+
+def test_lease_granted_late_is_awaited_and_reports_the_wait(tmp_path):
+    result = _drop(tmp_path, STUB_LEASE_DELAY="2.2")
+    assert "waiting for lease 'db:odoo_test_a'" in result.stdout, result.stdout + result.stderr
+    assert result.returncode == 2, result.stderr
+    assert "odoo_test_a does not exist" in result.stderr
+
+
+def test_lease_answered_with_another_token_times_out_on_elapsed_time(tmp_path):
+    import time
+
+    started = time.monotonic()
+    result = _drop(tmp_path, STUB_LEASE_WRONG_TOKEN="1", TEST_ENV_LOCK_TIMEOUT="1")
+    elapsed = time.monotonic() - started
+    assert result.returncode == 1, result.stderr
+    assert "timed out after 1s waiting for lease 'db:odoo_test_a'" in result.stderr
+    assert "does not exist" not in result.stderr
+    assert 1 <= elapsed < 6, elapsed
+
+
+def test_lease_session_that_ends_without_a_grant_fails_closed(tmp_path):
+    result = _drop(tmp_path, STUB_LEASE_DIE="1")
+    assert result.returncode == 1, result.stderr
+    assert "lease session ended" in result.stderr
+    assert "does not exist" not in result.stderr

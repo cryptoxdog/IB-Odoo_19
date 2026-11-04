@@ -96,13 +96,12 @@ if args[:1] == ["exec"]:
         old = state(); old["modules"] = {}; old.pop("oid", None); save(old); sys.exit(0)
     if "FROM pg_database" in query:
         print(state().get("oid", "")); sys.exit(0)
+    # The only module-state query: every module, one row each. A per-module
+    # query is unknown here and fails, so the installer cannot regress to it.
     if "SELECT name || '=' || state" in query:
         if c.get("database_missing"): sys.exit(1)
         for name, value in state().get("modules", {}).items(): print(name + "=" + value)
         sys.exit(0)
-    if "SELECT state FROM ir_module_module" in query:
-        name = query.split("name = '", 1)[1].split("'", 1)[0]
-        print(state().get("modules", {}).get(name, "")); sys.exit(0)
 if args[:1] == ["run"]:
     if "xmlsec" in " ".join(args): print("xmlsec fixture"); sys.exit(0)
     if "-i" not in args: raise SystemExit("unexpected non-install compose run")
@@ -504,3 +503,37 @@ def test_receipt_without_database_binding_is_not_reusable(site: Site, mutation: 
         record.pop("database_oid")
     site.receipt.write_text(json.dumps(record))
     assert site.run("--recheck").returncode != 0
+
+
+def _state_queries(site: Site) -> list[str]:
+    return [
+        call["args"][-1]
+        for call in site.calls()
+        if call["args"][3:4] == ["exec"] and "ir_module_module" in call["args"][-1]
+    ]
+
+
+def test_installation_verifies_every_module_with_one_state_query(site: Site) -> None:
+    result = site.run()
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert len(_state_queries(site)) == 1, _state_queries(site)
+    for module in f"{ENTERPRISE},{CUSTOM}".split(","):
+        assert f"✅ {module}" in result.stdout, result.stdout
+
+
+@pytest.mark.parametrize("module", ("account_accountant", "plasticos_base"))
+def test_module_missing_after_installation_never_writes_evidence(site: Site, module: str) -> None:
+    site.configure(missing_modules=[module])
+    result = site.run()
+    assert result.returncode != 0
+    assert f"❌ {module} → 'missing'" in result.stdout, result.stdout
+    assert not site.receipt.exists(), "INSTALL_STATE: a module absent after installation received evidence"
+
+
+def test_failed_state_query_after_installation_never_writes_evidence(site: Site) -> None:
+    site.configure(database_missing=True)
+    result = site.run()
+    assert result.returncode != 0
+    for module in f"{ENTERPRISE},{CUSTOM}".split(","):
+        assert f"❌ {module} → 'missing'" in result.stdout, result.stdout
+    assert not site.receipt.exists(), "INSTALL_STATE: an unreadable module state received evidence"
