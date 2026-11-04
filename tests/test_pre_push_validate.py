@@ -101,16 +101,19 @@ def _run(repo: Path, mode: str, env: dict[str, str]) -> subprocess.CompletedProc
     )
 
 
-def _run_from_publisher(repo: Path, mode: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+def _run_from_publisher(
+    repo: Path, mode: str, env: dict[str, str], pid_expr: str = "$$"
+) -> subprocess.CompletedProcess[str]:
     """Run the gate as a descendant of a process named scripts/git_push_with_pr.sh.
 
     The stand-in publisher lives outside the repository, so the tree stays clean.
     It does not exec: the gate must see it as a live ancestor, as it does under make pr.
+    Like the real publisher it names itself with L9_PUBLISH_PID (`pid_expr`, default `$$`).
     """
     assert BASH
     publisher = repo.parent / "publisher" / "scripts" / "git_push_with_pr.sh"
     publisher.parent.mkdir(parents=True, exist_ok=True)
-    _write(publisher, f'#!/bin/bash\n"{BASH}" "{SCRIPT}" "$1"\nexit $?\n')
+    _write(publisher, f'#!/bin/bash\nL9_PUBLISH_PID="{pid_expr}" "{BASH}" "{SCRIPT}" "$1"\nexit $?\n')
     full = _base_env(repo.parent)
     full.update(env)
     return subprocess.run(
@@ -150,10 +153,26 @@ def test_forged_binding_on_a_direct_push_runs_the_full_gate(work: tuple[Path, Pa
     itself, is honoured; the variables alone are not evidence.
     """
     repo, seq, head = work
-    proc = _run(repo, mode, _bound(head))
+    # pytest is a live ancestor, but it is not the publisher.
+    proc = _run(repo, mode, _bound(head, L9_PUBLISH_PID=str(os.getpid())))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "validated by make pr" not in proc.stdout
     assert _seq(seq) != "", "a forged binding skipped validation"
+
+
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+@pytest.mark.parametrize("pid_expr", ["", "$PPID", "1", "999999999"], ids=["unset", "parent", "init", "absent"])
+def test_publisher_pid_must_name_the_publisher_ancestor(work: tuple[Path, Path, str], mode: str, pid_expr: str) -> None:
+    """A real publisher ancestor is not enough: L9_PUBLISH_PID must name that process.
+
+    Found 2026-11-04: under `make pr`, the test suite itself runs below the real
+    publisher, so "any publisher ancestor" let a forged binding there skip the gate.
+    """
+    repo, seq, head = work
+    proc = _run_from_publisher(repo, mode, _bound(head), pid_expr=pid_expr)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "validated by make pr" not in proc.stdout
+    assert _seq(seq) != "", f"L9_PUBLISH_PID={pid_expr!r} skipped validation"
 
 
 @pytest.mark.parametrize("mode", ["gitleaks", "gate"])
@@ -168,7 +187,7 @@ def test_an_ancestor_that_only_names_the_publisher_does_not_count(work: tuple[Pa
     full = _base_env(repo.parent)
     full.update(_bound(head))
     # `; exit $?` keeps bash alive as the gate's parent instead of exec-ing it.
-    command = f'"{BASH}" "{SCRIPT}" {mode}; exit $?'
+    command = f'L9_PUBLISH_PID=$$ "{BASH}" "{SCRIPT}" {mode}; exit $?'
     proc = subprocess.run(
         [BASH, "-c", command, "scripts/git_push_with_pr.sh"],
         cwd=repo,

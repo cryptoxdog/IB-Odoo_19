@@ -56,17 +56,20 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 # The binding variables alone are not evidence: anyone can set them on a plain
-# `git push`. They are honoured only when this hook descends from the publisher,
-# scripts/git_push_with_pr.sh, which runs the full gate before every push. A
-# process that cannot be inspected fails closed (the full gate runs). The
-# publisher must be the program itself (argv[0]) or the script its interpreter
-# runs (argv[1]); a process that merely names the path in an argument (an
-# editor, `grep`, `bash -c "..."`) does not count.
+# `git push`. The publisher, scripts/git_push_with_pr.sh, also passes its own
+# PID as L9_PUBLISH_PID. The binding is honoured only when that exact PID is a
+# live ancestor of this hook (up to 10 levels) and its argv[0] or argv[1] is the
+# publisher script; a process that merely names the path in a later argument
+# (an editor, `grep`, `bash -c "..."`) does not count. Naming the PID, not
+# "any publisher ancestor", keeps work running inside a real publisher's gate
+# (its test suite) from inheriting the skip. Unreadable ancestry fails closed.
 launched_by_publisher() {
-  local pid="${PPID}" args _ field
+  local want="${L9_PUBLISH_PID:-}" pid="${PPID}" current args _ field
   local -a argv
+  [[ "${want}" =~ ^[0-9]+$ ]] && ((want > 1)) || return 1
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     [[ "${pid}" =~ ^[0-9]+$ ]] && ((pid > 1)) || return 1
+    current="${pid}"
     argv=()
     if [[ -r "/proc/${pid}/cmdline" ]]; then
       mapfile -d '' -t argv < "/proc/${pid}/cmdline"
@@ -76,9 +79,12 @@ launched_by_publisher() {
       read -r -a argv <<< "${args}"
       pid="$(ps -o ppid= -p "${pid}" 2> /dev/null | tr -d ' ')"
     fi
-    for field in "${argv[@]:0:2}"; do
-      [[ "${field}" == "scripts/git_push_with_pr.sh" || "${field}" == */scripts/git_push_with_pr.sh ]] && return 0
-    done
+    if [[ "${current}" == "${want}" ]]; then
+      for field in "${argv[@]:0:2}"; do
+        [[ "${field}" == "scripts/git_push_with_pr.sh" || "${field}" == */scripts/git_push_with_pr.sh ]] && return 0
+      done
+      return 1
+    fi
   done
   return 1
 }

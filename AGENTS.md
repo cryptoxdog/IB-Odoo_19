@@ -710,8 +710,8 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `make pr` (`scripts/git_push_with_pr.sh`)
 > owns an unconditional gate on every attempt (gitleaks, smoke resolve, `make pr-check`, smoke recheck), then a
 > second L4 check immediately before `git push`. Its push alone carries a binding that `scripts/pre_push_validate.sh`
-> honours only for that exact SHA, clean `HEAD`, `origin`, and target branch, and only when the hook descends from
-> `scripts/git_push_with_pr.sh` (argv[0] or argv[1] of an ancestor process; unreadable ancestry fails closed), so
+> honours only for that exact SHA, clean `HEAD`, `origin`, and target branch, and only when `L9_PUBLISH_PID` names a
+> live ancestor whose argv[0] or argv[1] is `scripts/git_push_with_pr.sh` (unreadable ancestry fails closed), so
 > each attempt validates once. Every other push, including a direct `git push` that sets the binding variables
 > itself, runs the full gate in the hook. A direct `git push` is validated but is not publication
 > (no L4, no PR). Supported push forms and the threat model are in `docs/reports/make-pr-validation-consolidation.md`.

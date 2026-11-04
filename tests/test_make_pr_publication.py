@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -295,7 +296,7 @@ exit "${{INSTALL_SMOKE_RC:-0}}"
 github="https://github.com/cryptoxdog/IB-Odoo_19.git"
 if [[ "$1" == "push" ]]; then
   echo "push" >> "{seq}"
-  echo "push-env sha=${{L9_PUBLISH_VALIDATED_SHA-}} target=${{L9_PUBLISH_TARGET-}} argc=$#" >> "{seq}"
+  echo "push-env sha=${{L9_PUBLISH_VALIDATED_SHA-}} target=${{L9_PUBLISH_TARGET-}} pid=${{L9_PUBLISH_PID-}} argc=$#" >> "{seq}"
   if [[ -n "${{REAL_REMOTE:-}}" ]]; then
     exec "{REAL_GIT}" -c "url.$REAL_REMOTE.pushInsteadOf=$github" "$@"
   fi
@@ -489,7 +490,7 @@ def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path:
     assert text.count("l4 ") == 2, text
     head = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
     # The push alone carries the binding, as exactly one refspec: push origin <sha>:refs/heads/<branch>.
-    assert f"push-env sha={head} target=fix/example argc=3" in text, text
+    assert re.search(rf"push-env sha={head} target=fix/example pid=[0-9]+ argc=3", text), text
     assert "Open PR #222" in output
 
 
@@ -567,7 +568,14 @@ def test_inherited_publisher_binding_does_not_skip_publisher_validation(tmp_path
     """A forged or stale binding in the caller's environment authorizes nothing."""
     repo, seq = _init_repo(tmp_path)
     head = _head(repo)
-    proc = _push(repo, tmp_path, "fix/example", L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/example")
+    proc = _push(
+        repo,
+        tmp_path,
+        "fix/example",
+        L9_PUBLISH_VALIDATED_SHA=head,
+        L9_PUBLISH_TARGET="fix/example",
+        L9_PUBLISH_PID="1",
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     text = _seq(seq)
     assert text.count("make ") == 1, text

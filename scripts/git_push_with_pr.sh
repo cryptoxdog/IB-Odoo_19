@@ -5,12 +5,13 @@
 # This script owns the publication gate. It runs on every attempt, before
 # git push, including retries where git has nothing new to push and the
 # pre-push stage runs no hook. After it passes, the push alone carries
-# L9_PUBLISH_VALIDATED_SHA / L9_PUBLISH_TARGET, which scripts/pre_push_validate.sh
-# honours only for exactly this push, so the candidate is validated once.
+# L9_PUBLISH_VALIDATED_SHA / L9_PUBLISH_TARGET / L9_PUBLISH_PID (this shell's PID),
+# which scripts/pre_push_validate.sh honours only for exactly this push and only
+# while this process is its live ancestor, so the candidate is validated once.
 set -euo pipefail
 
 # A binding is set below, on the push only, after this gate. Never inherit one.
-unset L9_PUBLISH_VALIDATED_SHA L9_PUBLISH_TARGET
+unset L9_PUBLISH_VALIDATED_SHA L9_PUBLISH_TARGET L9_PUBLISH_PID
 
 refuse() {
   echo "refusing to publish: $*" >&2
@@ -210,7 +211,8 @@ require_l4_release
 # already did for this SHA and target. A nonzero hook exit fails the push and
 # no remote ref advances.
 set +e
-L9_PUBLISH_VALIDATED_SHA="${LOCAL_SHA}" L9_PUBLISH_TARGET="${TARGET}" \
+# git push runs as a child (no exec), so this shell stays the hook's ancestor.
+L9_PUBLISH_VALIDATED_SHA="${LOCAL_SHA}" L9_PUBLISH_TARGET="${TARGET}" L9_PUBLISH_PID="$$" \
   git push origin "${LOCAL_SHA}:refs/heads/${TARGET}"
 push_rc=$?
 set -e

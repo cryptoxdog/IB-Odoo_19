@@ -326,13 +326,16 @@ def _push_via_publisher(
     """Push from a stand-in `scripts/git_push_with_pr.sh`, as `make pr` does.
 
     The stand-in lives outside the work repo, so the tree stays clean. The hook
-    honours the binding only when that script is among its ancestors.
+    honours the binding only when L9_PUBLISH_PID names that live ancestor.
     """
     assert GIT
     publisher = tmp_path / "publisher" / "scripts" / "git_push_with_pr.sh"
     publisher.parent.mkdir(parents=True, exist_ok=True)
     # No `exec`: like the real publisher, the script stays alive as git's parent.
-    publisher.write_text(f'#!/bin/bash\n"{GIT}" push origin HEAD:refs/heads/fix/example\nexit $?\n', encoding="utf-8")
+    publisher.write_text(
+        f'#!/bin/bash\nL9_PUBLISH_PID="$$" "{GIT}" push origin HEAD:refs/heads/fix/example\nexit $?\n',
+        encoding="utf-8",
+    )
     publisher.chmod(0o755)
     return subprocess.run(
         ["bash", str(publisher)],
@@ -366,7 +369,9 @@ def test_forged_binding_on_a_direct_push_still_runs_the_gate(tmp_path: Path) -> 
     """An exact binding set by hand on a plain `git push` is not evidence of validation."""
     repo, bare, env, seq = _gate_repo(tmp_path)
     head = _git(repo, env, "rev-parse", "HEAD").stdout.strip()
-    proc = _push_head(repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/example")
+    proc = _push_head(
+        repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/example", L9_PUBLISH_PID=str(os.getpid())
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert _gate_seq(seq) == ["gitleaks detect --config .gitleaks.toml --redact --exit-code 2", "make pr-check"]
     assert _remote_ref(bare, env, "refs/heads/fix/example") == head

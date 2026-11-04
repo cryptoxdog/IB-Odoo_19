@@ -20,7 +20,7 @@ The change keeps the gate in the publisher and makes the hook the second gate fo
 | Component | Owns |
 |---|---|
 | `scripts/git_push_with_pr.sh` | Runs on every attempt, before `git push`: gitleaks, smoke resolve, `make pr-check`, HEAD/worktree check, smoke recheck, then the **second L4 check at the push boundary** (the first stays in `make_push_pipeline.sh`). Pushes one refspec carrying `L9_PUBLISH_VALIDATED_SHA` and `L9_PUBLISH_TARGET`. Clears any inherited values first. |
-| `scripts/pre_push_validate.sh` | Pre-push gate (`gitleaks` and `gate` modes). Skips its work only when the binding names this exact push (pushed SHA = HEAD, clean tree, remote `origin`, `refs/heads/<target>`) and the hook descends from `scripts/git_push_with_pr.sh`. Otherwise runs the full gitleaks scan and `make pr-check`. |
+| `scripts/pre_push_validate.sh` | Pre-push gate (`gitleaks` and `gate` modes). Skips its work only when the binding names this exact push (pushed SHA = HEAD, clean tree, remote `origin`, `refs/heads/<target>`) and `L9_PUBLISH_PID` names a live `scripts/git_push_with_pr.sh` ancestor. Otherwise runs the full gitleaks scan and `make pr-check`. |
 | `.pre-commit-config.yaml` | `default_stages: [pre-commit]`. Pre-push stage is 10 hooks (below). The 23 Odoo scanners are commit-only. |
 
 No validation receipt or other file is read as evidence anywhere.
@@ -78,12 +78,15 @@ Measured on pre-commit 4.7.0 (`tests/test_publication_real_push.py`).
   remote branch runs the full gate (`tests/test_pre_push_validate.py`). A binding for a SHA other than
   `HEAD` is refused.
 - **The binding variables alone are not evidence (2026-11-04, independent review finding).** Anyone can
-  set `L9_PUBLISH_VALIDATED_SHA` and `L9_PUBLISH_TARGET` on a plain `git push`. The hook honours them
-  only when an ancestor process (up to 10 levels, `/proc` with a `ps` fallback) has
-  `scripts/git_push_with_pr.sh` as argv[0] or argv[1], which is how `make_push_pipeline.sh` runs it. A
-  process that only names the path in a later argument (an editor, `grep`, `bash -c "..."`) does not
-  count, and unreadable ancestry fails closed to the full gate. Covered by
+  set `L9_PUBLISH_VALIDATED_SHA` and `L9_PUBLISH_TARGET` on a plain `git push`. The publisher also
+  passes its own PID as `L9_PUBLISH_PID` on that push only. The hook honours the binding only when that
+  exact PID is a live ancestor (up to 10 levels, `/proc` with a `ps` fallback) whose argv[0] or argv[1] is
+  `scripts/git_push_with_pr.sh`, which is how `make_push_pipeline.sh` runs it. A process that only names
+  the path in a later argument (an editor, `grep`, `bash -c "..."`) does not count, and unreadable ancestry
+  fails closed to the full gate. Naming the PID matters: under `make pr` the test suite runs below the real
+  publisher, so "any publisher ancestor" would let anything inside that gate skip the hook. Covered by
   `test_forged_binding_on_a_direct_push_runs_the_full_gate`,
+  `test_publisher_pid_must_name_the_publisher_ancestor`,
   `test_an_ancestor_that_only_names_the_publisher_does_not_count`, and the real-runner
   `test_forged_binding_on_a_direct_push_still_runs_the_gate`. Residual: a local actor can still run
   their own script at that path; like `--no-verify`, that is deliberate bypass, and ci.yml is the merge gate.
