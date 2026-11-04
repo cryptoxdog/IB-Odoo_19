@@ -114,6 +114,8 @@
       <field name="description">Contains flame retardant additives. Critical for buyer matching - some processors cannot handle FR materials.</field>
       <field name="sequence">180</field>
     </record>
+  </data>
+  <data noupdate="1">
     <record id="attr_repairable" model="plasticos.material.attribute">
       <field name="name">Repairable</field>
       <field name="code">repairable</field>
