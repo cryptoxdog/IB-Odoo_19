@@ -4,12 +4,10 @@ These tests characterize the hook runner the publication gate depends on. A
 pre-commit release that changes any of these behaviours fails here before it
 can change what `make pr` or a direct `git push` validates.
 
-Exception (95-test-fix-policy): the module skips when no `pre-commit` binary is
-on PATH. CI's pure-python job installs pytest only (ci.yml is out of scope for
-this change), and the behaviour under test is the real runner's, so a stub
-would assert nothing. Removal trigger: pre-commit added to that job's install
-line. The same pattern guards the real-gitleaks test in
-tests/test_make_pr_publication.py.
+Exception (95-test-fix-policy): the module skips when `pre-commit` or `git` is
+not on PATH. The behaviour under test is the real runner's, so a stub would
+assert nothing. CI's pure-python job installs `pre-commit==4.7.0`, so these
+tests run there; the skip covers developer machines without the runner.
 """
 
 from __future__ import annotations
@@ -322,10 +320,35 @@ def test_gitleaks_finding_stops_the_stage_before_pr_check(tmp_path: Path) -> Non
     assert _remote_ref(bare, env, "refs/heads/fix/example") == before
 
 
+def _push_via_publisher(
+    tmp_path: Path, repo: Path, env: dict[str, str], **extra: str
+) -> subprocess.CompletedProcess[str]:
+    """Push from a stand-in `scripts/git_push_with_pr.sh`, as `make pr` does.
+
+    The stand-in lives outside the work repo, so the tree stays clean. The hook
+    honours the binding only when that script is among its ancestors.
+    """
+    assert GIT
+    publisher = tmp_path / "publisher" / "scripts" / "git_push_with_pr.sh"
+    publisher.parent.mkdir(parents=True, exist_ok=True)
+    # No `exec`: like the real publisher, the script stays alive as git's parent.
+    publisher.write_text(f'#!/bin/bash\n"{GIT}" push origin HEAD:refs/heads/fix/example\nexit $?\n', encoding="utf-8")
+    publisher.chmod(0o755)
+    return subprocess.run(
+        ["bash", str(publisher)],
+        cwd=repo,
+        env={**env, **extra},
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+
+
 def test_publisher_bound_push_skips_both_heavy_hooks(tmp_path: Path) -> None:
     repo, bare, env, seq = _gate_repo(tmp_path)
     head = _git(repo, env, "rev-parse", "HEAD").stdout.strip()
-    proc = _push_head(repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/example")
+    proc = _push_via_publisher(tmp_path, repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/example")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert _gate_seq(seq) == []
     assert _remote_ref(bare, env, "refs/heads/fix/example") == head
@@ -334,6 +357,16 @@ def test_publisher_bound_push_skips_both_heavy_hooks(tmp_path: Path) -> None:
 def test_binding_for_another_branch_still_runs_the_gate(tmp_path: Path) -> None:
     repo, bare, env, seq = _gate_repo(tmp_path)
     head = _git(repo, env, "rev-parse", "HEAD").stdout.strip()
-    proc = _push_head(repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/other")
+    proc = _push_via_publisher(tmp_path, repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/other")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert _gate_seq(seq) == ["gitleaks detect --config .gitleaks.toml --redact --exit-code 2", "make pr-check"]
+
+
+def test_forged_binding_on_a_direct_push_still_runs_the_gate(tmp_path: Path) -> None:
+    """An exact binding set by hand on a plain `git push` is not evidence of validation."""
+    repo, bare, env, seq = _gate_repo(tmp_path)
+    head = _git(repo, env, "rev-parse", "HEAD").stdout.strip()
+    proc = _push_head(repo, env, L9_PUBLISH_VALIDATED_SHA=head, L9_PUBLISH_TARGET="fix/example")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _gate_seq(seq) == ["gitleaks detect --config .gitleaks.toml --redact --exit-code 2", "make pr-check"]
+    assert _remote_ref(bare, env, "refs/heads/fix/example") == head

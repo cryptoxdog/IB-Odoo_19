@@ -79,6 +79,16 @@ Operator-authorized change outside the original lock: `.github/workflows/ci.yml`
 | Why the earlier evidence missed it | The real-runner gate tests stub `make`. `make pr`'s own push is bound, so the hook never ran `make pr-check` during publication. The benchmark clones are plain clones, whose hooks get a relative `GIT_DIR`, so their direct-push timings stand. |
 | Publication | `8cc9f03` via `make pr-nosmoke` (operator instruction; `L9_FULL_PYTEST_AUTHORIZED` set with that reason): 2010 passed, 48 skipped; pre-push gate passed. |
 
+## Integration review fixes (2026-11-04)
+
+The four-PR Docker integration run (#355–#358 combined, `85843194`) passed. The independent source review
+then found two items on #358:
+
+| Finding | Fix |
+|---|---|
+| MEDIUM: the hook skipped on the binding variables alone, so a direct `git push` with them set by hand skipped gitleaks and `make pr-check` | `scripts/pre_push_validate.sh` also requires `scripts/git_push_with_pr.sh` as argv[0] or argv[1] of an ancestor process; unreadable ancestry fails closed. The red test (`test_forged_binding_on_a_direct_push_runs_the_full_gate`) failed before the fix and passes after. A first version matched the path as a substring and accepted an unrelated shell that only mentioned it. `test_an_ancestor_that_only_names_the_publisher_does_not_count` covers that case; a manual run showed the substring version skips and the argv version runs the gate. Real-runner tests now push through a stand-in publisher outside the repo, and a forged direct push is tested under real git and pre-commit. |
+| LOW: the AGENTS.md correction claimed all 23 commit-only scanners run in `ci.yml` | Corrected: all 23 run in `make pr-check` (`make audit`); `constraint-patterns`, `disabled-actions` and `automation-field-refs` are not in `ci.yml`. Not added to `ci.yml` here (outside the authorized change). `INVARIANTS.md` hook count updated (36 → 39). |
+
 Other publication-path findings: `make commit` breaks on an apostrophe in `m=` (single-quoted `MSG`); the
 governance push gate parsed a shell redirection `>` as a branch name; a compound command is checked against
 the L4 receipt as a whole, so `authorize-release` must run as its own command before `make commit`.

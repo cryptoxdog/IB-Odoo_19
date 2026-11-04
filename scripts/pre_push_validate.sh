@@ -8,8 +8,10 @@
 # push and pre-commit runs no hook. It sets L9_PUBLISH_VALIDATED_SHA and
 # L9_PUBLISH_TARGET on its own `git push` only, after that gate passed. This
 # hook skips its duplicate work only when that binding names exactly this
-# push: the pushed SHA, HEAD, a clean tree, remote origin, refs/heads/<target>.
-# Any other push, including a direct `git push`, runs the full gate here.
+# push (the pushed SHA, HEAD, a clean tree, remote origin, refs/heads/<target>)
+# AND the hook runs under scripts/git_push_with_pr.sh. Any other push,
+# including a direct `git push` that sets the variables itself, runs the full
+# gate here.
 #
 # Push forms (pre-commit 4.7.0, see tests/test_publication_real_push.py):
 #   update / new branch with new commits   validated here
@@ -21,8 +23,9 @@
 #                                          only; hooks cannot see the others
 #   root of history (all-files mode)       refused below
 #
-# Threat model: this stops accidental and stale bypass. A deliberate local
-# actor can already skip hooks with --no-verify; ci.yml is the merge gate.
+# Threat model: this stops accidental, stale and env-forged bypass. A
+# deliberate local actor can still skip hooks with --no-verify (governed for
+# agents) or by disguising a process as the publisher; ci.yml is the merge gate.
 set -euo pipefail
 
 refuse() {
@@ -52,11 +55,40 @@ if [[ -n "$(git status --porcelain)" ]]; then
   refuse "working tree, index, or untracked files are not clean"
 fi
 
+# The binding variables alone are not evidence: anyone can set them on a plain
+# `git push`. They are honoured only when this hook descends from the publisher,
+# scripts/git_push_with_pr.sh, which runs the full gate before every push. A
+# process that cannot be inspected fails closed (the full gate runs). The
+# publisher must be the program itself (argv[0]) or the script its interpreter
+# runs (argv[1]); a process that merely names the path in an argument (an
+# editor, `grep`, `bash -c "..."`) does not count.
+launched_by_publisher() {
+  local pid="${PPID}" args _ field
+  local -a argv
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    [[ "${pid}" =~ ^[0-9]+$ ]] && ((pid > 1)) || return 1
+    argv=()
+    if [[ -r "/proc/${pid}/cmdline" ]]; then
+      mapfile -d '' -t argv < "/proc/${pid}/cmdline"
+      pid="$(awk '/^PPid:/ {print $2}' "/proc/${pid}/status" 2> /dev/null)"
+    else
+      args="$(ps -o args= -p "${pid}" 2> /dev/null)" || return 1
+      read -r -a argv <<< "${args}"
+      pid="$(ps -o ppid= -p "${pid}" 2> /dev/null | tr -d ' ')"
+    fi
+    for field in "${argv[@]:0:2}"; do
+      [[ "${field}" == "scripts/git_push_with_pr.sh" || "${field}" == */scripts/git_push_with_pr.sh ]] && return 0
+    done
+  done
+  return 1
+}
+
 publisher_validated() {
   [[ -n "${L9_PUBLISH_VALIDATED_SHA:-}" && -n "${L9_PUBLISH_TARGET:-}" ]] || return 1
   [[ "${L9_PUBLISH_VALIDATED_SHA}" == "${to_ref}" ]] || return 1
   [[ "${PRE_COMMIT_REMOTE_NAME:-}" == "origin" ]] || return 1
   [[ "${PRE_COMMIT_REMOTE_BRANCH:-}" == "refs/heads/${L9_PUBLISH_TARGET}" ]] || return 1
+  launched_by_publisher
 }
 
 if publisher_validated; then

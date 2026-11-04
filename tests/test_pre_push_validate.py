@@ -101,6 +101,23 @@ def _run(repo: Path, mode: str, env: dict[str, str]) -> subprocess.CompletedProc
     )
 
 
+def _run_from_publisher(repo: Path, mode: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    """Run the gate as a descendant of a process named scripts/git_push_with_pr.sh.
+
+    The stand-in publisher lives outside the repository, so the tree stays clean.
+    It does not exec: the gate must see it as a live ancestor, as it does under make pr.
+    """
+    assert BASH
+    publisher = repo.parent / "publisher" / "scripts" / "git_push_with_pr.sh"
+    publisher.parent.mkdir(parents=True, exist_ok=True)
+    _write(publisher, f'#!/bin/bash\n"{BASH}" "{SCRIPT}" "$1"\nexit $?\n')
+    full = _base_env(repo.parent)
+    full.update(env)
+    return subprocess.run(
+        [BASH, str(publisher), mode], cwd=repo, env=full, capture_output=True, text=True, check=False, timeout=30
+    )
+
+
 def _seq(seq: Path) -> str:
     return seq.read_text(encoding="utf-8") if seq.exists() else ""
 
@@ -119,10 +136,51 @@ def test_direct_push_runs_the_full_gate(work: tuple[Path, Path, str], mode: str)
 @pytest.mark.parametrize("mode", ["gitleaks", "gate"])
 def test_exact_publisher_binding_skips_the_duplicate_work(work: tuple[Path, Path, str], mode: str) -> None:
     repo, seq, head = work
-    proc = _run(repo, mode, _bound(head))
+    proc = _run_from_publisher(repo, mode, _bound(head))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "validated by make pr in this process" in proc.stdout
     assert _seq(seq) == ""
+
+
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+def test_forged_binding_on_a_direct_push_runs_the_full_gate(work: tuple[Path, Path, str], mode: str) -> None:
+    """Setting both binding variables on a plain `git push` must not skip anything.
+
+    Only a push made by scripts/git_push_with_pr.sh, which has just run the gate
+    itself, is honoured; the variables alone are not evidence.
+    """
+    repo, seq, head = work
+    proc = _run(repo, mode, _bound(head))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "validated by make pr" not in proc.stdout
+    assert _seq(seq) != "", "a forged binding skipped validation"
+
+
+@pytest.mark.parametrize("mode", ["gitleaks", "gate"])
+def test_an_ancestor_that_only_names_the_publisher_does_not_count(work: tuple[Path, Path, str], mode: str) -> None:
+    """A shell whose arguments merely mention scripts/git_push_with_pr.sh is not the publisher.
+
+    Found 2026-11-04: a substring match accepted the agent's own `bash -c "... grep
+    scripts/git_push_with_pr.sh ..."` shell. Only argv[0] or argv[1] may name it.
+    """
+    assert BASH
+    repo, seq, head = work
+    full = _base_env(repo.parent)
+    full.update(_bound(head))
+    # `; exit $?` keeps bash alive as the gate's parent instead of exec-ing it.
+    command = f'"{BASH}" "{SCRIPT}" {mode}; exit $?'
+    proc = subprocess.run(
+        [BASH, "-c", command, "scripts/git_push_with_pr.sh"],
+        cwd=repo,
+        env=full,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "validated by make pr" not in proc.stdout
+    assert _seq(seq) != "", "an ancestor naming the publisher in an argument skipped validation"
 
 
 @pytest.mark.parametrize(
@@ -140,7 +198,7 @@ def test_any_binding_mismatch_runs_the_full_gate(
     work: tuple[Path, Path, str], mode: str, field: str, value: str
 ) -> None:
     repo, seq, head = work
-    proc = _run(repo, mode, _bound(head, **{field: value}))
+    proc = _run_from_publisher(repo, mode, _bound(head, **{field: value}))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "validated by make pr" not in proc.stdout
     assert _seq(seq) != "", f"a {field} mismatch skipped validation"

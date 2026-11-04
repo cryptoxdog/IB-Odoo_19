@@ -703,10 +703,15 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `.pre-commit-config.yaml` declares **39** hooks and `default_stages: [pre-commit]`. The pre-push stage is
 > 10 hooks: `check-xml`, `check-yaml`, `end-of-file-fixer`, `trailing-whitespace`, `check-added-large-files`,
 > `check-merge-conflict`, `phantom-enum-values`, `manifest-contract`, `gitleaks-push`, and `pr-validate`.
-> The 23 whole-tree Odoo scanners in the table run at commit time only. They still run inside `make pr-check`
-> (`make audit`) and in `ci.yml`, but no longer a third time at push. `make pr` (`scripts/git_push_with_pr.sh`)
+> The 23 whole-tree Odoo scanners in the table are commit-stage hooks only. All 23 still run inside `make pr-check`
+> (`make audit`, including `scripts/run_audit_integrity.sh`), but no longer a second time at push. 20 of them also
+> run in `ci.yml` (`cron-invariants` through `tests/test_cron_invariants.py`); `constraint-patterns`,
+> `disabled-actions`, and `automation-field-refs` do not, so `ci.yml` does not re-check those three.
+> `make pr` (`scripts/git_push_with_pr.sh`)
 > owns an unconditional gate on every attempt (gitleaks, smoke resolve, `make pr-check`, smoke recheck), then a
 > second L4 check immediately before `git push`. Its push alone carries a binding that `scripts/pre_push_validate.sh`
-> honours only for that exact SHA, clean `HEAD`, `origin`, and target branch, so each attempt validates once.
-> Every other push runs the full gate in the hook. A direct `git push` is validated but is not publication
+> honours only for that exact SHA, clean `HEAD`, `origin`, and target branch, and only when the hook descends from
+> `scripts/git_push_with_pr.sh` (argv[0] or argv[1] of an ancestor process; unreadable ancestry fails closed), so
+> each attempt validates once. Every other push, including a direct `git push` that sets the binding variables
+> itself, runs the full gate in the hook. A direct `git push` is validated but is not publication
 > (no L4, no PR). Supported push forms and the threat model are in `docs/reports/make-pr-validation-consolidation.md`.

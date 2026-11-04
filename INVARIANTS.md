@@ -506,7 +506,7 @@ These patterns are excluded from CI checks because they are valid code, not viol
 ## Enforcement Strategy
 
 ### Automated Checks
-- **Pre-commit hooks**: 36 hooks including ruff, module wiring, XML validation, cron invariants, secret scan (gitleaks)
+- **Pre-commit hooks**: 39 hooks including ruff, module wiring, XML validation, cron invariants, secret scan (gitleaks); 10 run at pre-push, including the `pr-validate` gate (see the AGENTS.md 2026-11-03 correction)
 - **CI/CD pipeline**: 11 workflow files; `ci.yml` is the single blocking gate (lint → static-checks → pure-python-tests)
 - **Module wiring script**: Dependency graph + `__init__.py` validation
 
