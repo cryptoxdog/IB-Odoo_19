@@ -99,6 +99,7 @@ class PurchaseOrderLine(models.Model):
     @api.onchange("material_profile_id")
     def _onchange_material_profile_id(self):
         """Pre-fill fields from material profile (editable by user)."""
+        self.ensure_one()
         if not self.material_profile_id:
             return
 
