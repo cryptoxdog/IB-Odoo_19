@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publication kernel behind `make pr`: preflight → pr-check → L4 → push → PR.
 # Usage: make_push_pipeline.sh [message] [target] [base] [open_pr] [do_commit]
-# `make pr` publishes one committed feature branch into Staging only.
+# `make pr` publishes one committed feature branch into Staging, or onto an open parent PR's branch with `base=`.
 set -euo pipefail
 
 refuse() {
@@ -41,9 +41,7 @@ fi
 if [[ "${CURRENT}" != "${TARGET}" ]]; then
   refuse "current branch ${CURRENT} is not the publication target ${TARGET}"
 fi
-if [[ "${BASE}" != "Staging" ]]; then
-  refuse "destination must be Staging (got ${BASE})"
-fi
+bash scripts/pr_stack_parent.sh name "${BASE}"
 
 current_lc="$(printf '%s' "${CURRENT}" | tr '[:upper:]' '[:lower:]')"
 case "${current_lc}" in
@@ -93,6 +91,9 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 if ! gh api user >/dev/null 2>&1; then
   refuse "gh is not authenticated (gh api user failed)"
+fi
+if [[ "${BASE}" != "Staging" ]]; then
+  bash scripts/pr_stack_parent.sh prove "${BASE}"
 fi
 # Open PR(s) for TARGET → BASE; prints the first PR number, or nothing.
 open_pr_number() {

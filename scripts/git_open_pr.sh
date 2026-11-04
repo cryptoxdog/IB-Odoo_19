@@ -11,10 +11,7 @@ TARGET="${1:?head branch}"
 BASE="${2:-Staging}"
 LOCAL_SHA="$(git rev-parse HEAD)"
 
-if [[ "${BASE}" != "Staging" ]]; then
-  echo "refusing to publish: destination must be Staging (got ${BASE})" >&2
-  exit 1
-fi
+bash scripts/pr_stack_parent.sh name "${BASE}"
 
 # Publication repository: the one authorized origin push URL, also when this
 # script runs on its own. An inherited GH_REPO naming another repository is
@@ -52,6 +49,9 @@ fi
 if ! gh api user >/dev/null 2>&1; then
   echo "gh is not authenticated (gh api user failed); run: gh auth login"
   exit 1
+fi
+if [[ "${BASE}" != "Staging" ]]; then
+  bash scripts/pr_stack_parent.sh prove "${BASE}"
 fi
 
 case "${TARGET}" in

@@ -722,3 +722,7 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > each attempt validates once. Every other push, including a direct `git push` that sets the binding variables
 > itself, runs the full gate in the hook. A direct `git push` is validated but is not publication
 > (no L4, no PR). Supported push forms and the threat model are in `docs/reports/make-pr-validation-consolidation.md`.
+
+> **2026-11-04 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr base=<branch>` stacks onto an open feature branch whose pull request targets `Staging`.
+> Production stays refused. Merge the parent pull request into `Staging` first.
