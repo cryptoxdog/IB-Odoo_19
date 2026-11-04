@@ -269,7 +269,9 @@ def main() -> int:  # noqa: C901
     if ledger_path.is_file():
         ledger_header = header(ledger_path)
         ledger = csv_rows(ledger_path) if ledger_header else []
-        if ledger_header and not LEDGER_COLS.issubset(ledger_header):
+        # A zero-byte or header-less ledger has no columns at all; it must fail here too,
+        # not pass silently because there are no data rows to inspect.
+        if not LEDGER_COLS.issubset(ledger_header):
             missing = ", ".join(sorted(LEDGER_COLS - set(ledger_header)))
             errors.append("SOURCE_FIELD_LEDGER missing required columns: " + missing)
         seen_fields: set[tuple[str, str]] = set()
