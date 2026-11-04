@@ -92,8 +92,13 @@ class TestWebLeadMaterialGrade(TransactionCase):
     def test_item_words_from_the_ai_are_grades(self):
         lead = self._lead("grade-items", "scrap", "500 lbs")
 
-        for word, grade in (("pallet", "PALLETS"), ("drum", "DRUMS"), ("bucket", "BUCKETS")):
-            with self.subTest(word=word):
-                merged = lead._merge_ai_and_vision({"form": word}, [])
-                self.assertEqual(merged["material_grade"], grade)
-                self.assertFalse(merged["form"])
+        pallet = lead._merge_ai_and_vision({"form": "pallet"}, [])
+        drum = lead._merge_ai_and_vision({"form": "drum"}, [])
+        bucket = lead._merge_ai_and_vision({"form": "bucket"}, [])
+
+        self.assertEqual(pallet["material_grade"], "PALLETS")
+        self.assertFalse(pallet["form"])
+        self.assertEqual(drum["material_grade"], "DRUMS")
+        self.assertFalse(drum["form"])
+        self.assertEqual(bucket["material_grade"], "BUCKETS")
+        self.assertFalse(bucket["form"])
