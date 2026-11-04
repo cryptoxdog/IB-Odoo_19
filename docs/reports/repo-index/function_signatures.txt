@@ -249,160 +249,125 @@
 ./ci/weak_test_fixer.py:407:    def _suggest_assertions(self, operations):
 ./ci/weak_test_fixer.py:420:    def iter_test_files(self):
 ./ci/weak_test_fixer.py:448:def main(argv: list[str] | None = None) -> int:
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:18:def fixture(mode="new_addon"):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:134:def must_fail(label, fn):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:142:def main():
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:20:def plan_digest(obj):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:30:def cycles(graph):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:33:    def walk(node, trace):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:50:def reverse_dependents(roots, snapshot):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:66:def schema_errors(value):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:78:def check(obj, gate="plan", snapshot=None, lock=None):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:87:    def add(code, msg=""):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:90:    def require(value, key):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:270:    def predecessors(uid):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:317:def main():
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:12:def sha(data):
-./docs/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:16:def validate():
-./docs/campaigns/10-30-26/PlasticOS_Production_Import_One_PR_Contracts/12_VALIDATE_PACKAGE.py:28:def check_contracts(files):
-./docs/campaigns/10-30-26/PlasticOS_Production_Import_One_PR_Contracts/12_VALIDATE_PACKAGE.py:61:def main():
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:68:def bind_config(config) -> None:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:116:def call(root: Path, *argv: str) -> str:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:124:def ensure_target(root: Path) -> None:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:152:def replacements(model: str, test: str) -> tuple[str, str]:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:162:def patch_file(path: str, old: str, new: str) -> str:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:170:def make_patch(root: Path) -> str:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:186:def main() -> int:
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:16:    def _check_request_shape(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:23:    def test_identical_retry_returns_prior_receipt_without_second_activity(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:28:def git(root, *argv, check=True):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:36:    def setUp(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:59:    def test_exact_fixture_generates_applyable_patch(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:79:    def test_wrong_branch_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:84:    def test_dirty_worktree_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:89:    def test_changed_remote_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:94:    def test_lookalike_host_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:99:    def test_https_origin_is_accepted(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:103:    def test_stale_head_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:110:    def test_missing_model_anchor_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:114:    def test_duplicate_test_anchor_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:118:    def test_existing_helper_is_rejected(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:131:    def setUp(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:142:    def _run_binding(self, *, db="odoo_test_mack_fixture", host="/tmp", marker="role=clone owner=mack", expect=None):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:151:            def __enter__(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:154:            def __exit__(self, *_args):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:157:            def execute(self, statement):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:160:            def fetchone(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:164:            def cursor(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:167:            def close(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:170:        def connect(**kwargs):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:191:    def test_owned_disposable_allows_binding(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:194:    def test_refuses_non_disposable_db_before_any_connection(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:197:    def test_refuses_remote_host_before_any_connection(self):
-./docs/campaigns/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:200:    def test_refuses_database_without_ownership_marker(self):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:18:def fixture(mode="new_addon"):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:134:def must_fail(label, fn):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:142:def main():
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:20:def plan_digest(obj):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:30:def cycles(graph):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:33:    def walk(node, trace):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:50:def reverse_dependents(roots, snapshot):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:66:def schema_errors(value):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:78:def check(obj, gate="plan", snapshot=None, lock=None):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:87:    def add(code, msg=""):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:90:    def require(value, key):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:270:    def predecessors(uid):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:317:def main():
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:12:def sha(data):
-./docs/campaigns/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:16:def validate():
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:30:def redact(text: str) -> str:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:37:def classify(raw: str, messages: list[str]) -> str:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:47:def remember(signals: list[dict], seen: set[tuple[str, str]], level: str, reason: str) -> None:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:62:    def __init__(self) -> None:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:66:    def emit(self, record: logging.LogRecord) -> None:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:74:def _signals_for_contact(raw: str, messages: list[str], exc_text: str, logged: list[tuple[str, str]]) -> list[dict]:
-./docs/campaigns/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:88:def main(env) -> None:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:33:def redact(text: str) -> str:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:40:def classify(raw: str, messages: list[str]) -> str:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:50:def remember(signals: list[dict], seen: set[tuple[str, str]], level: str, reason: str) -> None:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:65:    def __init__(self) -> None:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:69:    def emit(self, record: logging.LogRecord) -> None:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:77:def _signals_for_contact(raw: str, messages: list[str], exc_text: str, logged: list[tuple[str, str]]) -> list[dict]:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:91:def _load_census() -> dict[str, str]:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:112:def _append(record: dict) -> None:
-./docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:119:def main(env) -> None:
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:18:def fixture(mode="new_addon"):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:134:def must_fail(label, fn):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:142:def main():
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:20:def plan_digest(obj):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:30:def cycles(graph):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:33:    def walk(node, trace):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:50:def reverse_dependents(roots, snapshot):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:66:def schema_errors(value):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:78:def check(obj, gate="plan", snapshot=None, lock=None):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:87:    def add(code, msg=""):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:90:    def require(value, key):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:270:    def predecessors(uid):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:317:def main():
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:12:def sha(data):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:16:def validate():
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:15:def load(path: Path):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:19:def cycle(graph: dict[str, list[str]]) -> bool:
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:22:    def visit(node):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:36:def records_errors(c, x, g, a, trace):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:39:    def need(v, msg):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:65:    def ancestors(n):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:97:def validate(root: Path):
-./docs/campaigns/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:174:def main():
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:16:    def setUp(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:21:    def tearDown(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:24:    def test_pristine(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:27:    def assert_rejected(self, rel, original, changed):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:35:    def test_tampered_bytes(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:38:    def test_missing_trace_row(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:45:    def test_broken_access_header(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:52:    def test_unscheduled_5th_slot(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:55:    def test_missing_file(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:60:    def test_unresolved_reference_even_when_hashes_are_rebuilt(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:16:    def base(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:36:    def test_fixture_passes_structural_only(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:39:    def test_unknown_restoration_fails(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:45:    def test_open_issue_fails(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:51:    def test_blocked_is_not_pass(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:58:    def test_hourly_contract_cannot_pass_as_daily(self):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:29:def require(ok, message):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:34:def validate(root):
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:186:def main():
-./docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:33:def check(data):
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:59:def csv_rows(path: Path) -> list[dict[str, str]]:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:64:def header(path: Path) -> list[str]:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:70:def lanes(row: dict[str, str], catalog_row: dict[str, str]) -> set[str]:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:75:def priority(row: dict[str, str], catalog_row: dict[str, str]) -> str:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:81:def path_tokens(ref: str) -> list[str]:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:93:def resolve_token(evidence: Path, token: str) -> bool:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:100:def git_toplevel(start: Path) -> tuple[Path | None, str]:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:121:def repo_root(pack: Path) -> Path | None:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:126:def evidence_location_errors(evidence: Path, pack: Path) -> list[str]:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:143:def untracked_evidence_files(evidence: Path, pack: Path) -> list[str]:
-./docs/campaigns/Testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:166:def main() -> int:  # noqa: C901
-./docs/campaigns/odoo_tech_debt/_build_register.py:27:def git(*args: str) -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:32:def export_origin_staging(dest: Path) -> Path:
-./docs/campaigns/odoo_tech_debt/_build_register.py:39:def sha() -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:43:def tracked() -> set[str]:
-./docs/campaigns/odoo_tech_debt/_build_register.py:47:def function_at(source: str, line: int) -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:62:def source_of(rel: str) -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:69:def line_in_symbol(rel: str, symbol: str, code: str) -> int:
-./docs/campaigns/odoo_tech_debt/_build_register.py:80:def line_text(rel: str, line: int) -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:87:def enclosing_relation(rel: str, line: int) -> str | None:
-./docs/campaigns/odoo_tech_debt/_build_register.py:111:def item(**kwargs) -> dict:
-./docs/campaigns/odoo_tech_debt/_build_register.py:128:def field_scanner_cause(code: str, enclosing: str | None) -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:153:def call_window(rel: str, line: int, span: int = 8) -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:158:def unbounded_disposition(rel: str, line: int, code: str, bound: str) -> tuple[str, str, str, bool]:
-./docs/campaigns/odoo_tech_debt/_build_register.py:206:def main() -> None:
-./docs/campaigns/odoo_tech_debt/_build_register.py:218:def build() -> None:
-./docs/campaigns/odoo_tech_debt/_build_register.py:250:    def add(row: dict) -> None:
-./docs/campaigns/odoo_tech_debt/_build_register.py:1052:def md_cell(value) -> str:
-./docs/campaigns/odoo_tech_debt/_build_register.py:1057:def write_markdown(document: dict, path: Path) -> None:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:59:def csv_rows(path: Path) -> list[dict[str, str]]:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:64:def header(path: Path) -> list[str]:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:70:def lanes(row: dict[str, str], catalog_row: dict[str, str]) -> set[str]:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:75:def priority(row: dict[str, str], catalog_row: dict[str, str]) -> str:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:81:def path_tokens(ref: str) -> list[str]:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:93:def resolve_token(evidence: Path, token: str) -> bool:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:100:def git_toplevel(start: Path) -> tuple[Path | None, str]:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:121:def repo_root(pack: Path) -> Path | None:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:126:def evidence_location_errors(evidence: Path, pack: Path) -> list[str]:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:143:def untracked_evidence_files(evidence: Path, pack: Path) -> list[str]:
+./docs/campaigns/docker-testing/PlasticOS_CRM_Sync_Cursor_Deep_Probe_v1.1/validate_results.py:166:def main() -> int:  # noqa: C901
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:68:def bind_config(config) -> None:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:116:def call(root: Path, *argv: str) -> str:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:124:def ensure_target(root: Path) -> None:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:152:def replacements(model: str, test: str) -> tuple[str, str]:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:162:def patch_file(path: str, old: str, new: str) -> str:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:170:def make_patch(root: Path) -> str:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/scripts/build_repair.py:186:def main() -> int:
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:16:    def _check_request_shape(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:23:    def test_identical_retry_returns_prior_receipt_without_second_activity(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:28:def git(root, *argv, check=True):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:36:    def setUp(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:59:    def test_exact_fixture_generates_applyable_patch(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:79:    def test_wrong_branch_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:84:    def test_dirty_worktree_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:89:    def test_changed_remote_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:94:    def test_lookalike_host_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:99:    def test_https_origin_is_accepted(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:103:    def test_stale_head_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:110:    def test_missing_model_anchor_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:114:    def test_duplicate_test_anchor_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:118:    def test_existing_helper_is_rejected(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:131:    def setUp(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:142:    def _run_binding(self, *, db="odoo_test_mack_fixture", host="/tmp", marker="role=clone owner=mack", expect=None):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:151:            def __enter__(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:154:            def __exit__(self, *_args):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:157:            def execute(self, statement):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:160:            def fetchone(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:164:            def cursor(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:167:            def close(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:170:        def connect(**kwargs):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:191:    def test_owned_disposable_allows_binding(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:194:    def test_refuses_non_disposable_db_before_any_connection(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:197:    def test_refuses_remote_host_before_any_connection(self):
+./docs/campaigns/future-add-ons/Mack_PR197_Source_Bound_Execution_v1/tests/test_builder.py:200:    def test_refuses_database_without_ownership_marker(self):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:18:def fixture(mode="new_addon"):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:134:def must_fail(label, fn):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/test_negative_controls.py:142:def main():
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:20:def plan_digest(obj):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:30:def cycles(graph):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:33:    def walk(node, trace):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:50:def reverse_dependents(roots, snapshot):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:66:def schema_errors(value):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:78:def check(obj, gate="plan", snapshot=None, lock=None):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:87:    def add(code, msg=""):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:90:    def require(value, key):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:270:    def predecessors(uid):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_case.py:317:def main():
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:12:def sha(data):
+./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/tools/validate_pack.py:16:def validate():
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:30:def redact(text: str) -> str:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:37:def classify(raw: str, messages: list[str]) -> str:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:47:def remember(signals: list[dict], seen: set[tuple[str, str]], level: str, reason: str) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:62:    def __init__(self) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:66:    def emit(self, record: logging.LogRecord) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:74:def _signals_for_contact(raw: str, messages: list[str], exc_text: str, logged: list[tuple[str, str]]) -> list[dict]:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/import_crosswalk.py:88:def main(env) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:33:def redact(text: str) -> str:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:40:def classify(raw: str, messages: list[str]) -> str:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:50:def remember(signals: list[dict], seen: set[tuple[str, str]], level: str, reason: str) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:65:    def __init__(self) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:69:    def emit(self, record: logging.LogRecord) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:77:def _signals_for_contact(raw: str, messages: list[str], exc_text: str, logged: list[tuple[str, str]]) -> list[dict]:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:91:def _load_census() -> dict[str, str]:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:112:def _append(record: dict) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/import_4876.py:119:def main(env) -> None:
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:18:def fixture(mode="new_addon"):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:134:def must_fail(label, fn):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/test_negative_controls.py:142:def main():
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:20:def plan_digest(obj):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:30:def cycles(graph):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:33:    def walk(node, trace):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:50:def reverse_dependents(roots, snapshot):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:66:def schema_errors(value):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:78:def check(obj, gate="plan", snapshot=None, lock=None):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:87:    def add(code, msg=""):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:90:    def require(value, key):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:270:    def predecessors(uid):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_case.py:317:def main():
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:12:def sha(data):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/PLANNING_KERNEL/tools/validate_pack.py:16:def validate():
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:15:def load(path: Path):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:19:def cycle(graph: dict[str, list[str]]) -> bool:
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:22:    def visit(node):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:36:def records_errors(c, x, g, a, trace):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:39:    def need(v, msg):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:65:    def ancestors(n):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:97:def validate(root: Path):
+./docs/campaigns/future-add-ons/PlasticOS_Semantic_Kernel_Activation_Integration_v1.0.0/tools/validate_package.py:174:def main():
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:16:    def setUp(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:21:    def tearDown(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:24:    def test_pristine(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:27:    def assert_rejected(self, rel, original, changed):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:35:    def test_tampered_bytes(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:38:    def test_missing_trace_row(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:45:    def test_broken_access_header(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:52:    def test_unscheduled_5th_slot(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:55:    def test_missing_file(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_pack_validator.py:60:    def test_unresolved_reference_even_when_hashes_are_rebuilt(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:16:    def base(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:36:    def test_fixture_passes_structural_only(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:39:    def test_unknown_restoration_fails(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:45:    def test_open_issue_fails(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:51:    def test_blocked_is_not_pass(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tests/test_slice_receipt_validation.py:58:    def test_hourly_contract_cannot_pass_as_daily(self):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:29:def require(ok, message):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:34:def validate(root):
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_campaign_pack.py:186:def main():
+./docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/tools/validate_slice_receipt.py:33:def check(data):
 ./plasticos_accounting/__init__.py:6:def pre_init_hook(env):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:189:    def _compute_kpis(self):
 ./plasticos_admin_dashboard/models/admin_dashboard.py:453:    def _compute_ai_config(self):
@@ -5860,56 +5825,60 @@
 ./tests/test_import_summary_schema.py:108:def test_cli_roundtrip(tmp_path):
 ./tests/test_import_summary_schema.py:130:def test_secret_markers_registered():
 ./tests/test_install_smoke_db_guard.py:33:def _docker_stub(log_path: Path, *, inspect_json: str | None, container_id: str) -> str:
-./tests/test_install_smoke_db_guard.py:77:def _run(
-./tests/test_install_smoke_db_guard.py:136:def _docker_log(tmp_path: Path) -> str:
-./tests/test_install_smoke_db_guard.py:143:def _assert_no_destructive(log: str) -> None:
-./tests/test_install_smoke_db_guard.py:164:def test_unrecognized_or_protected_database_never_calls_docker(tmp_path: Path, name: str) -> None:
-./tests/test_install_smoke_db_guard.py:172:def test_implicit_compose_override_cannot_change_database_identity(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:178:def test_remote_active_docker_context_never_mutates(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:185:def test_remote_docker_host_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:193:def test_foreign_compose_project_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:201:def test_compose_mode_rejects_a_remote_database_host(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:209:def test_foreign_compose_file_never_calls_docker(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:219:def test_host_mode_without_a_proven_container_does_not_mutate(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:233:def test_host_mode_rejects_a_non_loopback_port_binding(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:256:def test_default_compose_identity_reaches_the_scratch_install(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:272:def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> None:
-./tests/test_install_smoke_db_guard.py:296:def test_recheck_is_the_smoke_evidence_gate() -> None:
+./tests/test_install_smoke_db_guard.py:79:def _run(
+./tests/test_install_smoke_db_guard.py:138:def _docker_log(tmp_path: Path) -> str:
+./tests/test_install_smoke_db_guard.py:145:def _assert_no_destructive(log: str) -> None:
+./tests/test_install_smoke_db_guard.py:166:def test_unrecognized_or_protected_database_never_calls_docker(tmp_path: Path, name: str) -> None:
+./tests/test_install_smoke_db_guard.py:174:def test_implicit_compose_override_cannot_change_database_identity(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:180:def test_remote_active_docker_context_never_mutates(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:187:def test_remote_docker_host_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:195:def test_foreign_compose_project_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:203:def test_compose_mode_rejects_a_remote_database_host(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:211:def test_foreign_compose_file_never_calls_docker(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:221:def test_host_mode_without_a_proven_container_does_not_mutate(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:235:def test_host_mode_rejects_a_non_loopback_port_binding(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:258:def test_default_compose_identity_reaches_the_scratch_install(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:274:def test_proven_host_endpoint_reaches_the_scratch_install(tmp_path: Path) -> None:
+./tests/test_install_smoke_db_guard.py:298:def test_recheck_is_the_smoke_evidence_gate() -> None:
 ./tests/test_install_smoke_evidence.py:42:def state():
 ./tests/test_install_smoke_evidence.py:44:def save(value):
 ./tests/test_install_smoke_evidence.py:47:def image(ref):
-./tests/test_install_smoke_evidence.py:140:    def receipt(self) -> Path:
-./tests/test_install_smoke_evidence.py:143:    def run(self, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
-./tests/test_install_smoke_evidence.py:154:    def configure(self, **values: object) -> None:
-./tests/test_install_smoke_evidence.py:159:    def calls(self) -> list[dict]:
-./tests/test_install_smoke_evidence.py:163:    def establish(self, **env: str) -> dict:
-./tests/test_install_smoke_evidence.py:172:def _git(path: Path, *args: str) -> None:
-./tests/test_install_smoke_evidence.py:181:def _checkout(path: Path, *, git: bool = False) -> Path:
-./tests/test_install_smoke_evidence.py:194:def site(tmp_path: Path) -> Site:
-./tests/test_install_smoke_evidence.py:260:def test_remote_active_docker_context_cannot_touch_the_database(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:268:def test_unchanged_complete_evidence_is_reused_without_install(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:277:def test_effective_enterprise_mount_not_repository_symlink_is_bound(site: Site, tmp_path: Path) -> None:
-./tests/test_install_smoke_evidence.py:286:def test_same_length_bytes_with_preserved_mtime_invalidate(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:297:def test_untracked_git_file_content_not_just_status_is_bound(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:318:def test_effective_container_environment_is_bound(site: Site, env: dict[str, str]) -> None:
-./tests/test_install_smoke_evidence.py:323:def test_mounted_configuration_file_is_bound(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:329:def test_image_override_cannot_attest_to_an_unexecuted_image(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:335:def test_actual_container_image_must_match_validated_image(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:342:def test_legitimate_build_image_change_is_accepted(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:352:def test_live_image_and_database_change_invalidates(site: Site, change: dict) -> None:
-./tests/test_install_smoke_evidence.py:359:def test_missing_enterprise_or_custom_module_never_passes(site: Site, module: str) -> None:
-./tests/test_install_smoke_evidence.py:368:def test_truncated_record_cannot_reduce_required_inventory(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:376:def test_malformed_or_old_hash_evidence_is_not_reusable(site: Site, value: str) -> None:
-./tests/test_install_smoke_evidence.py:391:def test_shortened_lists_refuse_from_shell_and_dotenv(site: Site, key: str, value: str) -> None:
-./tests/test_install_smoke_evidence.py:399:def test_unreadable_enterprise_fails_resolve(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:406:def test_source_change_during_install_never_writes_evidence(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:413:def test_failed_install_invalidates_old_success(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:421:def test_manual_reduced_install_cannot_refresh_publication_evidence(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:429:def test_receipt_contains_no_configuration_secret_values(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:435:def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) -> None:
-./tests/test_install_smoke_evidence.py:475:def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path: Path) -> None:
-./tests/test_install_smoke_evidence.py:490:def test_enterprise_checkout_with_unavailable_gitdir_is_still_byte_bound(site: Site) -> None:
-./tests/test_install_smoke_evidence.py:499:def test_receipt_without_database_binding_is_not_reusable(site: Site, mutation: str) -> None:
+./tests/test_install_smoke_evidence.py:139:    def receipt(self) -> Path:
+./tests/test_install_smoke_evidence.py:142:    def run(self, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
+./tests/test_install_smoke_evidence.py:153:    def configure(self, **values: object) -> None:
+./tests/test_install_smoke_evidence.py:158:    def calls(self) -> list[dict]:
+./tests/test_install_smoke_evidence.py:162:    def establish(self, **env: str) -> dict:
+./tests/test_install_smoke_evidence.py:171:def _git(path: Path, *args: str) -> None:
+./tests/test_install_smoke_evidence.py:180:def _checkout(path: Path, *, git: bool = False) -> Path:
+./tests/test_install_smoke_evidence.py:193:def site(tmp_path: Path) -> Site:
+./tests/test_install_smoke_evidence.py:259:def test_remote_active_docker_context_cannot_touch_the_database(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:267:def test_unchanged_complete_evidence_is_reused_without_install(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:276:def test_effective_enterprise_mount_not_repository_symlink_is_bound(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:285:def test_same_length_bytes_with_preserved_mtime_invalidate(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:296:def test_untracked_git_file_content_not_just_status_is_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:317:def test_effective_container_environment_is_bound(site: Site, env: dict[str, str]) -> None:
+./tests/test_install_smoke_evidence.py:322:def test_mounted_configuration_file_is_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:328:def test_image_override_cannot_attest_to_an_unexecuted_image(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:334:def test_actual_container_image_must_match_validated_image(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:341:def test_legitimate_build_image_change_is_accepted(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:351:def test_live_image_and_database_change_invalidates(site: Site, change: dict) -> None:
+./tests/test_install_smoke_evidence.py:358:def test_missing_enterprise_or_custom_module_never_passes(site: Site, module: str) -> None:
+./tests/test_install_smoke_evidence.py:367:def test_truncated_record_cannot_reduce_required_inventory(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:375:def test_malformed_or_old_hash_evidence_is_not_reusable(site: Site, value: str) -> None:
+./tests/test_install_smoke_evidence.py:390:def test_shortened_lists_refuse_from_shell_and_dotenv(site: Site, key: str, value: str) -> None:
+./tests/test_install_smoke_evidence.py:398:def test_unreadable_enterprise_fails_resolve(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:405:def test_source_change_during_install_never_writes_evidence(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:412:def test_failed_install_invalidates_old_success(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:420:def test_manual_reduced_install_cannot_refresh_publication_evidence(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:428:def test_receipt_contains_no_configuration_secret_values(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:434:def test_two_real_worktrees_share_the_database_lock(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:474:def test_another_worktree_reinstall_invalidates_the_receipt(site: Site, tmp_path: Path) -> None:
+./tests/test_install_smoke_evidence.py:489:def test_enterprise_checkout_with_unavailable_gitdir_is_still_byte_bound(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:498:def test_receipt_without_database_binding_is_not_reusable(site: Site, mutation: str) -> None:
+./tests/test_install_smoke_evidence.py:508:def _state_queries(site: Site) -> list[str]:
+./tests/test_install_smoke_evidence.py:516:def test_installation_verifies_every_module_with_one_state_query(site: Site) -> None:
+./tests/test_install_smoke_evidence.py:525:def test_module_missing_after_installation_never_writes_evidence(site: Site, module: str) -> None:
+./tests/test_install_smoke_evidence.py:533:def test_failed_state_query_after_installation_never_writes_evidence(site: Site) -> None:
 ./tests/test_launch_invariants_crm_enrichment.py:42:def _function(path: Path, name: str) -> ast.FunctionDef:
 ./tests/test_launch_invariants_crm_enrichment.py:50:def _calls(node: ast.AST) -> list[str]:
 ./tests/test_launch_invariants_crm_enrichment.py:70:def test_malformed_contact_fails_the_page_instead_of_being_skipped():
@@ -5983,77 +5952,79 @@
 ./tests/test_linda_local_ownership.py:30:def test_local_estimator_and_ranking_are_explicitly_versioned_services():
 ./tests/test_linda_local_ownership.py:37:def test_canonical_freight_context_uses_only_declared_structured_location_facts():
 ./tests/test_linda_local_ownership.py:43:def test_immutable_freight_evidence_is_not_directly_creatable_by_internal_users():
-./tests/test_make_pr_publication.py:40:def log(line):
-./tests/test_make_pr_publication.py:45:def fail(message):
-./tests/test_make_pr_publication.py:96:def save():
-./tests/test_make_pr_publication.py:101:def denied(knob):
-./tests/test_make_pr_publication.py:106:def emit(payload):
-./tests/test_make_pr_publication.py:119:def find(number):
-./tests/test_make_pr_publication.py:206:def _real(name: str) -> str:
-./tests/test_make_pr_publication.py:216:def _write(path: Path, text: str) -> None:
-./tests/test_make_pr_publication.py:221:def _plant_l4_provider(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:236:def _pre_push_hook(seq: Path, *, args_line: str = PRE_COMMIT_ARGS) -> str:
-./tests/test_make_pr_publication.py:249:def _init_repo(tmp_path: Path, branch: str = "fix/example") -> tuple[Path, Path]:
-./tests/test_make_pr_publication.py:369:def _gh_state(tmp_path: Path) -> dict:
-./tests/test_make_pr_publication.py:374:def _set_gh_state(tmp_path: Path, **updates: object) -> None:
-./tests/test_make_pr_publication.py:380:def _gh_calls(tmp_path: Path) -> list[dict]:
-./tests/test_make_pr_publication.py:387:def _rest_pr(
-./tests/test_make_pr_publication.py:407:def _seed_open_pr(tmp_path: Path, repo: Path, branch: str = "fix/example", **kwargs: str) -> None:
-./tests/test_make_pr_publication.py:412:def _commit(repo: Path, subject: str) -> None:
-./tests/test_make_pr_publication.py:423:def _behind_staging(repo: Path) -> None:
-./tests/test_make_pr_publication.py:428:def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
-./tests/test_make_pr_publication.py:448:def _run(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
-./tests/test_make_pr_publication.py:460:def _seq(seq: Path) -> str:
-./tests/test_make_pr_publication.py:464:def _assert_no_push(seq: Path) -> None:
-./tests/test_make_pr_publication.py:468:def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:488:def test_production_base_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:497:def test_staging_to_production_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:505:def test_protected_sources_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:515:def test_self_pr_and_detached_head_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:529:def test_dirty_tree_refuses_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:538:def test_l4_denial_and_second_check_failure_do_not_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:553:def test_disable_and_breakglass_switches_do_not_invoke_l4_or_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:570:def test_missing_provider_blocks_without_a_dropbox_fallback(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:585:def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:620:def test_malformed_or_foreign_lookup_refuses_before_push(tmp_path: Path, fault: str) -> None:
-./tests/test_make_pr_publication.py:636:def test_remote_sha_mismatch_fails_the_push_proof(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:654:def test_direct_push_to_a_protected_branch_refuses(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:670:def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:686:def test_pr_check_reuses_live_evidence_not_a_source_hash() -> None:
-./tests/test_make_pr_publication.py:693:def test_api_push_and_autopilot_do_not_publish() -> None:
-./tests/test_make_pr_publication.py:705:def test_remote_feedback_trusts_ssl_cert_file_over_certifi(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:725:def _push(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
-./tests/test_make_pr_publication.py:737:def test_full_install_is_optional_and_resolve_still_runs(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:746:def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:755:def test_failed_or_missing_gitleaks_does_not_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:770:def _bare_remote(tmp_path: Path, repo: Path, branch: str = "fix/example") -> tuple[Path, str]:
-./tests/test_make_pr_publication.py:791:def _remote_sha(bare: Path, branch: str = "fix/example") -> str:
-./tests/test_make_pr_publication.py:797:def _head(repo: Path) -> str:
-./tests/test_make_pr_publication.py:801:def _hook_runs(seq: Path) -> int:
-./tests/test_make_pr_publication.py:806:def test_rejecting_pre_push_hook_stops_publication(tmp_path: Path, entry: str) -> None:
-./tests/test_make_pr_publication.py:825:def test_accepting_pre_push_hook_runs_once_and_publishes_validated_head(tmp_path: Path, entry: str) -> None:
-./tests/test_make_pr_publication.py:845:def test_missing_or_disabled_pre_push_enforcement_refuses_before_validation(tmp_path: Path, disable: str) -> None:
-./tests/test_make_pr_publication.py:870:def test_bad_origin_and_skip_switches_refuse(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:905:def test_operator_smoke_bypass_skips_only_the_smoke_recheck(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:922:def test_scope_receipt_without_smoke_inputs_skips_only_the_recheck(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:941:def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:949:def _open_pr(repo: Path, tmp_path: Path, *extra_args: str, **extra: str) -> subprocess.CompletedProcess[str]:
-./tests/test_make_pr_publication.py:961:def test_reused_pr_keeps_its_body_and_gains_the_stamp(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:978:def test_cloud_surface_publishes_over_rest_when_gh_auth_status_fails(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1013:def test_unset_gh_repo_binds_origin_and_reaches_every_child(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1026:def test_matching_gh_repo_publishes(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1035:def test_foreign_gh_repo_refuses_before_any_api_call(tmp_path: Path, entry: str) -> None:
-./tests/test_make_pr_publication.py:1051:def test_foreign_gh_host_refuses_before_any_api_call(tmp_path: Path, entry: str) -> None:
-./tests/test_make_pr_publication.py:1068:def test_github_com_gh_host_publishes(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1078:def test_unauthorized_origin_refuses_before_any_api_call(tmp_path: Path, entry: str, origin: str) -> None:
-./tests/test_make_pr_publication.py:1101:def test_authorized_origin_forms_bind_the_repository(tmp_path: Path, authorized: str) -> None:
-./tests/test_make_pr_publication.py:1111:def test_reused_pr_proof_refuses_the_wrong_head(tmp_path: Path, fault: str) -> None:
-./tests/test_make_pr_publication.py:1128:def test_created_pr_with_a_different_head_sha_reports_partial_publication(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1141:def test_create_denied_after_push_reports_partial_publication(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1153:def test_labels_use_rest_skip_unknown_and_never_fail_publication(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1174:def test_operator_smoke_bypass_note_is_a_rest_comment(tmp_path: Path) -> None:
-./tests/test_make_pr_publication.py:1196:def test_production_scripts_never_call_graphql_backed_gh() -> None:
-./tests/test_make_pr_publication.py:1210:def test_real_gitleaks_rejects_a_seeded_secret(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:41:def log(line):
+./tests/test_make_pr_publication.py:46:def fail(message):
+./tests/test_make_pr_publication.py:97:def save():
+./tests/test_make_pr_publication.py:102:def denied(knob):
+./tests/test_make_pr_publication.py:107:def emit(payload):
+./tests/test_make_pr_publication.py:120:def find(number):
+./tests/test_make_pr_publication.py:207:def _real(name: str) -> str:
+./tests/test_make_pr_publication.py:217:def _write(path: Path, text: str) -> None:
+./tests/test_make_pr_publication.py:222:def _plant_l4_provider(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:237:def _pre_push_hook(seq: Path, *, args_line: str = PRE_COMMIT_ARGS) -> str:
+./tests/test_make_pr_publication.py:250:def _init_repo(tmp_path: Path, branch: str = "fix/example") -> tuple[Path, Path]:
+./tests/test_make_pr_publication.py:371:def _gh_state(tmp_path: Path) -> dict:
+./tests/test_make_pr_publication.py:376:def _set_gh_state(tmp_path: Path, **updates: object) -> None:
+./tests/test_make_pr_publication.py:382:def _gh_calls(tmp_path: Path) -> list[dict]:
+./tests/test_make_pr_publication.py:389:def _rest_pr(
+./tests/test_make_pr_publication.py:409:def _seed_open_pr(tmp_path: Path, repo: Path, branch: str = "fix/example", **kwargs: str) -> None:
+./tests/test_make_pr_publication.py:414:def _commit(repo: Path, subject: str) -> None:
+./tests/test_make_pr_publication.py:425:def _behind_staging(repo: Path) -> None:
+./tests/test_make_pr_publication.py:430:def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
+./tests/test_make_pr_publication.py:450:def _run(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
+./tests/test_make_pr_publication.py:462:def _seq(seq: Path) -> str:
+./tests/test_make_pr_publication.py:466:def _assert_no_push(seq: Path) -> None:
+./tests/test_make_pr_publication.py:470:def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:497:def test_production_base_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:506:def test_staging_to_production_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:514:def test_protected_sources_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:524:def test_self_pr_and_detached_head_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:538:def test_dirty_tree_refuses_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:547:def test_l4_denial_and_second_check_failure_do_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:567:def test_inherited_publisher_binding_does_not_skip_publisher_validation(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:586:def test_disable_and_breakglass_switches_do_not_invoke_l4_or_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:603:def test_missing_provider_blocks_without_a_dropbox_fallback(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:618:def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:653:def test_malformed_or_foreign_lookup_refuses_before_push(tmp_path: Path, fault: str) -> None:
+./tests/test_make_pr_publication.py:669:def test_remote_sha_mismatch_fails_the_push_proof(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:687:def test_direct_push_to_a_protected_branch_refuses(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:703:def test_open_pr_refuses_a_non_staging_base(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:719:def test_pr_check_reuses_live_evidence_not_a_source_hash() -> None:
+./tests/test_make_pr_publication.py:726:def test_api_push_and_autopilot_do_not_publish() -> None:
+./tests/test_make_pr_publication.py:738:def test_remote_feedback_trusts_ssl_cert_file_over_certifi(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:758:def _push(repo: Path, tmp_path: Path, *args: str, **extra: str) -> subprocess.CompletedProcess[str]:
+./tests/test_make_pr_publication.py:770:def test_full_install_is_optional_and_resolve_still_runs(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:779:def test_direct_push_runs_the_gates_before_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:788:def test_failed_or_missing_gitleaks_does_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:803:def _bare_remote(tmp_path: Path, repo: Path, branch: str = "fix/example") -> tuple[Path, str]:
+./tests/test_make_pr_publication.py:824:def _remote_sha(bare: Path, branch: str = "fix/example") -> str:
+./tests/test_make_pr_publication.py:830:def _head(repo: Path) -> str:
+./tests/test_make_pr_publication.py:834:def _hook_runs(seq: Path) -> int:
+./tests/test_make_pr_publication.py:839:def test_rejecting_pre_push_hook_stops_publication(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:859:def test_accepting_pre_push_hook_runs_once_and_publishes_validated_head(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:879:def test_missing_or_disabled_pre_push_enforcement_refuses_before_validation(tmp_path: Path, disable: str) -> None:
+./tests/test_make_pr_publication.py:904:def test_bad_origin_and_skip_switches_refuse(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:939:def test_operator_smoke_bypass_skips_only_the_smoke_recheck(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:956:def test_scope_receipt_without_smoke_inputs_skips_only_the_recheck(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:975:def test_no_op_retry_still_validates_before_pr_verification(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1004:def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1012:def _open_pr(repo: Path, tmp_path: Path, *extra_args: str, **extra: str) -> subprocess.CompletedProcess[str]:
+./tests/test_make_pr_publication.py:1024:def test_reused_pr_keeps_its_body_and_gains_the_stamp(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1041:def test_cloud_surface_publishes_over_rest_when_gh_auth_status_fails(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1076:def test_unset_gh_repo_binds_origin_and_reaches_every_child(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1089:def test_matching_gh_repo_publishes(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1098:def test_foreign_gh_repo_refuses_before_any_api_call(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:1114:def test_foreign_gh_host_refuses_before_any_api_call(tmp_path: Path, entry: str) -> None:
+./tests/test_make_pr_publication.py:1131:def test_github_com_gh_host_publishes(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1141:def test_unauthorized_origin_refuses_before_any_api_call(tmp_path: Path, entry: str, origin: str) -> None:
+./tests/test_make_pr_publication.py:1164:def test_authorized_origin_forms_bind_the_repository(tmp_path: Path, authorized: str) -> None:
+./tests/test_make_pr_publication.py:1174:def test_reused_pr_proof_refuses_the_wrong_head(tmp_path: Path, fault: str) -> None:
+./tests/test_make_pr_publication.py:1191:def test_created_pr_with_a_different_head_sha_reports_partial_publication(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1204:def test_create_denied_after_push_reports_partial_publication(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1216:def test_labels_use_rest_skip_unknown_and_never_fail_publication(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1237:def test_operator_smoke_bypass_note_is_a_rest_comment(tmp_path: Path) -> None:
+./tests/test_make_pr_publication.py:1259:def test_production_scripts_never_call_graphql_backed_gh() -> None:
+./tests/test_make_pr_publication.py:1273:def test_real_gitleaks_rejects_a_seeded_secret(tmp_path: Path) -> None:
 ./tests/test_makefile_failure_propagation.py:32:def _run_target_with_stub(tmp_path: Path, target: str, checker: str, exit_code: int) -> subprocess.CompletedProcess:
 ./tests/test_makefile_failure_propagation.py:54:def test_failing_checker_fails_the_make_target(tmp_path, target, checker):
 ./tests/test_makefile_failure_propagation.py:62:def test_passing_checker_passes_the_make_target(tmp_path, target, checker):
@@ -6102,18 +6073,18 @@
 ./tests/test_material_profile_intake_delta_bridge_pure.py:138:    def test_residue_true_from_contamination_percent(self):
 ./tests/test_material_profile_intake_delta_bridge_pure.py:143:    def test_payload_includes_derived_has_residue_not_profile_field(self):
 ./tests/test_material_profile_intake_delta_bridge_pure.py:150:    def test_forbidden_keys_absent(self):
-./tests/test_mothball_migration.py:22:def _load_coord():
-./tests/test_mothball_migration.py:30:def test_required_m5_files_exist():
-./tests/test_mothball_migration.py:35:def _manifest_version(src: str) -> tuple[int, ...]:
-./tests/test_mothball_migration.py:40:def test_matching_version_bumped_for_migration():
-./tests/test_mothball_migration.py:46:def test_coordinator_inventory_retains_audit_models():
-./tests/test_mothball_migration.py:55:def test_coordinator_dry_run_is_non_destructive():
-./tests/test_mothball_migration.py:62:def test_coordinator_refuses_execute_flag():
-./tests/test_mothball_migration.py:74:def test_migration_scripts_have_migrate_and_no_drop():
-./tests/test_mothball_migration.py:86:def test_post_migrate_sets_gate_only_markers():
-./tests/test_mothball_migration.py:91:def test_data_map_documents_retained_and_discardable():
-./tests/test_mothball_migration.py:99:def test_dry_run_cli_json():
-./tests/test_mothball_migration.py:112:def test_inventory_idempotent_digest():
+./tests/test_mothball_migration.py:21:def _load_coord():
+./tests/test_mothball_migration.py:29:def test_required_m5_files_exist():
+./tests/test_mothball_migration.py:34:def _manifest_version(src: str) -> tuple[int, ...]:
+./tests/test_mothball_migration.py:39:def test_matching_version_bumped_for_migration():
+./tests/test_mothball_migration.py:45:def test_coordinator_inventory_retains_audit_models():
+./tests/test_mothball_migration.py:54:def test_coordinator_dry_run_is_non_destructive():
+./tests/test_mothball_migration.py:61:def test_coordinator_refuses_execute_flag():
+./tests/test_mothball_migration.py:73:def test_migration_scripts_have_migrate_and_no_drop():
+./tests/test_mothball_migration.py:85:def test_post_migrate_sets_gate_only_markers():
+./tests/test_mothball_migration.py:90:def test_inventory_documents_retained_and_discardable():
+./tests/test_mothball_migration.py:103:def test_dry_run_cli_json():
+./tests/test_mothball_migration.py:116:def test_inventory_idempotent_digest():
 ./tests/test_mothball_uninstall_preflight.py:16:def _load_coord():
 ./tests/test_mothball_uninstall_preflight.py:24:def test_enrichment_crons_inactive():
 ./tests/test_mothball_uninstall_preflight.py:30:def test_uninstall_preflight_blocks_without_backup():
@@ -6264,6 +6235,32 @@
 ./tests/test_pr_check_scope.py:335:def test_a_failing_scoped_test_wave_fails_the_gate(repo: Repo) -> None:
 ./tests/test_pr_check_scope.py:341:def test_fast_mode_is_unchanged(repo: Repo) -> None:
 ./tests/test_pr_check_scope.py:347:def test_real_repository_script_change_reaches_a_strict_subset() -> None:
+./tests/test_pre_push_validate.py:23:def _write(path: Path, text: str) -> None:
+./tests/test_pre_push_validate.py:29:def work(tmp_path: Path) -> tuple[Path, Path, str]:
+./tests/test_pre_push_validate.py:57:def _base_env(tmp_path: Path) -> dict[str, str]:
+./tests/test_pre_push_validate.py:75:def _push_env(head: str, **extra: str) -> dict[str, str]:
+./tests/test_pre_push_validate.py:89:def _bound(head: str, **extra: str) -> dict[str, str]:
+./tests/test_pre_push_validate.py:95:def _run(repo: Path, mode: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+./tests/test_pre_push_validate.py:104:def _run_from_publisher(
+./tests/test_pre_push_validate.py:124:def _seq(seq: Path) -> str:
+./tests/test_pre_push_validate.py:129:def test_direct_push_runs_the_full_gate(work: tuple[Path, Path, str], mode: str) -> None:
+./tests/test_pre_push_validate.py:140:def test_exact_publisher_binding_skips_the_duplicate_work(work: tuple[Path, Path, str], mode: str) -> None:
+./tests/test_pre_push_validate.py:149:def test_forged_binding_on_a_direct_push_runs_the_full_gate(work: tuple[Path, Path, str], mode: str) -> None:
+./tests/test_pre_push_validate.py:165:def test_publisher_pid_must_name_the_publisher_ancestor(work: tuple[Path, Path, str], mode: str, pid_expr: str) -> None:
+./tests/test_pre_push_validate.py:179:def test_an_ancestor_that_only_names_the_publisher_does_not_count(work: tuple[Path, Path, str], mode: str) -> None:
+./tests/test_pre_push_validate.py:216:def test_any_binding_mismatch_runs_the_full_gate(
+./tests/test_pre_push_validate.py:226:def test_failing_pr_check_refuses(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:234:def test_gitleaks_failure_or_finding_refuses(work: tuple[Path, Path, str], rc: str) -> None:
+./tests/test_pre_push_validate.py:241:def test_missing_gitleaks_refuses(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:259:def test_root_history_push_is_refused(work: tuple[Path, Path, str], mode: str) -> None:
+./tests/test_pre_push_validate.py:270:def test_outside_a_pre_push_is_refused(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:278:def test_pushing_a_commit_other_than_head_is_refused(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:286:def test_a_forged_binding_for_another_head_is_refused_not_honoured(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:295:def test_dirty_tree_is_refused_even_with_a_binding(work: tuple[Path, Path, str], mode: str) -> None:
+./tests/test_pre_push_validate.py:304:def test_worktree_change_during_validation_is_refused(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:311:def test_smoke_bypass_is_not_a_direct_push_switch(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:319:def test_unknown_mode_is_refused(work: tuple[Path, Path, str]) -> None:
+./tests/test_pre_push_validate.py:326:def test_pr_check_runs_without_the_hooks_repo_local_git_variables(work: tuple[Path, Path, str], tmp_path: Path) -> None:
 ./tests/test_pristine_runtime_seams.py:28:def _tree(path: Path) -> ast.Module:
 ./tests/test_pristine_runtime_seams.py:32:def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 ./tests/test_pristine_runtime_seams.py:42:def _call_lines(tree: ast.AST, attr: str) -> list[int]:
@@ -6297,6 +6294,31 @@
 ./tests/test_projection_outcome_schemas.py:98:def test_sync_idempotent_and_rebuild() -> None:
 ./tests/test_projection_outcome_schemas.py:122:def test_outcome_idempotent_replay() -> None:
 ./tests/test_projection_outcome_schemas.py:132:def test_odoo_remains_authority_marker() -> None:
+./tests/test_publication_real_push.py:52:def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
+./tests/test_publication_real_push.py:76:def _git(repo: Path, env: dict[str, str], *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+./tests/test_publication_real_push.py:81:def _commit(repo: Path, env: dict[str, str], name: str) -> str:
+./tests/test_publication_real_push.py:88:def _probe_repo(tmp_path: Path) -> tuple[Path, Path, dict[str, str]]:
+./tests/test_publication_real_push.py:108:def _log(tmp_path: Path) -> list[dict[str, str | None]]:
+./tests/test_publication_real_push.py:115:def _clear(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:119:def _remote_ref(bare: Path, env: dict[str, str], ref: str) -> str:
+./tests/test_publication_real_push.py:130:def test_root_history_push_runs_in_all_files_mode_without_refs(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:139:def test_update_push_exports_the_full_pushed_sha(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:153:def test_re_pushing_a_published_sha_runs_no_hook(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:165:def test_git_invokes_pre_push_with_no_refs_on_an_up_to_date_push_and_pre_commit_runs_nothing(
+./tests/test_publication_real_push.py:191:def test_new_ref_to_an_already_remote_commit_runs_no_hook_but_creates_the_ref(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:201:def test_multi_ref_push_validates_only_the_first_new_ref(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:216:def test_synthetic_run_forwards_a_literal_to_ref(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:236:def _gate_hooks() -> list[dict]:
+./tests/test_publication_real_push.py:251:def _gate_repo(tmp_path: Path) -> tuple[Path, Path, dict[str, str], Path]:
+./tests/test_publication_real_push.py:288:def _gate_seq(seq: Path) -> list[str]:
+./tests/test_publication_real_push.py:292:def _push_head(repo: Path, env: dict[str, str], **extra: str) -> subprocess.CompletedProcess[str]:
+./tests/test_publication_real_push.py:296:def test_direct_push_runs_gitleaks_then_pr_check_and_publishes(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:305:def test_direct_push_with_failing_pr_check_leaves_the_remote_unchanged(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:314:def test_gitleaks_finding_stops_the_stage_before_pr_check(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:323:def _push_via_publisher(
+./tests/test_publication_real_push.py:351:def test_publisher_bound_push_skips_both_heavy_hooks(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:360:def test_binding_for_another_branch_still_runs_the_gate(tmp_path: Path) -> None:
+./tests/test_publication_real_push.py:368:def test_forged_binding_on_a_direct_push_still_runs_the_gate(tmp_path: Path) -> None:
 ./tests/test_rate_memory_retirement.py:17:def test_legacy_rate_memory_lookup_is_fail_closed_without_orm_access():
 ./tests/test_rate_memory_retirement.py:21:def test_legacy_rate_memory_engine_contains_no_model_query():
 ./tests/test_remote_feedback_revision.py:12:def _real_bug() -> Issue:
@@ -6423,60 +6445,65 @@
 ./tests/test_test_env_safety.py:173:def test_run_refuses_recipe_forms_that_leave_the_verified_clone(tmp_path, args, reason):
 ./tests/test_test_env_safety.py:207:def test_run_accepts_the_makefile_forms_bound_to_the_clone(tmp_path, args):
 ./tests/test_test_env_safety.py:224:def out(text=""):
-./tests/test_test_env_safety.py:280:def _stateful(
-./tests/test_test_env_safety.py:317:def _fingerprint(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
-./tests/test_test_env_safety.py:323:def _source(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
-./tests/test_test_env_safety.py:329:def _template(fp: str) -> tuple[str, str]:
-./tests/test_test_env_safety.py:336:def _clone(fp: str, owner: str = "agenta") -> str:
-./tests/test_test_env_safety.py:346:def _enterprise(tmp_path: Path) -> dict[str, str]:
-./tests/test_test_env_safety.py:353:def _ee_template(fp: str) -> str:
-./tests/test_test_env_safety.py:357:def _ee_clone(fp: str) -> str:
-./tests/test_test_env_safety.py:364:def _inputs(tmp_path: Path, **env: str) -> list[str]:
-./tests/test_test_env_safety.py:370:def _sha256(text: str) -> str:
-./tests/test_test_env_safety.py:381:def test_enterprise_status_names_only_the_pinned_fixture(tmp_path):
-./tests/test_test_env_safety.py:392:def test_enterprise_status_does_not_call_a_fixture_admitted_for_other_inputs_ready(tmp_path):
-./tests/test_test_env_safety.py:399:def test_clone_of_a_fixture_admitted_for_other_inputs_is_refused(tmp_path):
-./tests/test_test_env_safety.py:409:def test_unproven_fixture_is_refused_and_not_rebuilt(tmp_path):
-./tests/test_test_env_safety.py:421:def test_inputs_file_that_does_not_hash_to_the_fixture_fp_is_not_proof(tmp_path):
-./tests/test_test_env_safety.py:433:def test_fixture_admitted_for_other_inputs_is_refused_by_name(tmp_path, key):
-./tests/test_test_env_safety.py:451:def test_fixture_recorded_with_addon_source_is_certified_without_a_rebuild(tmp_path):
-./tests/test_test_env_safety.py:473:def test_enterprise_clone_of_another_template_is_refused(tmp_path):
-./tests/test_test_env_safety.py:492:def test_new_enterprise_template_is_refused_in_the_script():
-./tests/test_test_env_safety.py:512:def _summary(failed: int, errors: int, total: int, db: str = "odoo_test_a") -> str:
-./tests/test_test_env_safety.py:520:def _test_run(tmp_path: Path, *recipe: str, root: Path = ROOT, **env: str) -> subprocess.CompletedProcess:
-./tests/test_test_env_safety.py:527:def _odoo_call(tmp_path: Path) -> str:
-./tests/test_test_env_safety.py:533:def test_full_suite_upgrades_the_roster_and_reports_the_count(tmp_path):
-./tests/test_test_env_safety.py:554:def test_module_test_upgrades_the_roster_and_runs_only_that_module(tmp_path):
-./tests/test_test_env_safety.py:587:def _git(root: Path, *args: str) -> str:
-./tests/test_test_env_safety.py:591:def _git_checkout(tmp_path: Path) -> tuple[Path, str]:
-./tests/test_test_env_safety.py:618:def _receipt(tmp_path: Path) -> dict:
-./tests/test_test_env_safety.py:622:def test_receipt_binds_the_tested_source_to_a_clean_head(tmp_path):
-./tests/test_test_env_safety.py:639:def test_receipt_of_a_worktree_that_differs_from_its_head_is_dirty(tmp_path, path, addon):
-./tests/test_test_env_safety.py:654:def test_addon_source_changed_during_the_run_leaves_no_receipt(tmp_path):
-./tests/test_test_env_safety.py:682:def test_test_run_without_passing_tests_fails(tmp_path, log, rc, reason):
-./tests/test_test_env_safety.py:702:def test_test_run_scope_is_refused_before_docker(tmp_path, extra, reason):
-./tests/test_test_env_safety.py:720:def test_guarded_import_cannot_be_redirected_by_an_injected_makefile(tmp_path):
-./tests/test_test_env_safety.py:755:def test_guarded_make_starts_with_the_clone_marker_and_without_make_environment(tmp_path):
-./tests/test_test_env_safety.py:791:def _make_import(
-./tests/test_test_env_safety.py:830:def test_import_recipe_refuses_a_database_other_than_the_verified_clone(tmp_path, target, args):
-./tests/test_test_env_safety.py:845:def test_import_recipe_refuses_the_no_docker_fallback_for_a_verified_clone(tmp_path, target, args):
-./tests/test_test_env_safety.py:864:def test_every_form_that_starts_odoo_tests_belongs_to_the_runner(tmp_path, form):
-./tests/test_test_env_safety.py:888:def test_abbreviated_options_that_redirect_the_run_are_refused(tmp_path, arg):
-./tests/test_test_env_safety.py:894:def test_abbreviated_database_option_with_a_separate_value_is_refused(tmp_path):
-./tests/test_test_env_safety.py:899:def test_fixture_with_a_differing_line_that_has_no_simple_key_is_refused(tmp_path):
-./tests/test_test_env_safety.py:912:def _owned_clone_run(tmp_path: Path, *recipe: str, clone_extra: str = "", **env: str):
-./tests/test_test_env_safety.py:919:def _upgrade_calls(tmp_path: Path) -> list[str]:
-./tests/test_test_env_safety.py:927:def test_guarded_import_runs_on_a_clone_upgraded_to_the_source_on_disk(tmp_path):
-./tests/test_test_env_safety.py:942:def test_clone_already_upgraded_for_this_source_is_not_upgraded_again(tmp_path):
-./tests/test_test_env_safety.py:950:def test_failed_upgrade_stops_the_import(tmp_path):
-./tests/test_test_env_safety.py:978:def test_upgrade_stage_does_not_consume_the_piped_shell_script(tmp_path):
-./tests/test_test_env_safety.py:986:def test_current_owned_clone_of_the_admitted_template_is_accepted(tmp_path):
-./tests/test_test_env_safety.py:994:def test_clone_is_refused_after_the_runtime_image_changes(tmp_path):
-./tests/test_test_env_safety.py:1004:def test_stale_clone_of_a_still_admitted_old_template_is_refused(tmp_path):
-./tests/test_test_env_safety.py:1016:def test_clone_naming_a_template_that_is_not_admitted_is_refused(tmp_path):
-./tests/test_test_env_safety.py:1029:def test_another_owners_current_clone_is_still_refused(tmp_path):
-./tests/test_test_env_safety.py:1039:def test_clone_stage_is_retained_until_marker_is_written():
-./tests/test_test_env_safety.py:1054:def test_retirement_protects_detached_build_stages():
+./tests/test_test_env_safety.py:289:def _stateful(
+./tests/test_test_env_safety.py:326:def _status(tmp_path: Path, root: Path = ROOT, **env: str) -> dict:
+./tests/test_test_env_safety.py:343:def _fingerprint(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+./tests/test_test_env_safety.py:347:def _source(tmp_path: Path, root: Path = ROOT, **env: str) -> str:
+./tests/test_test_env_safety.py:351:def _template(fp: str) -> tuple[str, str]:
+./tests/test_test_env_safety.py:358:def _clone(fp: str, owner: str = "agenta") -> str:
+./tests/test_test_env_safety.py:368:def _enterprise(tmp_path: Path) -> dict[str, str]:
+./tests/test_test_env_safety.py:375:def _ee_template(fp: str) -> str:
+./tests/test_test_env_safety.py:379:def _ee_clone(fp: str) -> str:
+./tests/test_test_env_safety.py:386:def _inputs(tmp_path: Path, **env: str) -> list[str]:
+./tests/test_test_env_safety.py:390:def _sha256(text: str) -> str:
+./tests/test_test_env_safety.py:401:def test_enterprise_status_names_only_the_pinned_fixture(tmp_path):
+./tests/test_test_env_safety.py:412:def test_enterprise_status_does_not_call_a_fixture_admitted_for_other_inputs_ready(tmp_path):
+./tests/test_test_env_safety.py:419:def test_clone_of_a_fixture_admitted_for_other_inputs_is_refused(tmp_path):
+./tests/test_test_env_safety.py:429:def test_unproven_fixture_is_refused_and_not_rebuilt(tmp_path):
+./tests/test_test_env_safety.py:441:def test_inputs_file_that_does_not_hash_to_the_fixture_fp_is_not_proof(tmp_path):
+./tests/test_test_env_safety.py:453:def test_fixture_admitted_for_other_inputs_is_refused_by_name(tmp_path, key):
+./tests/test_test_env_safety.py:471:def test_fixture_recorded_with_addon_source_is_certified_without_a_rebuild(tmp_path):
+./tests/test_test_env_safety.py:493:def test_enterprise_clone_of_another_template_is_refused(tmp_path):
+./tests/test_test_env_safety.py:512:def test_new_enterprise_template_is_refused_in_the_script():
+./tests/test_test_env_safety.py:532:def _summary(failed: int, errors: int, total: int, db: str = "odoo_test_a") -> str:
+./tests/test_test_env_safety.py:540:def _test_run(tmp_path: Path, *recipe: str, root: Path = ROOT, **env: str) -> subprocess.CompletedProcess:
+./tests/test_test_env_safety.py:547:def _odoo_call(tmp_path: Path) -> str:
+./tests/test_test_env_safety.py:553:def test_full_suite_upgrades_the_roster_and_reports_the_count(tmp_path):
+./tests/test_test_env_safety.py:574:def test_module_test_upgrades_the_roster_and_runs_only_that_module(tmp_path):
+./tests/test_test_env_safety.py:607:def _git(root: Path, *args: str) -> str:
+./tests/test_test_env_safety.py:611:def _git_checkout(tmp_path: Path) -> tuple[Path, str]:
+./tests/test_test_env_safety.py:638:def _receipt(tmp_path: Path) -> dict:
+./tests/test_test_env_safety.py:642:def test_receipt_binds_the_tested_source_to_a_clean_head(tmp_path):
+./tests/test_test_env_safety.py:659:def test_receipt_of_a_worktree_that_differs_from_its_head_is_dirty(tmp_path, path, addon):
+./tests/test_test_env_safety.py:674:def test_addon_source_changed_during_the_run_leaves_no_receipt(tmp_path):
+./tests/test_test_env_safety.py:702:def test_test_run_without_passing_tests_fails(tmp_path, log, rc, reason):
+./tests/test_test_env_safety.py:722:def test_test_run_scope_is_refused_before_docker(tmp_path, extra, reason):
+./tests/test_test_env_safety.py:740:def test_guarded_import_cannot_be_redirected_by_an_injected_makefile(tmp_path):
+./tests/test_test_env_safety.py:775:def test_guarded_make_starts_with_the_clone_marker_and_without_make_environment(tmp_path):
+./tests/test_test_env_safety.py:811:def _make_import(
+./tests/test_test_env_safety.py:850:def test_import_recipe_refuses_a_database_other_than_the_verified_clone(tmp_path, target, args):
+./tests/test_test_env_safety.py:865:def test_import_recipe_refuses_the_no_docker_fallback_for_a_verified_clone(tmp_path, target, args):
+./tests/test_test_env_safety.py:884:def test_every_form_that_starts_odoo_tests_belongs_to_the_runner(tmp_path, form):
+./tests/test_test_env_safety.py:908:def test_abbreviated_options_that_redirect_the_run_are_refused(tmp_path, arg):
+./tests/test_test_env_safety.py:914:def test_abbreviated_database_option_with_a_separate_value_is_refused(tmp_path):
+./tests/test_test_env_safety.py:919:def test_fixture_with_a_differing_line_that_has_no_simple_key_is_refused(tmp_path):
+./tests/test_test_env_safety.py:932:def _owned_clone_run(tmp_path: Path, *recipe: str, clone_extra: str = "", **env: str):
+./tests/test_test_env_safety.py:939:def _upgrade_calls(tmp_path: Path) -> list[str]:
+./tests/test_test_env_safety.py:947:def test_guarded_import_runs_on_a_clone_upgraded_to_the_source_on_disk(tmp_path):
+./tests/test_test_env_safety.py:962:def test_clone_already_upgraded_for_this_source_is_not_upgraded_again(tmp_path):
+./tests/test_test_env_safety.py:970:def test_failed_upgrade_stops_the_import(tmp_path):
+./tests/test_test_env_safety.py:998:def test_upgrade_stage_does_not_consume_the_piped_shell_script(tmp_path):
+./tests/test_test_env_safety.py:1006:def test_current_owned_clone_of_the_admitted_template_is_accepted(tmp_path):
+./tests/test_test_env_safety.py:1014:def test_clone_is_refused_after_the_runtime_image_changes(tmp_path):
+./tests/test_test_env_safety.py:1024:def test_stale_clone_of_a_still_admitted_old_template_is_refused(tmp_path):
+./tests/test_test_env_safety.py:1036:def test_clone_naming_a_template_that_is_not_admitted_is_refused(tmp_path):
+./tests/test_test_env_safety.py:1049:def test_another_owners_current_clone_is_still_refused(tmp_path):
+./tests/test_test_env_safety.py:1059:def test_clone_stage_is_retained_until_marker_is_written():
+./tests/test_test_env_safety.py:1074:def test_retirement_protects_detached_build_stages():
+./tests/test_test_env_safety.py:1091:def _drop(tmp_path: Path, **env: str) -> subprocess.CompletedProcess:
+./tests/test_test_env_safety.py:1095:def test_lease_granted_late_is_awaited_and_reports_the_wait(tmp_path):
+./tests/test_test_env_safety.py:1102:def test_lease_answered_with_another_token_times_out_on_elapsed_time(tmp_path):
+./tests/test_test_env_safety.py:1114:def test_lease_session_that_ends_without_a_grant_fails_closed(tmp_path):
 ./tests/test_transaction_bill_open.py:11:def test_bill_tags_use_open_widget():
 ./tests/test_transaction_bill_open.py:18:def test_open_widget_uses_formview_action():
 ./tests/test_transaction_bill_open.py:24:def test_open_widget_is_in_backend_assets():
