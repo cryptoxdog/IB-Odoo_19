@@ -313,9 +313,10 @@ class MaterialNormalization:
         self.packaging_type = packaging_type
 
 
-# One collapsed word, used only when the whole phrase misses ``_SPECS`` (and the
-# CRM tables, when those are enabled). A grade word is what the items were.
-# It is never a form. The worksheet phrase ``pallets`` stays the polymer spec.
+# One collapsed word, used only when the whole phrase misses ``_SPECS`` and the
+# caller is not resolving a CRM alias. An unmapped VanillaSoft token stays
+# unresolved. A grade word is what the items were. It is never a form. The
+# worksheet phrase ``pallets`` stays the polymer spec.
 _FORM_WORDS = {
     "bale": "BALES",
     "baled": "BALES",
@@ -379,7 +380,9 @@ def normalize_material(env, description, grade_evidence=None, structured=None, *
     form, source, grade letter, or material grade is unresolved and does not
     pick a side. Attributes, color, and packaging come from the description
     when it matches. With ``crm_aliases``, a description that misses ``_SPECS``
-    may match ``_CRM_EXACT``, then ``_CRM_ALIASES``. Hints stay on ``_SPECS``.
+    may match ``_CRM_EXACT``, then ``_CRM_ALIASES``. A miss stays unresolved:
+    a single form or grade word is not applied on that path. Hints stay on
+    ``_SPECS``.
     """
     source = _collapse(description)
     text = _phrase(description)
@@ -387,7 +390,7 @@ def normalize_material(env, description, grade_evidence=None, structured=None, *
     description_spec = _SPECS.get(text)
     if description_spec is None and crm_aliases:
         description_spec = _CRM_EXACT.get(text) or _CRM_ALIASES.get(text)
-    if description_spec is None and text and " " not in text:
+    if description_spec is None and not crm_aliases and text and " " not in text:
         form_code, grade_code = classify_material_word(text)
         if form_code or grade_code:
             description_spec = _spec(polymer=None, form=form_code, material_grade=grade_code)
