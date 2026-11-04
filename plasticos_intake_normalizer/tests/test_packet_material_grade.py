@@ -12,7 +12,10 @@ class TestPacketMaterialGrade(TransactionCase):
         cls.form_other = cls.env.ref("plasticos_material_profile.form_other")
         cls.form_sheet = cls.env.ref("plasticos_material_profile.form_sheet")
         cls.grade_drums = cls.env.ref("plasticos_material_profile.material_grade_drums")
-        cls.partner = cls.env["res.partner"].create({"name": "Packet Grade Co", "is_company": True})
+        cls.company = cls.env["res.partner"].create({"name": "Packet Grade Co", "is_company": True})
+        cls.partner = cls.env["res.partner"].create(
+            {"name": "Packet Grade Facility", "is_company": True, "parent_id": cls.company.id}
+        )
 
     def _intake(self, form, grade=None, **extra):
         vals = {
