@@ -7,7 +7,7 @@
 # ═══════════════════════════════════════════════════════════
 {
     "name": "PlasticOS Web Leads",
-    "version": "19.0.2.8.6",
+    "version": "19.0.2.8.7",
     "summary": "AI-powered triage for provider-neutral inbound web leads",
     "license": "LGPL-3",
     "author": "Igor Beylin",

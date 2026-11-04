@@ -249,6 +249,9 @@ exclude = [
     "odoo-enterprise",
     "current work - ib",
     "Current Work - IGNORE",
+    # Governance checkout, symlinked at .cursor-commands. Editor exclude is ignored
+    # while [tool.pyright] exists; without this the server indexes that tree.
+    "**/.cursor-commands",
 ]
 # Suppress diagnostics on opened upstream trees. PlasticOS stays checked.
 # Paths are absolute because these servers do not expand ${env:HOME}.

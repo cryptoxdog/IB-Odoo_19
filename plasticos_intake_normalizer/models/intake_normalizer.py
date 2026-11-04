@@ -431,6 +431,9 @@ class PlasticosIntakeNormalizer(models.Model):
             "odoo_record_id": self.id,
             # ── Identity ─────────────────────────────────
             "partner": self._assemble_partner_block(),
+            "polymer": self.polymer_id.code if self.polymer_id else None,
+            "form": self.form_id.code if self.form_id else None,
+            "material_grade": self.material_grade_id.code if self.material_grade_id else None,
             # ── Quality Specs ────────────────────────────
             "quality": {
                 "mfi_value": self.mfi_value or None,
@@ -524,9 +527,10 @@ class PlasticosIntakeNormalizer(models.Model):
             block["polymer_name"] = mp.polymer_id.name
 
         # Standard fields that exist on the base material_profile
-        for fld in ("form", "color", "source_type", "grade"):
+        for fld in ("form", "color", "source_type"):
             if hasattr(mp, fld):
                 block[fld] = getattr(mp, fld) or None
+        block["material_grade"] = mp.material_grade_id.code if mp.material_grade_id else None
 
         return block
 
