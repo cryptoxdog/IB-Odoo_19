@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # Push the current HEAD only after live L4 check-remote allows this worktree.
 # Prove origin's branch ref matches local HEAD. Does not open the PR.
+#
+# This script owns the publication gate. It runs on every attempt, before
+# git push, including retries where git has nothing new to push and the
+# pre-push stage runs no hook. After it passes, the push alone carries
+# L9_PUBLISH_VALIDATED_SHA / L9_PUBLISH_TARGET / L9_PUBLISH_PID (this shell's PID),
+# which scripts/pre_push_validate.sh honours only for exactly this push and only
+# while this process is its live ancestor, so the candidate is validated once.
 set -euo pipefail
+
+# A binding is set below, on the push only, after this gate. Never inherit one.
+unset L9_PUBLISH_VALIDATED_SHA L9_PUBLISH_TARGET L9_PUBLISH_PID
 
 refuse() {
   echo "refusing to publish: $*" >&2
@@ -93,8 +103,6 @@ case "${TARGET}" in
     refuse "${TARGET} is a protected branch"
     ;;
 esac
-
-require_l4_release
 
 status="$(git status --porcelain)"
 if [[ -n "${status}" ]]; then
@@ -194,10 +202,22 @@ if [[ "${INSTALL_SMOKE_GATE}" == "1" ]] && [[ "${SMOKE_BYPASS}" != "1" ]] && smo
   refuse "install-smoke --recheck rejected the live evidence"
 fi
 
-# Push the validated commit, never the moving HEAD. The pre-push hook runs here;
-# a nonzero hook exit fails the push and no remote ref advances.
-if ! git push origin "${LOCAL_SHA}:refs/heads/${TARGET}"; then
-  echo "git push failed for origin/${TARGET} (validated ${LOCAL_SHA})" >&2
+# Second L4 check, at the push boundary: after validation, before any remote
+# ref can move (the first runs in make_push_pipeline.sh before local work).
+require_l4_release
+
+# Push the validated commit, never the moving HEAD, as exactly one refspec.
+# The pre-push stage still runs; the binding lets it skip only what this gate
+# already did for this SHA and target. A nonzero hook exit fails the push and
+# no remote ref advances.
+set +e
+# git push runs as a child (no exec), so this shell stays the hook's ancestor.
+L9_PUBLISH_VALIDATED_SHA="${LOCAL_SHA}" L9_PUBLISH_TARGET="${TARGET}" L9_PUBLISH_PID="$$" \
+  git push origin "${LOCAL_SHA}:refs/heads/${TARGET}"
+push_rc=$?
+set -e
+if [[ "${push_rc}" -ne 0 ]]; then
+  echo "git push failed (exit ${push_rc}) for origin/${TARGET} (validated ${LOCAL_SHA}); see the git and hook output above" >&2
   echo "Publication stays on make pr. An API push is not a fallback ceremony." >&2
   exit 1
 fi

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -295,6 +296,7 @@ exit "${{INSTALL_SMOKE_RC:-0}}"
 github="https://github.com/cryptoxdog/IB-Odoo_19.git"
 if [[ "$1" == "push" ]]; then
   echo "push" >> "{seq}"
+  echo "push-env sha=${{L9_PUBLISH_VALIDATED_SHA-}} target=${{L9_PUBLISH_TARGET-}} pid=${{L9_PUBLISH_PID-}} argc=$#" >> "{seq}"
   if [[ -n "${{REAL_REMOTE:-}}" ]]; then
     exec "{REAL_GIT}" -c "url.$REAL_REMOTE.pushInsteadOf=$github" "$@"
   fi
@@ -479,9 +481,16 @@ def test_feature_to_staging_publishes_after_gates_without_forced_smoke(tmp_path:
     workspaces = [line.split("--workspace", 1)[1].strip() for line in text.splitlines() if line.startswith("l4 ")]
     assert workspaces == [worktree, worktree]
     assert governance not in workspaces
-    assert text.index("l4 ") < text.rindex("l4 ") < text.index("gitleaks ")
-    assert text.index("gitleaks ") < text.index("smoke --resolve") < text.index("make ")
-    assert text.index("make ") < text.index("smoke --recheck") < text.index("\npush\n")
+    # First L4 before any local work; second at the push boundary, after validation.
+    assert text.index("l4 ") < text.index("gitleaks ") < text.index("smoke --resolve") < text.index("make ")
+    assert text.index("make ") < text.index("smoke --recheck") < text.rindex("l4 ") < text.index("\npush\n")
+    # One validation pass per attempt: one pr-check, one gitleaks scan, two L4 checks.
+    assert text.count("make ") == 1, text
+    assert text.count("gitleaks ") == 1, text
+    assert text.count("l4 ") == 2, text
+    head = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    # The push alone carries the binding, as exactly one refspec: push origin <sha>:refs/heads/<branch>.
+    assert re.search(rf"push-env sha={head} target=fix/example pid=[0-9]+ argc=3", text), text
     assert "Open PR #222" in output
 
 
@@ -542,12 +551,36 @@ def test_l4_denial_and_second_check_failure_do_not_push(tmp_path: Path) -> None:
     assert "denied release" in (denied.stdout + denied.stderr)
     _assert_no_push(seq)
 
+    # The second check sits at the push boundary: validation has run, then L4
+    # denies, and no remote ref moves and no pull request is touched.
     repo2, seq2 = _init_repo(tmp_path / "second")
     second = _run(repo2, tmp_path / "second", "fix/example", "Staging", "1", "0", L4_FAIL_CALL="2")
     output = second.stdout + second.stderr
     assert second.returncode == 1, output
-    assert "make " not in _seq(seq2)
+    assert "denied release" in output
+    text = _seq(seq2)
+    assert text.index("make ") < text.rindex("l4 "), text
     _assert_no_push(seq2)
+    assert all(call["method"] == "GET" for call in _gh_calls(tmp_path / "second"))
+
+
+def test_inherited_publisher_binding_does_not_skip_publisher_validation(tmp_path: Path) -> None:
+    """A forged or stale binding in the caller's environment authorizes nothing."""
+    repo, seq = _init_repo(tmp_path)
+    head = _head(repo)
+    proc = _push(
+        repo,
+        tmp_path,
+        "fix/example",
+        L9_PUBLISH_VALIDATED_SHA=head,
+        L9_PUBLISH_TARGET="fix/example",
+        L9_PUBLISH_PID="1",
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = _seq(seq)
+    assert text.count("make ") == 1, text
+    assert text.count("gitleaks ") == 1, text
+    assert text.index("make ") < text.index("\npush\n")
 
 
 def test_disable_and_breakglass_switches_do_not_invoke_l4_or_push(tmp_path: Path) -> None:
@@ -817,6 +850,7 @@ def test_rejecting_pre_push_hook_stops_publication(tmp_path: Path, entry: str) -
     assert _hook_runs(seq) == 1, "the real pre-push hook must run on the push"
     assert _remote_sha(bare) == seeded, "a rejecting pre-push hook let the remote ref advance"
     assert "Open PR" not in output
+    assert "git push failed (exit " in output, "the push failure is reported with git's exit code"
     assert "gh " not in _seq(seq).split("pre-push ", 1)[1], "no GitHub API call after a rejected push"
     assert all(call["method"] == "GET" for call in _gh_calls(tmp_path))
 
@@ -936,6 +970,35 @@ def test_scope_receipt_without_smoke_inputs_skips_only_the_recheck(tmp_path: Pat
         _write(repo2 / ".cache" / "pr-check" / "scope.json", receipt)
         assert _push(repo2, tmp_path / name, "fix/example", INSTALL_SMOKE_GATE="1").returncode == 0
         assert "smoke --recheck" in _seq(seq2), "RECHECK: with the gate on, only an explicit smoke=0 receipt skips it"
+
+
+def test_no_op_retry_still_validates_before_pr_verification(tmp_path: Path) -> None:
+    """F1: origin already holds the validated SHA, so the push carries no ref.
+
+    Git still calls the hook but sends it no ref lines, and pre-commit then runs
+    no configured hook (tests/test_publication_real_push.py). The publisher's own
+    gate must still run pr-check and gitleaks exactly once before the pull
+    request is verified.
+    """
+    repo, seq = _init_repo(tmp_path)
+    bare = tmp_path / "remote.git"
+    subprocess.run([REAL_GIT, "init", "--bare", str(bare)], check=True, capture_output=True)
+    subprocess.run(
+        [REAL_GIT, "-C", str(bare), "fetch", str(repo), "fix/example:refs/heads/fix/example"],
+        check=True,
+        capture_output=True,
+    )
+    assert _remote_sha(bare) == _head(repo)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", REAL_REMOTE=str(bare))
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 0, output
+    text = _seq(seq)
+    assert _remote_sha(bare) == _head(repo)
+    assert text.count("make ") == 1, text
+    assert text.count("gitleaks ") == 1, text
+    assert text.index("make ") < text.index("\npush\n")
+    assert "Open PR #222" in output
 
 
 def test_worktree_change_after_validation_does_not_push(tmp_path: Path) -> None:
