@@ -64,6 +64,12 @@
       <field name="description">Shredded material.</field>
       <field name="sequence">80</field>
     </record>
+    <record id="form_fluff" model="plasticos.material.form">
+      <field name="name">Fluff</field>
+      <field name="code">FLUFF</field>
+      <field name="description">Light, low-bulk-density granulated or shredded material, typically from film or fiber.</field>
+      <field name="sequence">85</field>
+    </record>
     <record id="form_densified" model="plasticos.material.form">
       <field name="name">Densified</field>
       <field name="code">DENSIFIED</field>

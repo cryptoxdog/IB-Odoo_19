@@ -17,6 +17,7 @@ Pattern follows form_codes.py from PR #23.
 PROCESS_CODES: tuple[str, ...] = (
     "blow_mold",
     "compounding",
+    "compression_mold",
     "extrusion",
     "film_blown",
     "film_cast",
@@ -38,6 +39,7 @@ MFI_RANGES: dict[str, tuple[float | None, float | None]] = {
     "thermoform": (1.0, 12.0),  # 1 <= MFI <= 12
     "rotomold": (2.0, 10.0),  # 2 <= MFI <= 10
     "compounding": (None, None),  # any MFI
+    "compression_mold": (None, None),  # any MFI
     "other": (None, None),  # any MFI
 }
 
@@ -46,6 +48,7 @@ MFI_RANGES: dict[str, tuple[float | None, float | None]] = {
 PROCESS_LABELS: dict[str, str] = {
     "blow_mold": "Blow Molding",
     "compounding": "Compounding",
+    "compression_mold": "Compression Molding",
     "extrusion": "Extrusion",
     "film_blown": "Film Blown",
     "film_cast": "Film Cast",

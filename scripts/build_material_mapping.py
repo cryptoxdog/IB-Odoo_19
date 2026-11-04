@@ -119,7 +119,7 @@ DECIDED_ALIASES = {
     "3-7 bottles": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
     "mrp 3-7": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
     "tubs": ("PP", "PARTS", None, (), None, None),
-    "knock-down crates": ("HDPE", None, None, (), None, "CRATES"),
+    "knock-down crates": ("HDPE", None, None, (), None, "KNOCKDOWN_BINS"),
     "drip tube": ("HDPE", None, None, (), None, None),
 }
 CONTACT_TEXT = re.compile(
@@ -229,11 +229,11 @@ FORM_WORDS = {
     "PARTS": ("tubs & lids", "tubs and lids", "tubs"),
 }
 GRADE_WORDS = {
-    "CRATES": ("knock-down crates", "knockdown bins", "knockdowns", "knockdown", "knock-down"),
+    "KNOCKDOWN_BINS": ("knock-down crates", "knockdown bins", "knockdowns", "knockdown", "knock-down"),
 }
-# The free-text rule names only the six grades that were forms before 2026-11; other grade
-# words (trash, liners, lids) recur in unrelated or negated text.
-TEXT_RULE_GRADES = {"BOTTLES", "BUCKETS", "CRATES", "DRUMS", "PALLETS", "TOTES"}
+# The free-text rule names the six grades that were forms before 2026-11 plus Knockdown Bins;
+# other grade words (trash, liners, lids) recur in unrelated or negated text.
+TEXT_RULE_GRADES = {"BOTTLES", "BUCKETS", "CRATES", "DRUMS", "KNOCKDOWN_BINS", "PALLETS", "TOTES"}
 NO_SUGGEST_POLYMERS = {"OTHER", "MIXED"}
 NO_SUGGEST_ATTRIBUTES = {"mixed"}
 NO_SUGGEST_FORMS = {"OTHER"}

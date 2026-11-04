@@ -1412,6 +1412,7 @@ class TestRegistrySanity:
             "thermoform",
             "rotomold",
             "compounding",
+            "compression_mold",
             "other",
         }
         try:

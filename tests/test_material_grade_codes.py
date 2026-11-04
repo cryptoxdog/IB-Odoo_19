@@ -59,7 +59,7 @@ def test_displayed_names_are_title_case_except_acronyms() -> None:
     assert names["IBC_TOTES"] == "IBC Totes"
     assert names["TUBS_LIDS"] == "Tubs/Lids"
     assert names["RETURNS"] == "Returns"
-    assert len(names) == 22
+    assert len(names) == 34
 
 
 def test_form_codes_equal_the_form_seed() -> None:
