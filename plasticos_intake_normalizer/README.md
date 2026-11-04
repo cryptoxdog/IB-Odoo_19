@@ -28,7 +28,7 @@ Builds the CEG query payload from the current intake record. Called by `action_m
 {
     "polymer": self.polymer_id.code,
     "form": self.form_id.code,
-    "origin_form": self.origin_form_id.code if self.origin_form_id else None,
+    "material_grade": self.material_grade_id.code if self.material_grade_id else None,
     "origin_process": self.origin_process_type,
     "source_type": self.source_type_id.name if self.source_type_id else None,
     "volume": {

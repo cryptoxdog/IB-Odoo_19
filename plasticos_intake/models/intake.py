@@ -186,6 +186,13 @@ class PlasticosIntake(models.Model):
         ondelete="restrict",
         help="Polymer type from master registry.",
     )
+    material_grade_id = fields.Many2one(
+        "plasticos.material.grade",
+        string="Material Grade",
+        index=True,
+        ondelete="restrict",
+        help="What the material was before processing (Drums, Totes, Pallets). Optional.",
+    )
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
@@ -209,13 +216,6 @@ class PlasticosIntake(models.Model):
         help="Canonical source type from the master registry.",
     )
     grade_hint = fields.Char()
-
-    origin_form_id = fields.Many2one(
-        "plasticos.material.form",
-        string="Origin Form",
-        help="What the material was before processing (Drums, Bottles, Film). Optional.",
-        ondelete="restrict",
-    )
 
     packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
@@ -555,7 +555,7 @@ class PlasticosIntake(models.Model):
         self.form_id = mp.form_id.id if mp.form_id else self.form_id
         self.color_id = mp.color_id.id if mp.color_id else self.color_id
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
-        self.origin_form_id = mp.origin_form_id.id if mp.origin_form_id else self.origin_form_id
+        self.material_grade_id = mp.material_grade_id.id if mp.material_grade_id else self.material_grade_id
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value

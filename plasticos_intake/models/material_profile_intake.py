@@ -58,7 +58,7 @@ class PlasticosMaterialProfileIntake(models.Model):
                 "default_color_id": self.color_id.id if self.color_id else False,
                 "default_source_type_id": self.source_type_id.id if self.source_type_id else False,
                 "default_packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
-                "default_origin_form_id": self.origin_form_id.id if self.origin_form_id else False,
+                "default_material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
                 "default_filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
                 "default_material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
                 "default_mfi_value": self.melt_flow_index,

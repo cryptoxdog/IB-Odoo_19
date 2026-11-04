@@ -27,6 +27,7 @@ MATRIX = PROFILE / "data" / "material_mapping.csv"
 # Matrix column -> seed file whose records' ``code`` field it must name.
 MASTER_FILES = {
     "polymer": "polymer_data.xml",
+    "material_grade": "material_grade_data.xml",
     "form": "material_form_data.xml",
     "source_type": "source_type_data.xml",
     "attributes": "material_attribute_data.xml",

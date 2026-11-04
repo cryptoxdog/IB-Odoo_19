@@ -22,37 +22,38 @@ class TestMaterialNormalizer(TransactionCase):
 
     def test_approved_phrases_resolve_and_unknown_fabricates_nothing(self):
         cases = {
-            "99 Clear LDPE Film": ("LDPE", "FILM", False, {"clean", "dry"}, "A"),
-            "LDPE Grade A Film": ("LDPE", "FILM", False, {"clean", "dry"}, "A"),
-            "95 Clear LDPE Film": ("LDPE", "FILM", False, {"clean"}, "B"),
-            "LDPE Grade B Film": ("LDPE", "FILM", False, {"clean"}, "B"),
-            "90 Clear LDPE Film": ("LDPE", "FILM", False, set(), "C"),
-            "LDPE Grade C Film": ("LDPE", "FILM", False, set(), "C"),
-            "PP Film (BOPP)": ("BOPP", "FILM", False, set(), None),
-            "PC/ABS": ("PC_ABS", False, "POST_INDUSTRIAL", set(), None),
-            "PC-ABS": ("PC_ABS", False, "POST_INDUSTRIAL", set(), None),
-            "3-7": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", set(), None),
-            "3-7 Commingled Bottles": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", set(), None),
-            "1-7": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", set(), None),
-            "1-7 Commingled Bottles": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER", set(), None),
-            "PE": ("HDPE", False, False, set(), None),
-            "Pallets": ("PLASTIC_PALLETS", False, False, set(), None),
-            "HDPE Drums": ("HDPE", "DRUMS", False, set(), None),
-            "Explicit HMW-HDPE Drums": ("HDPE_HMW", "DRUMS", False, set(), None),
-            "LDPE Film": ("LDPE", "FILM", False, set(), None),
-            "LDPE Film A": ("LDPE", "FILM", False, set(), "A"),
-            "3-7 Commingled": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", False, set(), None),
-            "1-7 Commingled": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", False, set(), None),
-            "HDPE Drums (HMW-HDPE)": ("HDPE_HMW", "DRUMS", False, set(), None),
-            "PP Supersacs": ("PP", False, False, set(), None),
+            "99 Clear LDPE Film": ("LDPE", "FILM", False, {"clean", "dry"}, "A", False),
+            "LDPE Grade A Film": ("LDPE", "FILM", False, {"clean", "dry"}, "A", False),
+            "95 Clear LDPE Film": ("LDPE", "FILM", False, {"clean"}, "B", False),
+            "LDPE Grade B Film": ("LDPE", "FILM", False, {"clean"}, "B", False),
+            "90 Clear LDPE Film": ("LDPE", "FILM", False, set(), "C", False),
+            "LDPE Grade C Film": ("LDPE", "FILM", False, set(), "C", False),
+            "PP Film (BOPP)": ("BOPP", "FILM", False, set(), None, False),
+            "PC/ABS": ("PC_ABS", False, "POST_INDUSTRIAL", set(), None, False),
+            "PC-ABS": ("PC_ABS", False, "POST_INDUSTRIAL", set(), None, False),
+            "3-7": ("3_7_COMMINGLED_BOTTLES", False, "POST_CONSUMER", set(), None, "BOTTLES"),
+            "3-7 Commingled Bottles": ("3_7_COMMINGLED_BOTTLES", False, "POST_CONSUMER", set(), None, "BOTTLES"),
+            "1-7": ("1_7_COMMINGLED_BOTTLES", False, "POST_CONSUMER", set(), None, "BOTTLES"),
+            "1-7 Commingled Bottles": ("1_7_COMMINGLED_BOTTLES", False, "POST_CONSUMER", set(), None, "BOTTLES"),
+            "PE": ("HDPE", False, False, set(), None, False),
+            "Pallets": ("PLASTIC_PALLETS", False, False, set(), None, False),
+            "HDPE Drums": ("HDPE", False, False, set(), None, "DRUMS"),
+            "Explicit HMW-HDPE Drums": ("HDPE_HMW", False, False, set(), None, "DRUMS"),
+            "LDPE Film": ("LDPE", "FILM", False, set(), None, False),
+            "LDPE Film A": ("LDPE", "FILM", False, set(), "A", False),
+            "3-7 Commingled": ("3_7_COMMINGLED_BOTTLES", False, False, set(), None, "BOTTLES"),
+            "1-7 Commingled": ("1_7_COMMINGLED_BOTTLES", False, False, set(), None, "BOTTLES"),
+            "HDPE Drums (HMW-HDPE)": ("HDPE_HMW", False, False, set(), None, "DRUMS"),
+            "PP Supersacs": ("PP", False, False, set(), None, "SUPERACS"),
         }
         for phrase, expected in cases.items():
             with self.subTest(phrase=phrase):
                 result = normalize_material(self.env, f"  {phrase}  ")
-                polymer, form, source, attributes, grade = expected
+                polymer, form, source, attributes, grade, material_grade = expected
                 self.assertFalse(result.unresolved)
                 self.assertEqual(result.source_description, phrase)
                 self.assertEqual(result.polymer.code, polymer)
+                self.assertEqual(result.material_grade.code if result.material_grade else False, material_grade)
                 self.assertEqual(result.form.code if result.form else False, form)
                 self.assertEqual(result.source_type.code if result.source_type else False, source)
                 self.assertEqual(set(result.attributes.mapped("code")), attributes)
@@ -72,6 +73,7 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertEqual(unknown.unresolved, ("unresolved material",))
         self.assertFalse(unknown.polymer)
         self.assertFalse(unknown.form)
+        self.assertFalse(unknown.material_grade)
         self.assertFalse(unknown.source_type)
         self.assertFalse(unknown.attributes)
         self.assertFalse(unknown.grade)
@@ -133,7 +135,8 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertFalse(film.grade)
 
         drums = normalize_crm_material(self.env, "HDPE Drums")
-        self.assertEqual((drums.polymer.code, drums.form.code), ("HDPE", "DRUMS"))
+        self.assertEqual((drums.polymer.code, drums.material_grade.code), ("HDPE", "DRUMS"))
+        self.assertFalse(drums.form)
         alloy = normalize_crm_material(self.env, "PC/ABS")
         self.assertEqual(alloy.polymer.code, "PC_ABS")
         self.assertFalse(alloy.form)
@@ -182,19 +185,25 @@ class TestMaterialNormalizer(TransactionCase):
             with self.subTest(phrase=phrase):
                 self.assertFalse(normalize_crm_material(self.env, phrase).unresolved)
 
-        for phrase, polymer, form, grade in (
-            ("PET Bottles", "PET", "BOTTLES", False),
-            ("HDPE Bottles - Natural", "HDPE", "BOTTLES", False),
-            ("HDPE Bottles - Z Bales", "HDPE", False, False),
-            ("PP Supersacs (Lined)", "PP", False, False),
-            ("IBC Totes (HMW-HDPE)", "HDPE_HMW", "TOTES", False),
-            ("MRP Export", "MRP", False, False),
-            ("LDPE Film B", "LDPE", "FILM", "B"),
-            ("Acetal", "POM", False, False),
+        for phrase, polymer, material_grade, form, grade in (
+            ("PET Bottles", "PET", "BOTTLES", False, False),
+            ("HDPE Bottles - Natural", "HDPE", "BOTTLES", False, False),
+            ("HDPE Bottles - Z Bales", "HDPE", False, False, False),
+            ("PP Supersacs (Lined)", "PP", "SUPERACS", False, False),
+            ("IBC Totes (HMW-HDPE)", "HDPE_HMW", "IBC_TOTES", False, False),
+            ("HDPE Totes", "HDPE", "TOTES", False, False),
+            ("PET Strapping", "PET", "STRAPPING", False, False),
+            ("HDPE Toters (Roll-Out Carts)", "HDPE", "TOTERS", False, False),
+            ("TPO Bumpers", "TPO", "BUMPERS", False, False),
+            ("LDPE Stretch Film", "LDPE", "STRETCH_FILM", "FILM", False),
+            ("MRP Export", "MRP", False, False, False),
+            ("LDPE Film B", "LDPE", False, "FILM", "B"),
+            ("Acetal", "POM", False, False, False),
         ):
             with self.subTest(phrase=phrase):
                 result = normalize_crm_material(self.env, phrase)
                 self.assertEqual(result.polymer.code, polymer)
+                self.assertEqual(result.material_grade.code or False, material_grade)
                 self.assertEqual(result.form.code or False, form)
                 self.assertEqual(result.grade or False, grade)
                 self.assertFalse(result.attributes)

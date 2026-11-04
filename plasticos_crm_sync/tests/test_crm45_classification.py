@@ -144,7 +144,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
         profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
         self.assertEqual(profiles.mapped("polymer_id.code"), ["HDPE"])
-        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertEqual(profiles.material_grade_id.code, "DRUMS")
         self.assertEqual(
             (person.category_id.ids, person.company_role, person.supplier_rank, person.customer_rank), before
         )
@@ -166,7 +166,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         orch = self._approved_person_upsert(person, "crm45-profileless", "4502")
         profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
         self.assertEqual(profiles.mapped("polymer_id.code"), ["HDPE"])
-        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertEqual(profiles.material_grade_id.code, "DRUMS")
         self.assertFalse(self.env["plasticos.facility.profile"].search([("partner_id", "=", facility.id)]))
         self.assertFalse(any("facility unresolved" in message for message in self._messages(orch)))
 
@@ -178,7 +178,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         orch = self._approved_person_upsert(person, "crm45-two-sites", "4503")
         profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", person.id)])
         self.assertEqual(profiles.mapped("polymer_id.code"), ["HDPE"])
-        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertEqual(profiles.material_grade_id.code, "DRUMS")
         self.assertFalse(self.env["plasticos.material.profile"].search([("partner_id", "=", company.id)]))
         self.assertFalse(any("facility unresolved" in message for message in self._messages(orch)))
         replay = SyncOrchestrator(self.env)
@@ -198,7 +198,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         profiles = self._profiles(lead)
         self.assertEqual(profiles.mapped("polymer_id.code"), ["HDPE"])
-        self.assertEqual(profiles.form_id.code, "DRUMS")
+        self.assertEqual(profiles.material_grade_id.code, "DRUMS")
 
         mixed = orch._upsert_lead(
             self.connection,
@@ -223,7 +223,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         bottle_profile = self._profiles(bottles)
         self.assertEqual(bottle_profile.polymer_id.code, "1_7_COMMINGLED_BOTTLES")
-        self.assertEqual(bottle_profile.form_id.code, "BOTTLES")
+        self.assertEqual(bottle_profile.material_grade_id.code, "BOTTLES")
         self.assertEqual(bottle_profile.source_type_id.code, "POST_CONSUMER")
 
     def test_type_hint_from_another_section_is_not_applied(self):
@@ -517,7 +517,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         bottle = self._profiles(bottles)
         self.assertEqual(bottle.polymer_id.code, "1_7_COMMINGLED_BOTTLES")
-        self.assertEqual(bottle.form_id.code, "BOTTLES")
+        self.assertEqual(bottle.material_grade_id.code, "BOTTLES")
         self.assertEqual(bottle.source_type_id.code, "POST_CONSUMER")
         attributes_before = self.env["plasticos.material.attribute"].search_count([])
         unknown = orch._upsert_lead(
@@ -569,7 +569,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         profile = self._profiles(supported)
         self.assertEqual(profile.polymer_id.code, "HDPE")
-        self.assertEqual(profile.form_id.code, "DRUMS")
+        self.assertEqual(profile.material_grade_id.code, "DRUMS")
         self.assertTrue(any("unsupported type hint" in message for message in self._messages(orch)))
         self.assertFalse(
             any(
