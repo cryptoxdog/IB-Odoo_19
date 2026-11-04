@@ -82,11 +82,11 @@ def _masters():
     packaging = _codes("packaging_type_data.xml")
     attributes = _codes("material_attribute_data.xml")
     return {
-        "polymer": set(polymer_by_xml.values()),
+        "polymers": set(polymer_by_xml.values()),
         "selection": selection,
         "grade": grade_codes,
         "grade_by_name": grade_by_name,
-        "form": _codes("material_form_data.xml"),
+        "forms": _codes("material_form_data.xml"),
         "former_forms": set(_load_grade_codes().FORMER_FORM_CODES),
         "source": _codes("source_type_data.xml"),
         "color": {code.upper(): code for code in _codes("material_color_data.xml")},
@@ -127,7 +127,7 @@ def classify(row, masters):
     raw_polymer = _cell(row, "polymer")
     if raw_polymer:
         code = raw_polymer.upper().replace("/", "_")
-        if code in masters["polymer"] and code in masters["selection"]:
+        if code in masters["polymers"] and code in masters["selection"]:
             polymer = code
         else:
             failures.append(f"polymer {raw_polymer} is not a seeded polymer")
@@ -146,7 +146,7 @@ def classify(row, masters):
                 failures.append(f"form {raw_form} conflicts with grade {material_grade}")
             elif material_grade is None:
                 material_grade = form_code
-        elif form_code in masters["form"]:
+        elif form_code in masters["forms"]:
             form = form_code
         else:
             failures.append(f"form {raw_form} is not a seeded form")
