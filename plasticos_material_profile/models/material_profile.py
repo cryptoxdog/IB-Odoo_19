@@ -351,16 +351,28 @@ class PlasticosMaterialProfile(models.Model):
         compute="_compute_image_count",
     )
 
+    @staticmethod
+    def _count_key(key):
+        key_id = key.id if getattr(key, "id", None) else key
+        return key_id if isinstance(key_id, int) else None
+
     def _compute_image_count(self):
         Attachment = self.env["ir.attachment"]
-        for rec in self:
-            rec.image_count = Attachment.search_count(
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = Attachment._read_group(
                 [
                     ("res_model", "=", "plasticos.material.profile"),
-                    ("res_id", "=", rec.id),
+                    ("res_id", "in", stored_ids),
                     ("mimetype", "like", "image/"),
-                ]
+                ],
+                ["res_id"],
+                ["__count"],
             )
+            counts = {key_id: count for key, count in rows if (key_id := self._count_key(key))}
+        for rec in self:
+            rec.image_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
@@ -477,8 +489,17 @@ class PlasticosMaterialProfile(models.Model):
         """
         POLine = self.env["purchase.order.line"]
         has_field = "material_profile_id" in POLine._fields
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if has_field and stored_ids:
+            rows = POLine._read_group(
+                [("material_profile_id", "in", stored_ids)],
+                ["material_profile_id"],
+                ["__count"],
+            )
+            counts = {key_id: count for key, count in rows if (key_id := self._count_key(key))}
         for rec in self:
-            rec.po_line_count = POLine.search_count([("material_profile_id", "=", rec.id)]) if has_field else 0
+            rec.po_line_count = counts.get(rec.id, 0) if has_field and isinstance(rec.id, int) else 0
 
     @api.depends()
     def _compute_so_line_count(self):
@@ -489,8 +510,17 @@ class PlasticosMaterialProfile(models.Model):
         """
         SOLine = self.env["sale.order.line"]
         has_field = "material_profile_id" in SOLine._fields
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if has_field and stored_ids:
+            rows = SOLine._read_group(
+                [("material_profile_id", "in", stored_ids)],
+                ["material_profile_id"],
+                ["__count"],
+            )
+            counts = {key_id: count for key, count in rows if (key_id := self._count_key(key))}
         for rec in self:
-            rec.so_line_count = SOLine.search_count([("material_profile_id", "=", rec.id)]) if has_field else 0
+            rec.so_line_count = counts.get(rec.id, 0) if has_field and isinstance(rec.id, int) else 0
 
     # ═════════════════════════════════════════════════════════
     # Navigation Actions (Jump To)
