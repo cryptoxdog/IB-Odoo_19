@@ -1,7 +1,7 @@
 {
   "gate": 6,
   "result": "pass",
-  "source": "grid (CSV pre-extracted from cieTrade_SM_2026-10-03.bak via cie-sql-proof)",
+  "source": "grid (CSV pre-extracted from the 2026-10-03 ERP backup via the prior SQL proof container)",
   "source_path": "/mnt/extra-addons/plasticos_partner_import/erp_extracted_data",
   "source_tables": {
     "Address": 2950, "Contact": 4058, "ContactRoleAssignment": 3091,

@@ -14,9 +14,9 @@ Gate 5 — weblead-e2e            : BLOCKED [web-lead-crm-lead-http-context]
                                            in message_post / _is_public() under public HTTP context.
                                            Fix: wrap _create_crm_lead call with with_user(SUPERUSER_ID).
 Gate 6 — erp-slice              : PASS    [partial — expected]
-                                           Source: grid CSV (extracted from cieTrade_SM_2026-10-03.bak)
+                                           Source: grid CSV (extracted from the 2026-10-03 ERP backup)
                                            Note: Direct SQL Server restore blocked on Linux — full-text
-                                           catalog (sysft_cieTradeSE, type F) from SQL Server 2012
+                                           catalog (source full-text catalog, type F) from SQL Server 2012
                                            stores Windows path in SQL.HDR, incompatible with Linux.
                                            CSV grid IS the .bak data (same SHA 8fee7239...).
                                            31,926 seen = 7,629 created + 2,120 updated + 20,927 unchanged
@@ -47,7 +47,7 @@ BLOCKERS TO FIX BEFORE GO-LIVE
 
 3. erp-sql-restore-linux-fts (informational — workaround available)
    The .bak file cannot be directly restored on SQL Server Linux due to full-text
-   catalog incompatibility (sysft_cieTradeSE, SQL Server 2008 R2 origin path).
+   catalog incompatibility (source full-text catalog, SQL Server 2008 R2 origin path).
    Workaround: CSV grid extract is the persistent form of the .bak data.
    For go-live with fresh .bak: restore on Windows SQL Server or via SSMS,
    then extract CSVs using erp_extracted_data/*.sql projection scripts.
