@@ -48,7 +48,7 @@ from .evidence_keys import (
 )
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
-from .material_identity import split_material_code
+from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 
 _logger = logging.getLogger(__name__)
@@ -983,32 +983,17 @@ class PlasticosWebLead(models.Model):
             else raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or ""
         ) or ""
 
-        # Explicit item words in a seller submission are deterministic material
-        # hints. They permit the reusable-item policy to recognize pallets,
-        # totes, or crates; polymer identity alone never changes the threshold.
-        # Pallet, tote, and crate are checked first so a lead naming both keeps
-        # the reusable-item code.
-        if not merged["form"]:
-            declared_material = " ".join(
-                str(value or "")
-                for value in (
-                    canonical.get("material_description"),
-                    canonical.get("material_composition_text"),
-                    raw.get("DescribeYourMaterial"),
-                    raw.get("WhatIsIt"),
-                )
-            ).lower()
-            for term, form_code in (
-                ("pallet", "PALLETS"),
-                ("tote", "TOTES"),
-                ("crate", "CRATES"),
-                ("drum", "DRUMS"),
-                ("bucket", "BUCKETS"),
-                ("pail", "BUCKETS"),
-            ):
-                if term in declared_material:
-                    merged["form"] = form_code
-                    break
+        # Seller item words name a grade. They are not written into the form
+        # slot: a physical form from text AI or vision has to survive beside them.
+        declared_material = " ".join(
+            str(value or "")
+            for value in (
+                canonical.get("material_description"),
+                canonical.get("material_composition_text"),
+                raw.get("DescribeYourMaterial"),
+                raw.get("WhatIsIt"),
+            )
+        )
 
         # ── Weight fallback cascade ────────────────────────────────────
         if quantity_evidence is not None:
@@ -1047,13 +1032,12 @@ class PlasticosWebLead(models.Model):
         merged["lbs_source"] = lbs_source
 
         # ── Vision overrides for form/color/contamination ──────────────
+        vision_form = None
         if vision_results:
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
             if best_vision:
-                v_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
-                if v_form and not merged["form"]:
-                    merged["form"] = v_form
+                vision_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
                 v_color = (best_vision.get("observed_color") or "").lower().strip()
                 if v_color and not merged["color"]:
                     merged["color"] = v_color
@@ -1062,11 +1046,16 @@ class PlasticosWebLead(models.Model):
                     merged["contamination_notes"] = best_vision.get("contamination_notes")
                 merged["vision_summary"] = best_vision.get("visual_summary", "")
 
-        # One code was picked above; the grade registry decides whether it is a
-        # form or what the items were. Classification reads both slots.
+        # Grade and form stay in separate slots. A drum grade must not erase
+        # regrind, and an AI form must not hide the item word.
         from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
 
-        merged["form"], merged["material_grade"] = split_material_code(merged["form"], GRADE_CODES)
+        merged["form"], merged["material_grade"] = merge_form_and_grade(
+            merged.get("form"),
+            declared_material,
+            vision_form,
+            GRADE_CODES,
+        )
         return merged
 
     # ═══════════════════════════════════════════════════════════

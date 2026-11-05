@@ -68,3 +68,22 @@ class TestWebLeadMaterialGrade(TransactionCase):
 
         self.assertEqual(merged["form"], "FILM")
         self.assertIsNone(merged["material_grade"])
+
+    def test_drum_grade_keeps_the_vision_regrind_form(self):
+        lead = self._lead("grade-drums-regrind", "HDPE drums", "40000 lbs")
+
+        merged = lead._merge_ai_and_vision(
+            {},
+            [{"observed_form": "regrind", "confidence": 0.9}],
+        )
+
+        self.assertEqual(merged["form"], "REGRIND")
+        self.assertEqual(merged["material_grade"], "DRUMS")
+
+    def test_ai_film_form_still_records_the_bucket_grade(self):
+        lead = self._lead("grade-buckets-film", "HDPE buckets", "40000 lbs")
+
+        merged = lead._merge_ai_and_vision({"form": "film"}, [])
+
+        self.assertEqual(merged["form"], "FILM")
+        self.assertEqual(merged["material_grade"], "BUCKETS")

@@ -42,6 +42,7 @@ KEYS = _load(WEB_LEADS_MODELS / "evidence_keys.py", f"{_PACKAGE}.evidence_keys")
 SNAPSHOT = _load(WEB_LEADS_MODELS / "review_snapshot.py", f"{_PACKAGE}.review_snapshot")
 
 split_material_code = IDENTITY.split_material_code
+merge_form_and_grade = IDENTITY.merge_form_and_grade
 GRADE_CODES = GRADES.GRADE_CODES
 FORM_CODES = FORMS.FORM_CODES
 
@@ -93,6 +94,44 @@ def test_split_upper_cases_and_treats_empty_as_unknown() -> None:
     assert split_material_code(" pallets ", GRADE_CODES) == (None, "PALLETS")
     assert split_material_code(None, GRADE_CODES) == (None, None)
     assert split_material_code("  ", GRADE_CODES) == (None, None)
+
+
+def test_item_grade_keeps_a_vision_physical_form() -> None:
+    assert merge_form_and_grade(None, "HDPE drums", "REGRIND", GRADE_CODES) == ("REGRIND", "DRUMS")
+
+
+def test_ai_physical_form_still_collects_the_item_grade() -> None:
+    assert merge_form_and_grade("FILM", "plastic buckets", None, GRADE_CODES) == ("FILM", "BUCKETS")
+
+
+def test_ai_grade_does_not_block_a_vision_form() -> None:
+    assert merge_form_and_grade("DRUMS", "drums", "REGRIND", GRADE_CODES) == ("REGRIND", "DRUMS")
+
+
+def test_pallet_text_alone_is_a_grade_with_no_form() -> None:
+    assert merge_form_and_grade(None, "HDPE plastic pallets", None, GRADE_CODES) == (None, "PALLETS")
+
+
+def test_film_alone_stays_a_form() -> None:
+    assert merge_form_and_grade("FILM", "LDPE scrap", None, GRADE_CODES) == ("FILM", None)
+
+
+def test_pallet_beats_tote_when_both_are_named() -> None:
+    assert merge_form_and_grade(None, "pallets and totes", None, GRADE_CODES)[1] == "PALLETS"
+
+
+def test_vision_does_not_replace_an_ai_physical_form() -> None:
+    assert merge_form_and_grade("FILM", "LDPE scrap", "REGRIND", GRADE_CODES) == ("FILM", None)
+
+
+def test_text_grade_wins_over_a_vision_grade() -> None:
+    assert merge_form_and_grade(None, "plastic pallets", "DRUMS", GRADE_CODES) == (None, "PALLETS")
+
+
+def test_web_lead_merge_collects_grade_separately_from_form() -> None:
+    source = (WEB_LEADS_MODELS / "web_lead.py").read_text(encoding="utf-8")
+    assert "merge_form_and_grade(" in source
+    assert 'merged["form"] = form_code' not in source
 
 
 @pytest.mark.parametrize("lbs", [7_900.0, 8_500.0, 10_500.0])
