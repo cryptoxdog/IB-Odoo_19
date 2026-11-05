@@ -141,14 +141,14 @@ if parts == ["pulls"] and method == "GET":
     if os.environ.get("GH_LIST_MALFORMED") == "1":
         print("<html>upstream proxy error</html>")
         sys.exit(0)
-    if sorted(params) not in (["base", "head", "state"], ["head", "state"]):
-        fail("fake gh: the PR lookup must filter by state and head, and optionally base")
+    if sorted(params) != ["base", "head", "state"]:
+        fail("fake gh: the PR lookup must filter by state, base and head")
     emit(
         [
             pr
             for pr in state["pulls"]
             if pr["state"] == params["state"]
-            and ("base" not in params or pr["base"]["ref"] == params["base"])
+            and pr["base"]["ref"] == params["base"]
             and pr["head"]["label"] == params["head"]
         ]
     )
@@ -744,7 +744,7 @@ def test_stacked_base_without_parent_pr_refuses_before_push(tmp_path: Path) -> N
     proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
     output = proc.stdout + proc.stderr
     assert proc.returncode == 1, output
-    assert "stacked parent feat/parent has no open PR" in output
+    assert "stacked parent feat/parent has no open PR into Staging" in output
     _assert_no_push(seq)
     assert "l4 " not in _seq(seq)
 
@@ -770,11 +770,11 @@ def test_stacked_base_with_parent_pr_opens_pr_into_parent(tmp_path: Path) -> Non
         and call["params"].get("head") == "cryptoxdog:feat/parent"
     ]
     assert lookups, _gh_calls(tmp_path)
-    assert lookups[0]["params"] == {"state": "open", "head": "cryptoxdog:feat/parent"}
+    assert lookups[0]["params"] == {"state": "open", "base": "Staging", "head": "cryptoxdog:feat/parent"}
     assert "\npush\n" in f"\n{_seq(seq)}\n"
 
 
-def test_stacked_base_on_a_stacked_parent_opens_pr_into_parent(tmp_path: Path) -> None:
+def test_stacked_base_on_a_stacked_parent_refuses(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     parent = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
     _plant_parent(repo, parent)
@@ -788,11 +788,9 @@ def test_stacked_base_on_a_stacked_parent_opens_pr_into_parent(tmp_path: Path) -
     )
     proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
     output = proc.stdout + proc.stderr
-    assert proc.returncode == 0, output
-    created = [pr for pr in _gh_state(tmp_path)["pulls"] if pr["head"]["ref"] == "fix/example"]
-    assert len(created) == 1, _gh_state(tmp_path)
-    assert created[0]["base"]["ref"] == "feat/parent"
-    assert "\npush\n" in f"\n{_seq(seq)}\n"
+    assert proc.returncode == 1, output
+    assert "stacked parent feat/parent has no open PR into Staging" in output
+    _assert_no_push(seq)
 
 
 @pytest.mark.parametrize(
@@ -800,19 +798,19 @@ def test_stacked_base_on_a_stacked_parent_opens_pr_into_parent(tmp_path: Path) -
     [
         (
             [("feat/parent", "feat/grand"), ("feat/grand", "Production")],
-            "stack under feat/parent reaches Production, not Staging",
+            "stacked parent feat/parent has no open PR into Staging",
         ),
         (
             [("feat/parent", "feat/grand"), ("feat/grand", "feat/parent")],
-            "stack under feat/parent loops at feat/parent",
+            "stacked parent feat/parent has no open PR into Staging",
         ),
         (
             [("feat/parent", "feat/grand")],
-            "stacked parent feat/grand has no open PR",
+            "stacked parent feat/parent has no open PR into Staging",
         ),
         (
             [("feat/parent", "feat/s1"), *[(f"feat/s{i}", f"feat/s{i + 1}") for i in range(1, 6)]],
-            "stack under feat/parent is deeper than 5 pull requests",
+            "stacked parent feat/parent has no open PR into Staging",
         ),
     ],
     ids=["reaches-production", "loop", "broken-chain", "too-deep"],

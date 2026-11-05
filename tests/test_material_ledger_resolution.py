@@ -24,6 +24,7 @@ REMAINING = DATA / "material_mapping_resolution_remaining.csv"
 OPERATOR_HOLDS = {
     "hdpe / ldpe regrind": "operator hold; polymer cell PP_PE contradicts HDPE/LDPE",
     "gaylords of amazon returns": "operator hold; no mapping onto the OTHER polymer",
+    "ldpe/lldpe clear repro": "no polyethylene-family master; do not assign a single density",
 }
 GRADE_ALIASES = {"supersacs": "SUPERACS"}
 COLOR_ALIASES = {"mixed color": "MIXED"}
@@ -245,5 +246,5 @@ def test_ledger_partition_matches_specs_and_remaining_csv():
             packaging_type=packaging,
             color=color,
         )
-    assert applied == 17
-    assert len(remaining_rows) == 20
+    assert applied == 16
+    assert len(remaining_rows) == 21

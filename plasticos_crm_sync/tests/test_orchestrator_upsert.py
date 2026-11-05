@@ -2256,26 +2256,22 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(profile.material_attribute_ids.mapped("code"), ["lined"])
         self.assertFalse(any(row.get("category") == REQUIRED_MAPPING for row in orch.error_rows))
 
-    def test_regrind_replay_reports_a_different_color_and_still_links_attributes(self):
+    def test_mixed_density_repro_stays_unresolved(self):
         facility = self._facility("Regrind Replay")
         orch = SyncOrchestrator(self.env)
         orch.outcomes = _new_outcomes()
         lead = orch._upsert_lead(self.connection, self._lead("vs-regrind"))
         lead.partner_id = facility
         phrase = "ldpe/lldpe clear repro"
-        orch._upsert_lead(self.connection, self._lead("vs-regrind", custom_fields={"Materials": phrase}))
-        profile = self._profiles(facility)
-        self.assertEqual(profile.color_id.code, "CLEAR")
-        self.assertEqual(profile.packaging_type_id.code, "gaylords")
-        red = self.env["plasticos.material.color"].search([("code", "=", "RED")], limit=1)
-        profile.write({"color_id": red.id, "packaging_type_id": False, "material_attribute_ids": [Command.clear()]})
         orch.error_rows.clear()
         orch._upsert_lead(self.connection, self._lead("vs-regrind", custom_fields={"Materials": phrase}))
-        profile = self._profiles(facility)
-        self.assertEqual(profile.color_id.code, "RED")
-        self.assertEqual(profile.packaging_type_id.code, "gaylords")
-        self.assertEqual(profile.material_attribute_ids.mapped("code"), ["repro"])
-        self.assertTrue(any(row.get("category") == REQUIRED_MAPPING for row in orch.error_rows))
+        self.assertFalse(self._profiles(facility))
+        self.assertTrue(
+            any(
+                row.get("category") == REQUIRED_MAPPING and "unresolved material" in row.get("message", "")
+                for row in orch.error_rows
+            )
+        )
 
     def test_worksheet_normalizer_rejects_bare_ldpe_and_conflicts(self):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material

@@ -230,14 +230,6 @@ class TestMaterialNormalizer(TransactionCase):
         )
 
     def test_ledger_phrases_resolve_on_both_importers_and_keep_description_detail(self):
-        clear_repro = normalize_material(self.env, "ldpe/lldpe clear repro")
-        self.assertFalse(clear_repro.unresolved)
-        self.assertEqual(clear_repro.polymer.code, "LDPE_LLDPE")
-        self.assertEqual(clear_repro.form.code, "PELLETS")
-        self.assertEqual(clear_repro.source_type.code, "POST_INDUSTRIAL")
-        self.assertEqual(clear_repro.attributes.mapped("code"), ["repro"])
-        self.assertEqual(clear_repro.color.code, "CLEAR")
-        self.assertEqual(clear_repro.packaging_type.code, "gaylords")
         stretch = normalize_crm_material(self.env, "ld/lldpe thick/stretch")
         self.assertFalse(stretch.unresolved)
         self.assertEqual(stretch.polymer.code, "LDPE_LLDPE")
@@ -261,7 +253,7 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertEqual(sacks.attributes.mapped("code"), ["lined"])
         self.assertEqual(sacks.packaging_type.code, "bales")
 
-        for phrase in ("hdpe / ldpe regrind", "gaylords of amazon returns"):
+        for phrase in ("hdpe / ldpe regrind", "gaylords of amazon returns", "ldpe/lldpe clear repro"):
             with self.subTest(phrase=phrase):
                 self.assertEqual(normalize_material(self.env, phrase).unresolved, ("unresolved material",))
 
