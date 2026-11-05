@@ -1,6 +1,12 @@
 {
   "schema": "plasticos.documents.cross-domain-acceptance/v1",
   "execution_status": "NOT_RUN",
+  "external_send_owner_note": {
+    "effective": "2026-11-05",
+    "acceptance_ids": ["AC-DOC-X10", "AC-DOC-X11", "AC-DOC-X12", "AC-DOC-X13", "AC-DOC-X18"],
+    "rule_ids": ["BRS-POS-09-R006", "BRS-POS-09-R007", "BRS-POS-09-R008", "BRS-POS-09-R009", "BRS-POS-09-R010", "BRS-POS-09-R011", "BRS-POS-09-R012"],
+    "note": "These cases still test the rule text. The external sender is plasticos_logistics. Documents and Activities supply status only. positive_expected and result are unchanged and remain NOT_RUN."
+  },
   "tests": [
     {
       "id": "AC-DOC-X01",

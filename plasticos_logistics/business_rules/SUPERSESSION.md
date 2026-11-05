@@ -87,6 +87,12 @@ This section is a **narrow additive interpretation** to reconcile the existing 6
 **Change-control:** This dated section and `EFFECTIVE_RULES*` supersede only the explicit conflicting older *implementation interpretations* named above **after the new BRS PR is operator-admitted**. Other old source rules and the prior October 24/25 supersessions remain in force. Accepted ADRs, commercial/accounting owners and source-specific user rulings are not silently replaced. If an ambiguity remains, stop the affected workflow and obtain a separate decision. No code, cron, email, AI or financial cutover is authorized here.
 <!-- LINDA_BRS_NATIVE_ALIGNMENT_20261026_END -->
 
+## 2026-11-05 admission of BRS-POS-10 and seven external-send clauses
+
+This dated admission does not edit the 2026-10-26 overlay above. It admits exactly one copied Native-First chapter, `BRS-POS-10-linda-logistics-commercial-and-physical-communication.md`, recorded in `NATIVE_FIRST_REGISTRY.json`. It admits `BRS-POS-09-R006` through `BRS-POS-09-R012` as Linda external-send obligations. Documents and Activities supply status only. Every other BRS-POS chapter stays a cross-domain reference and is not a second copied authority.
+
+The seven clauses keep their source text in `plasticos_documents`. Their clocks restate, and do not replace, `BRS-02-R007` (supplier Monday status request), `BRS-06-R039` (confirmation, slot, ACK and quiet hours) and `BRS-07-R051` (supplier +1/+5 after pickup, carrier +2/+6 after pickup, buyer +1/+5 after delivery, one reminder per party per day, stop when cleared). No live mail or cron is authorized by this admission.
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.
