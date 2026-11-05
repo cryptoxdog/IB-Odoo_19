@@ -8,6 +8,7 @@ from . import evidence_keys
 from . import evidence_reconciler
 from . import image_analyzer
 from . import inference_provider
+from . import material_identity
 from . import quantity_normalizer
 from . import review_snapshot
 from . import triage_helpers

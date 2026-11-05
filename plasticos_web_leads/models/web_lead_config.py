@@ -303,7 +303,7 @@ class PlasticosWebLeadConfig(models.Model):
     reusable_item_policy_codes = fields.Text(
         string="Reusable Item Policy Codes",
         default="PLASTIC_PALLETS|PALLETS|TOTES|CRATES",
-        help="Pipe-delimited canonical polymer or material-form codes allowed to use the reusable-item threshold. This is an explicit allow-list, not a polymer-grade rule.",
+        help="Pipe-delimited canonical polymer, material-form, or material-grade codes allowed to use the reusable-item threshold. This is an explicit allow-list, not a polymer-grade rule.",
     )
 
     # ═══════════════════════════════════════════════════════════

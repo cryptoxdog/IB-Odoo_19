@@ -48,6 +48,7 @@ from .evidence_keys import (
 )
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
+from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 
 _logger = logging.getLogger(__name__)
@@ -104,7 +105,8 @@ _FORM_NORMALIZE: dict[str, str] = {
     "purge": "PURGE",
     "lump": "OTHER",
     "lumps": "OTHER",
-    "film": "ROLLSTOCK",
+    "film": "FILM",
+    "fluff": "FLUFF",
     "sheet": "SHEET",
     "powder": "POWDER",
     "parts": "PARTS",
@@ -120,6 +122,12 @@ _FORM_NORMALIZE: dict[str, str] = {
     "reusable": "OTHER",
     "bottle": "BOTTLES",
     "bottles": "BOTTLES",
+    "drum": "DRUMS",
+    "drums": "DRUMS",
+    "bucket": "BUCKETS",
+    "buckets": "BUCKETS",
+    "pail": "BUCKETS",
+    "pails": "BUCKETS",
     "roll": "ROLLSTOCK",
     "rolls": "ROLLSTOCK",
 }
@@ -816,6 +824,7 @@ class PlasticosWebLead(models.Model):
                 reusable_item_hot_min_lbs=config.reusable_item_hot_min_lbs or 8_000,
                 polymer_code=merged.get("polymer"),
                 form_code=merged.get("form"),
+                material_grade_code=merged.get("material_grade"),
                 reusable_item_policy_codes=config.get_reusable_item_policy_codes(),
             )
             log_lines.append(
@@ -974,23 +983,17 @@ class PlasticosWebLead(models.Model):
             else raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or ""
         ) or ""
 
-        # Explicit form words in a seller submission are deterministic material
-        # hints. They permit the reusable-item policy to recognize pallets,
-        # totes, or crates; polymer identity alone never changes the threshold.
-        if not merged["form"]:
-            declared_material = " ".join(
-                str(value or "")
-                for value in (
-                    canonical.get("material_description"),
-                    canonical.get("material_composition_text"),
-                    raw.get("DescribeYourMaterial"),
-                    raw.get("WhatIsIt"),
-                )
-            ).lower()
-            for term, form_code in (("pallet", "PALLETS"), ("tote", "TOTES"), ("crate", "CRATES")):
-                if term in declared_material:
-                    merged["form"] = form_code
-                    break
+        # Seller item words name a grade. They are not written into the form
+        # slot: a physical form from text AI or vision has to survive beside them.
+        declared_material = " ".join(
+            str(value or "")
+            for value in (
+                canonical.get("material_description"),
+                canonical.get("material_composition_text"),
+                raw.get("DescribeYourMaterial"),
+                raw.get("WhatIsIt"),
+            )
+        )
 
         # ── Weight fallback cascade ────────────────────────────────────
         if quantity_evidence is not None:
@@ -1029,13 +1032,12 @@ class PlasticosWebLead(models.Model):
         merged["lbs_source"] = lbs_source
 
         # ── Vision overrides for form/color/contamination ──────────────
+        vision_form = None
         if vision_results:
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
             if best_vision:
-                v_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
-                if v_form and not merged["form"]:
-                    merged["form"] = v_form
+                vision_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
                 v_color = (best_vision.get("observed_color") or "").lower().strip()
                 if v_color and not merged["color"]:
                     merged["color"] = v_color
@@ -1044,6 +1046,16 @@ class PlasticosWebLead(models.Model):
                     merged["contamination_notes"] = best_vision.get("contamination_notes")
                 merged["vision_summary"] = best_vision.get("visual_summary", "")
 
+        # Grade and form stay in separate slots. A drum grade must not erase
+        # regrind, and an AI form must not hide the item word.
+        from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
+
+        merged["form"], merged["material_grade"] = merge_form_and_grade(
+            merged.get("form"),
+            declared_material,
+            vision_form,
+            GRADE_CODES,
+        )
         return merged
 
     # ═══════════════════════════════════════════════════════════
@@ -1086,14 +1098,22 @@ class PlasticosWebLead(models.Model):
         """Create intake record WITHOUT partner from merged AI data.
 
         Unified replacement for _create_intake_triage + _create_intake_simple.
-        Looks up polymer_id, form_id, source_type_id from master registries by
-        code. Falls back to 'other' / 'post_consumer' records if code not found.
+        Looks up polymer_id, form_id, material_grade_id, source_type_id from
+        master registries by code. Falls back to 'other' / 'post_consumer'
+        records if code not found; the optional material grade has no fallback.
+        Analysis stored before merge split form from grade is split here.
 
         FIX: removed inconsistent qty_per_load defaults (1 vs 40000).
         0-lbs fallback is 1 (meaningful minimum) so the field doesn't explode.
         """
+        if "material_grade" in merged:
+            form_value, grade_value = merged.get("form"), merged.get("material_grade")
+        else:
+            from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
+
+            form_value, grade_value = split_material_code(merged.get("form"), GRADE_CODES)
         polymer_code = (merged.get("polymer") or "other").lower()
-        form_code = (merged.get("form") or "other").lower()
+        form_code = (form_value or "other").lower()
         source_type_code = merged.get("source_type") or getattr(config, "default_source_type", None) or "post_consumer"
         qty_per_load = max(merged.get("estimated_lbs", 0), 1)
         loads_per_month = max(merged.get("loads_per_month", 0), 0)
@@ -1112,7 +1132,7 @@ class PlasticosWebLead(models.Model):
 
         polymer_rec = _lookup(Polymer, polymer_code, "other")
         form_rec = _lookup(Form, form_code, "other")
-        grade_rec = _lookup(Grade, form_code, None)
+        grade_rec = _lookup(Grade, grade_value, None) if grade_value else Grade
         source_type_rec = _lookup(SourceType, source_type_code, "post_consumer")
 
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)

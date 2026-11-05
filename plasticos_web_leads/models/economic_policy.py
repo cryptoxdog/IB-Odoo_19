@@ -42,18 +42,21 @@ def evaluate_economic_eligibility(
     reusable_item_hot_min_lbs: float,
     polymer_code: str | None,
     form_code: str | None,
+    material_grade_code: str | None = None,
     reusable_item_policy_codes: frozenset[str] | None = None,
 ) -> EconomicEligibilityResult:
     """Apply the lower threshold only to explicitly approved reusable items.
 
     A polymer alone, including LDPE film, never activates the lower threshold.
-    The reusable-item taxonomy must be declared by a canonical polymer code or
-    material form code.  Unknown material identity uses the standard policy.
+    The reusable-item taxonomy must be declared by a canonical polymer code,
+    material form code, or material grade code.  Unknown material identity
+    uses the standard policy.
     """
     polymer = (polymer_code or "").strip().upper()
     form = (form_code or "").strip().upper()
+    material_grade = (material_grade_code or "").strip().upper()
     allow_list = reusable_item_policy_codes or DEFAULT_REUSABLE_ITEM_POLICY_CODES
-    is_reusable_item = polymer in allow_list or form in allow_list
+    is_reusable_item = polymer in allow_list or form in allow_list or material_grade in allow_list
     threshold = reusable_item_hot_min_lbs if is_reusable_item else standard_hot_min_lbs
     policy_applied = "reusable_item" if is_reusable_item else "standard"
     opportunity_class = "reusable_item" if is_reusable_item else "commodity_material"
