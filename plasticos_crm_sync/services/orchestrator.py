@@ -1597,6 +1597,7 @@ class SyncOrchestrator:
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
             if lead:
                 self._apply_approved_materials(lead, dto.custom_fields)
+                self._bind_opportunity_material(lead)
             elif "plasticos.material.profile" in self.env:
                 self._apply_person_materials(partner, dto)
             if self._env_has_model("crm.tag"):
@@ -1816,9 +1817,33 @@ class SyncOrchestrator:
         self.last_lead_outcome = outcome
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
             self._apply_contact_materials(lead, dto.custom_fields)
+            self._bind_opportunity_material(lead)
             if self._env_has_model("crm.tag"):
                 self._apply_crm_classification(lead, dto)
         return lead
+
+    def _bind_opportunity_material(self, lead) -> None:
+        """VanillaSoft ingress converges on the native Opportunity root.
+
+        When the lead already has a verified partner that owns exactly one
+        material profile, that profile is bound so the broker can approve a lot
+        and run the one Opportunity matching command. Nothing is created: no
+        intake, no facility, no partner. A failure is reported and the admitted
+        contact, the page commit and the watermark are not affected.
+        """
+        bind = getattr(lead, "_plasticos_bind_opportunity_material", None)
+        if not callable(bind):
+            return
+        try:
+            with self.env.cr.savepoint():
+                bind()
+        except Exception as exc:  # noqa: BLE001 - lineage binding must not drop the admitted contact
+            _logger.warning("Opportunity material binding failed for lead %s: %s", getattr(lead, "id", "?"), exc)
+            self._append_classified_error(
+                getattr(lead, "vanillasoft_id", None) or str(getattr(lead, "id", "")),
+                f"opportunity material binding failed: {exc}",
+                REQUIRED_MAPPING,
+            )
 
     def _env_has_model(self, model_name: str) -> bool:
         """True when the model is installed. A pure-Python fake env raises KeyError."""
@@ -2258,6 +2283,13 @@ class SyncOrchestrator:
         ref = self._material_ref(lead, external_id)
         use_structured = structured if structured and len(texts) == 1 else None
         for text in texts:
+            from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+                is_crm_call_note,
+            )
+
+            if is_crm_call_note(text):
+                # Call-note text that ended up in the Materials field — skip silently.
+                continue
             normalized, hint_status = self._resolve_material(text, use_structured)
             if hint_status == "conflict" or "conflicting material evidence" in normalized.unresolved:
                 self._append_classified_error(ref, f"conflicting material evidence: {text}", REQUIRED_MAPPING)

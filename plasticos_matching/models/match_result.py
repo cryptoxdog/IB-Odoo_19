@@ -26,11 +26,10 @@ class PlasticosMatchResult(models.Model):
 
     intake_id = fields.Many2one(
         "plasticos.intake",
-        required=True,
         index=True,
-        ondelete="cascade",
+        ondelete="restrict",
         tracking=True,
-        help="The intake record that was submitted for matching.",
+        help="Optional intake that was submitted for matching. A lot result from a native opportunity has none.",
     )
 
     # Denormalized for list-view performance — no joins needed
@@ -156,10 +155,9 @@ class PlasticosMatchResult(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _unique_match_per_run = models.Constraint(
-        "unique(intake_id, buyer_partner_id, run_id)",
-        "Duplicate match result for the same intake + buyer + run.",
-    )
+    # One result per buyer per Gate operation. Partial so historical rows that
+    # predate run receipts stay readable and are never deduplicated by guess.
+    _unique_result_per_run_buyer = models.UniqueIndex("(run_id, buyer_partner_id) WHERE run_id IS NOT NULL")
 
     _check_score_range = models.Constraint(
         "check(score >= 0 AND score <= 100)",
@@ -200,12 +198,12 @@ class PlasticosMatchResult(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
-    @api.depends("intake_id", "buyer_partner_id", "score")
+    @api.depends("intake_id", "match_run_id.supplier_partner_id", "buyer_partner_id", "score")
     def _compute_display_name(self):
         for rec in self:
-            intake = rec.intake_id.name or "?"
+            supply = rec.intake_id.name or rec.match_run_id.supplier_partner_id.name or "?"
             buyer = rec.buyer_partner_id.name or "?"
-            rec.display_name = f"{intake} → {buyer} ({rec.score:.0f}%)"
+            rec.display_name = f"{supply} → {buyer} ({rec.score:.0f}%)"
 
     # ═════════════════════════════════════════════════════════
     # Actions

@@ -22,11 +22,19 @@ class PlasticosMatchResultWriter(models.AbstractModel):
 
     @api.model
     def persist_match_lines(self, intake, matches, *, match_run):
-        """Persist one canonical result per eligible buyer for one exact match run."""
-        intake.ensure_one()
+        """Persist one canonical result per eligible buyer for one exact match run.
+
+        ``intake`` is optional: a lot run matched from a native opportunity has
+        none, and its results carry no intake. When given, it must be the run's.
+        """
         match_run.ensure_one()
-        if match_run.intake_id != intake:
-            raise ValidationError(_("Match run does not belong to the canonical intake."))
+        intake = intake if intake else None
+        if intake is not None:
+            intake.ensure_one()
+            if match_run.intake_id != intake:
+                raise ValidationError(_("Match run does not belong to the canonical intake."))
+        elif match_run.intake_id:
+            raise ValidationError(_("Match run belongs to an intake; persist its results with that intake."))
         if match_run.state != "ok":
             raise ValidationError(_("Only a successful Gate match run may persist canonical results."))
         if not match_run.operation_id or not match_run.gate_response_digest:
@@ -36,7 +44,7 @@ class PlasticosMatchResultWriter(models.AbstractModel):
         Result = self.env["plasticos.match.result"]
         existing = Result.sudo().search(  # sudo: server-owned result read after Gate receipt checks
             [
-                ("intake_id", "=", intake.id),
+                ("match_run_id", "=", match_run.id),
                 ("run_id", "=", match_run.operation_id),
             ]
         )
@@ -94,27 +102,31 @@ class PlasticosMatchResultWriter(models.AbstractModel):
             gates_failed = match.get("gates_failed") or []
             if not isinstance(gates_passed, list) or not isinstance(gates_failed, list):
                 raise ValidationError(_("Gate match gate evidence must be lists."))
-            vals_list.append(
-                {
-                    "intake_id": intake.id,
-                    "buyer_partner_id": buyer_id,
-                    "score": score * 100.0,
-                    "score_breakdown": {
-                        "gate_packet_id": match_run.gate_packet_id,
-                        "gate_correlation_id": match_run.gate_correlation_id,
-                        "gate_query_id": match_run.gate_query_id,
-                        "gates_passed": gates_passed,
-                        "gates_failed": gates_failed,
-                        "feature_contributions": (raw or {}).get("feature_contributions", []),
-                        "missing_evidence": (raw or {}).get("missing_evidence", []),
-                    },
-                    "match_reasoning": match.get("reason") or _("Eligible Gate match; inspect receipt evidence."),
-                    "run_id": match_run.operation_id,
-                    "model_version": match_run.gate_model_version,
-                    "timestamp": fields.Datetime.now(),
-                    "match_run_id": match_run.id,
-                }
-            )
+            vals = {
+                "intake_id": intake.id if intake is not None else False,
+                "buyer_partner_id": buyer_id,
+                "score": score * 100.0,
+                "score_breakdown": {
+                    "gate_packet_id": match_run.gate_packet_id,
+                    "gate_correlation_id": match_run.gate_correlation_id,
+                    "gate_query_id": match_run.gate_query_id,
+                    "gates_passed": gates_passed,
+                    "gates_failed": gates_failed,
+                    "feature_contributions": (raw or {}).get("feature_contributions", []),
+                    "missing_evidence": (raw or {}).get("missing_evidence", []),
+                },
+                "match_reasoning": match.get("reason") or _("Eligible Gate match; inspect receipt evidence."),
+                "run_id": match_run.operation_id,
+                "model_version": match_run.gate_model_version,
+                "timestamp": fields.Datetime.now(),
+                "match_run_id": match_run.id,
+            }
+            # Facility evidence is recorded only when Gate named one; absence is
+            # omitted, never a fabricated location.
+            facility_id = match.get("facility_profile_id")
+            if isinstance(facility_id, int) and not isinstance(facility_id, bool) and facility_id > 0:
+                vals["facility_profile_id"] = facility_id
+            vals_list.append(vals)
         return vals_list
 
     @staticmethod

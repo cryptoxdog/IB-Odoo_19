@@ -25,6 +25,19 @@
                         data-hotkey="i"
                         title="PlasticOS: Creates a material intake record from this lead, starting the plastics brokerage pipeline (Intake &#8594; Matching &#8594; Offer &#8594; Transaction)."
                         invisible="not active or (type == 'opportunity' and not source_intake_id)"/>
+                <!-- The one Opportunity matching command: approve a frozen lot, match it through Gate. -->
+                <button name="action_match_opportunity"
+                        type="object"
+                        string="Match via Gate"
+                        class="btn btn-primary"
+                        title="PlasticOS: Approves an immutable lot from the linked Partner and Material Profile (Facility optional) and runs the Gate match. HOT, manual and VanillaSoft opportunities all use this command."
+                        invisible="not active or type != 'opportunity' or not partner_id or not material_profile_id"/>
+                <button name="action_create_offers_from_results"
+                        type="object"
+                        string="Create Offers"
+                        class="btn btn-secondary"
+                        title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) Gate result of the current lot. Re-running creates nothing new."
+                        invisible="not active or type != 'opportunity' or not match_run_ids"/>
             </xpath>
 
             <!-- ═══ Smart Buttons ═══ -->
@@ -54,10 +67,28 @@
                         type="object"
                         class="oe_stat_button"
                         icon="fa-handshake-o"
-                        invisible="total_match_count == 0">
+                        invisible="total_match_count == 0 and not match_run_ids">
                     <field name="total_match_count"
                            string="Matches"
                            widget="statinfo"/>
+                </button>
+
+                <button name="action_view_match_runs"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-random"
+                        invisible="not match_run_ids"
+                        title="Gate match runs on this opportunity's approved lots.">
+                    <span class="o_stat_text">Gate Runs</span>
+                </button>
+
+                <button name="action_view_offers"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-tags"
+                        invisible="not match_run_ids"
+                        title="Offers created from this opportunity's reviewed Gate results.">
+                    <span class="o_stat_text">Offers</span>
                 </button>
 
                 <button name="action_view_transactions"
@@ -180,7 +211,43 @@
 
                     <group string="Commercial Material Context">
                         <field name="source_intake_id" readonly="1"/>
-                        <field name="material_profile_id" readonly="1"/>
+                        <field name="material_profile_id"
+                               domain="[('partner_id', 'in', [partner_id, False])]"
+                               readonly="type != 'opportunity'"/>
+                        <field name="facility_profile_id"
+                               readonly="type != 'opportunity'"
+                               placeholder="Optional — no facility evidence is sent when empty"/>
+                    </group>
+
+                    <group string="Approved Lots" name="opportunity_lots" invisible="not approval_ids">
+                        <field name="approval_ids" nolabel="1" readonly="1">
+                            <list>
+                                <field name="create_date" string="Approved"/>
+                                <field name="source" widget="badge"/>
+                                <field name="partner_id"/>
+                                <field name="material_profile_id"/>
+                                <field name="facility_profile_id" optional="show"/>
+                                <field name="source_intake_id" optional="hide"/>
+                                <field name="snapshot_digest" optional="hide"/>
+                                <field name="approved_by" optional="hide"/>
+                            </list>
+                        </field>
+                    </group>
+
+                    <group string="Gate Match Runs" name="opportunity_runs" invisible="not match_run_ids">
+                        <field name="match_run_ids" nolabel="1" readonly="1">
+                            <list decoration-danger="state in ('failed', 'degraded')"
+                                  decoration-warning="state == 'retryable'"
+                                  decoration-success="state == 'ok'">
+                                <field name="create_date"/>
+                                <field name="approval_id"/>
+                                <field name="state" widget="badge"/>
+                                <field name="match_count"/>
+                                <field name="request_attempt" optional="hide"/>
+                                <field name="operation_id" optional="hide"/>
+                                <field name="gate_packet_id" optional="hide"/>
+                            </list>
+                        </field>
                     </group>
 
                     <group string="Pipeline Summary">
@@ -322,6 +389,60 @@
         <field name="arch" type="xml">
             <xpath expr="//list/field[@name='intake_id']" position="after">
                 <field name="crm_lead_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Match Run — Opportunity / Lot lineage (fields owned by CRM Bridge)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="match_run_opportunity_lineage_list" model="ir.ui.view">
+        <field name="name">plasticos.match.run.opportunity.lineage.list</field>
+        <field name="model">plasticos.match.run</field>
+        <field name="inherit_id" ref="plasticos_matching.view_match_run_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='intake_id']" position="after">
+                <field name="opportunity_id" optional="show"/>
+                <field name="approval_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="match_run_opportunity_lineage_form" model="ir.ui.view">
+        <field name="name">plasticos.match.run.opportunity.lineage.form</field>
+        <field name="model">plasticos.match.run</field>
+        <field name="inherit_id" ref="plasticos_matching.view_match_run_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//field[@name='intake_id']" position="before">
+                <field name="opportunity_id" readonly="1"/>
+                <field name="approval_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Offer — Gate result lineage (field owned by CRM Bridge)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="offer_match_result_lineage_form" model="ir.ui.view">
+        <field name="name">plasticos.offer.match.result.lineage.form</field>
+        <field name="model">plasticos.offer</field>
+        <field name="inherit_id" ref="plasticos_offer.view_offer_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='origin']/field[@name='intake_id']" position="before">
+                <field name="match_result_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="offer_match_result_lineage_list" model="ir.ui.view">
+        <field name="name">plasticos.offer.match.result.lineage.list</field>
+        <field name="model">plasticos.offer</field>
+        <field name="inherit_id" ref="plasticos_offer.view_offer_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='intake_id']" position="after">
+                <field name="match_result_id" optional="hide"/>
             </xpath>
         </field>
     </record>

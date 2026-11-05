@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "19.0.2.3.53",
+    "version": "19.0.2.3.55",
     "summary": "Core transaction lifecycle management with integrated commission engine",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -21,7 +21,6 @@
         "plasticos_product",
         "plasticos_offer",
         "plasticos_partner_import",
-        # "plasticos_matching",  # Disabled - external microservice
     ],
     "data": [
         "security/security_hardening.xml",

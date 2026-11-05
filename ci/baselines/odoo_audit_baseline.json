@@ -5,16 +5,6 @@
   "_root_cause": "The audit scanner attributes view fields only from ir.ui.view arch, switches to the comodel inside relational subviews, and resolves fields added by _inherit (string or list) across the view module's manifest depends closure, plus the verified Odoo 19 mail.thread / mail.activity.mixin fields. That retired the 87 FIELD_NOT_FOUND entries, each traced to a real field definition or to non-view record data. Remaining entries are the current reviewed CRITICAL/HIGH findings and continue to gate any new fingerprint.",
   "entries": [
     {
-      "fingerprint": "9276c6434ccf90a0",
-      "type": "INVALID_CONSTRAINT_FIELD",
-      "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 497,
-      "model": "plasticos.transaction",
-      "field": "commission_override_pct",
-      "message": "@api.constrains references non-existent field 'commission_override_pct'"
-    },
-    {
       "fingerprint": "8bf7ef9ea67765ca",
       "type": "INVALID_DEPENDS",
       "severity": "HIGH",

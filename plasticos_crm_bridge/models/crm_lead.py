@@ -1,7 +1,7 @@
 import re
 
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError, ValidationError
 
 
 class CrmLeadPlastOS(models.Model):
@@ -77,6 +77,23 @@ class CrmLeadPlastOS(models.Model):
         string="Commercial Images",
         compute="_compute_commercial_image_count",
         help="Image evidence copied from the linked web lead, intake, and offer sources.",
+    )
+
+    # ── Native Opportunity lineage (Lot → Run → Result → Offer) ──
+    approval_ids = fields.One2many(
+        "plasticos.opportunity.approval",
+        "opportunity_id",
+        string="Approved Lots",
+    )
+    match_run_ids = fields.One2many(
+        "plasticos.match.run",
+        "opportunity_id",
+        string="Gate Match Runs",
+    )
+    # One native opportunity per originating intake. Partial: manual lots and
+    # historical leads without a source intake are never collapsed.
+    _unique_opportunity_per_source_intake = models.UniqueIndex(
+        "(source_intake_id) WHERE type = 'opportunity' AND source_intake_id IS NOT NULL"
     )
 
     # ── Material Profile Summary (rolled up from partner) ──
@@ -524,20 +541,261 @@ class CrmLeadPlastOS(models.Model):
         }
 
     def action_view_match_results(self):
-        """Navigate to match results for this lead's partner.
-
-        NOTE: plasticos_matching is disabled (external microservice).
-        Returns notification instead of window action.
-        """
+        """Gate match results produced for this opportunity's runs."""
         self.ensure_one()
         return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": "Feature Disabled",
-                "message": "Matching is handled by external microservice.",
-                "type": "warning",
-            },
+            "type": "ir.actions.act_window",
+            "name": _("Match Results — %s") % (self.name or ""),
+            "res_model": "plasticos.match.result",
+            "view_mode": "list,form",
+            "domain": [("match_run_id.opportunity_id", "=", self.id)],
+            "target": "current",
+        }
+
+    def action_view_match_runs(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Gate Match Runs — %s") % (self.name or ""),
+            "res_model": "plasticos.match.run",
+            "view_mode": "list,form",
+            "domain": [("opportunity_id", "=", self.id)],
+            "target": "current",
+        }
+
+    def action_view_offers(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Offers — %s") % (self.name or ""),
+            "res_model": "plasticos.offer",
+            "view_mode": "list,form",
+            "domain": [("opportunity_id", "=", self.id)],
+            "target": "current",
+        }
+
+    # ── Partners-first native Opportunity matching command ──────
+
+    @api.model
+    def _plasticos_manual_opportunity_action(self, *, partner=None, material_profile=None, facility_profile=None):
+        """Open a new native Opportunity preset from a Partner and Material Profile.
+
+        The manual route starts here. Nothing is created until the broker saves;
+        no intake and no facility profile are synthesized.
+        """
+        partner = partner or (material_profile.partner_id if material_profile else None)
+        context = {"default_type": "opportunity"}
+        if partner:
+            context["default_partner_id"] = partner.id
+            context["default_name"] = _("Opportunity — %s") % partner.name
+        if material_profile:
+            context["default_material_profile_id"] = material_profile.id
+            if partner:
+                context["default_name"] = f"{partner.name} — {material_profile.display_name}"
+        if facility_profile:
+            context["default_facility_profile_id"] = facility_profile.id
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("New Opportunity"),
+            "res_model": "crm.lead",
+            "view_mode": "form",
+            "target": "current",
+            "context": context,
+        }
+
+    def _plasticos_opportunity_source(self):
+        self.ensure_one()
+        if self.source_intake_id and self.web_lead_ids:
+            return "hot"
+        if self.vanillasoft_id:
+            return "vanillasoft"
+        return "manual"
+
+    def _plasticos_bind_opportunity_material(self):
+        """Bind the one existing material profile of the verified partner; create nothing.
+
+        VanillaSoft and manual ingress call this after the partner is verified.
+        Several or zero profiles leave the choice to the broker.
+        """
+        Approval = self.env["plasticos.opportunity.approval"]
+        candidates = self.filtered(lambda lead: lead.partner_id and not lead.material_profile_id)
+        if not candidates:
+            return
+        owners_by_lead = {lead.id: Approval._allowed_profile_owners(lead.partner_id) for lead in candidates}
+        all_owner_ids = {owner_id for owners in owners_by_lead.values() for owner_id in owners.ids}
+        # One query for every candidate lead; profiles are then grouped per lead.
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "in", list(all_owner_ids))])
+        for lead in candidates:
+            owned = profiles.filtered(lambda profile, owners=owners_by_lead[lead.id]: profile.partner_id in owners)
+            if len(owned) == 1:
+                lead.material_profile_id = owned
+
+    def _plasticos_require_lot_inputs(self):
+        self.ensure_one()
+        if self.type != "opportunity":
+            raise UserError(_("Only a native CRM opportunity can approve a lot. Convert the lead first."))
+        if not self.partner_id:
+            raise UserError(_("Link the verified Partner before approving a lot. No partner is created here."))
+        if not self.material_profile_id:
+            raise UserError(_("Select the approved Material Profile before approving a lot."))
+        self._reject_foreign_material_profile(self.partner_id)
+
+    def action_approve_lot(self):
+        """Mint one immutable approved lot from the current Partner, Material Profile and optional Facility."""
+        self._plasticos_require_lot_inputs()
+        approval = self.env["plasticos.opportunity.approval"].mint(
+            self,
+            source=self._plasticos_opportunity_source(),
+            partner=self.partner_id,
+            material_profile=self.material_profile_id,
+            facility_profile=self.facility_profile_id or None,
+            source_intake=self.source_intake_id or None,
+        )
+        self.message_post(
+            body=_(
+                "Approved lot %(lot)s (%(source)s): %(partner)s / %(profile)s%(facility)s. Snapshot %(digest)s.",
+                lot=approval.id,
+                source=approval.source,
+                partner=approval.partner_id.name,
+                profile=approval.material_profile_id.display_name,
+                facility=(" / " + approval.facility_profile_id.display_name) if approval.facility_profile_id else "",
+                digest=(approval.snapshot_digest or "")[:12],
+            ),
+            message_type="notification",
+            subtype_xmlid="mail.mt_note",
+        )
+        return approval
+
+    def _plasticos_ensure_lot_durable(self):
+        """Commit the approved lot before the orchestrator may roll the request back.
+
+        The Gate orchestrator persists a classified failure by rolling the
+        ambient transaction back and re-creating the run on an owned cursor
+        (``_rollback_then_persist_failed_run_durable``). A lot minted in that
+        same transaction would vanish in the rollback while the durable run
+        still names it through ``approval_id``, so the failure receipt would
+        fail its foreign key and the operator would lose both the lot and the
+        retry entry point. The lot is immutable approval evidence: once minted
+        it must survive whatever Gate does next, and a retry of the failed run
+        is built from exactly this lot. Same I17 pattern as the CRM sync
+        (``_ensure_caller_state_durable``): ``Cursor.commit()`` flushes first.
+        """
+        self.env.cr.commit()
+
+    def action_match_opportunity(self):
+        """The one Opportunity matching command: approve a lot, then match it through Gate.
+
+        HOT, manual and VanillaSoft opportunities converge here. Each command is
+        a new frozen lot; a retry of a failed run reuses its lot. No intake and
+        no facility are synthesized, and facility evidence is sent only when a
+        Facility Profile is linked.
+        """
+        from odoo.addons.plasticos_gate.services.gate_config import classify_gate_availability  # noqa: PLC0415
+
+        orchestrator = self.env["plasticos.match.orchestrator"]
+        runs = self.env["plasticos.match.run"]
+        for rec in self:
+            rec._plasticos_require_lot_inputs()
+            verdict = classify_gate_availability(self.env)
+            if not verdict.available:
+                raise UserError(
+                    _("Gate matching is unavailable (%s).") % ("; ".join(verdict.reasons) or verdict.status)
+                )
+            approval = rec.action_approve_lot()
+            rec._plasticos_ensure_lot_durable()
+            run, matches = orchestrator.run_match_for_lot(
+                supplier_partner_id=approval.partner_id.id,
+                snapshot=approval.snapshot,
+                run_vals={"opportunity_id": rec.id, "approval_id": approval.id},
+                intake=approval.source_intake_id or None,
+                max_results=20,
+                mode="strict",
+            )
+            orchestrator.persist_review_results(approval.source_intake_id, matches, run)
+            runs |= run
+            rec.message_post(
+                body=_(
+                    "Gate match run %(run)s on lot %(lot)s returned %(count)s eligible buyer(s). "
+                    "Review the results, then create offers.",
+                    run=run.id,
+                    lot=approval.id,
+                    count=len(matches),
+                ),
+                message_type="notification",
+                subtype_xmlid="mail.mt_note",
+            )
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Match Results"),
+            "res_model": "plasticos.match.result",
+            "view_mode": "list,form",
+            "domain": [("match_run_id", "in", runs.ids)],
+            "target": "current",
+        }
+
+    def _plasticos_current_run(self):
+        """The latest successful Gate run on this opportunity's latest lot (no query: lineage is loaded)."""
+        self.ensure_one()
+        approval = self.approval_ids.sorted(lambda lot: (lot.create_date or fields.Datetime.now(), lot.id))[-1:]
+        if not approval:
+            return self.env["plasticos.match.run"]
+        runs = approval.match_run_ids.filtered(lambda run: run.state == "ok")
+        return runs.sorted(lambda run: (run.create_date or fields.Datetime.now(), run.id))[-1:]
+
+    @staticmethod
+    def _plasticos_offer_vals(run, result):
+        snapshot = run.approval_id.snapshot if run.approval_id and isinstance(run.approval_id.snapshot, dict) else {}
+        return {
+            "match_result_id": result.id,
+            "intake_id": result.intake_id.id if result.intake_id else False,
+            "supplier_id": run.supplier_partner_id.id,
+            "buyer_id": result.buyer_partner_id.id,
+            "quantity_lbs": float(snapshot.get("quantity_per_load_lbs") or 0.0),
+        }
+
+    def action_create_offers_from_results(self):
+        """Create one unsent draft offer per reviewed (accepted) result of the current run; idempotent.
+
+        Commercial terms are the broker's: the draft carries no price or
+        quantity authority from the match. A second call creates nothing.
+        """
+        Offer = self.env["plasticos.offer"]
+        run_by_lead = {}
+        reviewed_all = self.env["plasticos.match.result"]
+        for rec in self:
+            run = rec._plasticos_current_run()
+            if not run:
+                raise UserError(_("Opportunity %s has no successful Gate match run on its current lot.") % rec.name)
+            reviewed = run.result_ids.filtered(lambda result: result.state == "accepted")
+            if not reviewed:
+                raise UserError(_("No reviewed (accepted) match result on run %s. Review the results first.") % run.id)
+            run_by_lead[rec.id] = (run, reviewed)
+            reviewed_all |= reviewed
+        # One lookup and one create for every opportunity in the batch.
+        covered = set(Offer.search([("match_result_id", "in", reviewed_all.ids)]).mapped("match_result_id").ids)
+        vals_list = [
+            self._plasticos_offer_vals(run, result)
+            for run, reviewed in run_by_lead.values()
+            for result in reviewed
+            if result.id not in covered
+        ]
+        new_offers = Offer.create(vals_list) if vals_list else Offer
+        for rec in self:
+            run, _reviewed = run_by_lead[rec.id]
+            count = len(new_offers.filtered(lambda offer, run=run: offer.match_result_id.match_run_id == run))
+            if count:
+                rec.message_post(
+                    body=_("Created %(count)s unsent draft offer(s) from run %(run)s.", count=count, run=run.id),
+                    message_type="notification",
+                    subtype_xmlid="mail.mt_note",
+                )
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Offers"),
+            "res_model": "plasticos.offer",
+            "view_mode": "list,form",
+            "domain": [("opportunity_id", "in", self.ids)],
+            "target": "current",
         }
 
     def action_view_transactions(self):

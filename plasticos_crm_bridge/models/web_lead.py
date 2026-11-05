@@ -38,10 +38,6 @@ class PlasticosWebLeadCRM(models.Model):
         source = self.lead_source_id or ref("plasticos_crm_bridge.utm_source_web_lead", raise_if_not_found=False)
         stage = ref("plasticos_crm_bridge.stage_new", raise_if_not_found=False)
 
-        # Propagate material profile from the linked intake when available.
-        intake = self.intake_id
-        material_profile_id = intake.material_profile_id.id if (intake and intake.material_profile_id) else False
-
         vals = {
             "name": " — ".join(filter(None, [self.company_name, self.material_description])) or "Web Lead",
             "partner_name": self.company_name,
@@ -56,9 +52,12 @@ class PlasticosWebLeadCRM(models.Model):
             "user_id": False,
             # Only an already-linked partner is kept; none is created here.
             "partner_id": self.partner_id.id if self.partner_id else False,
-            "source_intake_id": intake.id if intake else False,
-            # Wire material profile from intake so brokers see the normalised spec.
-            "material_profile_id": material_profile_id,
+            "source_intake_id": self.intake_id.id if self.intake_id else False,
+            # HOT is eligibility: the material profile is carried only when the
+            # intake already qualified one. Partner stays unlinked until verified.
+            "material_profile_id": self.intake_id.material_profile_id.id
+            if self.intake_id and self.intake_id.material_profile_id
+            else False,
         }
 
         lead = self.env["crm.lead"].create(vals)
