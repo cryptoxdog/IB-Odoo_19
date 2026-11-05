@@ -14,12 +14,13 @@
 # full runs only what the branch changed can reach. scripts/pr_check_scope.py
 # compares the branch with origin/$PR_BASE (committed range, working tree,
 # untracked files) and decides: the static audits run when any non-documentation
-# path changed; pytest runs only the test modules touched by, or reading, the
-# changed paths (the whole suite when the harness changed). Docker smoke runs
+# path changed; pytest runs a changed test module and every test module whose
+# source contains that path, the path without its suffix, or, for Python, the
+# dotted module (the whole suite when the harness changed). Docker smoke runs
 # when an addon load input or an installer input changed. It clones the pinned
 # fixture and upgrades the roster; it does not install from an empty database.
 # Every doubt keeps the audit and pytest gate. GitHub ci.yml still runs
-# everything on the PR.
+# pytest tests/ on the PR.
 #
 # Env:
 #   PR_BASE=<branch>          publication base (default: Staging)
@@ -132,7 +133,7 @@ case "$MODE" in
     if [ "$scope_audit" != "0" ]; then targets+=(audit audit-baseline); else log "→ audits skipped: only documentation changed"; fi
     case "$scope_tests" in
       all) targets+=(test) ;;
-      "") log "→ pytest skipped: no test module is touched by or reads the changed paths" ;;
+      "") log "→ pytest skipped: no changed test module and no test quotes a changed path" ;;
       *) export TEST_PATHS="$scope_tests"; targets+=(test-scoped) ;;
     esac
     # Bash 3.2 (macOS /bin/bash) treats "${targets[@]}" as unbound under

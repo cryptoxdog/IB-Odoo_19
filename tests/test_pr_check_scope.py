@@ -135,6 +135,12 @@ def repo(tmp_path: Path) -> Repo:
         "from pathlib import Path\nROOT = Path(__file__).resolve().parents[1]\n"
         'def test_tree():\n    assert list((ROOT / "scripts").glob("*.py"))\n'
     )
+    (tests / "test_helper.py").write_text('def test_helper():\n    assert "scripts/helper.py"\n')
+    logistics = root / "plasticos_logistics" / "models"
+    logistics.mkdir(parents=True)
+    (logistics / "load.py").write_text("class Load:\n    pass\n")
+    (tests / "test_word_load.py").write_text("def test_word():\n    assert 'load' == 'load'\n")
+    (tests / "test_path_load.py").write_text('def test_path():\n    assert "plasticos_logistics/models/load.py"\n')
     (tests / "test_pinned.py").write_text(
         "from pathlib import Path\nROOT = Path(__file__).resolve().parents[1]\n"
         'def test_pinned():\n    assert (ROOT / "scripts" / "other.py")\n'
@@ -181,16 +187,16 @@ def test_documentation_only_change_reaches_nothing(repo: Repo) -> None:
     scope = repo.scope()
     assert scope["changed"] == "2"
     assert scope["audit"] == "0" and scope["smoke"] == "0"
-    assert scope["tests"] == "tests/test_addons.py tests/test_seed.py", "an addon README is still under that addon"
+    assert scope["tests"] == "", "an addon README names no test path"
     repo.commit("docs", **{"docs/guide.md": "# again\n"})
-    assert repo.scope()["tests"] == "tests/test_addons.py tests/test_seed.py", "a committed range keeps its paths"
+    assert repo.scope()["tests"] == "", "a committed range keeps its paths"
 
 
 def test_addon_load_input_change_needs_audits_smoke_and_its_readers(repo: Repo) -> None:
     repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
     scope = repo.scope()
     assert scope["audit"] == "1" and scope["smoke"] == "1"
-    assert scope["tests"] == "tests/test_addons.py tests/test_seed.py"
+    assert scope["tests"] == "tests/test_seed.py"
 
 
 def test_addon_odoo_test_change_needs_no_smoke(repo: Repo) -> None:
@@ -207,11 +213,16 @@ def test_installer_inputs_need_smoke(repo: Repo, rel: str) -> None:
     assert repo.scope()["smoke"] == "1"
 
 
-def test_script_change_reaches_tests_naming_it_or_reading_the_scripts_tree_only(repo: Repo) -> None:
+def test_script_change_reaches_only_a_test_that_quotes_that_file(repo: Repo) -> None:
     repo.commit("tooling", **{"scripts/helper.py": "print(2)\n"})
     scope = repo.scope()
     assert scope["smoke"] == "0" and scope["audit"] == "1"
-    assert scope["tests"] == "tests/test_scripts_tree.py", "a test pinned to another script file is not a reader"
+    assert scope["tests"] == "tests/test_helper.py", "a quoted scripts directory is not a reader"
+
+
+def test_model_file_selects_a_path_quote_and_not_a_bare_stem(repo: Repo) -> None:
+    repo.commit("model", **{"plasticos_logistics/models/load.py": "class Load:\n    changed = True\n"})
+    assert repo.scope()["tests"] == "tests/test_path_load.py"
 
 
 def test_changed_test_module_selects_itself_its_importers_and_a_config_change_its_reader(repo: Repo) -> None:
@@ -283,7 +294,7 @@ def test_addon_change_reuses_smoke_evidence_without_a_fresh_upgrade(repo: Repo) 
     assert calls[:3] == [
         "make audit",
         "make audit-baseline",
-        "make test-scoped [tests/test_addons.py tests/test_seed.py]",
+        "make test-scoped [tests/test_seed.py]",
     ]
     assert "smoke --recheck" in calls
     assert "make install-smoke" not in calls
@@ -350,7 +361,6 @@ def test_real_repository_script_change_reaches_a_strict_subset() -> None:
     from pr_check_scope import select_tests  # noqa: E402
 
     selected = select_tests(ROOT, ["scripts/pr_check_run.sh"])
-    assert "tests/test_pr_check_scope.py" in selected and "tests/test_make_pr_publication.py" in selected
-    assert len(selected) < len(list((ROOT / "tests").rglob("test_*.py")))
-    docs = select_tests(ROOT, ["docs/x.md"])
-    assert len(docs) < 10 and all('"docs"' in (ROOT / rel).read_text() for rel in docs), docs
+    assert selected == ["tests/test_pr_check_scope.py"]
+    docs = select_tests(ROOT, ["docs/" + "x.md"])
+    assert docs == [], docs
