@@ -750,3 +750,23 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > top-level directory, and a `plasticos_*` tree walk do not select a test. Harness files, `PR_CHECK_SCOPE=full`,
 > an empty diff, an unknown base, and a scope-script failure still select the whole local suite.
 > `.github/workflows/ci.yml` still runs `pytest tests/` and stays the merge verdict.
+
+> **2026-11-05 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the commercial pursuit owner is the native `crm.lead` Opportunity (`type = opportunity`), and Facility is optional.
+> HOT web leads, manual Partner + Material Profile entry, and VanillaSoft contacts converge on one matching command,
+> `crm.lead.action_match_opportunity`, which mints an immutable `plasticos.opportunity.approval` lot (frozen material
+> snapshot, verified Partner, optional Facility, optional source Intake) and runs the one Gate orchestrator
+> (`plasticos.match.orchestrator.run_match_for_lot`). No synthetic Intake or Facility is created on that route;
+> absent facility evidence is omitted from the Gate request, never fabricated. Lineage is owned by
+> `plasticos_crm_bridge` (`plasticos.match.run.opportunity_id` / `approval_id`, `plasticos.offer.match_result_id`),
+> which now depends on `plasticos_matching` and `plasticos_offer`; Matching does not depend on CRM Bridge.
+> `plasticos.match.run.intake_id`, `plasticos.match.result.intake_id` and `plasticos.offer.intake_id` are optional
+> with `ondelete="restrict"`; historical rows keep null lineage and are not backfilled. Partial unique indexes:
+> one Opportunity per source Intake, one result per buyer per Gate operation, one offer per reviewed result.
+> Reviewed (accepted) results create idempotent unsent draft offers (`action_create_offers_from_results`); a Gate
+> match carries no price authority, offer terms freeze once sent, and exactly one offer per Opportunity may be
+> accepted. Acceptance creates or reuses one draft `sale.order` bound by native `sale.order.opportunity_id`
+> (`sale_crm`; the hand-off stops when the field is missing) and leaves confirmation to the existing transaction
+> compiler (`sale.order.action_confirm`). `plasticos.intake.action_send_offers` and the typical-price autofill are
+> retired as offer-creation authority. Partner and Material Profile "Create Intake" actions open a native
+> Opportunity when CRM Bridge is installed.

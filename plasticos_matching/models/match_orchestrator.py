@@ -109,7 +109,10 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                 run.write(vals)
             else:
                 run = MatchRun.create(vals)
-            env["plasticos.intake"].browse(vals["intake_id"]).message_post(
+            # The operator note lands on the intake when the run has one, else on
+            # the run itself (a lot run from a native opportunity has no intake).
+            note_target = env["plasticos.intake"].browse(vals["intake_id"]) if vals.get("intake_id") else run
+            note_target.message_post(
                 body=_(
                     "Gate match %(state)s (%(failure)s): %(error)s — match run %(run)s. "
                     "Fix the cause, then use Retry Gate Match; no local matching runs on failure.",
@@ -127,8 +130,11 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
     @api.model
     def _durable_run_vals(self, run):
         """Snapshot a run's identity and receipt as primitives before the ambient transaction is rolled back."""
-        data = run.read(list(_DURABLE_RUN_FIELDS), load=None)[0]
-        return {name: data[name] for name in _DURABLE_RUN_FIELDS}
+        names = list(_DURABLE_RUN_FIELDS) + [
+            name for name in run._plasticos_durable_lineage_fields() if name in run._fields
+        ]
+        data = run.read(names, load=None)[0]
+        return {name: data[name] for name in names}
 
     @api.model
     def run_match_for_intake(self, intake, max_results=20, mode="strict", *, retry_of=None):
@@ -147,10 +153,78 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                 % (intake.display_name,)
             )
 
-        from odoo.addons.plasticos_gate.services.gate_builders import (
-            build_match_request,
-            build_operation_id,
-        )
+        from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
+
+        base_vals = {
+            "intake_id": intake.id,
+            "supplier_partner_id": intake.partner_id.id,
+        }
+
+        def build_request(run):
+            return build_match_request(
+                self.env,
+                intake=intake,
+                match_run=run,
+                top_n=max_results,
+                mode=mode or "strict",
+            )
+
+        return self._run_gate_match(base_vals, build_request, max_results=max_results, mode=mode, retry_of=retry_of)
+
+    @api.model
+    def run_match_for_lot(
+        self,
+        *,
+        supplier_partner_id,
+        snapshot,
+        run_vals=None,
+        intake=None,
+        max_results=20,
+        mode="strict",
+        retry_of=None,
+    ):
+        """Execute Gate match for one frozen lot; return (run, matches).
+
+        The request is built from ``snapshot`` (the approved lot), never from a
+        live profile. ``run_vals`` carries lineage columns owned by the caller
+        (opportunity, approved lot). ``intake`` is optional source evidence; a
+        lot with none creates no synthetic intake and sends no facility
+        evidence unless the snapshot carries it. Same Gate-only failure
+        contract as ``run_match_for_intake``.
+        """
+        if not supplier_partner_id:
+            raise UserError(_("Lot has no supplier partner."))
+        if not isinstance(snapshot, dict) or not snapshot:
+            raise UserError(_("Lot has no frozen snapshot to build the Gate request from."))
+
+        from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
+
+        base_vals = {
+            "intake_id": intake.id if intake else False,
+            "supplier_partner_id": supplier_partner_id,
+            **dict(run_vals or {}),
+        }
+        frozen = dict(snapshot)
+
+        def build_request(run):
+            return build_match_request(
+                self.env,
+                snapshot=frozen,
+                match_run=run,
+                top_n=max_results,
+                mode=mode or "strict",
+            )
+
+        return self._run_gate_match(base_vals, build_request, max_results=max_results, mode=mode, retry_of=retry_of)
+
+    @api.model
+    def _run_gate_match(self, base_vals, build_request, *, max_results=20, mode="strict", retry_of=None):
+        """One Gate execution shared by the intake and lot paths.
+
+        ``base_vals`` names the run (intake or lot lineage, supplier);
+        ``build_request(run)`` returns the typed MatchRequest for that run.
+        """
+        from odoo.addons.plasticos_gate.services.gate_builders import build_operation_id
         from odoo.addons.plasticos_gate.services.gate_client import send_match_action
         from odoo.addons.plasticos_gate.services.gate_config import (
             GateCapability,
@@ -168,14 +242,14 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
         # Primitives only: the failure path rolls the ambient transaction back,
         # after which recordset caches are not trustworthy.
         base_vals = {
-            "intake_id": intake.id,
-            "supplier_partner_id": intake.partner_id.id,
+            **base_vals,
             "mode": mode or "strict",
             "engine": "gate",
             "availability_status": availability.status,
             "request_attempt": (retry_of.request_attempt + 1) if retry_of else 1,
             "retry_of_id": retry_of.id if retry_of else False,
         }
+        subject = base_vals.get("intake_id") or base_vals.get("supplier_partner_id")
 
         if not gate_matching_enabled(self.env):
             reasons = "; ".join(availability.reasons) or "Gate matching unavailable"
@@ -204,13 +278,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
         # carries exactly what Gate received, even after the rollback.
         receipt = {}
         try:
-            request = build_match_request(
-                self.env,
-                intake=intake,
-                match_run=run,
-                top_n=max_results,
-                mode=mode or "strict",
-            )
+            request = build_request(run)
             correlation_id = request.odoo.get("correlation_id") if request.odoo else None
             operation_id = build_operation_id(
                 request.odoo,
@@ -261,9 +329,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                     "error_message": str(exc),
                 },
             )
-            _logger.warning(
-                "Gate-only match failed for intake %s (run %s): %s", base_vals["intake_id"], durable_id, exc
-            )
+            _logger.warning("Gate-only match failed for %s (run %s): %s", subject, durable_id, exc)
             raise UserError(
                 _(
                     "Gate match failed (%(failure)s): %(error)s (match run %(run)s)",
@@ -303,9 +369,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                     "error_message": str(exc) or type(exc).__name__,
                 },
             )
-            _logger.exception(
-                "Gate-only match unexpected error for intake %s (run %s)", base_vals["intake_id"], durable_id
-            )
+            _logger.exception("Gate-only match unexpected error for %s (run %s)", subject, durable_id)
             raise UserError(
                 _(
                     "Gate match failed (%(failure)s): %(error)s (match run %(run)s)",
@@ -316,7 +380,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             ) from exc
 
         # Apply exclusion policy (identity: plasticos.match.exclusion)
-        excluded = set(self.env["plasticos.match.exclusion"].get_excluded_buyer_ids(intake.partner_id.id))
+        excluded = set(self.env["plasticos.match.exclusion"].get_excluded_buyer_ids(base_vals["supplier_partner_id"]))
         if excluded:
             matches = [m for m in matches if m.get("buyer_id") not in excluded]
 
@@ -343,7 +407,6 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             raise UserError(_("Match run %s already succeeded.") % prior_run.id)
         pending = self.env["plasticos.match.run"].search(
             [
-                ("intake_id", "=", prior_run.intake_id.id),
                 ("state", "=", "pending"),
                 ("retry_of_id", "=", prior_run.id),
             ],
@@ -351,13 +414,29 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
         )
         if pending:
             raise UserError(_("A retry is already pending for run %s (pending run %s).") % (prior_run.id, pending.id))
-        run, matches = self.run_match_for_intake(
-            prior_run.intake_id,
-            max_results=20,
-            mode=prior_run.mode or "strict",
-            retry_of=prior_run,
-        )
-        self.persist_review_results(prior_run.intake_id, matches, run)
+        if prior_run.intake_id and not prior_run._plasticos_lot_retry_subject():
+            run, matches = self.run_match_for_intake(
+                prior_run.intake_id,
+                max_results=20,
+                mode=prior_run.mode or "strict",
+                retry_of=prior_run,
+            )
+        else:
+            subject = prior_run._plasticos_lot_retry_subject()
+            if not subject:
+                raise UserError(
+                    _("Match run %s has neither an intake nor an approved lot to retry from.") % prior_run.id
+                )
+            run, matches = self.run_match_for_lot(
+                supplier_partner_id=subject["supplier_partner_id"],
+                snapshot=subject["snapshot"],
+                run_vals=subject.get("run_vals"),
+                intake=subject.get("intake"),
+                max_results=20,
+                mode=prior_run.mode or "strict",
+                retry_of=prior_run,
+            )
+        self.persist_review_results(run.intake_id, matches, run)
         return {
             "type": "ir.actions.act_window",
             "name": _("Match Run"),
@@ -395,8 +474,13 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
 
     @api.model
     def persist_review_results(self, intake, matches, run):
-        """Persist UI lines + canonical match.result rows linked to the run."""
+        """Persist canonical match.result rows linked to the run, plus intake UI lines when there is an intake.
+
+        ``intake`` may be empty for a lot run matched from a native opportunity;
+        the canonical results are then the only projection.
+        """
         run.ensure_one()
+        intake = intake if intake else None
         # Canonical review rows are durable receipt projections. Persist them before
         # transient intake display lines so a UI-only update cannot masquerade as a result.
         try:
@@ -419,6 +503,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                 },
             )
             raise
-        intake.match_line_ids.unlink()
-        self._create_intake_match_lines(self._build_intake_match_line_vals(intake, matches))
+        if intake is not None:
+            intake.match_line_ids.unlink()
+            self._create_intake_match_lines(self._build_intake_match_line_vals(intake, matches))
         return run.operation_id

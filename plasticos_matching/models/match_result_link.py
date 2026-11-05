@@ -10,5 +10,6 @@ class PlasticosMatchResultRunLink(models.Model):
         "plasticos.match.run",
         string="Match Run",
         index=True,
-        ondelete="set null",
+        ondelete="restrict",
+        help="Gate run that produced this result. Lineage is preserved; the run cannot be deleted under it.",
     )

@@ -48,9 +48,26 @@ class ResPartnerIntake(models.Model):
             ],
         }
 
-    def action_create_intake(self):
-        """Create a new intake for this facility."""
+    def _plasticos_opportunity_action(self, material_profile=None):
+        """The native Opportunity route when CRM Bridge is installed; None otherwise.
+
+        Manual ingress starts from a verified Partner. It opens an Opportunity
+        form preset with the partner (and profile); no intake is synthesized.
+        """
         self.ensure_one()
+        if "crm.lead" not in self.env:
+            return None
+        opener = getattr(self.env["crm.lead"], "_plasticos_manual_opportunity_action", None)
+        if not callable(opener):
+            return None
+        return opener(partner=self, material_profile=material_profile)
+
+    def action_create_intake(self):
+        """Manual ingress: a native Opportunity for this partner when CRM Bridge is installed, else an intake form."""
+        self.ensure_one()
+        opportunity_action = self._plasticos_opportunity_action()
+        if opportunity_action is not None:
+            return opportunity_action
         # Determine company and facility
         if self.parent_id:
             # This is a facility under a parent company

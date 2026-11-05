@@ -55,7 +55,7 @@
             <list decoration-success="state == 'accepted'"
                   decoration-danger="state == 'rejected'"
                   decoration-muted="state in ('expired','cancelled')">
-                <field name="intake_id"/>
+                <field name="intake_id" optional="show"/>
                 <field name="polymer"/>
                 <field name="form"/>
                 <field name="supplier_id"/>
@@ -218,8 +218,7 @@
                     <div class="oe_button_box" name="button_box"/>
                     <group>
                         <group string="Origin" name="origin">
-                            <!-- match_result_id disabled - external microservice -->
-                            <field name="intake_id"/>
+                            <field name="intake_id" placeholder="None — offer from a native opportunity's Gate result"/>
                         </group>
                         <group string="Parties">
                             <field name="supplier_id"/>
