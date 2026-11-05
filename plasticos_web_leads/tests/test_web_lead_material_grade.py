@@ -102,3 +102,12 @@ class TestWebLeadMaterialGrade(TransactionCase):
         self.assertFalse(drum["form"])
         self.assertEqual(bucket["material_grade"], "BUCKETS")
         self.assertFalse(bucket["form"])
+
+    def test_punctuated_item_words_keep_the_reusable_grade(self):
+        pallets = self._lead("grade-pallets-punct", "HDPE pallets, clean", "9000 lbs")
+        crates = self._lead("grade-crates-punct", "plastic crates.", "9000 lbs")
+
+        self.assertEqual(pallets.ai_analysis["material_grade"], "PALLETS")
+        self.assertFalse(pallets.ai_analysis["form"])
+        self.assertEqual(crates.ai_analysis["material_grade"], "CRATES")
+        self.assertFalse(crates.ai_analysis["form"])

@@ -358,11 +358,17 @@ _GRADE_WORDS = {
     "pails": "BUCKETS",
 }
 GRADE_WORD_PRIORITY = ("PALLETS", "TOTES", "CRATES")
+# Commas and periods ride on the word in seller text (``pallets,``, ``crates.``).
+# They are not part of the lookup key. A hyphen inside ``re-useable`` stays.
+_EDGE_PUNCTUATION = ".,;:!?\"'`()[]{}"
 
 
 def classify_material_word(token) -> tuple[str | None, str | None]:
-    """Return ``(form_code, grade_code)`` for one word. One of them is empty."""
-    word = _phrase(token)
+    """Return ``(form_code, grade_code)`` for one word. One of them is empty.
+
+    Edge punctuation is removed before the exact form and grade tables are read.
+    """
+    word = _phrase(token).strip(_EDGE_PUNCTUATION)
     if not word or " " in word:
         return None, None
     form_code = _FORM_WORDS.get(word)

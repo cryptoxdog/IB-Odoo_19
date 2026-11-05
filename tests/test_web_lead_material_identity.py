@@ -155,3 +155,43 @@ def test_broker_snapshot_carries_the_intake_material_grade() -> None:
     assert block[KEYS.KEY_FORM_CODE] == "OTHER"
     assert block[KEYS.KEY_MATERIAL_GRADE_ID] == 3
     assert block[KEYS.KEY_MATERIAL_GRADE_CODE] == "DRUMS"
+
+
+@pytest.mark.parametrize(
+    ("token", "form_code", "grade_code"),
+    [
+        ("pallets,", None, "PALLETS"),
+        ("crates.", None, "CRATES"),
+        ("(totes)", None, "TOTES"),
+        ("film.", "FILM", None),
+        ("re-useable,", "OTHER", None),
+        ("pal,lets", None, None),
+        ("...", None, None),
+    ],
+)
+def test_classify_material_word_strips_edge_punctuation(
+    token: str, form_code: str | None, grade_code: str | None
+) -> None:
+    assert NORMALIZER.classify_material_word(token) == (form_code, grade_code)
+
+
+def test_punctuated_pallet_phrase_meets_the_reusable_threshold() -> None:
+    grades: list[str] = []
+    form_code = None
+    for token in " ".join("HDPE pallets, clean".split()).split():
+        word_form, word_grade = NORMALIZER.classify_material_word(token)
+        if word_form and form_code is None:
+            form_code = word_form
+        if word_grade:
+            grades.append(word_grade)
+    grade = next((code for code in NORMALIZER.GRADE_WORD_PRIORITY if code in grades), None)
+
+    assert form_code is None
+    assert grade == "PALLETS"
+    without_grade = _eligibility(9_000.0, polymer="HDPE", grade=None)
+    with_grade = _eligibility(9_000.0, polymer="HDPE", grade=grade)
+    assert without_grade.eligible is False
+    assert without_grade.applicable_hot_min_lbs == 10_000.0
+    assert with_grade.eligible is True
+    assert with_grade.applicable_hot_min_lbs == 8_000.0
+    assert with_grade.policy_applied == "reusable_item"
