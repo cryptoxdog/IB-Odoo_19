@@ -95,16 +95,6 @@
       "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
-      "fingerprint": "39bbc2ad6a8906c4",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_buyer_match_engine/models/intake_extension.py",
-      "line": 70,
-      "model": null,
-      "field": null,
-      "message": "ORM .create() inside loop (N+1 query)"
-    },
-    {
       "fingerprint": "d813c0ae011298e3",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
@@ -143,16 +133,6 @@
       "model": null,
       "field": null,
       "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "4a48e73c9623fd94",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_crm_bridge/models/crm_lead.py",
-      "line": 198,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
     },
     {
       "fingerprint": "61804adfe06c0bb9",
@@ -275,16 +255,6 @@
       "message": "ORM .search_count() inside loop (query in loop)"
     },
     {
-      "fingerprint": "f0103ed5d8f56685",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 1224,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
       "fingerprint": "ddd8e3ae0d5fd798",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
@@ -373,36 +343,6 @@
       "model": null,
       "field": null,
       "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "ade38a010fa17022",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_material_profile/models/material_profile.py",
-      "line": 344,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "ad74fae19f6f9ddc",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_material_profile/models/material_profile.py",
-      "line": 455,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "8115fd099193e5b4",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_material_profile/models/material_profile.py",
-      "line": 467,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
     },
     {
       "fingerprint": "1a8f0d0424663a42",
