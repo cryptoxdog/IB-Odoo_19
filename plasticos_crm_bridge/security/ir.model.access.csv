@@ -5,3 +5,6 @@ access_crm_lead_accounting,crm.lead.accounting,crm.model_crm_lead,plasticos_secu
 access_crm_stage_sales,crm.stage.sales,crm.model_crm_stage,plasticos_security_base.group_sales_rep,1,0,0,0
 access_crm_stage_logistics,crm.stage.logistics,crm.model_crm_stage,plasticos_security_base.group_logistics,1,0,0,0
 access_crm_stage_accounting,crm.stage.accounting,crm.model_crm_stage,plasticos_security_base.group_accounting,1,0,0,0
+access_opportunity_approval_user,plasticos.opportunity.approval.user,model_plasticos_opportunity_approval,base.group_user,1,0,0,0
+access_opportunity_approval_sales,plasticos.opportunity.approval.sales,model_plasticos_opportunity_approval,plasticos_security_base.group_sales_rep,1,0,1,0
+access_opportunity_approval_manager,plasticos.opportunity.approval.manager,model_plasticos_opportunity_approval,base.group_system,1,1,1,1

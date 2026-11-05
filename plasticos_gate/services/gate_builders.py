@@ -189,12 +189,53 @@ def _run_attempt(run_rec) -> int:
     return max(1, value)
 
 
+# Frozen-lot snapshot keys that may cross into the Gate match query. The lot is
+# minted by CRM Bridge from an approved Material Profile; facility and intake
+# keys are present only when that evidence exists, so nothing here fabricates.
+LOT_SNAPSHOT_QUERY_KEYS = (
+    "polymer_type",
+    "form",
+    "color",
+    "source_type",
+    "material_grade",
+    "packaging_type",
+    "filler_type",
+    "quantity_per_load_lbs",
+    "contamination_pct",
+    "mfi",
+    "lat",
+    "lon",
+    "supplier_partner_id",
+    "material_profile_id",
+    "facility_profile_id",
+    "facility_partner_id",
+    "intake_id",
+)
+
+
 def build_match_request(
-    env, *, intake=None, supplier=None, match_run=None, top_n: int = 20, mode: str = "strict"
+    env,
+    *,
+    intake=None,
+    supplier=None,
+    match_run=None,
+    snapshot: dict[str, Any] | None = None,
+    top_n: int = 20,
+    mode: str = "strict",
 ) -> MatchRequest:
     query: dict[str, Any] = {}
     odoo: dict[str, Any] = {}
-    if intake is not None:
+    if snapshot is not None:
+        if match_run is None:
+            raise ValueError("build_match_request with a frozen snapshot requires the match_run it is for")
+        for key in LOT_SNAPSHOT_QUERY_KEYS:
+            value = snapshot.get(key)
+            if value not in (None, False, ""):
+                query[key] = value
+        if not query.get("supplier_partner_id"):
+            raise ValueError("frozen lot snapshot has no supplier_partner_id")
+        odoo = build_odoo_context(env, model=match_run._name, record_id=match_run.id).to_dict()
+    elif intake is not None:
         if "polymer_id" in intake._fields and intake.polymer_id:
             query["polymer_type"] = intake.polymer_id.code or intake.polymer_id.name
         if "form_id" in intake._fields and intake.form_id:
@@ -220,7 +261,7 @@ def build_match_request(
         odoo = build_odoo_context(env, model=supplier._name, record_id=supplier.id).to_dict()
         query["supplier_partner_id"] = supplier.id
     else:
-        raise ValueError("build_match_request requires intake or supplier")
+        raise ValueError("build_match_request requires a frozen snapshot, an intake, or a supplier")
     if mode:
         query["mode"] = mode
     return MatchRequest(query=query, top_n=top_n, odoo=odoo)

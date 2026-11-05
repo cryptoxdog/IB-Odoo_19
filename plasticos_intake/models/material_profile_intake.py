@@ -45,8 +45,18 @@ class PlasticosMaterialProfileIntake(models.Model):
         }
 
     def action_create_intake(self):
-        """Open intake form pre-filled from this material profile."""
+        """Manual ingress: a native Opportunity for this profile's partner when CRM Bridge is installed.
+
+        Without CRM Bridge the legacy intake form stays. No intake is created
+        either way until the broker saves.
+        """
         self.ensure_one()
+        partner = self.partner_id
+        route = getattr(partner, "_plasticos_opportunity_action", None) if partner else None
+        if callable(route):
+            opportunity_action = route(material_profile=self)
+            if opportunity_action is not None:
+                return opportunity_action
         return {
             "type": "ir.actions.act_window",
             "name": "Create Intake",

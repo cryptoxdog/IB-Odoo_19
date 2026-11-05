@@ -9,7 +9,7 @@
                   decoration-warning="state == 'retryable'"
                   decoration-success="state == 'ok'">
                 <field name="create_date"/>
-                <field name="intake_id"/>
+                <field name="intake_id" optional="show"/>
                 <field name="supplier_partner_id"/>
                 <field name="mode"/>
                 <field name="state"/>
@@ -40,7 +40,7 @@
                 <sheet>
                     <group>
                         <group>
-                            <field name="intake_id"/>
+                            <field name="intake_id" placeholder="None — lot run from a native opportunity"/>
                             <field name="supplier_partner_id"/>
                             <field name="mode"/>
                             <field name="engine"/>
