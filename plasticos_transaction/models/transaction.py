@@ -947,8 +947,10 @@ class PlasticosTransaction(models.Model):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code(PLASTICOS_TRANSACTION) or "New"
-            name = vals.get("name")
-            if name and name != "New" and self.search([("name", "=", name)], limit=1):
+        names = [vals.get("name") for vals in vals_list if vals.get("name") and vals.get("name") != "New"]
+        existing_names = set(self.search([("name", "in", names)]).mapped("name")) if names else set()
+        for name in names:
+            if name in existing_names:
                 raise ValidationError(f"Transaction reference '{name}' already exists.")
         records = super().create(vals_list)
         self._reconcile_new_transaction_loads(records)
@@ -956,10 +958,10 @@ class PlasticosTransaction(models.Model):
 
     def write(self, vals):
         name = vals.get("name")
-        if name:
+        if name and self:
+            holders = self.search([("name", "=", name)])
             for record in self:
-                duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
-                if duplicate:
+                if holders - record:
                     raise ValidationError(f"Transaction reference '{name}' already exists.")
         self._lock_loads_for_party_write(vals)
         for rec in self:
@@ -1029,22 +1031,19 @@ class PlasticosTransaction(models.Model):
         """Ensure each bill in M2M commands is not already linked to another transaction."""
         if field not in vals:
             return
+        bill_ids = []
         for cmd in vals[field]:
             if cmd[0] == 4:
-                other = self.search(
-                    [(field, "in", [cmd[1]]), ("id", "!=", rec.id)],
-                    limit=1,
-                )
-                if other:
-                    raise UserError(f"{label} already linked to another transaction.")
+                bill_ids.append(cmd[1])
             elif cmd[0] == 6:
-                for bid in cmd[2]:
-                    other = self.search(
-                        [(field, "in", [bid]), ("id", "!=", rec.id)],
-                        limit=1,
-                    )
-                    if other:
-                        raise UserError(f"{label} already linked to another transaction.")
+                bill_ids.extend(cmd[2])
+        if not bill_ids:
+            return
+        taken = self.search([(field, "in", bill_ids), ("id", "!=", rec.id)])
+        linked = set(taken[field].ids)
+        for bill_id in bill_ids:
+            if bill_id in linked:
+                raise UserError(f"{label} already linked to another transaction.")
 
     def unlink(self):
         for rec in self:

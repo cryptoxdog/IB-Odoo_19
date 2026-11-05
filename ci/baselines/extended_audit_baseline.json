@@ -2,7 +2,7 @@
   "_description": "Per-finding allowlist for scripts/audit/run_all_audits.py HIGH findings. Each entry is a known, human-reviewed item -- either a scanner false positive or accepted/tracked technical debt -- NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
   "_how_to_add_entries": "python3 scripts/audit/check_baseline.py extended_audit_report.json ci/baselines/extended_audit_baseline.json --severities HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/performance_audit.py or security_audit.py to special-case a finding.",
   "_verified": "2026-10-10",
-  "_root_cause": "Scoped N_PLUS_ONE_QUERY rows for the repaired relationship and uniqueness paths were removed. SENSITIVE_DATA_LOGGED rows were removed after the scanner stopped treating static api_key/token prose as a leaked value. The operator accepted the 78 remaining loop findings on 2026-10-10 as tracked debt from the structural scanner. The retired plasticos_buyer_match_engine intake_extension fingerprint stays because that file is gone and this campaign did not absorb its successor. The automation_config singleton constraint row was removed once its per-record query became one set-level query. The document_sync batch_sync_unlinked row is a reviewed false positive: the loop is id-keyset pagination issuing one search per 200-document page, not one per record.",
+  "_root_cause": "Scoped N_PLUS_ONE_QUERY rows for the repaired relationship and uniqueness paths were removed. SENSITIVE_DATA_LOGGED rows were removed after the scanner stopped treating static api_key/token prose as a leaked value. The operator accepted the 78 remaining loop findings on 2026-10-10 as tracked debt from the structural scanner. The retired plasticos_buyer_match_engine intake_extension fingerprint stays because that file is gone and this campaign did not absorb its successor. The automation_config singleton constraint row was removed once its per-record query became one set-level query. The document_sync batch_sync_unlinked row is a reviewed false positive: the loop is id-keyset pagination issuing one search per 200-document page, not one per record. The three plasticos_transaction/models/transaction.py uniqueness-search rows were removed after those searches were hoisted out of their loops.",
   "entries": [
     {
       "fingerprint": "329c981a6bdc9d20",
@@ -740,36 +740,6 @@
       "severity": "HIGH",
       "file": "plasticos_transaction/models/sale_inherit.py",
       "line": 65,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "caa3abf62f585448",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 898,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "cf9d3c92beb48062",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 906,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "5dfba50bcb1ed1f0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 975,
       "model": null,
       "field": null,
       "message": "ORM .search() inside loop (query in loop)"
