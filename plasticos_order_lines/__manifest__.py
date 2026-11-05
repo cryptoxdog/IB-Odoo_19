@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Order Lines",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "category": "Inventory/Purchase",
     "summary": "Extend PO/SO lines with full material specifications",
     "description": """
@@ -10,6 +10,7 @@ Extends purchase.order.line and sale.order.line with material profile fields.
 
 Each order line captures the full material specification:
 - Polymer (from product)
+- Material Grade
 - Color
 - Form
 - Packaging Type

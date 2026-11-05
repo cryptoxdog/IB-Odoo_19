@@ -2,17 +2,42 @@
 <odoo>
 
     <!-- ============================================================
-         Extend the native documents.document form view with
-         plastics-specific fields (polymer, load, transaction, intake,
-         doc_type, verification, override).
+         Odoo 19 Documents has no document form. This primary form
+         holds the plastics fields. Rename and upload keep their own
+         form_view_ref, and the Documents action stays kanban/list.
          ============================================================ -->
 
     <record id="view_document_form_plasticos" model="ir.ui.view">
         <field name="name">documents.document.form.plasticos</field>
         <field name="model">documents.document</field>
-        <field name="inherit_id" ref="documents.document_view_form"/>
+        <field name="priority">64</field>
         <field name="arch" type="xml">
-            <xpath expr="//sheet" position="inside">
+            <form>
+                <header>
+                    <button name="action_associate_from_form" type="object" string="Associate"
+                            groups="plasticos_documents.group_documents_user"/>
+                    <button name="action_verify" type="object" string="Verify"
+                            invisible="verified"
+                            groups="plasticos_documents.group_documents_user"/>
+                    <button name="action_override" type="object" string="Override"
+                            invisible="override"
+                            groups="plasticos_documents.group_documents_manager"/>
+                </header>
+                <sheet>
+                <div class="alert alert-warning" role="alert" invisible="not verification_review_required">
+                    Historical native verification disagrees with the business record and stays in review.
+                </div>
+                <div class="alert alert-info" role="alert" invisible="not transaction_id and not load_id">
+                    Transaction, load, and contact are navigation only. Associate accepts an exact record.
+                </div>
+                <group string="Exact Association">
+                    <group>
+                        <field name="association_subject_model"/>
+                        <field name="association_subject_id"/>
+                        <field name="association_source_reference"/>
+                        <field name="association_covered_quantity"/>
+                    </group>
+                </group>
                 <group string="Plasticos Classification">
                     <group>
                         <field name="doc_type"/>
@@ -26,22 +51,25 @@
                 </group>
                 <group string="Verification">
                     <group>
-                        <field name="verified"/>
-                        <field name="verified_by"
+                        <field name="verified" readonly="1"/>
+                        <field name="verified_by" readonly="1"
                                invisible="not verified"/>
-                        <field name="verified_at"
+                        <field name="verified_at" readonly="1"
                                invisible="not verified"/>
+                        <field name="verification_review_required" readonly="1"/>
                     </group>
                     <group>
-                        <field name="override"/>
-                        <field name="override_reason"
+                        <field name="override_reason_draft" invisible="override"/>
+                        <field name="override" readonly="1"/>
+                        <field name="override_reason" readonly="1"
                                invisible="not override"/>
                     </group>
                 </group>
                 <group string="Legacy Sync" invisible="not plasticos_doc_id">
                     <field name="plasticos_doc_id" readonly="1"/>
                 </group>
-            </xpath>
+                </sheet>
+            </form>
         </field>
     </record>
 
@@ -53,13 +81,13 @@
     <record id="view_document_list_plasticos" model="ir.ui.view">
         <field name="name">documents.document.list.plasticos</field>
         <field name="model">documents.document</field>
-        <field name="inherit_id" ref="documents.document_view_list"/>
+        <field name="inherit_id" ref="documents.documents_view_list"/>
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
                 <field name="doc_type" optional="show"/>
                 <field name="polymer_id" optional="show"/>
                 <field name="transaction_id" optional="hide"/>
-                <field name="verified" optional="show"/>
+                <field name="verified" optional="show" readonly="1"/>
             </xpath>
         </field>
     </record>
@@ -74,7 +102,7 @@
         <field name="model">documents.document</field>
         <field name="inherit_id" ref="documents.document_view_search"/>
         <field name="arch" type="xml">
-            <xpath expr="//search" position="inside">
+            <xpath expr="//searchpanel" position="before">
                 <separator/>
                 <filter name="filter_bol"
                         string="BOLs"
@@ -95,18 +123,17 @@
                 <filter name="filter_unverified"
                         string="Not Verified"
                         domain="[('verified', '=', False)]"/>
-                <separator/>
-                <group expand="0" string="Group By">
-                    <filter name="group_doc_type"
-                            string="Document Type"
-                            context="{'group_by': 'doc_type'}"/>
-                    <filter name="group_polymer"
-                            string="Polymer"
-                            context="{'group_by': 'polymer_id'}"/>
-                    <filter name="group_transaction"
-                            string="Transaction"
-                            context="{'group_by': 'transaction_id'}"/>
-                </group>
+            </xpath>
+            <xpath expr="//search/group" position="inside">
+                <filter name="group_doc_type"
+                        string="Document Type"
+                        context="{'group_by': 'doc_type'}"/>
+                <filter name="group_polymer"
+                        string="Polymer"
+                        context="{'group_by': 'polymer_id'}"/>
+                <filter name="group_transaction"
+                        string="Transaction"
+                        context="{'group_by': 'transaction_id'}"/>
             </xpath>
         </field>
     </record>

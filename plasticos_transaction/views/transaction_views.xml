@@ -65,6 +65,7 @@
                 <field name="name"/>
                 <field name="user_id" optional="show" widget="many2one_avatar_user"/>
                 <field name="sale_order_id" optional="show"/>
+                <field name="purchase_order_ids" string="Purchase Orders" optional="hide" widget="many2many_tags"/>
                 <field name="line_count" optional="hide"/>
                 <field name="historical_sale_total" optional="show" sum="Historical Sale"/>
                 <field name="historical_purchase_total" optional="show" sum="Historical Purchase"/>
@@ -129,6 +130,10 @@
                             invisible="state != 'draft'" class="btn-primary"/>
                     <button name="action_close" type="object" string="Close"
                             invisible="state not in ('delivered', 'invoiced')" class="btn-success"/>
+                    <button name="action_open_historical_reopen" type="object" string="Reopen Historical"
+                            invisible="not legacy_erp_history or state != 'closed'"
+                            groups="plasticos_transaction.group_plasticos_manager"/>
+                    <field name="legacy_erp_history" invisible="1"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,pending_supplier,supplier_ready,do_created,dispatched,in_transit,delivered,invoiced,closed"/>
                 </header>
                 <sheet>
@@ -140,25 +145,36 @@
                     <group>
                         <group string="Orders" name="orders">
                             <field name="user_id"/>
+                            <field name="product_id" string="Material"/>
+                            <field name="supplier_id"/>
+                            <field name="buyer_id"/>
                             <field name="sale_order_id"/>
-                            <field name="purchase_order_ids" widget="many2many_tags"/>
+                            <field name="purchase_order_ids" widget="many2many_tags_open"/>
                         </group>
-                        <group string="Revenue">
+                        <!-- One margin presentation: revenue down to net margin, top to bottom. -->
+                        <group string="Profit Snapshot" name="profit_snapshot">
                             <field name="revenue_total"/>
+                            <field name="purchase_cost_total" string="Material Cost"/>
+                            <field name="freight_cost_total" string="Freight Cost"/>
+                            <field name="cost_total"/>
+                            <field name="gross_margin"/>
+                            <field name="commission_amount" string="Commission"/>
+                            <!-- Sign-aware colour: the renderer turns these into text-success /
+                                 text-danger on the field; zero stays neutral. -->
+                            <field name="net_margin"
+                                   class="o_plasticos_net_margin"
+                                   decoration-success="net_margin > 0"
+                                   decoration-danger="net_margin &lt; 0"/>
                         </group>
                     </group>
                     <group>
-                        <group string="Costs">
-                            <field name="purchase_cost_total"/>
-                            <field name="freight_cost_total"/>
-                            <field name="other_expenses"/>
-                            <field name="cost_total"/>
-                        </group>
-                        <group string="Recoveries &amp; Margin">
+                        <group string="Freight" name="freight">
                             <field name="freight_chargebacks"/>
-                            <field name="lightweight_penalties"/>
-                            <field name="gross_margin"/>
-                            <field name="net_margin"/>
+                            <field name="other_expenses" string="Additional Costs"/>
+                        </group>
+                        <group string="Material" name="material">
+                            <field name="final_weight" string="Material Weight"/>
+                            <field name="lightweight_penalties" string="Weight Penalty"/>
                         </group>
                     </group>
 
@@ -168,34 +184,31 @@
                             <field name="supplier_confirmation_received"/>
                             <field name="is_supplier_confirmed" readonly="1"/>
                         </group>
-                        <group string="Delivery Order">
+                        <group string="Delivery Order" name="delivery_order">
+                            <field name="carrier_id"/>
+                            <field name="freight_actual" string="Freight Cost" readonly="state in ('closed', 'cancelled')"/>
                             <field name="delivery_order_id"/>
                             <field name="do_number" readonly="1"/>
                         </group>
                     </group>
 
-                    <notebook>
+                    <notebook name="transaction_pages">
                         <page string="Invoices &amp; Bills">
                             <group>
                                 <group string="Customer">
                                     <field name="customer_invoice_id"/>
                                 </group>
                                 <group string="Vendors">
-                                    <field name="vendor_bill_ids" widget="many2many_tags"/>
-                                    <field name="freight_bill_ids" widget="many2many_tags"/>
+                                    <field name="vendor_bill_ids" widget="many2many_tags_open"/>
+                                    <field name="freight_bill_ids" widget="many2many_tags_open"/>
                                 </group>
                             </group>
                         </page>
                         <!-- Commission tab rendered by plasticos_commission/views/transaction_commission_views.xml -->
-                        <page string="Compliance">
-                            <group>
-                                <field name="compliance_status"/>
-                            </group>
-                        </page>
                         <!-- Claims page moved to plasticos_claims module which extends this view -->
                         <page string="Historical Lines" invisible="line_count == 0">
                             <group>
-                                <group string="Historical Totals (from cieTrade)">
+                                <group string="Historical Totals (from ERP)">
                                     <field name="historical_sale_total"/>
                                     <field name="historical_purchase_total"/>
                                     <field name="historical_margin"/>

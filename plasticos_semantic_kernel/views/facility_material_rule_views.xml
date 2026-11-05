@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_facility_material_rule_list" model="ir.ui.view">
+    <field name="name">plasticos.facility.material.rule.list</field>
+    <field name="model">plasticos.facility.material.rule</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="rule_type"/>
+        <field name="facility_profile_id"/>
+        <field name="polymer_id"/>
+        <field name="form_id"/>
+        <field name="process_type"/>
+        <field name="company_id"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_facility_material_rule_form" model="ir.ui.view">
+    <field name="name">plasticos.facility.material.rule.form</field>
+    <field name="model">plasticos.facility.material.rule</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="name"/>
+              <field name="rule_type"/>
+              <field name="sequence"/>
+              <field name="facility_profile_id"/>
+              <field name="active"/>
+            </group>
+            <group>
+              <field name="canonical_uuid" readonly="1"/>
+              <field name="company_id"/>
+              <field name="contract_version"/>
+              <field name="evidence_state"/>
+              <field name="confidence"/>
+            </group>
+          </group>
+          <group string="Criteria">
+            <field name="polymer_id"/>
+            <field name="form_id"/>
+            <field name="source_type_id"/>
+            <field name="filler_type_id"/>
+            <field name="equipment_type_id"/>
+            <field name="process_type"/>
+            <field name="application_class"/>
+            <field name="mfi_min"/>
+            <field name="mfi_max"/>
+            <field name="density_min"/>
+            <field name="density_max"/>
+            <field name="contamination_max_pct"/>
+            <field name="moisture_max_pct"/>
+            <field name="filler_max_pct"/>
+            <field name="food_grade_required"/>
+            <field name="medical_grade_required"/>
+            <field name="effective_from"/>
+            <field name="effective_to"/>
+          </group>
+          <group string="Lineage">
+            <field name="source_system"/>
+            <field name="source_record_ref"/>
+            <field name="migration_batch_id"/>
+          </group>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+  <record id="action_facility_material_rule" model="ir.actions.act_window">
+    <field name="name">Facility Material Rules</field>
+    <field name="res_model">plasticos.facility.material.rule</field>
+    <field name="view_mode">list,form</field>
+  </record>
+</odoo>

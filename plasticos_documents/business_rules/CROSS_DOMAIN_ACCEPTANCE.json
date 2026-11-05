@@ -1,0 +1,271 @@
+{
+  "schema": "plasticos.documents.cross-domain-acceptance/v1",
+  "execution_status": "NOT_RUN",
+  "tests": [
+    {
+      "id": "AC-DOC-X01",
+      "name": "Native original across several typed links",
+      "positive_expected": "One Documents original, several exact company-scoped evidence references",
+      "negative_control_must_fail": "Copy BOL binary into another authoritative file or overwrite prior verification",
+      "rule_ids": [
+        "BRS-POS-02-R001",
+        "BRS-POS-03-R003"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X02",
+      "name": "PO-only supplier evidence",
+      "positive_expected": "Exact native PO identity accepted without a fictitious SO or load; record gap if current schema cannot express it",
+      "negative_control_must_fail": "Fabricate a plasticos.load for PO-only inbound or match newest transaction",
+      "rule_ids": [
+        "BRS-POS-03-R002",
+        "BRS-POS-02-R006"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X03",
+      "name": "Ambiguous reply or alias intake",
+      "positive_expected": "File remains in Inbox with one review Activity and no auto-compliance",
+      "negative_control_must_fail": "Recency or partner-only matching chooses wrong order",
+      "rule_ids": [
+        "BRS-POS-02-R006",
+        "BRS-POS-03-R002",
+        "BRS-POS-09-R003"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X04",
+      "name": "Two companies same reference",
+      "positive_expected": "File and verification never leak across companies",
+      "negative_control_must_fail": "Sudo matcher binds another company due to colliding order number",
+      "rule_ids": [
+        "BRS-POS-03-R014"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X05",
+      "name": "Receipt is not verification",
+      "positive_expected": "A native Request placeholder can be filled, yet business compliance remains pending until authorized verification",
+      "negative_control_must_fail": "Just uploading a file clears invoice close",
+      "rule_ids": [
+        "BRS-POS-02-R005",
+        "BRS-POS-03-R004"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X06",
+      "name": "Partial buyer Receiving",
+      "positive_expected": "Only quantity and loads explicitly covered become eligible; rest remain pending",
+      "negative_control_must_fail": "One received PDF confirms all loads or full order",
+      "rule_ids": [
+        "BRS-POS-03-R009",
+        "BRS-POS-03-R010"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X07",
+      "name": "CST certificate sufficiency",
+      "positive_expected": "Certified CST proof inspected; SCALE tag is only a category",
+      "negative_control_must_fail": "Bare scale tag satisfies certified document requirement",
+      "rule_ids": [
+        "BRS-POS-03-R011",
+        "BRS-POS-03-R012"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X08",
+      "name": "Side-effect-free compute",
+      "positive_expected": "Compliance recompute returns missing IDs without posting or communicating",
+      "negative_control_must_fail": "Automated file receipt calls account.move.action_post",
+      "rule_ids": [
+        "BRS-POS-03-R007",
+        "BRS-POS-03-R008",
+        "BRS-POS-09-R013"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X09",
+      "name": "Internal-only Documents Request",
+      "positive_expected": "Request to authorized internal assignee, external supplier only receives Linda Mail",
+      "negative_control_must_fail": "Native Request sends upload/share link to supplier",
+      "rule_ids": [
+        "BRS-POS-02-R004",
+        "BRS-POS-02-R011",
+        "BRS-POS-09-R002"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X10",
+      "name": "Native reminder control collision",
+      "positive_expected": "No native Documents external reminder if Linda is authoritative; one outbound per party/day/revision",
+      "negative_control_must_fail": "Documents Activity automatic reminder and Linda both email same supplier",
+      "rule_ids": [
+        "BRS-POS-09-R006",
+        "BRS-POS-09-R010"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X11",
+      "name": "Calendar and clock source",
+      "positive_expected": "Pickup +1/+5 supplier, +2/+6 carrier; delivery +1/+5 buyer, all business-day under approved locale",
+      "negative_control_must_fail": "Use transaction create_date or pickup for buyer clock",
+      "rule_ids": [
+        "BRS-POS-09-R007",
+        "BRS-POS-09-R008",
+        "BRS-POS-09-R009"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X12",
+      "name": "Business day and holiday unknown",
+      "positive_expected": "Known Mon–Fri test passes; holiday behavior remains UNKNOWN until operator policy",
+      "negative_control_must_fail": "Invent holiday exception or silently send during quiet hours",
+      "rule_ids": [
+        "BRS-POS-09-R011"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X13",
+      "name": "Cancel / supersede while pending",
+      "positive_expected": "Stops outstanding intent, preserves historical evidence, no new duplicate Activity",
+      "negative_control_must_fail": "Stale superseded evidence sends reminder after cancellation",
+      "rule_ids": [
+        "BRS-POS-02-R007",
+        "BRS-POS-09-R012"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X14",
+      "name": "AI auto-sort cannot approve",
+      "positive_expected": "Native AI proposes folder/tag, authorized evidence verification remains separate",
+      "negative_control_must_fail": "AI output sets weights, accepts certificate or posts vendor bill",
+      "rule_ids": [
+        "BRS-POS-02-R010",
+        "BRS-POS-03-R013"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X15",
+      "name": "Provider/Studio gate",
+      "positive_expected": "Manual/native workflow functions with Studio and paid digitization disabled",
+      "negative_control_must_fail": "Installation triggers AI subscription or external digitization billing",
+      "rule_ids": [
+        "BRS-POS-02-R013",
+        "BRS-POS-09-R016"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X16",
+      "name": "Native versions and shortcuts",
+      "positive_expected": "New version retains historic original; shortcut points to same source",
+      "negative_control_must_fail": "PDF merge destroys sole original and provenance",
+      "rule_ids": [
+        "BRS-POS-02-R007",
+        "BRS-POS-02-R008",
+        "BRS-POS-02-R009"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X17",
+      "name": "No blanket accounting lock",
+      "positive_expected": "Absent CST does not block buyer AR or commercial close; open carrier issue remains",
+      "negative_control_must_fail": "Missing carrier CST blocks unrelated buyer invoice",
+      "rule_ids": [
+        "BRS-POS-03-R011"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X18",
+      "name": "Two-worker due evaluation",
+      "positive_expected": "Two cron workers do not create duplicate external intents or Activities; failed SMTP retains unknown",
+      "negative_control_must_fail": "Race yields two sends or treats queued as sent",
+      "rule_ids": [
+        "BRS-POS-09-R003",
+        "BRS-POS-09-R010"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X19",
+      "name": "Use Odoo platform only",
+      "positive_expected": "Existing Odoo native automation and ir.cron schedule separate domain jobs",
+      "negative_control_must_fail": "Create separate worker service or global Linda-only scheduler",
+      "rule_ids": [
+        "BRS-POS-09-R004",
+        "BRS-POS-09-R005"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X20",
+      "name": "Activation still separate",
+      "positive_expected": "Installing BRS files changes no Odoo registry, templates, tasks, records, messages or finance",
+      "negative_control_must_fail": "Install BRS ZIP activates live automation or bank movement",
+      "rule_ids": [
+        "BRS-POS-09-R014",
+        "BRS-POS-09-R015"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X21",
+      "name": "3PL vs dropship proof",
+      "positive_expected": "Document evidence can associate genuine PO, native picking and load when present without inventing missing entities",
+      "negative_control_must_fail": "Require SO or PlasticOS load for every PO-only warehouse document",
+      "rule_ids": [
+        "BRS-POS-03-R002",
+        "BRS-POS-03-R014"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X22",
+      "name": "Native invoice intake draft",
+      "positive_expected": "Vendor PDF creates appropriately scoped draft only when accounting owner authorizes",
+      "negative_control_must_fail": "Native digitization auto-posts or self-bills without vendor invoice",
+      "rule_ids": [
+        "BRS-POS-02-R012",
+        "BRS-POS-09-R013"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X23",
+      "name": "Confidential double-blind output",
+      "positive_expected": "Only recipient-authorized evidence leaves via owner Mail template; no internal folder grant",
+      "negative_control_must_fail": "Supplier receives buyer Receiving document or access to Documents folder",
+      "rule_ids": [
+        "BRS-POS-02-R011",
+        "BRS-POS-03-R014"
+      ],
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "AC-DOC-X24",
+      "name": "Source law versus implementation",
+      "positive_expected": "First implementation checks accepted ADRs and installed EE behavior; remains bounded if conflict",
+      "negative_control_must_fail": "Working BRS suppresses accepted ADR or claims EE test PASS without execution",
+      "rule_ids": [
+        "BRS-POS-09-R017"
+      ],
+      "result": "NOT_RUN"
+    }
+  ]
+}

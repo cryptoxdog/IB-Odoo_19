@@ -1,7 +1,7 @@
 <odoo>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         TRANSACTION FORM — Add load_id field (injected by logistics)
+         TRANSACTION FORM — Loads owned by this transaction
          Inherits: plasticos_transaction.view_transaction_form
          ═══════════════════════════════════════════════════════════════════ -->
 
@@ -12,18 +12,23 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
 
-            <!-- Add load_id to Orders group (readonly until supplier AND buyer are set) -->
-            <xpath expr="//group[@name='orders']/field[@name='purchase_order_ids']" position="after">
-                <field name="load_id"
+            <xpath expr="//group[@name='delivery_order']/field[@name='delivery_order_id']" position="after">
+                <field name="load_count" invisible="1"/>
+                <field name="load_ids"
                        readonly="not supplier_id or not buyer_id"
-                       help="Select supplier and buyer before assigning a load."/>
+                       help="Select supplier and buyer before linking a load.">
+                    <list>
+                        <field name="name"/>
+                        <field name="state"/>
+                    </list>
+                </field>
             </xpath>
 
         </field>
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         TRANSACTION FORM UX — Add Load smart button
+         TRANSACTION FORM UX — Load smart button
          Inherits: plasticos_transaction.view_transaction_form
          ═══════════════════════════════════════════════════════════════════ -->
 
@@ -34,14 +39,12 @@
         <field name="priority">35</field>
         <field name="arch" type="xml">
 
-            <!-- Add Load smart button to button_box (hidden until load exists AND supplier/buyer are set) -->
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_load"
+                <button name="action_view_loads"
                         type="object"
                         class="oe_stat_button"
-                        icon="fa-truck"
-                        invisible="not load_id or not supplier_id or not buyer_id">
-                    <span class="o_stat_text">Load</span>
+                        icon="fa-truck">
+                    <field name="load_count" widget="statinfo" string="Loads"/>
                 </button>
             </xpath>
 
@@ -49,7 +52,7 @@
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         TRANSACTION LIST — Add load_id column
+         TRANSACTION LIST — Load count
          Inherits: plasticos_transaction.view_transaction_tree
          ═══════════════════════════════════════════════════════════════════ -->
 
@@ -60,16 +63,15 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
 
-            <!-- Add load reference after sale order -->
             <xpath expr="//list/field[@name='sale_order_id']" position="after">
-                <field name="load_id" string="Load" optional="show"/>
+                <field name="load_count" string="Loads" optional="show"/>
             </xpath>
 
         </field>
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         TRANSACTION SEARCH — Add load_id filter
+         TRANSACTION SEARCH — Search by load
          Inherits: plasticos_transaction.view_transaction_search
          ═══════════════════════════════════════════════════════════════════ -->
 
@@ -80,9 +82,8 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
 
-            <!-- Add load_id to search fields -->
             <xpath expr="//field[@name='buyer_id']" position="after">
-                <field name="load_id"/>
+                <field name="load_ids"/>
             </xpath>
 
         </field>

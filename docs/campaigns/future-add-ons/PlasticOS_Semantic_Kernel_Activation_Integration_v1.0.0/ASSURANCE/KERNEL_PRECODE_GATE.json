@@ -1,0 +1,20 @@
+{
+  "gate": "precode",
+  "status": "FAIL",
+  "errors": [
+    "TARGET_ENV_UNKNOWN",
+    "OPEN_OPERATOR_DECISIONS",
+    "UNADOPTED_INTERFACE: Native opportunity/material snapshot, approved readiness and PO/Lost lifecycle",
+    "UNADOPTED_INTERFACE: Versioned canonical source projection, current match/result and gap assessment contract",
+    "UNADOPTED_INTERFACE: Industrial hypothesis evidence and durable sync result",
+    "UNEXPLORED_DYNAMIC_CONSUMERS",
+    "OPEN_SOURCE_LIMITS: ['F01: Installed Odoo and dynamic consumers: UNOBSERVED', 'F02: Global/external contract admission: NOT_ADMITTED', 'F03: Full external source closure: BOUNDED_NOT_EXHAUSTIVE', 'F04: SDK and live release set: UNOBSERVED', 'F05: Optional bridge sufficiency: PROPOSED_TOPOLOGY', 'F06: Branched commercial campaign: EXTERNAL_DEPENDENCY', 'F07: Inference evaluation/calibration: NOT_RUN', 'F08: Historical data and identifiers: UNOBSERVED', 'F09: Post-PO listing disposition: REQUIRES_SOURCE_PROOF']",
+    "PRECODE_PROOF_NOT_OBSERVED: P01",
+    "PRECODE_PROOF_NOT_OBSERVED: P02",
+    "EXTERNAL_AUTHENTICATION_REQUIRED: offline planning tool never authorizes coding",
+    "UNAUTHENTICATED_OR_STALE_GRANT: plan_acceptance",
+    "UNAUTHENTICATED_OR_STALE_GRANT: coding_grant"
+  ],
+  "plan_digest_sha256": "1c7ccb507c106ea4247301a3d59b5bf8b088b77785e6998353d1474f3624e92f",
+  "caveat": "No real GitHub/DB/Enterprise access, no independent completeness proof, and no approval authentication are performed by this local validator."
+}

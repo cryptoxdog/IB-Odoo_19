@@ -194,12 +194,17 @@ def find_model_definitions(module_path: Path) -> dict[str, str]:
     Returns dict mapping model name -> file path.
     """
     models: dict[str, str] = {}
-    models_dir = module_path / "models"
-
-    if not models_dir.exists():
+    # Wizard TransientModels live outside models/. Index them so a models/
+    # _inherit of a wizard is a real dependency, not an unknown model.
+    scan_dirs = [module_path / "models", module_path / "wizards"]
+    py_files: list[Path] = []
+    for scan_dir in scan_dirs:
+        if scan_dir.is_dir():
+            py_files.extend(scan_dir.glob("*.py"))
+    if not py_files:
         return models
 
-    for py_file in models_dir.glob("*.py"):
+    for py_file in py_files:
         if py_file.name == "__init__.py":
             continue
 

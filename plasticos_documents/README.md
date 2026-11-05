@@ -44,3 +44,9 @@ compliance
 
 - `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
 - `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...
+
+<!-- PLASTICOS_DOCUMENTS_BRS_NATIVE_FIRST_20261026_BEGIN -->
+## Native-first BRS policy (2026-10-26)
+
+The module-local [Documents BRS](business_rules/README.md) is the implementation requirements index for business evidence, exact association, verification, internal Documents Requests, native automation clocks and finance side-effect prohibitions. Its 44 source-preserved BRS-POS-02/-03/-09 rules are paired with positive/negative acceptance cases. `plasticos_documents_native` consumes the same rules, not a duplicate copy. Read `AGENTS.md` and applicable accepted root ADRs before any Documents code changes. Installation does not activate Odoo actions or imply runtime proof.
+<!-- PLASTICOS_DOCUMENTS_BRS_NATIVE_FIRST_20261026_END -->

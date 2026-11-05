@@ -569,8 +569,8 @@ def main():
     print("Phase 4: Generating report...")
     report = generate_report(missing, verified, model_fields, len(xml_files))
 
-    report_path = repo_root / "reports" / "GMP-Report-AUDIT-XML-Field-References.md"
-    report_path.parent.mkdir(exist_ok=True)
+    report_path = repo_root / "docs" / "reports" / "gmp-reports" / "GMP-Report-AUDIT-XML-Field-References.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w") as f:
         f.write(report)
 

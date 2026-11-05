@@ -26,7 +26,7 @@ import re
 import sys
 from pathlib import Path
 
-from _git_utils import get_git_tracked_files
+from _git_utils import contained_path, get_git_tracked_files
 
 
 def extract_model_names_from_python(root_dir: Path) -> set[str]:
@@ -199,7 +199,8 @@ def extract_model_names_from_python(root_dir: Path) -> set[str]:
             if ".venv" in str(py_file) or "venv" in str(py_file):
                 continue
             try:
-                content = py_file.read_text(encoding="utf-8")
+                # contained_path: reject traversal outside the repo (SonarCloud S8707)
+                content = contained_path(py_file).read_text(encoding="utf-8")
 
                 # Extract _name declarations
                 for match in name_pattern.finditer(content):
@@ -224,7 +225,8 @@ def extract_model_refs_from_xml(xml_file: Path) -> list[tuple[str, int, str]]:
 
     try:
         # Parse with line numbers
-        with open(xml_file, encoding="utf-8") as f:
+        # contained_path: reject traversal outside the repo (SonarCloud S8707)
+        with open(contained_path(xml_file), encoding="utf-8") as f:
             content = f.read()
 
         # Use regex to find model references with approximate line numbers
@@ -265,7 +267,8 @@ def extract_model_refs_from_csv(csv_file: Path) -> list[tuple[str, int, str]]:
     refs = []
 
     try:
-        with open(csv_file, encoding="utf-8") as f:
+        # contained_path: reject traversal outside the repo (SonarCloud S8707)
+        with open(contained_path(csv_file), encoding="utf-8") as f:
             lines = f.readlines()
 
         header_found = False

@@ -1,0 +1,209 @@
+kernel_id: intelligence_analysis_engine_v1
+source_files:
+  - "01_ultimate-master-guide.md"
+  - "03_analysis-engine.md"
+  - "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md"
+purpose: >
+  Unified analysis, pattern recognition, document intelligence, workspace integrity, and
+  strategic insight generation. Analytical backbone providing rapid, comprehensive, dependency,
+  and performance analysis modes. Also governs backup management (strategic, automated, emergency),
+  document knowledge mapping, and workspace gap detection.
+
+activation_trigger:
+  - Any task requiring system analysis, pattern recognition, or dependency mapping
+  - Pre-deployment or pre-operation system assessment
+  - Workspace integrity audit or documentation gap analysis
+  - Strategic intelligence or executive insight generation
+  - Backup creation of any type
+
+authority_order:
+  1: Kernel invariants and stop conditions
+  2: Source file requirements
+  3: Operating rules below
+  4: K01 Reasoning Engine outputs used as input context
+
+source_traceability:
+  capability_registry:     "01_ultimate-master-guide.md § Core Capabilities"
+  workspace_analysis:      "03_analysis-engine.md § Workspace Analysis"
+  code_analysis:           "03_analysis-engine.md § Code Analysis"
+  system_analysis:         "03_analysis-engine.md § System Analysis"
+  data_analysis:           "03_analysis-engine.md § Data Analysis"
+  discovery_workflow:      "03_analysis-engine.md § Discovery Workflow"
+  monitoring_workflow:     "03_analysis-engine.md § Monitoring Workflow"
+  optimization_workflow:   "03_analysis-engine.md § Optimization Workflow"
+  document_intelligence:   "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md § A. Document Intelligence"
+  workspace_integrity:     "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md § B. Workspace Integrity"
+  strategic_analysis:      "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md § C. Strategic Analysis"
+  backup_management:       "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md § D. Backup Management"
+  backup_dir_structure:    "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md § Backup Directory Structure"
+  date_format_rules:       "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md § Date/Time Format Requirements"
+  compression_rules:       "ACTION_PLAN_STRATEGIC_INTELLIGENCE.md § Backup Compression Rules"
+
+operating_rules:
+  analysis_modes:
+    rapid:
+      rule: MUST complete quick assessment, pattern recognition, and trend detection in one pass
+      output: Summary findings with confidence rating; flag items requiring deep analysis
+      must_not: Replace deep analysis for pre-production decisions
+    comprehensive:
+      rule: MUST perform multi-dimensional, cross-system, historical analysis
+      output: Full report with evidence chain and recommendations
+    dependency:
+      rule: MUST map complete dependency graph; detect circular dependencies
+      output: Structured dependency map with impact radius per node
+    performance:
+      rule: MUST identify bottlenecks, resource utilization patterns, optimization opportunities
+      output: Ranked issue list with estimated impact
+
+  commands:
+    analyze_workspace:    "analyze-workspace --scope [scope] --depth [level]"
+    optimize_workspace:   "optimize-workspace --target [area] --method [approach]"
+    analyze_code:         "analyze-code --language [lang] --metrics [list]"
+    analyze_patterns:     "analyze-patterns --type [pattern] --scope [scope]"
+    analyze_system:       "analyze-system --components [list] --metrics [list]"
+    analyze_architecture: "analyze-architecture --view [perspective] --detail [level]"
+    analyze_data:         "analyze-data --source [source] --quality [metrics]"
+
+  document_intelligence:
+    rule: MUST analyze document relationships, identify knowledge gaps and redundancies,
+          map strategic dependencies, generate actionable insights
+    output: Knowledge graph, gap report, dependency map, insight summary
+    must_not: Delete or archive documents without explicit user confirmation
+
+  workspace_integrity:
+    rule: MUST audit completeness, detect orphaned files, verify structure against master plan
+    output: Integrity report with severity-ranked findings
+
+  strategic_analysis:
+    rule: MUST identify missing implementation steps, cross-reference requirements,
+          map documentation gaps, track decision points
+    output: Executive insight report with prioritized action items
+
+  backup_management:
+    date_format: "DD-MM-YY — MUST NOT use YYYY-MM-DD"
+    time_format: "hh:mm — MUST NOT use hh:mm:ss"
+    backup_types:
+      strategic:
+        naming: "BACKUP_DD-MM-YY_STRATEGIC_[description]"
+        retention: NEVER auto-delete
+        trigger: Manual or milestone
+      automated:
+        naming: "BACKUP_DD-MM-YY_hhmm"
+        retention: 30 days then auto-cleanup
+        compression: "Compress to .tar.gz after 5 days — NOT 2 days"
+      emergency:
+        naming: "BACKUP_DD-MM-YY_hhmm_EMERGENCY_[reason]"
+        retention: Manual management; preserve until explicitly released
+    directory_structure:
+      root: "_BACKUPS/"
+      subdirs: ["STRATEGIC/", "AUTOMATED/MM-YYYY/", "EMERGENCY/", "_MANIFESTS/"]
+      manifest_files:
+        - "_MANIFESTS/backup_manifest.json"
+        - "_MANIFESTS/integrity_log.json"
+        - "_MANIFESTS/restoration_history.log"
+    backup_execution:
+      pre_backup: Verify available disk space; confirm target directory exists
+      on_create: Write entry to backup_manifest.json; compute hash for integrity_log.json
+      on_compress: Apply only after age exceeds 5 days; verify .tar.gz integrity post-compress
+      on_cleanup: MUST skip STRATEGIC/ entirely; log all deletions to restoration_history.log
+      on_fail: Report failure with reason; MUST NOT silently skip backup
+
+constraints:
+  - MUST NOT invent analysis findings not supported by workspace data
+  - MUST NOT perform rapid analysis for pre-production risk decisions
+  - MUST NOT delete STRATEGIC backup directory contents under any automated process
+  - MUST NOT change date format from DD-MM-YY
+  - MUST NOT use compression threshold other than 5 days
+  - All analysis outputs MUST cite supporting workspace evidence
+
+execution_logic:
+  discovery_workflow:
+    1: Initial scan
+    2: Deep dive on flagged areas
+    3: Pattern identification and classification
+    4: Insight generation
+    5: Prioritized recommendation synthesis
+  optimization_workflow:
+    1: Performance analysis — current state
+    2: Bottleneck identification
+    3: Solution generation — ranked options
+    4: Impact prediction
+    5: Implementation planning
+  backup_execution_flow:
+    1: Verify disk space and directory structure
+    2: Create artifact with correct naming convention
+    3: Write manifest entry and integrity hash
+    4: Apply compression if age exceeds 5 days
+    5: Cleanup per retention policy skipping STRATEGIC
+
+dependency_graph:
+  upstream_inputs:
+    - K01 context lock and B9 plan
+    - Workspace filesystem state
+    - User-supplied analysis scope
+  downstream_outputs:
+    - Analysis reports consumed by K03 deployment, K04 dev, K05 QA
+    - Backup artifacts in _BACKUPS/
+    - Knowledge graph and integrity reports for strategic planning
+  prerequisites:
+    - K01 MUST be loaded before invoking deep analysis
+  blockers:
+    - Filesystem inaccessible → HALT
+    - Manifest file corrupted → HALT backup ops pending repair
+  blast_radius: Analysis outputs feed deployment validation, QA gates, and maintenance scheduling
+
+invariants:
+  - INV-A1: STRATEGIC backup directory MUST NEVER be auto-deleted
+  - INV-A2: Backup date format MUST be DD-MM-YY throughout all filenames and manifests
+  - INV-A3: Compression threshold MUST be exactly 5 days
+  - INV-A4: Every analysis conclusion MUST cite supporting workspace evidence
+  - INV-A5: Circular dependency detection MUST run in every dependency analysis
+
+edge_cases:
+  empty_workspace:
+    scenario: No files found in analysis scope
+    rule: Report as empty scope; MUST NOT fabricate findings
+  missing_manifest:
+    scenario: backup_manifest.json not found
+    rule: HALT backup operations; create fresh manifest; log event
+  backup_disk_full:
+    scenario: Insufficient disk space
+    rule: HALT with disk usage report; MUST NOT create partial backup
+  stale_analysis:
+    scenario: Cached analysis used for current decision
+    rule: MUST re-run or flag staleness with timestamp
+
+validation_checks:
+  - PASS: Analysis output cites evidence for every major finding
+  - PASS: Backup manifest updated after every backup operation
+  - PASS: STRATEGIC directory intact after any cleanup run
+  - PASS: Date format DD-MM-YY in all backup filenames
+  - FAIL: Any analysis finding without traceable source data
+  - FAIL: Any backup with missing or corrupt manifest entry
+
+acceptance_criteria:
+  - Rapid analysis returns confidence rating and flagged items for deep analysis
+  - Comprehensive analysis produces ranked recommendations with evidence chain
+  - Backup creates correctly named artifact, manifest entry, and integrity hash
+  - STRATEGIC backups survive all automated cleanup operations
+
+regression_guards:
+  - Date format change MUST be rejected; DD-MM-YY is immutable
+  - Compression threshold change from 5 days MUST be rejected without explicit override
+  - Removal of STRATEGIC retention guard is a critical regression
+
+stop_conditions:
+  - STRATEGIC directory not found and cannot be created → HALT backup operations
+  - Analysis returns no data and workspace is non-empty → HALT, investigate tool failure
+  - Manifest integrity check fails → HALT all backup operations pending repair
+
+output_requirements:
+  - Analysis report includes scope, methodology, findings, confidence, recommendations
+  - Backup operation produces artifact path, manifest entry, integrity hash
+  - All Unknown items labeled explicitly as Unknown
+  - No invented data; gaps acknowledged with specific missing item identified
+
+unknowns:
+  - Python script paths (strategic_backup.py, workspace_analyzer.py): Unknown — marked BUILDING in source
+  - Knowledge graph visualization tooling: Unknown — optional in source
+  - Dropbox sync integration: Unknown — external dependency without spec

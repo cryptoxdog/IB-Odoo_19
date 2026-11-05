@@ -1,21 +1,19 @@
-# System State
+---
+paths:
+  - "docs/**"
+  - "config/**"
+---
+# System State — Living Snapshot
 
-Update this file when significant changes merge.
+Update when significant changes merge. **Branches:** `Staging` (dev/PR target) · `Production` (prod). Capitalized — not `staging`/`main`.
 
-## Branches
-- `staging` — active development, PRs target here
-- `main` — production, merged from staging
+**Module counts / CI:** see `AGENTS.md` (maintained SSOT).
 
-## Module Status
-| Status | Modules |
-|--------|---------|
-| Production | base, security_base, material_profile, product, facility_profile, intake, accounting, offer, order_lines, transaction, logistics, documents, claims, automation, partner_import, geolocalize |
-| Beta | intake_normalizer, web_leads, enrichment, crm_bridge, commission |
-| Dev-only | dev_tools (installable=False) |
-| External | inference_engine (installable=False), matching (installable=False), documents_native (Enterprise only) |
-| New | website, buyer_match_engine |
+| Status | Examples |
+|--------|----------|
+| Production | base, security_base, intake, offer, transaction, logistics, claims |
+| Beta | web_leads, enrichment, commission, crm_bridge |
+| Dev-only | dev_tools (`installable=False`) |
+| Gated | enrichment full wiring (pipeline_v2) · Gate web-lead triage (Phase 3) |
 
-## Known Issues
-- mypy type check runs as advisory (continue-on-error in CI)
-- ruff excludes inference_engine, buyer_match_engine, matching from lint (pre-existing)
-- Some pre-existing Odoo pattern violations tracked separately from new PRs
+**Known:** mypy advisory in pre-commit · ruff excludes some engine modules · circular dep commission↔transaction intentional.

@@ -1,6 +1,6 @@
 # plasticos_intake_normalizer
 
-**Version:** 19.0.2.0.0
+**Version:** 19.0.1.0.5
 **Category:** PlasticOS / Data Processing
 **Depends:** `plasticos_base`, `plasticos_intake`, `plasticos_material_profile`, `plasticos_facility_profile`
 
@@ -8,7 +8,7 @@
 
 ## Purpose
 
-Normalizes raw intake form data into a structured, typed packet suitable for the Cognitive Engine Graph (CEG) and downstream matching logic. This module adds the **Normalization tab** to the intake form and owns the `assemble_packet()` method.
+Normalizes raw intake form data into a structured, typed packet suitable for the Cognitive Engine Graph (CEG) and downstream matching logic. This module adds the **Normalization tab** to the intake form and owns the `_assemble_packet()` method.
 
 Think of this module as the intake data adapter — it translates human-entered form values (text, selections, floats) into a clean, schema-validated dict that the CEG can consume.
 
@@ -18,37 +18,30 @@ Think of this module as the intake data adapter — it translates human-entered 
 
 Extends `plasticos.intake` via `_inherit`.
 
-### Key Method: `assemble_packet()`
+### Key Method: `_assemble_packet()`
 
-Builds the CEG query payload from the current intake record. Called by `action_match_to_buyers()` before the HTTP POST.
+Builds the packet from the current intake record. `action_normalize` and the batch cron store it in `last_packet_payload`.
 
 **Packet structure:**
 
 ```python
 {
-    "polymer": self.polymer_id.code,
-    "form": self.form_id.code,
-    "origin_form": self.origin_form_id.code if self.origin_form_id else None,
-    "origin_process": self.origin_process_type,
-    "source_type": self.source_type_id.name if self.source_type_id else None,
-    "volume": {
-        "qty_per_load_lbs": self.quantity_per_load_lbs,
-        "loads_per_month": self.loads_per_month,
-    },
+    "schema_version": PACKET_SCHEMA_VERSION,
+    "intake_id": self.name,
+    "odoo_record_id": self.id,
+    "partner": self._assemble_partner_block(),
+    "polymer": self.polymer_id.code,             # null when empty
+    "form": self.form_id.code,                   # null when empty
+    "material_grade": self.material_grade_id.code,  # null when empty
     "quality": {
-        "mfi_value": self.mfi_value or None,
-        "density_value": self.density_value or None,
-        "moisture_pct": self.moisture_pct or None,      # ← correct field name (was moisture_ppm — fixed)
-        "contamination_total_pct": self.contamination_total_pct or None,
+        "mfi_value", "density_value", "moisture_pct", "contamination_pct",
+        "has_residue", "attributes", "filler_type", "filler_pct", "contamination_notes",
     },
-    "condition": {
-        "material_attributes": self.material_attribute_ids.mapped('code'),
-    },
-    "geo": {
-        "lat": self.lat,
-        "lon": self.lon,
-    },
-    "target_price": self.target_price,
+    "origin": {"application", "sector", "process_type"},
+    "frequency": {"quantity_per_load_lbs", "loads_per_month", "deal_type", "contract_duration_months"},
+    "geo": self._assemble_geo_block(),
+    "material_profile": self._assemble_material_profile_block(),  # includes material_grade
+    "facility_capability": self._assemble_facility_block(),
 }
 ```
 

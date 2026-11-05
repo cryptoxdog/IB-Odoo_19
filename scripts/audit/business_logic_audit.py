@@ -4,8 +4,65 @@ Business Logic Anti-Pattern Detector
 Catches common Odoo coding mistakes.
 """
 
+import io
 import re
+import tokenize
 from pathlib import Path
+
+from path_filters import skip_path
+
+# Same-line placement is repo law: .cursor/rules/71-plasticos-security-model.mdc
+# and .cursor/rules/00-plasticos-master-context.mdc ("inline comment on the same
+# line"). The accepted markers are the two spellings already used in models/.
+_SUDO_JUSTIFICATION = re.compile(r"^#\s*(?:sudo|cron-sudo-justification)\s*:\s*(?P<why>.*)$")
+_TRIVIA = frozenset({tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT, tokenize.ENCODING})
+_DEBT_MARKERS = frozenset({"todo", "tbd", "fixme", "xxx", "hack"})
+_PLACEHOLDER_WORDS = _DEBT_MARKERS | {"n/a", "na", "none", "needed", "required", "justified", "ok"}
+
+
+def _is_sudo_justification(comment: str) -> bool:
+    """True for ``# sudo: <reason>`` with a substantive reason.
+
+    A generic comment (``# noqa``), an empty marker, a one-word placeholder, or
+    a reason that admits open debt (``TODO add authorization``) is not a
+    justification. This checks documentation only; it never proves that the
+    caller is authorized to perform the elevated operation.
+    """
+    match = _SUDO_JUSTIFICATION.match(comment.strip())
+    if not match:
+        return False
+    words = [word.lower() for word in re.findall(r"[A-Za-z][A-Za-z/'-]*", match.group("why"))]
+    if any(word in _DEBT_MARKERS for word in words):
+        return False
+    return len(words) >= 2 and not all(word in _PLACEHOLDER_WORDS for word in words)
+
+
+def _sudo_call_lines(source: str) -> dict[int, bool] | None:
+    """Map each line holding an executable ``.sudo()`` call to its justification state.
+
+    Uses the Python tokenizer, so ``.sudo()`` or ``#`` inside a string or a
+    comment is not mistaken for code or for a comment. Returns ``None`` when the
+    source cannot be tokenized, so the caller can fail closed.
+    """
+    try:
+        tokens = [t for t in tokenize.generate_tokens(io.StringIO(source).readline) if t.type not in _TRIVIA]
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return None
+    comments = {t.start[0]: t.string for t in tokens if t.type == tokenize.COMMENT}
+    code = [t for t in tokens if t.type != tokenize.COMMENT]
+    calls: dict[int, bool] = {}
+    for i in range(1, len(code) - 2):
+        dot, name, lpar, rpar = code[i - 1], code[i], code[i + 1], code[i + 2]
+        if (
+            name.type == tokenize.NAME
+            and name.string == "sudo"
+            and dot.string == "."
+            and lpar.string == "("
+            and rpar.string == ")"
+        ):
+            line = name.start[0]
+            calls[line] = _is_sudo_justification(comments.get(line, ""))
+    return calls
 
 
 class BusinessLogicAudit:
@@ -43,6 +100,8 @@ class BusinessLogicAudit:
         ]
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             # Skip virtual environments and test files
             if ".venv" in str(py_file) or "venv" in str(py_file) or "/tests/" in str(py_file):
                 continue
@@ -102,6 +161,8 @@ class BusinessLogicAudit:
         ]
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             with open(py_file, encoding="utf-8") as f:
                 for line_num, line in enumerate(f, 1):
                     for pattern in SQL_PATTERNS:
@@ -121,33 +182,43 @@ class BusinessLogicAudit:
         return errors
 
     def check_missing_access_checks(self):
-        """Find sudo() calls without justification"""
+        """Find executable ``.sudo()`` calls without a same-line justification.
+
+        Repo law requires a ``# sudo: <reason>`` comment on the same line as
+        ``.sudo()``. A comment on an earlier line does not count. Passing this
+        check means the justification is documented; it is not proof that the
+        caller is authorized, which only the code before the elevation can give.
+        """
         errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
-            with open(py_file, encoding="utf-8") as f:
-                lines = f.readlines()
+            if skip_path(py_file):
+                continue
+            source = py_file.read_text(encoding="utf-8")
+            lines = source.splitlines()
+            calls = _sudo_call_lines(source)
+            if calls is None:
+                # Untokenizable source: fail closed on every textual occurrence.
+                calls = {i: False for i, line in enumerate(lines, 1) if ".sudo()" in line}
 
-                for i, line in enumerate(lines, 1):
-                    if ".sudo()" in line:
-                        # Check for comment justification in surrounding lines
-                        context_start = max(0, i - 3)
-                        context_lines = lines[context_start:i]
-
-                        has_justification = any("sudo" in ctx_line and "#" in ctx_line for ctx_line in context_lines)
-
-                        if not has_justification:
-                            errors.append(
-                                {
-                                    "type": "UNJUSTIFIED_SUDO",
-                                    "severity": "MODERATE",
-                                    "file": str(py_file.relative_to(self.root_dir)),
-                                    "line": i,
-                                    "code": line.strip(),
-                                    "message": "sudo() call without comment justification",
-                                    "fix": "Add comment explaining why elevated privileges needed",
-                                }
-                            )
+            for i, justified in sorted(calls.items()):
+                if justified:
+                    continue
+                errors.append(
+                    {
+                        "type": "UNJUSTIFIED_SUDO",
+                        "severity": "MODERATE",
+                        "file": str(py_file.relative_to(self.root_dir)),
+                        "line": i,
+                        "code": lines[i - 1].strip(),
+                        "message": "sudo() lacks a same-line justification comment",
+                        "fix": (
+                            "Keep the elevation only when the caller is authorized before it, and state "
+                            "why on this line as '# sudo: <reason>'. A preceding comment is not accepted, "
+                            "and a comment is never proof of authorization."
+                        ),
+                    }
+                )
 
         return errors
 
@@ -162,6 +233,8 @@ class BusinessLogicAudit:
         errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             with open(py_file, encoding="utf-8") as f:
                 content = f.read()
                 lines = content.split("\n")

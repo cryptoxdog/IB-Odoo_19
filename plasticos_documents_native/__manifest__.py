@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents — Native Bridge",
-    "version": "19.0.1.2.0",
+    "version": "19.0.1.2.11",
     "summary": "Bridge to Odoo Enterprise Documents with AI auto-sort, "
     "email alias, and plastics-specific field extensions",
     "category": "Document Management",
@@ -31,6 +31,6 @@
     ],
     # Requires Enterprise modules `documents` and `documents_account` on the host.
     "installable": True,
-    "application": False,
-    "auto_install": False,
+    "application": True,
+    "auto_install": True,
 }

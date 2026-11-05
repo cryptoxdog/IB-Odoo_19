@@ -1,61 +1,84 @@
 # plasticos_partner_import
 
-**Version:** 19.0.2.1.0
-**Category:** PlasticOS / Data Operations
-**Depends:** `plasticos_base`, `plasticos_facility_profile`, `plasticos_material_profile`, `plasticos_security_base`
+PlasticOS historical ERP source ingestion and deterministic partner realization for Odoo 19.
 
----
+## Current purpose
 
-## Purpose
+The current ERP architecture is defined by ADR-021:
 
-Provides bulk partner import tooling for loading CRM leads, supplier contacts, and facility data from external CSV sources (VanillaSoft CRM, broker spreadsheets, historical records). Used for initial data migration and ongoing batch imports from sales tooling.
+- ERP data enters through SQL.
+- VanillaSoft CRM data enters through `plasticos_crm_sync` API integration.
+- Frozen CSV/grid files are regression fixtures, not runtime authority.
+- Legacy CSV wizards remain compatibility/technical surfaces only and must not be extended as the production path.
 
----
+The canonical ERP operator entrypoint is `make import-erp`.
 
-## Models
+## Deterministic pipeline
 
-### `plasticos.partner.import.wizard` (TransientModel)
+```text
+restored ERP SQL Server
+        ↓
+erp.reader
+        ↓
+erp.source_index
+        ↓
+partner realization in plasticos.erp.import
+```
 
-The primary import UI. Accepts a CSV file, maps columns to `res.partner` fields, previews the mapping, and executes the import with deduplication logic.
+`models/erp_import_service.py` owns counterparties, addresses/locations, contacts, roles, and salespersons. `_extend_historical_import()` does not write `plasticos.transaction` or `plasticos.transaction.line`. A full run is refused before any write.
 
-**Key fields:**
+Stable ERP source keys are written through `ir.model.data` identity markers. Names, email addresses, phone numbers, address text, and Odoo database IDs are never identity.
 
-| Field | Notes |
-|---|---|
-| `import_file` | Binary CSV upload |
-| `file_name` | |
-| `facility_role` | Role to assign imported partners — was `x_facility_role` (x-field), renamed via migration, fixed in code |
-| `import_mode` | `create_only / update_only / upsert` |
-| `dedup_key` | Field to use for deduplication (email, phone, vanillasoft_id) |
-| `preview_line_ids` | `One2many` — first 10 rows shown in form before commit |
-| `result_summary` | Text summary after import |
+## Source forms
 
----
+Production-intent source:
 
-## Service: `crm_lead_import_service.py`
+- Direct read of the restored SQL Server database using the projection registry in `erp/reader.py`.
 
-Processes CRM lead CSVs exported from VanillaSoft. Maps VanillaSoft fields to Odoo `res.partner` and `crm.lead` fields.
+Compatibility/test forms:
 
-**Key field rename history:**
-- `x_vanillasoft_id` → `vanillasoft_id` (migration 19.0.1.x renamed the DB column)
-- `x_facility_role` → `facility_role` (same migration sweep)
-- All code references corrected during the x-field cleanup sweep
+- SQL statement payloads understood by the same reader.
+- Frozen `erp_extracted_data/bulk/` grids for regression and replay tests.
 
-**Deduplication logic:** Checks existing partners by `vanillasoft_id` first, then falls back to email, then phone. Creates new or updates existing depending on `import_mode`.
+The compatibility forms do not authorize new CSV mappings or CSV-first operating procedures.
 
----
+## Partner stages
 
-## Views
+Partner stages always execute in this order:
 
-| File | Description |
-|---|---|
-| `partner_import_wizard_views.xml` | Import wizard form — file upload, column mapping, preview grid, result summary |
+1. counterparties
+2. addresses / locations
+3. contacts
+4. roles
+5. salespersons
 
-**Button labels:** All reference `facility_role` (not `x_facility_role`) after the rename fix.
+`PARTNERS_ONLY=1` limits a run to those sources and stages. Layer mode can execute one partner stage after the preceding stage has been validated.
 
----
+## Full historical import
 
-## Migrations
+A full run uses the same source/index path, then delegates deal realization to the `plasticos_transaction` extension. A full run must fail closed when that extension is unavailable. Partner-only completion is not a successful full historical import.
+
+Result accounting must reconcile every source row into created, updated, unchanged, or rejected outcomes. A reconciliation mismatch is a material failure, not a warning.
+
+## Mapping law
+
+`erp/mapping_status.py` is the machine-readable disposition registry for source columns. `docs/erp_import_mapping.md` is the narrative mapping and identity contract.
+
+Do not create fields to mirror the legacy ERP. Map into native Odoo fields wherever the business meaning already exists. Any proposed new field requires a proven semantic gap and explicit operator approval.
+
+`GPLedger.TradeDt` is the historical PO issue/approval date. When a historical purchase order is realized, the native Odoo target is `purchase.order.date_approve`. Do not add `plasticos.transaction.transaction_date` for this concept.
+
+## Legacy UI
+
+The partner CSV wizard is not the production ERP import path. It may remain for controlled technical compatibility until separately retired, but documentation, new features, and normal operator procedures must use the deterministic SQL-backed pipeline.
+
+VanillaSoft CRM CSV surfaces are likewise deprecated in favor of `plasticos_crm_sync`.
+
+## Module reference
+
+Retained from the previous README; unrelated to the ERP source correction above.
+
+### Migrations
 
 | Version | Change |
 |---|---|
@@ -64,9 +87,7 @@ Processes CRM lead CSVs exported from VanillaSoft. Maps VanillaSoft fields to Od
 
 **Note:** Migration scripts reference the old `x_` names intentionally — that is correct behavior for migration files. Do not treat those as bugs.
 
----
-
-## Deployment
+### Deployment
 
 ```bash
 docker compose -p odoo19 run --rm odoo \
@@ -74,11 +95,9 @@ docker compose -p odoo19 run --rm odoo \
   -u plasticos_partner_import --stop-after-init
 ```
 
----
-
-## Integration Points
+### Integration Points
 
 | Module | Notes |
 |---|---|
 | `plasticos_facility_profile` | Imported partners can be assigned facility profiles post-import |
-| `plasticos_crm_bridge` | CRM leads created from import can be bridged to the plasticos pipeline |
+| `plasticos_crm_bridge` | Optional. When installed, ERP partners take its UTM source; not a manifest dependency, so partner import does not pull the transaction spine |

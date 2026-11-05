@@ -57,7 +57,7 @@
                         </group>
                         <group string="Links" name="links">
                             <field name="transaction_id"/>
-                            <field name="load_id"/>
+                            <field name="load_id" domain="[('transaction_id', '=', transaction_id)]"/>
                             <field name="source_document_id"/>
                         </group>
                     </group>

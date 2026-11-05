@@ -1,9 +1,12 @@
 import logging
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
+PROVENANCE_MODEL = "plasticos.enrichment.provenance"
+SUBTYPE_NOTE = "mail.mt_note"
 
 
 class EnrichmentRun(models.Model):
@@ -33,7 +36,7 @@ class EnrichmentRun(models.Model):
         "run_id",
     )
     provenance_ids = fields.One2many(
-        "plasticos.enrichment.provenance",
+        PROVENANCE_MODEL,
         "run_id",
     )
 
@@ -45,6 +48,8 @@ class EnrichmentRun(models.Model):
             ("validated", "Validated"),
             ("review", "Needs Review"),
             ("injected", "Injected"),
+            ("retryable", "Retryable"),
+            ("degraded", "Degraded"),
             ("failed", "Failed"),
         ],
         default="draft",
@@ -63,6 +68,35 @@ class EnrichmentRun(models.Model):
     profiles_created = fields.Integer(readonly=True, default=0)
     profiles_updated = fields.Integer(readonly=True, default=0)
     fields_written = fields.Integer(readonly=True, default=0)
+
+    engine_used = fields.Selection(
+        [("local", "Local"), ("gate", "Gate")],
+        readonly=True,
+        help="Which engine produced this run: local pipeline or Gate converge.",
+    )
+    gate_proposal = fields.Json(
+        readonly=True,
+        help="Gate converge proposal (final_fields, proposed_partner_fields) retained for audit.",
+    )
+    gate_packet_id = fields.Char(readonly=True, help="Gate response TransportPacket id for audit.")
+    gate_correlation_id = fields.Char(readonly=True, help="Gate correlation id for traceability.")
+    failure_class = fields.Char(
+        readonly=True,
+        help="Classified Gate failure (retryable/permanent/unknown) for degraded mode.",
+    )
+    availability_status = fields.Char(
+        readonly=True,
+        help="Structured Gate availability status at execute time.",
+    )
+    gate_attempt = fields.Integer(
+        readonly=True,
+        default=1,
+        help=(
+            "Gate converge attempt counter. Each operator retry increments it, so a retry is a "
+            "new logical operation identity (ADR-006) and can never be served Gate's cached "
+            "response to the failed attempt."
+        ),
+    )
 
     @api.depends(
         "extraction_ids.confidence",
@@ -99,121 +133,423 @@ class EnrichmentRun(models.Model):
 
     # ── Pipeline Actions ───────────────────────────────────────
 
-    def action_execute(self):
-        """Full pipeline: crawl -> extract -> evaluate.
+    @api.model
+    def _should_try_gate_converge(self):
+        """Return True when Gate enrichment (converge) is enabled and SDK is available."""
+        from odoo.addons.plasticos_gate.services.gate_config import gate_enrichment_enabled
 
-        State transitions (direct writes are intentional - pipeline method):
-        - draft -> crawling -> extracting -> validated/review/failed
+        return gate_enrichment_enabled(self.env)
+
+    def _run_gate_converge(self):
+        """Route enrichment through Gate converge (EIE worker).
+
+        Review-only by default (``plasticos.gate.auto_writeback=0``): store the
+        proposal for human approval (state='review') without partner writes.
+        When auto_writeback is explicitly enabled, apply allowlisted fields
+        (merge-not-overwrite, with provenance) and set state to 'injected'.
+        Returns True when Gate produced a usable result; False on non-ok status
+        or empty allowlist (caller fails closed / no local fallback on M4).
         """
         self.ensure_one()
-        svc = self.env["plasticos.enrichment.service"]
-
-        if not self.source_ids:
-            raise UserError("Add at least one source URL.")
-
-        # 1. Crawl
-        self.write({"state": "crawling"})
-        for source in self.source_ids:
-            svc.crawl_source(source)
-
-        # 2. Extract
-        self.write({"state": "extracting"})
-        succeeded = self.source_ids.filtered(
-            lambda s: s.crawl_status == "success",
+        from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
+        from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
+        from odoo.addons.plasticos_gate.services.gate_config import gate_auto_writeback_enabled
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            extract_audit_metadata,
+            map_converge_response,
+            partner_writeback_from_converge,
         )
-        if not succeeded:
+
+        request = build_converge_request(self.env, self)
+        payload = request.to_dict()
+        result = send_converge_action(
+            self.env,
+            payload=payload,
+            correlation_id=request.odoo.get("correlation_id") if request.odoo else None,
+            # ADR-006 — ONE logical operation identity. It is generated once by
+            # build_converge_request and already rides in the EnrichRequest
+            # payload; the same value is handed to the transport header here.
+            # Domain persistence idempotency (EIE) and transport replay
+            # prevention (Gate_SDK) stay separate mechanisms that now agree on
+            # which operation they are talking about.
+            idempotency_key=request.idempotency_key,
+        )
+        resp = map_converge_response(result["payload"])
+        audit = extract_audit_metadata(result["packet"])
+
+        # EIE contract: only status == "ok" is a usable result. Anything else is a
+        # worker/hub failure signal -> fall back to local (never mark injected on junk).
+        if str(resp.status or "").strip().lower() != "ok":
+            _logger.warning(
+                "Gate converge returned non-ok status %r (packet %s); falling back to local.",
+                resp.status,
+                audit.get("gate_packet_id"),
+            )
+            return False
+
+        proposed = partner_writeback_from_converge(resp)
+        # EIE provenance travels with the proposal so the audit trail on the run
+        # records what EIE actually reported (confidence, tokens, KB hash,
+        # inference version), not a value Odoo made up at writeback time.
+        eie_provenance = {
+            "confidence": resp.confidence,
+            "tokens_used": resp.tokens_used,
+            "kb_content_hash": resp.kb_content_hash,
+            "inference_version": resp.inference_version,
+            "pass_count": resp.pass_count,
+            "variation_count": resp.variation_count,
+            "processing_time_ms": resp.processing_time_ms,
+            "quality_tier": resp.quality_tier,
+            "uncertainty_score": resp.uncertainty_score,
+            "kb_fragment_ids": list(resp.kb_fragment_ids or []),
+        }
+
+        base_vals = {
+            "engine_used": "gate",
+            "gate_proposal": {
+                "final_fields": resp.final_fields,
+                "proposed_partner_fields": proposed,
+                "eie_provenance": eie_provenance,
+            },
+            "gate_packet_id": audit.get("gate_packet_id"),
+            "gate_correlation_id": audit.get("gate_correlation_id"),
+        }
+
+        if not proposed:
+            # Nothing allowlisted came back. In review mode this used to
+            # produce a `review` run with nothing to approve; the caller now
+            # records it as degraded in both modes.
+            _logger.info(
+                "Gate converge returned no writable allowlisted fields (packet %s).",
+                audit.get("gate_packet_id"),
+            )
+            return False
+
+        if not gate_auto_writeback_enabled(self.env):
             self.write(
                 {
-                    "state": "failed",
+                    **base_vals,
+                    "state": "review",
                     "validation_issues": [
-                        "No sources crawled successfully.",
+                        "Gate converge proposal awaiting human review (auto-writeback disabled).",
                     ],
                 }
             )
-            return
+            self.message_post(
+                body=(
+                    f"Gate converge proposed {len(proposed)} partner field(s) for review "
+                    f"(packet {audit.get('gate_packet_id')})."
+                ),
+                subtype_xmlid=SUBTYPE_NOTE,
+            )
+            return True
 
-        # Collect extraction results for batch create
-        extraction_vals_list = []
-        extraction_errors = []
-        for source in succeeded:
-            try:
-                parsed = svc.extract_from_source(source)
-                extraction_vals_list.append(
-                    {
-                        "run_id": self.id,
-                        "source_id": source.id,
-                        "material_json": parsed["materials"],
-                        "metadata_json": {
-                            "source_url": parsed["source_url"],
-                        },
-                        "confidence": parsed["overall_confidence"],
-                        "governance_passed": parsed["governance_passed"],
-                        "governance_flags": parsed["governance_flags"],
-                        "extracted_at": fields.Datetime.now(),
-                    }
-                )
-            except Exception as e:
-                extraction_errors.append(f"{source.url}: {e}")
-                _logger.error(
-                    "Extraction failed for source %s: %s",
-                    source.url,
-                    e,
-                )
+        written = self._apply_converge_writeback(proposed, audit, confidence=resp.confidence)
+        self.write(
+            {
+                **base_vals,
+                "state": "injected",
+                "injected_at": fields.Datetime.now(),
+                "fields_written": written,
+                "validation_issues": False,
+            }
+        )
+        self.message_post(
+            body=(f"Gate converge applied {written} partner field(s) live (packet {audit.get('gate_packet_id')})."),
+            subtype_xmlid=SUBTYPE_NOTE,
+        )
+        return True
 
-        # Batch create all extractions
-        if extraction_vals_list:
-            self.env["plasticos.enrichment.extraction"].create(extraction_vals_list)
+    def _apply_converge_writeback(self, proposed, audit, confidence=None):
+        """Backfill allowlisted partner fields (merge-not-overwrite) with provenance.
 
-        # 3. Evaluate
-        if not self.extraction_ids:
-            issues = ["All extractions failed."]
-            if extraction_errors:
-                issues.extend(extraction_errors)
-            self.write(
+        The write boundary re-enforces the allowlist: any proposed field not in
+        ``PARTNER_WRITEBACK_FIELD_ALLOWLIST`` (e.g. ``comment``) is skipped
+        before the merge-not-overwrite checks, so a stored proposal can never
+        write a non-allowlisted partner field.
+
+        ``confidence`` is EIE's reported aggregate confidence for the result the
+        proposal came from. When the caller has none (an approval of a stored
+        proposal), it is read back from ``gate_proposal.eie_provenance``; only
+        if neither exists does the provenance row fall back to 1.0.
+        """
+        from odoo.addons.plasticos_gate.services.gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST
+
+        partner = self.partner_id
+        to_write = {}
+        for field_name, value in (proposed or {}).items():
+            if field_name not in PARTNER_WRITEBACK_FIELD_ALLOWLIST:
+                continue
+            if field_name not in partner._fields:
+                continue
+            if partner[field_name]:  # merge-not-overwrite: never clobber existing values
+                continue
+            to_write[field_name] = value
+        if not to_write:
+            return 0
+        # A copy: res.partner.write overrides (base_geolocalize) add keys to vals in place.
+        partner.write(dict(to_write))
+        packet_id = audit.get("gate_packet_id") or ""
+        if confidence is None:
+            proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
+            confidence = (proposal.get("eie_provenance") or {}).get("confidence")
+        try:
+            row_confidence = float(confidence) if confidence is not None else 1.0
+        except (TypeError, ValueError):
+            row_confidence = 1.0
+        for field_name, value in to_write.items():
+            self.env[PROVENANCE_MODEL].create(
                 {
+                    "run_id": self.id,
+                    "partner_id": partner.id,
+                    "target_model": "res.partner",
+                    "target_field": field_name,
+                    "value_written": str(value),
+                    "previous_value": "",
+                    "source_sentence": f"gate_converge:{packet_id}",
+                    "confidence": row_confidence,
+                    "inference_type": "explicit",
+                    "status": "written",
+                }
+            )
+        return len(to_write)
+
+    def _rollback_then_persist_operator_state(self, run_id, vals):
+        """Roll the failed transaction back, then persist run state durably.
+
+        ``UserError`` in an HTTP/RPC request rolls back the request transaction,
+        so failure classification (degraded/failed/retryable) must be written on
+        an independently committed cursor to survive it (I2).
+
+        Ordering is the whole point (I3). ``action_execute`` writes to this run
+        before calling Gate, so at the moment of failure transaction A still
+        holds an uncommitted row lock on it. Flushing here — as this method used
+        to — guarantees that lock, and the second cursor's ``UPDATE`` on the same
+        row then waits on transaction A until the request times out. Rolling
+        back first releases the row, so the durable write always proceeds.
+
+        ``run_id`` is a primitive on purpose: recordset state captured before the
+        rollback is not trustworthy afterwards.
+        """
+        self.env.cr.rollback()
+        self._persist_operator_state_durable(run_id, vals)
+
+    def _persist_operator_state_durable(self, run_id, vals):
+        """Write operator-visible run state on a clean owned cursor and commit.
+
+        Only safe once the transaction that failed has been rolled back.
+        """
+        with self.pool.cursor() as cr:
+            env = api.Environment(cr, self.env.uid, dict(self.env.context))
+            run = env[self._name].browse(run_id).exists()
+            if run:
+                run.write(vals)
+            cr.commit()
+
+    def action_execute(self):
+        """Gate-only converge (M4). Never falls back to local crawl/extract/inference.
+
+        On Gate unavailable/failure: classify, audit on this run, raise UserError.
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_config import (
+            GateCapability,
+            GateIntegrationError,
+            classify_gate_availability,
+            gate_enrichment_enabled,
+        )
+
+        run_id = self.id
+        availability = classify_gate_availability(self.env, capability=GateCapability.ENRICHMENT)
+        self.write(
+            {
+                "engine_used": "gate",
+                "availability_status": availability.status,
+                "failure_class": False,
+            }
+        )
+
+        if not gate_enrichment_enabled(self.env):
+            reasons = "; ".join(availability.reasons) or "Gate enrichment unavailable"
+            self._rollback_then_persist_operator_state(
+                run_id,
+                {
+                    "engine_used": "gate",
                     "state": "failed",
-                    "validation_issues": issues,
-                }
+                    "failure_class": "permanent",
+                    "validation_issues": [reasons],
+                    "availability_status": availability.status,
+                },
             )
-            return
+            raise UserError(
+                _("Gate enrichment is not enabled (%(status)s): %(reasons)s")
+                % {"status": availability.status, "reasons": reasons}
+            )
 
-        all_flags = []
-        for ext in self.extraction_ids:
-            all_flags.extend(ext.governance_flags or [])
-
-        injectable = all(ext.is_injectable for ext in self.extraction_ids)
-        if injectable and not all_flags:
-            if extraction_errors:
-                self.write(
-                    {
-                        "state": "review",
-                        "validation_issues": extraction_errors,
-                    }
-                )
-            else:
-                self.write({"state": "validated"})
-        else:
-            issues = all_flags or ["Low confidence or governance failure."]
-            if extraction_errors:
-                issues = list(issues) + extraction_errors
-            self.write(
+        try:
+            if self._run_gate_converge():
+                return
+            # Gate returned non-applicable result (non-ok / empty allowlist) — fail closed
+            self._rollback_then_persist_operator_state(
+                run_id,
                 {
-                    "state": "review",
-                    "validation_issues": issues,
-                }
+                    "engine_used": "gate",
+                    "state": "degraded",
+                    "failure_class": "unknown",
+                    "validation_issues": [
+                        "Gate converge produced no injectable allowlisted fields.",
+                    ],
+                    "availability_status": availability.status,
+                },
             )
+            raise UserError(_("Gate enrichment degraded: no injectable fields from converge response."))
+        except UserError:
+            raise
+        except GateIntegrationError as exc:
+            # The Gate bridge delivers the Odoo-facing category (the SDK's
+            # retryability verdict projected onto retryable/permanent); this
+            # shell persists it and never reclassifies Gate transport itself.
+            failure = exc.failure_class or "unknown"
+            state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
+            message = str(exc)
+            self._rollback_then_persist_operator_state(
+                run_id,
+                {
+                    "engine_used": "gate",
+                    "state": state,
+                    "failure_class": failure,
+                    "validation_issues": [message],
+                    "availability_status": availability.status,
+                },
+            )
+            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, message)) from exc
+        except Exception as exc:  # noqa: BLE001 — boundary: not a Gate transport outcome; fail closed as degraded
+            failure = "unknown"
+            state = "degraded"
+            message = str(exc)
+            self._rollback_then_persist_operator_state(
+                run_id,
+                {
+                    "engine_used": "gate",
+                    "state": state,
+                    "failure_class": failure,
+                    "validation_issues": [message],
+                    "availability_status": availability.status,
+                },
+            )
+            _logger.exception("Gate enrichment unexpected error for run %s", run_id)
+            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, message)) from exc
+
+    def action_retry_enrichment(self):
+        """Operator retry — Gate-only; never local crawl/inference."""
+        self.ensure_one()
+        if self.state not in ("retryable", "failed", "degraded"):
+            raise UserError(_("Run %s is not in a retryable/failed/degraded state.") % self.name)
+        # Reset to draft for a clean Gate attempt while preserving audit via chatter.
+        # The attempt counter advances so the retry carries a NEW logical
+        # operation identity: Gate caches responses per identity — including an
+        # EIE domain failure — and a retry under the failed attempt's identity
+        # would be answered from that cache without ever reaching EIE (ADR-006).
+        self.write(
+            {
+                "state": "draft",
+                "validation_issues": False,
+                "failure_class": False,
+                "gate_attempt": (self.gate_attempt or 1) + 1,
+            }
+        )
+        return self.action_execute()
+
+    def _inject_gate_proposal(self):
+        """Manually approve a stored Gate converge proposal from review.
+
+        Requires review state and a non-empty revalidated proposal; writes
+        allowlisted partner fields via _apply_converge_writeback and returns
+        True. A Gate run never falls through to local material-profile
+        extraction from ``extraction_ids``.
+        """
+        self.ensure_one()
+        if self.state != "review":
+            raise UserError(_("Gate runs can only be manually injected from review (current state: %s).") % self.state)
+        proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
+        proposed = proposal.get("proposed_partner_fields") or {}
+        # Revalidate the stored proposal: keep only named, scalar, non-empty
+        # values before the write boundary applies the allowlist.
+        proposed = {
+            k: v for k, v in proposed.items() if k and isinstance(v, (str, int, float)) and v not in (None, False, "")
+        }
+        if not proposed:
+            raise UserError(_("Gate proposal has no writable partner fields to inject."))
+        audit = {
+            "gate_packet_id": self.gate_packet_id,
+            "gate_correlation_id": self.gate_correlation_id,
+        }
+        gate_written = self._apply_converge_writeback(proposed, audit)
+        if not gate_written:
+            raise UserError(_("Gate proposal has no writable partner fields after allowlist filtering."))
+        self.write(
+            {
+                "state": "injected",
+                "injected_at": fields.Datetime.now(),
+                "fields_written": gate_written,
+                "validation_issues": False,
+            }
+        )
+        self.message_post(
+            body=(
+                f"Gate converge proposal approved: {gate_written} partner "
+                f"field(s) applied (packet {self.gate_packet_id})."
+            ),
+            subtype_xmlid=SUBTYPE_NOTE,
+        )
+        return True
 
     def action_inject(self):
         """Write validated enrichment into plasticos.material.profile.
 
         Merge-not-overwrite: existing field values are never
         clobbered. Only empty/falsy fields are populated.
+
+        Gate review-only runs store ``gate_proposal.proposed_partner_fields``
+        and inject through the dedicated Gate branch: approve the stored
+        proposal from review, never fall through to local extraction.
         """
         self.ensure_one()
         if self.state not in ("validated", "review"):
             raise UserError(
                 "Run must be validated or manually approved from review.",
             )
+
+        # Gate review runs inject only their stored proposal.
+        if self.engine_used == "gate":
+            return self._inject_gate_proposal()
+
+        gate_written = 0
+        proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
+        proposed = proposal.get("proposed_partner_fields") or {}
+        if proposed:
+            audit = {
+                "gate_packet_id": self.gate_packet_id,
+                "gate_correlation_id": self.gate_correlation_id,
+            }
+            gate_written = self._apply_converge_writeback(proposed, audit)
+            if not self.extraction_ids.filtered("is_injectable"):
+                self.write(
+                    {
+                        "state": "injected",
+                        "injected_at": fields.Datetime.now(),
+                        "fields_written": gate_written,
+                        "validation_issues": False,
+                    }
+                )
+                self.message_post(
+                    body=(
+                        f"Gate converge proposal approved: {gate_written} partner "
+                        f"field(s) applied (packet {self.gate_packet_id})."
+                    ),
+                    subtype_xmlid=SUBTYPE_NOTE,
+                )
+                return
 
         svc = self.env["plasticos.enrichment.service"]
         partner = self.partner_id
@@ -264,9 +600,14 @@ class EnrichmentRun(models.Model):
                 existing = MatProf.search(domain, limit=1)
 
                 if existing:
+                    # Identity codes are owned by plasticos.material.profile.
+                    from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+                        LEGACY_PROFILE_CODE_FIELDS,
+                    )
+
                     merge_vals = {}
                     for field, value in profile_vals.items():
-                        if field in ("polymer", "form", "source_type"):
+                        if field in LEGACY_PROFILE_CODE_FIELDS:
                             continue
                         current = existing[field]
                         if not current:
@@ -295,7 +636,7 @@ class EnrichmentRun(models.Model):
                         existing.write(merge_vals)
                         existing.message_post(
                             body=(f"Enrichment {self.name} merged fields: {', '.join(merge_vals.keys())}"),
-                            subtype_xmlid="mail.mt_note",
+                            subtype_xmlid=SUBTYPE_NOTE,
                         )
                         updated += 1
                 else:
@@ -374,7 +715,7 @@ class EnrichmentRun(models.Model):
             (p for p in prov_items if p["target_field"] == field),
             {},
         )
-        self.env["plasticos.enrichment.provenance"].create(
+        self.env[PROVENANCE_MODEL].create(
             {
                 "run_id": self.id,
                 "partner_id": partner.id,
@@ -398,145 +739,18 @@ class EnrichmentRun(models.Model):
     # ── Inference Step ──────────────────────────────────────────
 
     def action_run_inference(self):
-        """
-        Run inference engine on all material profiles for this run's partner.
-        Called after injection to fill gaps with KB-based inference.
-        """
-        self.ensure_one()
-        if self.state != "injected":
-            raise UserError(
-                "Inference can only run after enrichment is injected.",
-            )
+        """Retired in M4 — local inference execution removed."""
+        raise UserError(_("Local inference execution was removed (mothball M4). Enrichment is Gate-only."))
 
-        svc = self.env["plasticos.enrichment.service"]
-        MatProf = self.env["plasticos.material.profile"]
-
-        # Get all profiles for this partner
-        profiles = MatProf.search(
-            [
-                ("partner_id", "=", self.partner_id.id),
-            ],
-            order="id ASC",
-        )
-
-        inference_count = 0
-        for profile in profiles:
-            try:
-                updated = svc.run_inference_on_profile(profile)
-                if updated:
-                    inference_count += 1
-                    # Record provenance for inferred fields
-                    for field_name, value in updated.items():
-                        self._record_provenance(
-                            self.partner_id,
-                            field_name,
-                            str(value),
-                            "",
-                            "inferred",
-                            [],
-                        )
-            except Exception as e:
-                _logger.warning(
-                    "Inference failed for profile %s: %s",
-                    profile.id,
-                    e,
-                )
-
-        if inference_count:
-            self.message_post(
-                body=(f"Inference engine augmented {inference_count} material profile(s) for {self.partner_id.name}."),
-                subtype_xmlid="mail.mt_note",
-            )
-
-        return inference_count
-
-    # ── Cron ───────────────────────────────────────────────────
-
-    @api.model
     def action_cron_enrich_pending(self, run_inference: bool = True):
-        """Called by ir.cron. Process partners with enrichment sources that are stale."""
-        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_enrichment.cron_enrichment_daily"])
-        if not self.env.cr.fetchone()[0]:
-            _logger.info("Skipping enrichment cron: lock is already held.")
-            return
-
-        stale_cutoff = fields.Datetime.subtract(fields.Datetime.now(), days=30)
-        try:
-            try:
-                sources = self.env["plasticos.enrichment.source"].search(
-                    [
-                        ("crawl_status", "in", ("pending", "success")),
-                        "|",
-                        ("last_crawled_at", "=", False),
-                        ("last_crawled_at", "<", stale_cutoff),
-                    ],
-                    order="last_crawled_at ASC, id ASC",
-                    limit=50,
-                )
-            except Exception as search_exc:
-                _logger.error("Enrichment cron source search failed: %s", search_exc)
-                return
-
-            for pid in sorted(set(sources.mapped("partner_id").ids)):
-                partner_sources = sources.filtered(lambda src, partner_id=pid: src.partner_id.id == partner_id)
-                run = self.create({"partner_id": pid, "source_ids": [(6, 0, partner_sources.ids)]})
-                try:
-                    run.action_execute()
-                    if run.state == "validated":
-                        run.action_inject()
-                        if run_inference and run.state == "injected":
-                            try:
-                                run.action_run_inference()
-                            except Exception as ie:
-                                _logger.warning("Inference step failed for partner %s: %s", pid, ie)
-                except Exception as exc:
-                    run.write({"state": "failed", "validation_issues": [str(exc)]})
-                    _logger.error("Enrichment cron failed for partner %s: %s", pid, exc)
-        except Exception as exc:
-            _logger.error("Enrichment cron crashed unexpectedly but was contained: %s", exc)
-            return
-        finally:
-            self.env.cr.execute(
-                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_enrichment_daily"]
-            )
-
-    @api.model
-    def action_cron_inference_only(self):
-        """Standalone cron to inference stale profiles."""
-        self.env.cr.execute(
-            "SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_enrichment.cron_inference_standalone"]
+        """M4: cron disabled; no local enrichment batch execution."""
+        _logger.info(
+            "action_cron_enrich_pending skipped (M4 Gate-only; local cron retired). run_inference=%s",
+            run_inference,
         )
-        locked = self.env.cr.fetchone()[0]
-        if not locked:
-            _logger.info("Skipping inference-only cron: lock is already held.")
-            return 0
+        return True
 
-        svc = self.env["plasticos.enrichment.service"]
-        mat_prof = self.env["plasticos.material.profile"]
-        try:
-            try:
-                profiles = mat_prof.search(
-                    [("quality_tier", "=", False), ("polymer_id", "!=", False)],
-                    order="write_date ASC, id ASC",
-                    limit=100,
-                )
-            except Exception as search_exc:
-                _logger.error("Inference cron profile search failed: %s", search_exc)
-                return 0
-            count = 0
-            for profile in profiles:
-                try:
-                    updated = svc.run_inference_on_profile(profile)
-                    if updated:
-                        count += 1
-                except Exception as exc:
-                    _logger.warning("Inference cron failed for profile %s: %s", profile.id, exc)
-            _logger.info("Inference cron completed: %d profiles augmented", count)
-            return count
-        except Exception as exc:
-            _logger.error("Inference cron crashed unexpectedly but was contained: %s", exc)
-            return 0
-        finally:
-            self.env.cr.execute(
-                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_inference_standalone"]
-            )
+    def action_cron_inference_only(self):
+        """Retired in M4 — standalone local inference cron is a no-op."""
+        _logger.info("action_cron_inference_only skipped (M4 local inference retired).")
+        return True

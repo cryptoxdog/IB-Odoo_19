@@ -23,7 +23,7 @@ class PlasticosOfferPriceBridge(models.Model):
             buyer_id = vals.get("buyer_id")
             price = vals.get("price_per_lb") or 0.0
 
-            if intake_id and buyer_id and price == 0.0:
+            if intake_id and buyer_id and not price:
                 match_line = self.env["plasticos.intake.match"].search(
                     [
                         ("intake_id", "=", intake_id),

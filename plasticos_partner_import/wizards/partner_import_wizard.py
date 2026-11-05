@@ -1,6 +1,15 @@
 """
-Partner Import Wizard
-Provides UI to trigger the partner import from CSV files.
+Partner Import Wizard — legacy ERP CSV path, UI RETIRED.
+
+The corporate/facility CSV import UI is retired (ADR-021: historical ERP
+partners load through the direct SQL importer, ``make import-erp``). This
+wizard has no window action, form view, Settings button or menu any more
+(``migrations/19.0.2.10.23`` retires the records persisted by older builds),
+its ACL is ``base.group_system`` only, and every execution action refuses to
+run (``_ensure_legacy_ui_retired``). The model and its code are kept as the
+historical implementation for a possible future reuse; the underlying
+importer (``plasticos.partner.import.service``) is untouched and remains
+callable from the Odoo shell via ``scripts/run_import.py``.
 """
 
 import logging
@@ -11,16 +20,25 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-# Default filenames relative to module directory (overridable via ir.config_parameter)
-DEFAULT_CORPORATE_CSV = "1. Counterparties - Parent - CORPORATE-Ready To Import.csv"
-DEFAULT_FACILITY_CSV = "2. Counterparties - Child - FACILITY LOCATIONS.csv"
-CONFIG_CORPORATE_CSV = "plasticos_partner_import.default_corporate_csv"
-CONFIG_FACILITY_CSV = "plasticos_partner_import.default_facility_csv"
-
 
 class PartnerImportWizard(models.TransientModel):
     _name = "plasticos.partner.import.wizard"
-    _description = "Partner Import Wizard"
+    _description = "Partner Import Wizard (retired legacy ERP CSV UI)"
+
+    def _ensure_legacy_ui_retired(self):
+        """Close the retired UI execution boundary on every invocation path.
+
+        Raised unconditionally: not only is the wizard unreachable through
+        menus and actions, a direct RPC ``call_kw`` or a shell call on a
+        wizard record must not run the legacy CSV import either. Re-enabling
+        is a deliberate code change, never a runtime switch.
+        """
+        raise UserError(
+            _(
+                "The legacy ERP partner CSV import UI is retired. "
+                "Historical ERP partners load through the direct SQL importer (make import-erp)."
+            )
+        )
 
     corporate_file = fields.Binary(
         string="Corporate CSV",
@@ -71,33 +89,10 @@ class PartnerImportWizard(models.TransientModel):
     )
 
     def _get_module_path(self):
-        """Get the path to the plasticos_partner_import module."""
-        module = self.env["ir.module.module"].search([("name", "=", "plasticos_partner_import")], limit=1)
-        if not module:
-            raise UserError(_("Module plasticos_partner_import not found."))
-
-        # Get module path from addons
-        import odoo.modules.module as mod
-
-        path = mod.get_module_path("plasticos_partner_import")
-        if not path:
-            raise UserError(_("Could not determine module path."))
-        return path
+        return self.env["plasticos.partner.import.service"].get_module_path()
 
     def _get_default_csv_path(self, which: str) -> str:
-        """Resolve path for default CSV; ir.config_parameter overrides built-in path."""
-        param = self.env["ir.config_parameter"].sudo()
-        if which == "corporate":
-            custom = param.get_param(CONFIG_CORPORATE_CSV)
-            if custom and os.path.isfile(custom):
-                return custom
-            return os.path.join(self._get_module_path(), DEFAULT_CORPORATE_CSV)
-        if which == "facility":
-            custom = param.get_param(CONFIG_FACILITY_CSV)
-            if custom and os.path.isfile(custom):
-                return custom
-            return os.path.join(self._get_module_path(), DEFAULT_FACILITY_CSV)
-        raise ValueError("which must be 'corporate' or 'facility'")
+        return self.env["plasticos.partner.import.service"].resolve_default_csv_path(which)
 
     def _save_uploaded_file(self, binary_data, filename):
         """Save uploaded binary to temp file and return path."""
@@ -114,11 +109,11 @@ class PartnerImportWizard(models.TransientModel):
         return path
 
     def action_import(self):
-        """Run the partner import."""
+        """Run the partner import (retired: always refused, see module docstring)."""
+        self._ensure_legacy_ui_retired()
         self.ensure_one()
 
         import_svc = self.env["plasticos.partner.import.service"]
-        module_path = self._get_module_path()
 
         corporate_path = None
         facility_path = None
@@ -128,12 +123,12 @@ class PartnerImportWizard(models.TransientModel):
             # Determine file paths
             if self.use_default_files:
                 if self.import_mode in ("full", "corporate_only"):
-                    corporate_path = os.path.join(module_path, DEFAULT_CORPORATE_CSV)
+                    corporate_path = self._get_default_csv_path("corporate")
                     if not os.path.exists(corporate_path):
                         raise UserError(_("Default corporate CSV not found: %s") % corporate_path)
 
                 if self.import_mode in ("full", "facility_only"):
-                    facility_path = os.path.join(module_path, DEFAULT_FACILITY_CSV)
+                    facility_path = self._get_default_csv_path("facility")
                     if not os.path.exists(facility_path):
                         raise UserError(_("Default facility CSV not found: %s") % facility_path)
             else:
@@ -227,7 +222,8 @@ class PartnerImportWizard(models.TransientModel):
         }
 
     def action_audit_import(self):
-        """Run import integrity audit and show results (no changes)."""
+        """Run import integrity audit and show results (retired: always refused)."""
+        self._ensure_legacy_ui_retired()
         self.ensure_one()
         validation = self.env["plasticos.partner.import.validation"]
         report = validation.audit_import_integrity()
@@ -241,7 +237,9 @@ class PartnerImportWizard(models.TransientModel):
                 lines.append(f"  ... and {len(report['old_external_ids']) - 15} more")
             lines.append("")
         if report["facilities_missing_role"]:
-            lines.append(f"Facilities missing facility_role: {len(report['facilities_missing_role'])}")
+            lines.append(
+                f"Locations without a facility_role (enrichment pending): {len(report['facilities_missing_role'])}"
+            )
             for item in report["facilities_missing_role"][:15]:
                 lines.append(f"  - {item['name']} (id={item['id']}, parent: {item['parent']})")
             if len(report["facilities_missing_role"]) > 15:
@@ -263,7 +261,8 @@ class PartnerImportWizard(models.TransientModel):
         return self._return_wizard()
 
     def action_repair_import(self):
-        """Fix facilities missing facility_role and migrate old external IDs."""
+        """Migrate old external IDs (retired: always refused)."""
+        self._ensure_legacy_ui_retired()
         self.ensure_one()
         validation = self.env["plasticos.partner.import.validation"]
         report = validation.repair_import_data(dry_run=False)

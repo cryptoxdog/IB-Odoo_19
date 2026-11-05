@@ -1,0 +1,14 @@
+{
+ "persons": 689,
+ "same_people": true,
+ "partner_id_changed": 0,
+ "phone_changed": 0,
+ "mobile_set_where_empty": 102,
+ "mobile_overwritten": 0,
+ "comment_unchanged": 339,
+ "comment_appended": 350,
+ "comment_erp_blocks_lost": 0,
+ "persons_with_erp_note_kept": 19,
+ "appended_blocks": 360,
+ "duplicate_blocks": 0
+}

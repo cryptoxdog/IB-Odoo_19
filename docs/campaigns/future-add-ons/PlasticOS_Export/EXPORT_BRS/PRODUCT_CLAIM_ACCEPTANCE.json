@@ -1,0 +1,89 @@
+{
+  "schema": "recycleos.claim.acceptance/v1",
+  "version": "1.0.0",
+  "working_not_admitted": true,
+  "acceptance_status": "NOT_RUN",
+  "claim_count": 8,
+  "claims": [
+    {
+      "id": "CLAIM-01",
+      "title": "Automates the trading cycle",
+      "phase": "P1 foundational; P2 complete",
+      "owner": "Native Odoo Sale/Purchase/Stock/Accounting + PlasticOS transaction",
+      "positive": "One SO for 30 loads; one supplier PO for 4 partial fulfillments; progressive shipment, invoicing and settlement without invented orders; allow buyer unassigned until legally sold",
+      "negative": "Duplicate orders, invoice posting on AI-generated events, or missing unsold-on-water scenario",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    },
+    {
+      "id": "CLAIM-02",
+      "title": "Organizes export operations",
+      "phase": "P1 core; P2 expanded",
+      "owner": "plasticos_export (cross-owner contextual projection)",
+      "positive": "Booking, 5 physical containers from 4 POs, source-revision deadlines, linked verified files, native sales and purchase details visible in one form",
+      "negative": "A second quantity, freight, financial or document engine is built",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    },
+    {
+      "id": "CLAIM-03",
+      "title": "Improves productivity",
+      "phase": "P1 core; P2 optimize",
+      "owner": "Native Odoo activities, views and Linda; narrow Export UI",
+      "positive": "Role-specific saved reports and one-touch navigation; measured drop in repeated booking entry, duplicate mail and manual document searching",
+      "negative": "Unmeasured productivity claim or another chase scheduler",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    },
+    {
+      "id": "CLAIM-04",
+      "title": "Minimizes trading risk",
+      "phase": "P1 key operating risks; P2 broader exposure",
+      "owner": "Native Finance/Accounting and approved risk policies + Export alerts",
+      "positive": "Verified calculation/exceptions for negative margin, overbooked weights, missed cutoff, missing documents, credit and FX exposure where implemented",
+      "negative": "Claiming entire risk portfolio supported from a decorative dashboard or raw estimates",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    },
+    {
+      "id": "CLAIM-05",
+      "title": "Generates export documentation",
+      "phase": "P1 booking/packing/source documents; P2 full international documents",
+      "owner": "Native Odoo QWeb, Sales/Purchase, Documents and Export report layouts",
+      "positive": "Create audience-safe and source-versioned booking summary, packing report where factual, native commercial invoice, shipping instructions and applicable compliant docs",
+      "negative": "Pretending generated summary is official carrier B/L or certificate or ignoring revisions",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    },
+    {
+      "id": "CLAIM-06",
+      "title": "Provides business insights",
+      "phase": "P1 operational metrics; P2 full realized economics",
+      "owner": "Native Odoo reporting, pivot, dashboards, approved Accounting",
+      "positive": "Drill from pivot/booking to 5 distinct containers and report 201,300 lb sourced net; gross profit by order/shipment only with approved actual cost rules",
+      "negative": "Double counted container weights or uncontrolled definition of realized margin",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    },
+    {
+      "id": "CLAIM-07",
+      "title": "Automates logistics workflows",
+      "phase": "P1 bounded supplier/port/rail flows; P2 ocean milestone visibility",
+      "owner": "plasticos_logistics and Linda",
+      "positive": "Readiness, freight responsibility, dispatch packets, accepted carrier commitment, terminal delivery and exception follow-up flow without duplicate send",
+      "negative": "Export directly dispatches a truck, supplier-delivered FAS assumed to have hired drayage",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    },
+    {
+      "id": "CLAIM-08",
+      "title": "Automates document workflows with AI",
+      "phase": "P1 core extraction/verification; P2 international doc extension",
+      "owner": "Native Odoo AI Documents + plasticos_documents + authorized business owners",
+      "positive": "AI ingests booking revisions, matches exact PO/load/container, handles rolling cutoffs, links scale ticket and books candidates, approved actions update state",
+      "negative": "Partner-only guessing, unsourced state changes, or pricing/weights modified by booking text",
+      "status": "SPECIFIED_NOT_PROVEN",
+      "runtime_test": "NOT_RUN"
+    }
+  ]
+}

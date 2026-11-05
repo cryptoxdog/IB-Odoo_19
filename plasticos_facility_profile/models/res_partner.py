@@ -1,5 +1,9 @@
-from odoo import api, fields, models
+import base64
+
+from odoo import api, fields, models, tools
 from odoo.exceptions import ValidationError
+
+from ..address_meaning import address_type_meaning
 
 
 class ResPartner(models.Model):
@@ -278,6 +282,147 @@ class ResPartner(models.Model):
         records = super().create(vals_list)
         records.filtered("company_role")._sync_rank_from_role()
         return records
+
+    erp_address_label = fields.Char(
+        string="Source Address Label",
+        help="ERP Address.Type. Tells a pickup from a ship-to on a broker or a carrier.",
+    )
+    phone_line_ids = fields.One2many(
+        "plasticos.partner.phone",
+        "partner_id",
+        string="Other Phones",
+        help="Extra numbers kept for import. Phone and Mobile are the fields on the form.",
+    )
+    # Odoo 19 base has no res.partner.mobile column (phone only); this field is
+    # new here and projects the "mobile" phone line, so no stored value exists
+    # to migrate. The search method keeps it usable in domains and filters.
+    mobile = fields.Char(
+        string="Mobile",
+        compute="_compute_mobile",
+        inverse="_inverse_mobile",
+        search="_search_mobile",
+        help="Mobile number. Stored with the partner's other phone lines.",
+    )
+    contact_header_name = fields.Char(
+        string="Contact",
+        compute="_compute_contact_header_name",
+        help="People at this company, or the people linked to this location.",
+    )
+    location_child_ids = fields.Many2many(
+        "res.partner",
+        compute="_compute_location_child_ids",
+        string="Locations",
+        help="Child locations of this company.",
+    )
+    location_partner_ids = fields.Many2many(
+        "res.partner",
+        "plasticos_partner_location_rel",
+        "person_id",
+        "location_id",
+        string="Sites",
+        help="Locations this person works at.",
+    )
+    site_person_ids = fields.Many2many(
+        "res.partner",
+        "plasticos_partner_location_rel",
+        "location_id",
+        "person_id",
+        string="People",
+        help="People linked to this location.",
+    )
+    address_type_meaning = fields.Char(
+        string="Address Meaning",
+        compute="_compute_address_type_meaning",
+        help="What Address Type means for this company.",
+    )
+
+    @api.depends("type", "is_company", "company_role", "erp_address_label")
+    def _compute_address_type_meaning(self):
+        for partner in self:
+            partner.address_type_meaning = address_type_meaning(
+                partner.type,
+                is_company=partner.is_company,
+                company_role=partner.company_role,
+                source_label=partner.erp_address_label,
+            )
+
+    @api.depends("phone_line_ids.label", "phone_line_ids.number")
+    def _compute_mobile(self):
+        for partner in self:
+            line = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")[:1]
+            partner.mobile = line.number or False
+
+    def _search_mobile(self, operator, value):
+        return [("phone_line_ids", "any", [("label", "=", "mobile"), ("number", operator, value)])]
+
+    def _inverse_mobile(self):
+        phone_model = self.env["plasticos.partner.phone"]
+        for partner in self:
+            number = (partner.mobile or "").strip()
+            lines = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")
+            if not number:
+                lines.unlink()
+                continue
+            if lines:
+                lines[:1].number = number
+            else:
+                values = {"partner_id": partner.id, "label": "mobile"}
+                values["number"] = number
+                phone_model.create(values)
+
+    @api.depends(
+        "is_company",
+        "parent_id",
+        "child_ids.name",
+        "child_ids.is_company",
+        "site_person_ids.name",
+    )
+    def _compute_contact_header_name(self):
+        for partner in self:
+            if not partner.is_company:
+                partner.contact_header_name = False
+                continue
+            if partner.parent_id:
+                people = partner.site_person_ids
+            else:
+                people = partner.child_ids.filtered(lambda child: not child.is_company)
+            names = ", ".join(people.mapped("name"))
+            partner.contact_header_name = names
+
+    @api.depends("child_ids", "child_ids.is_company")
+    def _compute_location_child_ids(self):
+        for partner in self:
+            partner.location_child_ids = partner.child_ids.filtered("is_company")
+
+    def _avatar_get_placeholder_path(self):
+        if self.is_company:
+            if self.company_role == "carrier":
+                return "base/static/img/truck.png"
+            return "base/static/img/company_image.png"
+        return super()._avatar_get_placeholder_path()
+
+    def _compute_avatar(self, avatar_field, image_field):
+        """A company picture follows the company, not the Contact address type.
+
+        Odoo sends every Contact address to the initials picture before it
+        considers the company placeholder. A counterparty is type Contact, so
+        that path would leave a letter on a company. An uploaded photo still wins.
+        """
+        companies = self.filtered("is_company")
+        others = self - companies
+        if others:
+            super(ResPartner, others)._compute_avatar(avatar_field, image_field)
+        photographed = companies.filtered(lambda partner: partner[image_field])
+        for partner in photographed:
+            partner[avatar_field] = partner[image_field]
+        bare = companies - photographed
+        for _path, group in tools.groupby(bare, key=lambda partner: partner._avatar_get_placeholder_path()):
+            grouped = self.env["res.partner"].concat(*group)
+            grouped[avatar_field] = base64.b64encode(grouped[0]._avatar_get_placeholder())
+
+    @api.depends("name", "user_ids.share", "image_128", "is_company", "type", "company_role")
+    def _compute_avatar_128(self):
+        self._compute_avatar("avatar_128", "image_128")
 
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):

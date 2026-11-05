@@ -16,12 +16,16 @@ on:
         type: boolean
         default: false
 
+# Least privilege at workflow level (SonarCloud S8233); jobs that create
+# releases or push commits request contents:write explicitly below.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   create-release:
     name: Create Release
+    permissions:
+      contents: write  # create the GitHub Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -116,6 +120,8 @@ jobs:
 
   update-versions:
     name: Update Module Versions (Manual Trigger Only)
+    permissions:
+      contents: read  # informational only — prints instructions, pushes nothing
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     needs: create-release

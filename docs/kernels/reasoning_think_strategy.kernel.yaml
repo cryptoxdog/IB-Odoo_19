@@ -1,0 +1,107 @@
+kernel_id: reasoning_think_strategy.kernel.v1_1
+source_file: Reasoning_Think_Strategy_v1.1-4.md
+purpose: >
+  Provide a canonical eight-block reasoning flow (Objective, Context,
+  Decomposition, Leverage, Strategy, Execution, Synthesis, Anticipate-and-Deliver)
+  that surfaces expert-grade thinking and high-leverage assets before being asked.
+activation_trigger:
+  - "User requests deep reasoning, strategy, analysis, decision support, or planning."
+source_summary:
+  flow_overview: "Objective -> Context -> Decomposition -> Leverage -> Strategy -> Execution -> Synthesis -> Sum Delivery"
+  blocks:
+    - block_1_objective: ["task/decision/question", "restate", "success criteria", "beneficiaries", "deadline", "output type"]
+    - block_2_context: ["domain", "why now", "constraints", "assumptions", "adjacent decisions"]
+    - block_3_decomposition: ["components", "complexity hotspots", "sub-part labels", "interdependencies"]
+    - block_4_leverage: ["prior work", "external resources", "search paths", "avoid reinvention", "agent memory placeholder"]
+    - block_5_strategy:
+        5a_reasoning_type: [logical, empirical, comparative, ethical, legal, bias_blindspots]
+        5b_strategic_leverage: [nonobvious_advantage, 10x_patterns_tools_examples]
+        5c_success_conditions: [power_user_optimization, unfair_advantages]
+    - block_6_execution: ["methodical work", "examples/analogies/counterpoints", "assumptions+tradeoffs", "transparent intermediate insights"]
+    - block_7_synthesis: ["strategic position", "what it unlocks", "power-user next move", "addons: shortcuts/playbooks/underpriced_paths/second_order_effects"]
+    - sum_block_anticipate_deliver: ["expert_tacit_knowledge", "proactive_high_leverage_assets"]
+source_traceability:
+  version: "1.0.0"
+  owner: "Igor Beylin"
+  category: "01_CORE_PROMPTS/02_Reasoning_Engines"
+  production_ready: true
+authority_order:
+  - explicit_user_instruction
+  - active_task_artifacts
+  - this_kernel
+operating_rules:
+  MUST:
+    - "Execute every block in declared order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> Sum."
+    - "Within Block 5, cover 5A, 5B, and 5C."
+    - "Keep intermediate reasoning visible (no black boxes)."
+    - "Capture assumptions, trade-offs, and caveats explicitly."
+    - "Conclude with the Anticipate-and-Deliver block surfacing expert tacit knowledge and high-leverage assets."
+    - "Include Synthesis add-on prompts: shortcuts/playbooks, greatest-leverage implementation, unconventional path, second-order effects."
+  MUST_NOT:
+    - "Skip or reorder blocks."
+    - "Collapse 5A, 5B, 5C into a single undifferentiated discussion."
+    - "Emit conclusions without visible reasoning steps."
+    - "Invent heuristics unsupported by the active task or domain."
+constraints:
+  - "Every block produces at least one concrete output the user can act on."
+  - "Leverage claims must reference a tool, repo, pattern, or example by name."
+execution_logic:
+  - phase: "1_objective"
+    actions: ["Restate task.", "Define success.", "Identify beneficiaries, urgency, output type."]
+  - phase: "2_context"
+    actions: ["State domain, timing, constraints, assumptions, adjacencies."]
+  - phase: "3_decomposition"
+    actions: ["Break into components.", "Label sub-parts.", "Map interdependencies."]
+  - phase: "4_leverage"
+    actions: ["Enumerate prior work.", "Cite external resources.", "Avoid reinvention."]
+  - phase: "5_strategy"
+    actions: ["5A reasoning type and biases.", "5B non-obvious advantage and 10x patterns.", "5C power-user success conditions."]
+  - phase: "6_execute_reasoning"
+    actions: ["Work through each component methodically.", "Surface examples, analogies, counterpoints, trade-offs."]
+  - phase: "7_synthesize"
+    actions: ["State emergent strategic position.", "Name what it unlocks.", "Answer the four add-on prompts."]
+  - phase: "sum_anticipate_deliver"
+    actions: ["Generate expert tacit heuristics.", "Surface high-leverage assets and insights proactively."]
+dependency_graph:
+  upstream_inputs: [task_statement, domain_context, prior_work_pointers]
+  downstream_outputs: [structured_reasoning_artifact, high_leverage_assets]
+  prerequisites: [non_empty_task]
+  blockers: [no_objective_specifiable]
+  sequence: [objective, context, decomposition, leverage, strategy, execute, synthesize, anticipate_deliver]
+  blast_radius: "Reasoning artifact only."
+  validation_dependencies: [block_coverage_check, reasoning_visibility_check]
+invariants:
+  - "All eight blocks are present in order."
+  - "Block 5 includes 5A, 5B, 5C."
+  - "Synthesis includes all four add-on prompts."
+  - "Sum block emits at least one expert heuristic and one proactive high-leverage asset."
+edge_cases:
+  - case: "Task lacks context"
+    rule: "Mark context Unknown; proceed with explicit assumptions."
+  - case: "No prior work exists"
+    rule: "Record in Block 4; continue; do not fabricate references."
+  - case: "Reasoning type ambiguous"
+    rule: "Pick the dominant lens; record why; list secondary lenses."
+  - case: "High-leverage asset unavailable"
+    rule: "Produce the closest canonical heuristic; mark as derived."
+validation_checks:
+  - "Eight blocks emitted in order."
+  - "5A, 5B, 5C covered."
+  - "Four synthesis add-ons answered."
+  - "Sum block produces heuristics plus assets."
+acceptance_criteria:
+  - "Reasoning is visible end-to-end."
+  - "Every block advances the task."
+  - "Synthesis compounds edge instead of restating inputs."
+regression_guards:
+  - "Do not drop any block."
+  - "Do not replace visible reasoning with conclusions-only output."
+  - "Do not delete the Sum Anticipate-and-Deliver block."
+stop_conditions:
+  - "All blocks emitted and validated."
+  - "User supersedes with a new instruction."
+output_requirements:
+  format: structured_markdown_or_yaml
+  required_blocks: [objective, context, decomposition, leverage, strategy_5A, strategy_5B, strategy_5C, execution, synthesis_with_addons, sum_anticipate_deliver]
+unknowns:
+  - "Agent memory backing for Block 4 session recall is placeholder in source."

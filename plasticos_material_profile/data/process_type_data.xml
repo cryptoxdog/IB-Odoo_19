@@ -37,6 +37,12 @@
       <field name="description">Rotating mold with plastic powder to coat interior.</field>
       <field name="sequence">50</field>
     </record>
+    <record id="process_compression_mold" model="plasticos.process.type">
+      <field name="name">Compression Molding</field>
+      <field name="code">compression_mold</field>
+      <field name="description">Pressing a heated charge of plastic into a closed mold under pressure.</field>
+      <field name="sequence">55</field>
+    </record>
     <record id="process_film_blown" model="plasticos.process.type">
       <field name="name">Film Blown</field>
       <field name="code">film_blown</field>

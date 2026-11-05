@@ -1,5 +1,5 @@
 """
-Transaction Line model for storing cieTrade WksDetail records.
+Transaction Line model for storing ERP WksDetail records.
 
 Each line represents a material line item within a transaction,
 capturing weight, pricing, and material specifications.
@@ -20,16 +20,16 @@ class PlasticosTransactionLine(models.Model):
         index=True,
     )
 
-    # cieTrade identifiers
+    # ERP identifiers
     detail_id = fields.Char(
         string="Detail ID",
         index=True,
-        help="Original DetailID from cieTrade",
+        help="Original DetailID from ERP",
     )
     grade_id = fields.Char(
         string="Grade ID",
         index=True,
-        help="Material grade code from cieTrade",
+        help="Material grade code from ERP",
     )
 
     # Description

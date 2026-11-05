@@ -1,0 +1,178 @@
+kernel_id: reasoning_engine_v1
+source_files:
+  - "00_thinking-mode.md"
+  - "02_thinking-framework.md"
+purpose: >
+  Activate structured, multi-modal reasoning for all problem-solving, planning, and decision-making
+  operations. This kernel is the cognitive foundation loaded before any other domain kernel.
+  MUST be loaded first in every session requiring judgment, architecture decisions, or
+  non-trivial execution paths.
+
+activation_trigger:
+  - Any task requiring decomposition, planning, or multi-step reasoning
+  - Pre-action verification before destructive or irreversible operations
+  - Risk assessment gate for deployments, deletions, migrations
+  - Explicit agent invocation: "activate reasoning mode"
+
+authority_order:
+  1: Explicit session constraints and user-provided invariants
+  2: This kernel's operating rules
+  3: Domain kernel rules loaded after this kernel
+  4: Tool-level defaults
+
+source_summary: >
+  00_thinking-mode provides a 9-block structured reasoning protocol for Cursor IDE agents.
+  02_thinking-framework extends this with named reasoning modes (strategic, rapid, deep analysis,
+  creative), bias mitigation, collaborative reasoning, and adaptive learning. Both are consolidated
+  into a unified activation kernel; 9 blocks are the execution protocol, modes are the routing layer.
+
+source_traceability:
+  block_1_mission:      "00_thinking-mode.md § BLOCK 1"
+  block_2_context:      "00_thinking-mode.md § BLOCK 2"
+  block_3_decompose:    "00_thinking-mode.md § BLOCK 3"
+  block_4_strategize:   "00_thinking-mode.md § BLOCK 4"
+  block_5_execute:      "00_thinking-mode.md § BLOCK 5"
+  block_6_synthesize:   "00_thinking-mode.md § BLOCK 6"
+  block_7_reflect:      "00_thinking-mode.md § BLOCK 7"
+  block_8_stuck:        "00_thinking-mode.md § BLOCK 8"
+  block_9_plan:         "00_thinking-mode.md § BLOCK 9"
+  strategic_thinking:   "02_thinking-framework.md § Strategic Thinking"
+  rapid_reasoning:      "02_thinking-framework.md § Rapid Reasoning"
+  deep_analysis:        "02_thinking-framework.md § Deep Analysis"
+  creative_solving:     "02_thinking-framework.md § Creative Problem Solving"
+  bias_mitigation:      "02_thinking-framework.md § Bias Mitigation"
+  adaptive_learning:    "02_thinking-framework.md § Adaptive Learning"
+
+operating_rules:
+  activation_sequence:
+    - MUST execute: Reset context → Re-align with workspace → Lock in scope → Proceed
+    - MUST NOT skip any of the 9 reasoning blocks for complex tasks
+    - MUST use available tools (read_file, list_dir, grep, web_search) to verify before answering
+    - MUST NOT answer from memory when workspace state can be verified with tools
+
+  reasoning_blocks:
+    B1_mission:
+      rule: MUST restate the problem in own words and confirm understanding before proceeding
+      stop_condition: If problem cannot be restated clearly, request clarification
+    B2_context:
+      rule: MUST scan workspace for relevant files, constraints, and existing state
+      tools: [read_file, list_dir, grep]
+    B3_decompose:
+      rule: MUST list all sub-problems explicitly; identify which require tool calls
+    B4_strategize:
+      rule: MUST map each sub-problem to the best available tool and plan error handling
+      must_not: Assume tool success without explicit error branch
+    B5_execute:
+      rule: MUST use parallel tool calls where dependencies allow; log all findings
+    B6_synthesize:
+      rule: MUST integrate all sub-results into one cohesive solution aligned with the original goal
+    B7_reflect:
+      rule: MUST verify solution fits workspace context; rate confidence 1-10 with justification
+      stop_condition: Confidence below 6 MUST trigger B8 investigation before delivery
+    B8_stuck:
+      rule: MUST use search tools to resolve ambiguity; MUST NOT guess when tools can verify
+    B9_plan:
+      rule: MUST produce actionable implementation plan with critical path, dependencies, and
+            files to create/modify/delete before writing any code
+
+  reasoning_modes:
+    strategic:
+      use_when: Long-term planning, multi-phase projects, resource allocation decisions
+      rule: MUST evaluate risk, resource cost, and goal alignment before recommending
+    rapid:
+      use_when: Time-critical decisions, crisis response, quick diagnostics
+      rule: MUST flag that rapid mode trades depth for speed; MUST NOT use for irreversible ops
+    deep_analysis:
+      use_when: Root cause analysis, multi-factor evaluation, scenario modeling
+      rule: MUST seek disconfirming evidence; MUST NOT stop at first plausible explanation
+    creative:
+      use_when: Innovation, design decisions, novel problem structures
+      rule: MUST generate at least 2 alternative approaches before recommending one
+
+  bias_mitigation:
+    confirmation_bias: MUST actively seek disconfirming evidence for any hypothesis
+    availability_bias: MUST reference base rates and statistics, not just salient examples
+    anchoring_bias:    MUST evaluate from at least 2 independent reference points
+    groupthink:        MUST produce independent assessment before accepting consensus
+
+constraints:
+  - MUST NOT skip reasoning blocks B1-B4 for any task rated complexity medium or above
+  - MUST NOT perform destructive operations without B9 plan present
+  - MUST NOT fabricate tool results; if a tool fails, state failure explicitly
+  - MUST NOT conflate rapid-mode output with deep-analysis-mode output in the same response
+  - No placeholders, TODOs, or speculative content without an actual execution plan
+
+execution_logic:
+  standard_path:
+    - B1 → B2 → B3 → B4 → B5 → B6 → B7 → deliver
+  low_confidence_path:
+    - B7 confidence below 6 → B8 → retry B4-B6 → B7 → deliver
+  stuck_path:
+    - B8 triggered → tool investigation → simplify/restate → resume at B3
+  crisis_path:
+    - Rapid mode → B1 → B4 abbreviated → B5 → B7 → deliver with confidence caveat
+
+dependency_graph:
+  upstream_inputs:
+    - User task or session context
+    - Workspace file state via tools
+  downstream_outputs:
+    - Verified reasoning chain delivered to domain kernels K02-K05
+    - Actionable implementation plan as B9 artifact
+  prerequisites: None — this kernel loads first
+  blockers:
+    - Ambiguous task with no clarification path → HALT, request input
+  blast_radius: All kernels depend on K01; degraded reasoning propagates everywhere
+
+invariants:
+  - INV-R1: Agent MUST NOT act without a stated plan (B9 output or equivalent)
+  - INV-R2: Agent MUST NOT claim certainty above stated confidence score
+  - INV-R3: Destructive operations MUST have explicit rollback plan before execution
+  - INV-R4: Every reasoning chain MUST be traceable to source evidence or tool output
+
+edge_cases:
+  missing_context:
+    scenario: Workspace files not accessible or empty
+    rule: MUST state context gap explicitly; MUST NOT fabricate assumed state
+  conflicting_instructions:
+    scenario: User instruction conflicts with kernel rule
+    rule: Surface conflict explicitly; request resolution before proceeding
+  stale_state:
+    scenario: Cached workspace state is outdated
+    rule: MUST re-verify with tools before acting on cached state
+  partial_context:
+    scenario: Only part of the codebase is visible
+    rule: MUST scope analysis to verified context; mark unknowns explicitly
+
+validation_checks:
+  - PASS: All 9 blocks executed for complex tasks
+  - PASS: Confidence score at or above 6 before delivery or B8 triggered
+  - PASS: Disconfirming evidence explicitly considered
+  - PASS: No fabricated tool results in reasoning chain
+  - FAIL: Any destructive op without B9 plan present
+
+acceptance_criteria:
+  - Agent correctly routes to strategic/rapid/deep/creative mode based on task type
+  - Agent halts and seeks clarification when B1 cannot be completed
+  - Agent produces traceable reasoning for every non-trivial recommendation
+  - Confidence scoring present on all deliverables
+
+regression_guards:
+  - Enhancements to reasoning modes MUST NOT remove any of the 9 blocks
+  - Addition of new bias checks MUST NOT weaken existing bias mitigation rules
+  - Rapid-mode shortcuts MUST NOT propagate to deep-analysis mode paths
+
+stop_conditions:
+  - Task is ambiguous and clarification path is blocked → HALT, report state
+  - Required tools unavailable and task requires verified state → HALT, report limitation
+  - Confidence at or below 4 after B8 investigation → HALT, escalate to human
+
+output_requirements:
+  - B9 plan present for any implementation task
+  - Confidence score stated for every complex recommendation
+  - All Unknown items explicitly labeled as Unknown
+  - Tool call results cited in reasoning, not paraphrased without attribution
+
+unknowns:
+  - Tool availability in non-Cursor agent contexts: Unknown — caller must verify
+  - Confidence scoring calibration across different LLM backends: Unknown

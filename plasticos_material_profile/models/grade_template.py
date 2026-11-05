@@ -32,6 +32,13 @@ class PlasticosGradeTemplate(models.Model):
         index=True,
         ondelete="restrict",
     )
+    material_grade_id = fields.Many2one(
+        "plasticos.material.grade",
+        string="Material Grade",
+        index=True,
+        ondelete="restrict",
+        help="What the items were before processing (Drums, Totes, Pallets).",
+    )
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
@@ -96,6 +103,7 @@ class PlasticosGradeTemplate(models.Model):
         self.usage_count += 1
         return {
             "polymer_id": self.polymer_id.id,
+            "material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
             "form_id": self.form_id.id if self.form_id else False,
             "color_id": self.color_id.id if self.color_id else False,
             "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,

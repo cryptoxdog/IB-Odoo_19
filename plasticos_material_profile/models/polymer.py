@@ -47,6 +47,11 @@ class PlasticosPolymer(models.Model):
                 raise ValidationError(f"Polymer code '{code}' already exists.")
         return super().create(vals_list)
 
+    def _purchase_product(self):
+        """Purchase product for this polymer. The product addon supplies it."""
+        self.ensure_one()
+        return False
+
     def write(self, vals):
         code = vals.get("code")
         if code:

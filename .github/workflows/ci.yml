@@ -1,36 +1,52 @@
 # .github/workflows/ci.yml
 # PlasticOS CI Gate — single gating workflow for all pure-Python checks
-# Replaces: test-quality.yml, odoo-audit.yml, module-check.yml, pr-gate.yml
+# Supersedes: test-quality.yml, odoo-audit.yml, module-check.yml, pr-gate.yml
+# (deleted 2026-07-23 in #112; every unique check they ran was ported below —
+#  see "restored 2026-07" comments — nothing was silently dropped).
 #
-# Tier 1 (lint)       → Tier 2 (static analysis) → Tier 3 (pure-python tests)
-# All three tiers run on bare GitHub Actions, no Odoo runtime required.
-# Odoo ORM tests run on Odoo.sh deploy hooks (not here).
+# Design: fail-slow, not fail-fast. `lint`, `static-checks`, `pure-python-tests`,
+# `gate-sdk-tests`, `secret-scan`, and `audit-baseline` all run in PARALLEL (no needs: between
+# them) so a single push surfaces every failing check in one CI run instead of
+# stopping at the first tier that fails. Each job also aggregates ALL of its
+# own checks before exiting (a `run_check`/`run_advisory` helper pattern) —
+# fail-slow at both the job level and the check level. A final `ci-gate-result`
+# job (needs: all of the above, if: always()) is the single fail-closed verdict:
+# every job still must pass, we just see every failure at once instead of
+# whack-a-mole across N pushes.
 #
-# Design: each tier runs ALL checks before failing — no whack-a-mole.
+# ci/check_github_actions_kernel.sh enforces this contract: every Phase 1 job
+# above must exist with no needs:, and an aggregator with needs: covering all
+# of them + if: always() must exist.
 
 name: CI Gate
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [Staging, Production]
+  pull_request:
+  # The repo-index workflow publishes its bot branch with GITHUB_TOKEN, whose
+  # pushes/PRs never trigger workflows; it dispatches this gate explicitly.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ── TIER 1: Lint & format — runs ALL checks, reports all failures ──────────
+  # ── PHASE 1 (parallel — no needs:): lint & format ──────────────────────────
   lint:
     name: Ruff Lint & Format
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install ruff==0.14.11
+      - run: pip install --only-binary ":all:" ruff==0.16.0
 
       - name: Ruff lint + format (all errors before failing)
         run: |
@@ -46,20 +62,24 @@ jobs:
             exit 1
           fi
 
-  # ── TIER 2: Static analysis — runs ALL checks, reports all failures ────────
+  # ── PHASE 1 (parallel — no needs:): static analysis ────────────────────────
   static-checks:
     name: Static Analysis
-    needs: lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.12"
 
-      - run: pip install lxml semgrep==1.164.0
+      # pyyaml: ci/check_github_actions_kernel.sh parses the workflows (the local
+      # .venv gets pyyaml through requirements-dev.txt's pr-repair dependency)
+      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0 pyyaml==6.0.3
+
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
 
       - name: Run all static checks (all errors before failing)
         run: |
@@ -78,6 +98,19 @@ jobs:
             echo ""
           }
 
+          # Advisory checks never flip FAIL — logged but non-blocking, matching
+          # the deleted workflows' own continue-on-error / warn-only semantics.
+          run_advisory() {
+            local name="$1"; shift
+            echo "--- $name (advisory) ---"
+            if "$@"; then
+              RESULTS+=("✅ $name (advisory)")
+            else
+              RESULTS+=("⚠️  $name (advisory — non-blocking)")
+            fi
+            echo ""
+          }
+
           # XML syntax
           run_check "XML syntax" python3 -c "
           import sys
@@ -90,34 +123,45 @@ jobs:
               except Exception as e: print(f'ERROR {f}: {e}'); errors+=1
           sys.exit(errors)"
 
-          # Bash syntax
+          # Bash syntax — every *.sh is checked (fail-slow across files); any
+          # bash -n failure makes the check exit non-zero. Same scope and logic
+          # as `make bash-syntax`.
           run_check "Bash syntax" bash -c "
-          find . -name '*.sh' ! -path './.git/*' | while read f; do
-            bash -n \"\$f\" || echo \"Syntax error in \$f\"
-          done"
+          git ls-files -z -- '*.sh' | xargs -0 -n1 --no-run-if-empty \
+            sh -c 'bash -n \"\$1\" || { echo \"Syntax error in \$1\"; exit 1; }' bash-syntax"
 
-          # Manifest syntax
-          run_check "Manifest syntax" python3 -c "
-          import sys, glob
-          errors=0
-          for m in glob.glob('**/__manifest__.py', recursive=True):
-              if '.venv' in m: continue
-              try: exec(open(m).read())
-              except Exception as e: print(f'ERROR {m}: {e}'); errors+=1
-          sys.exit(errors)"
+          # Manifest syntax + field validation (restored 2026-07 from
+          # module-check.yml). One canonical implementation shared with
+          # `make manifest-check`: scripts/validate_all_manifests.py ->
+          # scripts/validate_manifest.py (ast.literal_eval parse, so a syntax
+          # error fails here too; required fields name/version/depends).
+          run_check "Manifest syntax + field validation" python3 scripts/validate_all_manifests.py
+
+          # _name must be a string literal, never _name = SOME_CONSTANT (restored
+          # 2026-07 from odoo-audit.yml; AGENTS.md already documents this contract).
+          # Shared with `make name-check` via ci/check_name_literal.py — do not
+          # re-inline this logic here, it will drift.
+          run_check "_name string literal enforcement" python3 ci/check_name_literal.py
+
+          # Shellcheck (restored 2026-07 from pr-gate.yml)
+          run_check "Shellcheck" bash -c "
+          find . -name '*.sh' -not -path './.git/*' | \
+            xargs --no-run-if-empty shellcheck --severity=warning"
 
           # Semgrep custom Odoo/security rules
           run_check "Semgrep Odoo patterns" semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
           run_check "Semgrep fixture tests" make semgrep-test
 
-          # Odoo 19 pattern check (advisory — pre-existing issues tracked separately)
-          echo "--- Odoo 19 patterns (advisory) ---"
+          # Odoo 19 pattern check (blocking — GATE-01 fail-closed; the former
+          # "pre-existing issues" were semgrep test fixtures and migration
+          # __init__.py false positives, now excluded inside the script)
           chmod +x scripts/check_odoo_patterns.sh
-          ./scripts/check_odoo_patterns.sh || true
-          RESULTS+=("⚠️  Odoo 19 patterns (advisory — see log)")
-          echo ""
+          run_check "Odoo 19 patterns" ./scripts/check_odoo_patterns.sh
+          # M8 / TASK-052: blocking no-local-intelligence drift guard (post-M7 absence)
+          run_check "No local-intelligence drift" python3 ci/check_no_local_intelligence.py
 
           run_check "Circular dependencies"      python3 ci/check_circular_deps.py
+          run_check "XML module-ref depends"     python3 ci/check_xml_module_ref_deps.py
           run_check "Module dependency wiring"   python3 scripts/check_module_wiring.py
           run_check "Orphan model references"    python3 ci/check_orphan_model_refs.py
           run_check "XPath stability"            python3 ci/check_xpath_stability.py
@@ -131,15 +175,54 @@ jobs:
           run_check "Critical manifest check"        python3 ci/check_critical_manifest.py
           run_check "Enhanced XML ID + dep audit"      python3 ci/enhanced_audit.py
 
-          # Advisory checks (failures logged but don't block)
-          echo "--- Advisory checks (non-blocking) ---"
-          python3 ci/check_odoo_antipatterns.py  || true
-          python3 ci/check_acl_completeness.py   || true
-          python3 ci/check_package_init.py       || true
-          python3 ci/check_field_integrity.py    || true
-          python3 ci/check_state_guard_bypass.py || true
-          python3 ci/weak_test_fixer.py          || true
-          echo ""
+          # Formerly-advisory checks promoted to blocking (GATE-01 fail-closed:
+          # all six pass at adoption; any regression now fails CI)
+          run_check "Odoo antipatterns"       python3 ci/check_odoo_antipatterns.py
+          run_check "ACL completeness"        python3 ci/check_acl_completeness.py
+          run_check "Package init integrity"  python3 ci/check_package_init.py
+          run_check "Field integrity"         python3 ci/check_field_integrity.py
+          run_check "State guard bypass"      python3 ci/check_state_guard_bypass.py
+          run_check "Weak test detection"     python3 ci/weak_test_fixer.py
+
+          # GitHub Actions kernel (github_actions_kernel.v1): Phase 1 inventory, parallelism,
+          # fail-closed aggregator, SHA pins, permissions. Blocking here so the invariant
+          # cannot be bypassed by committing without `make commit`. Same script as
+          # `make github-actions-kernel-check`; the kernel itself requires this line.
+          run_check "GitHub Actions kernel" bash ci/check_github_actions_kernel.sh
+
+          # INVARIANTS.md invariant 20 (BAN001). Blocking, no exclusions. This is the
+          # SAME script `make ban-check` and the pre-commit hook run — one implementation.
+          run_check "Banned legacy identifier (BAN001)" python3 ci/check_banned_identifier.py
+
+          # Advisory checks (restored 2026-07 — non-blocking, matching the
+          # deleted workflows' own continue-on-error / warn-only semantics)
+          run_advisory "mypy type check" mypy . --config-file=pyproject.toml
+
+          run_advisory "ACL CSV header format" bash -c '
+          for csv in $(find . -name "ir.model.access.csv" -not -path "./.venv/*"); do
+            HEADER=$(head -1 "$csv")
+            EXPECTED="id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink"
+            if [ "$HEADER" != "$EXPECTED" ]; then
+              echo "WARNING: Non-standard header in $csv"
+              echo "  Expected: $EXPECTED"
+              echo "  Got: $HEADER"
+            fi
+            if grep -E ",," "$csv" | grep -v "^#" > /dev/null; then
+              echo "WARNING: Empty fields detected in $csv"
+            fi
+          done'
+
+          run_advisory "Test attribute guard" bash -c '
+          find . -name "test_*.py" -path "*/tests/*" ! -path "./.venv/*" | while read f; do
+            REFS=$(grep -oP "self\.[a-z_]+_rec\b" "$f" 2>/dev/null | sort -u; true)
+            if [ -z "$REFS" ]; then continue; fi
+            for ref in $REFS; do
+              attr="${ref#self.}"
+              if ! grep -qP "(cls\.$attr\s*=|self\.$attr\s*=)" "$f"; then
+                echo "WARNING: $f uses $ref but no cls.$attr or self.$attr= found"
+              fi
+            done
+          done'
 
           echo "============================================"
           echo "Static Analysis Summary"
@@ -149,37 +232,192 @@ jobs:
 
           exit $FAIL
 
-  # ── TIER 3: Pure-Python tests — runs ALL, reports all failures ─────────────
+  # ── PHASE 1 (parallel — no needs:): pure-Python tests ──────────────────────
   pure-python-tests:
     name: Pure Python Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      PLASTICOS_CONTRACT_CI: "1"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.12"
 
-      - run: pip install pytest==8.3.5 pytest-timeout==2.4.0
+      - run: pip install --only-binary ":all:" pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0 "requests>=2.28.0" defusedxml==0.7.1 pyyaml==6.0.3 pre-commit==4.7.0
+
+      - name: Record the tested source and integration revision
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_HEAD: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          mkdir -p artifacts/pytest
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          observed = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          record = {"source_head_sha": os.environ["SOURCE_HEAD"],
+                    "base_sha": os.environ["BASE_HEAD"], "tested_checkout_sha": observed,
+                    "event": os.environ["GITHUB_EVENT_NAME"], "run_id": os.environ["GITHUB_RUN_ID"],
+                    "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"]}
+          pathlib.Path("artifacts/pytest/revision.json").write_text(json.dumps(record, indent=2) + "\n")
+          PY
 
       - name: Run all pure-Python tests (Odoo-free; conftest auto-skips Odoo tests)
+        id: pure-tests
         run: |
           # Odoo is intentionally NOT installed here. tests/conftest.py detects this
           # and collect-ignores every Odoo-importing test module, so `pytest tests/`
           # runs exactly the pure-Python set with no hand-maintained file list to drift.
+          # pytest itself is already fail-slow: it runs every test and reports every
+          # failure, it does not stop at the first one.
+          # Coverage is ADVISORY (no --cov-fail-under): it reports a baseline only and
+          # never blocks the build. See [tool.coverage.*] in pyproject.toml.
+          # Common runner defaults (--tb=short --no-header -p no:randomly, timeout)
+          # come from pyproject.toml [tool.pytest.ini_options]; only job-specific flags here.
           python3 -m pytest tests/ \
-            -v --tb=short --no-header \
-            -p no:randomly
+            -v \
+            --cov=. --cov-report=term-missing:skip-covered \
+            --junitxml=artifacts/pytest/pure-python.xml
 
-  # ── SECURITY: Runs in parallel, advisory ──────────────────────────────────
+      - name: Upload test evidence for this run and attempt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: pure-python-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/pytest/
+          retention-days: 7
+          if-no-files-found: error
+
+  # ── PHASE 1 (parallel — no needs:): Gate SDK bridge tests ────────────────
+  # The pure-Python tier deliberately has no constellation-node-sdk, so
+  # tests/test_gate_sdk_invocation.py skipped there and the Odoo -> Gate bridge
+  # (plasticos_gate/services) had NO CI coverage against the SDK it pins: the
+  # requirements.txt pin drifted to a commit without GateClient.execute() and
+  # nothing in CI noticed. This job installs exactly the pinned SDK and runs
+  # the bridge tests against it. No Odoo runtime is needed.
+  gate-sdk-tests:
+    name: Gate SDK Bridge Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the pinned constellation-node-sdk and test tooling
+        run: |
+          pip install pytest==8.3.5 pytest-timeout==2.4.0
+          # Install exactly the SDK line from requirements.txt (single source of the pin).
+          SDK_REQ="$(grep -E '^constellation-node-sdk @ ' requirements.txt)"
+          test -n "$SDK_REQ"
+          pip install "$SDK_REQ"
+          python -c "from constellation_node_sdk.gate import GateClient; assert hasattr(GateClient, 'execute')"
+
+      - name: Run the Gate bridge tests against the pinned SDK
+        run: |
+          python3 -m pytest tests/test_gate_sdk_invocation.py tests/test_gate_single_egress.py \
+            tests/test_gate_canonical_contract.py \
+            -v -rs
+
+  # ── PHASE 1 (parallel — no needs:): comprehensive audit baseline regression ─
+  # Restored 2026-07 from deleted odoo-audit.yml. scripts/audit/odoo_audit.py and
+  # run_all_audits.py are NOT duplicated by static-checks above — they cover
+  # field/required-field/compute/security/constraint/state-machine/onchange bugs
+  # and N+1-query performance issues, a different check family from
+  # check_odoo_antipatterns.py (Python-vs-ORM idiom enforcement). Both audit
+  # scripts here run to completion regardless of each other's result (fail-slow);
+  # only the final step gates the job.
+  audit-baseline:
+    name: Comprehensive Audit (Baseline Regression)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+
+      - id: audit
+        name: Run comprehensive + extended audits (diff vs per-finding baseline)
+        run: |
+          # Per-finding fingerprint baseline (ci/baselines/*.json), not a raw
+          # count comparison — see scripts/audit/baseline_utils.py. The shared
+          # gate deletes each report, runs both scanners (fail-slow), and lets
+          # check_baseline.py fail closed on a missing, stale, malformed, or
+          # unbound report. Scanner exit 1 with a fresh findings list is
+          # classified against the baseline; it is not an automatic failure.
+          set +e
+          bash scripts/audit/run_baseline_gate.sh
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "fail=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "fail=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload audit reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: odoo-audit-reports
+          path: |
+            odoo_audit_report.json
+            extended_audit_report.json
+            AUDIT_REPORT.md
+          if-no-files-found: warn
+
+      - name: Comment on PR (regression detected)
+        if: steps.audit.outputs.fail == '1' && github.event_name == 'pull_request'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b  # v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "## ❌ Audit Regression Detected\n\nThis PR introduces CRITICAL/HIGH findings not already " +
+                "logged in `ci/baselines/*.json`. See the `audit-baseline` job log and the `odoo-audit-reports` " +
+                "artifact for details.\n\nFix the code, or if this is a confirmed false positive / accepted debt, " +
+                "add it to the baseline: `python3 scripts/audit/odoo_audit.py .` then " +
+                "`python3 scripts/audit/check_baseline.py odoo_audit_report.json ci/baselines/odoo_audit_baseline.json " +
+                "--severities CRITICAL,HIGH --dump-new` (same pattern for `extended_audit_report.json` / " +
+                "`extended_audit_baseline.json` --severities HIGH). Never edit the scanner scripts to special-case a finding.",
+            });
+
+      - name: Gate on regression
+        run: |
+          if [ "${{ steps.audit.outputs.fail }}" = "1" ]; then
+            echo "::error::Audit baseline regression detected — see the step summary and odoo-audit-reports artifact above."
+            exit 1
+          fi
+          echo "✅ No audit baseline regression."
+
+  # ── PHASE 1 (parallel — no needs:): security, blocking (GATE-01 fail-closed) ─
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # gitleaks-action lists the PR's commits (GET pulls/{n}/commits) on a
+    # pull_request event and comments on findings; with the workflow token at
+    # its restricted default that lookup is refused ("Resource not accessible
+    # by integration") before any scan runs, so the job needs these explicitly.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
         with:
           fetch-depth: 0
 
@@ -187,8 +425,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── ODOO RUNTIME: Intentionally disabled — use Odoo.sh deploy hooks ───────
-  # Tests in this category: test_constraint_validation.py, test_security_acl.py,
-  # test_state_machines.py, test_integration_flows.py, test_performance.py,
-  # test_onchange_*.py, test_cron_*.py (Odoo-variant), module-level tests
-  # Trigger: Odoo.sh post-deploy hook → pytest plasticos_*/tests/ -v
+  # ── PHASE 2 (sequential, always last): single fail-closed verdict ──────────
+  # Runs only after all Phase 1 jobs finish (if: always() so it runs even if
+  # some failed) and fails if any of them did not succeed. This is the ONE
+  # required status check to configure in branch protection — it is the only
+  # job that needs to gate merges; every Phase 1 job above still runs to
+  # completion and reports its own failures independently in the same run.
+  ci-gate-result:
+    name: CI Gate Result
+    if: always()
+    needs: [lint, static-checks, pure-python-tests, gate-sdk-tests, secret-scan, audit-baseline]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Aggregate Phase 1 results
+        run: |
+          echo "lint:              ${{ needs.lint.result }}"
+          echo "static-checks:      ${{ needs.static-checks.result }}"
+          echo "pure-python-tests:  ${{ needs.pure-python-tests.result }}"
+          echo "gate-sdk-tests:     ${{ needs.gate-sdk-tests.result }}"
+          echo "secret-scan:        ${{ needs.secret-scan.result }}"
+          echo "audit-baseline:     ${{ needs.audit-baseline.result }}"
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.static-checks.result }}" != "success" ] || \
+             [ "${{ needs.pure-python-tests.result }}" != "success" ] || \
+             [ "${{ needs.gate-sdk-tests.result }}" != "success" ] || \
+             [ "${{ needs.secret-scan.result }}" != "success" ] || \
+             [ "${{ needs.audit-baseline.result }}" != "success" ]; then
+            echo "::error::One or more CI Gate jobs failed — see the job that reported ❌ above."
+            exit 1
+          fi
+          echo "✅ All CI Gate jobs passed."
+
+  # ── ODOO RUNTIME: PERMANENTLY DISABLED IN GITHUB ACTIONS ────────────────
+  # Do NOT add an odoo-bin / --test-enable job here. GitHub Actions has no Odoo
+  # registry, enterprise addons, or PostgreSQL module install — it will always fail.
+  #
+  # Odoo ORM tests belong in Docker locally:
+  #   make test-odoo              # docker compose run --rm odoo --test-enable ...
+  #   make test-module m=<mod>    # same, with -u <module>
+  #
+  # External status (NOT this workflow): Odoo.sh posts to GitHub on linked branches:
+  #   ci/odoo.sh (dev)     — feature/dev branch builds (Odoo Test Suite if enabled)
+  #   ci/odoo.sh (staging) — Staging branch build result (no test suite by default)
+  # Cannot disable via SSH on build containers — branch config lives in Odoo.sh UI.
+  # Test suite toggle appears ONLY on development branches (not Staging/Production):
+  #   Odoo.sh → dev branch (e.g. fix/*) → Settings → Test suite → untick validation.
+  # See AGENTS.md § "External Odoo.sh checks".

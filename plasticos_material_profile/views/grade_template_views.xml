@@ -10,6 +10,7 @@
         <field name="name"/>
         <field name="code"/>
         <field name="polymer_id"/>
+        <field name="material_grade_id"/>
         <field name="form_id"/>
         <field name="color_id"/>
         <field name="quality_tier"/>
@@ -31,6 +32,7 @@
             <group string="Material Identity">
               <field name="code"/>
               <field name="polymer_id"/>
+              <field name="material_grade_id"/>
               <field name="form_id"/>
               <field name="color_id"/>
               <field name="quality_tier"/>
@@ -74,6 +76,7 @@
         <filter name="prime" string="Prime" domain="[('quality_tier', '=', 'prime')]"/>
         <separator/>
         <filter name="group_polymer" string="Polymer" context="{'group_by': 'polymer_id'}"/>
+        <filter name="group_material_grade" string="Material Grade" context="{'group_by': 'material_grade_id'}"/>
         <filter name="group_form" string="Form" context="{'group_by': 'form_id'}"/>
       </search>
     </field>

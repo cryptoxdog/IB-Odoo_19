@@ -1,0 +1,8 @@
+# F7 environment probe — 2026-10-10T00:02:31Z — cloud session container, worktree /home/user/wt-erp @ b5a1389
+docker daemon: failed to connect to the docker API at unix:///var/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /var/run/docker.sock: connect: no such file or directory
+docker compose project odoo19: not reachable (no daemon)
+ERP_SQL_* in environment: 0 variables set
+SQL Server reachable on host.docker.internal:1433: not applicable (no daemon, no host network to the operator lab)
+system python pymssql: ModuleNotFoundError: No module named 'pymssql'
+local Odoo 19 runtime used for ORM tests: nightly source odoo-19.0.post20261009 (nightly.odoo.com), PostgreSQL PostgreSQL 16.15, database erp_rt (fresh, no demo, no business data; dropped with the container)
+Conclusion: Workstream D (full direct-SQL import + replay) cannot run from this session: the restored ERP SQL Server snapshot is not reachable, so safety check 1 (source identity) cannot be satisfied and execution is refused per contract.

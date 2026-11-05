@@ -27,6 +27,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_retry_enrichment" type="object" string="Retry Gate Enrichment" class="btn-primary" invisible="state not in ('retryable', 'failed', 'degraded')"/>
                     <button name="action_execute" string="Execute"
                             type="object" class="oe_highlight"
                             invisible="state != 'draft'"/>

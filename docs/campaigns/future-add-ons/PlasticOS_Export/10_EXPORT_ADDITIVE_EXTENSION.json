@@ -1,0 +1,140 @@
+{
+  "schema": "recycleos.idea-expansion-addon/v1",
+  "id": "recycleos-export-operations-extension-2026-10-27",
+  "version": "1.1.0",
+  "parent_expansion_id": "recycleos-operational-core-expansion-2026-10-27",
+  "parent_expansion_version": "1.0.0",
+  "admission": "proposed-additive-not-admitted",
+  "execution_authority": "none",
+  "change_mode": "append_only_existing_eight_content_files_preserved",
+  "product": "RecycleOS",
+  "candidate_semantic_home": "existing RecycleOS operations capability, exporter specialization; host canonical IDs unresolved",
+  "operator_supplied_export_fields": [
+    {
+      "display_name": "Booking No.",
+      "suggested_key": "booking_number",
+      "type": "string",
+      "scope": "ocean_booking"
+    },
+    {
+      "display_name": "Steamship Line",
+      "suggested_key": "steamship_line",
+      "type": "Odoo partner reference",
+      "scope": "ocean_booking"
+    },
+    {
+      "display_name": "Port of Loading",
+      "suggested_key": "port_of_loading",
+      "type": "location reference with controlled code where available",
+      "scope": "ocean_booking"
+    },
+    {
+      "display_name": "Port of Discharge",
+      "suggested_key": "port_of_discharge",
+      "type": "location reference with controlled code where available",
+      "scope": "ocean_booking"
+    },
+    {
+      "display_name": "Cut Off",
+      "suggested_key": "cargo_gate_in_cutoff",
+      "type": "dated, sourced terminal-local datetime/precision",
+      "scope": "booking_sailing_terminal_revision"
+    },
+    {
+      "display_name": "Earliest Return Date",
+      "suggested_key": "earliest_return_date",
+      "type": "dated, sourced terminal-local date or datetime/precision",
+      "scope": "booking_sailing_terminal_revision"
+    }
+  ],
+  "expansion_intent": "Extend existing QR and stock-tracked material to ocean booking, QR scan-to-export-container, time window, documentation and shipment coordination.",
+  "scope_qualifiers": {
+    "earliest_return_date": "first accepted date for loaded export container gate-in, not empty return deadline",
+    "cut_off": "loaded container terminal cargo gate-in cutoff; VGM/SI/doc/customs deadlines separate",
+    "status": "critical data fields accepted for design inclusion, implementation not authorized"
+  },
+  "candidate_capabilities": [
+    {
+      "id": "ROS-EXPORT-BOOKING",
+      "label": "Ocean booking and six critical shipping fields",
+      "priority": "exporter_core",
+      "status": "proposed"
+    },
+    {
+      "id": "ROS-EXPORT-CONTAINER-LOADING",
+      "label": "Scan existing physical packages into booked ocean container",
+      "priority": "exporter_core",
+      "status": "proposed"
+    },
+    {
+      "id": "ROS-EXPORT-WINDOW",
+      "label": "Revisioned ERD/cutoff and terminal receiving eligibility",
+      "priority": "exporter_core",
+      "status": "proposed"
+    },
+    {
+      "id": "ROS-EXPORT-DOCS",
+      "label": "Validated export document packet and provenance",
+      "priority": "exporter_core",
+      "status": "proposed"
+    },
+    {
+      "id": "ROS-EXPORT-COMPLIANCE",
+      "label": "Per-material/destination export compliance evidence and human review",
+      "priority": "conditional",
+      "status": "proposed"
+    },
+    {
+      "id": "ROS-EXPORT-CARRIER-API",
+      "label": "Direct port/carrier customs integrations",
+      "priority": "deferred_optional",
+      "status": "proposed"
+    }
+  ],
+  "candidate_relations": [
+    {
+      "from": "ROS-EXPORT-CONTAINER-LOADING",
+      "relation": "uses_existing_container_QR_identity_from",
+      "to": "ROS-CONTAINER-TRACE"
+    },
+    {
+      "from": "ROS-EXPORT-CONTAINER-LOADING",
+      "relation": "records_validated_movements_in",
+      "to": "Odoo stock"
+    },
+    {
+      "from": "ROS-EXPORT-BOOKING",
+      "relation": "coordinates_current_booking_and_movements_of",
+      "to": "ROS-EXPORT-CONTAINER-LOADING"
+    },
+    {
+      "from": "ROS-EXPORT-WINDOW",
+      "relation": "validates_current_terminal_receiving_window_for",
+      "to": "ROS-EXPORT-BOOKING"
+    },
+    {
+      "from": "ROS-EXPORT-DOCS",
+      "relation": "references_existing_verified_documents_from",
+      "to": "Odoo/PlasticOS documents"
+    },
+    {
+      "from": "ROS-EXPORT-COMPLIANCE",
+      "relation": "requires_authentication_and_review_before",
+      "to": "export_regulatory_submission"
+    }
+  ],
+  "invariants": [
+    "Export scanning never creates a second warehouse or physical package ledger.",
+    "Booking ID, physical ocean container ID, stock package ID, lot, sale, shipping line and forwarder remain distinct.",
+    "Earliest Return Date and Cut Off have explicit timezone, precision, terminal, voyage, source and revision; updates retain history.",
+    "Separate cargo cutoff, VGM cutoff, shipping instruction cutoff, document cutoff, and applicable customs deadline.",
+    "Physical scanned weight is not in itself certified VGM and does not control financial settlement.",
+    "No fabricated ocean B/L, gate-in, regulatory clearance, shipment, delivery or payment from scanned material or expected schedules."
+  ],
+  "acceptance": "09_EXPORT_ACCEPTANCE_PROBES.md (all NOT_RUN)",
+  "source_binding": {
+    "repository": "cryptoxdog/IB-Odoo_19",
+    "ref": "04bd0594a7c9dcad53d9c45fc65276d76817c112"
+  },
+  "host_schema_mapping": "not_attempted_no_authority"
+}

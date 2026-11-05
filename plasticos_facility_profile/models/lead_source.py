@@ -85,7 +85,7 @@ LEAD_SOURCE_MAPPING = {
     "Internet": "Web Research",
     "Directory": "Web Research",
     "MFG Directory": "Web Research",
-    "CieTrade": "Web Research",
+    "ERP": "Web Research",
     "Stericycle.com": "Web Research",
     "YP": "Web Research",
     # Other/misc

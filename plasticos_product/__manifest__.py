@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Product Catalog",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.0.3",
     "category": "Inventory/Product",
     "summary": "Scrap plastic product catalog with polymer-synced products",
     "description": """

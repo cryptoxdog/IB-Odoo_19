@@ -61,9 +61,17 @@
                        help="Internal broker notes: personality, communication style, rapport hooks, family context, hobbies, motivators. Never shared externally."/>
             </xpath>
 
-            <!-- ── Invoicing tab — hide for person contacts (managed on parent) -->
+            <!-- ── Tax ID is unused on the company-itself card ─────────── -->
+            <xpath expr="//field[@name='vat']" position="attributes">
+                <attribute name="invisible">is_company and type == 'contact'</attribute>
+            </xpath>
+
+            <!-- ── Invoicing and Sales &amp; Purchase — companies only ─────── -->
             <xpath expr="//page[@name='accounting']" position="attributes">
-                <attribute name="invisible">parent_id</attribute>
+                <attribute name="invisible">not is_company</attribute>
+            </xpath>
+            <xpath expr="//page[@name='sales_purchases']" position="attributes">
+                <attribute name="invisible">not is_company</attribute>
             </xpath>
 
         </field>
@@ -79,7 +87,7 @@
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='country_id']" position="before">
+            <xpath expr="//list/field[@name='country_id']" position="before">
                 <field name="company_role"
                        widget="badge"
                        decoration-success="company_role == 'buyer'"

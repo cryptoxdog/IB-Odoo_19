@@ -1,6 +1,6 @@
 """
 Transaction Import Wizard
-Import transactions from cieTrade WksDetail CSV export.
+Import transactions from ERP WksDetail CSV export.
 """
 
 import base64
@@ -15,7 +15,7 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 # Default CSV file in module
-DEFAULT_CSV = "cieTrade.WksDetail.Test.csv"
+DEFAULT_CSV = "ERP.WksDetail.Test.csv"
 
 
 class TransactionImportWizard(models.TransientModel):
@@ -24,14 +24,14 @@ class TransactionImportWizard(models.TransientModel):
 
     csv_file = fields.Binary(
         string="CSV File",
-        help="Upload cieTrade WksDetail CSV file. Leave empty to use default file in module.",
+        help="Upload ERP WksDetail CSV file. Leave empty to use default file in module.",
     )
     csv_filename = fields.Char(string="Filename")
 
     use_default_file = fields.Boolean(
         string="Use Default CSV File",
         default=True,
-        help="Use the cieTrade.WksDetail.csv file included in the module.",
+        help="Use the ERP.WksDetail.csv file included in the module.",
     )
 
     dry_run = fields.Boolean(

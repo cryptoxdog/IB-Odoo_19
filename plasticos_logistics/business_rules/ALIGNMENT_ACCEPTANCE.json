@@ -1,0 +1,418 @@
+{
+  "schema": "plasticos.linda.alignment.acceptance/v1",
+  "count": 32,
+  "source": "proposed specs, not tests run",
+  "cases": [
+    {
+      "case_id": "AC-AL-01",
+      "title": "PO-only native release",
+      "logistics_ids": [
+        "BRS-01-R001",
+        "BRS-01-R065"
+      ],
+      "given": "Authorized native PO reaches purchase without SO, transaction or load",
+      "positive_expected": "One supplier issue request/queued mail; no fake other records",
+      "negative_counterexample": "Draft/import/confirmation replay sends none",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-02",
+      "title": "SO-only native release",
+      "logistics_ids": [
+        "BRS-01-R001",
+        "BRS-01-R065"
+      ],
+      "given": "Native SO confirmation completes without PO/load",
+      "positive_expected": "One buyer issue; independent of PO",
+      "negative_counterexample": "No non-native auto-approval or duplicate confirmation",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-03",
+      "title": "Cross-company isolation",
+      "logistics_ids": [
+        "BRS-01-R003",
+        "BRS-07-R047"
+      ],
+      "given": "Two companies share partner/order text",
+      "positive_expected": "Only exact company evidence binds",
+      "negative_counterexample": "Company-less ambiguous item cannot link",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-04",
+      "title": "PO-only stock evidence",
+      "logistics_ids": [
+        "BRS-07-R047"
+      ],
+      "given": "PO receipt but no real picking yet",
+      "positive_expected": "PO-scoped inbox evidence pending picking",
+      "negative_counterexample": "Invented load/stock receipt rejected",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-05",
+      "title": "One original many links",
+      "logistics_ids": [
+        "BRS-07-R046",
+        "BRS-07-R049"
+      ],
+      "given": "One document cites two legitimate loads",
+      "positive_expected": "One native original, two exact typed evidence links",
+      "negative_counterexample": "No duplicate original and no single-pointer loss",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-06",
+      "title": "Alias ambiguous inbox",
+      "logistics_ids": [
+        "BRS-07-R047"
+      ],
+      "given": "Incoming alias file has two same-partner candidates",
+      "positive_expected": "Unlinked with one Activity",
+      "negative_counterexample": "Never select newest open transaction",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-07",
+      "title": "Single verification writer",
+      "logistics_ids": [
+        "BRS-07-R049",
+        "BRS-07-R050"
+      ],
+      "given": "Unverified document gets native tag",
+      "positive_expected": "Business verified stays false pending authorized verification",
+      "negative_counterexample": "Native tag/write cannot mark verified",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-08",
+      "title": "Internal Request only",
+      "logistics_ids": [
+        "BRS-07-R046",
+        "BRS-07-R051"
+      ],
+      "given": "Supplier missing file; internal staff request created",
+      "positive_expected": "Internal placeholder and one Activity; Linda external Mail only",
+      "negative_counterexample": "No native Documents external request invitation",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-09",
+      "title": "Verified Request completion",
+      "logistics_ids": [
+        "BRS-07-R049",
+        "BRS-07-R051"
+      ],
+      "given": "File uploaded into internal Request",
+      "positive_expected": "Stay open until exact verified current evidence",
+      "negative_counterexample": "Upload alone cannot close requested evidence",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-10",
+      "title": "Supplier doc SLA",
+      "logistics_ids": [
+        "BRS-07-R051"
+      ],
+      "given": "Actual pickup Friday; supplier doc missing",
+      "positive_expected": "First BD due Monday; +5 after pickup; one external touch",
+      "negative_counterexample": "Transaction create_date cannot anchor clock",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-11",
+      "title": "Carrier doc SLA",
+      "logistics_ids": [
+        "BRS-07-R051"
+      ],
+      "given": "Actual pickup Friday, CST missing",
+      "positive_expected": "First BD due Tuesday, +6 escalate; no invoice blocker",
+      "negative_counterexample": "Scale tag cannot prove certified CST or penalty",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-12",
+      "title": "Buyer doc SLA",
+      "logistics_ids": [
+        "BRS-07-R051",
+        "BRS-07-R045"
+      ],
+      "given": "Actual delivery Friday, Receiving missing",
+      "positive_expected": "First BD due Monday; +5 escalate, quantity scoped",
+      "negative_counterexample": "Supplier pickup cannot anchor buyer timer",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-13",
+      "title": "No duplicate reminder",
+      "logistics_ids": [
+        "BRS-06-R038",
+        "BRS-07-R051"
+      ],
+      "given": "Two same-minute crons after due",
+      "positive_expected": "One outgoing intent and one internal Activity",
+      "negative_counterexample": "Concurrent jobs cannot send two notices",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-14",
+      "title": "Distinct readiness cadence",
+      "logistics_ids": [
+        "BRS-02-R007",
+        "BRS-06-R039"
+      ],
+      "given": "Supplier not READY, no document yet due",
+      "positive_expected": "Monday local status request only",
+      "negative_counterexample": "Cannot replace it with +1 BD postpickup document chase",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-15",
+      "title": "Carrier ACK",
+      "logistics_ids": [
+        "BRS-05-R030",
+        "BRS-06-R039"
+      ],
+      "given": "Carrier packet actually sent at T",
+      "positive_expected": "T+2h reminder and T+4h escalation; one packet",
+      "negative_counterexample": "Reservation/queue time or four-hour packet resend invalid",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-16",
+      "title": "No assigned dispatch",
+      "logistics_ids": [
+        "BRS-05-R029",
+        "BRS-02-R004"
+      ],
+      "given": "Picking moves to assigned but custodian not READY",
+      "positive_expected": "No dispatch packet or dispatch_sent stamp",
+      "negative_counterexample": "Assigned state never triggers carrier mail",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-17",
+      "title": "Dropship report redaction",
+      "logistics_ids": [
+        "BRS-05-R031",
+        "BRS-05-R033"
+      ],
+      "given": "Confirmed native dropship PO with buyer destination",
+      "positive_expected": "Supplier QWeb variant omits buyer identity; lawful PO route preserved",
+      "negative_counterexample": "Default report leaks buyer address or blanket route ban",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-18",
+      "title": "No native confirmation duplicates",
+      "logistics_ids": [
+        "BRS-05-R034",
+        "BRS-01-R001"
+      ],
+      "given": "SO action_confirm send_email True in off, shadow, live",
+      "positive_expected": "Exactly one authorized sender per mode",
+      "negative_counterexample": "Legacy plus native plus Linda triplicate prohibited",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-19",
+      "title": "Personal server throttle",
+      "logistics_ids": [
+        "BRS-05-R034",
+        "BRS-05-R035"
+      ],
+      "given": "Personal mail server owner rate limit defers outgoing mail",
+      "positive_expected": "No SMTP attempt recorded; queue remains retryable",
+      "negative_counterexample": "Deferral must not become unknown delivery",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-20",
+      "title": "Unknown SMTP outcome",
+      "logistics_ids": [
+        "BRS-05-R035"
+      ],
+      "given": "Actual SMTP disconnect after possible delivery",
+      "positive_expected": "Unknown until explicit recovery; no automatic retry",
+      "negative_counterexample": "Unknown cannot become sent or be blindly duplicated",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-21",
+      "title": "Native MIME reply ancestry",
+      "logistics_ids": [
+        "BRS-02-R009",
+        "BRS-02-R011",
+        "BRS-02-R014"
+      ],
+      "given": "Parallel requests; original message references one",
+      "positive_expected": "Candidate binds exact known request/revision",
+      "negative_counterexample": "Most recent chatter or plain From cannot authenticate",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-22",
+      "title": "Native AI absent",
+      "logistics_ids": [
+        "BRS-02-R012",
+        "BRS-02-R062"
+      ],
+      "given": "Free-form reply with AI module unverified",
+      "positive_expected": "ai_not_run/unresolved; no business changes",
+      "negative_counterexample": "No fallback custom inference or fabricated AI proof",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-23",
+      "title": "Native AI adversarial",
+      "logistics_ids": [
+        "BRS-02-R012",
+        "BRS-02-R062"
+      ],
+      "given": "Installed Manager chooses Worker with malicious stale company args",
+      "positive_expected": "Worker rejects before any business writes",
+      "negative_counterexample": "AI cannot change READY/rate/stock/posting",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-24",
+      "title": "Partial buyer receipt",
+      "logistics_ids": [
+        "BRS-07-R045",
+        "BRS-07-R048"
+      ],
+      "given": "Buyer report covers 40% actual delivery",
+      "positive_expected": "Verify covered quantity only",
+      "negative_counterexample": "Whole load invoicing/close cannot infer 100%",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-25",
+      "title": "CST independent",
+      "logistics_ids": [
+        "BRS-07-R048",
+        "BRS-07-R054"
+      ],
+      "given": "Buyer Receiving verified, carrier CST absent",
+      "positive_expected": "Buyer eligible per scoped rule; carrier document claim stays open",
+      "negative_counterexample": "CST missing does not auto post 150 or globally block close",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-26",
+      "title": "No financial auto-post",
+      "logistics_ids": [
+        "BRS-07-R054"
+      ],
+      "given": "Document verified, compliance recompute, Linda response",
+      "positive_expected": "No account.move.action_post or adjustment",
+      "negative_counterexample": "Computation cannot create/post invoices/credits/penalties",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-27",
+      "title": "QuickBooks settlement remains",
+      "logistics_ids": [
+        "BRS-07-R054"
+      ],
+      "given": "Preapproved QB-exit pending, invoice exists",
+      "positive_expected": "Odoo does not collect/mark paid by inference",
+      "negative_counterexample": "No Odoo bank dunning dual-write before cutover",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-28",
+      "title": "Weights are distinct",
+      "logistics_ids": [
+        "BRS-02-R008",
+        "BRS-07-R052"
+      ],
+      "given": "Supplier weight differs from buyer and certified scale",
+      "positive_expected": "AP supplier, AR buyer, scale reference; >5% review",
+      "negative_counterexample": "No final_weight auto substitution or AI-extracted money",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-29",
+      "title": "Original history preserved",
+      "logistics_ids": [
+        "BRS-07-R050",
+        "BRS-07-R056"
+      ],
+      "given": "Old import document or superseded document exists",
+      "positive_expected": "Historical source kept without current verification",
+      "negative_counterexample": "Old bytes not resurrected, no historic live chase",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-30",
+      "title": "Cancel/reopen notice sequence",
+      "logistics_ids": [
+        "BRS-05-R034",
+        "BRS-05-R035",
+        "BRS-01-R001"
+      ],
+      "given": "Cancel sent issue and reconfirm same terms",
+      "positive_expected": "Historical party notice once, then one new release",
+      "negative_counterexample": "New issue cannot overtake unsent cancellation notice",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-31",
+      "title": "BRS-only install inert",
+      "logistics_ids": [
+        "BRS-05-R029",
+        "BRS-07-R054"
+      ],
+      "given": "Only BRS repo files installed",
+      "positive_expected": "No Odoo model/XML/cron/finance change",
+      "negative_counterexample": "No live send/stock/QB operation authorized by install",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    },
+    {
+      "case_id": "AC-AL-32",
+      "title": "Source byte preservation",
+      "logistics_ids": [
+        "BRS-07-R046",
+        "BRS-01-R003"
+      ],
+      "given": "Install proposal onto exact #305 descendant",
+      "positive_expected": "7 original BRS and rules.json bytes untouched",
+      "negative_counterexample": "Reject stale parent, altered old source, wrong branch",
+      "runtime_status": "NOT_RUN",
+      "planned": true
+    }
+  ]
+}

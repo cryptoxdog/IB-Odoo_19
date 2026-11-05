@@ -1,0 +1,9 @@
+# GET /Contacts modified_after probe, project 139705, on clone odoo_test_w2495f48767
+# Script: scripts/vs_probe.py (limit=1 per request). Run 2026-10-18 03:00:50Z.
+# Transcribed from the console; the run wrote no log file.
+PROBE project 139705
+PROBE 30d 2026-09-18T03:00:50Z ok keys= ['batch_end', 'batch_start', 'contacts', 'partial_fulfillment'] rows= 1
+PROBE 31d 2026-09-17T03:00:50Z ERR VanillaSoft HTTP 400:
+PROBE 32d 2026-09-16T03:00:50Z ERR VanillaSoft HTTP 400:
+PROBE 60d 2026-08-19T03:00:50Z ERR VanillaSoft HTTP 400:
+PROBE 2019 2019-01-01T00:00:00Z ERR VanillaSoft HTTP 400:

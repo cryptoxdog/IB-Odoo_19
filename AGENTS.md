@@ -2,10 +2,14 @@
 
 Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code, Codex, Cursor, Copilot, Jules, Aider, CodeRabbit, and all AGENTS.md-compatible tools.
 
+### Logistics business requirements (BRS)
+
+The canonical local Linda business requirements live **inside** `plasticos_logistics/business_rules/`, not under `docs/`. Read `plasticos_logistics/LINDA_BUILD_PLAN.md` (60-rule work-package/acceptance map), its business-rules README, applicable `BRS-01`..`BRS-07`, the exact-ID `SUPERSESSION.md`, and accepted ADRs before implementing Linda. Keep the seven original BRS files unchanged. For changes, cite affected rule IDs and observable acceptance evidence; don't treat source status as runtime proof.
+
 ## Project Overview
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
-- **Type**: Odoo 19 custom module suite (**29** installable `plasticos_*` addons, **~32K** lines Python in addons, **~174** XML files in addons).
+- **Type**: Odoo 19 custom module suite (**30** `plasticos_*` addons — **28** installable, 2 dev/non-installable; **~33K** lines Python in addons, **~174** XML files in addons).
 - **Stage**: Production (`Staging` branch → `Production`)
 - **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
 
@@ -28,13 +32,27 @@ python3 ci/check_odoo19_xml.py            # XML view validation
 python3 tools/cron_invariant_check.py     # Cron safety invariants
 
 # Roadmap (registry → synced planning docs)
-make roadmap                              # Validate docs/roadmap/registry.yaml alignment
-make roadmap-sync                         # Regenerate roadmap markdown from registry
-make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="..."
+make roadmap                              # Sync + validate (add: domain= phase= kind= title=)
+make roadmap-list                         # List registry items
+
+# pr-check = local (ruff, XML, wiring, semgrep, pytest) + remote when PR/CI exists
+#   (GitHub Actions job logs, SonarCloud, CodeRabbit, Gemini, human reviews via pr_autopilot)
+#   Target a PR: make pr-check pr=100
+#     or: make pr-check https://github.com/cryptoxdog/IB-Odoo_19/pull/100
+#   Skip remote: PR_CHECK_SKIP_REMOTE=1 make pr-check
+
+# Publication: make pr validates the committed HEAD, pushes the feature branch,
+# and opens or verifies the PR into Staging. make push is retired.
+make pr                                   # publish the committed feature branch into Staging
 
 # Docker
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
 docker-compose exec web odoo -u plasticos_base --stop-after-init  # Update module
+
+# Data imports (canonical commands — odoo-intent-1 ingestion milestone)
+make import-erp                           # ERP import through SQL (DRY=1 preview)
+make import-vanillasoft                   # VanillaSoft full import: preflight + reconciliation + summary
+python3 scripts/validate_import_summary.py .l9/pr/import-*-summary.json  # validate machine summaries
 
 # Tests (requires running Odoo instance)
 python -m pytest tests/ -v                # All tests
@@ -42,37 +60,130 @@ python -m pytest tests/contracts/ -v      # Contract tests
 python -m pytest tests/integration/ -v    # Integration tests
 ```
 
+## Repo Index — Check Before Grepping
+
+`reports/repo-index/` holds pre-generated, grep-friendly indexes of the codebase (classes, functions, methods, imports, inheritance, Odoo models/views/crons/security groups/automations/email templates/routes, tests, READMEs). Check these **before** running a broad `grep`/`rg` sweep across the repo:
+
+```bash
+grep "ClassName" reports/repo-index/class_definitions.txt
+grep "plasticos.transaction" reports/repo-index/odoo_model_registry.txt
+grep "def action_" reports/repo-index/method_catalog.txt
+```
+
+Regenerate when stale via the `l9-repo-index` skill (synced generator script; no repo-local generator exists in this repo). See `@.cursor-commands/skills/l9-repo-index/SKILL.md`.
+
+## Tooling SSOT (editor + CI)
+
+This repo is an **Odoo addon suite**, not a pip/uv package. No `[project]` table in `pyproject.toml`.
+
+| Concern | File | Notes |
+|---------|------|-------|
+| Ruff / pytest / mypy / Pyright policy | `pyproject.toml` | Pyright is **editor-only** (`typeCheckingMode = basic`) |
+| Odoo import paths (Pylance) | `.vscode/settings.json` | `${env:HOME}/dev/odoo-19` — clone Odoo 19 CE on each machine |
+| Dev venv | `make venv` + `.envrc` | ruff, pytest, semgrep — Odoo runtime is separate |
+| Runtime deps | `requirements.txt` | Odoo.sh |
+| Dev/CI deps | `requirements-dev.txt` | GitHub Actions Tier 3 |
+
+Cursor overlay: `.cursor/rules/88-plasticos-odoo-python-tooling.mdc`. Global `20-lang-python` applies only to L9 `src/` repos, not PlasticOS.
+
+**Fresh clone runbook:** [docs/LOCAL_DEV_SETUP.md](docs/LOCAL_DEV_SETUP.md)
+
+## OdooLS
+
+Editor semantics for Odoo models, XML, and JavaScript come from the official `Odoo.odoo` extension. The workspace profile is `default`. Configuration is `odools.toml`. Runtime and deployment stay on Odoo.sh.
+
+| Source | Path | Indexed | OdooLS diagnostics |
+|--------|------|---------|--------------------|
+| Community | `${userHome}/dev/odoo-19` | yes | suppressed |
+| Enterprise | `${userHome}/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise` on `addons_paths`. `$autoDetectAddons` still skips the gitignored `odoo-enterprise` symlink | yes | suppressed |
+| PlasticOS | this workspace | yes | published |
+
+`diagnostic_filters` uses `path_type = "in"` on those two upstream trees and does not name diagnostic codes. Do not globally disable OLS codes. Do not set `disable_javascript` or an empty `tsserver_command`. JavaScript semantics need TypeScript 6 `tsserver` on `PATH` (`npm install -g typescript@6`).
+
+Ruff and basedpyright use the same boundary, and neither expands `${env:HOME}`. Opened upstream files sit outside this workspace, so workspace `ruff.exclude` does not apply to them: the user-level `ruff.exclude` lists the Community and Enterprise trees. basedpyright skips editor `analysis.ignore` when `[tool.pyright]` exists, so those paths are in `pyproject.toml` `ignore` (editor-only; Pyright is not a CI gate). PlasticOS files stay diagnosed. Do not turn either tool off.
+
 ## Testing
 
 - Contract tests: `tests/contracts/` — 8 contract test files
 - Integration tests: `tests/integration/` — 10 integration test files
-- Unit tests: `tests/test_*.py` — **28** standalone test modules at `tests/` root (plus deeper `tests/` tree; run `pytest tests/ --collect-only` for full count)
+- Unit tests: `tests/test_*.py` — **32** standalone test modules at `tests/` root (plus deeper `tests/` tree; run `pytest tests/ --collect-only` for full count)
 - Every new model/field needs at least one test
 - Tests must not mutate seed data
 - Run `pre-commit run --all-files` before opening a PR
 
 ## Agent Skills & Subagents
 
-Skills live in `.claude/skills/`; subagents in `.claude/agents/`. Full registry: `.claude/README.md`.
+**PlasticOS law (this repo):** `skills/PLASTICOS_CANONICAL_LAW.md`
+**Global L9 law (symlink — do not edit from IB-Odoo_19):** `.cursor/governance/CANONICAL_LAW.md`
 
-| Skill | When to load |
-|-------|--------------|
-| `structured-reasoning` | Planning, plan review, architecture decisions, debugging |
-| `new-odoo-module` | Scaffolding a new `plasticos_*` module |
-| `new-model-field` | Adding fields or models to existing modules |
-| `xml-view` | Creating or modifying Odoo XML views |
-| `odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix |
-| `update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md |
-| `skill-compiler` | Compile kernels/SOPs into zero-stub skill packs |
+| Class | SSOT | Notes |
+|-------|------|-------|
+| PlasticOS project skills (`plasticos-*`) | `skills/` | Repo-owned; not an Odoo addon (like `scripts/` / `tools/`) |
+| Manifest | `skills/PLASTICOS_SKILLS_MANIFEST.yaml` | All `invocation: auto` |
+| Discovery adapters | `.claude/skills/plasticos-*` | Symlinks into `skills/` only — edit SSOT, not the link |
+| L9 global skills (`l9-*`) | `@.cursor-commands/skills/l9-*/` | Cursor-Governance / GlobalCommands |
+| Invocation tiers (L9 only) | `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` | PlasticOS skills are always auto-invoke |
+
+Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skills`.
+
+| Skill | When to load | Primary `make` targets |
+|-------|--------------|------------------------|
+| `l9-structured-reasoning` | Planning, plan review, architecture decisions, debugging | — |
+| `l9-skill-compiler` | Compile kernels/SOPs into zero-stub skill packs | — |
+| `l9-wire-skill-into-repo` | Register skills after create/compile | — |
+| `l9-update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md | — |
+| `l9-gmp-protocol` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report | `pr-check` |
+| `l9-context7-docs` | Fetch current library/framework/SDK/API docs before coding | — |
+| `l9-plan` | Create an execution plan/spec when scope is unclear | — |
+| `l9-code-analysis` | Explore unfamiliar code, map flows, identify hotspots | — |
+| `l9-gap-analysis` | Assess readiness, missing pieces, % complete vs target | — |
+| `l9-pr-analysis` | Review PRs, merge blockers, review comments | `pr-check` |
+| `l9-ynp` | Synthesize the single highest-leverage next action | — |
+| `l9-code-graph-rag-mcp` | Operate code-graph-rag MCP — indexing, importers, impact analysis, cross-module discovery | — |
+| `l9-api-smoke-testing` | Smoke-test every API route; report 404/500 regressions | — |
+| `l9-architecture-decision-records` | Capture an architecture/design decision as an ADR | — |
+| `l9-auditing-performance` | Profile/optimize bundle, render, query, Core Web Vitals | — |
+| `l9-auditing-security` | Systematic security audit — OWASP Top 10, secrets, insecure patterns | — |
+| `l9-monitoring-terminal-errors` | Watch running processes, fix crashes/stack traces live | — |
+| `l9-prompt-engineering` | Design/improve LLM prompts, system messages, output schemas | — |
+| `l9-incident-response` | Triage/mitigate production incidents; write postmortems | — |
+| `l9-setting-up-ci` | Bootstrap GitHub Actions CI (lint/test/type-check/deploy) | — |
+| `l9-python-tdd-with-uv` | **Explicit** — Python TDD with uv (red-green-refactor) | — |
+| `l9-kubernetes-deploying` | **Explicit** — deploy to Kubernetes (manifests, scaling) | — |
+| `l9-setting-up-terraform` | **Explicit** — bootstrap Terraform IaC (modules, state, CI) | — |
+| `l9-chat-extraction` | **Explicit** — extract learnings and content from chat to memory or structured output | — |
+| `l9-ci-ops` | **Explicit** — CI/CD status, fix failures, list gates, author CI regression policies | — |
+| `l9-code-maintenance` | **Explicit** — lint-fix, migrate, clean/compress, consolidate, refactor-sweep via DAG executors | — |
+| `l9-component-verification` | **Explicit** — component audit, verify, runtime probe escalation ladder | — |
+| `l9-dag-authoring` | **Explicit** — create or update L9 workflow DAGs via dag-authoring-v1 | — |
+| `l9-end-session` | **Explicit** — close session, pickup context, governance backup | — |
+| `l9-forge` | **Explicit** — autonomous high-velocity execution, batch GMP runs | — |
+| `l9-governance-wiring` | **Explicit** — governance symlinks, wire executor, confirm-wiring, SSOT backup | — |
+| `l9-harvest-pipeline` | **Explicit** — harvest extraction and use-harvest deployment pipeline | — |
+| `l9-inspect` | **Explicit** — inspect external code before it enters L9 | — |
+| `l9-repo-index` | **Explicit** — export repo indexes for fast lookup | — |
+| `l9-update-command` | **Explicit** — minimize slash commands to DAG triggers | — |
+| `plasticos-new-odoo-module` | Scaffolding a new `plasticos_*` module | `wiring`, `pr-check` |
+| `plasticos-new-model-field` | Adding fields or models to existing modules | `wiring`, `pr-check` |
+| `plasticos-xml-view` | Creating or modifying Odoo XML views | `odoo19-check`, `xml-check` |
+| `plasticos-odoo-version-bump` | Changing plasticos_* runtime code/XML/migrations — **mandatory** version bump + scoped `-u` only | `update` |
+| `plasticos-odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix | `logs`, `update`, `test-module` |
+| `plasticos-odoo-docker-testing` | Docker install-smoke + Odoo runtime tests before Odoo.sh | `install-smoke`, `test-odoo`, `test-module` |
+| `plasticos-static-audit-kernel` | Broad static audit / evidence report | `audit`, `audit-quick` |
+| `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
+| `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
+| `plasticos-final-touches` | `FINAL_TOUCHES_MODE` | `audit` + `pr-check` |
+| `plasticos-prompt-pack` | Router for `docs/plasticos_prompt_pack/` — context primer, tiered audit (`AUDIT_MODE`), matching-pipeline gap handoff, pre-code kernel, 10-block architecture/deployment reasoning chain | `audit`, `pr-check` |
 
 | Subagent | Preloaded skills | Delegate for |
 |----------|------------------|--------------|
-| `plasticos-code-reviewer` | `structured-reasoning` | PR review, invariant compliance |
-| `module-auditor` | `structured-reasoning`, `new-odoo-module`, `new-model-field` | Module structure/wiring audit |
+| `plasticos-code-reviewer` | `l9-structured-reasoning`, `plasticos-pr-review-kernel` | PR review, invariant compliance |
+| `module-auditor` | `l9-structured-reasoning`, `plasticos-new-odoo-module`, `plasticos-new-model-field`, `plasticos-odoo-version-bump`, `plasticos-odoo-docker-testing` | Module audit — attach `plasticos-repo-review-kernel` or `plasticos-static-audit-kernel` |
 
 ## Project Structure
 
 ```
+skills/                # PlasticOS agent skills SSOT (NOT an Odoo addon; see PLASTICOS_CANONICAL_LAW)
 plasticos_base/              # Layer 1: Core seed data, feature gates, partner tags
 plasticos_security_base/     # Layer 1: RBAC roles, record rules, ACL
 plasticos_material_profile/  # Layer 1: Material master (polymer, form, color, source)
@@ -80,12 +191,11 @@ plasticos_product/           # Layer 1: Scrap plastic product catalog
 plasticos_facility_profile/  # Layer 2: Facility capabilities, equipment, tolerances
 plasticos_intake/            # Layer 2: Material intake with contact intelligence
 plasticos_intake_normalizer/ # Layer 2: L9 packet normalization
-plasticos_matching/          # Layer 2: Match result storage
-plasticos_buyer_match_engine/# Layer 2: 10-gate filtering + Neo4j graph scoring
+plasticos_matching/          # Layer 2: Gate match orchestrator + result store (ADR-015; CEG scores)
 plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
-plasticos_enrichment/        # Layer 2: AI web intelligence extraction
-plasticos_web_leads/         # Layer 2: AI lead triage (Cognito → LLM → HOT/COLD)
-plasticos_inference_engine/  # Layer 2: Deterministic polymer inference (YAML KB)
+plasticos_gate/              # Layer 2: Sole TransportPacket client (ADR-002 / ADR-011)
+plasticos_enrichment/        # Layer 2: Gate converge orchestrator + writeback shell (ADR-012/015; ranking ADR-009)
+plasticos_web_leads/         # Layer 2: AI lead triage local Phase 1 (ADR-016; not enrichment ranking)
 plasticos_accounting/        # Layer 3: Chart of accounts, payment terms, incoterms
 plasticos_offer/             # Layer 3: Offer lifecycle (match → negotiation → deal)
 plasticos_order_lines/       # Layer 3: PO/SO lines with material specs
@@ -98,7 +208,7 @@ plasticos_documents_native/  # Layer 4: Enterprise Documents bridge
 plasticos_transaction/       # Layer 5: Transaction spine + commission
 plasticos_logistics/         # Layer 5: Load management, BOL, dispatch
 plasticos_claims/            # Layer 5: QC cases, claims, chargebacks
-plasticos_website/           # UI: Website extensions
+plasticos_website/           # UI: Website extensions (installable: False — disabled)
 plasticos_admin_dashboard/   # Layer 3: RevOps KPI dashboard (admin)
 plasticos_odoo_standard_apps/ # Meta: auto-install bundle of standard Odoo CE apps (optional)
 plasticos_dev_tools/         # Dev-only: audit scripts, integrity checks
@@ -126,6 +236,7 @@ tools/                       # Cron checks, validators
 - Merge `Staging` → `Production` for production — never merge feature branches directly to `Production`
 - Branch naming: `feat/short-description`, `fix/short-description`, `docs/short-description`, `refactor/short-description`, `test/short-description`
 - Commit messages: conventional commits with optional module scope — `feat(module): ...`, `fix(views): ...`, `docs: ...`, `refactor(intake): ...`, `test(integration): ...`
+- **`make commit` omits `.cursor-commands`** — local symlink to Dropbox governance SSOT; that tree is pushed from a separate repo, never from IB-Odoo_19. Publication is `make pr`
 - PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan (gitleaks)
 
 ## CI Compliance Checklist (MANDATORY before commit/PR)
@@ -198,44 +309,76 @@ ruff format .                             # Format code
 python3 scripts/check_module_wiring.py    # Dependency + __init__.py wiring
 python3 ci/check_circular_deps.py         # No circular deps
 python3 ci/check_odoo19_xml.py            # XML pattern compliance
-pre-commit run --all-files                # Run ALL 31 hooks at once
+pre-commit run --all-files                # Run ALL 36 hooks at once
 ```
 
-### CI Architecture — `ci.yml` is the Single Gate (11 Workflow Files)
+### CI Architecture — `ci.yml` is the Single Gate (9 Workflow Files)
+`ci.yml` is the **only check workflow that runs automatically on PRs and pushes and blocks merge**, alongside the GATE-01 baseline ratchet. The legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) were **deleted** during GATE-01 adoption (#112): they were manual-only, and most of their checks were already duplicated in `ci.yml`. **2026-07 correction:** a follow-up audit found #112 had also silently dropped several checks that were NOT duplicates (mypy, shellcheck, `_name` string-literal enforcement, manifest field validation via `scripts/validate_manifest.py`, ACL CSV header/format check, test-attribute-guard, and the `odoo_audit.py`/`run_all_audits.py` baseline-regression audit with PR auto-comment) — all were restored into `ci.yml` as new checks/jobs (see inline `restored 2026-07` comments in the workflow file). `l9-analysis.yml` was added as a new, additive, non-duplicating governed-semgrep pipeline (see `.github/governance/README.md`) — it does not block merge yet (advisory-first rollout).
 
-`ci.yml` is the **only workflow that runs automatically on PRs and pushes**. All other legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) are disabled (`workflow_dispatch` manual-only) to eliminate duplicate runs.
+**2026-07 fail-slow correction:** `ci.yml`'s `lint`/`static-checks`/`pure-python-tests` previously ran as a sequential `needs:` chain (Tier 1 → 2 → 3), so a `lint` failure hid every static-analysis and test failure until fixed and re-pushed — the opposite of "identify all errors in one CI run." They now run in **parallel** (no `needs:` between them) alongside `secret-scan` and the new `audit-baseline` job; a final `ci-gate-result` job (`needs:` all of them, `if: always()`) is the single fail-closed verdict. `ci/check_github_actions_kernel.sh`'s `merge_gate_logic` check enforces this contract structurally (no `needs:` on the three tiers, an aggregator job present).
+
+**Cross-workflow order (max concurrent → aggregator last):** On each PR push, **CI Gate**, **Baseline Ratchet**, and **L9 Analysis** start together (Wave 1 collectors). Do **not** serialize them with `workflow_run`. Wave 2 aggregators (`CI Gate Result`, `Ratchet Verdict`) and L9 `publish` run last within their own workflows. Prefer required merge checks on those aggregators; keep L9 advisory-first until `.github/governance/` promotes rules. **GitGuardian** is an external app (not a workflow) — it scans the PR commit range and does not cancel GHA; tip-only secret fixes leave GG red if an earlier PR commit still contains the secret (squash/rewrite the feature branch, or resolve the occurrence after rotation). Each workflow uses its own `concurrency` group with `cancel-in-progress: true` — treat only the latest **non-cancelled** HEAD run as signal.
 
 **Active workflows and their triggers:**
-
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| **`ci.yml`** | push + PR (all branches) | Single CI gate — Tier 1 lint → Tier 2 static → Tier 3 pytest |
+| **`ci.yml`** | push + PR (all branches) | Single CI gate — lint / static / pytest / secret-scan / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
+| **`baseline-ratchet.yml`** | push + PR → Staging | GATE-01 baseline ratchet (l9-ci-core reusable workflow, SHA-pinned) |
+| `l9-analysis.yml` | push → Staging + PR + manual | l9-ci-core governed semgrep pipeline (generic `p/python`), publishes a GitHub Check; advisory-first, not yet a required check |
 | `security.yml` | push + PR → staging/main + weekly | pip-audit, Trivy, Gitleaks |
 | `changelog.yml` | push → Production + manual | Auto-update CHANGELOG.md |
-| `auto-merge.yml` | PR events → staging/main | Auto-merge approved non-draft PRs |
+| `auto-merge.yml` | PR events → staging/main | Auto-merge — arms ONLY when the PR carries the `automerge` label |
 | `auto-review-request.yml` | PR opened/sync → staging/main | Auto-request reviewers |
 | `release.yml` | tag `v*.*.*` + manual | GitHub Release creation |
 | `pr-autopilot.yml` | manual only | Scan open PRs for CI/SonarCloud signals |
-| `test-quality.yml` | manual only | Full Odoo runtime tests (Odoo.sh) |
-| `odoo-audit.yml` | manual only | Legacy — superseded by ci.yml |
-| `pr-gate.yml` | manual only | Legacy — superseded by ci.yml |
-| `module-check.yml` | manual only | Legacy — superseded by ci.yml |
 
-**`ci.yml` blocking jobs** (must pass for merge):
+**`ci.yml` blocking jobs** (must pass for merge) — **fail-slow, not fail-fast**: `lint`, `static-checks`, `pure-python-tests`, `secret-scan`, and `audit-baseline` run **concurrently** (no `needs:` between them; each job still aggregates ALL of its own checks before exiting). A final `ci-gate-result` job (`needs: [lint, static-checks, pure-python-tests, secret-scan, audit-baseline]`, `if: always()`) runs last and is the single fail-closed verdict for the workflow — every job still must pass, this just surfaces every failure in one run instead of stopping at whichever tier failed first.
 
-| CI Job | Tier | What it checks | Common failure |
-|--------|------|---------------|----------------|
-| `lint` | 1 | `ruff check` + `ruff format --check` | Unsorted imports (I001), unformatted code |
-| `static-checks` | 2 (needs lint) | XML syntax, manifest syntax, bash syntax, Odoo 19 patterns, circular deps, module wiring, orphan refs, XPath stability, ORM integrity, model inheritance, dev-tools fence, pipeline-v2 guard | Missing `__init__.py` import, broken XPath, phantom dep |
-| `pure-python-tests` | 3 (needs static) | pytest suite (no Odoo runtime): dependency integrity, compat, cron invariants, XML patterns, enum alignment | Test assertion failure, missing fixture |
+| CI Job | Phase | What it checks | Common failure |
+|--------|-------|---------------|----------------|
+| `lint` | 1 (parallel) | `ruff check` + `ruff format --check` | Unsorted imports (I001), unformatted code |
+| `static-checks` | 1 (parallel) | XML syntax, bash syntax, manifest syntax + field validation (`scripts/validate_manifest.py`), `_name` string-literal enforcement, shellcheck, Semgrep Odoo/security rules (`.semgrep/odoo-patterns.yml`), circular deps, module wiring, orphan refs, XPath stability, model inheritance, ORM integrity, Odoo 19 hook/XML patterns, dev-tools fence, pipeline-v2 guard, critical manifest, enhanced audit, antipatterns, ACL completeness, package init, field integrity, state-guard bypass, weak-test detection | Missing `__init__.py` import, broken XPath, phantom dep, semgrep rule hit, shellcheck warning, `_name = CONSTANT` |
+| `pure-python-tests` | 1 (parallel) | pytest suite (no Odoo runtime): dependency integrity, compat, cron invariants, XML patterns, enum alignment | Test assertion failure, missing fixture |
+| `secret-scan` | 1 (parallel) | Gitleaks (blocking — GATE-01 fail-closed; no `continue-on-error`) | Leaked token/password in git history of the push |
+| `audit-baseline` | 1 (parallel) | `scripts/audit/odoo_audit.py` (field/required-field/compute/security/constraint/state-machine/onchange bugs; baseline CRITICAL=0 HIGH=0) + `scripts/audit/run_all_audits.py` (extended: business-logic/performance/security N+1 queries; baseline HIGH≤4 — pre-existing `plasticos_logistics/load.py` + `plasticos_transaction/transaction.py`); auto-comments on the PR and uploads an `odoo-audit-reports` artifact on regression | New CRITICAL/HIGH issue vs tracked baseline — read the PR comment or artifact |
+| `ci-gate-result` | 2 (sequential, always last) | Aggregates the 5 Phase 1 jobs above; fails if any is not `success` | One of the Phase 1 jobs failed — read ITS log, not this job's |
+
+**Advisory-only checks inside `static-checks`** (logged but never fail the job): `mypy` (type checking — not a CI gate per `.cursor/rules/88-plasticos-odoo-python-tooling`, pre-commit only), ACL CSV header/format check, test-attribute-guard (`self.*_rec` warn). These same checks ARE blocking as local pre-commit hooks where applicable (see Pre-commit Hooks table) — the CI/pre-commit blocking status differs per check.
 
 **Non-blocking (advisory):**
 
 | CI Job | Workflow | Notes |
 |--------|----------|-------|
-| `secret-scan` | `ci.yml` | `continue-on-error: true` — Gitleaks |
 | `dependency-scan` | `security.yml` | `pip-audit \|\| true` |
 | `trivy-scan` | `security.yml` | `exit-code: 0` |
+| `l9-analysis.yml` (all jobs) | `l9-analysis.yml` | Governed semgrep findings default to `mode: advisory` in `.github/governance/semgrep-policy.yaml` — no individual rule is promoted to blocking yet |
+
+**External Odoo.sh checks (NOT GitHub Actions — cannot disable in `.github/workflows/`):**
+
+| Status context | When it appears | Repo gate? |
+|----------------|-----------------|------------|
+| `ci/odoo.sh (dev)` | PRs from feature branches (`fix/*`, `feat/*`) | **No** |
+| `ci/odoo.sh (staging)` | Commits on `Staging` | **No** |
+| `ci/odoo.sh (production)` | Commits on `Production` | **No** |
+
+These are **commit statuses** pushed by Odoo.sh (webhook: `https://www.odoo.sh/paas/webhook/github`), not jobs in `ci.yml`. There is no workflow file to delete.
+
+**To stop `ci/odoo.sh (dev)` showing on PRs (keeps Odoo.sh deploys working):**
+
+1. Open https://www.odoo.sh/project/cryptoxdog-ib-odoo-19 → **Settings** (Admin only)
+2. Section **GitHub commit statuses** → **remove / clear the GitHub token**
+3. Save — Odoo.sh still receives pushes via deploy key + webhook; it just stops posting statuses to GitHub
+
+Optional: on a specific dev branch → Settings → **Test suite** → untick validation (stops `--test-enable` runs; status may still post if token remains).
+
+**Odoo runtime tests (local Docker — not GitHub):**
+
+```bash
+make test-odoo              # Docker --test-enable; clones config/test_env_fixture.conf
+make test-module m=<module> # same fixture: odoo_test_tpl_ee_c9e8a81f52f23680
+```
+
+`make test-module`, `make test-odoo`, and `scripts/test_env.sh` clone only that database. Another test database is not a substitute. A new template is refused unless that database is absent and `TEST_ENV_ALLOW_NEW_TEMPLATE` equals its name. `TEST_ENV_PARITY=community` is refused unless `TEST_ENV_SAFETY_HARNESS=1`.
 
 ### Odoo 19 patterns that CI rejects (24 checks in `check_odoo_patterns.sh`)
 
@@ -274,19 +417,18 @@ These files are intentionally excluded from specific checks:
 | Many2one string write (#22) | `ai_normalizer.py` | LLM prompt JSON schema, not field assignment |
 | Many2one string write (#22) | `graph_service.py`, `matcher.py`, `enrichment_service.py`, `material_profile.py`, `transaction_import` | Dict/API payloads, not ORM writes |
 | `self.env.get()` (#24) | `ci/*.py` | CI detection scripts contain pattern examples |
-| Ruff lint | `plasticos_inference_engine`, `plasticos_buyer_match_engine`, `plasticos_matching` | Excluded in `ci.yml` ruff step |
-| mypy | `plasticos_web_leads`, `plasticos_enrichment`, `plasticos_buyer_match_engine`, `plasticos_inference_engine` | Complex patterns, gradual typing |
+| mypy | `plasticos_web_leads`, `plasticos_enrichment` | Complex patterns, gradual typing |
 | ACL completeness | all modules | Non-blocking hook (warn-only) |
 | Odoo patterns script | CI workflows | `|| true` — tracked separately |
-| YAML syntax | `plasticos_enrichment/knowledge_base/*.yaml`, `buyer_matching_rag.yaml` | Complex YAML not standard Odoo |
+| YAML syntax | `plasticos_enrichment/knowledge_base/*.yaml` | Complex YAML not standard Odoo |
 | All pre-commit hooks | `odoo-enterprise/**`, `plasticos_graph_*/**` | External/experimental code |
 | All pre-commit hooks | `docs/**` | Documentation files |
 
-### Pre-commit Hooks (31 total)
+### Pre-commit Hooks (36 total)
 
 | Hook | Type | Blocking? | What it catches |
 |------|------|-----------|-----------------|
-| `ruff` | Lint | Yes | Python lint violations (E/W/F/I/B/UP/C90) |
+| `ruff` | Lint | Yes | Python lint violations (E/W/F/I/B/UP/C90/S/A/FLY/INT/LOG/YTT) |
 | `ruff-format` | Format | Yes | Unformatted Python code |
 | `check-xml` | Syntax | Yes | Malformed XML |
 | `check-yaml` | Syntax | Yes | Malformed YAML |
@@ -294,6 +436,7 @@ These files are intentionally excluded from specific checks:
 | `trailing-whitespace` | Format | Yes | Trailing whitespace |
 | `check-added-large-files` | Guard | Yes | Files over 1000 KB |
 | `check-merge-conflict` | Guard | Yes | Leftover merge conflict markers |
+| `conventional-pre-commit` | Format | Yes (commit-msg stage) | Non-conventional commit messages |
 | `odoo-patterns` | Odoo | Yes | 24 Odoo 19 pattern checks |
 | `module-wiring` | Odoo | Yes | Manifest deps + `__init__.py` imports |
 | `cron-invariants` | Odoo | Yes | Cron safety rules |
@@ -312,11 +455,17 @@ These files are intentionally excluded from specific checks:
 | `automation-field-refs` | Odoo | Yes | Automation field references |
 | `state-guard-bypass` | Odoo | Yes | State guard bypass detection |
 | `acl-completeness` | Odoo | **No** | ACL coverage (warn-only) |
+| `phantom-enum-values` | Odoo | Yes (pre-push) | `tests/test_phantom_enum_values.py` |
+| `manifest-contract` | Odoo | Yes (pre-push) | `tests/test_repo_dependency_integrity.py` (version, depends order) |
 | `pipeline-v2-guard` | Odoo | Yes | Import fence for pipeline v2 |
 | `dev-tools-fence` | Odoo | Yes | Dev tools not imported from production |
 | `critical-manifest` | Odoo | Yes | Critical manifest rules |
 | `enhanced-audit` | Odoo | Yes | Enhanced code audit |
+| `gitleaks-commit` | Security | Yes | Secret scan on staged files (commit stage) |
+| `gitleaks-push` | Security | Yes (pre-push) | Full repo secret scan on push |
 | `mypy` | Type | **No** | Type checking (excludes many modules) |
+
+Hooks marked "Yes (pre-push)" only run at the `pre-push` git stage, not on every commit — see `.pre-commit-config.yaml` `stages:`.
 
 ### Ruff Configuration (from `pyproject.toml`)
 
@@ -324,31 +473,57 @@ These files are intentionally excluded from specific checks:
 |---------|-------|
 | Line length | **120** (not 100) |
 | Target Python | 3.12 |
-| Rules selected | E, W, F, I, B, UP, C90 |
+| Rules selected | E, W, F, I, B, UP, C90, S, A, FLY, INT, LOG, YTT |
 | McCabe max-complexity | 25 |
 | Ignored | E501 (formatter), E731 (lambdas), B008 (Odoo field defaults), B905 (zip strict) |
 | `__init__.py` exempt from | F401 (unused imports), I001 (import order) |
 | `__manifest__.py` exempt from | B018 (bare dict) |
 | `test_*.py` exempt from | F841, B011, F821, B017 |
 
-### Audit Baselines (enforced by `ci.yml` static-checks tier)
+### Audit Baselines (enforced by `ci.yml`'s `audit-baseline` job — separate parallel Phase 1 job, not `static-checks`)
 
-CI fails if HIGH severity findings exceed these baselines:
+CI diffs each scanner's findings against a **per-finding fingerprint log**
+(`ci/baselines/*.json`), not a raw count — see `ci/baselines/README.md` for the
+full workflow and `scripts/audit/baseline_utils.py` for the fingerprinting
+logic. Any finding not already logged fails the gate, so "count stayed the
+same" can never mask "one known issue got fixed, one new one appeared."
+Run `make audit-baseline` locally to reproduce.
 
-| Audit | Baseline | Notes |
-|-------|----------|-------|
-| `odoo_audit.py` HIGH | 0 | Any new HIGH finding blocks merge |
-| Extended audit HIGH | 4 | Pre-existing N+1 in `plasticos_logistics/load.py` and `plasticos_transaction/transaction.py` |
-| XPath CRITICAL | 0 | No new CRITICAL XPath issues allowed |
-| XPath HIGH | 0 | No new HIGH XPath issues allowed |
+| Audit | Baseline file | Gated severities | Notes |
+|-------|--------------|-------------------|-------|
+| `scripts/audit/odoo_audit.py` | `ci/baselines/odoo_audit_baseline.json` | CRITICAL, HIGH | 444x `FIELD_NOT_FOUND` (CRITICAL) — script misattributes `ir.ui.view`/`ir.actions.act_window` container fields (`arch`, `inherit_id`, `name`, `view_mode`, `res_model`, `context`, `help`, `search_view_id`, `target`, `priority`) as fields of the model the view displays; 1x `INVALID_CONSTRAINT_FIELD` (HIGH) on `plasticos_transaction/models/transaction.py` (`commission_override_pct`) — field is added via cross-module `_inherit` from `plasticos_commission`, the single-file scanner can't see it |
+| `scripts/audit/run_all_audits.py` | `ci/baselines/extended_audit_baseline.json` | HIGH | 9x `N_PLUS_ONE_QUERY` (`transaction.py`, `purchase_inherit.py`, `load.py` x3, `facility_profile.py` x2, `intake_extension.py`, `commission_rule.py`) — real pattern, accepted as low-impact debt (small recordsets); 6x `SENSITIVE_DATA_LOGGED` keyword false positives on "token"/"api_key" substrings in log messages (`pr_autopilot.py`, `pr_check_remote_feedback.py`, `web_leads` post-migrate) — none log actual secret values |
+| XPath CRITICAL | — (count-based, unchanged) | — | 0 — no new CRITICAL XPath issues allowed |
+| XPath HIGH | — (count-based, unchanged) | — | 0 — no new HIGH XPath issues allowed |
 
-### Version Drift Warning
+To log a newly-reviewed false positive or accepted-debt finding (never edit the
+scanner scripts to special-case it): `python3 scripts/audit/check_baseline.py
+<report.json> <baseline.json> --severities ... --dump-new`, review the printed
+entries, then merge them into the baseline file's `entries` array. Full
+workflow: `ci/baselines/README.md`.
 
-| Tool | Pre-commit | CI (`ci.yml`) |
-|------|-----------|--------------|
-| Ruff | `v0.15.5` | `0.14.11` |
+### Version Lockstep
 
-Pre-commit and CI may use different ruff versions. Always run `pre-commit run --all-files` locally before pushing.
+| Tool | Pre-commit | CI (`ci.yml`) | Local (`make venv` / `requirements-dev.txt`) | `pyproject.toml` |
+|------|-----------|--------------|------------------------------------------------|-------------------|
+| Ruff | `v0.16.0` | `0.16.0` | `make venv` pins `ruff==0.16.0` explicitly | `required-version = "==0.16.0"` (hard-fails on any drift — this is the enforcement mechanism, not a lockfile) |
+| mypy | `v1.14.0` | `1.14.0` | `requirements-dev.txt` pins `mypy==1.14.0` | `[tool.mypy]` config (no version field — mypy has no `required-version` equivalent) |
+| Semgrep | n/a (not a hook) | `1.164.0` | `make venv` pins `semgrep==1.164.0` explicitly | n/a |
+| pytest | n/a (not a hook) | `8.3.5` / `pytest-timeout==2.4.0` / `pytest-cov==5.0.0` | `requirements-dev.txt` — same three pins | `[tool.pytest.ini_options]` |
+| gitleaks | pre-commit hook (`gitleaks-commit`/`gitleaks-push`, unpinned local binary) | SHA-pinned action (`gitleaks/gitleaks-action@ff98106e...`, tag `v2`) | local `gitleaks` binary version, unpinned | n/a |
+| shellcheck | not yet a pre-commit hook | unpinned (`apt-get install -y shellcheck` = whatever Ubuntu ships) | unpinned (`brew install shellcheck`) | n/a |
+
+Ruff is the only tool with a **hard version gate** (`required-version` in `pyproject.toml` — this is
+what caught the drift on 2026-07: a global `ruff==0.14.11` on PATH refused to run against a repo
+then pinned to `0.15.5`). The live pin is `0.16.0` in this table, `.pre-commit-config.yaml` (`v0.16.0`),
+`ci.yml`, and `requirements-dev.txt`. This repo intentionally has **no `uv.lock`** — see
+`.cursor/rules/88-plasticos-odoo-python-tooling.mdc` "Non-goals": there's no `[project]` table in
+`pyproject.toml` because this is an Odoo addon suite, not a pip/uv-installable package. The
+equivalent of a lockfile here is **pins repeated at each of the three sites above** (pre-commit,
+CI, local `requirements-dev.txt`/`make venv`), kept in lockstep manually. Bump a tool by updating
+all applicable cells in one PR; `make venv` and `pre-commit autoupdate` regenerate the local/hook
+pins, `pyproject.toml`'s `required-version` (Ruff only) is what actually blocks a stale local tool
+from running silently. Always run `pre-commit run --all-files` locally before pushing.
 
 ## Boundaries
 
@@ -359,6 +534,7 @@ Pre-commit and CI may use different ruff versions. Always run `pre-commit run --
 - Declare dependencies in `__manifest__.py` before importing
 - Seed data in XML with `noupdate="1"` and external IDs
 - Run `python3 scripts/check_module_wiring.py` before commit
+- Keep PlasticOS skills under `skills/` (repo law: `skills/PLASTICOS_CANONICAL_LAW.md`); run `make check-plasticos-skills` when adding or moving skills
 
 ### ⚠️ Ask First
 - Adding new modules (affects dependency graph and install order)
@@ -366,7 +542,7 @@ Pre-commit and CI may use different ruff versions. Always run `pre-commit run --
 - Changing security groups or record rules
 - Adding new `ir.cron` scheduled actions
 - Neo4j integration changes (graph boundary rules apply)
-- Gate / CEG integration (follow `docs/adr/ADR-002` and `docs/GATE_AUTONOMY_ROADMAP.md`)
+- Gate / CEG / EIE integration (follow `docs/adr/ADR-003-single-external-intelligence-authority.md`, ADR-002 topology, ADR-009–018 convergence set, and `docs/GATE_AUTONOMY_ROADMAP.md`)
 - Schema changes to `res.partner` (partner model constraints)
 
 ### 🚫 Never
@@ -384,5 +560,184 @@ Pre-commit and CI may use different ruff versions. Always run `pre-commit run --
 - Create custom partner role booleans → use native `customer_rank`/`supplier_rank`
 - Commit test data to production seed files
 - Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`
-- Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see ADR-002)
-- Apply Gate web-lead triage or remove local matcher fallback in Phase 1 (see GATE_AUTONOMY_ROADMAP.md)
+- Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see ADR-003-single + ADR-002)
+- Treat local matcher/enrichment engines as architectural intelligence authority (ADR-003-single; mothball M1–M8 sealed — use `make no-local-intelligence` / `ci/check_no_local_intelligence.py`; M8 guards are **blocking** in CI/pre-commit)
+- Apply Gate web-lead triage in Phase 1 (see GATE_AUTONOMY_ROADMAP.md) — triage stays Odoo-local until Phase 3
+- Overwrite `docs/adr/ADR-003-contact-import-configuration.md` when editing the mothball ADR-003-single file (filename collision)
+
+<!-- BEGIN L9 FORMATTER OWNERSHIP (generated — do not edit) -->
+
+## Formatter ownership
+
+Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, VS Code JSON language features owns JSONC (the Biome extension cannot format jsonc), Ruff owns Python, Prettier owns Markdown (format-on-save off so governance docs do not churn).
+
+Exactly one formatter owns each language. Do not reformat a file with a tool other than its owner, and do not add config for a competing formatter: the result is a diff that churns on every save.
+
+| Languages | Owner | Note |
+|---|---|---|
+| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json` | **biome** | bound by the governed IDE profile |
+| `jsonc` | **vscode-json** | bound by the governed IDE profile |
+| `python` | **ruff** | bound by the governed IDE profile |
+| `markdown` | **prettier** | bound by the governed IDE profile |
+
+Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
+
+<!-- END L9 FORMATTER OWNERSHIP -->
+
+> **2026-10-06 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the `make import-legacy-erp` line in the Commands block above is superseded. The canonical ERP import
+> command is **`make import-erp`** (`plasticos_partner_import/scripts/import_erp_shell.py`, driven by
+> `plasticos_partner_import/models/erp_import_service.py`). ERP data enters through SQL (ADR-021): set
+> `ERP_SQL_SERVER` / `ERP_SQL_DATABASE` (plus `ERP_SQL_USER` / `ERP_SQL_PASSWORD`, or `ERP_SQL_DRIVER=pyodbc`)
+> for a direct read of the restored source database; the frozen grid extract under
+> `plasticos_partner_import/erp_extracted_data/bulk/` is a regression fixture, not runtime authority.
+> `PARTNERS_ONLY=1` runs Concern 1 (counterparties → addresses → contacts → roles → salespersons) with
+> each layer validated before anything commits. Runbook: `docs/runbooks/ERP_IMPORT.md`.
+
+> **2026-10-07 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Publication override: `make pr` is the sole publication SSOT.
+> `make push` and `make push pr=1` are retired and must not be used for publication.
+> The Commands block above that names those ceremonies is historical and is superseded by this correction.
+> A failed remote-feedback gate must be resolved before `make pr`.
+
+> **2026-10-17 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Enterprise Docker runtime tests (`make test-module`, `make test-odoo`, `scripts/test_env.sh`)
+> clone only the database named in `config/test_env_fixture.conf`
+> (`odoo_test_tpl_ee_c9e8a81f52f23680`). Another test database is not a substitute.
+> A new template is refused unless that database is absent and `TEST_ENV_ALLOW_NEW_TEMPLATE`
+> equals that name. `TEST_ENV_PARITY=community` is refused unless `TEST_ENV_SAFETY_HARNESS=1`.
+> Rule: `.cursor/rules/36-plasticos-docker-test-fixture.mdc`.
+
+> **2026-10-18 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr` remains the only publication command. `make commit` does not ask to launch it.
+> A feature-branch SHA is validated by the pull_request CI event. Pushes to `Staging` and
+> `Production` are validated by the push event. `workflow_dispatch` remains for the repo-index bot.
+
+> **2026-10-18 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> The Project Structure line for `plasticos_documents_native` names it only as the Layer 4 Enterprise Documents bridge.
+> That bridge is `installable: True`, `application: True`, and `auto_install: True`. Odoo installs it when Enterprise
+> `documents`, `documents_account`, and its PlasticOS dependencies are installed.
+> `plasticos_semantic_kernel` is optional (`auto_install: False`) and stays uninstalled. No module depends on it.
+> Do not add `plasticos_semantic_kernel` to any `depends` list.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the `l9-gmp-protocol` row in the Agent Skills table above is retired. Cursor-Governance removed
+> `skills/l9-gmp-protocol` (PR #744, merged 2026-10-21); the tracked projection `.claude/skills/l9-gmp-protocol`,
+> its `.l9-managed-skills.json` entry and its `.claude/README.md` row were removed with it. Deterministic phased
+> GMP execution is the `/gmp` slash command, which runs the governance executor against this clone:
+> `"$GOV_PY" "$GOV/workflows/gmp_executor.py" --workspace "$(git rev-parse --show-toplevel)" …`
+> (`commands/gmp.md` in Cursor-Governance). Do not re-add the skill symlink.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Repo Index block above that names `reports/repo-index/` is superseded.
+> Lookup indexes live at `docs/reports/repo-index/`. Regenerate them with
+> `python3 scripts/repo_generators/export_repo_indexes.py`.
+> Do not create a root `reports/` directory. The global `l9-repo-index` skill's
+> default output path does not apply in this repo. The line that says no
+> repo-local generator exists is also superseded: the generator is
+> `scripts/repo_generators/export_repo_indexes.py`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> GMP execution reports are saved in `docs/reports/gmp-reports/` and committed.
+> Do not write them to a root `reports/` directory, do not scatter them, and do not
+> finish a GMP without saving the report. `docs/GATE_AUTONOMY_ROADMAP.md` moved to
+> `docs/roadmap/GATE_AUTONOMY_ROADMAP.md`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the `make roadmap` and `make roadmap-list` commands above, and the generated Gate
+> autonomy document they named, are retired. Do not restore that generator.
+> `docs/roadmap/` is hand-authored strategic planning; no script may write it.
+> Phase criteria are ADR-002 §3, ADR-016, and ADR-018. Web-lead triage stays in
+> Odoo until an ADR amendment.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `docs/runbooks/ERP_IMPORT.md` does not exist. The ERP import contract is
+> ADR-021 and `plasticos_partner_import` (`erp/mapping.py`, `erp/mapping_status.py`,
+> `erp/reader.py`). The unadopted `docs/runbooks/erp_sync_mapping_matrix/` proposal
+> was removed. Do not restore it.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `memory-bank/` is retired. Do not recreate it. Session resume is Graphiti
+> (`https://github.com/Quantum-L9/l9-graphiti-memory`). Current operational
+> state is `workflow_state.md`. Code debt stays in `docs/campaigns/odoo_tech_debt`.
+
+> **2026-10-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the sentence above that says `docs/GATE_AUTONOMY_ROADMAP.md` moved to
+> `docs/roadmap/GATE_AUTONOMY_ROADMAP.md` is superseded. That generated file
+> was deleted. `docs/roadmap/` was emptied on purpose, including `README.md`.
+> `docs/erp_extract_research.md` is removed with the retired `data/erp_sm_export/`
+> probe. SQL authority is `plasticos_partner_import/erp_extracted_data/` and
+> `erp/reader.py`. `docs/runbooks/` is removed. The CI contract note lives at
+> `docs/reports/CI_CONTRACT_ASSURANCE.md`.
+
+> **2026-10-22 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the GATE-01 Baseline Ratchet is retired. `.github/workflows/baseline-ratchet.yml` and its two
+> ledgers under `.l9/baselines/` were removed. Every sentence above that names `baseline-ratchet.yml`,
+> "Baseline Ratchet", or `Ratchet Verdict` as a CI gate is superseded. On each PR push, **CI Gate** and
+> **L9 Analysis** start together; `CI Gate Result` is the merge aggregator. The `audit-baseline` job in
+> `ci.yml` (`ci/baselines/*.json`) is separate and unchanged. Do not re-add the ratchet caller.
+
+> **2026-10-22 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr-check` (and therefore `make pr`) runs only what the branch changed can reach. `scripts/pr_check_scope.py`
+> compares the branch with `origin/Staging` (committed range, working tree, untracked files) and decides once:
+> `audit` + `audit-baseline` run when any non-documentation path changed; pytest runs only the test modules
+> touched by, or reading, the changed paths (`make test-scoped`; the whole suite when `tests/conftest.py`,
+> `tests/common.py`, `pyproject.toml` or requirements changed); the Docker install-smoke (and its post-gate
+> `--recheck`) runs only when an addon load input or an installer input changed. A documentation-only branch
+> publishes with no collector and no Docker. Every doubt (no base, no change, a scope failure) keeps the whole
+> gate, as does `PR_CHECK_SCOPE=full`. Receipt: `.cache/pr-check/scope.json`. `make test` and GitHub `ci.yml`
+> still run the whole suite; `ci.yml` stays the merge verdict. `make pr-nosmoke` is unchanged.
+
+> **2026-10-23 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> these Agent Skills rows are retired. Cursor-Governance archived the packs out of live `skills/` discovery: `l9-governance-wiring`, `l9-harvest-pipeline`, `l9-inspect`, `l9-plan`, `l9-pr-analysis`, `l9-update-command`, and `l9-wire-skill-into-repo`. The tracked projections `.claude/skills/<name>`, their `.l9-managed-skills.json` entries, and their `.claude/README.md` rows were removed, as with the 2026-10-21 `l9-gmp-protocol` removal. Replacements: `l9-governance-wiring` → `l9-wire-into-repo` and `l9-governance-symlinks`; `l9-harvest-pipeline` → `/harvest` and `/use-harvest`; `l9-inspect` → `/inspect`; `l9-plan` → `l9-plan-simple` for ordinary plans (program-execution planning has no live owner); `l9-pr-analysis` → `l9-pr-remediation`; `l9-update-command` → `l9-dag-authoring`; `l9-wire-skill-into-repo` → `l9-wire-into-repo`. Do not re-add the skill symlinks.
+
+> **2026-11-03 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-10-21 sentence "Code debt stays in `docs/campaigns/odoo_tech_debt`" is superseded. PR #355 retired
+> that tracker (`00_README.md`, `OPEN_REGISTER.json`, `OPEN_REGISTER.md`, `_build_register.py`), and no
+> repository debt tracker replaces it. `workflow_state.md` remains the operational state of open campaigns.
+> `docs/erp_import_mapping.md` stays: it is the ERP import mapping authority cited by
+> `plasticos_partner_import/erp/mapping_status.py`, ADR-022 and the source-layer tests.
+
+> **2026-10-30 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Never line "Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`" is superseded
+> by operator decision 2026-10-30. A material profile belongs to a partner. No facility profile is required.
+> The VanillaSoft import puts an approved contact's materials on its resolved facility partner. When that site
+> cannot be resolved, they go on the matched ERP contact person. A facility profile is used only when exactly one
+> already exists for that partner.
+
+> **2026-11-03 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the "36 hooks" counts above (Commands block and the Pre-commit Hooks table heading) are superseded:
+> `.pre-commit-config.yaml` declares **39** hooks and `default_stages: [pre-commit]`. The pre-push stage is
+> 10 hooks: `check-xml`, `check-yaml`, `end-of-file-fixer`, `trailing-whitespace`, `check-added-large-files`,
+> `check-merge-conflict`, `phantom-enum-values`, `manifest-contract`, `gitleaks-push`, and `pr-validate`.
+> The 23 whole-tree Odoo scanners in the table are commit-stage hooks only. All 23 still run inside `make pr-check`
+> (`make audit`, including `scripts/run_audit_integrity.sh`), but no longer a second time at push. 20 of them also
+> run in `ci.yml` (`cron-invariants` through `tests/test_cron_invariants.py`); `constraint-patterns`,
+> `disabled-actions`, and `automation-field-refs` do not, so `ci.yml` does not re-check those three.
+> `make pr` (`scripts/git_push_with_pr.sh`)
+> owns an unconditional gate on every attempt (gitleaks, smoke resolve, `make pr-check`, smoke recheck), then a
+> second L4 check immediately before `git push`. Its push alone carries a binding that `scripts/pre_push_validate.sh`
+> honours only for that exact SHA, clean `HEAD`, `origin`, and target branch, and only when `L9_PUBLISH_PID` names a
+> live ancestor whose argv[0] or argv[1] is `scripts/git_push_with_pr.sh` (unreadable ancestry fails closed), so
+> each attempt validates once. Every other push, including a direct `git push` that sets the binding variables
+> itself, runs the full gate in the hook. A direct `git push` is validated but is not publication
+> (no L4, no PR). Supported push forms and the threat model are in `docs/reports/make-pr-validation-consolidation.md`.
+
+> **2026-11-04 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr base=<branch>` stacks onto an open feature branch whose pull request targets `Staging`.
+> Production stays refused. Merge the parent pull request into `Staging` first.
+
+> **2026-11-04 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make install-smoke`, and the smoke wave inside `make pr` / `make pr-check`, clone the database named in
+> `config/test_env_fixture.conf` and upgrade the PlasticOS roster on that clone. They do not drop
+> `odoo_install_smoke` or install from an empty database. The from-empty install remains
+> `scripts/test_env.sh template`, which runs on first admission and on `make test-env-rebuild`.
+> `make test-env-rebuild` is the operator recovery when the image, Postgres major, module roster,
+> configuration, or Enterprise checkout no longer matches the admitted template. It refuses when that
+> template is already admitted for the current inputs. Do not set `TEST_ENV_ALLOW_NEW_TEMPLATE` by hand.
+> Smoke runs when `scripts/pr_check_scope.py` says an addon load input or an installer input changed.
+> A documentation-only scope, `PR_CHECK_SKIP_SMOKE=1`, and `make pr-nosmoke reason=...` still skip it.
+> `INSTALL_SMOKE_GATE` is no longer required. `l9-pr-integration-testing` in this repo uses the same
+> fixture: `scripts/test_env.sh clone` and `scripts/test_env.sh run` on the host compose stack.
+> Another database and the toolchain-image quick path are not an Odoo runtime result here.
+> An unproven fixture stops at `make test-env-rebuild`.

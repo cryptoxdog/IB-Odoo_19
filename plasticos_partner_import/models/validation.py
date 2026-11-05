@@ -34,40 +34,37 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         """
         Validate Plasticos partner hierarchy:
         - Corporates: company_type=company, parent_id=False
-        - Facilities: company_type=company, parent_id set, facility_role set
+        - Facilities / locations: company_type=company, parent_id set
         - Contacts: company_type=person, parent_id set, is_company=False
+
+        ``facility_role`` is not part of the graph contract: the facility
+        profile authority (plasticos_facility_profile.res_partner) supplies it
+        through enrichment or manual entry, never derives it from partner type,
+        so an imported location is valid without a facility specialization.
         """
-        partners = self.env["res.partner"].search(
+        # Corporates (company, no parent) and locations (company with a
+        # parent) are valid by definition, so only contacts are read. Of
+        # those, a contact can fail only when it has no parent or carries
+        # is_company=True; the res.users exemption stays in Python below.
+        candidates = self.env["res.partner"].search(
             [
-                "|",
-                ("company_type", "=", "company"),
                 ("company_type", "=", "person"),
+                "|",
+                ("parent_id", "=", False),
+                ("is_company", "=", True),
             ]
         )
 
         errors = []
-        for p in partners:
-            # Corporate validation: no parent
-            if p.company_type == "company" and not p.parent_id:
-                # This is a corporate - valid
-                continue
-
-            # Facility validation: company with parent must have facility role
-            if p.company_type == "company" and p.parent_id:
-                if not p.facility_role:
-                    errors.append(f"Facility '{p.name}' (id={p.id}) missing facility_role")
-                continue
-
+        for p in candidates:
             # Contact validation: person must have parent and not be company
             # Exception: partners linked to res.users (admin, cron, internal users) may
             # have no parent. Use user_ids (inverse of users.partner_id) — a bare
             # res.users search can miss rows under some registry/context combinations.
-            if p.company_type == "person":
-                if not p.parent_id and not p.user_ids:
-                    errors.append(f"Contact '{p.name}' (id={p.id}) missing parent_id")
-                if p.is_company:
-                    errors.append(f"Contact '{p.name}' (id={p.id}) has is_company=True")
-                continue
+            if not p.parent_id and not p.user_ids:
+                errors.append(f"Contact '{p.name}' (id={p.id}) missing parent_id")
+            if p.is_company:
+                errors.append(f"Contact '{p.name}' (id={p.id}) has is_company=True")
 
         if errors:
             _logger.error("Graph validation failed with %d errors", len(errors))
@@ -75,13 +72,17 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
                 _logger.error("  - %s", err)
             raise ValidationError(f"BLOCKER: GRAPH_VALIDATION_FAILURE ({len(errors)} errors)")
 
-        _logger.info("Partner graph validated: %d partners checked", len(partners))
+        _logger.info("Partner graph validated: %d contact candidate(s) checked", len(candidates))
         return True
 
     def audit_import_integrity(self):
         """
         Report possible issues after a partial or incorrect import.
         Does not raise; returns a dict of findings for display or repair.
+
+        ``facilities_missing_role`` is informational (locations awaiting
+        enrichment), never an integrity error: facility_role is supplied by
+        enrichment or manual entry and is not derived from partner type.
 
         Returns:
             dict with keys: old_external_ids, facilities_missing_role,
@@ -105,15 +106,16 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         ]
 
         # 2. Facility companies (company + parent) missing facility_role
+        # facility_role is a stored, indexed selection: unset is NULL, which
+        # "= False" selects, so only the reported locations are read.
         facilities = Partner.search(
             [
                 ("company_type", "=", "company"),
                 ("parent_id", "!=", False),
+                ("facility_role", "=", False),
             ]
         )
-        facilities_missing_role = [
-            {"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities if not p.facility_role
-        ]
+        facilities_missing_role = [{"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities]
 
         # 3. Contacts (person) with no parent
         contacts_no_parent = Partner.search(
@@ -138,7 +140,9 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         if old_external_ids:
             summary_parts.append(f"{len(old_external_ids)} partner(s) with old external ID (plasticos_import)")
         if facilities_missing_role:
-            summary_parts.append(f"{len(facilities_missing_role)} facility(ies) missing facility_role")
+            summary_parts.append(
+                f"{len(facilities_missing_role)} location(s) without a facility_role (enrichment pending; not an error)"
+            )
         if contacts_missing_parent:
             summary_parts.append(f"{len(contacts_missing_parent)} contact(s) with no parent")
         if duplicate_external_ids:
@@ -158,14 +162,18 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
     def repair_import_data(self, dry_run=True):
         """
         Fix common post-import issues:
-        - Set facility_role = 'other' for facility companies that lack it.
         - Migrate ir.model.data from module plasticos_import to plasticos_partner_import
           only when no duplicate (same name) exists in plasticos_partner_import.
+
+        ``facility_role`` is never invented here: a location without one is
+        awaiting enrichment or manual entry, not broken. ``facilities_fixed``
+        stays in the result for callers and is always 0.
 
         Returns:
             dict with keys: facilities_fixed, external_ids_migrated, errors, summary
         """
-        Partner = self.env["res.partner"]
+        # Rewrites ir.model.data ownership: same operator boundary as the import itself.
+        self.env["plasticos.partner.import.service"]._check_import_operator()
         IrModelData = self.env["ir.model.data"]
 
         facilities_fixed = 0
@@ -173,21 +181,6 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         errors = []
 
         if not dry_run:
-            # Fix facilities missing facility_role
-            facilities = Partner.search(
-                [
-                    ("company_type", "=", "company"),
-                    ("parent_id", "!=", False),
-                    ("facility_role", "=", False),
-                ]
-            )
-            for p in facilities:
-                try:
-                    p.facility_role = "other"
-                    facilities_fixed += 1
-                except Exception as e:
-                    errors.append(f"Facility id={p.id} ({p.name}): {e}")
-
             # Migrate external IDs: plasticos_import -> plasticos_partner_import where no duplicate
             new_names = set(
                 IrModelData.search(
@@ -216,7 +209,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
             "Dry run: no changes."
             if dry_run
             else (
-                f"Fixed {facilities_fixed} facility role(s); migrated {external_ids_migrated} external ID(s)."
+                f"Migrated {external_ids_migrated} external ID(s); facility roles are left to enrichment."
                 + (" " + "; ".join(errors[:5]) if errors else "")
             )
         )

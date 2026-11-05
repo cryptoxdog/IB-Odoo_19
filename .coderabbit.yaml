@@ -79,7 +79,6 @@ reviews:
     - 'tests/test_cypher_schema_alignment.py'
     - 'tests/test_phantom_enum_values.py'
     - 'tests/test_odoo19_compat.py'
-    - 'tests/test_cron_batch_normalize.py'
 
   path_instructions:
     - path: 'README.md'

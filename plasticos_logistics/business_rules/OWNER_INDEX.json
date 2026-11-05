@@ -1,0 +1,160 @@
+[
+  {
+    "brs_id": "BRS-01",
+    "title": "Transaction, movement identity and company boundary",
+    "existing_implementation_owner": "plasticos_logistics",
+    "concern": "Load association, transaction spine and release eligibility",
+    "authority_status": "PROPOSED_PACK_CONCERN_INDEX_NOT_REPOSITORY_REGISTRATION",
+    "source_revision": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+    "revision": "0.3.0-source-reconciled-candidate",
+    "rules": [
+      "BRS-01-R001",
+      "BRS-01-R002",
+      "BRS-01-R003",
+      "BRS-01-R065"
+    ],
+    "rule_count": 4,
+    "canonical_product_owner": "Target repository current local code/ADRs, not this pack",
+    "registration": "NOT_REGISTERED"
+  },
+  {
+    "brs_id": "BRS-02",
+    "title": "Supplier readiness and verified responses",
+    "existing_implementation_owner": "plasticos_logistics",
+    "concern": "One attributable supplier answer for the right load/request",
+    "authority_status": "PROPOSED_PACK_CONCERN_INDEX_NOT_REPOSITORY_REGISTRATION",
+    "source_revision": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+    "revision": "0.3.0-source-reconciled-candidate",
+    "rules": [
+      "BRS-02-R004",
+      "BRS-02-R005",
+      "BRS-02-R006",
+      "BRS-02-R007",
+      "BRS-02-R008",
+      "BRS-02-R009",
+      "BRS-02-R010",
+      "BRS-02-R011",
+      "BRS-02-R012",
+      "BRS-02-R013",
+      "BRS-02-R014",
+      "BRS-02-R015",
+      "BRS-02-R062"
+    ],
+    "rule_count": 13,
+    "canonical_product_owner": "Target repository current local code/ADRs, not this pack",
+    "registration": "NOT_REGISTERED"
+  },
+  {
+    "brs_id": "BRS-03",
+    "title": "Facility terms and appointments",
+    "existing_implementation_owner": "plasticos_facility_profile + plasticos_logistics",
+    "concern": "Pickup and delivery independently determined and committed",
+    "authority_status": "PROPOSED_PACK_CONCERN_INDEX_NOT_REPOSITORY_REGISTRATION",
+    "source_revision": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+    "revision": "0.1.0-proposed",
+    "rules": [
+      "BRS-03-R016",
+      "BRS-03-R017",
+      "BRS-03-R018",
+      "BRS-03-R019",
+      "BRS-03-R020",
+      "BRS-03-R021",
+      "BRS-03-R022"
+    ],
+    "rule_count": 7,
+    "canonical_product_owner": "Target repository current local code/ADRs, not this pack",
+    "registration": "NOT_REGISTERED"
+  },
+  {
+    "brs_id": "BRS-04",
+    "title": "Freight policy and carrier booking",
+    "existing_implementation_owner": "plasticos_logistics",
+    "concern": "SAL/rate quote commercial policy and distinct booking acceptance",
+    "authority_status": "PROPOSED_PACK_CONCERN_INDEX_NOT_REPOSITORY_REGISTRATION",
+    "source_revision": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+    "revision": "0.3.0-source-reconciled-candidate",
+    "rules": [
+      "BRS-04-R023",
+      "BRS-04-R024",
+      "BRS-04-R025",
+      "BRS-04-R026",
+      "BRS-04-R027",
+      "BRS-04-R028",
+      "BRS-04-R067"
+    ],
+    "rule_count": 7,
+    "canonical_product_owner": "Target repository current local code/ADRs, not this pack",
+    "registration": "NOT_REGISTERED"
+  },
+  {
+    "brs_id": "BRS-05",
+    "title": "Dispatch, messages and confidentiality",
+    "existing_implementation_owner": "plasticos_logistics + plasticos_automation",
+    "concern": "One guarded sender and party-scoped documents",
+    "authority_status": "PROPOSED_PACK_CONCERN_INDEX_NOT_REPOSITORY_REGISTRATION",
+    "source_revision": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+    "revision": "0.3.0-source-reconciled-candidate",
+    "rules": [
+      "BRS-05-R029",
+      "BRS-05-R030",
+      "BRS-05-R031",
+      "BRS-05-R032",
+      "BRS-05-R033",
+      "BRS-05-R034",
+      "BRS-05-R035",
+      "BRS-05-R036"
+    ],
+    "rule_count": 8,
+    "canonical_product_owner": "Target repository current local code/ADRs, not this pack",
+    "registration": "NOT_REGISTERED"
+  },
+  {
+    "brs_id": "BRS-06",
+    "title": "Physical checkpoints and follow-ups",
+    "existing_implementation_owner": "plasticos_logistics + plasticos_automation",
+    "concern": "Physical evidence and event-specific escalation",
+    "authority_status": "PROPOSED_PACK_CONCERN_INDEX_NOT_REPOSITORY_REGISTRATION",
+    "source_revision": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+    "revision": "0.3.0-source-reconciled-candidate",
+    "rules": [
+      "BRS-06-R037",
+      "BRS-06-R038",
+      "BRS-06-R039",
+      "BRS-06-R040",
+      "BRS-06-R041",
+      "BRS-06-R042",
+      "BRS-06-R043",
+      "BRS-06-R044",
+      "BRS-06-R068"
+    ],
+    "rule_count": 9,
+    "canonical_product_owner": "Target repository current local code/ADRs, not this pack",
+    "registration": "NOT_REGISTERED"
+  },
+  {
+    "brs_id": "BRS-07",
+    "title": "Delivery, documents and operational closeout",
+    "existing_implementation_owner": "plasticos_documents_native + plasticos_documents + plasticos_logistics",
+    "concern": "Validated receiver/document truth and separate transaction close",
+    "authority_status": "PROPOSED_PACK_CONCERN_INDEX_NOT_REPOSITORY_REGISTRATION",
+    "source_revision": "4ac9bfa59bb3b1c595f2105d3a23326c72f0fb1e",
+    "revision": "0.3.0-source-reconciled-candidate",
+    "rules": [
+      "BRS-07-R045",
+      "BRS-07-R046",
+      "BRS-07-R047",
+      "BRS-07-R048",
+      "BRS-07-R049",
+      "BRS-07-R050",
+      "BRS-07-R051",
+      "BRS-07-R052",
+      "BRS-07-R053",
+      "BRS-07-R054",
+      "BRS-07-R055",
+      "BRS-07-R056"
+    ],
+    "rule_count": 12,
+    "canonical_product_owner": "Target repository current local code/ADRs, not this pack",
+    "registration": "NOT_REGISTERED"
+  }
+]

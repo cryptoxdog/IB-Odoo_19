@@ -25,6 +25,7 @@
 
       <!-- Add material fields after product in line form -->
       <xpath expr="//field[@name='order_line']/list/field[@name='product_id']" position="after">
+        <field name="material_grade_id" optional="show"/>
         <field name="color_id" optional="show"/>
         <field name="form_id" optional="show"/>
         <field name="packaging_type_id" optional="hide"/>
@@ -45,6 +46,7 @@
     <field name="inherit_id" ref="purchase.purchase_order_line_search"/>
     <field name="arch" type="xml">
       <xpath expr="//search" position="inside">
+        <field name="material_grade_id" string="Material Grade"/>
         <field name="color_id" string="Color"/>
         <field name="form_id" string="Form"/>
         <field name="packaging_type_id" string="Packaging"/>
@@ -56,6 +58,7 @@
         <filter string="Color" name="group_color" context="{'group_by': 'color_id'}"/>
         <filter string="Form" name="group_form" context="{'group_by': 'form_id'}"/>
         <filter string="Packaging" name="group_packaging" context="{'group_by': 'packaging_type_id'}"/>
+        <filter string="Material Grade" name="group_material_grade" context="{'group_by': 'material_grade_id'}"/>
         <filter string="Source" name="group_source" context="{'group_by': 'source_type_id'}"/>
         <filter string="Filler" name="group_filler" context="{'group_by': 'filler_type_id'}"/>
       </xpath>
