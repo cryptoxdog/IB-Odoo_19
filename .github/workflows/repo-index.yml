@@ -1,13 +1,10 @@
 name: Update Repo Index
 
-# Runs after every PR merge (a merge always produces a push to the base
-# branch) plus manual dispatch. Keeps docs/reports/repo-index/*.txt fresh via
-# the l9-repo-index skill's repo-local generator.
+# Manual only. A push to Staging does not regenerate indexes or open a PR.
+# workflow_dispatch still runs the generator and, when docs/reports/repo-index
+# changed, publishes chore/repo-index.
 on:
-  push:
-    branches:
-      - Staging
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: write

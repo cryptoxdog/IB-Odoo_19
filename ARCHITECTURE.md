@@ -521,7 +521,7 @@ Local `docker-compose.yml` provides PostgreSQL + Odoo only (no Neo4j service aft
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | **`ci.yml`** | push + PR (all branches) | **Single CI gate**: lint / static-checks / pure-python-tests / secret-scan / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
-| `repo-index.yml` | push → Staging + manual | Regenerate `docs/reports/repo-index/*.txt` and open the `chore/repo-index` PR |
+| `repo-index.yml` | manual only | Regenerate `docs/reports/repo-index/*.txt` and open the `chore/repo-index` PR |
 | `l9-analysis.yml` | push → Staging + PR + manual | Governed semgrep pipeline (l9-ci-core) — advisory-first, not yet a required check |
 | `security.yml` | push + PR → staging/main + weekly cron | pip-audit, Trivy, Gitleaks |
 | `changelog.yml` | push → Production branch + manual | Auto-update CHANGELOG.md from conventional commits |
