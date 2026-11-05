@@ -229,22 +229,27 @@ class PlasticosClaim(models.Model):
     # ── CRUD ─────────────────────────────────────────────────
     @api.model_create_multi
     def create(self, vals_list):
+        names = []
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.claim") or "New"
             name = vals.get("name")
-            if name and name != "New" and self.search([("name", "=", name)], limit=1):
+            if name and name != "New":
+                names.append(name)
+        taken = set(self.search([("name", "in", names)]).mapped("name")) if names else set()
+        for name in names:
+            if name in taken:
                 raise ValidationError(f"Claim reference '{name}' already exists.")
         return super().create(vals_list)
 
     def write(self, vals):
         """Guard against modifying archived claims (except state changes)."""
         name = vals.get("name")
-        if name:
-            for record in self:
-                duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
-                if duplicate:
-                    raise ValidationError(f"Claim reference '{name}' already exists.")
+        if name and self:
+            # One reference written to several claims is always a duplicate; otherwise one
+            # query asks whether a claim outside this recordset already holds it.
+            if len(self) > 1 or self.search([("name", "=", name), ("id", "not in", self.ids)], limit=1):
+                raise ValidationError(f"Claim reference '{name}' already exists.")
         if "state" not in vals:
             for rec in self:
                 if rec.state == "archived":
