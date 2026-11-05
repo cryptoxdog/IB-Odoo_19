@@ -248,6 +248,13 @@
       <field name="category">engineering</field>
       <field name="sequence">156</field>
     </record>
+    <record id="polymer_1_2_commingled_bottles" model="plasticos.polymer">
+      <field name="name">1-2 Commingled Bottles</field>
+      <field name="code">1_2_COMMINGLED_BOTTLES</field>
+      <field name="full_name">1-2 Commingled Bottles (PET/HDPE)</field>
+      <field name="category">commodity</field>
+      <field name="sequence">235</field>
+    </record>
     <record id="polymer_3_7_commingled_bottles" model="plasticos.polymer">
       <field name="name">3-7 Commingled Bottles</field>
       <field name="code">3_7_COMMINGLED_BOTTLES</field>

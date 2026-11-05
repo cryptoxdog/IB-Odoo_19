@@ -136,6 +136,12 @@ _CRM_EXACT = {
         ("tpe", "TPE", None),
         ("pbt", "PBT", None),
         ("lldpe", "LLDPE", None),
+        # Operator-approved 2026-11-05 (mapping matrix sync)
+        ("tpu", "TPU", None),
+        ("tpv", "TPV", None),
+        ("pvb", "PVB", None),
+        ("ubc", "UBC", None),
+        ("textile", "TEXTILE", None),
     )
 }
 
@@ -274,6 +280,232 @@ _CRM_ALIASES = {
 _CRM_ALIASES["hdpe frac melt"] = _spec(polymer="HDPE", attributes=("frac_melt",))
 _CRM_ALIASES["pvc rigid"] = _spec(polymer="PVC", attributes=("rigid",))
 _CRM_ALIASES["ldpe thick gauge"] = _spec(polymer="LDPE", attributes=("thick_gauge",))
+# Operator-approved 2026-11-05 (mapping matrix sync)
+_CRM_ALIASES["foam - pu"] = _spec(polymer="PU_FOAM")
+_CRM_ALIASES["ibc totes (hmw)"] = _spec(polymer="HDPE_HMW", material_grade="IBC_TOTES")
+_CRM_ALIASES["knock-down crates"] = _spec(polymer="HDPE", material_grade="CRATES")
+_CRM_ALIASES["drip tube"] = _spec(polymer="HDPE")
+_CRM_ALIASES["1-7 bottles"] = _spec(polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+_CRM_ALIASES["co-mingled 1-7 all plastics"] = _spec(
+    polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["1-7 mrp"] = _spec(polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+_CRM_ALIASES["3-7 mixed plastic"] = _spec(
+    polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["3-7 bottles"] = _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+_CRM_ALIASES["mrp 3-7"] = _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+# Operator-approved 2026-11-05 (mapping matrix resolution ledger)
+_CRM_ALIASES["1 & 2 bottles"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["bottles (hd/pet)"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["1 & 2 bottles (pet/hdpe)"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["1 & 2 pet & hdpe co-mingled bottles"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["commingled bottles 1&2"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["ldpe/hdpe grocery film"] = _spec(polymer="HDPE", form="FILM", source="POST_CONSUMER")
+
+
+# Phrases that are call-note text, not material descriptions. The CRM importer
+# checks this before passing a phrase to normalize_material so that call notes
+# in the Materials field produce no error and no profile row.
+_CRM_CALL_NOTE_PHRASES: frozenset[str] = frozenset(
+    {
+        ".22",
+        "0.12/lb on gas tanks",
+        "1 load of rigids. 1/23/14",
+        "3 loads of film",
+        "3 weeks!",
+        "3/9 has sorted bottles",
+        "4/19 has buckets with residue",
+        "50/50 loads of camel back/stretch.",
+        "600+750/36k=.0375 sell as b .12",
+        "98 film",
+        "acrylic. interested in buying pvc from us.",
+        "ag",
+        "ag program",
+        "albert circconi",
+        "aluminum",
+        "and green/black strapping.",
+        "and regrind",
+        "and so on.",
+        "automotive bales",
+        "baled on roll ends.",
+        "became a disaster.",
+        "black film.",
+        "black/white silage film",
+        "broker",
+        "bubble wrap",
+        "bumpers -offered 0.06/lb",
+        "buying spc",
+        "call and ask for nathan",
+        "call back.",
+        "called",
+        "called me back",
+        "carl alm",
+        "chopped banding - combo loads only",
+        "combustible petroleums",
+        "complete mix",
+        "crates",
+        "dave gelharn",
+        "did 2 loads with him",
+        "diesel",
+        "different gauges 10-62",
+        "directed to them by cannon and sons",
+        "distribution center",
+        "do a very small amount",
+        "does 2-3 rigid loads a month.",
+        "does a load a month.",
+        "don't bail.",
+        "double for national. not current.",
+        "double: not current",
+        "faxed over pricing",
+        "films",
+        "finally spoke to buford",
+        "follow up",
+        "follow up.",
+        "frank is operations manager",
+        "gas pipe",
+        "gas tanks",
+        "generates 1-7 and mixed bags.",
+        "generates abs and acrylic sign scrap",
+        "gets rigid",
+        "getting 0.10/lb",
+        "givving it to westrock.",
+        "glass",
+        "going to be a tough nut to crack",
+        "got her on phone",
+        "grade b film",
+        "grocery",
+        "hangers",
+        "has 2 harris balers",
+        "has 3 facilities",
+        "has 3-7",
+        "has b super sacks.",
+        "has bol.",
+        "has c & d buckets",
+        "has film",
+        "has film indeed.",
+        "has grade a & b film",
+        "has mats",
+        "has mixed roll stock",
+        "has rigids and other plastics",
+        "has weight issue",
+        "he doesn't like that number.",
+        "head lights",
+        "heavy weights. good guy.",
+        "hmw",
+        "hmw drums",
+        "howard no longer works there.",
+        "hydraulic fuel",
+        "i need to drive up there",
+        "i offered 0.05/lb",
+        "import/foreign",
+        "iv 72 - clear",
+        "ld",
+        "left a vm 6/6",
+        "left a vm for kurt on contact date.",
+        "left a vm on 3rd",
+        "left a vm on 7/6/09.",
+        "left emmette a vm on the 11th",
+        "light load.",
+        "local guy.",
+        "long island – main office:",
+        "low volume at first. 1 -2 bales a week.",
+        "matress foam",
+        "milk crates baled",
+        "mixed buckets",
+        "mixed rigid plastics",
+        "mixed rigids shit quality",
+        "mrp quoted .085sell price of .12 for his pvc p/u",
+        "msw",
+        "need to further qualify",
+        "need to know what they thought.",
+        "new york 11590",
+        "no more drums",
+        "nobody is aware of anybody here…",
+        "offerd 0.01/lb -0.02/lb",
+        "offered 0.05/lb for his material",
+        "offered 0.17/lb on film",
+        "offered him 0.02/lb",
+        "offered him 0.08/lb",
+        "offered lead",
+        "on 3-17",
+        "penn mar asked me to call john",
+        "pet hdpe bottle only combo loads 1 per quarter - just sold.1/12 next in march.",
+        "pi plastic",
+        "post consume bottles",
+        "pp nonwoven. generates clean abs",
+        "printed as well - .42 baled",
+        "probably won't get it.. but if it will.. we whisper… 6/3",
+        "quoted 0.015/lb on his rigids.",
+        "quoted him 0.18/lb on film",
+        "raff",
+        "regrinds.",
+        "rich has plastic regrind mostly",
+        "right next door to hopewell nursery",
+        "rolls",
+        "royal oak recycling ohio",
+        "runs a huge jersey and brooklyn mrf",
+        "sarah denis might be new contact",
+        "secretary said they do plastics.",
+        "sending me app for downstream",
+        "sends his stuff to town of southold",
+        "sent e-mail should add me on bid.",
+        "sent tammy an e-mail",
+        "ships pe",
+        "should get me pictures today.",
+        "should have plastic scrap",
+        "should start bidding soon.",
+        "should start doing that too.",
+        "should try back shortly.",
+        "some on rolls. non laminated",
+        "sorted bottles",
+        "spoke to a guy named les",
+        "spoke to chris",
+        "spoke to david",
+        "spoke to him finally",
+        "steve luteri passed lead",
+        "stretch",
+        "structural foam",
+        "they received",
+        "they sell mixed pe film",
+        "they ship films",
+        "today!",
+        "totes",
+        "under contract with apc",
+        "uses dom as i use liotta",
+        "visit",
+        "visited facility",
+        "waiting till he gets 38k.",
+        "walmart 95",
+        "wants .04 fob or wont bale it",
+        "wants 0.12/lb across",
+        "wants to sit on his material.",
+        "wants us to bid on everything",
+        "westbury",
+        "wonderful lady",
+        "wv is simple grinder/shredder op.",
+    }
+)
+
+
+def is_crm_call_note(phrase: str) -> bool:
+    """Return True when *phrase* is a call-note string, not a material name.
+
+    The CRM importer calls this before ``normalize_material`` so that call-note
+    text in the ``Materials`` field is silently skipped rather than logged as an
+    unresolved material error.
+    """
+    return _phrase(phrase) in _CRM_CALL_NOTE_PHRASES
 
 
 class MaterialNormalization:
