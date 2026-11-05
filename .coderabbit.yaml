@@ -76,7 +76,6 @@ reviews:
     # These are pure Python tests that CodeRabbit CAN validate
     - 'tests/test_repo_dependency_integrity.py'
     - 'tests/test_process_enum_alignment.py'
-    - 'tests/test_cypher_schema_alignment.py'
     - 'tests/test_phantom_enum_values.py'
     - 'tests/test_odoo19_compat.py'
 

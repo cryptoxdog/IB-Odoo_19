@@ -55,7 +55,6 @@ exercises. Where no single closure covers it (the leaf addons `plasticos_matchin
 | File | Category | Purpose |
 |------|----------|---------|
 | `test_cron_invariants.py` | Static Analysis | Cron configuration validation |
-| `test_cypher_schema_alignment.py` | Schema Validation | Cypher ↔ Neo4j alignment |
 | `test_odoo19_compat.py` | Compatibility | Odoo 19 API patterns |
 | `test_odoo_test_setup_validity.py` | Meta Testing | Test setup validation |
 | `test_phantom_enum_values.py` | Registry Validation | Selection fields vs XML data |
@@ -120,7 +119,6 @@ odoo-bin -d testdb --test-tags performance --stop-after-init # Benchmarks
 odoo-bin -d testdb --test-tags error_handling --stop-after-init
 
 # Pure Python tests (no Odoo required)
-pytest tests/test_cypher_schema_alignment.py -v
 pytest tests/test_phantom_enum_values.py -v
 pytest tests/test_repo_dependency_integrity.py -v
 
