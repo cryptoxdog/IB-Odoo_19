@@ -83,13 +83,17 @@ def get_module_from_path(file_path: Path, root: Path) -> str | None:
 def _extends_named_model(model: dict) -> bool:
     """True when this class extends an existing model instead of defining one.
 
-    A string ``_inherit`` is the usual extension. A list that includes this
-    class's ``_name`` is the same extension plus a mixin. Odoo requires the
-    explicit ``_name`` in that second form.
+    A string ``_inherit`` is an in-place extension only when ``_name`` is
+    absent or equal to that string. A different ``_name`` creates a new model
+    from the parent, so it remains a definition. A list that includes this
+    class's ``_name`` is an extension plus a mixin. Odoo requires the explicit
+    ``_name`` in that second form.
     """
-    if model.get("_inherit"):
-        return True
-    return bool(model.get("_name") and model["_name"] in (model.get("_inherit_list") or []))
+    name = model.get("_name")
+    inherit = model.get("_inherit")
+    if inherit:
+        return not name or name == inherit
+    return bool(name and name in (model.get("_inherit_list") or []))
 
 
 def check_duplicate_models(root: Path) -> list[dict]:
