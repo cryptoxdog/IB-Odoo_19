@@ -1,6 +1,7 @@
 """Grouped image, purchase, and sale counts on a material profile."""
 
 import uuid
+from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
@@ -57,6 +58,8 @@ class TestMaterialProfileCounts(PlasticosTestCase):
         self._assert_line_count(pair, "purchase.order.line", "po_line_count")
         self._assert_line_count(pair, "sale.order.line", "so_line_count")
         self._assert_second_profile_does_not_double_queries(pair)
+        self._assert_new_record_stays_zero(pair)
+        self._assert_absent_line_field_counts_zero(pair)
 
     def _assert_line_count(self, pair, model_name, count_field):
         lines = self.env[model_name]
@@ -88,6 +91,26 @@ class TestMaterialProfileCounts(PlasticosTestCase):
         two_cost = self._count_query_cost(pair)
         self.assertGreaterEqual(one_cost, 1)
         self.assertLess(two_cost, one_cost * 2)
+
+    def _assert_new_record_stays_zero(self, pair):
+        fresh = self.env["plasticos.material.profile"].new({})
+        mixed = fresh | pair
+        self.assertEqual(mixed.mapped("image_count"), [0, 1, 0])
+        self.assertEqual(mixed.mapped("po_line_count"), [0, 1, 0])
+        self.assertEqual(mixed.mapped("so_line_count"), [0, 1, 0])
+
+    def _assert_absent_line_field_counts_zero(self, pair):
+        for model_name, count_field in (
+            ("purchase.order.line", "po_line_count"),
+            ("sale.order.line", "so_line_count"),
+        ):
+            model_cls = type(self.env[model_name])
+            hidden = {name: field for name, field in model_cls._fields.items() if name != "material_profile_id"}
+            pair.invalidate_recordset([count_field])
+            with patch.object(model_cls, "_fields", hidden):
+                self.assertNotIn("material_profile_id", self.env[model_name]._fields)
+                self.assertEqual(pair.mapped(count_field), [0, 0])
+            pair.invalidate_recordset([count_field])
 
     def _count_query_cost(self, records):
         records.invalidate_recordset(_COUNT_FIELDS)
