@@ -1,6 +1,6 @@
 from markupsafe import Markup
 
-from odoo import fields, models
+from odoo import SUPERUSER_ID, fields, models
 
 
 class PlasticosWebLeadCRM(models.Model):
@@ -19,6 +19,16 @@ class PlasticosWebLeadCRM(models.Model):
         HOT is a triage signal, not broker approval: the opportunity starts in
         the seeded non-Won ``New`` stage, stays unassigned, and never creates a
         partner. Submitted facts are copied as-is; estimates are labelled.
+
+        The material_profile_id from the linked intake is propagated to the
+        crm.lead so brokers can see the normalised material specification
+        without navigating to the intake record.
+
+        env.uid fix: the public webhook endpoint uses auth="none" which leaves
+        env.uid=None even after sudo(). message_post calls env.user._is_public()
+        which requires a singleton. We bind a known uid (SUPERUSER_ID) for all
+        mail-thread calls so the author is unambiguous. The crm.lead itself is
+        created without an assigned salesperson (user_id=False) as intended.
         """
         self.ensure_one()
         if self.crm_lead_id:
@@ -50,12 +60,17 @@ class PlasticosWebLeadCRM(models.Model):
             else False,
         }
 
-        lead = self.env["crm.lead"].create(vals)
-        self.crm_lead_id = lead
+        # auth="none" leaves env.uid empty after sudo(). Lead creation, image
+        # sync, and the opportunity note all reach mail.thread, which calls
+        # env.user._is_public() and requires a singleton res.users. Bind that
+        # sequence to SUPERUSER_ID. The opportunity stays unassigned.
+        actor = self.with_user(SUPERUSER_ID)
+        lead = actor.env["crm.lead"].create(vals)
+        actor.crm_lead_id = lead
         synchronize_images = getattr(lead, "_propagate_available_commercial_images", None)
         if callable(synchronize_images):
             synchronize_images()
-        self.message_post(body=Markup("CRM opportunity created: %s") % lead.name)
+        actor.message_post(body=Markup("CRM opportunity created: %s") % lead.name)
         return lead
 
     def _crm_opportunity_description(self):
