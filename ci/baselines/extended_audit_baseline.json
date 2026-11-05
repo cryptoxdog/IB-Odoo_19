@@ -2,7 +2,7 @@
   "_description": "Per-finding allowlist for scripts/audit/run_all_audits.py HIGH findings. Each entry is a known, human-reviewed item -- either a scanner false positive or accepted/tracked technical debt -- NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
   "_how_to_add_entries": "python3 scripts/audit/check_baseline.py extended_audit_report.json ci/baselines/extended_audit_baseline.json --severities HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/performance_audit.py or security_audit.py to special-case a finding.",
   "_verified": "2026-10-10",
-  "_root_cause": "Scoped N_PLUS_ONE_QUERY rows for the repaired relationship and uniqueness paths were removed. SENSITIVE_DATA_LOGGED rows were removed after the scanner stopped treating static api_key/token prose as a leaked value. The operator accepted the 78 remaining loop findings on 2026-10-10 as tracked debt from the structural scanner. The retired plasticos_buyer_match_engine intake_extension fingerprint stays because that file is gone and this campaign did not absorb its successor. The automation_config singleton constraint row was removed once its per-record query became one set-level query. The document_sync batch_sync_unlinked row is a reviewed false positive: the loop is id-keyset pagination issuing one search per 200-document page, not one per record.",
+  "_root_cause": "Scoped N_PLUS_ONE_QUERY rows for the repaired relationship and uniqueness paths were removed. SENSITIVE_DATA_LOGGED rows were removed after the scanner stopped treating static api_key/token prose as a leaked value. The operator accepted the 78 remaining loop findings on 2026-10-10 as tracked debt from the structural scanner. The retired plasticos_buyer_match_engine intake_extension fingerprint stays because that file is gone and this campaign did not absorb its successor. The automation_config singleton constraint row was removed once its per-record query became one set-level query. The document_sync batch_sync_unlinked row is a reviewed false positive: the loop is id-keyset pagination issuing one search per 200-document page, not one per record. The three plasticos_transaction/models/transaction.py uniqueness-search rows were removed after those searches were hoisted out of their loops.",
   "entries": [
     {
       "fingerprint": "329c981a6bdc9d20",
@@ -245,36 +245,6 @@
       "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
-      "fingerprint": "c52f9af24058f3cd",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_intake/models/intake.py",
-      "line": 406,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "8f6d0ec8324a9cb0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_intake/models/intake.py",
-      "line": 460,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "29427922629897e2",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_intake/models/intake.py",
-      "line": 919,
-      "model": null,
-      "field": null,
-      "message": "ORM .create() inside loop (mutation in loop)"
-    },
-    {
       "fingerprint": "833fe5eacccaa852",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
@@ -295,141 +265,11 @@
       "message": "ORM .search_count() inside loop (query in loop)"
     },
     {
-      "fingerprint": "c425b97d30baa725",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/freight_estimate.py",
-      "line": 83,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "afd796ea4ef03bdb",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/freight_governance.py",
-      "line": 117,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "7d0c8ee14ccd9631",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/freight_quote.py",
-      "line": 135,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
       "fingerprint": "9a67c59761b586aa",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
       "file": "plasticos_logistics/models/freight_quote.py",
       "line": 629,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "12a520cd78523550",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 316,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "670a7c33576ad45e",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 317,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "6010dcff30531442",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 492,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "7e2913d5b6d13f2f",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 498,
-      "model": null,
-      "field": null,
-      "message": "ORM .create() inside loop (mutation in loop)"
-    },
-    {
-      "fingerprint": "8a3be482baa91c4c",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 606,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "7a63f7ea80657cb0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 706,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "e0c5d3363ea22c4a",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 709,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "1f83723fc564052c",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 772,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "3348fdeb82d3f957",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 891,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "11554bc8c48159c0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 1212,
       "model": null,
       "field": null,
       "message": "ORM .search_count() inside loop (query in loop)"
@@ -695,36 +535,6 @@
       "message": "ORM .search() inside loop (query in loop)"
     },
     {
-      "fingerprint": "caa3abf62f585448",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 898,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "cf9d3c92beb48062",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 906,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "5dfba50bcb1ed1f0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 975,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
       "fingerprint": "3e858b501024c585",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
@@ -733,16 +543,6 @@
       "model": null,
       "field": null,
       "message": "ORM .create() inside loop (mutation in loop)"
-    },
-    {
-      "fingerprint": "8e1992604279258f",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 438,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
     }
   ]
 }

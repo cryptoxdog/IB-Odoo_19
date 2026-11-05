@@ -230,6 +230,12 @@ class TestMaterialNormalizer(TransactionCase):
         )
 
     def test_ledger_phrases_resolve_on_both_importers_and_keep_description_detail(self):
+        stretch = normalize_crm_material(self.env, "ld/lldpe thick/stretch")
+        self.assertFalse(stretch.unresolved)
+        self.assertEqual(stretch.polymer.code, "LDPE_LLDPE")
+        self.assertFalse(stretch.form)
+        self.assertFalse(stretch.material_grade)
+
         film = normalize_material(self.env, "clear film")
         self.assertFalse(film.unresolved)
         self.assertEqual(film.polymer.code, "LLDPE")

@@ -114,12 +114,28 @@ class PlasticosFreightCalibrationObservation(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        initial_load_ids = [
+            vals.get("load_id")
+            for vals in vals_list
+            if not vals.get("supersedes_observation_id") and vals.get("load_id")
+        ]
+        existing_load_ids = set()
+        if initial_load_ids:
+            existing_load_ids = set(
+                self.search([("load_id", "in", initial_load_ids), ("supersedes_observation_id", "=", False)])
+                .mapped("load_id")
+                .ids
+            )
+        seen_initial = set()
         for vals in vals_list:
             prior_id = vals.get("supersedes_observation_id")
             if prior_id and not vals.get("correction_reason"):
                 raise ValidationError("A calibration correction requires an attributed reason.")
-            if not prior_id and self.search([("load_id", "=", vals.get("load_id"))], limit=1):
+            load_id = vals.get("load_id")
+            if not prior_id and load_id and (load_id in existing_load_ids or load_id in seen_initial):
                 raise ValidationError("A later calibration must supersede the existing immutable observation.")
+            if not prior_id and load_id:
+                seen_initial.add(load_id)
             if not vals.get("recorded_by_id"):
                 vals["recorded_by_id"] = self.env.user.id
         return super().create(vals_list)
@@ -237,6 +253,21 @@ def _require_freight_evidence_authority(env, load):
     return company
 
 
+def create_freight_evidence_rows(env, model_name, pairs):
+    """Create one command's evidence rows after checking every source load.
+
+    Evidence models are intentionally read-only in ACLs. Each pair is checked
+    before the single elevated create that preserves append-only evidence.
+    """
+    prepared = []
+    for load, values in pairs:
+        company = _require_freight_evidence_authority(env, load)
+        prepared.append({**values, "company_id": company.id})
+    if not prepared:
+        return env[model_name]
+    return env[model_name].sudo().create(prepared)  # sudo: evidence ACL is read-only; caller checked above
+
+
 def create_freight_evidence(env, model_name, values, *, load):
     """Create exactly one validated immutable evidence row with explained elevation.
 
@@ -244,24 +275,52 @@ def create_freight_evidence(env, model_name, values, *, load):
     acting user, source-load rule, and allowed company before the narrow sudo
     create required to preserve append-only evidence semantics.
     """
-    company = _require_freight_evidence_authority(env, load)
-    values = {**values, "company_id": company.id}
-    return env[model_name].sudo().create(values)  # sudo: evidence ACL is read-only; caller checked above
+    return create_freight_evidence_rows(env, model_name, [(load, values)])
+
+
+def _freight_event_values(*, event_type, outcome_code, load=None, facts=None, unknowns=None, correlation_id=None):
+    return {
+        "load_id": load.id if load else False,
+        "transaction_id": load.transaction_id.id if load and load.transaction_id else False,
+        "event_type": event_type,
+        "outcome_code": outcome_code,
+        "correlation_id": correlation_id or False,
+        "facts": facts or {},
+        "unknowns": unknowns or [],
+    }
+
+
+def record_freight_events(env, events):
+    """Persist one command's freight events in a single evidence create."""
+    pairs = [
+        (
+            event.get("load"),
+            _freight_event_values(
+                event_type=event["event_type"],
+                outcome_code=event["outcome_code"],
+                load=event.get("load"),
+                facts=event.get("facts"),
+                unknowns=event.get("unknowns"),
+                correlation_id=event.get("correlation_id"),
+            ),
+        )
+        for event in events
+    ]
+    return create_freight_evidence_rows(env, "plasticos.freight.event", pairs)
 
 
 def record_freight_event(env, *, event_type, outcome_code, load=None, facts=None, unknowns=None, correlation_id=None):
     """Persist structured, correlated event evidence without raw carrier content."""
-    return create_freight_evidence(
+    return record_freight_events(
         env,
-        "plasticos.freight.event",
-        {
-            "load_id": load.id if load else False,
-            "transaction_id": load.transaction_id.id if load and load.transaction_id else False,
-            "event_type": event_type,
-            "outcome_code": outcome_code,
-            "correlation_id": correlation_id or False,
-            "facts": facts or {},
-            "unknowns": unknowns or [],
-        },
-        load=load,
+        [
+            {
+                "event_type": event_type,
+                "outcome_code": outcome_code,
+                "load": load,
+                "facts": facts,
+                "unknowns": unknowns,
+                "correlation_id": correlation_id,
+            }
+        ],
     )

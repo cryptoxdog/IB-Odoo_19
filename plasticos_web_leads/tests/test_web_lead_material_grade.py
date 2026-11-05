@@ -87,3 +87,12 @@ class TestWebLeadMaterialGrade(TransactionCase):
 
         self.assertEqual(merged["form"], "FILM")
         self.assertEqual(merged["material_grade"], "BUCKETS")
+
+    def test_punctuated_item_words_keep_the_reusable_grade(self):
+        pallets = self._lead("grade-pallets-punct", "HDPE pallets, clean", "9000 lbs")
+        crates = self._lead("grade-crates-punct", "plastic crates.", "9000 lbs")
+
+        self.assertEqual(pallets.ai_analysis["material_grade"], "PALLETS")
+        self.assertFalse(pallets.ai_analysis["form"])
+        self.assertEqual(crates.ai_analysis["material_grade"], "CRATES")
+        self.assertFalse(crates.ai_analysis["form"])

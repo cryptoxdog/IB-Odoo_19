@@ -1,5 +1,7 @@
 """Odoo-runtime regression coverage for Linda's local freight persistence boundary."""
 
+from datetime import timedelta
+
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -503,3 +505,136 @@ class TestLindaFreightModels(PlasticosTestCase):
         )
         self.assertTrue(event)
         self.assertEqual(event.facts.get("request_id"), request.id)
+
+    def _estimate(self, load, request_fingerprint, source_model="plasticos.load"):
+        from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
+
+        return create_freight_evidence(
+            self.env,
+            "plasticos.freight.estimate",
+            {
+                "context_fingerprint": "ctx-count",
+                "request_fingerprint": request_fingerprint,
+                "fingerprint_version": "freight_context_v3",
+                "source_model": source_model,
+                "source_record_id": load.id,
+                "origin_partner_id": self.origin.id,
+                "destination_partner_id": self.destination.id,
+                "geometry_status": "missing_or_invalid",
+                "status": "insufficient_evidence",
+                "failure_code": "test_count",
+            },
+            load=load,
+        )
+
+    def test_freight_evidence_counts_read_the_recordset_once(self):
+        """Quote requests and load-sourced estimates count for the whole recordset."""
+        load, _context = self._new_load()
+        bare, _bare_context = self._new_load()
+        self.env["plasticos.freight.quote.request"].create({"load_id": load.id})
+        with self.assertRaises(UserError):
+            self.env["plasticos.freight.quote.request"].create({"load_id": load.id})
+        self._estimate(load, "fp-count-1")
+        self._estimate(load, "fp-count-2")
+        self._estimate(bare, "fp-other-model", source_model="res.partner")
+        pair = load | bare
+        pair.mapped("freight_quote_request_count")
+        pair.mapped("freight_estimate_count")
+        self.assertEqual(load.freight_quote_request_count, 1)
+        self.assertEqual(bare.freight_quote_request_count, 0)
+        self.assertEqual(load.freight_estimate_count, 2)
+        self.assertEqual(bare.freight_estimate_count, 0)
+
+    def test_cancel_stale_requests_keeps_fingerprint_and_outside_loads(self):
+        """One cancel covers the recordset and leaves an excluded or outside request draft."""
+        load_a, context_a, request_a, _recipient_a = self._new_request()
+        _load_b, _context_b, request_b, _recipient_b = self._new_request()
+        outside, _outside_context, outside_request, _outside_recipient = self._new_request()
+        with self.assertRaises(KeyError):
+            load_a._cancel_stale_freight_quote_requests(context_a.fingerprint, "corr-bad", reason="not-a-reason")
+        self.assertEqual(request_a.state, "draft")
+        (load_a | request_b.load_id)._cancel_stale_freight_quote_requests(
+            context_a.fingerprint,
+            "corr-batch",
+            reason="context_changed",
+        )
+        request_a.invalidate_recordset()
+        request_b.invalidate_recordset()
+        outside_request.invalidate_recordset()
+        self.assertEqual(request_a.state, "draft")
+        self.assertEqual(request_b.state, "cancelled")
+        self.assertEqual(request_b.cancellation_reason, "context_changed")
+        self.assertEqual(outside_request.state, "draft")
+        kept, _kept_context, kept_request, _kept_recipient = self._new_request()
+        kept._cancel_stale_freight_quote_requests(
+            None,
+            "corr-exclude",
+            reason="load_rate_confirmed",
+            exclude_request_ids=kept_request.ids,
+        )
+        kept_request.invalidate_recordset()
+        self.assertEqual(kept_request.state, "draft")
+
+    def test_dispatch_ack_cron_escalates_only_the_aged_test_loads(self):
+        """The acknowledgment cron looks up today's activities once and skips a fresh sibling."""
+        aged, aged_context = self._new_load()
+        fresh, fresh_context = self._new_load()
+        aged_sent = fields.Datetime.now() - timedelta(hours=5)
+        fresh_sent = fields.Datetime.now() - timedelta(hours=1)
+        for load, context, sent_at in ((aged, aged_context, aged_sent), (fresh, fresh_context, fresh_sent)):
+            load._confirm_freight_rate(
+                rate=1000.0,
+                carrier=self.carrier,
+                currency=self.currency,
+                resolution_method="manual",
+                context_fingerprint=context.fingerprint,
+            )
+            pickup = fields.Datetime.now()
+            load.action_schedule(pickup, pickup)
+            load.action_dispatch()
+            load.write({"dispatch_sent": sent_at})
+        self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
+        self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
+        activities = self.env["mail.activity"].search(
+            [
+                ("res_model", "=", "plasticos.load"),
+                ("res_id", "in", [aged.id, fresh.id]),
+                ("summary", "ilike", "URGENT: No carrier acknowledgment"),
+            ]
+        )
+        self.assertEqual(activities.mapped("res_id"), [aged.id])
+
+    def test_two_loads_create_two_rfq_rows_and_a_repeat_creates_none(self):
+        """One RFQ command inserts the missing rows and keeps each load's correlation id."""
+        first, _first_context = self._new_load()
+        second, _second_context = self._new_load()
+        pair = first | second
+        pair.action_create_freight_quote_request()
+        requests = self.env["plasticos.freight.quote.request"].search([("load_id", "in", pair.ids)])
+        events = self.env["plasticos.freight.event"].search(
+            [("load_id", "in", pair.ids), ("event_type", "=", "rfq_request_created")]
+        )
+        self.assertEqual(set(requests.mapped("load_id").ids), set(pair.ids))
+        self.assertEqual(len(events), 2)
+        self.assertEqual(len(set(events.mapped("correlation_id"))), 2)
+        pair.action_create_freight_quote_request()
+        self.assertEqual(
+            self.env["plasticos.freight.quote.request"].search_count([("load_id", "in", pair.ids)]),
+            2,
+        )
+
+    def test_second_actual_cost_raises_and_a_correction_supersedes(self):
+        """An initial calibration is unique. A correction names the row it supersedes."""
+        load, _context = self._new_load()
+        load.write({"actual_freight_cost": 100.0, "actual_freight_currency_id": self.currency.id})
+        load.action_record_actual_freight_cost()
+        with self.assertRaises(UserError):
+            load.action_record_actual_freight_cost()
+        load.action_correct_actual_freight_cost(80.0, self.currency, "scale ticket corrected the cost")
+        rows = self.env["plasticos.freight.calibration.observation"].search(
+            [("load_id", "=", load.id)],
+            order="observed_at desc, id desc",
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].supersedes_observation_id, rows[1])
+        self.assertFalse(rows[1].supersedes_observation_id)
