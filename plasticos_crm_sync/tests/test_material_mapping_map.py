@@ -45,7 +45,9 @@ class TestVanillaSoftMaterialMap(TransactionCase):
 
     def test_unmapped_tokens_stay_unresolved(self):
         for row in self.rows:
-            if row["status"] == "mapped":
+            if row["status"] in ("mapped", "note_not_material"):
+                # note_not_material phrases are filtered by is_crm_call_note() before
+                # reaching normalize_material — they never enter the resolver.
                 continue
             with self.subTest(token=row["source_token"], status=row["status"]):
                 result = normalize_crm_material(self.env, row["source_token"])

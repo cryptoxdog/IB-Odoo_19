@@ -233,7 +233,7 @@ def _load_context(importer) -> dict:
     material = env.ref("plasticos_accounting.account_50100_material_cost", raise_if_not_found=False)
     income = env.ref("plasticos_accounting.account_40050_sales_income", raise_if_not_found=False)
     freight = env.ref("plasticos_accounting.account_50200_freight_cost", raise_if_not_found=False)
-    if freight is None:
+    if not freight:
         freight = (
             env["account.account"].search(
                 [("code", "=", "50200"), ("account_type", "=", "expense_direct_cost")], limit=1
