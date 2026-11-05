@@ -51,11 +51,11 @@
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:314:        dto = self._lead("vs-owner-keep", owner_name="lm@ucsincny.com")
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:317:        kept = orch._upsert_lead(self.connection, self._lead("vs-owner-keep", owner_name="CRM3 Exact Owner"))
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:323:            orch._upsert_lead(self.connection, self._lead("vs-owner-new-bad", owner_name="No Such CRM3 Owner"))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:744:                    table_name="Materials",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1414:            owner_name="sa@scrapmanagement.com",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1512:            user_name="Rep",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1561:            user_name="Rep",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1744:                    table_name="Materials",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:750:                    table_name="Materials",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1433:            owner_name="sa@scrapmanagement.com",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1531:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1580:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1763:                    table_name="Materials",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:27:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:28:        last_name="Lovelace",
 ./plasticos_dev_tools/tools/test_kb_integration.py:133:            WHERE table_name = 'plastic_ai_kb_config'
@@ -124,8 +124,10 @@
 ./plasticos_material_profile/models/material_attribute.py:17:    _name = "plasticos.material.attribute"
 ./plasticos_material_profile/models/material_color.py:6:    _name = "plasticos.material.color"
 ./plasticos_material_profile/models/material_form.py:6:    _name = "plasticos.material.form"
+./plasticos_material_profile/models/material_grade.py:5:    _name = "plasticos.material.grade"
 ./plasticos_material_profile/models/material_profile.py:13:    _name = "plasticos.material.profile"
 ./plasticos_material_profile/models/material_profile.py:17:    _rec_name = "display_name"
+./plasticos_material_profile/models/material_profile.py:790:        material_name = " ".join(part for part in (polymer_name, grade_name, form_name) if part)
 ./plasticos_material_profile/models/packaging_type.py:13:    _name = "plasticos.packaging.type"
 ./plasticos_material_profile/models/polymer.py:6:    _name = "plasticos.polymer"
 ./plasticos_material_profile/models/process_type.py:6:    _name = "plasticos.process.type"
@@ -169,8 +171,8 @@
 ./plasticos_transaction/wizards/transaction_bulk_update_wizard.py:11:    _name = "plasticos.tx.bulk.wizard"
 ./plasticos_transaction/wizards/transaction_import_wizard.py:22:    _name = "plasticos.transaction.import.wizard"
 ./plasticos_transaction/wizards/transaction_reopen_wizard.py:9:    _name = "plasticos.transaction.reopen.wizard"
-./plasticos_web_leads/models/web_lead.py:209:    _name = "plasticos.web.lead"
-./plasticos_web_leads/models/web_lead.py:213:    _rec_name = "lead_id"
+./plasticos_web_leads/models/web_lead.py:217:    _name = "plasticos.web.lead"
+./plasticos_web_leads/models/web_lead.py:221:    _rec_name = "lead_id"
 ./plasticos_web_leads/models/web_lead_api_key_wizard.py:7:    _name = "plasticos.web.lead.api.key.wizard"
 ./plasticos_web_leads/models/web_lead_config.py:41:    _name = "plasticos.web.lead.config"
 ./plasticos_web_leads/models/web_lead_review_snapshot.py:44:    _name = "plasticos.web.lead.review.snapshot"
@@ -234,3 +236,4 @@
 ./tests/test_state_audit_containment.py:88:            _name = "plasticos.sample.load"
 ./tests/test_state_audit_containment.py:108:            _name = "plasticos.sample.load"
 ./tests/test_weak_test_authority.py:255:            _name = "plasticos.thing"
+./tests/test_web_lead_material_identity.py:193:        pending_company_name="Seller",
