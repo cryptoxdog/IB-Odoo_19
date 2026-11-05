@@ -964,11 +964,11 @@ class PlasticosTransaction(models.Model):
                 if holders - record:
                     raise ValidationError(f"Transaction reference '{name}' already exists.")
         self._lock_loads_for_party_write(vals)
+        bill_owners = self._bill_owners_for_write(vals)
         for rec in self:
             self._validate_state_transition(rec, vals)
             self._validate_write_immutability(rec, vals)
-            self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
-            self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
+            self._validate_bill_uniqueness(rec, bill_owners)
         self._refuse_loaded_sale_reassignment(vals)
         reopened = self.filtered(lambda rec: self._authorized_historical_reopen(rec, vals))
         res = super().write(vals)
@@ -1027,23 +1027,35 @@ class PlasticosTransaction(models.Model):
             if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
                 raise UserError("Customer invoice cannot be reassigned once set.")
 
-    def _validate_bill_uniqueness(self, rec, vals, field, label):
+    def _bill_owners_for_write(self, vals):
+        """One search per bill field for the whole recordset, before the write loop."""
+        owners = {}
+        for field, label in (("vendor_bill_ids", "Vendor bill"), ("freight_bill_ids", "Freight bill")):
+            if field not in vals:
+                continue
+            bill_ids = []
+            for cmd in vals[field]:
+                if cmd[0] == 4:
+                    bill_ids.append(cmd[1])
+                elif cmd[0] == 6:
+                    bill_ids.extend(cmd[2])
+            if not bill_ids:
+                continue
+            taken = self.search([(field, "in", bill_ids)])
+            taken[field]
+            owners[field] = (label, bill_ids, {owner.id: set(owner[field].ids) for owner in taken})
+        return owners
+
+    def _validate_bill_uniqueness(self, rec, bill_owners):
         """Ensure each bill in M2M commands is not already linked to another transaction."""
-        if field not in vals:
-            return
-        bill_ids = []
-        for cmd in vals[field]:
-            if cmd[0] == 4:
-                bill_ids.append(cmd[1])
-            elif cmd[0] == 6:
-                bill_ids.extend(cmd[2])
-        if not bill_ids:
-            return
-        taken = self.search([(field, "in", bill_ids), ("id", "!=", rec.id)])
-        linked = set(taken[field].ids)
-        for bill_id in bill_ids:
-            if bill_id in linked:
-                raise UserError(f"{label} already linked to another transaction.")
+        for label, bill_ids, links in bill_owners.values():
+            linked = set()
+            for owner_id, owner_bills in links.items():
+                if owner_id != rec.id:
+                    linked.update(owner_bills)
+            for bill_id in bill_ids:
+                if bill_id in linked:
+                    raise UserError(f"{label} already linked to another transaction.")
 
     def unlink(self):
         for rec in self:

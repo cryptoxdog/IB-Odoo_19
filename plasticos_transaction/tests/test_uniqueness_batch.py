@@ -1,12 +1,17 @@
 """Uniqueness preflight searches stay one query and keep their error messages."""
 
-from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import tagged
 
 
+def _plasticos_test_case():
+    from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+
+    return PlasticosTestCase
+
+
 @tagged("post_install", "-at_install")
-class TestUniquenessBatch(PlasticosTestCase):
+class TestUniquenessBatch(_plasticos_test_case()):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
