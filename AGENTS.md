@@ -750,3 +750,14 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > top-level directory, and a `plasticos_*` tree walk do not select a test. Harness files, `PR_CHECK_SCOPE=full`,
 > an empty diff, an unknown base, and a scope-script failure still select the whole local suite.
 > `.github/workflows/ci.yml` still runs `pytest tests/` and stays the merge verdict.
+
+> **2026-11-05 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Audit Baselines table above is superseded on both rows. `ci/baselines/odoo_audit_baseline.json` has no
+> entries: `scripts/audit/odoo_audit.py` resolves `@api.depends` fields from its AST model index (a class belongs
+> to its `_name` or single `_inherit`; fields come from every class of that model in the module's depends closure),
+> so the `document_ids` false positive no longer exists. `ci/baselines/extended_audit_baseline.json` has one
+> entry, a reviewed `REAL_ACCEPT` on `plasticos_enrichment/models/enrichment_run.py` (per-identity profile create
+> inside `action_inject`); the other 47 `N_PLUS_ONE_QUERY` rows accepted on 2026-10-10 were repaired or, for the
+> `plasticos_documents_native` keyset pagination, recognised by `scripts/audit/performance_audit.py` as one query
+> per page. Every baseline entry carries a `review:` reason. `make audit-baseline` still proves new 0; prune a
+> fixed line's entry in the same change, since its fingerprint includes the flagged source line.
