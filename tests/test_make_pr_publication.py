@@ -392,7 +392,14 @@ def _gh_calls(tmp_path: Path) -> list[dict]:
 
 
 def _rest_pr(
-    number: int, branch: str, sha: str, *, body: str = "", head_repo: str = REPO, base_repo: str = REPO
+    number: int,
+    branch: str,
+    sha: str,
+    *,
+    body: str = "",
+    head_repo: str = REPO,
+    base_repo: str = REPO,
+    base: str = "Staging",
 ) -> dict:
     """A pull request in the shape `GET repos/{owner}/{repo}/pulls` returns."""
     return {
@@ -400,7 +407,7 @@ def _rest_pr(
         "html_url": f"https://github.com/{REPO}/pull/{number}",
         "state": "open",
         "body": body,
-        "base": {"ref": "Staging", "repo": {"full_name": base_repo}},
+        "base": {"ref": base, "repo": {"full_name": base_repo}},
         "head": {
             "ref": branch,
             "sha": sha,
@@ -765,6 +772,65 @@ def test_stacked_base_with_parent_pr_opens_pr_into_parent(tmp_path: Path) -> Non
     assert lookups, _gh_calls(tmp_path)
     assert lookups[0]["params"] == {"state": "open", "base": "Staging", "head": "cryptoxdog:feat/parent"}
     assert "\npush\n" in f"\n{_seq(seq)}\n"
+
+
+def test_stacked_base_on_a_stacked_parent_refuses(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    parent = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    _plant_parent(repo, parent)
+    _commit(repo, "feat: child")
+    _set_gh_state(
+        tmp_path,
+        pulls=[
+            _rest_pr(361, "feat/parent", parent, base="feat/grand"),
+            _rest_pr(360, "feat/grand", parent),
+        ],
+    )
+    proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 1, output
+    assert "stacked parent feat/parent has no open PR into Staging" in output
+    _assert_no_push(seq)
+
+
+@pytest.mark.parametrize(
+    ("pulls", "message"),
+    [
+        (
+            [("feat/parent", "feat/grand"), ("feat/grand", "Production")],
+            "stacked parent feat/parent has no open PR into Staging",
+        ),
+        (
+            [("feat/parent", "feat/grand"), ("feat/grand", "feat/parent")],
+            "stacked parent feat/parent has no open PR into Staging",
+        ),
+        (
+            [("feat/parent", "feat/grand")],
+            "stacked parent feat/parent has no open PR into Staging",
+        ),
+        (
+            [("feat/parent", "feat/s1"), *[(f"feat/s{i}", f"feat/s{i + 1}") for i in range(1, 6)]],
+            "stacked parent feat/parent has no open PR into Staging",
+        ),
+    ],
+    ids=["reaches-production", "loop", "broken-chain", "too-deep"],
+)
+def test_stacked_chain_that_does_not_reach_staging_refuses(
+    tmp_path: Path, pulls: list[tuple[str, str]], message: str
+) -> None:
+    repo, seq = _init_repo(tmp_path)
+    parent = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    _plant_parent(repo, parent)
+    _commit(repo, "feat: child")
+    _set_gh_state(
+        tmp_path,
+        pulls=[_rest_pr(300 + i, head, parent, base=base) for i, (head, base) in enumerate(pulls)],
+    )
+    proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 1, output
+    assert message in output
+    _assert_no_push(seq)
 
 
 def test_stacked_base_not_containing_parent_refuses(tmp_path: Path) -> None:
