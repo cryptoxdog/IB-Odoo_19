@@ -165,56 +165,6 @@
       "message": "ORM .search() inside loop (query in loop)"
     },
     {
-      "fingerprint": "7803590a5a8f5fa2",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_documents/models/document.py",
-      "line": 154,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "acaac85f56e67706",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_documents/models/document.py",
-      "line": 160,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "e35b8df6a7b1d579",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_documents/models/transaction_docs.py",
-      "line": 153,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "37c6d7c3281a4d46",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_documents/models/transaction_docs.py",
-      "line": 186,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "ff6bb4221892a030",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_documents/models/transaction_docs.py",
-      "line": 308,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
       "fingerprint": "1376b0f967282431",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
@@ -790,16 +740,6 @@
       "severity": "HIGH",
       "file": "plasticos_logistics/models/load.py",
       "line": 438,
-      "model": null,
-      "field": null,
-      "message": "ORM .search() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "c45c2c4ad7188980",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_documents/models/document.py",
-      "line": 513,
       "model": null,
       "field": null,
       "message": "ORM .search() inside loop (query in loop)"

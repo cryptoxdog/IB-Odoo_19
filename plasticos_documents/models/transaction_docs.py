@@ -7,7 +7,10 @@ _logger = logging.getLogger(__name__)
 
 
 class PlasticosTransactionDocs(models.Model):
-    _inherit = "plasticos.transaction"
+    # activity_schedule is the escalation write. A list inherit needs an
+    # explicit _name; leaving it unset registers plasticos.transaction.docs.
+    _name = "plasticos.transaction"
+    _inherit = ["plasticos.transaction", "mail.activity.mixin"]
 
     # NOTE: document_ids One2many is defined in transaction_docs_bridge.py
 
@@ -131,92 +134,97 @@ class PlasticosTransactionDocs(models.Model):
                 order="create_date ASC, id ASC",
                 limit=300,
             )
-            today = date.today()
-
-            for tx in transactions:
-                # Recompute missing flags
-                tx._compute_missing_doc_flags()
-                has_missing = tx.missing_supplier_docs or tx.missing_carrier_docs or tx.missing_buyer_docs
-
-                if not has_missing:
-                    if tx.missing_doc_status != "complete":
-                        tx.missing_doc_status = "complete"
-                    continue
-
-                # Determine age in business days from create_date
-                start_date = tx.create_date.date() if tx.create_date else today
-                bd = self._count_business_days(start_date, today)
-
-                # Use the most aggressive thresholds from the matrix rules
-                # Default: overdue after 2 BD, escalate after 5 BD
-                overdue_threshold = 2
-                escalation_threshold = 5
-
-                rules = self.env["plasticos.document.rule"].search(
-                    [("res_model", "=", "plasticos.transaction"), ("active", "=", True)],
-                    order="id ASC",
-                )
-                for rule in rules:
-                    if hasattr(rule, "overdue_business_days") and rule.overdue_business_days:
-                        overdue_threshold = min(overdue_threshold, rule.overdue_business_days)
-                    if hasattr(rule, "escalation_business_days") and rule.escalation_business_days:
-                        escalation_threshold = min(escalation_threshold, rule.escalation_business_days)
-
-                if bd >= escalation_threshold:
-                    new_status = "escalated"
-                elif bd >= overdue_threshold:
-                    new_status = "overdue"
-                else:
-                    new_status = "pending"
-
-                if tx.missing_doc_status != new_status:
-                    tx.missing_doc_status = new_status
-
-                if new_status == "overdue":
-                    if tx.last_doc_reminder_date and tx.last_doc_reminder_date >= today:
-                        continue
-                    tx.doc_reminder_count += 1
-                    tx.last_doc_reminder_date = today
-                    tx.message_post(
-                        body=(
-                            f"Automated reminder: transaction {tx.name} has missing documents "
-                            f"(overdue by {bd} business days)."
-                        ),
-                        message_type="notification",
-                    )
-                elif new_status == "escalated":
-                    has_today_activity = self.env["mail.activity"].search_count(
-                        [
-                            ("res_model", "=", "plasticos.transaction"),
-                            ("res_id", "=", tx.id),
-                            ("summary", "=", f"ESCALATION: Missing documents on {tx.name}"),
-                            ("date_deadline", "=", today),
-                        ]
-                    )
-                    if has_today_activity:
-                        continue
-                    tx.activity_schedule(
-                        "mail.mail_activity_data_todo",
-                        user_id=self.env.user.id,
-                        summary=f"ESCALATION: Missing documents on {tx.name}",
-                        note=(
-                            f"Transaction {tx.name} has missing documents for {bd} business days. "
-                            "Manual intervention required."
-                        ),
-                    )
-
-                _logger.info(
-                    "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",
-                    tx.name,
-                    new_status,
-                    bd,
-                    tx.missing_supplier_docs,
-                    tx.missing_carrier_docs,
-                    tx.missing_buyer_docs,
-                )
+            self._apply_missing_doc_page(transactions)
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_documents.cron_check_missing_docs"]
+            )
+
+    @api.model
+    def _apply_missing_doc_page(self, transactions):
+        """Apply missing-document status, reminders, and escalations to one page."""
+        if not transactions:
+            return
+        today = date.today()
+        overdue_threshold = 2
+        escalation_threshold = 5
+        rules = self.env["plasticos.document.rule"].search(
+            [("res_model", "=", "plasticos.transaction"), ("active", "=", True)],
+            order="id ASC",
+        )
+        for rule in rules:
+            if hasattr(rule, "overdue_business_days") and rule.overdue_business_days:
+                overdue_threshold = min(overdue_threshold, rule.overdue_business_days)
+            if hasattr(rule, "escalation_business_days") and rule.escalation_business_days:
+                escalation_threshold = min(escalation_threshold, rule.escalation_business_days)
+
+        summaries = {tx.id: f"ESCALATION: Missing documents on {tx.name}" for tx in transactions}
+        activities = self.env["mail.activity"].search(
+            [
+                ("res_model", "=", "plasticos.transaction"),
+                ("res_id", "in", transactions.ids),
+                ("date_deadline", "=", today),
+                ("summary", "in", list(summaries.values())),
+            ]
+        )
+        existing = {(activity.res_id, activity.summary) for activity in activities}
+
+        for tx in transactions:
+            tx._compute_missing_doc_flags()
+            has_missing = tx.missing_supplier_docs or tx.missing_carrier_docs or tx.missing_buyer_docs
+
+            if not has_missing:
+                if tx.missing_doc_status != "complete":
+                    tx.missing_doc_status = "complete"
+                continue
+
+            start_date = tx.create_date.date() if tx.create_date else today
+            bd = self._count_business_days(start_date, today)
+
+            if bd >= escalation_threshold:
+                new_status = "escalated"
+            elif bd >= overdue_threshold:
+                new_status = "overdue"
+            else:
+                new_status = "pending"
+
+            if tx.missing_doc_status != new_status:
+                tx.missing_doc_status = new_status
+
+            if new_status == "overdue":
+                if tx.last_doc_reminder_date and tx.last_doc_reminder_date >= today:
+                    continue
+                tx.doc_reminder_count += 1
+                tx.last_doc_reminder_date = today
+                tx.message_post(
+                    body=(
+                        f"Automated reminder: transaction {tx.name} has missing documents "
+                        f"(overdue by {bd} business days)."
+                    ),
+                    message_type="notification",
+                )
+            elif new_status == "escalated":
+                summary = summaries[tx.id]
+                if (tx.id, summary) in existing:
+                    continue
+                tx.activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    user_id=self.env.user.id,
+                    summary=summary,
+                    note=(
+                        f"Transaction {tx.name} has missing documents for {bd} business days. "
+                        "Manual intervention required."
+                    ),
+                )
+
+            _logger.info(
+                "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",
+                tx.name,
+                new_status,
+                bd,
+                tx.missing_supplier_docs,
+                tx.missing_carrier_docs,
+                tx.missing_buyer_docs,
             )
 
     # ══════════════════════════════════════════════════════════════
@@ -320,12 +328,9 @@ class PlasticosTransactionDocs(models.Model):
     def _scale_ticket_manager_group(self):
         return self.env.ref("plasticos_security_base.group_logistics", raise_if_not_found=False)
 
-    def _record_scale_ticket_escalation(self, load, manager, bd_since_pickup):
+    def _record_scale_ticket_escalation(self, load, manager, bd_since_pickup, existing_escalations):
         summary = f"ESCALATION: Missing scale ticket on {load.name}"
-        already = self.env["mail.activity"].search_count(
-            [("res_model", "=", "plasticos.load"), ("res_id", "=", load.id), ("summary", "=", summary)]
-        )
-        if not already:
+        if (load.id, summary) not in existing_escalations:
             load.activity_schedule(
                 "mail.mail_activity_data_todo",
                 user_id=manager.id,
@@ -424,6 +429,15 @@ class PlasticosTransactionDocs(models.Model):
                 overdue_bd = 2
                 escalation_bd = 7
             manager = self._get_logistics_manager(self._scale_ticket_manager_group())
+            summaries = {load.id: f"ESCALATION: Missing scale ticket on {load.name}" for load in loads}
+            activities = self.env["mail.activity"].search(
+                [
+                    ("res_model", "=", "plasticos.load"),
+                    ("res_id", "in", list(summaries)),
+                    ("summary", "in", list(summaries.values())),
+                ]
+            )
+            existing_escalations = {(activity.res_id, activity.summary) for activity in activities}
 
             failed_ids = []
             attempted_ids = set()
@@ -447,7 +461,9 @@ class PlasticosTransactionDocs(models.Model):
                                     load.name,
                                 )
                             else:
-                                self._record_scale_ticket_escalation(load, manager, bd_since_pickup)
+                                self._record_scale_ticket_escalation(
+                                    load, manager, bd_since_pickup, existing_escalations
+                                )
                         if due_reminder:
                             self._record_scale_ticket_reminder(load, bd_since_delivery)
                         processed += 1
