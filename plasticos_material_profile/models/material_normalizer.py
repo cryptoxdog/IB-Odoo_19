@@ -136,6 +136,12 @@ _CRM_EXACT = {
         ("tpe", "TPE", None),
         ("pbt", "PBT", None),
         ("lldpe", "LLDPE", None),
+        # Operator-approved 2026-11-05 (mapping matrix sync)
+        ("tpu", "TPU", None),
+        ("tpv", "TPV", None),
+        ("pvb", "PVB", None),
+        ("ubc", "UBC", None),
+        ("textile", "TEXTILE", None),
     )
 }
 
@@ -274,6 +280,68 @@ _CRM_ALIASES = {
 _CRM_ALIASES["hdpe frac melt"] = _spec(polymer="HDPE", attributes=("frac_melt",))
 _CRM_ALIASES["pvc rigid"] = _spec(polymer="PVC", attributes=("rigid",))
 _CRM_ALIASES["ldpe thick gauge"] = _spec(polymer="LDPE", attributes=("thick_gauge",))
+# Operator-approved 2026-11-05 (mapping matrix sync)
+_CRM_ALIASES["foam - pu"] = _spec(polymer="PU_FOAM")
+_CRM_ALIASES["ibc totes (hmw)"] = _spec(polymer="HDPE_HMW", material_grade="IBC_TOTES")
+_CRM_ALIASES["knock-down crates"] = _spec(polymer="HDPE", material_grade="CRATES")
+_CRM_ALIASES["drip tube"] = _spec(polymer="HDPE")
+_CRM_ALIASES["1-7 bottles"] = _spec(polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+_CRM_ALIASES["co-mingled 1-7 all plastics"] = _spec(
+    polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["1-7 mrp"] = _spec(polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+_CRM_ALIASES["3-7 mixed plastic"] = _spec(
+    polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["3-7 bottles"] = _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+_CRM_ALIASES["mrp 3-7"] = _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+
+
+# Phrases that are call-note text, not material descriptions. The CRM importer
+# checks this before passing a phrase to normalize_material so that call notes
+# in the Materials field produce no error and no profile row.
+_CRM_CALL_NOTE_PHRASES: frozenset[str] = frozenset(
+    {
+        ".01 fob grade a mrp",
+        "also mentioned they buy pp gf 25-50% - black has golf material. mention and request references.",
+        "and occ -",
+        "curb sorted no mrp - cb and pich for future -",
+        "does marketing for 6 separate counties in maryland which generate mrp. got on bid list",
+        "ext218 - pp sacks",
+        "gas tanks and so on. pvc post industrial.",
+        "generates eps",
+        "generates pet",
+        "had mrp and sacks. had loads of all.",
+        "has 2 loads of ldpe film",
+        "has ftl's of ldpe film from commercial dryer",
+        "has mrp and everything else.",
+        "has mrp and has c grade film",
+        "has mrp b+",
+        "has non-wove pp",
+        "has pp sacks",
+        "has pp super sacks with carbon black residue",
+        "has some colored eps. sometimes has white eps he needs to sell.",
+        "mentioned: pp super sacsk",
+        "mrp looks like grade b",
+        "pp bins and other grades. seems to be marketing direct with prices as high as .25 for film.",
+        "pp super sack offered 0.06/lb. has 30k now",
+        "quote on mrp. 0.05/lb and 0.12/lb",
+        "should have other stuff. we sold him pvc",
+        "should have tons of mrp",
+        "they generate hdpe",
+        "they mostly work with pet bottles.",
+    }
+)
+
+
+def is_crm_call_note(phrase: str) -> bool:
+    """Return True when *phrase* is a call-note string, not a material name.
+
+    The CRM importer calls this before ``normalize_material`` so that call-note
+    text in the ``Materials`` field is silently skipped rather than logged as an
+    unresolved material error.
+    """
+    return _phrase(phrase) in _CRM_CALL_NOTE_PHRASES
 
 
 class MaterialNormalization:
