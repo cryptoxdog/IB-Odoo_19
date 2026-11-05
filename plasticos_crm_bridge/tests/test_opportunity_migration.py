@@ -123,6 +123,37 @@ class TestOpportunityMigration(PlasticosTestCase):
         self.assertEqual(len(lot_one | lot_two | lot_three), 3)
         self.assertEqual(lot_two.snapshot_digest, lot_three.snapshot_digest, "same frozen material, distinct lots")
 
+    def test_one_accepted_offer_per_opportunity_is_a_database_invariant(self):
+        opportunity = self.Lead.create(
+            {
+                "name": "Winner Opp",
+                "type": "opportunity",
+                "partner_id": self.supplier.id,
+                "material_profile_id": self.profile.id,
+            }
+        )
+        lot = opportunity.action_approve_lot()
+        run = self._historical_run(intake_id=False, opportunity_id=opportunity.id, approval_id=lot.id)
+        other_buyer = self._create_partner("Historical Buyer Two", customer_rank=1)
+        results = self.Result.sudo().create(
+            [
+                {"buyer_partner_id": buyer.id, "score": 80.0, "run_id": run.operation_id, "match_run_id": run.id}
+                for buyer in (self.buyer, other_buyer)
+            ]
+        )
+        offers = self.Offer.create(
+            [
+                {"supplier_id": self.supplier.id, "buyer_id": result.buyer_partner_id.id, "match_result_id": result.id}
+                for result in results
+            ]
+        )
+        self.assertEqual(set(offers.mapped("opportunity_id").ids), {opportunity.id})
+        # Bypass the readable pre-check on purpose: the index must hold on its own.
+        offers[0].write({"state": "accepted"})
+        with mute_logger("odoo.sql_db"), self.assertRaises(UniqueViolation):
+            offers[1].write({"state": "accepted"})
+            offers.flush_recordset()
+
     def test_one_offer_per_reviewed_result_but_historical_offers_unaffected(self):
         run = self._historical_run(intake_id=False)
         result = self.Result.sudo().create(

@@ -74,13 +74,28 @@ class PlasticosOfferMatchLineage(models.Model):
         help="Reviewed Gate match result this offer was created from.",
     )
 
+    opportunity_id = fields.Many2one(
+        related="match_result_id.match_run_id.opportunity_id",
+        store=True,
+        index=True,
+        readonly=True,
+        string="Opportunity",
+        help="Native CRM opportunity this offer pursues, denormalized from its Gate result lineage.",
+    )
+
     # One unsent draft per reviewed result: a second creation call finds the
     # existing offer. Historical offers without a result are unaffected.
     _unique_offer_per_match_result = models.UniqueIndex("(match_result_id) WHERE match_result_id IS NOT NULL")
+    # One commercial winner per opportunity, enforced by PostgreSQL: two
+    # concurrent acceptances cannot both commit. The pre-write check in
+    # ``action_accept`` only turns the common case into a readable message.
+    _unique_winner_per_opportunity = models.UniqueIndex(
+        "(opportunity_id) WHERE state = 'accepted' AND opportunity_id IS NOT NULL"
+    )
 
     def _plasticos_opportunity(self):
         self.ensure_one()
-        return self.match_result_id.match_run_id.opportunity_id
+        return self.opportunity_id
 
     def _plasticos_approval(self):
         self.ensure_one()
@@ -98,18 +113,15 @@ class PlasticosOfferMatchLineage(models.Model):
 
     def action_accept(self):
         """Accept: one explicit commercial winner per opportunity, then one draft native sale order."""
-        opportunity_by_offer = {rec.id: rec._plasticos_opportunity() for rec in self}
+        opportunity_by_offer = {rec.id: rec.opportunity_id for rec in self}
         opportunities = self.env["crm.lead"].union(*[opp for opp in opportunity_by_offer.values() if opp])
         if opportunities:
-            # One query for the whole batch: any accepted offer already naming one of these opportunities.
+            # Readable pre-check for the common case; the partial unique index on
+            # (opportunity_id) WHERE state = 'accepted' is the invariant under concurrency.
             winners = self.search(
-                [
-                    ("id", "not in", self.ids),
-                    ("state", "=", "accepted"),
-                    ("match_result_id.match_run_id.opportunity_id", "in", opportunities.ids),
-                ]
+                [("id", "not in", self.ids), ("state", "=", "accepted"), ("opportunity_id", "in", opportunities.ids)]
             )
-            winner_by_opportunity = {offer._plasticos_opportunity().id: offer for offer in winners}
+            winner_by_opportunity = {offer.opportunity_id.id: offer for offer in winners}
             for rec in self:
                 opportunity = opportunity_by_offer[rec.id]
                 if not opportunity:

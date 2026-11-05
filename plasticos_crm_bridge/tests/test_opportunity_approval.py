@@ -95,6 +95,9 @@ class TestOpportunityApproval(PlasticosTestCase):
         cls.Offer = cls.env["plasticos.offer"]
         cls.Intake = cls.env["plasticos.intake"]
         cls.Facility = cls.env["plasticos.facility.profile"]
+        # The orchestrator's durable failure write opens registry.cursor(); in
+        # test mode that is a TestCursor over this test's connection.
+        cls.registry_enter_test_mode_cls()
         cls.supplier = cls._create_partner("Opportunity Supplier Co", supplier_rank=1)
         cls.buyer_a = cls._create_partner("Opportunity Buyer A", customer_rank=1)
         cls.buyer_b = cls._create_partner("Opportunity Buyer B", customer_rank=1)
@@ -130,21 +133,41 @@ class TestOpportunityApproval(PlasticosTestCase):
         vals.update(extra)
         return self.Lead.create(vals)
 
+    def _lot_commit_stand_in(self, holder):
+        """Stand in for the lot's durability commit with a savepoint taken at that exact point.
+
+        ``TransactionCase`` never lets a test commit, so the command's
+        ``_plasticos_ensure_lot_durable`` is replaced by a savepoint; a later
+        ambient rollback routed to that savepoint discards exactly what a real
+        rollback after the commit would, and keeps exactly what the commit kept.
+        """
+
+        def fake_commit(lead):
+            holder.savepoint = self.env.cr.savepoint(flush=True)
+
+        return patch.object(type(self.Lead), "_plasticos_ensure_lot_durable", fake_commit)
+
     def _match(self, opportunity, candidates=None):
         """Run the one Opportunity matching command against a patched Gate; return (run, sent payload)."""
         sent = {}
+        holder = SimpleNamespace(savepoint=None)
 
         def fake_send(env, *, payload, correlation_id=None, idempotency_key=None):
             sent["payload"] = payload
             sent["idempotency_key"] = idempotency_key
             return _fake_gate_result(candidates if candidates is not None else [_eligible(self.buyer_a)])
 
-        with (
-            patch(_CLASSIFY, return_value=_available_verdict()),
-            patch(_ENABLED, return_value=True),
-            patch(_SEND, side_effect=fake_send),
-        ):
-            opportunity.action_match_opportunity()
+        try:
+            with (
+                self._lot_commit_stand_in(holder),
+                patch(_CLASSIFY, return_value=_available_verdict()),
+                patch(_ENABLED, return_value=True),
+                patch(_SEND, side_effect=fake_send),
+            ):
+                opportunity.action_match_opportunity()
+        finally:
+            if holder.savepoint is not None:
+                holder.savepoint.close(rollback=False)
         run = self.Run.search([("opportunity_id", "=", opportunity.id)], order="id desc", limit=1)
         return run, sent
 
@@ -308,6 +331,46 @@ class TestOpportunityApproval(PlasticosTestCase):
             offer.write({"price_per_lb": 0.20})
         offer.write({"response_notes": "buyer replied"})
         self.assertEqual(offer.price_per_lb, 0.12)
+
+    def test_lot_survives_a_gate_failure_and_the_failed_run_keeps_its_lineage(self):
+        """The lot is durable before Gate; a transport failure leaves a retryable run naming that lot.
+
+        Odoo's ``assertRaises`` wraps its block in a savepoint that would undo the
+        durable run written on the owned cursor, so the failure is caught by hand.
+        """
+        from odoo.addons.plasticos_gate.services.gate_config import GateIntegrationError  # noqa: PLC0415
+
+        opportunity = self._opportunity()
+        lots_before = len(opportunity.approval_ids)
+        holder = SimpleNamespace(savepoint=None)
+
+        def ambient_rollback():
+            holder.savepoint.rollback()
+
+        raised = None
+        try:
+            with (
+                self._lot_commit_stand_in(holder),
+                patch.object(self.env.cr, "rollback", ambient_rollback),
+                patch(_CLASSIFY, return_value=_available_verdict()),
+                patch(_ENABLED, return_value=True),
+                patch(_SEND, side_effect=GateIntegrationError("gate unreachable", failure_class="retryable")),
+            ):
+                try:
+                    opportunity.action_match_opportunity()
+                except UserError as exc:
+                    raised = exc
+        finally:
+            if holder.savepoint is not None:
+                holder.savepoint.close(rollback=False)
+        self.assertIsNotNone(raised, "a Gate transport failure must surface as UserError")
+        self.assertIn("Gate match failed", str(raised))
+        self.env.invalidate_all()
+        self.assertEqual(len(opportunity.approval_ids), lots_before + 1, "the minted lot survived the rollback")
+        failed = self.Run.search([("opportunity_id", "=", opportunity.id), ("state", "=", "retryable")])
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed.approval_id, opportunity.approval_ids.sorted("id")[-1])
+        self.assertTrue(failed._plasticos_lot_retry_subject(), "the retry is built from the surviving lot")
 
     def test_exactly_one_commercial_winner_per_opportunity(self):
         opportunity, _run = self._reviewed_run()

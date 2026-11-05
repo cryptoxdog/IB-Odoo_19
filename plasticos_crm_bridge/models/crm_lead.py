@@ -570,7 +570,7 @@ class CrmLeadPlastOS(models.Model):
             "name": _("Offers — %s") % (self.name or ""),
             "res_model": "plasticos.offer",
             "view_mode": "list,form",
-            "domain": [("match_result_id.match_run_id.opportunity_id", "=", self.id)],
+            "domain": [("opportunity_id", "=", self.id)],
             "target": "current",
         }
 
@@ -666,6 +666,22 @@ class CrmLeadPlastOS(models.Model):
         )
         return approval
 
+    def _plasticos_ensure_lot_durable(self):
+        """Commit the approved lot before the orchestrator may roll the request back.
+
+        The Gate orchestrator persists a classified failure by rolling the
+        ambient transaction back and re-creating the run on an owned cursor
+        (``_rollback_then_persist_failed_run_durable``). A lot minted in that
+        same transaction would vanish in the rollback while the durable run
+        still names it through ``approval_id``, so the failure receipt would
+        fail its foreign key and the operator would lose both the lot and the
+        retry entry point. The lot is immutable approval evidence: once minted
+        it must survive whatever Gate does next, and a retry of the failed run
+        is built from exactly this lot. Same I17 pattern as the CRM sync
+        (``_ensure_caller_state_durable``): ``Cursor.commit()`` flushes first.
+        """
+        self.env.cr.commit()
+
     def action_match_opportunity(self):
         """The one Opportunity matching command: approve a lot, then match it through Gate.
 
@@ -686,6 +702,7 @@ class CrmLeadPlastOS(models.Model):
                     _("Gate matching is unavailable (%s).") % ("; ".join(verdict.reasons) or verdict.status)
                 )
             approval = rec.action_approve_lot()
+            rec._plasticos_ensure_lot_durable()
             run, matches = orchestrator.run_match_for_lot(
                 supplier_partner_id=approval.partner_id.id,
                 snapshot=approval.snapshot,
@@ -777,7 +794,7 @@ class CrmLeadPlastOS(models.Model):
             "name": _("Offers"),
             "res_model": "plasticos.offer",
             "view_mode": "list,form",
-            "domain": [("match_result_id.match_run_id.opportunity_id", "in", self.ids)],
+            "domain": [("opportunity_id", "in", self.ids)],
             "target": "current",
         }
 
