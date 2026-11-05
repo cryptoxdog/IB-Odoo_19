@@ -21,10 +21,15 @@ class PlasticosMaterialProfileIntake(models.Model):
 
     @api.depends()
     def _compute_intake_count(self):
-        """Count intakes linked to this profile."""
+        """Count intakes linked to this profile, one grouped query per recordset."""
         Intake = self.env["plasticos.intake"]
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = Intake._read_group([("material_profile_id", "in", stored_ids)], ["material_profile_id"], ["__count"])
+            counts = {profile.id: count for profile, count in rows}
         for rec in self:
-            rec.intake_count = Intake.search_count([("material_profile_id", "=", rec.id)])
+            rec.intake_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     # ── Navigation Actions ────────────────────────────────────────
     def action_view_intakes(self):

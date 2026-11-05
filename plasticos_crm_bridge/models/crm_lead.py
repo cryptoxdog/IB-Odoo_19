@@ -124,14 +124,22 @@ class CrmLeadPlastOS(models.Model):
     @api.depends("web_lead_ids", "source_intake_id")
     def _compute_commercial_image_count(self):
         Attachment = self.env["ir.attachment"]
-        for rec in self:
-            rec.commercial_image_count = Attachment.search_count(
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            # One grouped count for the whole recordset; unsaved records count 0.
+            rows = Attachment._read_group(
                 [
                     ("res_model", "=", "crm.lead"),
-                    ("res_id", "=", rec.id),
+                    ("res_id", "in", stored_ids),
                     ("mimetype", "like", "image/"),
-                ]
+                ],
+                ["res_id"],
+                ["__count"],
             )
+            counts = dict(rows)
+        for rec in self:
+            rec.commercial_image_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     def _commercial_image_sources(self):
         """Return all source records available at the current commercial step."""

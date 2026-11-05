@@ -86,15 +86,26 @@ class MaterialProfileCRMBridge(models.Model):
         Also reaches into plasticos.load for last_pickup_date.
         """
         Transaction = self.env["plasticos.transaction"]
-        for rec in self:
-            # Transactions where this is the supplier's profile
-            txs = Transaction.search(
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        # One query for every transaction on either side of any profile in the
+        # recordset, then grouped per profile in Python (a transaction whose
+        # supplier and buyer profiles are the same record counts once).
+        txs_by_profile = {}
+        if stored_ids:
+            linked = Transaction.search(
                 [
                     "|",
-                    ("supplier_profile_id", "=", rec.id),
-                    ("buyer_profile_id", "=", rec.id),
+                    ("supplier_profile_id", "in", stored_ids),
+                    ("buyer_profile_id", "in", stored_ids),
                 ]
             )
+            in_scope = set(stored_ids)
+            for tx in linked:
+                for profile_id in {tx.supplier_profile_id.id, tx.buyer_profile_id.id}:
+                    if profile_id in in_scope:
+                        txs_by_profile[profile_id] = txs_by_profile.get(profile_id, Transaction) | tx
+        for rec in self:
+            txs = txs_by_profile.get(rec.id, Transaction)
             rec.transaction_count = len(txs)
             rec.total_revenue = sum(txs.mapped("revenue_total"))
 

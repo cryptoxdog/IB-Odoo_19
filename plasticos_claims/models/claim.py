@@ -422,20 +422,25 @@ class PlasticosClaim(models.Model):
                 order="last_reminder_at ASC, opened_at ASC, id ASC",
                 limit=300,
             )
+            # One query for today's reminder activities on every open claim in this run.
+            reminded_today = {
+                (row["res_id"], row["summary"])
+                for row in self.env["mail.activity"].search_read(
+                    [
+                        ("res_model", "=", "plasticos.claim"),
+                        ("res_id", "in", open_claims.ids),
+                        ("date_deadline", "=", fields.Date.today()),
+                    ],
+                    ["res_id", "summary"],
+                    order="id ASC",
+                )
+            }
             for claim in open_claims:
                 if claim.last_reminder_at:
                     last = claim.last_reminder_at
                     if (now - last).days < 1:
                         continue
-                existing_activity = self.env["mail.activity"].search_count(
-                    [
-                        ("res_model", "=", "plasticos.claim"),
-                        ("res_id", "=", claim.id),
-                        ("summary", "=", f"Open Claim Reminder: {claim.name}"),
-                        ("date_deadline", "=", fields.Date.today()),
-                    ]
-                )
-                if existing_activity:
+                if (claim.id, f"Open Claim Reminder: {claim.name}") in reminded_today:
                     continue
                 claim._create_reminder_activity()
                 claim.last_reminder_at = now
