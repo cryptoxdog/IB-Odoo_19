@@ -79,18 +79,28 @@ class PlasticosFreightEstimate(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        for vals in vals_list:
-            duplicate = self.search(
-                [
-                    ("source_model", "=", vals.get("source_model")),
-                    ("source_record_id", "=", vals.get("source_record_id")),
-                    ("context_fingerprint", "=", vals.get("context_fingerprint")),
-                    ("request_fingerprint", "=", vals.get("request_fingerprint")),
-                ],
-                limit=1,
+        identities = [
+            (
+                vals.get("source_model"),
+                vals.get("source_record_id"),
+                vals.get("context_fingerprint"),
+                vals.get("request_fingerprint"),
             )
-            if duplicate:
+            for vals in vals_list
+        ]
+        source_ids = [identity[1] for identity in identities if identity[1]]
+        existing = set()
+        if source_ids:
+            rows = self.search([("source_record_id", "in", source_ids)])
+            existing = {
+                (row.source_model, row.source_record_id, row.context_fingerprint, row.request_fingerprint)
+                for row in rows
+            }
+        seen = set()
+        for vals, identity in zip(vals_list, identities, strict=True):
+            if identity in existing or identity in seen:
                 raise ValidationError("An identical freight estimate observation already exists.")
+            seen.add(identity)
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.freight.estimate") or "New"
         return super().create(vals_list)

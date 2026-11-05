@@ -119,6 +119,7 @@ class PlasticosFreightQuoteRequest(models.Model):
             if not company or not load.transaction_id:
                 raise UserError("Load company and transaction are required before creating an RFQ episode.")
             idempotency_key = hashlib.sha256(f"rfq:{load.id}:{context.fingerprint}".encode()).hexdigest()
+            vals["idempotency_key"] = idempotency_key
             vals.update(
                 {
                     "company_id": company.id,
@@ -127,13 +128,19 @@ class PlasticosFreightQuoteRequest(models.Model):
                     "destination_partner_id": load.delivery_partner_id.id,
                     "context_fingerprint": context.fingerprint,
                     "fingerprint_version": FREIGHT_CONTEXT_VERSION,
-                    "idempotency_key": idempotency_key,
                     "sal_decision": load.sal_decision,
                     "sal_miss_reason": load.sal_miss_reason or "not_eligible",
                 }
             )
-            if self.search([("idempotency_key", "=", idempotency_key)], limit=1):
+        keys = [vals.get("idempotency_key") for vals in vals_list if vals.get("idempotency_key")]
+        existing_keys = set(self.search([("idempotency_key", "in", keys)]).mapped("idempotency_key")) if keys else set()
+        seen_keys = set()
+        for vals in vals_list:
+            key = vals.get("idempotency_key")
+            if key and (key in existing_keys or key in seen_keys):
                 raise UserError("A freight quote request already exists for the current load context.")
+            if key:
+                seen_keys.add(key)
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.freight.quote.request") or "New"
         return super().create(vals_list)

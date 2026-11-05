@@ -366,14 +366,43 @@ class PlasticosLoad(models.Model):
             raise ValidationError("Cannot lock an unexpected table while assigning a load.")
         self.env.cr.execute(query, [row_ids])
 
-    def _eligible_transactions(self, sale_order):
-        return self.env[PLASTICOS_TRANSACTION].search(
+    def _eligible_transactions_for_sale_orders(self, sale_orders):
+        """Eligible parents for these sale orders, grouped by sale order id."""
+        grouped = {}
+        eligible = self.env[PLASTICOS_TRANSACTION]
+        if not sale_orders:
+            return grouped, eligible
+        eligible = self.env[PLASTICOS_TRANSACTION].search(
             [
-                ("sale_order_id", "=", sale_order.id),
+                ("sale_order_id", "in", sale_orders.ids),
                 ("supplier_id", "!=", False),
                 ("buyer_id", "!=", False),
             ]
         )
+        empty = self.env[PLASTICOS_TRANSACTION]
+        grouped = {sale_order.id: empty for sale_order in sale_orders}
+        for transaction in eligible:
+            grouped[transaction.sale_order_id.id] |= transaction
+        return grouped, eligible
+
+    def _eligible_transactions(self, sale_order):
+        grouped, _eligible = self._eligible_transactions_for_sale_orders(sale_order)
+        return grouped.get(sale_order.id, self.env[PLASTICOS_TRANSACTION])
+
+    def _write_transaction_parent(self, transaction_id):
+        """Assign one parent to every load in this recordset that does not already have it."""
+        pending = self.filtered(lambda load: load.transaction_id.id != transaction_id)
+        if pending:
+            pending.write({"transaction_id": transaction_id})
+
+    def _write_parent_assignments(self, assignments):
+        """Write each parent once for the loads that passed that parent's checks."""
+        grouped = {}
+        for load, transaction_id in assignments:
+            grouped.setdefault(transaction_id, self.browse())
+            grouped[transaction_id] |= load
+        for transaction_id, loads in grouped.items():
+            loads._write_transaction_parent(transaction_id)
 
     def _parent_identity_error(self, transaction):
         """Refuse a new parent whose commercial identity is missing or different."""
@@ -427,21 +456,28 @@ class PlasticosLoad(models.Model):
 
         Zero matches stay unlinked. Two or more eligible transactions are refused
         so the create rolls back instead of picking a sale order's first row.
-        The sale order row is locked and the candidate set is read again before the link.
+        Sale orders are locked, eligible transactions are read again under those
+        locks, and only then are these loads locked and refreshed.
+        Only loads in this recordset are candidates. Another unlinked load on a
+        different sale order is left untouched.
         """
         if self.env.context.get("plasticos_skip_load_parent_link"):
             return
-        for rec in self:
+        pending = self.filtered(lambda rec: not rec.transaction_id and rec.sale_order_id)
+        if not pending:
+            return
+        sale_orders = pending.sale_order_id
+        self._lock_rows("sale_order", sale_orders.ids)
+        _grouped, eligible = self._eligible_transactions_for_sale_orders(sale_orders)
+        self._lock_rows("plasticos_transaction", eligible.ids)
+        grouped, _eligible = self._eligible_transactions_for_sale_orders(sale_orders)
+        self._lock_rows("plasticos_load", pending.ids)
+        pending.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
+        assignments = []
+        for rec in pending:
             if rec.transaction_id or not rec.sale_order_id:
                 continue
-            self._lock_rows("sale_order", [rec.sale_order_id.id])
-            candidates = self._eligible_transactions(rec.sale_order_id)
-            self._lock_rows("plasticos_transaction", candidates.ids)
-            self._lock_rows("plasticos_load", [rec.id])
-            rec.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
-            if rec.transaction_id or not rec.sale_order_id:
-                continue
-            candidates = self._eligible_transactions(rec.sale_order_id)
+            candidates = grouped.get(rec.sale_order_id.id, self.env[PLASTICOS_TRANSACTION])
             if len(candidates) > 1:
                 raise ValidationError(
                     f"Sale order {rec.sale_order_id.display_name} matches {len(candidates)} transactions "
@@ -450,30 +486,48 @@ class PlasticosLoad(models.Model):
             if len(candidates) == 1:
                 rec._require_parent_identity(candidates)
                 rec._require_join_milestone(candidates)
-                rec.transaction_id = candidates.id
+                assignments.append((rec, candidates.id))
+        self._write_parent_assignments(assignments)
 
     @api.model
     def _reconcile_unlinked_for_transactions(self, transactions):
-        """Link unlinked loads when a sale order later has exactly one eligible transaction."""
-        for tx in transactions:
-            if not tx.sale_order_id or not tx.supplier_id or not tx.buyer_id:
+        """Link unlinked loads when a sale order later has exactly one eligible transaction.
+
+        More than one eligible transaction skips that sale order. An identity or
+        milestone failure leaves that load unlinked. A protected load is skipped
+        before the parent write.
+        """
+        qualified = transactions.filtered(lambda tx: tx.sale_order_id and tx.supplier_id and tx.buyer_id)
+        if not qualified:
+            return
+        sale_orders = qualified.sale_order_id
+        self._lock_rows("sale_order", sale_orders.ids)
+        _grouped, eligible = self._eligible_transactions_for_sale_orders(sale_orders)
+        self._lock_rows("plasticos_transaction", eligible.ids)
+        grouped, _eligible = self._eligible_transactions_for_sale_orders(sale_orders)
+        linkable = self.env[PLASTICOS_TRANSACTION]
+        for tx in qualified:
+            candidates = grouped.get(tx.sale_order_id.id, self.env[PLASTICOS_TRANSACTION])
+            if len(candidates) == 1 and candidates == tx:
+                linkable |= tx
+        if not linkable:
+            return
+        domain = [("sale_order_id", "in", linkable.sale_order_id.ids), ("transaction_id", "=", False)]
+        loads = self.search(domain)
+        self._lock_rows("plasticos_load", loads.ids)
+        loads.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
+        loads = self.search(domain)
+        protected = loads._protected_parent_loads()
+        parent_by_sale = {tx.sale_order_id.id: tx for tx in linkable}
+        assignments = []
+        for load in loads:
+            if load in protected:
                 continue
-            self._lock_rows("sale_order", [tx.sale_order_id.id])
-            eligible = self._eligible_transactions(tx.sale_order_id)
-            self._lock_rows("plasticos_transaction", eligible.ids)
-            eligible = self._eligible_transactions(tx.sale_order_id)
-            if len(eligible) != 1 or eligible != tx:
+            tx = parent_by_sale.get(load.sale_order_id.id)
+            if not tx or load._parent_identity_error(tx) or load._join_milestone_error(tx):
                 continue
-            loads = self.search([("sale_order_id", "=", tx.sale_order_id.id), ("transaction_id", "=", False)])
-            self._lock_rows("plasticos_load", loads.ids)
-            loads.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
-            loads = self.search([("sale_order_id", "=", tx.sale_order_id.id), ("transaction_id", "=", False)])
-            for load in loads:
-                if load._parent_link_is_protected():
-                    continue
-                if load._parent_identity_error(tx) or load._join_milestone_error(tx):
-                    continue
-                load.transaction_id = tx.id
+            assignments.append((load, tx.id))
+        self._write_parent_assignments(assignments)
 
     def _has_freight_provenance(self):
         self.ensure_one()
@@ -485,18 +539,24 @@ class PlasticosLoad(models.Model):
             return True
         return self.sal_decision not in (False, "not_evaluated")
 
+    def _protected_parent_loads(self):
+        """Loads whose parent cannot move: dispatched, evidenced, quoted, or on a dispatch."""
+        protected = self.browse()
+        if not self:
+            return protected
+        for rec in self:
+            if rec.state in _PROTECTED_PARENT_STATES or rec._has_freight_provenance() or rec.freight_quote_request_ids:
+                protected |= rec
+        remaining = self - protected
+        if remaining and "plasticos.dispatch" in self.env:
+            dispatches = self.env["plasticos.dispatch"].search([("load_id", "in", remaining.ids)])
+            protected |= dispatches.load_id
+        return protected
+
     def _parent_link_is_protected(self):
         """Dispatched loads and loads that already carry evidence cannot be reparented."""
         self.ensure_one()
-        if self.state in _PROTECTED_PARENT_STATES or self._has_freight_provenance():
-            return True
-        if self.freight_quote_request_ids:
-            return True
-        if "plasticos.dispatch" in self.env and self.env["plasticos.dispatch"].search_count(
-            [("load_id", "=", self.id)], limit=1
-        ):
-            return True
-        return False
+        return self in self._protected_parent_loads()
 
     def _guard_transaction_parent(self, new_tx_id):
         """Keep a load on its current transaction. A failed write leaves that link.
@@ -520,11 +580,12 @@ class PlasticosLoad(models.Model):
         self._lock_rows("plasticos_transaction", transaction_ids)
         self._lock_rows("plasticos_load", self.ids)
         self.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
+        protected = self.filtered("transaction_id")._protected_parent_loads()
         for rec in self:
             current_id = rec.transaction_id.id
             if current_id == new_tx_id:
                 continue
-            if current_id and rec._parent_link_is_protected():
+            if current_id and rec in protected:
                 raise ValidationError(
                     f"Load {rec.name} is dispatched or carries freight, dispatch, or accepted evidence. "
                     "Its transaction link stays unchanged."
@@ -587,8 +648,9 @@ class PlasticosLoad(models.Model):
         self._lock_rows("plasticos_load", self.ids)
         self.invalidate_recordset(["transaction_id", "sale_order_id", "state"])
         parent_ids = self.mapped("transaction_id").ids
+        protected = self._protected_parent_loads()
         for rec in self:
-            if rec._parent_link_is_protected():
+            if rec in protected:
                 raise UserError(
                     f"Load {rec.name} is dispatched or carries freight, dispatch, or accepted evidence "
                     "and cannot be deleted."
@@ -598,13 +660,24 @@ class PlasticosLoad(models.Model):
         return result
 
     def _compute_freight_evidence_counts(self):
-        request_model = self.env["plasticos.freight.quote.request"]
-        estimate_model = self.env["plasticos.freight.estimate"]
-        for rec in self:
-            rec.freight_quote_request_count = request_model.search_count([("load_id", "=", rec.id)])
-            rec.freight_estimate_count = estimate_model.search_count(
-                [("source_model", "=", PLASTICOS_LOAD), ("source_record_id", "=", rec.id)]
+        request_counts = {}
+        estimate_counts = {}
+        if self.ids:
+            request_rows = self.env["plasticos.freight.quote.request"]._read_group(
+                [("load_id", "in", self.ids)],
+                ["load_id"],
+                ["__count"],
             )
+            request_counts = {load.id: count for load, count in request_rows if load}
+            estimate_rows = self.env["plasticos.freight.estimate"]._read_group(
+                [("source_model", "=", PLASTICOS_LOAD), ("source_record_id", "in", self.ids)],
+                ["source_record_id"],
+                ["__count"],
+            )
+            estimate_counts = {source_id: count for source_id, count in estimate_rows}
+        for rec in self:
+            rec.freight_quote_request_count = request_counts.get(rec.id, 0)
+            rec.freight_estimate_count = estimate_counts.get(rec.id, 0)
 
     def _require_freight_operator(self):
         """Require the Logistics business role for freight command boundaries."""
@@ -750,18 +823,28 @@ class PlasticosLoad(models.Model):
             rec.ready_confirmed_at = fields.Datetime.now()
             rec._transition("ready_confirmed")
 
+    def _lock_freight_advisories(self, prefix):
+        """Take this command's advisory locks in load-id order."""
+        for rec in self.sorted(key=lambda load: load.id):
+            self.env.cr.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                [f"plasticos_logistics.{prefix}:{rec.id}"],
+            )
+
     def action_create_freight_quote_request(self):
         """Create one manual-only RFQ episode after a current SAL miss.
 
         This persists a recipient/evidence workflow but deliberately performs no
         outbound delivery until an approved channel and RFQ terms exist.
         """
+        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_events
         from odoo.addons.plasticos_logistics.services.freight_context import (
             FREIGHT_CONTEXT_VERSION,
             build_freight_context,
         )
 
         request_model = self.env["plasticos.freight.quote.request"]
+        prepared = []
         for rec in self:
             rec._require_freight_operator()
             correlation_id = new_correlation_id()
@@ -774,15 +857,26 @@ class PlasticosLoad(models.Model):
                 raise UserError("A complete freight context is required before creating an RFQ episode.")
             if rec.freight_context_fingerprint != context.fingerprint:
                 raise UserError("Freight context changed. Re-run freight resolution before creating an RFQ episode.")
-            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq:{rec.id}"])
+            prepared.append((rec, correlation_id, context))
+        self.browse([rec.id for rec, _correlation_id, _context in prepared])._lock_freight_advisories("rfq")
+        work = []
+        for rec, correlation_id, context in prepared:
             key = hashlib.sha256(f"rfq:{rec.id}:{context.fingerprint}".encode()).hexdigest()
-            existing = request_model.search([("idempotency_key", "=", key)], limit=1)
-            if existing:
+            work.append((rec, correlation_id, context, key))
+        existing_keys = set()
+        if work:
+            existing_keys = set(
+                request_model.search([("idempotency_key", "in", [item[3] for item in work])]).mapped("idempotency_key")
+            )
+        vals_list = []
+        pending = []
+        for rec, correlation_id, context, key in work:
+            if key in existing_keys:
                 continue
             company = rec.sale_order_id.company_id if rec.sale_order_id else False
             if not company or not rec.transaction_id:
                 raise UserError("Load company and transaction are required before creating an RFQ episode.")
-            request = request_model.create(
+            vals_list.append(
                 {
                     "company_id": company.id,
                     "context_fingerprint": context.fingerprint,
@@ -796,24 +890,36 @@ class PlasticosLoad(models.Model):
                     "transaction_id": rec.transaction_id.id,
                 }
             )
+            pending.append((rec, correlation_id))
+        if not vals_list:
+            return True
+        created = request_model.create(vals_list)
+        by_load = {request.load_id.id: request for request in created}
+        events = []
+        for rec, correlation_id in pending:
+            request = by_load[rec.id]
             rec.message_post(
                 body=f"Manual-only freight RFQ episode {request.name} created; no outbound carrier send was performed."
             )
-            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-
-            record_freight_event(
-                rec.env,
-                event_type="rfq_request_created",
-                outcome_code="manual_only",
-                load=rec,
-                facts={"request_id": request.id},
-                unknowns=["recipient_policy_unapproved", "outbound_delivery_unavailable"],
-                correlation_id=correlation_id,
+            events.append(
+                {
+                    "event_type": "rfq_request_created",
+                    "outcome_code": "manual_only",
+                    "load": rec,
+                    "facts": {"request_id": request.id},
+                    "unknowns": ["recipient_policy_unapproved", "outbound_delivery_unavailable"],
+                    "correlation_id": correlation_id,
+                }
             )
+        record_freight_events(self.env, events)
         return True
 
     def action_request_freight_estimate(self):
         """Persist a nonbinding local Haversine-curve estimate from canonical evidence."""
+        from odoo.addons.plasticos_logistics.models.freight_governance import (
+            create_freight_evidence_rows,
+            record_freight_events,
+        )
         from odoo.addons.plasticos_logistics.services.freight_context import (
             FREIGHT_CONTEXT_VERSION,
             build_freight_context,
@@ -831,12 +937,13 @@ class PlasticosLoad(models.Model):
             recent_executed_lane_evidence,
         )
 
-        estimate_model = self.env["plasticos.freight.estimate"]
         for rec in self:
             rec._require_freight_operator()
+        self._lock_freight_advisories("estimate")
+        self.invalidate_recordset()
+        prepared = []
+        for rec in self:
             correlation_id = new_correlation_id()
-            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.estimate:{rec.id}"])
-            rec.invalidate_recordset()
             context = build_freight_context(rec)
             if not context:
                 raise UserError("A complete freight context is required before an estimate can be requested.")
@@ -890,75 +997,109 @@ class PlasticosLoad(models.Model):
                     "executed_evidence": bounded_evidence_payload(history_records),
                 }
                 reasoning_summary = {"formula": "haversine", "reason": failure_code}
-            existing = estimate_model.search(
+            prepared.append(
+                {
+                    "load": rec,
+                    "correlation_id": correlation_id,
+                    "context": context,
+                    "estimate_proposal": proposal,
+                    "status": status,
+                    "failure_code": failure_code,
+                    "history_count": history_count,
+                    "request_fingerprint": request_fingerprint,
+                    "values": {
+                        "context_fingerprint": context.fingerprint,
+                        "request_fingerprint": request_fingerprint,
+                        "fingerprint_version": FREIGHT_CONTEXT_VERSION,
+                        "source_model": PLASTICOS_LOAD,
+                        "source_record_id": rec.id,
+                        "origin_partner_id": rec.pickup_partner_id.id,
+                        "destination_partner_id": rec.delivery_partner_id.id,
+                        "expected_weight_lbs": rec.reference_weight,
+                        "haversine_miles": proposal.haversine_miles if proposal else False,
+                        "geometry_status": geometry_status,
+                        "estimate_floor": proposal.estimate_floor if proposal else False,
+                        "estimate_target": proposal.estimate_target if proposal else False,
+                        "estimate_ceiling": proposal.estimate_ceiling if proposal else False,
+                        "pricing_assumption": proposal.pricing_assumption if proposal else False,
+                        "currency_id": proposal.currency_id if proposal else False,
+                        "confidence": proposal.confidence if proposal else False,
+                        "method": proposal.method if proposal else False,
+                        "model_version": ESTIMATOR_MODEL_VERSION,
+                        "policy_version": ESTIMATOR_POLICY_VERSION,
+                        "evidence_summary": evidence_summary,
+                        "reasoning_summary": reasoning_summary,
+                        "failure_code": failure_code,
+                        "status": status,
+                    },
+                }
+            )
+        existing = set()
+        if prepared:
+            rows = self.env["plasticos.freight.estimate"].search(
                 [
                     ("source_model", "=", PLASTICOS_LOAD),
-                    ("source_record_id", "=", rec.id),
-                    ("context_fingerprint", "=", context.fingerprint),
-                    ("request_fingerprint", "=", request_fingerprint),
-                ],
-                limit=1,
+                    ("source_record_id", "in", [item["load"].id for item in prepared]),
+                ]
             )
-            if existing:
-                continue
-            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
-
-            estimate = create_freight_evidence(
-                rec.env,
-                "plasticos.freight.estimate",
-                {
-                    "context_fingerprint": context.fingerprint,
-                    "request_fingerprint": request_fingerprint,
-                    "fingerprint_version": FREIGHT_CONTEXT_VERSION,
-                    "source_model": PLASTICOS_LOAD,
-                    "source_record_id": rec.id,
-                    "origin_partner_id": rec.pickup_partner_id.id,
-                    "destination_partner_id": rec.delivery_partner_id.id,
-                    "expected_weight_lbs": rec.reference_weight,
-                    "haversine_miles": proposal.haversine_miles if proposal else False,
-                    "geometry_status": geometry_status,
-                    "estimate_floor": proposal.estimate_floor if proposal else False,
-                    "estimate_target": proposal.estimate_target if proposal else False,
-                    "estimate_ceiling": proposal.estimate_ceiling if proposal else False,
-                    "pricing_assumption": proposal.pricing_assumption if proposal else False,
-                    "currency_id": proposal.currency_id if proposal else False,
-                    "confidence": proposal.confidence if proposal else False,
-                    "method": proposal.method if proposal else False,
-                    "model_version": ESTIMATOR_MODEL_VERSION,
-                    "policy_version": ESTIMATOR_POLICY_VERSION,
-                    "evidence_summary": evidence_summary,
-                    "reasoning_summary": reasoning_summary,
-                    "failure_code": failure_code,
-                    "status": status,
-                },
-                load=rec,
+            existing = {
+                (row.source_model, row.source_record_id, row.context_fingerprint, row.request_fingerprint)
+                for row in rows
+            }
+        missing = [
+            item
+            for item in prepared
+            if (
+                PLASTICOS_LOAD,
+                item["load"].id,
+                item["context"].fingerprint,
+                item["request_fingerprint"],
             )
+            not in existing
+        ]
+        if not missing:
+            return True
+        created = create_freight_evidence_rows(
+            self.env,
+            "plasticos.freight.estimate",
+            [(item["load"], item["values"]) for item in missing],
+        )
+        by_load = {row.source_record_id: row for row in created}
+        events = []
+        for item in missing:
+            rec = item["load"]
+            proposal = item["estimate_proposal"]
+            status = item["status"]
+            failure_code = item["failure_code"]
+            estimate = by_load[rec.id]
             rec.message_post(
                 body=(
                     f"Freight estimate {estimate.name} recorded as {status} using the local Haversine-curve policy. "
                     "It is nonbinding and does not assign a carrier or confirm a rate."
                 )
             )
-            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-
-            record_freight_event(
-                rec.env,
-                event_type="freight_estimate_persisted" if status == "succeeded" else "freight_estimate_rejected",
-                outcome_code=failure_code or "local_haversine_curve",
-                load=rec,
-                facts={
-                    "estimate_id": estimate.id,
-                    "exact_lane_evidence_count": (
-                        proposal.evidence_summary["exact_lane_executed_count"] if proposal else None
+            events.append(
+                {
+                    "event_type": (
+                        "freight_estimate_persisted" if status == "succeeded" else "freight_estimate_rejected"
                     ),
-                    "similar_lane_evidence_count": (
-                        proposal.evidence_summary["similar_lane_executed_count"] if proposal else None
-                    ),
-                    "candidate_evidence_count": history_count,
-                },
-                unknowns=[] if status == "succeeded" else [failure_code],
-                correlation_id=correlation_id,
+                    "outcome_code": failure_code or "local_haversine_curve",
+                    "load": rec,
+                    "facts": {
+                        "estimate_id": estimate.id,
+                        "exact_lane_evidence_count": (
+                            proposal.evidence_summary["exact_lane_executed_count"] if proposal else None
+                        ),
+                        "similar_lane_evidence_count": (
+                            proposal.evidence_summary["similar_lane_executed_count"] if proposal else None
+                        ),
+                        "candidate_evidence_count": item["history_count"],
+                    },
+                    "unknowns": [] if status == "succeeded" else [failure_code],
+                    "correlation_id": item["correlation_id"],
+                }
             )
+        record_freight_events(self.env, events)
         return True
 
     def action_view_freight_quote_requests(self):
@@ -970,138 +1111,197 @@ class PlasticosLoad(models.Model):
         action["context"] = {"default_load_id": self.id if len(self) == 1 else False}
         return action
 
+    def _latest_succeeded_estimates(self, specs):
+        """First succeeded estimate per load after ``generated_at desc, id desc`` that matches its spec."""
+        if not specs:
+            return {}
+        rows = self.env["plasticos.freight.estimate"].search(
+            [
+                ("source_model", "=", PLASTICOS_LOAD),
+                ("source_record_id", "in", list(specs)),
+                ("status", "=", "succeeded"),
+            ],
+            order="generated_at desc, id desc",
+        )
+        chosen = {}
+        for estimate in rows:
+            load_id = estimate.source_record_id
+            if load_id in chosen:
+                continue
+            context, currency = specs[load_id]
+            if estimate.context_fingerprint == context.fingerprint and estimate.currency_id == currency:
+                chosen[load_id] = estimate
+        return chosen
+
+    def _latest_calibration_rows(self):
+        """First calibration row per load after ``observed_at desc, id desc``."""
+        if not self:
+            return {}
+        rows = self.env["plasticos.freight.calibration.observation"].search(
+            [("load_id", "in", self.ids)],
+            order="observed_at desc, id desc",
+        )
+        latest = {}
+        for row in rows:
+            latest.setdefault(row.load_id.id, row)
+        return latest
+
     def action_record_actual_freight_cost(self):
         """Persist a non-mutating calibration observation from a verified actual cost."""
-        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+        from odoo.addons.plasticos_logistics.models.freight_governance import (
+            create_freight_evidence_rows,
+            record_freight_events,
+        )
         from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
 
-        calibration_model = self.env["plasticos.freight.calibration.observation"]
-        estimate_model = self.env["plasticos.freight.estimate"]
         for rec in self:
             rec._require_freight_operator()
+        self._lock_freight_advisories("actual-cost")
+        self.invalidate_recordset()
+        ready = []
+        for rec in self:
             correlation_id = new_correlation_id()
-            rec.env.cr.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.actual-cost:{rec.id}"]
-            )
-            rec.invalidate_recordset()
             context = build_freight_context(rec)
             if not context or rec.actual_freight_cost is None or rec.actual_freight_cost < 0:
                 raise UserError("A current freight context and non-negative actual freight cost are required.")
             currency = rec.actual_freight_currency_id or rec.rate_currency_id
             if not currency:
                 raise UserError("Actual freight currency is required.")
-            existing = calibration_model.search([("load_id", "=", rec.id)], limit=1)
-            if existing:
+            ready.append((rec, correlation_id, context, currency))
+        if not ready:
+            return True
+        existing_ids = set(
+            self.env["plasticos.freight.calibration.observation"]
+            .search([("load_id", "in", [rec.id for rec, _correlation_id, _context, _currency in ready])])
+            .mapped("load_id")
+            .ids
+        )
+        for rec, _correlation_id, _context, _currency in ready:
+            if rec.id in existing_ids:
                 raise UserError("Actual freight calibration evidence already exists for this load.")
-            estimate = estimate_model.search(
-                [
-                    ("source_model", "=", PLASTICOS_LOAD),
-                    ("source_record_id", "=", rec.id),
-                    ("context_fingerprint", "=", context.fingerprint),
-                    ("status", "=", "succeeded"),
-                    ("currency_id", "=", currency.id),
-                ],
-                order="generated_at desc, id desc",
-                limit=1,
+        chosen = self._latest_succeeded_estimates(
+            {rec.id: (context, currency) for rec, _correlation_id, context, currency in ready}
+        )
+        pairs = []
+        events = []
+        recorded_at = fields.Datetime.now()
+        for rec, correlation_id, context, currency in ready:
+            estimate = chosen.get(rec.id)
+            pairs.append(
+                (
+                    rec,
+                    {
+                        "load_id": rec.id,
+                        "estimate_id": estimate.id if estimate else False,
+                        "selected_quote_id": rec.selected_freight_quote_id.id
+                        if rec.selected_freight_quote_id
+                        else False,
+                        "currency_id": currency.id,
+                        "estimate_amount": estimate.estimate_target if estimate else False,
+                        "booked_rate_amount": rec.rate_amount if rec.rate_currency_id == currency else False,
+                        "actual_cost_amount": rec.actual_freight_cost,
+                        "estimate_to_actual_variance": (
+                            rec.actual_freight_cost - estimate.estimate_target if estimate else False
+                        ),
+                        "booked_to_actual_variance": (
+                            rec.actual_freight_cost - rec.rate_amount if rec.rate_currency_id == currency else False
+                        ),
+                        "context_fingerprint": context.fingerprint,
+                    },
+                )
             )
-            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
-
-            create_freight_evidence(
-                rec.env,
-                "plasticos.freight.calibration.observation",
+            events.append(
                 {
-                    "load_id": rec.id,
-                    "estimate_id": estimate.id if estimate else False,
-                    "selected_quote_id": rec.selected_freight_quote_id.id if rec.selected_freight_quote_id else False,
-                    "currency_id": currency.id,
-                    "estimate_amount": estimate.estimate_target if estimate else False,
-                    "booked_rate_amount": rec.rate_amount if rec.rate_currency_id == currency else False,
-                    "actual_cost_amount": rec.actual_freight_cost,
-                    "estimate_to_actual_variance": (
-                        rec.actual_freight_cost - estimate.estimate_target if estimate else False
-                    ),
-                    "booked_to_actual_variance": (
-                        rec.actual_freight_cost - rec.rate_amount if rec.rate_currency_id == currency else False
-                    ),
-                    "context_fingerprint": context.fingerprint,
-                },
-                load=rec,
+                    "event_type": "freight_actual_recorded",
+                    "outcome_code": "recorded",
+                    "load": rec,
+                    "facts": {"currency_id": currency.id},
+                    "correlation_id": correlation_id,
+                }
             )
-            rec._freight_write({"actual_freight_recorded_at": fields.Datetime.now()})
-            record_freight_event(
-                rec.env,
-                event_type="freight_actual_recorded",
-                outcome_code="recorded",
-                load=rec,
-                facts={"currency_id": currency.id},
-                correlation_id=correlation_id,
-            )
+        create_freight_evidence_rows(self.env, "plasticos.freight.calibration.observation", pairs)
+        for rec, _correlation_id, _context, _currency in ready:
+            rec._freight_write({"actual_freight_recorded_at": recorded_at})
+        record_freight_events(self.env, events)
         return True
 
     def action_correct_actual_freight_cost(self, actual_cost, currency, reason):
         """Append an attributed calibration correction without reopening prior evidence."""
         from odoo.addons.plasticos_logistics.models.freight_governance import (
-            create_freight_evidence,
-            record_freight_event,
+            create_freight_evidence_rows,
+            record_freight_events,
         )
         from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
 
         if actual_cost is None or actual_cost < 0 or not currency or not reason:
             raise ValidationError("Actual-cost corrections require a non-negative amount, currency, and reason.")
-        calibration_model = self.env["plasticos.freight.calibration.observation"]
         for rec in self:
             rec._require_freight_operator()
+        self._lock_freight_advisories("actual-cost")
+        self.invalidate_recordset()
+        latest = self._latest_calibration_rows()
+        prepared = []
+        for rec in self:
             correlation_id = new_correlation_id()
-            rec.env.cr.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.actual-cost:{rec.id}"]
-            )
-            rec.invalidate_recordset()
-            prior = calibration_model.search([("load_id", "=", rec.id)], order="observed_at desc, id desc", limit=1)
+            prior = latest.get(rec.id)
             if not prior:
                 raise UserError("Record the initial actual freight cost before creating a correction.")
             context = build_freight_context(rec)
             if not context:
                 raise UserError("A current freight context is required before correcting actual freight cost.")
-            create_freight_evidence(
-                rec.env,
-                "plasticos.freight.calibration.observation",
-                {
-                    "load_id": rec.id,
-                    "estimate_id": prior.estimate_id.id if prior.estimate_id else False,
-                    "selected_quote_id": rec.selected_freight_quote_id.id if rec.selected_freight_quote_id else False,
-                    "currency_id": currency.id,
-                    "estimate_amount": prior.estimate_amount if prior.currency_id == currency else False,
-                    "booked_rate_amount": rec.rate_amount if rec.rate_currency_id == currency else False,
-                    "actual_cost_amount": actual_cost,
-                    "estimate_to_actual_variance": (
-                        actual_cost - prior.estimate_amount
-                        if prior.estimate_id and prior.currency_id == currency
-                        else False
-                    ),
-                    "booked_to_actual_variance": (
-                        actual_cost - rec.rate_amount if rec.rate_currency_id == currency else False
-                    ),
-                    "context_fingerprint": context.fingerprint,
-                    "supersedes_observation_id": prior.id,
-                    "correction_reason": reason,
-                },
-                load=rec,
+            prepared.append((rec, correlation_id, prior, context))
+        if not prepared:
+            return True
+        pairs = []
+        events = []
+        recorded_at = fields.Datetime.now()
+        for rec, correlation_id, prior, context in prepared:
+            pairs.append(
+                (
+                    rec,
+                    {
+                        "load_id": rec.id,
+                        "estimate_id": prior.estimate_id.id if prior.estimate_id else False,
+                        "selected_quote_id": rec.selected_freight_quote_id.id
+                        if rec.selected_freight_quote_id
+                        else False,
+                        "currency_id": currency.id,
+                        "estimate_amount": prior.estimate_amount if prior.currency_id == currency else False,
+                        "booked_rate_amount": rec.rate_amount if rec.rate_currency_id == currency else False,
+                        "actual_cost_amount": actual_cost,
+                        "estimate_to_actual_variance": (
+                            actual_cost - prior.estimate_amount
+                            if prior.estimate_id and prior.currency_id == currency
+                            else False
+                        ),
+                        "booked_to_actual_variance": (
+                            actual_cost - rec.rate_amount if rec.rate_currency_id == currency else False
+                        ),
+                        "context_fingerprint": context.fingerprint,
+                        "supersedes_observation_id": prior.id,
+                        "correction_reason": reason,
+                    },
+                )
             )
+            events.append(
+                {
+                    "event_type": "freight_actual_corrected",
+                    "outcome_code": "superseded",
+                    "load": rec,
+                    "facts": {"currency_id": currency.id, "supersedes_observation_id": prior.id},
+                    "correlation_id": correlation_id,
+                }
+            )
+        create_freight_evidence_rows(self.env, "plasticos.freight.calibration.observation", pairs)
+        for rec, _correlation_id, _prior, _context in prepared:
             rec._freight_write(
                 {
                     "actual_freight_cost": actual_cost,
                     "actual_freight_currency_id": currency.id,
-                    "actual_freight_recorded_at": fields.Datetime.now(),
+                    "actual_freight_recorded_at": recorded_at,
                 }
             )
-            record_freight_event(
-                rec.env,
-                event_type="freight_actual_corrected",
-                outcome_code="superseded",
-                load=rec,
-                facts={"currency_id": currency.id, "supersedes_observation_id": prior.id},
-                correlation_id=correlation_id,
-            )
+        record_freight_events(self.env, events)
         return True
 
     def action_open_actual_freight_correction_wizard(self):
@@ -1165,39 +1365,43 @@ class PlasticosLoad(models.Model):
         Request-level guards only refuse stale requests; they never write,
         because their ``UserError`` rolls back.
         """
-        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_events
 
         event_type = self._RFQ_CANCEL_EVENT_TYPES[reason]
-        request_model = self.env["plasticos.freight.quote.request"]
-        for rec in self:
-            domain = [("load_id", "=", rec.id), ("state", "in", ("draft", "sent", "collecting"))]
-            if current_fingerprint:
-                domain.append(("context_fingerprint", "!=", current_fingerprint))
-            if exclude_request_ids:
-                domain.append(("id", "not in", list(exclude_request_ids)))
-            stale = request_model.search(domain)
-            if not stale:
-                continue
-            stale._rfq_write(
+        if not self:
+            return
+        domain = [("load_id", "in", self.ids), ("state", "in", ("draft", "sent", "collecting"))]
+        if current_fingerprint:
+            domain.append(("context_fingerprint", "!=", current_fingerprint))
+        if exclude_request_ids:
+            domain.append(("id", "not in", list(exclude_request_ids)))
+        stale = self.env["plasticos.freight.quote.request"].search(domain)
+        if not stale:
+            return
+        stale._rfq_write(
+            {
+                "state": "cancelled",
+                "cancelled_at": fields.Datetime.now(),
+                "cancellation_reason": reason,
+            }
+        )
+        record_freight_events(
+            self.env,
+            [
                 {
-                    "state": "cancelled",
-                    "cancelled_at": fields.Datetime.now(),
-                    "cancellation_reason": reason,
-                }
-            )
-            for request in stale:
-                record_freight_event(
-                    rec.env,
-                    event_type=event_type,
-                    outcome_code=reason,
-                    load=rec,
-                    facts={
+                    "event_type": event_type,
+                    "outcome_code": reason,
+                    "load": request.load_id,
+                    "facts": {
                         "request_id": request.id,
                         "stale_fingerprint": request.context_fingerprint,
                         "current_fingerprint": current_fingerprint,
                     },
-                    correlation_id=correlation_id,
-                )
+                    "correlation_id": correlation_id,
+                }
+                for request in stale
+            ],
+        )
 
     def action_resolve_freight(self):
         """Resolve Same As Last deterministically; never creates an RFQ on a miss.
@@ -1494,18 +1698,21 @@ class PlasticosLoad(models.Model):
             order="dispatch_sent asc",
             limit=100,
         )
-
-        for load in unacknowledged:
-            has_activity = self.env["mail.activity"].search_count(
+        already_escalated = set()
+        if unacknowledged:
+            activities = self.env["mail.activity"].search(
                 [
                     ("res_model", "=", PLASTICOS_LOAD),
-                    ("res_id", "=", load.id),
+                    ("res_id", "in", unacknowledged.ids),
                     ("summary", "ilike", "URGENT: No carrier acknowledgment"),
                     ("date_deadline", "=", fields.Date.today()),
-                ]
+                ],
+                order="id",
             )
+            already_escalated = set(activities.mapped("res_id"))
 
-            if has_activity:
+        for load in unacknowledged:
+            if load.id in already_escalated:
                 continue
 
             tx = load.transaction_id

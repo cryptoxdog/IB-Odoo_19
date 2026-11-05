@@ -22,17 +22,15 @@ class PlasticosLoadDocsBridge(models.Model):
         for rec in self:
             rec.document_count = len(rec.document_ids)
 
-    def _parent_link_is_protected(self):
-        """An accepted document on this load is parent-link evidence."""
-        self.ensure_one()
-        if super()._parent_link_is_protected():
-            return True
-        return bool(
-            self.env["plasticos.document"].search_count(
-                [("load_id", "=", self.id), ("association_state", "=", "accepted")],
-                limit=1,
-            )
+    def _protected_parent_loads(self):
+        """An accepted document on a load is parent-link evidence."""
+        protected = super()._protected_parent_loads()
+        if not self:
+            return protected
+        accepted = self.env["plasticos.document"].search(
+            [("load_id", "in", self.ids), ("association_state", "=", "accepted")]
         )
+        return protected | accepted.load_id
 
     def action_view_documents(self):
         """View documents linked to this load."""
