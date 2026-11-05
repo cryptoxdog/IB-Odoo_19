@@ -295,36 +295,6 @@
       "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
-      "fingerprint": "c52f9af24058f3cd",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_intake/models/intake.py",
-      "line": 406,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "8f6d0ec8324a9cb0",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_intake/models/intake.py",
-      "line": 460,
-      "model": null,
-      "field": null,
-      "message": "ORM .search_count() inside loop (query in loop)"
-    },
-    {
-      "fingerprint": "29427922629897e2",
-      "type": "N_PLUS_ONE_QUERY",
-      "severity": "HIGH",
-      "file": "plasticos_intake/models/intake.py",
-      "line": 919,
-      "model": null,
-      "field": null,
-      "message": "ORM .create() inside loop (mutation in loop)"
-    },
-    {
       "fingerprint": "833fe5eacccaa852",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
