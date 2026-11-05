@@ -98,23 +98,30 @@ class PlasticosOfferMatchLineage(models.Model):
 
     def action_accept(self):
         """Accept: one explicit commercial winner per opportunity, then one draft native sale order."""
-        for rec in self:
-            opportunity = rec._plasticos_opportunity()
-            if not opportunity:
-                continue
-            others = self.search(
+        opportunity_by_offer = {rec.id: rec._plasticos_opportunity() for rec in self}
+        opportunities = self.env["crm.lead"].union(*[opp for opp in opportunity_by_offer.values() if opp])
+        if opportunities:
+            # One query for the whole batch: any accepted offer already naming one of these opportunities.
+            winners = self.search(
                 [
-                    ("id", "!=", rec.id),
+                    ("id", "not in", self.ids),
                     ("state", "=", "accepted"),
-                    ("match_result_id.match_run_id.opportunity_id", "=", opportunity.id),
-                ],
-                limit=1,
+                    ("match_result_id.match_run_id.opportunity_id", "in", opportunities.ids),
+                ]
             )
-            if others:
-                raise UserError(
-                    _("Opportunity %(opp)s already has a commercial winner (%(offer)s).")
-                    % {"opp": opportunity.name, "offer": others.name}
-                )
+            winner_by_opportunity = {offer._plasticos_opportunity().id: offer for offer in winners}
+            for rec in self:
+                opportunity = opportunity_by_offer[rec.id]
+                if not opportunity:
+                    continue
+                other = winner_by_opportunity.get(opportunity.id)
+                if other:
+                    raise UserError(
+                        _("Opportunity %(opp)s already has a commercial winner (%(offer)s).")
+                        % {"opp": opportunity.name, "offer": other.name}
+                    )
+                # Two offers accepted in one call for one opportunity is also two winners.
+                winner_by_opportunity[opportunity.id] = rec
         res = super().action_accept()
         for rec in self:
             opportunity = rec._plasticos_opportunity()

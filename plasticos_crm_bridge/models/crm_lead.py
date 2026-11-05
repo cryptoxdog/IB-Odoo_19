@@ -617,13 +617,18 @@ class CrmLeadPlastOS(models.Model):
         VanillaSoft and manual ingress call this after the partner is verified.
         Several or zero profiles leave the choice to the broker.
         """
-        for rec in self:
-            if rec.material_profile_id or not rec.partner_id:
-                continue
-            owners = self.env["plasticos.opportunity.approval"]._allowed_profile_owners(rec.partner_id)
-            profiles = self.env["plasticos.material.profile"].search([("partner_id", "in", owners.ids)])
-            if len(profiles) == 1:
-                rec.material_profile_id = profiles
+        Approval = self.env["plasticos.opportunity.approval"]
+        candidates = self.filtered(lambda lead: lead.partner_id and not lead.material_profile_id)
+        if not candidates:
+            return
+        owners_by_lead = {lead.id: Approval._allowed_profile_owners(lead.partner_id) for lead in candidates}
+        all_owner_ids = {owner_id for owners in owners_by_lead.values() for owner_id in owners.ids}
+        # One query for every candidate lead; profiles are then grouped per lead.
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "in", list(all_owner_ids))])
+        for lead in candidates:
+            owned = profiles.filtered(lambda profile, owners=owners_by_lead[lead.id]: profile.partner_id in owners)
+            if len(owned) == 1:
+                lead.material_profile_id = owned
 
     def _plasticos_require_lot_inputs(self):
         self.ensure_one()
@@ -712,16 +717,24 @@ class CrmLeadPlastOS(models.Model):
         }
 
     def _plasticos_current_run(self):
-        """The latest successful Gate run on this opportunity's latest lot."""
+        """The latest successful Gate run on this opportunity's latest lot (no query: lineage is loaded)."""
         self.ensure_one()
         approval = self.approval_ids.sorted(lambda lot: (lot.create_date or fields.Datetime.now(), lot.id))[-1:]
         if not approval:
             return self.env["plasticos.match.run"]
-        return self.env["plasticos.match.run"].search(
-            [("approval_id", "=", approval.id), ("state", "=", "ok")],
-            order="create_date desc, id desc",
-            limit=1,
-        )
+        runs = approval.match_run_ids.filtered(lambda run: run.state == "ok")
+        return runs.sorted(lambda run: (run.create_date or fields.Datetime.now(), run.id))[-1:]
+
+    @staticmethod
+    def _plasticos_offer_vals(run, result):
+        snapshot = run.approval_id.snapshot if run.approval_id and isinstance(run.approval_id.snapshot, dict) else {}
+        return {
+            "match_result_id": result.id,
+            "intake_id": result.intake_id.id if result.intake_id else False,
+            "supplier_id": run.supplier_partner_id.id,
+            "buyer_id": result.buyer_partner_id.id,
+            "quantity_lbs": float(snapshot.get("quantity_per_load_lbs") or 0.0),
+        }
 
     def action_create_offers_from_results(self):
         """Create one unsent draft offer per reviewed (accepted) result of the current run; idempotent.
@@ -730,7 +743,8 @@ class CrmLeadPlastOS(models.Model):
         quantity authority from the match. A second call creates nothing.
         """
         Offer = self.env["plasticos.offer"]
-        created = Offer
+        run_by_lead = {}
+        reviewed_all = self.env["plasticos.match.result"]
         for rec in self:
             run = rec._plasticos_current_run()
             if not run:
@@ -738,28 +752,23 @@ class CrmLeadPlastOS(models.Model):
             reviewed = run.result_ids.filtered(lambda result: result.state == "accepted")
             if not reviewed:
                 raise UserError(_("No reviewed (accepted) match result on run %s. Review the results first.") % run.id)
-            existing = Offer.search([("match_result_id", "in", reviewed.ids)])
-            covered = set(existing.mapped("match_result_id").ids)
-            vals_list = [
-                {
-                    "match_result_id": result.id,
-                    "intake_id": result.intake_id.id if result.intake_id else False,
-                    "supplier_id": run.supplier_partner_id.id,
-                    "buyer_id": result.buyer_partner_id.id,
-                    "quantity_lbs": float(run.approval_id.snapshot.get("quantity_per_load_lbs") or 0.0)
-                    if run.approval_id and isinstance(run.approval_id.snapshot, dict)
-                    else 0.0,
-                }
-                for result in reviewed
-                if result.id not in covered
-            ]
-            new_offers = Offer.create(vals_list) if vals_list else Offer
-            created |= new_offers
-            if new_offers:
+            run_by_lead[rec.id] = (run, reviewed)
+            reviewed_all |= reviewed
+        # One lookup and one create for every opportunity in the batch.
+        covered = set(Offer.search([("match_result_id", "in", reviewed_all.ids)]).mapped("match_result_id").ids)
+        vals_list = [
+            self._plasticos_offer_vals(run, result)
+            for run, reviewed in run_by_lead.values()
+            for result in reviewed
+            if result.id not in covered
+        ]
+        new_offers = Offer.create(vals_list) if vals_list else Offer
+        for rec in self:
+            run, _reviewed = run_by_lead[rec.id]
+            count = len(new_offers.filtered(lambda offer, run=run: offer.match_result_id.match_run_id == run))
+            if count:
                 rec.message_post(
-                    body=_(
-                        "Created %(count)s unsent draft offer(s) from run %(run)s.", count=len(new_offers), run=run.id
-                    ),
+                    body=_("Created %(count)s unsent draft offer(s) from run %(run)s.", count=count, run=run.id),
                     message_type="notification",
                     subtype_xmlid="mail.mt_note",
                 )
