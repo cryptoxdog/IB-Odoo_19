@@ -22,10 +22,10 @@ def migrate(cr, version):
     )
     has_column = bool(cr.fetchone())
     if has_column:
-        _logger.info("plasticos_transaction 19.0.2.3.54: sale.order.opportunity_id present (sale_crm %s)", state)
+        _logger.info("plasticos_transaction 19.0.2.3.55: sale.order.opportunity_id present (sale_crm %s)", state)
     else:
         _logger.warning(
-            "plasticos_transaction 19.0.2.3.54: sale.order.opportunity_id missing (sale_crm %s); "
+            "plasticos_transaction 19.0.2.3.55: sale.order.opportunity_id missing (sale_crm %s); "
             "offer acceptance will refuse to create a quotation until sale_crm is installed",
             state,
         )
