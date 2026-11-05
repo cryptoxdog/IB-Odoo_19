@@ -13,6 +13,17 @@
       "model": "plasticos.transaction",
       "field": "commission_override_pct",
       "message": "@api.constrains references non-existent field 'commission_override_pct'"
+    },
+    {
+      "fingerprint": "8bf7ef9ea67765ca",
+      "type": "INVALID_DEPENDS",
+      "severity": "HIGH",
+      "file": "plasticos_documents/models/transaction_docs.py",
+      "line": 62,
+      "model": "plasticos.transaction",
+      "field": "document_ids",
+      "message": "@api.depends references non-existent field 'document_ids'",
+      "review": "False positive. document_ids is the One2many on plasticos.transaction in transaction_docs_bridge.py. That file's first class inherits account.move, and odoo_audit.py files every field in a no-_name file under the first _inherit. The depends check only started seeing this file when the extension set _name so Odoo 19 would not register plasticos.transaction.docs. The three depends paths on this line share one fingerprint."
     }
   ]
 }

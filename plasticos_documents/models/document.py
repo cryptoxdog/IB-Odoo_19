@@ -493,6 +493,12 @@ class PlasticosDocument(models.Model):
         """
         tx_model = self.env["plasticos.transaction"]
         tx_ids = set()
+        sale_order_ids = [record.res_id for record in records if record.res_model == "sale.order"]
+        by_sale_order = {}
+        if sale_order_ids:
+            found = tx_model.search([("sale_order_id", "in", sale_order_ids)])
+            for order, group in found.grouped("sale_order_id").items():
+                by_sale_order[order.id] = group
 
         for record in records:
             if record._association_conflict_reason():
@@ -508,7 +514,7 @@ class PlasticosDocument(models.Model):
                 if load.transaction_id:
                     tx_ids.add(load.transaction_id.id)
             elif record.res_model == "sale.order":
-                txs = tx_model.search([("sale_order_id", "=", record.res_id)])
+                txs = by_sale_order.get(record.res_id, tx_model) if record.res_id else tx_model
                 if len(txs) == 1:
                     tx_ids.add(txs.id)
 

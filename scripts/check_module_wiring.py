@@ -188,6 +188,41 @@ def parse_manifest(module_path: Path) -> dict[str, Any] | None:
         return None
 
 
+def _new_model_names(content: str) -> list[str]:
+    """Model names this source defines. An extension that repeats its parent name is not one."""
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return re.findall(r'_name\s*=\s*["\']([^"\']+)["\']', content)
+
+    names: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        model_name = None
+        inherited: set[str] = set()
+        for stmt in node.body:
+            value = None
+            target_name = None
+            if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+                target_name = stmt.targets[0].id
+                value = stmt.value
+            elif isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                target_name = stmt.target.id
+                value = stmt.value
+            if target_name == "_name" and isinstance(value, ast.Constant) and isinstance(value.value, str):
+                model_name = value.value
+            elif target_name == "_inherit" and isinstance(value, ast.Constant) and isinstance(value.value, str):
+                inherited.add(value.value)
+            elif target_name == "_inherit" and isinstance(value, (ast.List, ast.Tuple)):
+                inherited.update(
+                    elt.value for elt in value.elts if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+                )
+        if model_name and model_name not in inherited:
+            names.append(model_name)
+    return names
+
+
 def find_model_definitions(module_path: Path) -> dict[str, str]:
     """
     Find all model definitions in a module.
@@ -210,8 +245,9 @@ def find_model_definitions(module_path: Path) -> dict[str, str]:
 
         try:
             content = py_file.read_text()
-            # Match _name = "model.name" patterns
-            name_matches = re.findall(r'_name\s*=\s*["\']([^"\']+)["\']', content)
+            # A class whose _name is also in its _inherit extends that model.
+            # Odoo 19 needs the explicit _name when the inherit list adds a mixin.
+            name_matches = _new_model_names(content)
             for model_name in name_matches:
                 models[model_name] = str(py_file)
         except Exception:
