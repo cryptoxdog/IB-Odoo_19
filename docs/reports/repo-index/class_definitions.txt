@@ -152,12 +152,12 @@
 ./plasticos_crm_sync/services/owner_crosswalk.py:36:class OwnerResolutionError(Exception):
 ./plasticos_crm_sync/tests/test_crm45_classification.py:22:class TestCrm45Classification(CrmSyncOrchestratorCase):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:32:class TestVanillaSoftLeadLifecycle(TransactionCase):
-./plasticos_crm_sync/tests/test_material_mapping_map.py:14:class TestVanillaSoftMaterialMap(TransactionCase):
+./plasticos_crm_sync/tests/test_material_mapping_map.py:21:class TestVanillaSoftMaterialMap(TransactionCase):
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:33:class CrmSyncOrchestratorCase(TransactionCase):
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:90:class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:600:        class _Adapter:
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:738:        class Adapter:
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1738:        class Adapter:
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:606:        class _Adapter:
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:744:        class Adapter:
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1757:        class Adapter:
 ./plasticos_crm_sync/tests/test_settings_import_action.py:14:class TestCrmSyncSettingsImportAction(TransactionCase):
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:43:class _StubAdapter:
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:73:class TestWatermarkAcknowledgement(TransactionCase):
@@ -247,6 +247,8 @@
 ./plasticos_intake/tests/test_intake_contracts.py:20:class TestIntakeFieldContract(PlasticosTestCase):
 ./plasticos_intake/tests/test_intake_contracts.py:188:class TestIntakeMethodContract(PlasticosTestCase):
 ./plasticos_intake/tests/test_intake_contracts.py:242:class TestIntakeMailMixin(PlasticosTestCase):
+./plasticos_intake/tests/test_intake_grade_migration.py:19:class TestIntakeGradeMigration(TransactionCase):
+./plasticos_intake/tests/test_intake_image_count.py:13:class TestIntakeImageCount(PlasticosTestCase):
 ./plasticos_intake/tests/test_intake_onchange_cascade.py:18:class TestIntakePartnerCascade(PlasticosTestCase):
 ./plasticos_intake/tests/test_intake_onchange_cascade.py:107:class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
 ./plasticos_intake/tests/test_intake_partner_sync_access.py:15:class TestIntakePartnerSyncAccess(TransactionCase):
@@ -255,6 +257,7 @@
 ./plasticos_intake_normalizer/tests/test_batch_limit.py:24:class TestBatchLimit(TransactionCase):
 ./plasticos_intake_normalizer/tests/test_cron_batch_normalize.py:13:class TestBatchNormalizeCron(PlasticosTestCase):
 ./plasticos_intake_normalizer/tests/test_normalizer_privilege.py:13:class TestNormalizerPrivilege(TransactionCase):
+./plasticos_intake_normalizer/tests/test_packet_material_grade.py:7:class TestPacketMaterialGrade(TransactionCase):
 ./plasticos_logistics/models/dispatch.py:9:class PlasticosDispatch(models.Model):
 ./plasticos_logistics/models/freight_estimate.py:9:class PlasticosFreightEstimate(models.Model):
 ./plasticos_logistics/models/freight_governance.py:30:class PlasticosFreightEvent(models.Model):
@@ -304,12 +307,15 @@
 ./plasticos_matching/tests/test_performance.py:20:class TestBulkImportPerformance(PlasticosTestCase):
 ./plasticos_matching/tests/test_performance.py:90:class TestCronPerformance(PlasticosTestCase):
 ./plasticos_matching/tests/test_performance.py:111:class TestSearchPerformance(PlasticosTestCase):
+./plasticos_material_profile/grade_migration.py:22:class GradeMigrationError(RuntimeError):
 ./plasticos_material_profile/models/filler_type.py:5:class PlasticosFillerType(models.Model):
 ./plasticos_material_profile/models/grade_template.py:11:class PlasticosGradeTemplate(models.Model):
 ./plasticos_material_profile/models/material_attribute.py:5:class PlasticosMaterialAttribute(models.Model):
 ./plasticos_material_profile/models/material_color.py:5:class PlasticosMaterialColor(models.Model):
 ./plasticos_material_profile/models/material_form.py:5:class PlasticosMaterialForm(models.Model):
-./plasticos_material_profile/models/material_normalizer.py:202:class MaterialNormalization:
+./plasticos_material_profile/models/material_grade.py:4:class PlasticosMaterialGrade(models.Model):
+./plasticos_material_profile/models/material_normalizer.py:12:class _Spec(NamedTuple):
+./plasticos_material_profile/models/material_normalizer.py:279:class MaterialNormalization:
 ./plasticos_material_profile/models/material_profile.py:12:class PlasticosMaterialProfile(models.Model):
 ./plasticos_material_profile/models/packaging_type.py:5:class PlasticosPackagingType(models.Model):
 ./plasticos_material_profile/models/polymer.py:5:class PlasticosPolymer(models.Model):
@@ -317,9 +323,12 @@
 ./plasticos_material_profile/models/res_partner.py:5:class ResPartner(models.Model):
 ./plasticos_material_profile/models/source_type.py:5:class PlasticosSourceType(models.Model):
 ./plasticos_material_profile/tests/test_constraints_material_profile.py:14:class TestMaterialProfileConstraintsConsolidated(PlasticosTestCase):
-./plasticos_material_profile/tests/test_material_normalizer.py:14:class TestMaterialNormalizer(TransactionCase):
+./plasticos_material_profile/tests/test_material_grade_migration.py:25:class TestMaterialGradeMigration(TransactionCase):
+./plasticos_material_profile/tests/test_material_normalizer.py:15:class TestMaterialNormalizer(TransactionCase):
+./plasticos_material_profile/tests/test_material_profile_counts.py:13:class TestMaterialProfileCounts(PlasticosTestCase):
 ./plasticos_material_profile/tests/test_material_profile_intake_delta_contract.py:8:class TestMaterialProfileDeltaFieldContract(PlasticosTestCase):
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:14:class TestNullableFormUniqueness(TransactionCase):
+./plasticos_material_profile/tests/test_sheet_grade_retirement.py:19:class TestSheetGradeRetirement(TransactionCase):
 ./plasticos_offer/models/intake_offers_bridge.py:9:class PlasticosIntakeOffersBridge(models.Model):
 ./plasticos_offer/models/offer.py:9:class PlasticosOffer(models.Model):
 ./plasticos_offer/models/offer_price_bridge.py:15:class PlasticosOfferPriceBridge(models.Model):
@@ -330,8 +339,9 @@
 ./plasticos_offer/tests/test_write_unlink_guards.py:21:class TestIntakeWriteGuards(PlasticosTestCase):
 ./plasticos_offer/tests/test_write_unlink_guards.py:96:class TestOfferWriteGuards(PlasticosTestCase):
 ./plasticos_offer/wizards/offer_bulk_action_wizard.py:10:class OfferBulkActionWizard(models.TransientModel):
-./plasticos_order_lines/models/purchase_order_line.py:6:class PurchaseOrderLine(models.Model):
+./plasticos_order_lines/models/purchase_order_line.py:7:class PurchaseOrderLine(models.Model):
 ./plasticos_order_lines/models/sale_order_line.py:6:class SaleOrderLine(models.Model):
+./plasticos_order_lines/tests/test_material_grade_naming.py:7:class TestMaterialGradeNaming(TransactionCase):
 ./plasticos_order_lines/tests/test_onchange_purchase_order_line_plasticos.py:14:class TestPurchaseOrderLineOnchange(PlasticosTestCase):
 ./plasticos_order_lines/tests/test_onchange_sale_order_line_plasticos.py:13:class TestSaleOrderLineOnchange(PlasticosTestCase):
 ./plasticos_partner_import/erp/comment_notes.py:11:class _CommentBlocks(HTMLParser):
@@ -400,7 +410,7 @@
 ./plasticos_transaction/models/audit_cron.py:8:class PlasticosAuditCron(models.Model):
 ./plasticos_transaction/models/intake_bridge.py:5:class PlasticosIntakeTxBridge(models.Model):
 ./plasticos_transaction/models/legacy_erp_import_service.py:12:class PlasticosLegacyErpImport(models.AbstractModel):
-./plasticos_transaction/models/native_document_import.py:679:    class _Report:
+./plasticos_transaction/models/native_document_import.py:688:    class _Report:
 ./plasticos_transaction/models/offer_bridge.py:4:class PlasticosOfferTxBridge(models.Model):
 ./plasticos_transaction/models/partner_bridge.py:4:class ResPartnerTxBridge(models.Model):
 ./plasticos_transaction/models/purchase_inherit.py:8:class PurchaseOrder(models.Model):
@@ -424,6 +434,7 @@
 ./plasticos_transaction/tests/test_transaction_contracts.py:16:class TestTransactionFieldContract(PlasticosTestCase):
 ./plasticos_transaction/tests/test_transaction_contracts.py:72:class TestTransactionMethodContract(PlasticosTestCase):
 ./plasticos_transaction/tests/test_transaction_form_ui.py:24:class TestTransactionFormUi(TransactionCase):
+./plasticos_transaction/tests/test_uniqueness_batch.py:14:class TestUniquenessBatch(_plasticos_test_case()):
 ./plasticos_transaction/wizards/transaction_bulk_assign_wizard.py:10:class TransactionBulkAssignWizard(models.TransientModel):
 ./plasticos_transaction/wizards/transaction_bulk_update_wizard.py:10:class TransactionBulkUpdateWizard(models.TransientModel):
 ./plasticos_transaction/wizards/transaction_import_wizard.py:21:class TransactionImportWizard(models.TransientModel):
@@ -440,7 +451,7 @@
 ./plasticos_web_leads/models/economic_policy.py:17:class EconomicEligibilityResult:
 ./plasticos_web_leads/models/inference_provider.py:38:class InferenceProvider:
 ./plasticos_web_leads/models/quantity_normalizer.py:53:class QuantityEvidence:
-./plasticos_web_leads/models/web_lead.py:191:class PlasticosWebLead(models.Model):
+./plasticos_web_leads/models/web_lead.py:199:class PlasticosWebLead(models.Model):
 ./plasticos_web_leads/models/web_lead_api_key_wizard.py:6:class PlasticosWebLeadApiKeyWizard(models.TransientModel):
 ./plasticos_web_leads/models/web_lead_bridge.py:4:class PlasticosWebLeadBridge(models.Model):
 ./plasticos_web_leads/models/web_lead_config.py:30:class PlasticosWebLeadConfig(models.Model):
@@ -455,6 +466,7 @@
 ./plasticos_web_leads/tests/test_web_lead_hardening.py:451:class TestDefaultProviderField(_WebLeadCase):
 ./plasticos_web_leads/tests/test_web_lead_inbound_http.py:18:class _BodySigningAdapter(WebLeadAdapter):
 ./plasticos_web_leads/tests/test_web_lead_inbound_http.py:80:class TestWebLeadInboundHttp(HttpCase):
+./plasticos_web_leads/tests/test_web_lead_material_grade.py:27:class TestWebLeadMaterialGrade(TransactionCase):
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:10:class LeadBulkActionWizard(models.TransientModel):
 ./scripts/audit/api_regression.py:12:class APIRegressionAudit:
 ./scripts/audit/business_logic_audit.py:68:class BusinessLogicAudit:
@@ -463,6 +475,7 @@
 ./scripts/audit/schema_audit.py:10:class SchemaAudit:
 ./scripts/audit/security_audit.py:85:class SecurityAudit:
 ./scripts/audit/test_audit.py:26:class TestAudit:
+./scripts/build_material_mapping.py:455:class Census:
 ./scripts/check_external_intelligence_readiness.py:52:    class _ICP:
 ./scripts/check_external_intelligence_readiness.py:56:    class _Env:
 ./scripts/evidence_odoo_mapping_consumer.py:13:class MappingProjection:
@@ -641,7 +654,7 @@
 ./tests/test_gate_sdk_invocation.py:91:class _Env:
 ./tests/test_gate_sdk_invocation.py:106:class _FakeGate:
 ./tests/test_gate_sdk_invocation.py:201:    class _SeamClient(_SdkGateClient):
-./tests/test_install_smoke_evidence.py:133:class Site:
+./tests/test_install_smoke_evidence.py:134:class Site:
 ./tests/test_launch_invariants_crm_enrichment.py:437:class _FakeValue:
 ./tests/test_launch_invariants_crm_enrichment.py:445:class _FakePartner:
 ./tests/test_launch_invariants_crm_enrichment.py:455:class _FakeRun:
@@ -663,17 +676,17 @@
 ./tests/test_odoo_test_discovery.py:54:class TestOdooTestDiscovery:
 ./tests/test_odoo_test_setup_validity.py:23:class SetupViolation(NamedTuple):
 ./tests/test_offer_price_bridge_wiring.py:31:class TestOfferPriceBridge:
-./tests/test_phantom_enum_values.py:926:class EnumSource(NamedTuple):
-./tests/test_phantom_enum_values.py:934:class EnumUsage(NamedTuple):
-./tests/test_phantom_enum_values.py:1057:class _EnumUsageVisitor(ast.NodeVisitor):
-./tests/test_phantom_enum_values.py:1368:class TestRegistrySanity:
-./tests/test_phantom_enum_values.py:1456:class TestSelectionComparisons:
-./tests/test_phantom_enum_values.py:1487:class TestPhantomEnumValues:
-./tests/test_phantom_enum_values.py:1547:class TestPerModulePhantomAudit:
-./tests/test_phantom_enum_values.py:1568:class TestSelectionFieldConsistency:
-./tests/test_phantom_enum_values.py:1616:class TestXmlSelectionAlignment:
-./tests/test_phantom_enum_values.py:1737:class TestEquipmentCodeAlignment:
-./tests/test_phantom_enum_values.py:1793:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:933:class EnumSource(NamedTuple):
+./tests/test_phantom_enum_values.py:941:class EnumUsage(NamedTuple):
+./tests/test_phantom_enum_values.py:1064:class _EnumUsageVisitor(ast.NodeVisitor):
+./tests/test_phantom_enum_values.py:1375:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1464:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1495:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1555:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1576:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1624:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1745:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1801:class TestPhantomAuditReport:
 ./tests/test_pr_check_scope.py:54:class Repo:
 ./tests/test_process_enum_alignment.py:64:class TestProcessEnumAlignment:
 ./tests/test_sal_resolver_service.py:24:    class Datetime:
