@@ -387,3 +387,120 @@ def test_inherited_view_with_no_model_and_an_unknown_parent_is_reported_not_skip
         ("FIELD_NOT_FOUND", "CRITICAL", "ghost"),
         ("UNRESOLVED_VIEW_MODEL", "HIGH", "sample_ui.external_ext"),
     ]
+
+
+# ── @api.depends attribution ───────────────────────────────────────────────
+#
+# check_compute_depends used to resolve fields from a per-file regex index that
+# filed every field of a no-``_name`` file under the file's first ``_inherit``.
+# A bridge file whose first class extends ``account.move`` therefore hid the
+# ``document_ids`` its second class adds to ``plasticos.transaction``, and the
+# regex emitted one row per dotted path. The check now reads the AST model index.
+
+DEPENDS_BRIDGE = """
+class AccountMoveBridge(models.Model):
+    _inherit = "account.move"
+
+    bridge_flag = fields.Boolean()
+
+
+class SampleOrderDocsBridge(models.Model):
+    _inherit = "sample.order"
+
+    document_ids = fields.One2many("sample.line", "order_id")
+"""
+
+
+def _depends_compute(*paths: str) -> str:
+    quoted = ", ".join(f'"{path}"' for path in paths)
+    return f"""
+class SampleOrderDocs(models.Model):
+    _name = "sample.order"
+    _inherit = ["sample.order", "mail.activity.mixin"]
+
+    missing_docs = fields.Boolean(compute="_compute_missing_docs", store=True)
+
+    @api.depends({quoted})
+    def _compute_missing_docs(self):
+        for rec in self:
+            rec.missing_docs = False
+"""
+
+
+def _docs_module(root: Path, compute: str) -> None:
+    _write(root, "sample_docs/__manifest__.py", '{"name": "docs", "depends": ["sample_base"]}')
+    _write(root, "sample_docs/models/bridge.py", DEPENDS_BRIDGE)
+    _write(root, "sample_docs/models/docs.py", compute)
+
+
+def _invalid_depends(root: Path) -> list[dict]:
+    audit = OdooAudit(root)
+    with contextlib.redirect_stdout(io.StringIO()):
+        errors = audit.run_all_checks()
+    return [e for e in errors if e["type"] == "INVALID_DEPENDS"]
+
+
+def test_depends_resolves_a_field_added_by_a_sibling_class_behind_a_foreign_inherit(tmp_path: Path):
+    root = _tree(tmp_path)
+    _docs_module(
+        root,
+        _depends_compute("line_ids", "document_ids", "document_ids.qty", "document_ids.order_id", "activity_ids"),
+    )
+    assert _invalid_depends(root) == []
+
+
+def test_depends_on_an_absent_field_is_one_high_finding(tmp_path: Path):
+    root = _tree(tmp_path)
+    _docs_module(root, _depends_compute("line_ids", "ghost"))
+    findings = _invalid_depends(root)
+    assert [(e["severity"], e["model"], e["compute_method"], e["field"]) for e in findings] == [
+        ("HIGH", "sample.order", "_compute_missing_docs", "ghost")
+    ]
+    assert findings[0]["file"].endswith("sample_docs/models/docs.py")
+    assert findings[0]["line"] > 0
+
+
+def test_three_dotted_paths_on_one_absent_base_field_are_one_row(tmp_path: Path):
+    root = _tree(tmp_path)
+    _docs_module(root, _depends_compute("ghost", "ghost.qty", "ghost.order_id"))
+    findings = _invalid_depends(root)
+    assert len(findings) == 1
+    assert findings[0]["field"] == "ghost"
+
+
+def test_depends_resolves_an_extension_field_through_the_depends_closure(tmp_path: Path):
+    root = _tree(tmp_path)
+    extension = """
+    class SampleOrderScore(models.Model):
+        _inherit = "sample.order"
+
+        @api.depends("ext_score")
+        def _compute_rank(self):
+            for rec in self:
+                rec.rank = rec.ext_score
+    """
+    _write(root, "sample_ui/models/score.py", extension)
+    _write(root, "sample_unrelated/models/score.py", extension)
+    findings = _invalid_depends(root)
+    assert [(e["model"], e["field"], e["compute_method"]) for e in findings] == [
+        ("sample.order", "ext_score", "_compute_rank")
+    ]
+    assert findings[0]["file"].endswith("sample_unrelated/models/score.py")
+
+
+def test_depends_on_a_model_without_a_repo_definition_is_not_checked(tmp_path: Path):
+    root = _tree(tmp_path)
+    _write(
+        root,
+        "sample_ui/models/partner.py",
+        """
+        class SamplePartner(models.Model):
+            _inherit = "res.partner"
+
+            @api.depends("email", "child_ids.email")
+            def _compute_contact(self):
+                for rec in self:
+                    rec.contact = rec.email
+        """,
+    )
+    assert _invalid_depends(root) == []
