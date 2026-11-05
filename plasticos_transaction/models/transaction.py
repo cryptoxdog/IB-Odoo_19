@@ -1027,23 +1027,41 @@ class PlasticosTransaction(models.Model):
             if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
                 raise UserError("Customer invoice cannot be reassigned once set.")
 
+    def _linked_bill_ids(self, vals, field):
+        if field not in vals:
+            return []
+        bill_ids = []
+        for cmd in vals[field]:
+            if cmd[0] == 4:
+                bill_ids.append(cmd[1])
+            elif cmd[0] == 6:
+                bill_ids.extend(cmd[2])
+        return bill_ids
+
+    def _bill_owner_links(self, field, bill_ids):
+        if not bill_ids:
+            return {}
+        taken = self.search([(field, "in", bill_ids)])
+        taken[field]
+        return {owner.id: set(owner[field].ids) for owner in taken}
+
     def _bill_owners_for_write(self, vals):
         """One search per bill field for the whole recordset, before the write loop."""
         owners = {}
-        for field, label in (("vendor_bill_ids", "Vendor bill"), ("freight_bill_ids", "Freight bill")):
-            if field not in vals:
-                continue
-            bill_ids = []
-            for cmd in vals[field]:
-                if cmd[0] == 4:
-                    bill_ids.append(cmd[1])
-                elif cmd[0] == 6:
-                    bill_ids.extend(cmd[2])
-            if not bill_ids:
-                continue
-            taken = self.search([(field, "in", bill_ids)])
-            taken[field]
-            owners[field] = (label, bill_ids, {owner.id: set(owner[field].ids) for owner in taken})
+        vendor_ids = self._linked_bill_ids(vals, "vendor_bill_ids")
+        if vendor_ids:
+            owners["vendor_bill_ids"] = (
+                "Vendor bill",
+                vendor_ids,
+                self._bill_owner_links("vendor_bill_ids", vendor_ids),
+            )
+        freight_ids = self._linked_bill_ids(vals, "freight_bill_ids")
+        if freight_ids:
+            owners["freight_bill_ids"] = (
+                "Freight bill",
+                freight_ids,
+                self._bill_owner_links("freight_bill_ids", freight_ids),
+            )
         return owners
 
     def _validate_bill_uniqueness(self, rec, bill_owners):
