@@ -295,6 +295,23 @@ _CRM_ALIASES["3-7 mixed plastic"] = _spec(
 )
 _CRM_ALIASES["3-7 bottles"] = _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
 _CRM_ALIASES["mrp 3-7"] = _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER")
+# Operator-approved 2026-11-05 (mapping matrix resolution ledger)
+_CRM_ALIASES["1 & 2 bottles"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["bottles (hd/pet)"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["1 & 2 bottles (pet/hdpe)"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["1 & 2 pet & hdpe co-mingled bottles"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["commingled bottles 1&2"] = _spec(
+    polymer="1_2_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"
+)
+_CRM_ALIASES["ldpe/hdpe grocery film"] = _spec(polymer="HDPE", form="FILM", source="POST_CONSUMER")
 
 
 # Phrases that are call-note text, not material descriptions. The CRM importer

@@ -156,19 +156,19 @@ ldpe grade a film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,A,,clean dry,app
 ldpe grade b film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,B,,clean,approved in code; not a token in the October 14 workbook
 ldpe grade c film,,,CODE_ONLY,mapped,worksheet_phrase,LDPE,FILM,C,,,approved in code; not a token in the October 14 workbook
 pc-abs,,,CODE_ONLY,mapped,worksheet_phrase,PC_ABS,,,POST_INDUSTRIAL,,approved in code; not a token in the October 14 workbook
-Bottles (HD/PET),9,9,ALIAS,held,,,,,,,held: names two polymers (HDPE and PET); workbook proposed PET
-Fiber,39,39,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-1 & 2 Bottles,29,29,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-Engineering Grades,18,18,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Bottles (HD/PET),9,9,ALIAS,mapped,approved_alias,1_2_COMMINGLED_BOTTLES,,,POST_CONSUMER,,ledger NEW_MASTER_1_2_COMMINGLED; wired 2026-11-05
+Fiber,39,39,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+1 & 2 Bottles,29,29,AMBIGUOUS,mapped,approved_alias,1_2_COMMINGLED_BOTTLES,,,POST_CONSUMER,,ledger NEW_MASTER_1_2_COMMINGLED; wired 2026-11-05
+Engineering Grades,18,18,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 Drip Tube,15,15,AMBIGUOUS,mapped,approved_alias,HDPE,,,,,wired 2026-11-05
 1-7 Bottles,14,14,RECOMMENDED_REVIEW,mapped,approved_alias,1_7_COMMINGLED_BOTTLES,,,POST_CONSUMER,,wired 2026-11-05
 3-7 Mixed Plastic,12,12,RECOMMENDED_REVIEW,mapped,approved_alias,3_7_COMMINGLED_BOTTLES,,,POST_CONSUMER,,wired 2026-11-05
 Strapping,8,8,OPERATOR_APPROVED,mapped,worksheet_phrase,PET,,,,,
-LDPE/HDPE Grocery Film,6,6,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
-Bottles,5,5,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-Pellets/Resin,5,5,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-Waste Plastic,4,4,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-film,3,3,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+LDPE/HDPE Grocery Film,6,6,AMBIGUOUS,mapped,approved_alias,HDPE,FILM,,POST_CONSUMER,,ledger polymer=HDPE form=FILM; wired 2026-11-05
+Bottles,5,5,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+Pellets/Resin,5,5,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+Waste Plastic,4,4,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+film,3,3,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 clear film,2,2,OPERATOR_APPROVED,mapped,worksheet_phrase,LLDPE,FILM,,,,
 rigids,2,2,OPERATOR_APPROVED,mapped,worksheet_phrase,MRP,,,,,
 super sacks,2,2,OPERATOR_APPROVED,mapped,worksheet_phrase,PP,,,,lined,
@@ -177,22 +177,22 @@ super sacks,2,2,OPERATOR_APPROVED,mapped,worksheet_phrase,PP,,,,lined,
 Acrylic. Interested in buying PVC from us.,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 co-mingled 1-7 all plastics,1,1,RECOMMENDED_REVIEW,mapped,approved_alias,1_7_COMMINGLED_BOTTLES,,,POST_CONSUMER,,wired 2026-11-05
 does 2-3 rigid loads a month.,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
-Engineering Grades (Nylon/PC/PMMA),1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+Engineering Grades (Nylon/PC/PMMA),1,1,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 generates 1-7 and mixed bags.,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 generates ABS and Acrylic sign scrap,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 has 3-7,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 left a vm 6/6,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 left a vm on 7/6/09.,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 low volume at first. 1 -2 bales a week.,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
-Mixed Film,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-MRP - pp sack clean food grade - LDPE,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+Mixed Film,1,1,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+MRP - pp sack clean food grade - LDPE,1,1,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 MRP 3-7,1,1,RECOMMENDED_REVIEW,mapped,approved_alias,3_7_COMMINGLED_BOTTLES,,,POST_CONSUMER,,wired 2026-11-05
 MRP quoted .085sell price of .12 for his PVC p/u,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
-Paper,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
-PC -ABS T65. Virgin spec 8 IZOD. Molded once.,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
-PC-ABS-LDPE Stretch,1,1,AMBIGUOUS,pending_decision,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
+Paper,1,1,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+PC -ABS T65. Virgin spec 8 IZOD. Molded once.,1,1,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+PC-ABS-LDPE Stretch,1,1,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 PET HDPE bottle only combo loads 1 per quarter - just sold.1/12 Next in march.,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
-Plastic,1,1,AMBIGUOUS,pending_decision,,,,,,,Generic/blended source label; no unique canonical polymer
+Plastic,1,1,AMBIGUOUS,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 PP nonwoven. generates clean ABS,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 probably won't get it.. But if it will.. We whisper… 6/3,1,1,AMBIGUOUS,note_not_material,call_note,,,,,,call-note text; not a material
 TPU,10,10,UNMAPPED,mapped,crm_code,TPU,,,,,master added 2026-11-03; wired 2026-11-05
@@ -201,9 +201,9 @@ Foam - PU,5,5,UNMAPPED,mapped,approved_alias,PU_FOAM,,,,,master added 2026-11-03
 PVB,5,5,UNMAPPED,mapped,crm_code,PVB,,,,,master added 2026-11-03; wired 2026-11-05
 UBC,5,5,UNMAPPED,mapped,crm_code,UBC,,,,,master added 2026-11-03; wired 2026-11-05
 TPV,4,4,UNMAPPED,mapped,crm_code,TPV,,,,,master added 2026-11-03; wired 2026-11-05
-Other,3,3,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
-Compression Molded,2,2,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
-etc.,2,2,UNMAPPED,no_master,,,,,,,no Odoo polymer master for this material
+Other,3,3,UNMAPPED,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+Compression Molded,2,2,UNMAPPED,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+etc.,2,2,UNMAPPED,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 IBC Totes (HMW),2,2,UNMAPPED,mapped,approved_alias,HDPE_HMW,,,,,wired 2026-11-05
 Knock-Down Crates,2,2,UNMAPPED,mapped,approved_alias,HDPE,CRATES,,,,wired 2026-11-05
 .22,1,1,UNMAPPED,note_not_material,call_note,,,,,,call-note text; not a material
