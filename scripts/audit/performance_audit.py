@@ -61,42 +61,120 @@ def _orm_method(call, aliases):
     return None
 
 
+_KEYSET_OPERATORS = frozenset({">", "<", ">=", "<="})
+
+
+def _positive_literal_limit(call):
+    """``limit=<positive int literal>`` on the call."""
+    for keyword in call.keywords:
+        if keyword.arg == "limit":
+            value = keyword.value
+            return isinstance(value, ast.Constant) and type(value.value) is int and value.value > 0
+    return False
+
+
+def _id_cursor(call):
+    """The local name a ``("id", <, > , <=, >=, name)`` domain term compares against, else ``None``."""
+    domain = None
+    for keyword in call.keywords:
+        if keyword.arg == "domain":
+            domain = keyword.value
+    if domain is None and call.args:
+        domain = call.args[0]
+    if not isinstance(domain, (ast.List, ast.Tuple)):
+        return None
+    for term in domain.elts:
+        if not (isinstance(term, (ast.Tuple, ast.List)) and len(term.elts) == 3):
+            continue
+        field, operator, value = term.elts
+        if (
+            isinstance(field, ast.Constant)
+            and field.value == "id"
+            and isinstance(operator, ast.Constant)
+            and operator.value in _KEYSET_OPERATORS
+            and isinstance(value, ast.Name)
+        ):
+            return value.id
+    return None
+
+
+def _rebound_from(body, cursor, page):
+    """Whether ``cursor`` is assigned somewhere in ``body`` from an expression that reads ``page``."""
+    for stmt in body:
+        for node in ast.walk(stmt):
+            if not isinstance(node, ast.Assign):
+                continue
+            if not any(isinstance(target, ast.Name) and target.id == cursor for target in node.targets):
+                continue
+            if any(isinstance(leaf, ast.Name) and leaf.id == page for leaf in ast.walk(node.value)):
+                return True
+    return False
+
+
+def _keyset_page_searches(loop):
+    """``search`` calls in a ``while`` body that page by keyset.
+
+    The call is bound to a name (the page), its domain compares ``id`` with a
+    cursor name, the loop body rebinds that cursor from the page, and
+    ``limit=`` is a positive literal. That shape runs one bounded query per
+    page, so it is not a per-record query. Any other call in the loop is.
+    """
+    paged = set()
+    for stmt in loop.body:
+        if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name)):
+            continue
+        call = stmt.value
+        if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == "search"):
+            continue
+        if not _positive_literal_limit(call):
+            continue
+        cursor = _id_cursor(call)
+        if cursor is None:
+            continue
+        if _rebound_from(loop.body, cursor, stmt.targets[0].id):
+            paged.add(call)
+    return paged
+
+
 def _loop_calls(tree):
     """Yield (call, loop_lineno, aliases) for ORM-shaped calls inside loops.
 
     Nested function and class bodies are not part of the enclosing loop.
-    ``browse()`` is recordset construction and is not returned.
+    ``browse()`` is recordset construction and is not returned. A keyset
+    pagination search (``_keyset_page_searches``) is one query per page and
+    is not returned either.
     """
     found = []
 
-    def visit(node, in_loop, loop_lineno, aliases):
+    def visit(node, in_loop, loop_lineno, aliases, paged):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if in_loop:
                 return
             local_aliases = aliases | _collect_aliases(node)
             for child in node.body:
-                visit(child, False, 0, local_aliases)
+                visit(child, False, 0, local_aliases, paged)
             return
         if isinstance(node, ast.ClassDef):
             if in_loop:
                 return
             for child in node.body:
-                visit(child, False, 0, aliases)
+                visit(child, False, 0, aliases, paged)
             return
         if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
+            inner = paged | _keyset_page_searches(node) if isinstance(node, ast.While) else paged
             for child in node.body:
-                visit(child, True, node.lineno, aliases)
+                visit(child, True, node.lineno, aliases, inner)
             for child in node.orelse:
-                visit(child, in_loop, loop_lineno, aliases)
+                visit(child, in_loop, loop_lineno, aliases, paged)
             return
-        if isinstance(node, ast.Call) and in_loop:
+        if isinstance(node, ast.Call) and in_loop and node not in paged:
             method = _orm_method(node, aliases)
             if method:
                 found.append((node, loop_lineno, method))
         for child in ast.iter_child_nodes(node):
-            visit(child, in_loop, loop_lineno, aliases)
+            visit(child, in_loop, loop_lineno, aliases, paged)
 
-    visit(tree, False, 0, set())
+    visit(tree, False, 0, set(), frozenset())
     return found
 
 
