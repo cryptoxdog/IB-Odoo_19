@@ -83,7 +83,7 @@ STATUSES = {"mapped", "not_material", "note_not_material", "ambiguous", "unknown
 ROLE_ORDER = {"material": 0, "form": 1, "type": 2, "color": 3}
 
 # Operator decisions of 2026-11-03.
-GRADE_A_FILM = ("LDPE", "FILM", None, ("clean", "dry"), "A", None)
+GRADE_A_FILM = ("LDPE", None, "A", "FILM", None, ("clean", "dry"))
 DECIDED_SPECS = {
     "ldpe film a": GRADE_A_FILM,
     "ldpe a film": GRADE_A_FILM,
@@ -92,35 +92,35 @@ DECIDED_SPECS = {
     "99% clear ldpe film": GRADE_A_FILM,
 }
 DECIDED_CODES = {
-    "tpu": ("TPU", None, None, (), None, None),
-    "textile": ("TEXTILE", None, None, (), None, None),
-    "pvb": ("PVB", None, None, (), None, None),
-    "ubc": ("UBC", None, None, (), None, None),
-    "tpv": ("TPV", None, None, (), None, None),
+    "tpu": ("TPU", None, None, None, None, ()),
+    "textile": ("TEXTILE", None, None, None, None, ()),
+    "pvb": ("PVB", None, None, None, None, ()),
+    "ubc": ("UBC", None, None, None, None, ()),
+    "tpv": ("TPV", None, None, None, None, ()),
 }
 DECIDED_ALIASES = {
-    "foam - pu": ("PU_FOAM", None, None, (), None, None),
-    "mrp - grade a": ("MRP", None, None, (), None, None),
-    "mrp-a": ("MRP", None, None, (), None, None),
-    "mrp a": ("MRP", None, None, (), None, None),
-    "mrp-b": ("MRP", None, None, (), None, None),
-    "mrp a domestic quality": ("MRP", None, None, (), None, None),
-    "wood pallets": ("WOOD_PALLETS", None, None, ("reusable",), None, "PALLETS"),
-    "wood pallets – reusable standard": ("WOOD_PALLETS", None, None, ("reusable",), None, "PALLETS"),
-    "wood pallets – reusable non-standard": ("WOOD_PALLETS", None, None, ("reusable",), None, "PALLETS"),
-    "super sacks": ("PP", None, None, (), None, "SUPERACS"),
-    "ibc totes (hmw)": ("HDPE_HMW", None, None, (), None, "IBC_TOTES"),
-    "hmw drums": ("HDPE_HMW", None, None, (), None, "DRUMS"),
-    "hmw": ("HDPE_HMW", None, None, (), None, None),
-    "1-7 bottles": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "co-mingled 1-7 all plastics": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "1-7 mrp": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "3-7 mixed plastic": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "3-7 bottles": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "mrp 3-7": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "tubs": ("PP", "PARTS", None, (), None, None),
-    "knock-down crates": ("HDPE", None, None, (), None, "KNOCKDOWN_BINS"),
-    "drip tube": ("HDPE", None, None, (), None, None),
+    "foam - pu": ("PU_FOAM", None, None, None, None, ()),
+    "mrp - grade a": ("MRP", None, None, None, None, ()),
+    "mrp-a": ("MRP", None, None, None, None, ()),
+    "mrp a": ("MRP", None, None, None, None, ()),
+    "mrp-b": ("MRP", None, None, None, None, ()),
+    "mrp a domestic quality": ("MRP", None, None, None, None, ()),
+    "wood pallets": ("WOOD_PALLETS", "PALLETS", None, None, None, ("reusable",)),
+    "wood pallets – reusable standard": ("WOOD_PALLETS", "PALLETS", None, None, None, ("reusable",)),
+    "wood pallets – reusable non-standard": ("WOOD_PALLETS", "PALLETS", None, None, None, ("reusable",)),
+    "super sacks": ("PP", "SUPERACS", None, None, None, ()),
+    "ibc totes (hmw)": ("HDPE_HMW", "IBC_TOTES", None, None, None, ()),
+    "hmw drums": ("HDPE_HMW", "DRUMS", None, None, None, ()),
+    "hmw": ("HDPE_HMW", None, None, None, None, ()),
+    "1-7 bottles": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", None, None, "POST_CONSUMER", ()),
+    "co-mingled 1-7 all plastics": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", None, None, "POST_CONSUMER", ()),
+    "1-7 mrp": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", None, None, "POST_CONSUMER", ()),
+    "3-7 mixed plastic": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", None, None, "POST_CONSUMER", ()),
+    "3-7 bottles": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", None, None, "POST_CONSUMER", ()),
+    "mrp 3-7": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", None, None, "POST_CONSUMER", ()),
+    "tubs": ("PP", None, None, "PARTS", None, ()),
+    "knock-down crates": ("HDPE", "KNOCKDOWN_BINS", None, None, None, ()),
+    "drip tube": ("HDPE", None, None, None, None, ()),
 }
 CONTACT_TEXT = re.compile(
     r"@|\d{3}[\s.)-]*\d{3}[\s.-]+\d{4}|\b(?:phone|fax|tel|cell|call|spoke to|spoke with|ext\.?\s*\d)\b"
@@ -638,14 +638,26 @@ def apply_template(key: str, row: dict[str, str], templates) -> None:
 
 
 def spec_row(spec) -> dict[str, str]:
-    polymer, form, source, attributes, grade, material_grade = spec
+    """Read a normalizer spec by field.
+
+    A plain tuple uses polymer, material_grade, grade, form, source, attributes,
+    then packaging_type and color. The letter is the third slot, never the material grade.
+    """
+    names = ("polymer", "material_grade", "grade", "form", "source", "attributes", "packaging_type", "color")
+    if hasattr(spec, "_fields"):
+        values = {name: getattr(spec, name, None) for name in names}
+    else:
+        padded = tuple(spec) + (None,) * (len(names) - len(tuple(spec)))
+        values = dict(zip(names, padded, strict=True))
     return {
-        "polymer": polymer or "",
-        "material_grade": material_grade or "",
-        "form": form or "",
-        "source_type": source or "",
-        "attributes": " ".join(attributes),
-        "grade": grade or "",
+        "polymer": values["polymer"] or "",
+        "material_grade": values["material_grade"] or "",
+        "form": values["form"] or "",
+        "source_type": values["source"] or "",
+        "attributes": " ".join(values["attributes"] or ()),
+        "grade": values["grade"] or "",
+        "color": values["color"] or "",
+        "packaging_type": values["packaging_type"] or "",
     }
 
 

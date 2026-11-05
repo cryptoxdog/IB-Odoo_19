@@ -6,42 +6,112 @@ profiles, or transactions, and it does not commit.
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
+
+class _Spec(NamedTuple):
+    """One phrase. An empty slot means that component was not named."""
+
+    polymer: str | None
+    material_grade: str | None = None
+    grade: str | None = None
+    form: str | None = None
+    source: str | None = None
+    attributes: tuple[str, ...] = ()
+    packaging_type: str | None = None
+    color: str | None = None
+
+
+def _spec(
+    *,
+    polymer,
+    material_grade=None,
+    grade=None,
+    form=None,
+    source=None,
+    attributes=(),
+    packaging_type=None,
+    color=None,
+):
+    return _Spec(
+        polymer=polymer,
+        material_grade=material_grade,
+        grade=grade,
+        form=form,
+        source=source,
+        attributes=attributes,
+        packaging_type=packaging_type,
+        color=color,
+    )
+
+
+def _identity(spec):
+    """Slots that must agree. Attributes, packaging, and color come from the description."""
+    return (spec.polymer, spec.material_grade, spec.grade, spec.form, spec.source)
+
+
 # Exact phrases only. Unknown stays unspecified: no inferred source, cleanliness,
 # dryness, or other attribute, and no mapping onto the OTHER polymer.
 # A form is set only when the phrase names that form. An unknown form stays empty;
-# identity does not require inventing one. The last slot is the material grade code
-# (what the items were: drums, totes, pallets), set only when the phrase names it.
+# identity does not require inventing one. The material grade is what the items were
+# (drums, totes, pallets), set only when the phrase names it.
 _SPECS = {
-    "99 clear ldpe film": ("LDPE", "FILM", None, ("clean", "dry"), "A", None),
-    "ldpe grade a film": ("LDPE", "FILM", None, ("clean", "dry"), "A", None),
-    "95 clear ldpe film": ("LDPE", "FILM", None, ("clean",), "B", None),
-    "ldpe grade b film": ("LDPE", "FILM", None, ("clean",), "B", None),
-    "90 clear ldpe film": ("LDPE", "FILM", None, (), "C", None),
-    "ldpe grade c film": ("LDPE", "FILM", None, (), "C", None),
-    "pp film (bopp)": ("BOPP", "FILM", None, (), None, None),
-    "pc/abs": ("PC_ABS", None, "POST_INDUSTRIAL", (), None, None),
-    "pc-abs": ("PC_ABS", None, "POST_INDUSTRIAL", (), None, None),
-    "3-7": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "3-7 commingled bottles": ("3_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "1-7": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "1-7 commingled bottles": ("1_7_COMMINGLED_BOTTLES", None, "POST_CONSUMER", (), None, "BOTTLES"),
-    "pe": ("HDPE", None, None, (), None, None),
-    "pallets": ("PLASTIC_PALLETS", None, None, (), None, None),
-    "hdpe drums": ("HDPE", None, None, (), None, "DRUMS"),
-    "explicit hmw-hdpe drums": ("HDPE_HMW", None, None, (), None, "DRUMS"),
-    "hdpe drums (hmw-hdpe)": ("HDPE_HMW", None, None, (), None, "DRUMS"),
-    "ldpe film": ("LDPE", "FILM", None, (), None, None),
-    "ldpe film a": ("LDPE", "FILM", None, (), "A", None),
-    "3-7 commingled": ("3_7_COMMINGLED_BOTTLES", None, None, (), None, "BOTTLES"),
-    "1-7 commingled": ("1_7_COMMINGLED_BOTTLES", None, None, (), None, "BOTTLES"),
-    "pp supersacs": ("PP", None, None, (), None, "SUPERACS"),
+    "99 clear ldpe film": _spec(polymer="LDPE", grade="A", form="FILM", attributes=("clean", "dry")),
+    "ldpe grade a film": _spec(polymer="LDPE", grade="A", form="FILM", attributes=("clean", "dry")),
+    "95 clear ldpe film": _spec(polymer="LDPE", grade="B", form="FILM", attributes=("clean",)),
+    "ldpe grade b film": _spec(polymer="LDPE", grade="B", form="FILM", attributes=("clean",)),
+    "90 clear ldpe film": _spec(polymer="LDPE", grade="C", form="FILM"),
+    "ldpe grade c film": _spec(polymer="LDPE", grade="C", form="FILM"),
+    "pp film (bopp)": _spec(polymer="BOPP", form="FILM"),
+    "pc/abs": _spec(polymer="PC_ABS", source="POST_INDUSTRIAL"),
+    "pc-abs": _spec(polymer="PC_ABS", source="POST_INDUSTRIAL"),
+    "3-7": _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"),
+    "3-7 commingled bottles": _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"),
+    "1-7": _spec(polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"),
+    "1-7 commingled bottles": _spec(polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES", source="POST_CONSUMER"),
+    "pe": _spec(polymer="HDPE"),
+    "pallets": _spec(polymer="PLASTIC_PALLETS"),
+    "hdpe drums": _spec(polymer="HDPE", material_grade="DRUMS"),
+    "explicit hmw-hdpe drums": _spec(polymer="HDPE_HMW", material_grade="DRUMS"),
+    "hdpe drums (hmw-hdpe)": _spec(polymer="HDPE_HMW", material_grade="DRUMS"),
+    "ldpe film": _spec(polymer="LDPE", form="FILM"),
+    "ldpe film a": _spec(polymer="LDPE", grade="A", form="FILM"),
+    "3-7 commingled": _spec(polymer="3_7_COMMINGLED_BOTTLES", material_grade="BOTTLES"),
+    "1-7 commingled": _spec(polymer="1_7_COMMINGLED_BOTTLES", material_grade="BOTTLES"),
+    "pp supersacs": _spec(polymer="PP", material_grade="SUPERACS"),
+    # Operator ledger 2026-11-04. Both importers resolve these phrases.
+    "pp supersacs (un-lined)": _spec(
+        polymer="PP", material_grade="SUPERACS", attributes=("unlined",), packaging_type="bales"
+    ),
+    "pp supersacs - no liners": _spec(
+        polymer="PP", material_grade="SUPERACS", attributes=("unlined",), packaging_type="bales"
+    ),
+    "super sacks": _spec(polymer="PP", material_grade="SUPERACS", attributes=("lined",), packaging_type="bales"),
+    "pp supersacs (lined)": _spec(polymer="PP", material_grade="SUPERACS", packaging_type="bales"),
+    "tubs": _spec(polymer="PP", material_grade="TUBS_LIDS", source="POST_CONSUMER", packaging_type="bales"),
+    "occ bales": _spec(polymer="FIBER", material_grade="OCC", source="POST_CONSUMER", packaging_type="bales"),
+    "old corrugated cardboard": _spec(
+        polymer="FIBER", material_grade="OCC", source="POST_CONSUMER", packaging_type="bales"
+    ),
+    "hd/pp cornerboards": _spec(polymer="PP_PE", source="POST_CONSUMER", packaging_type="bales"),
+    "pet bottles - post industrial": _spec(
+        polymer="PET", material_grade="BOTTLES", source="POST_INDUSTRIAL", packaging_type="bales"
+    ),
+    "clear film": _spec(polymer="LLDPE", material_grade="STRETCH_FILM", form="FILM", packaging_type="bales"),
+    "mixed pails": _spec(polymer="HDPE", material_grade="BUCKETS", form="LOOSE"),
+    "hdpe/pp transitional purge regrind (frac melt)": _spec(
+        polymer="PP_PE", form="PURGE", source="POST_INDUSTRIAL", attributes=("frac_melt",), packaging_type="gaylords"
+    ),
+    "pp/hd regrind": _spec(polymer="PP_PE", form="REGRIND", packaging_type="gaylords"),
+    "strapping": _spec(polymer="PET", material_grade="STRAPPING"),
+    "rigids": _spec(polymer="MRP"),
 }
 
 # CRM lead phrases that are not worksheet phrases. The whole collapsed
 # description must match. A hit in ``_SPECS`` wins and never reaches this table.
 # Bare LDPE is film. A trailing hyphen on HDPE- stays HDPE, distinct from HDPE-HMW.
 _CRM_EXACT = {
-    key: (polymer, form, None, (), None, None)
+    key: _spec(polymer=polymer, form=form)
     for key, polymer, form in (
         ("ldpe", "LDPE", "FILM"),
         ("nylon", "NYLON", None),
@@ -70,11 +140,11 @@ _CRM_EXACT = {
 }
 
 # Operator-approved VanillaSoft aliases (POLYMER MAPPING sheet, ALIAS rows, approved 2026-10-30).
-# Polymer is the sheet's code. A form is set only when the phrase names exactly one form master;
-# the last slot is the material grade the phrase names.
+# Polymer is the sheet's code. material_grade is what the items were. grade is the A/B/C letter.
+# A form is set only when the phrase names exactly one form master.
 # The whole collapsed description must match; ``_SPECS`` and ``_CRM_EXACT`` win over this table.
 _CRM_ALIASES = {
-    key: (polymer, form, None, (), grade, material_grade)
+    key: _spec(polymer=polymer, material_grade=material_grade, grade=grade, form=form)
     for key, (polymer, form, grade, material_grade) in {
         "pet bottles": ("PET", None, None, "BOTTLES"),
         "pp supersacs": ("PP", None, None, "SUPERACS"),
@@ -89,12 +159,10 @@ _CRM_ALIASES = {
         "nylon 6": ("NYLON", None, None, None),
         "pet strapping": ("PET", None, None, "STRAPPING"),
         "mrp export": ("MRP", None, None, None),
-        "pp supersacs (un-lined)": ("PP", None, None, "SUPERACS"),
         "pvc flex": ("PVC", None, None, None),
         "hdpe buckets": ("HDPE", None, None, "BUCKETS"),
         "nylon 6.6": ("NYLON", None, None, None),
         "pp regrind": ("PP", "REGRIND", None, None),
-        "pp supersacs (lined)": ("PP", None, None, "SUPERACS"),
         "ldpe post industrial": ("LDPE", None, None, None),
         "ibc totes (hmw-hdpe)": ("HDPE_HMW", None, None, "IBC_TOTES"),
         "hdpe totes": ("HDPE", None, None, "TOTES"),
@@ -203,15 +271,28 @@ _CRM_ALIASES = {
         "they mostly work with pet bottles.": ("PET", None, None, "BOTTLES"),
     }.items()
 }
-_CRM_ALIASES["hdpe frac melt"] = ("HDPE", None, None, ("frac_melt",), None, None)
-_CRM_ALIASES["pvc rigid"] = ("PVC", None, None, ("rigid",), None, None)
-_CRM_ALIASES["ldpe thick gauge"] = ("LDPE", None, None, ("thick_gauge",), None, None)
+_CRM_ALIASES["hdpe frac melt"] = _spec(polymer="HDPE", attributes=("frac_melt",))
+_CRM_ALIASES["pvc rigid"] = _spec(polymer="PVC", attributes=("rigid",))
+_CRM_ALIASES["ldpe thick gauge"] = _spec(polymer="LDPE", attributes=("thick_gauge",))
 
 
 class MaterialNormalization:
     """One material phrase resolved to existing masters, or left unresolved."""
 
-    def __init__(self, source_description, polymer, form, source_type, attributes, grade, unresolved, material_grade):
+    def __init__(
+        self,
+        source_description,
+        polymer,
+        form,
+        source_type,
+        attributes,
+        grade,
+        unresolved,
+        material_grade,
+        *,
+        color,
+        packaging_type,
+    ):
         self.source_description = source_description
         self.polymer = polymer
         self.material_grade = material_grade
@@ -220,58 +301,35 @@ class MaterialNormalization:
         self.attributes = attributes
         self.grade = grade
         self.unresolved = tuple(unresolved)
+        self.color = color
+        self.packaging_type = packaging_type
 
 
-def normalize_material(env, description, grade_evidence=None, structured=None):
+def normalize_material(env, description, grade_evidence=None, structured=None, *, crm_aliases=False):
     """Resolve one material phrase.
 
     ``description`` is preserved. ``grade_evidence`` and ``structured`` count
-    only when they are themselves an approved phrase. A disagreement between
-    those phrases is unresolved and does not pick a side.
+    only when they are themselves a worksheet phrase. A disagreement on polymer,
+    form, source, grade letter, or material grade is unresolved and does not
+    pick a side. Attributes, color, and packaging come from the description
+    when it matches. With ``crm_aliases``, a description that misses ``_SPECS``
+    may match ``_CRM_EXACT``, then ``_CRM_ALIASES``. Hints stay on ``_SPECS``.
     """
     source = _collapse(description)
-    specs = []
-    for text in (_phrase(description), _phrase(grade_evidence), *_structured_phrases(structured)):
-        spec = _SPECS.get(text)
-        if spec is not None:
-            specs.append(spec)
-    if not source:
-        source = _collapse(grade_evidence)
-    if len(set(specs)) > 1:
-        return _empty(env, source, ("conflicting material evidence",))
-    if not specs:
-        reason = (
-            ("unresolved material",) if source or _phrase(grade_evidence) or _structured_phrases(structured) else ()
-        )
-        return _empty(env, source, reason)
-    return _realize(env, source, specs[0])
-
-
-def normalize_crm_material(env, description, grade_evidence=None, structured=None):
-    """Resolve one CRM material phrase.
-
-    A description that is already a worksheet phrase uses
-    :func:`normalize_material`. Any other description may match ``_CRM_EXACT``,
-    then ``_CRM_ALIASES``.
-    Grade evidence and structured hints still match ``_SPECS`` only, so a hint
-    that is only a CRM identity does not add a second material. Two different
-    specs conflict.
-    """
     text = _phrase(description)
-    if text in _SPECS:
-        return normalize_material(env, description, grade_evidence=grade_evidence, structured=structured)
-    source = _collapse(description)
-    if not source:
-        source = _collapse(grade_evidence)
     specs = []
-    exact = _CRM_EXACT.get(text) or _CRM_ALIASES.get(text)
-    if exact is not None:
-        specs.append(exact)
+    description_spec = _SPECS.get(text)
+    if description_spec is None and crm_aliases:
+        description_spec = _CRM_EXACT.get(text) or _CRM_ALIASES.get(text)
+    if description_spec is not None:
+        specs.append(description_spec)
     for hint in (_phrase(grade_evidence), *_structured_phrases(structured)):
         spec = _SPECS.get(hint)
         if spec is not None:
             specs.append(spec)
-    if len(set(specs)) > 1:
+    if not source:
+        source = _collapse(grade_evidence)
+    if len({_identity(spec) for spec in specs}) > 1:
         return _empty(env, source, ("conflicting material evidence",))
     if not specs:
         reason = (
@@ -282,20 +340,40 @@ def normalize_crm_material(env, description, grade_evidence=None, structured=Non
 
 
 def _realize(env, source, spec):
-    polymer_code, form_code, source_code, attribute_codes, grade, material_grade_code = spec
-    polymer, polymer_missing = _master(env, "plasticos.polymer", polymer_code)
-    material_grade, material_grade_missing = _master(env, "plasticos.material.grade", material_grade_code)
-    form, form_missing = _master(env, "plasticos.material.form", form_code)
-    source_type, source_missing = _master(env, "plasticos.source.type", source_code)
-    attributes, attribute_missing = _attributes(env, attribute_codes)
+    polymer, polymer_missing = _master(env, "plasticos.polymer", spec.polymer)
+    material_grade, material_grade_missing = _master(env, "plasticos.material.grade", spec.material_grade)
+    form, form_missing = _master(env, "plasticos.material.form", spec.form)
+    source_type, source_missing = _master(env, "plasticos.source.type", spec.source)
+    attributes, attribute_missing = _attributes(env, spec.attributes)
+    color, color_missing = _master(env, "plasticos.material.color", spec.color)
+    packaging_type, packaging_missing = _master(env, "plasticos.packaging.type", spec.packaging_type)
     unresolved = tuple(
         item
-        for item in (polymer_missing, material_grade_missing, form_missing, source_missing, *attribute_missing)
+        for item in (
+            polymer_missing,
+            material_grade_missing,
+            form_missing,
+            source_missing,
+            color_missing,
+            packaging_missing,
+            *attribute_missing,
+        )
         if item
     )
     if unresolved:
         return _empty(env, source, unresolved)
-    return MaterialNormalization(source, polymer, form, source_type, attributes, grade, (), material_grade)
+    return MaterialNormalization(
+        source,
+        polymer,
+        form,
+        source_type,
+        attributes,
+        spec.grade,
+        (),
+        material_grade,
+        color=color,
+        packaging_type=packaging_type,
+    )
 
 
 def _empty(env, source, unresolved):
@@ -308,6 +386,8 @@ def _empty(env, source, unresolved):
         None,
         unresolved,
         env["plasticos.material.grade"].browse(),
+        color=env["plasticos.material.color"].browse(),
+        packaging_type=env["plasticos.packaging.type"].browse(),
     )
 
 

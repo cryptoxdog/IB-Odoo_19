@@ -2236,11 +2236,10 @@ class SyncOrchestrator:
 
     def _resolve_material(self, phrase, structured=None):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
-            normalize_crm_material,
             normalize_material,
         )
 
-        combined = normalize_crm_material(self.env, phrase, structured=structured)
+        combined = normalize_material(self.env, phrase, structured=structured, crm_aliases=True)
         if "conflicting material evidence" in combined.unresolved:
             return combined, "conflict"
         hint = structured.get("type") if isinstance(structured, dict) else None
@@ -2567,7 +2566,7 @@ class SyncOrchestrator:
             company.write({"category_id": [command.link(category.id)]})
 
     def _write_profile_classification(self, profile, normalized) -> None:
-        """Fill empty grade, source, and attributes. A second grade is not merged."""
+        """Fill empty grade, source, color, packaging, and attributes. A stored value is kept."""
         from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
 
         if normalized.grade:
@@ -2596,6 +2595,24 @@ class SyncOrchestrator:
                 REQUIRED_MAPPING,
             )
             return
+        for field_name, resolved in (
+            ("color_id", getattr(normalized, "color", None)),
+            ("packaging_type_id", getattr(normalized, "packaging_type", None)),
+        ):
+            if not resolved:
+                continue
+            current = profile[field_name]
+            if not current:
+                profile[field_name] = resolved
+            elif current != resolved:
+                self._append_classified_error(
+                    str(profile.id),
+                    (
+                        f"{field_name} {resolved.code} conflicts with stored {current.code} "
+                        f"on profile {profile.id}; {field_name} unchanged"
+                    ),
+                    REQUIRED_MAPPING,
+                )
         if not normalized.attributes:
             return
         missing = normalized.attributes - profile.material_attribute_ids

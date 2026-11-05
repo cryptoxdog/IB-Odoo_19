@@ -499,6 +499,15 @@ def _realize_purchase_groups(
             existing_line = _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}")
             if order.state not in _OPEN_PURCHASE_STATES:
                 if existing_line is not None:
+                    _fill_existing_line(
+                        importer,
+                        context,
+                        report,
+                        "purchase.order.line",
+                        f"legacy_erp_pol_{_token(detail_id)}",
+                        detail_id,
+                        line,
+                    )
                     written.add(detail_id)
                 continue
             if existing_line is None:
@@ -725,8 +734,17 @@ def _line_terms(context, report, detail_id, line, side):
 def _upsert_sale_line(importer, context, report, order, detail_id, line):
     quantity, uom_code, price = _line_terms(context, report, detail_id, line, "sale")
     if order.state not in _OPEN_SALE_STATES:
+        _fill_existing_line(
+            importer,
+            context,
+            report,
+            "sale.order.line",
+            f"legacy_erp_sol_{_token(detail_id)}",
+            detail_id,
+            line,
+        )
         return
-    normalized = _normalize_line(importer, line.get("GradeID"), line.get("InvoiceDesc"))
+    normalized = _normalize_line(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
     product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"), normalized)
     uom = _uom(importer, context, uom_code)
     xml_id = f"legacy_erp_sol_{_token(detail_id)}"
@@ -741,7 +759,14 @@ def _upsert_sale_line(importer, context, report, order, detail_id, line):
     if uom:
         values["product_uom_id"] = uom.id
     values.update(
-        _material_line_values(importer, "sale.order.line", _existing(importer, "sale.order.line", xml_id), normalized)
+        _material_line_values(
+            importer,
+            report,
+            "sale.order.line",
+            _existing(importer, "sale.order.line", xml_id),
+            detail_id,
+            normalized,
+        )
     )
     model = importer.env["sale.order.line"].with_context(**_import_context())
     importer._upsert(model, xml_id, values, _silent(), None)
@@ -751,7 +776,7 @@ def _upsert_purchase_line(importer, context, report, order, detail_id, line):
     quantity, uom_code, price = _line_terms(context, report, detail_id, line, "purchase")
     if order.state not in _OPEN_PURCHASE_STATES:
         return
-    normalized = _normalize_line(importer, line.get("GradeID"), line.get("InvoiceDesc"))
+    normalized = _normalize_line(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
     product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"), normalized)
     uom = _uom(importer, context, uom_code)
     xml_id = f"legacy_erp_pol_{_token(detail_id)}"
@@ -768,7 +793,12 @@ def _upsert_purchase_line(importer, context, report, order, detail_id, line):
         values["product_uom_id"] = uom.id
     values.update(
         _material_line_values(
-            importer, "purchase.order.line", _existing(importer, "purchase.order.line", xml_id), normalized
+            importer,
+            report,
+            "purchase.order.line",
+            _existing(importer, "purchase.order.line", xml_id),
+            detail_id,
+            normalized,
         )
     )
     model = importer.env["purchase.order.line"].with_context(**_import_context())
@@ -1364,13 +1394,31 @@ def _remember_carrier(importer, context, partner_by_cp, number, deliveries) -> N
     context.setdefault("carriers", {})[number] = partner_id or False
 
 
-def _normalize_line(importer, _grade_id, description):
-    """Classify the description. GradeID identifies the historical product, not the material."""
-    from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
-        normalize_material,
-    )
+def _normalize_line(importer, context, _grade_id, description):
+    """Classify the description. GradeID identifies the historical product, not the material.
 
-    return normalize_material(importer.env, description)
+    One description is classified once per import, including the confirmed-line fill.
+    """
+    key = " ".join(str(description or "").split())
+    cache = context.setdefault("normalized", {})
+    if key not in cache:
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+            normalize_material,
+        )
+
+        cache[key] = normalize_material(importer.env, description)
+    return cache[key]
+
+
+def _fill_existing_line(importer, context, report, model_name, xml_id, detail_id, line):
+    """Fill empty material fields on a confirmed line. Product, quantity, price, and taxes stay."""
+    existing = _existing(importer, model_name, xml_id)
+    if existing is None:
+        return
+    normalized = _normalize_line(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
+    values = _material_line_values(importer, report, model_name, existing, detail_id, normalized)
+    if values:
+        existing.with_context(**_import_context()).write(values)
 
 
 def _product(importer, context, grade_id, description, normalized=None):
@@ -1381,7 +1429,7 @@ def _product(importer, context, grade_id, description, normalized=None):
     already stored on the grade product, and it does not reuse that product.
     """
     if normalized is None:
-        normalized = _normalize_line(importer, grade_id, description)
+        normalized = _normalize_line(importer, context, grade_id, description)
     grade = (grade_id or "").strip() or "unspecified"
     polymer = normalized.polymer
     code = polymer.code if polymer else ""
@@ -1448,8 +1496,8 @@ def _create_grade_product(importer, xml_id, grade, description):
     return product
 
 
-def _material_line_values(importer, model_name, existing, normalized):
-    """Material grade, form, source, and attributes that the normalizer actually resolved.
+def _material_line_values(importer, report, model_name, existing, detail_id, normalized):
+    """Fill empty material fields. A stored value that disagrees is kept and reported.
 
     An empty attribute set is unspecified. It does not clear attributes already
     stored on the line, and a replay that already has the resolved attributes
@@ -1457,12 +1505,25 @@ def _material_line_values(importer, model_name, existing, normalized):
     """
     values = {}
     fields = importer.env[model_name]._fields
-    if normalized.material_grade and "material_grade_id" in fields:
-        values["material_grade_id"] = normalized.material_grade.id
-    if normalized.form and "form_id" in fields:
-        values["form_id"] = normalized.form.id
-    if normalized.source_type and "source_type_id" in fields:
-        values["source_type_id"] = normalized.source_type.id
+    for field_name, attr in (
+        ("material_grade_id", "material_grade"),
+        ("form_id", "form"),
+        ("source_type_id", "source_type"),
+        ("color_id", "color"),
+        ("packaging_type_id", "packaging_type"),
+    ):
+        if field_name not in fields:
+            continue
+        resolved = getattr(normalized, attr, None)
+        if not resolved:
+            continue
+        current = existing[field_name] if existing is not None else resolved.browse()
+        if not current:
+            values[field_name] = resolved.id
+        elif current != resolved:
+            stored = getattr(current, "code", None) or current.display_name
+            wanted = getattr(resolved, "code", None) or resolved.display_name
+            report.anomaly("WKSDetail", detail_id, f"{field_name} stored {stored}, normalizer {wanted}; kept")
     if normalized.attributes and "material_attribute_ids" in fields:
         current = existing.material_attribute_ids if existing is not None else normalized.attributes.browse()
         missing = normalized.attributes - current

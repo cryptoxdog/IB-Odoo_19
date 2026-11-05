@@ -1825,6 +1825,53 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(self.Transaction.search_count([("name", "=", "54839")]), 1)
         self.assertEqual(set(moves.mapped("state")), {"draft"})
 
+    def test_confirmed_replay_fills_empty_material_fields_and_keeps_a_different_grade(self):
+        index = self._index()
+        number = "60707"
+        self._add_order(index, "9604", "16003", "SO", CUSTOMER, "2026-07-03 00:00:00")
+        self._add_order(index, "9605", "8003", "PO", VENDOR, "2026-07-03 00:00:00")
+        for detail_id, grade in (("13620", "GRADE-FILM"), ("13621", "GRADE-FILM")):
+            detail = _line(detail_id, number, "9804", "9805", "1000", "100", "1000", "80", grade)
+            detail["InvoiceDesc"] = "clear film"
+            index.lines[detail_id] = detail
+            index.lines_by_buysell.setdefault(number, []).append(detail_id)
+        index.order_lines["9804"] = {"PONumber": "16003"}
+        index.order_lines["9805"] = {"PONumber": "8003"}
+        index.buysells[number] = _buysell(number, "2026-07-03 00:00:00")
+        index.payables_by_buysell[number] = [_payable("700107", number, VENDOR, "320", "50100", "8003")]
+        self._run(index)
+        sale = self._order("sale.order", "legacy_erp_so_16003")
+        purchase_order = self._order("purchase.order", "legacy_erp_po_8003")
+        sale_line = self._order("sale.order.line", "legacy_erp_sol_13620")
+        purchase_line = self._order("purchase.order.line", "legacy_erp_pol_13621")
+        self.assertEqual(sale.state, "sale")
+        self.assertEqual(purchase_order.state, "purchase")
+        self.assertEqual(sale_line.form_id.code, "FILM")
+        self.assertEqual(sale_line.packaging_type_id.code, "bales")
+        drums = self.env["plasticos.material.grade"].search([("code", "=", "DRUMS")], limit=1)
+        polymer = sale_line.product_id.product_tmpl_id.polymer_id
+        for line in (sale_line, purchase_line):
+            line.write({"form_id": False, "packaging_type_id": False, "material_grade_id": drums.id})
+        report = self._run(index)
+        sale_line = self._order("sale.order.line", "legacy_erp_sol_13620")
+        purchase_line = self._order("purchase.order.line", "legacy_erp_pol_13621")
+        for line in (sale_line, purchase_line):
+            self.assertEqual(line.form_id.code, "FILM")
+            self.assertEqual(line.packaging_type_id.code, "bales")
+            self.assertEqual(line.material_grade_id.code, "DRUMS")
+        self.assertEqual(sale_line.product_id.product_tmpl_id.polymer_id, polymer)
+        kept = [
+            row for row in report.anomalies if row["key"] in {"13620", "13621"} and "material_grade_id" in row["detail"]
+        ]
+        self.assertEqual(len(kept), 2)
+        again = self._run(index)
+        sale_line = self._order("sale.order.line", "legacy_erp_sol_13620")
+        purchase_line = self._order("purchase.order.line", "legacy_erp_pol_13621")
+        self.assertEqual(sale_line.form_id.code, "FILM")
+        self.assertEqual(purchase_line.packaging_type_id.code, "bales")
+        self.assertEqual(sale_line.material_grade_id.code, "DRUMS")
+        self.assertTrue(again.anomalies)
+
     def _on_hand(self):
         quant = self.env["stock.quant"].search([])
         moves = self.env["stock.move"].search_count([]) if "stock.move" in self.env else 0
