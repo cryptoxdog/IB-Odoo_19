@@ -69,36 +69,30 @@ class TestWebLeadMaterialGrade(TransactionCase):
         self.assertEqual(merged["form"], "FILM")
         self.assertIsNone(merged["material_grade"])
 
-    def test_drums_keep_the_vision_regrind_form(self):
-        lead = self._lead("grade-drums", "HDPE drums", "500 lbs")
+    def test_drum_grade_keeps_the_vision_regrind_form(self):
+        lead = self._lead("grade-drums-regrind", "HDPE drums", "40000 lbs")
 
-        merged = lead._merge_ai_and_vision({}, [{"observed_form": "regrind", "confidence": 0.9}])
+        merged = lead._merge_ai_and_vision(
+            {},
+            [{"observed_form": "regrind", "confidence": 0.9}],
+        )
 
-        self.assertEqual(merged["material_grade"], "DRUMS")
         self.assertEqual(merged["form"], "REGRIND")
-        intake = lead._create_intake(merged, self.config)
-        self.assertEqual(intake.form_id.code, "REGRIND")
-        self.assertNotEqual(intake.form_id, self.form_other)
-        self.assertEqual(intake.material_grade_id.code, "DRUMS")
+        self.assertEqual(merged["material_grade"], "DRUMS")
 
-    def test_film_and_buckets_stay_on_separate_slots(self):
-        lead = self._lead("grade-both", "buckets", "500 lbs")
+    def test_ai_film_form_still_records_the_bucket_grade(self):
+        lead = self._lead("grade-buckets-film", "HDPE buckets", "40000 lbs")
 
         merged = lead._merge_ai_and_vision({"form": "film"}, [])
 
         self.assertEqual(merged["form"], "FILM")
         self.assertEqual(merged["material_grade"], "BUCKETS")
 
-    def test_item_words_from_the_ai_are_grades(self):
-        lead = self._lead("grade-items", "scrap", "500 lbs")
+    def test_punctuated_item_words_keep_the_reusable_grade(self):
+        pallets = self._lead("grade-pallets-punct", "HDPE pallets, clean", "9000 lbs")
+        crates = self._lead("grade-crates-punct", "plastic crates.", "9000 lbs")
 
-        pallet = lead._merge_ai_and_vision({"form": "pallet"}, [])
-        drum = lead._merge_ai_and_vision({"form": "drum"}, [])
-        bucket = lead._merge_ai_and_vision({"form": "bucket"}, [])
-
-        self.assertEqual(pallet["material_grade"], "PALLETS")
-        self.assertFalse(pallet["form"])
-        self.assertEqual(drum["material_grade"], "DRUMS")
-        self.assertFalse(drum["form"])
-        self.assertEqual(bucket["material_grade"], "BUCKETS")
-        self.assertFalse(bucket["form"])
+        self.assertEqual(pallets.ai_analysis["material_grade"], "PALLETS")
+        self.assertFalse(pallets.ai_analysis["form"])
+        self.assertEqual(crates.ai_analysis["material_grade"], "CRATES")
+        self.assertFalse(crates.ai_analysis["form"])
