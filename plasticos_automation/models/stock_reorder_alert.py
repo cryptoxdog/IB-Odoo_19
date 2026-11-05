@@ -32,20 +32,25 @@ class ProductProduct(models.Model):
                 limit=500,
             )
 
+            # One query for the products already alerted today, one create for the new log rows.
+            alerted_ids = set(
+                log_model.search(
+                    [
+                        ("model_name", "=", "product.product"),
+                        ("res_id", "in", products.ids),
+                        ("action_type", "=", "stock_alert"),
+                        ("create_date", ">=", fields.Datetime.to_datetime(f"{today} 00:00:00")),
+                    ],
+                    order="id ASC",
+                ).mapped("res_id")
+            )
+            log_vals = []
             for product in products:
                 threshold = product.min_stock_threshold or global_threshold
                 if threshold <= 0 or product.qty_available >= threshold:
                     continue
 
-                already_logged = log_model.search_count(
-                    [
-                        ("model_name", "=", "product.product"),
-                        ("res_id", "=", product.id),
-                        ("action_type", "=", "stock_alert"),
-                        ("create_date", ">=", fields.Datetime.to_datetime(f"{today} 00:00:00")),
-                    ]
-                )
-                if already_logged:
+                if product.id in alerted_ids:
                     continue
 
                 product.message_post(
@@ -53,7 +58,7 @@ class ProductProduct(models.Model):
                         f"Automated alert: stock level {product.qty_available:.2f} is below threshold {threshold:.2f}."
                     ),
                 )
-                log_model.create(
+                log_vals.append(
                     {
                         "name": f"Stock alert {product.display_name}",
                         "model_name": "product.product",
@@ -61,6 +66,8 @@ class ProductProduct(models.Model):
                         "action_type": "stock_alert",
                     }
                 )
+            if log_vals:
+                log_model.create(log_vals)
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_stock_reorder_alert"]

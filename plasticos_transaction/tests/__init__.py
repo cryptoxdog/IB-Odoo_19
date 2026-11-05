@@ -9,3 +9,4 @@ from . import test_sale_order_transaction_autocreate
 from . import test_transaction_contracts
 from . import test_transaction_form_ui
 from . import test_uniqueness_batch
+from . import test_sale_confirm_batch

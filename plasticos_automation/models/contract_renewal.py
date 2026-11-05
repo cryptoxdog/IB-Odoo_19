@@ -36,16 +36,21 @@ class ResPartner(models.Model):
                 limit=200,
             )
 
-            for partner in partners:
-                existing_log = log_model.search_count(
+            # One query for the partners already alerted today, one create for the new log rows.
+            alerted_ids = set(
+                log_model.search(
                     [
                         ("model_name", "=", "res.partner"),
-                        ("res_id", "=", partner.id),
+                        ("res_id", "in", partners.ids),
                         ("action_type", "=", "contract_alert"),
                         ("create_date", ">=", fields.Datetime.to_datetime(f"{today} 00:00:00")),
-                    ]
-                )
-                if existing_log:
+                    ],
+                    order="id ASC",
+                ).mapped("res_id")
+            )
+            log_vals = []
+            for partner in partners:
+                if partner.id in alerted_ids:
                     continue
 
                 partner.message_post(
@@ -54,7 +59,7 @@ class ResPartner(models.Model):
                         f"(within {config.contract_alert_days_before} days)."
                     ),
                 )
-                log_model.create(
+                log_vals.append(
                     {
                         "name": f"Contract renewal alert {partner.name}",
                         "model_name": "res.partner",
@@ -62,6 +67,8 @@ class ResPartner(models.Model):
                         "action_type": "contract_alert",
                     }
                 )
+            if log_vals:
+                log_model.create(log_vals)
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_contract_renewal_alert"]

@@ -619,6 +619,17 @@ class PlasticosFreightQuote(models.Model):
 
     @api.constrains("supersedes_quote_id", "request_id", "carrier_id", "company_id")
     def _check_supersession_lineage(self):
+        priors = self.supersedes_quote_id
+        # One grouped count of every response superseding these priors; each
+        # record here is itself counted once, so "others" is the count minus one.
+        superseder_counts = {}
+        if priors:
+            superseder_counts = {
+                prior.id: count
+                for prior, count in self._read_group(
+                    [("supersedes_quote_id", "in", priors.ids)], ["supersedes_quote_id"], ["__count"]
+                )
+            }
         for rec in self:
             prior = rec.supersedes_quote_id
             if not prior:
@@ -633,7 +644,7 @@ class PlasticosFreightQuote(models.Model):
                 raise ValidationError("A superseding response must belong to the same request, carrier, and company.")
             if prior.selected:
                 raise ValidationError("A selected quote cannot be superseded; the request is already resolved.")
-            if self.search_count([("supersedes_quote_id", "=", prior.id), ("id", "!=", rec.id)]):
+            if superseder_counts.get(prior.id, 0) > 1:
                 raise ValidationError("A carrier response may be superseded only once.")
 
     @api.constrains("response_kind", "quoted_amount", "currency_id", "selected", "lifecycle_state")
