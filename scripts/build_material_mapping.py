@@ -438,13 +438,14 @@ def load_web_lead_vocabulary() -> dict[str, tuple[str, str]]:
             continue
         if isinstance(node.value, ast.Constant):
             constants[target.id] = node.value.value
-        if target.id in {"_FORM_NORMALIZE", "_SOURCE_NORMALIZE"} and isinstance(node.value, ast.Dict):
+        if target.id == "_SOURCE_NORMALIZE" and isinstance(node.value, ast.Dict):
             tables[target.id] = {
                 (constants[k.id] if isinstance(k, ast.Name) else k.value): v.value
                 for k, v in zip(node.value.keys, node.value.values)
             }
     vocabulary = {}
-    for word, code in tables["_FORM_NORMALIZE"].items():
+    normalizer = _import_repo_module("plasticos_material_normalizer_words", NORMALIZER)
+    for word, code in normalizer._FORM_WORDS.items():
         vocabulary[word] = ("form", code)
     for word, code in tables["_SOURCE_NORMALIZE"].items():
         vocabulary[word] = ("source_type", code.upper())

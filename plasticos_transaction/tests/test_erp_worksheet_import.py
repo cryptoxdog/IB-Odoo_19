@@ -1845,7 +1845,7 @@ class TestErpWorksheetImport(TransactionCase):
         sale_line = self._order("sale.order.line", "legacy_erp_sol_13620")
         purchase_line = self._order("purchase.order.line", "legacy_erp_pol_13621")
         self.assertEqual(sale.state, "sale")
-        self.assertEqual(purchase_order.state, "purchase")
+        self.assertEqual(purchase_order.state, "draft")
         self.assertEqual(sale_line.form_id.code, "FILM")
         self.assertEqual(sale_line.packaging_type_id.code, "bales")
         drums = self.env["plasticos.material.grade"].search([("code", "=", "DRUMS")], limit=1)

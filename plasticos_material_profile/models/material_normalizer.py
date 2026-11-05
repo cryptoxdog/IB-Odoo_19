@@ -182,7 +182,7 @@ _CRM_ALIASES = {
         "pp tubs/lids": ("PP", None, None, None),
         "hdpe pipe": ("HDPE", None, None, None),
         "mrp a": ("MRP", None, None, None),
-        "ld/lldpe thick/stretch": ("LLDPE", None, None, None),
+        "ld/lldpe thick/stretch": ("LDPE_LLDPE", None, None, None),
         "pp crates": ("PP", None, None, "CRATES"),
         "pp repro": ("PP", None, None, None),
         "ldpe purge": ("LDPE", "PURGE", None, None),
@@ -305,6 +305,71 @@ class MaterialNormalization:
         self.packaging_type = packaging_type
 
 
+# One collapsed word, used only when the whole phrase misses ``_SPECS`` and the
+# caller is not resolving a CRM alias. An unmapped VanillaSoft token stays
+# unresolved. A grade word is what the items were. It is never a form. The
+# worksheet phrase ``pallets`` stays the polymer spec.
+_FORM_WORDS = {
+    "bale": "BALES",
+    "baled": "BALES",
+    "bales": "BALES",
+    "regrind": "REGRIND",
+    "flake": "FLAKE",
+    "flakes": "FLAKE",
+    "pellet": "PELLETS",
+    "pellets": "PELLETS",
+    "rollstock": "ROLLSTOCK",
+    "purge": "PURGE",
+    "lump": "OTHER",
+    "lumps": "OTHER",
+    "film": "FILM",
+    "fluff": "FLUFF",
+    "sheet": "SHEET",
+    "powder": "POWDER",
+    "parts": "PARTS",
+    "part": "PARTS",
+    "re-useable": "OTHER",
+    "reuseable": "OTHER",
+    "reusable": "OTHER",
+    "roll": "ROLLSTOCK",
+    "rolls": "ROLLSTOCK",
+}
+_GRADE_WORDS = {
+    "pallet": "PALLETS",
+    "pallets": "PALLETS",
+    "tote": "TOTES",
+    "totes": "TOTES",
+    "crate": "CRATES",
+    "crates": "CRATES",
+    "bottle": "BOTTLES",
+    "bottles": "BOTTLES",
+    "drum": "DRUMS",
+    "drums": "DRUMS",
+    "bucket": "BUCKETS",
+    "buckets": "BUCKETS",
+    "pail": "BUCKETS",
+    "pails": "BUCKETS",
+}
+GRADE_WORD_PRIORITY = ("PALLETS", "TOTES", "CRATES")
+# Commas and periods ride on the word in seller text (``pallets,``, ``crates.``).
+# They are not part of the lookup key. A hyphen inside ``re-useable`` stays.
+_EDGE_PUNCTUATION = ".,;:!?\"'`()[]{}"
+
+
+def classify_material_word(token) -> tuple[str | None, str | None]:
+    """Return ``(form_code, grade_code)`` for one word. One of them is empty.
+
+    Edge punctuation is removed before the exact form and grade tables are read.
+    """
+    word = _phrase(token).strip(_EDGE_PUNCTUATION)
+    if not word or " " in word:
+        return None, None
+    form_code = _FORM_WORDS.get(word)
+    if form_code:
+        return form_code, None
+    return None, _GRADE_WORDS.get(word)
+
+
 def normalize_material(env, description, grade_evidence=None, structured=None, *, crm_aliases=False):
     """Resolve one material phrase.
 
@@ -313,7 +378,9 @@ def normalize_material(env, description, grade_evidence=None, structured=None, *
     form, source, grade letter, or material grade is unresolved and does not
     pick a side. Attributes, color, and packaging come from the description
     when it matches. With ``crm_aliases``, a description that misses ``_SPECS``
-    may match ``_CRM_EXACT``, then ``_CRM_ALIASES``. Hints stay on ``_SPECS``.
+    may match ``_CRM_EXACT``, then ``_CRM_ALIASES``. A miss stays unresolved:
+    a single form or grade word is not applied on that path. Hints stay on
+    ``_SPECS``.
     """
     source = _collapse(description)
     text = _phrase(description)
@@ -321,6 +388,10 @@ def normalize_material(env, description, grade_evidence=None, structured=None, *
     description_spec = _SPECS.get(text)
     if description_spec is None and crm_aliases:
         description_spec = _CRM_EXACT.get(text) or _CRM_ALIASES.get(text)
+    if description_spec is None and not crm_aliases and text and " " not in text:
+        form_code, grade_code = classify_material_word(text)
+        if form_code or grade_code:
+            description_spec = _spec(polymer=None, form=form_code, material_grade=grade_code)
     if description_spec is not None:
         specs.append(description_spec)
     for hint in (_phrase(grade_evidence), *_structured_phrases(structured)):

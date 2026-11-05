@@ -733,6 +733,11 @@ GLOBAL_ALLOWLIST = frozenset(
         # ─────────────────────────────────────────────────────────────────────
         "drum",
         "tote",
+        # Normalizer grade words. What the items were, not a form Selection.
+        "crate",
+        "bucket",
+        "pail",
+        "pails",
         "supersack",
         "super sack",
         "truckload",

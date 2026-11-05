@@ -401,15 +401,21 @@ class PlasticosIntake(models.Model):
     )
 
     def _compute_image_count(self):
-        Attachment = self.env["ir.attachment"]
-        for rec in self:
-            rec.image_count = Attachment.search_count(
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = self.env["ir.attachment"]._read_group(
                 [
                     ("res_model", "=", "plasticos.intake"),
-                    ("res_id", "=", rec.id),
+                    ("res_id", "in", stored_ids),
                     ("mimetype", "like", "image/"),
-                ]
+                ],
+                ["res_id"],
+                ["__count"],
             )
+            counts = {res_id: count for res_id, count in rows if isinstance(res_id, int)}
+        for rec in self:
+            rec.image_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     match_line_ids = fields.One2many(
         "plasticos.intake.match",
