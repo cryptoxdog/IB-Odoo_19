@@ -57,6 +57,9 @@ def _form_normalize_values() -> list[str]:
 
 
 FORM_NORMALIZE_VALUES = sorted(set(_form_normalize_values()))
+NORMALIZER = _load(PROFILE / "models" / "material_normalizer.py", "_web_lead_identity_normalizer")
+FORM_WORD_CODES = sorted(set(NORMALIZER._FORM_WORDS.values()))
+GRADE_WORD_CODES = sorted(set(NORMALIZER._GRADE_WORDS.values()))
 
 
 def _eligibility(lbs: float, *, polymer=None, form=None, grade=None):
@@ -73,6 +76,12 @@ def _eligibility(lbs: float, *, polymer=None, form=None, grade=None):
 
 def test_grade_and_form_registries_are_disjoint() -> None:
     assert not set(GRADE_CODES) & set(FORM_CODES)
+
+
+def test_normalizer_word_tables_keep_forms_and_grades_apart() -> None:
+    assert [code for code in FORM_WORD_CODES if code not in FORM_CODES] == []
+    assert [code for code in GRADE_WORD_CODES if code not in GRADE_CODES] == []
+    assert not set(NORMALIZER._FORM_WORDS) & set(NORMALIZER._GRADE_WORDS)
 
 
 def test_every_web_lead_material_code_is_a_form_or_a_grade() -> None:
@@ -201,3 +210,43 @@ def test_broker_snapshot_carries_the_intake_material_grade() -> None:
     assert block[KEYS.KEY_FORM_CODE] == "OTHER"
     assert block[KEYS.KEY_MATERIAL_GRADE_ID] == 3
     assert block[KEYS.KEY_MATERIAL_GRADE_CODE] == "DRUMS"
+
+
+@pytest.mark.parametrize(
+    ("token", "form_code", "grade_code"),
+    [
+        ("pallets,", None, "PALLETS"),
+        ("crates.", None, "CRATES"),
+        ("(totes)", None, "TOTES"),
+        ("film.", "FILM", None),
+        ("re-useable,", "OTHER", None),
+        ("pal,lets", None, None),
+        ("...", None, None),
+    ],
+)
+def test_classify_material_word_strips_edge_punctuation(
+    token: str, form_code: str | None, grade_code: str | None
+) -> None:
+    assert NORMALIZER.classify_material_word(token) == (form_code, grade_code)
+
+
+def test_punctuated_pallet_phrase_meets_the_reusable_threshold() -> None:
+    grades: list[str] = []
+    form_code = None
+    for token in " ".join("HDPE pallets, clean".split()).split():
+        word_form, word_grade = NORMALIZER.classify_material_word(token)
+        if word_form and form_code is None:
+            form_code = word_form
+        if word_grade:
+            grades.append(word_grade)
+    grade = next((code for code in NORMALIZER.GRADE_WORD_PRIORITY if code in grades), None)
+
+    assert form_code is None
+    assert grade == "PALLETS"
+    without_grade = _eligibility(9_000.0, polymer="HDPE", grade=None)
+    with_grade = _eligibility(9_000.0, polymer="HDPE", grade=grade)
+    assert without_grade.eligible is False
+    assert without_grade.applicable_hot_min_lbs == 10_000.0
+    assert with_grade.eligible is True
+    assert with_grade.applicable_hot_min_lbs == 8_000.0
+    assert with_grade.policy_applied == "reusable_item"
