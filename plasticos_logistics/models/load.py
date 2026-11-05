@@ -1706,7 +1706,8 @@ class PlasticosLoad(models.Model):
                     ("res_id", "in", unacknowledged.ids),
                     ("summary", "ilike", "URGENT: No carrier acknowledgment"),
                     ("date_deadline", "=", fields.Date.today()),
-                ]
+                ],
+                order="id",
             )
             already_escalated = set(activities.mapped("res_id"))
 
