@@ -206,7 +206,7 @@ material,pp siding,PP Siding,erp:InvoiceDesc,12,0,mapped,names_one_polymer,PP,,,
 material,3-7 commingled,3-7 Commingled,vanillasoft:Materials,0,11,mapped,worksheet_phrase,3_7_COMMINGLED_BOTTLES,BOTTLES,,,,,,,,,,
 material,hdpe hmw pallets (no metal re-bar),HDPE HMW Pallets (No Metal Re-Bar),erp:InvoiceDesc,11,0,mapped,names_one_polymer,HDPE_HMW,PALLETS,,,no_metal,,,,,,,
 material,hdpe natural bottles,HDPE Natural Bottles,erp:InvoiceDesc,11,0,mapped,names_one_polymer,HDPE,BOTTLES,,,,,,NATURAL,,,,
-material,ld/lldpe thick/stretch,LD/LLDPE Thick/Stretch,vanillasoft:Material (LDPE),0,11,mapped,approved_alias,LLDPE,,,,,,,,,,,
+material,ld/lldpe thick/stretch,LD/LLDPE Thick/Stretch,vanillasoft:Material (LDPE),0,11,mapped,approved_alias,LDPE_LLDPE,,,,,,,,,,,
 material,ldpe clear film,LDPE Clear Film,erp:InvoiceDesc,11,0,mapped,names_one_polymer,LDPE,,FILM,,,,,CLEAR,,,,
 material,ldpe grade a film,LDPE GRADE A FIlm,erp:InvoiceDesc,11,0,mapped,worksheet_phrase,LDPE,,FILM,,clean dry,A,LDPE_FILM_A,,,,bales,
 material,ldpe/lldpe clear repro,LDPE/LLDPE Clear Repro,erp:InvoiceDesc,11,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
