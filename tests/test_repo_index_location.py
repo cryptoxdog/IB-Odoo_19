@@ -85,6 +85,9 @@ def test_repo_index_is_generated_under_docs_reports() -> None:
     assert 'INDEX_SUBDIR = ("docs", "reports", "repo-index")' in generator
     assert "docs/reports/repo-index" in workflow
     assert "reports/repo-index" not in workflow.replace("docs/reports/repo-index", "")
+    trigger = workflow.split("jobs:", 1)[0]
+    assert "workflow_dispatch:" in trigger
+    assert "push:" not in trigger
     assert 'Path("docs") / "reports" / "gmp-reports"' in gmp_writer
     assert 'Path("reports")' not in gmp_writer
     assert 'repo_root / "docs" / "reports" / "gmp-reports"' in xml_audit
