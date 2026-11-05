@@ -60,17 +60,17 @@ class PlasticosWebLeadCRM(models.Model):
             else False,
         }
 
-        lead = self.env["crm.lead"].create(vals)
-        self.crm_lead_id = lead
+        # auth="none" leaves env.uid empty after sudo(). Lead creation, image
+        # sync, and the opportunity note all reach mail.thread, which calls
+        # env.user._is_public() and requires a singleton res.users. Bind that
+        # sequence to SUPERUSER_ID. The opportunity stays unassigned.
+        actor = self.with_user(SUPERUSER_ID)
+        lead = actor.env["crm.lead"].create(vals)
+        actor.crm_lead_id = lead
         synchronize_images = getattr(lead, "_propagate_available_commercial_images", None)
         if callable(synchronize_images):
             synchronize_images()
-        # Use with_user(SUPERUSER_ID) for message_post: auth="none" endpoints leave
-        # env.uid=None even after sudo(), causing mail.thread to call _is_public()
-        # on an empty res.users() recordset and raise ValueError: Expected singleton.
-        self.with_user(SUPERUSER_ID).message_post(  # noqa: SIM117 — sudo() alone does not set uid
-            body=Markup("CRM opportunity created: %s") % lead.name,
-        )
+        actor.message_post(body=Markup("CRM opportunity created: %s") % lead.name)
         return lead
 
     def _crm_opportunity_description(self):
