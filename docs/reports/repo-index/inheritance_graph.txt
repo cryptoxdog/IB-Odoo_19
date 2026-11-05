@@ -23,10 +23,10 @@
 ./ci/check_field_integrity.py:137:        module_name = module_dir.name
 ./ci/check_field_integrity.py:194:                model_name = model_match.group(1)
 ./ci/check_field_integrity.py:204:                        field_name = match.group(1)
-./ci/check_model_inheritance.py:146:        module_name = get_module_from_path(py_file, root)
-./ci/check_model_inheritance.py:161:        module_name = get_module_from_path(py_file, root)
-./ci/check_model_inheritance.py:169:                model_name = model["_name"]
-./ci/check_model_inheritance.py:186:                                "fix": f'Change _name = "{model_name}" to _inherit = "{model_name}"',
+./ci/check_model_inheritance.py:163:        module_name = get_module_from_path(py_file, root)
+./ci/check_model_inheritance.py:177:        module_name = get_module_from_path(py_file, root)
+./ci/check_model_inheritance.py:185:                model_name = model["_name"]
+./ci/check_model_inheritance.py:202:                                "fix": f'Change _name = "{model_name}" to _inherit = "{model_name}"',
 ./ci/check_name_literal.py:2:"""Enforce `_name = "model.name"` as a string literal on Odoo model classes.
 ./ci/check_name_literal.py:4:`_name = SOME_CONSTANT` breaks tooling (this repo's own audit scripts, IDE
 ./ci/check_name_literal.py:5:navigation, `grep`) that locates models by scanning for `_name = "..."` —
@@ -55,6 +55,7 @@
 ./plasticos_admin_dashboard/models/admin_dashboard.py:638:    _name = "plasticos.rep.performance"
 ./plasticos_admin_dashboard/models/admin_dashboard.py:641:    _rec_name = "rep_name"
 ./plasticos_admin_dashboard/models/admin_dashboard.py:644:    rep_name = fields.Char(string="Rep", readonly=True)
+./plasticos_admin_dashboard/tests/test_rep_performance_view.py:39:               AND table_name = %s
 ./plasticos_automation/migrations/19.0.1.1.0/pre-migrate.py:20:            WHERE table_name = %s
 ./plasticos_automation/migrations/19.0.1.1.0/pre-migrate.py:21:              AND column_name = %s
 ./plasticos_automation/models/account_move_penalty.py:15:    _inherit = "account.move"
@@ -145,11 +146,11 @@
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:314:        dto = self._lead("vs-owner-keep", owner_name="lm@ucsincny.com")
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:317:        kept = orch._upsert_lead(self.connection, self._lead("vs-owner-keep", owner_name="CRM3 Exact Owner"))
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:323:            orch._upsert_lead(self.connection, self._lead("vs-owner-new-bad", owner_name="No Such CRM3 Owner"))
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:744:                    table_name="Materials",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1414:            owner_name="sa@scrapmanagement.com",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1512:            user_name="Rep",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1561:            user_name="Rep",
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1744:                    table_name="Materials",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:750:                    table_name="Materials",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1433:            owner_name="sa@scrapmanagement.com",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1531:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1580:            user_name="Rep",
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1763:                    table_name="Materials",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:27:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_watermark_acknowledgement.py:28:        last_name="Lovelace",
 ./plasticos_dev_tools/tools/index_export.py:78:        model_name = cron.model_id.model if cron.model_id else ""
@@ -170,17 +171,18 @@
 ./plasticos_documents/models/compliance_service.py:17:    _name = "plasticos.compliance.service"
 ./plasticos_documents/models/document.py:103:    _name = "plasticos.document"
 ./plasticos_documents/models/document.py:105:    _inherit = ["mail.thread"]
-./plasticos_documents/models/document.py:618:        if target._name == "plasticos.transaction":
-./plasticos_documents/models/document.py:626:        elif target._name == "plasticos.load":
-./plasticos_documents/models/document.py:847:    _inherit = "ir.attachment"
+./plasticos_documents/models/document.py:624:        if target._name == "plasticos.transaction":
+./plasticos_documents/models/document.py:632:        elif target._name == "plasticos.load":
+./plasticos_documents/models/document.py:853:    _inherit = "ir.attachment"
 ./plasticos_documents/models/document_rule.py:5:    _name = "plasticos.document.rule"
 ./plasticos_documents/models/document_tag.py:5:    _name = "plasticos.document.tag"
 ./plasticos_documents/models/document_validation_matrix.py:10:    _name = "plasticos.document.validation.matrix"
 ./plasticos_documents/models/load_docs_bridge.py:7:    _inherit = "plasticos.load"
 ./plasticos_documents/models/midnight_recompute.py:26:    _inherit = "plasticos.midnight.recompute"
-./plasticos_documents/models/transaction_docs.py:10:    _inherit = "plasticos.transaction"
-./plasticos_documents/models/transaction_docs.py:350:        carrier_name = load.carrier_id.name if load.carrier_id else "Carrier"
-./plasticos_documents/models/transaction_docs.py:474:    _inherit = "plasticos.load"
+./plasticos_documents/models/transaction_docs.py:12:    _name = "plasticos.transaction"
+./plasticos_documents/models/transaction_docs.py:13:    _inherit = ["plasticos.transaction", "mail.activity.mixin"]
+./plasticos_documents/models/transaction_docs.py:355:        carrier_name = load.carrier_id.name if load.carrier_id else "Carrier"
+./plasticos_documents/models/transaction_docs.py:491:    _inherit = "plasticos.load"
 ./plasticos_documents/models/transaction_docs_bridge.py:7:    _inherit = "account.move"
 ./plasticos_documents/models/transaction_docs_bridge.py:17:    _inherit = "plasticos.transaction"
 ./plasticos_documents/tests/test_scale_ticket_cardinality.py:176:               AND table_name = 'plasticos_column_align_probe'
@@ -232,9 +234,9 @@
 ./plasticos_intake/models/intake.py:20:    _inherit = ["mail.thread", "mail.activity.mixin"]
 ./plasticos_intake/models/intake.py:36:    display_name = fields.Char(
 ./plasticos_intake/models/intake.py:58:    pending_company_name = fields.Char(
-./plasticos_intake/models/intake.py:455:                    rec.display_name = f"{parts[0]}-{parts[2]}"
-./plasticos_intake/models/intake.py:457:                    rec.display_name = rec.name
-./plasticos_intake/models/intake.py:459:                rec.display_name = f"INT-{rec.id or 'New'}"
+./plasticos_intake/models/intake.py:461:                    rec.display_name = f"{parts[0]}-{parts[2]}"
+./plasticos_intake/models/intake.py:463:                    rec.display_name = rec.name
+./plasticos_intake/models/intake.py:465:                rec.display_name = f"INT-{rec.id or 'New'}"
 ./plasticos_intake/models/intake_match.py:11:    _name = "plasticos.intake.match"
 ./plasticos_intake/models/intake_match.py:30:    buyer_name = fields.Char(
 ./plasticos_intake/models/intake_match.py:84:                rec.display_name = f"{rec.buyer_id.name} ({rec.match_score:.0f}%)"
@@ -251,11 +253,11 @@
 ./plasticos_logistics/models/freight_estimate.py:10:    _name = "plasticos.freight.estimate"
 ./plasticos_logistics/models/freight_governance.py:31:    _name = "plasticos.freight.event"
 ./plasticos_logistics/models/freight_governance.py:72:    _name = "plasticos.freight.calibration.observation"
-./plasticos_logistics/models/freight_governance.py:154:    _name = "plasticos.rate.memory.reconciliation"
+./plasticos_logistics/models/freight_governance.py:170:    _name = "plasticos.rate.memory.reconciliation"
 ./plasticos_logistics/models/freight_quote.py:41:    _name = "plasticos.freight.quote.request"
 ./plasticos_logistics/models/freight_quote.py:43:    _inherit = ["mail.thread", "mail.activity.mixin"]
-./plasticos_logistics/models/freight_quote.py:384:    _name = "plasticos.freight.quote.recipient"
-./plasticos_logistics/models/freight_quote.py:508:    _name = "plasticos.freight.quote"
+./plasticos_logistics/models/freight_quote.py:391:    _name = "plasticos.freight.quote.recipient"
+./plasticos_logistics/models/freight_quote.py:515:    _name = "plasticos.freight.quote"
 ./plasticos_logistics/models/linda_request.py:154:    _name = "plasticos.logistics.request"
 ./plasticos_logistics/models/linda_request.py:291:            request.display_name = f"{order.name or ''} · {labels.get(request.purpose, '')} r{request.revision}"
 ./plasticos_logistics/models/linda_response.py:65:    _name = "plasticos.logistics.response"
@@ -306,22 +308,24 @@
 ./plasticos_material_profile/models/material_attribute.py:17:    _name = "plasticos.material.attribute"
 ./plasticos_material_profile/models/material_color.py:6:    _name = "plasticos.material.color"
 ./plasticos_material_profile/models/material_form.py:6:    _name = "plasticos.material.form"
+./plasticos_material_profile/models/material_grade.py:5:    _name = "plasticos.material.grade"
 ./plasticos_material_profile/models/material_profile.py:13:    _name = "plasticos.material.profile"
 ./plasticos_material_profile/models/material_profile.py:15:    _inherit = ["mail.thread"]
 ./plasticos_material_profile/models/material_profile.py:17:    _rec_name = "display_name"
 ./plasticos_material_profile/models/material_profile.py:19:    display_name = fields.Char(
-./plasticos_material_profile/models/material_profile.py:31:                rec.display_name = f"{polymer} {form}"
-./plasticos_material_profile/models/material_profile.py:33:                rec.display_name = polymer
-./plasticos_material_profile/models/material_profile.py:35:                rec.display_name = f"Profile #{rec.id}"
-./plasticos_material_profile/models/material_profile.py:763:        polymer_name = self.polymer_id.name if self.polymer_id else "Material"
-./plasticos_material_profile/models/material_profile.py:764:        form_name = self.form_id.name if self.form_id else ""
-./plasticos_material_profile/models/material_profile.py:765:        partner_name = self.partner_id.name if self.partner_id else ""
+./plasticos_material_profile/models/material_profile.py:30:            rec.display_name = name if rec.polymer_id else f"Profile #{rec.id}"
+./plasticos_material_profile/models/material_profile.py:816:        polymer_name = self.polymer_id.name if self.polymer_id else "Material"
+./plasticos_material_profile/models/material_profile.py:817:        grade_name = self.material_grade_id.name if self.material_grade_id else ""
+./plasticos_material_profile/models/material_profile.py:818:        form_name = self.form_id.name if self.form_id else ""
+./plasticos_material_profile/models/material_profile.py:819:        partner_name = self.partner_id.name if self.partner_id else ""
+./plasticos_material_profile/models/material_profile.py:820:        material_name = " ".join(part for part in (polymer_name, grade_name, form_name) if part)
 ./plasticos_material_profile/models/packaging_type.py:13:    _name = "plasticos.packaging.type"
 ./plasticos_material_profile/models/polymer.py:6:    _name = "plasticos.polymer"
 ./plasticos_material_profile/models/polymer.py:16:    full_name = fields.Char(
 ./plasticos_material_profile/models/process_type.py:6:    _name = "plasticos.process.type"
 ./plasticos_material_profile/models/res_partner.py:6:    _inherit = "res.partner"
 ./plasticos_material_profile/models/source_type.py:6:    _name = "plasticos.source.type"
+./plasticos_material_profile/tests/test_material_profile_counts.py:69:        if model_name == "purchase.order.line":
 ./plasticos_offer/models/intake_offers_bridge.py:12:    _inherit = "plasticos.intake"
 ./plasticos_offer/models/intake_offers_bridge.py:56:                    "Skipping match line %s — no buyer_id set (buyer_name=%s)",
 ./plasticos_offer/models/offer.py:17:    _name = "plasticos.offer"
@@ -334,7 +338,7 @@
 ./plasticos_offer/models/offer.py:264:                rec.display_name = f"Offer: {intake} → {buyer} [{rec.state or 'draft'}]"
 ./plasticos_offer/models/offer_price_bridge.py:16:    _inherit = "plasticos.offer"
 ./plasticos_offer/wizards/offer_bulk_action_wizard.py:11:    _name = "plasticos.offer.bulk.action.wizard"
-./plasticos_order_lines/models/purchase_order_line.py:17:    _inherit = "purchase.order.line"
+./plasticos_order_lines/models/purchase_order_line.py:18:    _inherit = "purchase.order.line"
 ./plasticos_order_lines/models/sale_order_line.py:17:    _inherit = "sale.order.line"
 ./plasticos_partner_import/__init__.py:66:        WHERE table_name = 'stock_picking'
 ./plasticos_partner_import/__init__.py:80:        WHERE table_name = 'account_move'
@@ -395,9 +399,9 @@
 ./plasticos_transaction/models/audit_cron.py:9:    _name = "plasticos.audit.cron"
 ./plasticos_transaction/models/intake_bridge.py:8:    _inherit = "plasticos.intake"
 ./plasticos_transaction/models/legacy_erp_import_service.py:13:    _inherit = "plasticos.erp.import"
-./plasticos_transaction/models/native_document_import.py:627:    partner_field = "CustID" if model_name == "sale.order" else "VendorID"
-./plasticos_transaction/models/native_document_import.py:635:    open_states = _OPEN_SALE_STATES if model_name == "sale.order" else _OPEN_PURCHASE_STATES
-./plasticos_transaction/models/native_document_import.py:648:    if model_name == "sale.order":
+./plasticos_transaction/models/native_document_import.py:636:    partner_field = "CustID" if model_name == "sale.order" else "VendorID"
+./plasticos_transaction/models/native_document_import.py:644:    open_states = _OPEN_SALE_STATES if model_name == "sale.order" else _OPEN_PURCHASE_STATES
+./plasticos_transaction/models/native_document_import.py:657:    if model_name == "sale.order":
 ./plasticos_transaction/models/offer_bridge.py:7:    _inherit = "plasticos.offer"
 ./plasticos_transaction/models/partner_bridge.py:7:    _inherit = "res.partner"
 ./plasticos_transaction/models/purchase_inherit.py:9:    _inherit = "purchase.order"
@@ -407,7 +411,7 @@
 ./plasticos_transaction/models/transaction.py:30:    _name = "plasticos.transaction"
 ./plasticos_transaction/models/transaction.py:32:    _inherit = ["mail.thread"]
 ./plasticos_transaction/models/transaction.py:510:    _unique_name = models.Constraint(
-./plasticos_transaction/models/transaction.py:1339:        supplier_name = self.supplier_id.name if self.supplier_id else "N/A"
+./plasticos_transaction/models/transaction.py:1368:        supplier_name = self.supplier_id.name if self.supplier_id else "N/A"
 ./plasticos_transaction/models/transaction_bridge.py:7:    _inherit = "plasticos.transaction"
 ./plasticos_transaction/models/transaction_import_service.py:42:    _name = "plasticos.transaction.import.service"
 ./plasticos_transaction/models/transaction_line.py:12:    _name = "plasticos.transaction.line"
@@ -420,13 +424,13 @@
 ./plasticos_web_leads/adapters/cognito.py:59:        raw_name = payload.get("Name")
 ./plasticos_web_leads/adapters/cognito.py:210:            company_name=self._first_text(payload, "YourBusinessCompanyName", "CompanyName"),
 ./plasticos_web_leads/adapters/cognito.py:211:            contact_name=self._contact_name(payload),
-./plasticos_web_leads/models/web_lead.py:209:    _name = "plasticos.web.lead"
-./plasticos_web_leads/models/web_lead.py:211:    _inherit = ["mail.thread"]
-./plasticos_web_leads/models/web_lead.py:213:    _rec_name = "lead_id"
-./plasticos_web_leads/models/web_lead.py:328:    company_name = fields.Char(string="Company")
-./plasticos_web_leads/models/web_lead.py:329:    contact_name = fields.Char(string="Contact Name")
-./plasticos_web_leads/models/web_lead.py:1188:        polymer_name = intake.polymer_id.name if intake.polymer_id else "Unknown"
-./plasticos_web_leads/models/web_lead.py:1189:        form_name = intake.form_id.name if intake.form_id else "Unknown"
+./plasticos_web_leads/models/web_lead.py:217:    _name = "plasticos.web.lead"
+./plasticos_web_leads/models/web_lead.py:219:    _inherit = ["mail.thread"]
+./plasticos_web_leads/models/web_lead.py:221:    _rec_name = "lead_id"
+./plasticos_web_leads/models/web_lead.py:336:    company_name = fields.Char(string="Company")
+./plasticos_web_leads/models/web_lead.py:337:    contact_name = fields.Char(string="Contact Name")
+./plasticos_web_leads/models/web_lead.py:1211:        polymer_name = intake.polymer_id.name if intake.polymer_id else "Unknown"
+./plasticos_web_leads/models/web_lead.py:1212:        form_name = intake.form_id.name if intake.form_id else "Unknown"
 ./plasticos_web_leads/models/web_lead_api_key_wizard.py:7:    _name = "plasticos.web.lead.api.key.wizard"
 ./plasticos_web_leads/models/web_lead_bridge.py:7:    _inherit = "plasticos.web.lead"
 ./plasticos_web_leads/models/web_lead_config.py:41:    _name = "plasticos.web.lead.config"
@@ -460,16 +464,23 @@
 ./scripts/audit/xml_field_audit.py:353:            field_name = match.group(1)
 ./scripts/audit/xml_field_audit.py:396:            field_name = field_match.group(1)
 ./scripts/audit/xml_field_audit.py:420:                field_name = field_match.group(1)
-./scripts/check_module_wiring.py:213:            # Match _name = "model.name" patterns
-./scripts/check_module_wiring.py:281:        # _inherit = "model.name"
-./scripts/check_module_wiring.py:283:        # _inherit = ["model1", "model2"]
-./scripts/check_module_wiring.py:285:        # _inherits = {"model": "field"}
-./scripts/check_module_wiring.py:311:                        # Handle list patterns (e.g., _inherit = ["a", "b"])
-./scripts/check_module_wiring.py:330:                    model_name = match.group(1)
-./scripts/check_module_wiring.py:366:        module_name = module_dir.name
-./scripts/check_module_wiring.py:412:    module_name = module_path.name
-./scripts/check_module_wiring.py:546:    module_name = module_path.name
-./scripts/check_module_wiring.py:665:        module_name = module_path.name
+./scripts/check_module_wiring.py:202:        model_name = None
+./scripts/check_module_wiring.py:206:            target_name = None
+./scripts/check_module_wiring.py:208:                target_name = stmt.targets[0].id
+./scripts/check_module_wiring.py:211:                target_name = stmt.target.id
+./scripts/check_module_wiring.py:213:            if target_name == "_name" and isinstance(value, ast.Constant) and isinstance(value.value, str):
+./scripts/check_module_wiring.py:214:                model_name = value.value
+./scripts/check_module_wiring.py:215:            elif target_name == "_inherit" and isinstance(value, ast.Constant) and isinstance(value.value, str):
+./scripts/check_module_wiring.py:217:            elif target_name == "_inherit" and isinstance(value, (ast.List, ast.Tuple)):
+./scripts/check_module_wiring.py:317:        # _inherit = "model.name"
+./scripts/check_module_wiring.py:319:        # _inherit = ["model1", "model2"]
+./scripts/check_module_wiring.py:321:        # _inherits = {"model": "field"}
+./scripts/check_module_wiring.py:347:                        # Handle list patterns (e.g., _inherit = ["a", "b"])
+./scripts/check_module_wiring.py:366:                    model_name = match.group(1)
+./scripts/check_module_wiring.py:402:        module_name = module_dir.name
+./scripts/check_module_wiring.py:448:    module_name = module_path.name
+./scripts/check_module_wiring.py:582:    module_name = module_path.name
+./scripts/check_module_wiring.py:701:        module_name = module_path.name
 ./scripts/collect_module_info.py:18:module_name = sys.argv[2]
 ./scripts/convert_sql_constraints.py:93:        attr_name = f"_check_{name}"
 ./scripts/fix_db_permissions.py:30:    target_db_name = input("Target Database Name (to create/check): ").strip()
@@ -486,7 +497,6 @@
 ./scripts/projection_outcome_schemas.py:180:                _require_entity_ref(ref, field_name=list_key)
 ./scripts/projection_outcome_schemas.py:210:        match_result_ref = _require_entity_ref(item.get("match_result_ref"), field_name="match_result_ref")
 ./scripts/projection_outcome_schemas.py:211:        candidate_ref = _require_entity_ref(item.get("candidate_ref"), field_name="candidate_ref")
-./tests/e2e/four_repo/run_odoo_driver.py:116:    _name = "plasticos.enrichment.run"
 ./tests/integration/test_gate_external_authority_e2e.py:81:    _name = "plasticos.intake"
 ./tests/integration/test_gate_external_authority_e2e.py:147:        _name="plasticos.enrichment.run",
 ./tests/runtime_gates/run_c1_c2_c4_c5.py:69:        first_name="A",
@@ -527,7 +537,6 @@
 ./tests/test_erp_import_contract.py:400:    assert '_name = "plasticos.' not in deal_source
 ./tests/test_erp_import_contract.py:491:    _name = "res.partner"
 ./tests/test_erp_import_contract.py:531:    _name = "res.partner"
-./tests/test_gap_fixes.py:305:        view_name = "plasticos_rep_performance"
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
 ./tests/test_gate_match_contract.py:67:    _name = "plasticos.intake"
@@ -540,6 +549,7 @@
 ./tests/test_launch_invariants_crm_enrichment.py:456:    _name = "plasticos.enrichment.run"
 ./tests/test_matching_gate_orchestrator.py:40:    assert '_name = "plasticos.match.exclusion"' in src
 ./tests/test_matching_gate_orchestrator.py:46:    assert '_name = "plasticos.match.run"' in src
+./tests/test_material_ledger_resolution.py:67:    grade_by_name = {
 ./tests/test_odoo_audit_field_attribution.py:31:    _name = "sample.order"
 ./tests/test_odoo_audit_field_attribution.py:32:    _inherit = ["mail.thread", "mail.activity.mixin"]
 ./tests/test_odoo_audit_field_attribution.py:37:    tag_ids = fields.Many2many(comodel_name="sample.tag")
@@ -553,16 +563,17 @@
 ./tests/test_odoo_audit_field_attribution.py:74:    _inherit = ["sample.line"]
 ./tests/test_odoo_test_setup_validity.py:103:        var_name = match.group(2)
 ./tests/test_odoo_test_setup_validity.py:199:                    model_name = subscript.slice.value
-./tests/test_phantom_enum_values.py:694:        # e.g. assert method_name == '_reverse_tx' — not selection enum values
-./tests/test_phantom_enum_values.py:956:    # Pattern: field_name = fields.Selection([(key, label), ...], ...)
-./tests/test_phantom_enum_values.py:971:        field_name = target.id
-./tests/test_phantom_enum_values.py:1130:                    field_name = field_node.value
-./tests/test_phantom_enum_values.py:1134:                    field_name = field_node.value
-./tests/test_phantom_enum_values.py:1467:            field_name = usage.context[7:-1]  # strip "domain[" and "]"
-./tests/test_phantom_enum_values.py:1515:                field_name = usage.context[7:-1]
+./tests/test_phantom_enum_values.py:696:        # e.g. assert method_name == '_reverse_tx' — not selection enum values
+./tests/test_phantom_enum_values.py:963:    # Pattern: field_name = fields.Selection([(key, label), ...], ...)
+./tests/test_phantom_enum_values.py:978:        field_name = target.id
+./tests/test_phantom_enum_values.py:1137:                    field_name = field_node.value
+./tests/test_phantom_enum_values.py:1141:                    field_name = field_node.value
+./tests/test_phantom_enum_values.py:1475:            field_name = usage.context[7:-1]  # strip "domain[" and "]"
+./tests/test_phantom_enum_values.py:1523:                field_name = usage.context[7:-1]
 ./tests/test_state_audit_containment.py:70:            _name = "plasticos.sample.load"
 ./tests/test_state_audit_containment.py:88:            _name = "plasticos.sample.load"
 ./tests/test_state_audit_containment.py:108:            _name = "plasticos.sample.load"
 ./tests/test_weak_test_authority.py:255:            _name = "plasticos.thing"
+./tests/test_web_lead_material_identity.py:202:        pending_company_name="Seller",
 ./tests/test_web_lead_packet.py:68:    assert packet.contact_name == "Alex Smith"
 ./tests/test_web_lead_packet.py:123:    assert packet.company_name == "Legacy Co"

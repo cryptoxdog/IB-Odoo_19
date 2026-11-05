@@ -63,6 +63,7 @@
 ./plasticos_material_profile/views/grade_template_views.xml
 ./plasticos_material_profile/views/material_color_views.xml
 ./plasticos_material_profile/views/material_form_views.xml
+./plasticos_material_profile/views/material_grade_views.xml
 ./plasticos_material_profile/views/material_profile_ux.xml
 ./plasticos_material_profile/views/material_profile_views.xml
 ./plasticos_material_profile/views/partner_material_ux.xml

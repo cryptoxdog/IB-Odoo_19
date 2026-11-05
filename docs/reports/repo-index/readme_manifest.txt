@@ -65,16 +65,12 @@
 ./skills/plasticos-static-audit-kernel/SKILL.md:15:# Static Audit Kernel
 ./skills/plasticos-xml-view/SKILL.md:15:# XML View Development
 ./tests/README.md:1:# PlastOS Test Pack — Odoo 19.0
-./tests/README.md:74:# Partner/Polymer/Form creation (with deduplication)
-./tests/README.md:79:# Model-specific factories
-./tests/README.md:88:# Skip helper
-./tests/README.md:107:# One addon's tests (Docker fixture DB; runs at_install + post_install of that addon)
-./tests/README.md:110:# All PlastOS tests
-./tests/README.md:113:# By category
-./tests/README.md:122:# Pure Python tests (no Odoo required)
-./tests/README.md:127:# Meta tests (validate test suite structure)
-./tests/e2e/four_repo/README.md:1:# Four-repo end-to-end: IB-Odoo_19 -> Gate_SDK -> Constellation.Gate -> EIE
-./tests/e2e/four_repo/README.md:22:# 1. EIE worker (registers itself with Gate; re-registers every 60 s)
-./tests/e2e/four_repo/README.md:31:# 2. Gate (static registry pre-declares the worker; health re-probe every 15 s)
-./tests/e2e/four_repo/README.md:38:# 3. Odoo bridge
+./tests/README.md:73:# Partner/Polymer/Form creation (with deduplication)
+./tests/README.md:78:# Model-specific factories
+./tests/README.md:87:# Skip helper
+./tests/README.md:106:# One addon's tests (Docker fixture DB; runs at_install + post_install of that addon)
+./tests/README.md:109:# All PlastOS tests
+./tests/README.md:112:# By category
+./tests/README.md:121:# Pure Python tests (no Odoo required)
+./tests/README.md:125:# Meta tests (validate test suite structure)
 ./tests/runtime_gates/README.md:1:# Real-runtime launch gates

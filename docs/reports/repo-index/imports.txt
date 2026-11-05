@@ -271,6 +271,8 @@
 ./plasticos_admin_dashboard/models/__init__.py:1:from . import admin_dashboard
 ./plasticos_admin_dashboard/models/admin_dashboard.py:25:import logging
 ./plasticos_admin_dashboard/models/admin_dashboard.py:27:from odoo import api, fields, models, tools
+./plasticos_admin_dashboard/tests/__init__.py:1:from . import test_rep_performance_view
+./plasticos_admin_dashboard/tests/test_rep_performance_view.py:3:from odoo.tests import TransactionCase, tagged
 ./plasticos_automation/__init__.py:1:from . import models
 ./plasticos_automation/__init__.py:2:from .hooks import post_init_hook
 ./plasticos_automation/hooks.py:1:import logging
@@ -358,10 +360,16 @@
 ./plasticos_base/test_common.py:151:        import uuid
 ./plasticos_base/test_common.py:176:        import unittest
 ./plasticos_base/tests/__init__.py:1:from . import test_crm_lead_contracts
-./plasticos_base/tests/__init__.py:2:from . import test_partner_contracts
-./plasticos_base/tests/__init__.py:3:from . import test_xpath_field_refs
+./plasticos_base/tests/__init__.py:2:from . import test_matching_engine_gate_url
+./plasticos_base/tests/__init__.py:3:from . import test_partner_contracts
+./plasticos_base/tests/__init__.py:4:from . import test_xpath_field_refs
 ./plasticos_base/tests/test_crm_lead_contracts.py:11:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_base/tests/test_crm_lead_contracts.py:12:from odoo.tests.common import tagged
+./plasticos_base/tests/test_matching_engine_gate_url.py:3:import os
+./plasticos_base/tests/test_matching_engine_gate_url.py:5:from odoo.addons.plasticos_base.models.matching_engine_icp import (
+./plasticos_base/tests/test_matching_engine_gate_url.py:10:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./plasticos_base/tests/test_matching_engine_gate_url.py:11:from odoo.exceptions import UserError
+./plasticos_base/tests/test_matching_engine_gate_url.py:12:from odoo.tests.common import tagged
 ./plasticos_base/tests/test_partner_contracts.py:14:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_base/tests/test_partner_contracts.py:15:from odoo.tests.common import tagged
 ./plasticos_base/tests/test_xpath_field_refs.py:41:import re
@@ -661,12 +669,12 @@
 ./plasticos_crm_sync/services/orchestrator.py:2012:        from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
 ./plasticos_crm_sync/services/orchestrator.py:2194:        from odoo.exceptions import ValidationError  # noqa: PLC0415
 ./plasticos_crm_sync/services/orchestrator.py:2238:        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
-./plasticos_crm_sync/services/orchestrator.py:2256:        from odoo.exceptions import ValidationError  # noqa: PLC0415
-./plasticos_crm_sync/services/orchestrator.py:2461:        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING  # noqa: PLC0415
-./plasticos_crm_sync/services/orchestrator.py:2483:        from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
-./plasticos_crm_sync/services/orchestrator.py:2484:        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import (  # noqa: PLC0415
-./plasticos_crm_sync/services/orchestrator.py:2522:        from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import (  # noqa: PLC0415
-./plasticos_crm_sync/services/orchestrator.py:2565:        from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
+./plasticos_crm_sync/services/orchestrator.py:2255:        from odoo.exceptions import ValidationError  # noqa: PLC0415
+./plasticos_crm_sync/services/orchestrator.py:2466:        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING  # noqa: PLC0415
+./plasticos_crm_sync/services/orchestrator.py:2488:        from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
+./plasticos_crm_sync/services/orchestrator.py:2489:        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import (  # noqa: PLC0415
+./plasticos_crm_sync/services/orchestrator.py:2527:        from odoo.addons.plasticos_crm_bridge.models.crm_tag_adoption import (  # noqa: PLC0415
+./plasticos_crm_sync/services/orchestrator.py:2570:        from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
 ./plasticos_crm_sync/services/owner_crosswalk.py:8:from __future__ import annotations
 ./plasticos_crm_sync/services/owner_crosswalk.py:10:import csv
 ./plasticos_crm_sync/tests/__init__.py:1:from . import test_crm45_classification
@@ -689,9 +697,10 @@
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:16:from odoo.tests import TransactionCase, tagged
 ./plasticos_crm_sync/tests/test_material_mapping_map.py:3:import csv
 ./plasticos_crm_sync/tests/test_material_mapping_map.py:4:from pathlib import Path
-./plasticos_crm_sync/tests/test_material_mapping_map.py:6:from odoo.addons.plasticos_material_profile.models import material_normalizer
-./plasticos_crm_sync/tests/test_material_mapping_map.py:7:from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_crm_material
-./plasticos_crm_sync/tests/test_material_mapping_map.py:8:from odoo.tests import TransactionCase, tagged
+./plasticos_crm_sync/tests/test_material_mapping_map.py:6:from odoo.addons.plasticos_material_profile.grade_codes import FORMER_FORM_CODES
+./plasticos_crm_sync/tests/test_material_mapping_map.py:7:from odoo.addons.plasticos_material_profile.models import material_normalizer
+./plasticos_crm_sync/tests/test_material_mapping_map.py:8:from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
+./plasticos_crm_sync/tests/test_material_mapping_map.py:9:from odoo.tests import TransactionCase, tagged
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:3:import importlib.util
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:4:import inspect
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:5:from pathlib import Path
@@ -705,11 +714,11 @@
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:29:from odoo.exceptions import UserError
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:30:from odoo.tests import TransactionCase, tagged
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:382:        from odoo.addons.plasticos_material_profile.models import material_normalizer
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:596:        from datetime import UTC, datetime
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:731:        from odoo.addons.plasticos_material_profile.models import material_normalizer
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1166:        from odoo import fields
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1246:        from odoo import fields
-./plasticos_crm_sync/tests/test_orchestrator_upsert.py:2213:        from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:602:        from datetime import UTC, datetime
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:737:        from odoo.addons.plasticos_material_profile.models import material_normalizer
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1185:        from odoo import fields
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:1265:        from odoo import fields
+./plasticos_crm_sync/tests/test_orchestrator_upsert.py:2277:        from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
 ./plasticos_crm_sync/tests/test_settings_import_action.py:3:from unittest.mock import MagicMock, patch
 ./plasticos_crm_sync/tests/test_settings_import_action.py:5:from odoo.exceptions import UserError
 ./plasticos_crm_sync/tests/test_settings_import_action.py:6:from odoo.tests import TransactionCase, tagged
@@ -769,10 +778,11 @@
 ./plasticos_documents/models/transaction_docs_bridge.py:1:from odoo import api, fields, models
 ./plasticos_documents/tests/__init__.py:1:from . import test_account_move_transaction_link
 ./plasticos_documents/tests/__init__.py:2:from . import test_compliance_service
-./plasticos_documents/tests/__init__.py:3:from . import test_expiry_final_gate
-./plasticos_documents/tests/__init__.py:4:from . import test_pr322_findings
-./plasticos_documents/tests/__init__.py:5:from . import test_scale_ticket_cardinality
-./plasticos_documents/tests/__init__.py:6:from . import test_verification_writer
+./plasticos_documents/tests/__init__.py:3:from . import test_document_query_batch
+./plasticos_documents/tests/__init__.py:4:from . import test_expiry_final_gate
+./plasticos_documents/tests/__init__.py:5:from . import test_pr322_findings
+./plasticos_documents/tests/__init__.py:6:from . import test_scale_ticket_cardinality
+./plasticos_documents/tests/__init__.py:7:from . import test_verification_writer
 ./plasticos_documents/tests/test_account_move_transaction_link.py:15:import base64
 ./plasticos_documents/tests/test_account_move_transaction_link.py:16:import logging
 ./plasticos_documents/tests/test_account_move_transaction_link.py:17:from unittest.mock import patch
@@ -784,6 +794,12 @@
 ./plasticos_documents/tests/test_compliance_service.py:18:from odoo.addons.plasticos_documents.models.compliance_service import PlasticosComplianceService
 ./plasticos_documents/tests/test_compliance_service.py:19:from odoo.tests.common import tagged
 ./plasticos_documents/tests/test_compliance_service.py:53:        import inspect
+./plasticos_documents/tests/test_document_query_batch.py:3:import base64
+./plasticos_documents/tests/test_document_query_batch.py:4:from datetime import date, timedelta
+./plasticos_documents/tests/test_document_query_batch.py:5:from unittest.mock import patch
+./plasticos_documents/tests/test_document_query_batch.py:7:from odoo import fields
+./plasticos_documents/tests/test_document_query_batch.py:8:from odoo.addons.plasticos_logistics.models.load import (
+./plasticos_documents/tests/test_document_query_batch.py:12:from odoo.tests import TransactionCase, tagged
 ./plasticos_documents/tests/test_expiry_final_gate.py:7:import base64
 ./plasticos_documents/tests/test_expiry_final_gate.py:8:from datetime import timedelta
 ./plasticos_documents/tests/test_expiry_final_gate.py:9:from unittest.mock import patch
@@ -911,6 +927,8 @@
 ./plasticos_facility_profile/migrations/19.0.1.1.0/pre-migrate.py:8:from psycopg2 import sql
 ./plasticos_facility_profile/migrations/19.0.4.0.0/post-migrate.py:7:import logging
 ./plasticos_facility_profile/migrations/19.0.5.0.0/post-migrate.py:1:import logging
+./plasticos_facility_profile/migrations/19.0.5.4.0/post-migrate.py:6:from odoo import SUPERUSER_ID, api
+./plasticos_facility_profile/migrations/19.0.5.4.0/post-migrate.py:10:    from odoo.addons.plasticos_material_profile.grade_migration import clear_former_form_links  # noqa: PLC0415
 ./plasticos_facility_profile/models/__init__.py:1:from . import equipment_type
 ./plasticos_facility_profile/models/__init__.py:2:from . import facility_profile
 ./plasticos_facility_profile/models/__init__.py:3:from . import facility_template
@@ -1013,6 +1031,8 @@
 ./plasticos_intake/migrations/19.0.5.2.0/__init__.py:1:from . import post_migrate
 ./plasticos_intake/migrations/19.0.5.2.0/post-migrate.py:1:import logging
 ./plasticos_intake/migrations/19.0.5.2.2/post-migrate.py:1:import logging
+./plasticos_intake/migrations/19.0.5.4.0/post-migrate.py:6:from odoo import SUPERUSER_ID, api
+./plasticos_intake/migrations/19.0.5.4.0/post-migrate.py:10:    from odoo.addons.plasticos_material_profile.grade_migration import move_former_forms  # noqa: PLC0415
 ./plasticos_intake/models/__init__.py:1:from . import intake
 ./plasticos_intake/models/__init__.py:2:from . import intake_match
 ./plasticos_intake/models/__init__.py:3:from . import material_profile_intake
@@ -1022,7 +1042,7 @@
 ./plasticos_intake/models/intake.py:4:from odoo import api, fields, models
 ./plasticos_intake/models/intake.py:5:from odoo.exceptions import UserError, ValidationError
 ./plasticos_intake/models/intake.py:12:    from odoo.addons.plasticos_material_profile.process_codes import PROCESS_SELECTION
-./plasticos_intake/models/intake.py:779:        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+./plasticos_intake/models/intake.py:785:        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
 ./plasticos_intake/models/intake_match.py:1:from odoo import api, fields, models
 ./plasticos_intake/models/material_profile_intake.py:8:from odoo import api, fields, models
 ./plasticos_intake/models/res_partner_intake.py:8:from odoo import api, fields, models
@@ -1030,10 +1050,19 @@
 ./plasticos_intake/tests/__init__.py:2:from . import test_intake_contracts
 ./plasticos_intake/tests/__init__.py:3:from . import test_intake_onchange_cascade
 ./plasticos_intake/tests/__init__.py:4:from . import test_intake_partner_sync_access
+./plasticos_intake/tests/__init__.py:5:from . import test_intake_grade_migration
+./plasticos_intake/tests/__init__.py:6:from . import test_intake_image_count
 ./plasticos_intake/tests/test_computed_field_deps.py:8:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_intake/tests/test_computed_field_deps.py:9:from odoo.tests.common import tagged
 ./plasticos_intake/tests/test_intake_contracts.py:15:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_intake/tests/test_intake_contracts.py:16:from odoo.tests.common import tagged
+./plasticos_intake/tests/test_intake_grade_migration.py:3:import importlib.util
+./plasticos_intake/tests/test_intake_grade_migration.py:5:from odoo.addons.plasticos_material_profile.grade_migration import origin_note
+./plasticos_intake/tests/test_intake_grade_migration.py:6:from odoo.modules.module import get_module_path
+./plasticos_intake/tests/test_intake_grade_migration.py:7:from odoo.tests import TransactionCase, tagged
+./plasticos_intake/tests/test_intake_image_count.py:3:import base64
+./plasticos_intake/tests/test_intake_image_count.py:5:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./plasticos_intake/tests/test_intake_image_count.py:6:from odoo.tests.common import tagged
 ./plasticos_intake/tests/test_intake_onchange_cascade.py:13:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_intake/tests/test_intake_onchange_cascade.py:14:from odoo.tests import Form, tagged
 ./plasticos_intake/tests/test_intake_partner_sync_access.py:7:from __future__ import annotations
@@ -1056,6 +1085,7 @@
 ./plasticos_intake_normalizer/tests/__init__.py:1:from . import test_batch_limit
 ./plasticos_intake_normalizer/tests/__init__.py:2:from . import test_cron_batch_normalize
 ./plasticos_intake_normalizer/tests/__init__.py:3:from . import test_normalizer_privilege
+./plasticos_intake_normalizer/tests/__init__.py:4:from . import test_packet_material_grade
 ./plasticos_intake_normalizer/tests/test_batch_limit.py:14:from __future__ import annotations
 ./plasticos_intake_normalizer/tests/test_batch_limit.py:16:from contextlib import contextmanager
 ./plasticos_intake_normalizer/tests/test_batch_limit.py:17:from unittest.mock import patch
@@ -1068,6 +1098,7 @@
 ./plasticos_intake_normalizer/tests/test_normalizer_privilege.py:6:from __future__ import annotations
 ./plasticos_intake_normalizer/tests/test_normalizer_privilege.py:8:from odoo import Command
 ./plasticos_intake_normalizer/tests/test_normalizer_privilege.py:9:from odoo.tests import TransactionCase, tagged
+./plasticos_intake_normalizer/tests/test_packet_material_grade.py:3:from odoo.tests import TransactionCase, tagged
 ./plasticos_logistics/__init__.py:1:from . import models
 ./plasticos_logistics/__init__.py:2:from . import wizards
 ./plasticos_logistics/__init__.py:3:from .hooks import post_init_hook
@@ -1106,13 +1137,13 @@
 ./plasticos_logistics/models/freight_quote.py:8:from odoo import api, fields, models
 ./plasticos_logistics/models/freight_quote.py:9:from odoo.exceptions import UserError, ValidationError
 ./plasticos_logistics/models/freight_quote.py:101:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/freight_quote.py:185:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/freight_quote.py:209:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/freight_quote.py:210:        from odoo.addons.plasticos_logistics.services.freight_history import (
-./plasticos_logistics/models/freight_quote.py:215:        from odoo.addons.plasticos_logistics.services.freight_quote_ranking import (
-./plasticos_logistics/models/freight_quote.py:221:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
-./plasticos_logistics/models/freight_quote.py:699:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/freight_quote.py:700:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
+./plasticos_logistics/models/freight_quote.py:192:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/freight_quote.py:216:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/freight_quote.py:217:        from odoo.addons.plasticos_logistics.services.freight_history import (
+./plasticos_logistics/models/freight_quote.py:222:        from odoo.addons.plasticos_logistics.services.freight_quote_ranking import (
+./plasticos_logistics/models/freight_quote.py:228:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
+./plasticos_logistics/models/freight_quote.py:706:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/freight_quote.py:707:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
 ./plasticos_logistics/models/linda_request.py:15:import hashlib
 ./plasticos_logistics/models/linda_request.py:16:import json
 ./plasticos_logistics/models/linda_request.py:17:import logging
@@ -1135,29 +1166,27 @@
 ./plasticos_logistics/models/load.py:5:from odoo import SUPERUSER_ID, api, fields, models
 ./plasticos_logistics/models/load.py:6:from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
 ./plasticos_logistics/models/load.py:7:from odoo.exceptions import AccessError, UserError, ValidationError
-./plasticos_logistics/models/load.py:759:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/load.py:802:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:817:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/load.py:821:        from odoo.addons.plasticos_logistics.services.freight_estimation import (
-./plasticos_logistics/models/load.py:826:        from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError
-./plasticos_logistics/models/load.py:827:        from odoo.addons.plasticos_logistics.services.freight_history import (
-./plasticos_logistics/models/load.py:904:            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
-./plasticos_logistics/models/load.py:942:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:975:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:976:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:1007:            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
-./plasticos_logistics/models/load.py:1043:        from odoo.addons.plasticos_logistics.models.freight_governance import (
-./plasticos_logistics/models/load.py:1047:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:1133:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:1168:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:1209:        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_VERSION
-./plasticos_logistics/models/load.py:1210:        from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
-./plasticos_logistics/models/load.py:1259:                from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:1287:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/load.py:1344:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:1386:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:1426:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:1467:                from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
+./plasticos_logistics/models/load.py:840:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_events
+./plasticos_logistics/models/load.py:841:        from odoo.addons.plasticos_logistics.services.freight_context import (
+./plasticos_logistics/models/load.py:919:        from odoo.addons.plasticos_logistics.models.freight_governance import (
+./plasticos_logistics/models/load.py:923:        from odoo.addons.plasticos_logistics.services.freight_context import (
+./plasticos_logistics/models/load.py:927:        from odoo.addons.plasticos_logistics.services.freight_estimation import (
+./plasticos_logistics/models/load.py:932:        from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError
+./plasticos_logistics/models/load.py:933:        from odoo.addons.plasticos_logistics.services.freight_history import (
+./plasticos_logistics/models/load.py:1151:        from odoo.addons.plasticos_logistics.models.freight_governance import (
+./plasticos_logistics/models/load.py:1155:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:1230:        from odoo.addons.plasticos_logistics.models.freight_governance import (
+./plasticos_logistics/models/load.py:1234:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:1333:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:1368:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_events
+./plasticos_logistics/models/load.py:1413:        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_VERSION
+./plasticos_logistics/models/load.py:1414:        from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
+./plasticos_logistics/models/load.py:1463:                from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:1491:        from odoo.addons.plasticos_logistics.services.freight_context import (
+./plasticos_logistics/models/load.py:1548:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:1590:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:1630:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:1671:                from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
 ./plasticos_logistics/models/load_dashboard.py:1:import logging
 ./plasticos_logistics/models/load_dashboard.py:3:from odoo import fields, models, tools
 ./plasticos_logistics/models/mail_mail_inherit.py:19:import smtplib
@@ -1222,12 +1251,14 @@
 ./plasticos_logistics/tests/__init__.py:3:from . import test_linda_po_issuance
 ./plasticos_logistics/tests/__init__.py:4:from . import test_linda_so_issuance
 ./plasticos_logistics/tests/__init__.py:5:from . import test_linda_inbound
-./plasticos_logistics/tests/test_linda_freight_models.py:3:from odoo import fields
-./plasticos_logistics/tests/test_linda_freight_models.py:4:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-./plasticos_logistics/tests/test_linda_freight_models.py:5:from odoo.exceptions import AccessError, UserError, ValidationError
-./plasticos_logistics/tests/test_linda_freight_models.py:6:from odoo.tests.common import tagged
-./plasticos_logistics/tests/test_linda_freight_models.py:96:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/tests/test_linda_freight_models.py:466:        from odoo.addons.plasticos_logistics.models.freight_quote import recipient_idempotency_key
+./plasticos_logistics/tests/test_linda_freight_models.py:3:from datetime import timedelta
+./plasticos_logistics/tests/test_linda_freight_models.py:5:from odoo import fields
+./plasticos_logistics/tests/test_linda_freight_models.py:6:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./plasticos_logistics/tests/test_linda_freight_models.py:7:from odoo.exceptions import AccessError, UserError, ValidationError
+./plasticos_logistics/tests/test_linda_freight_models.py:8:from odoo.tests.common import tagged
+./plasticos_logistics/tests/test_linda_freight_models.py:98:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/tests/test_linda_freight_models.py:468:        from odoo.addons.plasticos_logistics.models.freight_quote import recipient_idempotency_key
+./plasticos_logistics/tests/test_linda_freight_models.py:510:        from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
 ./plasticos_logistics/tests/test_linda_inbound.py:11:import email.utils
 ./plasticos_logistics/tests/test_linda_inbound.py:12:import itertools
 ./plasticos_logistics/tests/test_linda_inbound.py:13:from contextlib import contextmanager
@@ -1259,18 +1290,19 @@
 ./plasticos_logistics/tests/test_linda_so_issuance.py:17:from odoo.exceptions import AccessError, UserError, ValidationError
 ./plasticos_logistics/tests/test_linda_so_issuance.py:18:from odoo.tests.common import new_test_user, tagged
 ./plasticos_logistics/tests/test_linda_so_issuance.py:19:from odoo.tools import mute_logger
-./plasticos_logistics/tests/test_load_cardinality.py:3:import importlib.util
-./plasticos_logistics/tests/test_load_cardinality.py:4:import threading
-./plasticos_logistics/tests/test_load_cardinality.py:5:import time
-./plasticos_logistics/tests/test_load_cardinality.py:6:from unittest.mock import patch
-./plasticos_logistics/tests/test_load_cardinality.py:8:from psycopg2 import errors as pg_errors
-./plasticos_logistics/tests/test_load_cardinality.py:10:from odoo import api, fields
-./plasticos_logistics/tests/test_load_cardinality.py:11:from odoo.addons.plasticos_logistics.models.load import (
-./plasticos_logistics/tests/test_load_cardinality.py:16:from odoo.exceptions import UserError, ValidationError
-./plasticos_logistics/tests/test_load_cardinality.py:17:from odoo.modules.module import get_module_path
-./plasticos_logistics/tests/test_load_cardinality.py:18:from odoo.orm.environments import Transaction
-./plasticos_logistics/tests/test_load_cardinality.py:19:from odoo.sql_db import db_connect
-./plasticos_logistics/tests/test_load_cardinality.py:20:from odoo.tests import TransactionCase, tagged
+./plasticos_logistics/tests/test_load_cardinality.py:3:import base64
+./plasticos_logistics/tests/test_load_cardinality.py:4:import importlib.util
+./plasticos_logistics/tests/test_load_cardinality.py:5:import threading
+./plasticos_logistics/tests/test_load_cardinality.py:6:import time
+./plasticos_logistics/tests/test_load_cardinality.py:7:from unittest.mock import patch
+./plasticos_logistics/tests/test_load_cardinality.py:9:from psycopg2 import errors as pg_errors
+./plasticos_logistics/tests/test_load_cardinality.py:11:from odoo import api, fields
+./plasticos_logistics/tests/test_load_cardinality.py:12:from odoo.addons.plasticos_logistics.models.load import (
+./plasticos_logistics/tests/test_load_cardinality.py:17:from odoo.exceptions import UserError, ValidationError
+./plasticos_logistics/tests/test_load_cardinality.py:18:from odoo.modules.module import get_module_path
+./plasticos_logistics/tests/test_load_cardinality.py:19:from odoo.orm.environments import Transaction
+./plasticos_logistics/tests/test_load_cardinality.py:20:from odoo.sql_db import db_connect
+./plasticos_logistics/tests/test_load_cardinality.py:21:from odoo.tests import TransactionCase, tagged
 ./plasticos_logistics/wizards/__init__.py:1:from . import load_bulk_update_wizard
 ./plasticos_logistics/wizards/__init__.py:2:from . import freight_actual_correction_wizard
 ./plasticos_logistics/wizards/freight_actual_correction_wizard.py:3:from odoo import fields, models
@@ -1342,23 +1374,33 @@
 ./plasticos_matching/tests/test_performance.py:15:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_matching/tests/test_performance.py:16:from odoo.tests.common import tagged
 ./plasticos_material_profile/__init__.py:1:from . import models
+./plasticos_material_profile/grade_migration.py:10:import logging
+./plasticos_material_profile/grade_migration.py:12:from odoo.tools import SQL
+./plasticos_material_profile/grade_migration.py:13:from odoo.tools.sql import column_exists
+./plasticos_material_profile/grade_migration.py:15:from .grade_codes import FORMER_FORM_CODES, GRADE_CODES
 ./plasticos_material_profile/intake_delta_bridge.py:3:from __future__ import annotations
 ./plasticos_material_profile/intake_delta_bridge.py:5:from .profile_features import compute_has_residue_feature
 ./plasticos_material_profile/migrations/19.0.5.10.7/__init__.py:1:from . import pre_migrate
 ./plasticos_material_profile/migrations/19.0.5.10.7/pre-migrate.py:8:import logging
+./plasticos_material_profile/migrations/19.0.5.11.0/post-migrate.py:3:from odoo import SUPERUSER_ID, api
+./plasticos_material_profile/migrations/19.0.5.11.0/post-migrate.py:14:    from odoo.addons.plasticos_material_profile.grade_migration import (  # noqa: PLC0415
+./plasticos_material_profile/migrations/19.0.5.11.1/post-migrate.py:3:import logging
+./plasticos_material_profile/migrations/19.0.5.11.1/post-migrate.py:5:from odoo import SUPERUSER_ID, api
+./plasticos_material_profile/migrations/19.0.5.11.1/post-migrate.py:6:from odoo.tools import SQL
 ./plasticos_material_profile/migrations/19.0.5.9.0/post-migrate.py:3:import logging
 ./plasticos_material_profile/models/__init__.py:1:from . import filler_type
 ./plasticos_material_profile/models/__init__.py:2:from . import grade_template
 ./plasticos_material_profile/models/__init__.py:3:from . import material_attribute
 ./plasticos_material_profile/models/__init__.py:4:from . import material_color
 ./plasticos_material_profile/models/__init__.py:5:from . import material_form
-./plasticos_material_profile/models/__init__.py:6:from . import material_normalizer
-./plasticos_material_profile/models/__init__.py:7:from . import material_profile
-./plasticos_material_profile/models/__init__.py:8:from . import packaging_type
-./plasticos_material_profile/models/__init__.py:9:from . import polymer
-./plasticos_material_profile/models/__init__.py:10:from . import process_type
-./plasticos_material_profile/models/__init__.py:11:from . import res_partner
-./plasticos_material_profile/models/__init__.py:12:from . import source_type
+./plasticos_material_profile/models/__init__.py:6:from . import material_grade
+./plasticos_material_profile/models/__init__.py:7:from . import material_normalizer
+./plasticos_material_profile/models/__init__.py:8:from . import material_profile
+./plasticos_material_profile/models/__init__.py:9:from . import packaging_type
+./plasticos_material_profile/models/__init__.py:10:from . import polymer
+./plasticos_material_profile/models/__init__.py:11:from . import process_type
+./plasticos_material_profile/models/__init__.py:12:from . import res_partner
+./plasticos_material_profile/models/__init__.py:13:from . import source_type
 ./plasticos_material_profile/models/filler_type.py:1:from odoo import api, fields, models
 ./plasticos_material_profile/models/filler_type.py:2:from odoo.exceptions import ValidationError
 ./plasticos_material_profile/models/grade_template.py:8:from odoo import api, fields, models
@@ -1368,7 +1410,9 @@
 ./plasticos_material_profile/models/material_color.py:2:from odoo.exceptions import ValidationError
 ./plasticos_material_profile/models/material_form.py:1:from odoo import api, fields, models
 ./plasticos_material_profile/models/material_form.py:2:from odoo.exceptions import ValidationError
+./plasticos_material_profile/models/material_grade.py:1:from odoo import fields, models
 ./plasticos_material_profile/models/material_normalizer.py:7:from __future__ import annotations
+./plasticos_material_profile/models/material_normalizer.py:9:from typing import NamedTuple
 ./plasticos_material_profile/models/material_profile.py:1:import logging
 ./plasticos_material_profile/models/material_profile.py:3:from odoo import api, fields, models
 ./plasticos_material_profile/models/material_profile.py:4:from odoo.exceptions import ValidationError
@@ -1386,23 +1430,40 @@
 ./plasticos_material_profile/models/source_type.py:2:from odoo.exceptions import ValidationError
 ./plasticos_material_profile/profile_features.py:3:from __future__ import annotations
 ./plasticos_material_profile/tests/__init__.py:1:from . import test_constraints_material_profile
-./plasticos_material_profile/tests/__init__.py:2:from . import test_material_normalizer
-./plasticos_material_profile/tests/__init__.py:3:from . import test_material_profile_intake_delta_contract
-./plasticos_material_profile/tests/__init__.py:4:from . import test_nullable_form_uniqueness
+./plasticos_material_profile/tests/__init__.py:2:from . import test_material_profile_counts
+./plasticos_material_profile/tests/__init__.py:3:from . import test_material_normalizer
+./plasticos_material_profile/tests/__init__.py:4:from . import test_material_profile_intake_delta_contract
+./plasticos_material_profile/tests/__init__.py:5:from . import test_nullable_form_uniqueness
+./plasticos_material_profile/tests/__init__.py:6:from . import test_material_grade_migration
+./plasticos_material_profile/tests/__init__.py:7:from . import test_sheet_grade_retirement
 ./plasticos_material_profile/tests/test_constraints_material_profile.py:1:import uuid
 ./plasticos_material_profile/tests/test_constraints_material_profile.py:3:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_material_profile/tests/test_constraints_material_profile.py:4:from odoo.exceptions import ValidationError
 ./plasticos_material_profile/tests/test_constraints_material_profile.py:5:from odoo.tests import tagged
+./plasticos_material_profile/tests/test_material_grade_migration.py:3:import importlib.util
+./plasticos_material_profile/tests/test_material_grade_migration.py:4:import uuid
+./plasticos_material_profile/tests/test_material_grade_migration.py:6:from odoo.addons.plasticos_material_profile.grade_codes import FORMER_FORM_CODES
+./plasticos_material_profile/tests/test_material_grade_migration.py:7:from odoo.addons.plasticos_material_profile.grade_migration import (
+./plasticos_material_profile/tests/test_material_grade_migration.py:12:from odoo.modules.module import get_module_path
+./plasticos_material_profile/tests/test_material_grade_migration.py:13:from odoo.tests import TransactionCase, tagged
 ./plasticos_material_profile/tests/test_material_normalizer.py:3:from pathlib import Path
 ./plasticos_material_profile/tests/test_material_normalizer.py:4:from unittest.mock import patch
-./plasticos_material_profile/tests/test_material_normalizer.py:6:from odoo.addons.plasticos_material_profile.models.material_normalizer import (
-./plasticos_material_profile/tests/test_material_normalizer.py:10:from odoo.tests import TransactionCase, tagged
-./plasticos_material_profile/tests/test_material_normalizer.py:171:        from odoo.addons.plasticos_material_profile.models.material_normalizer import _CRM_ALIASES  # noqa: PLC0415
+./plasticos_material_profile/tests/test_material_normalizer.py:6:from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
+./plasticos_material_profile/tests/test_material_normalizer.py:7:from odoo.tests import TransactionCase, tagged
+./plasticos_material_profile/tests/test_material_normalizer.py:183:        from odoo.addons.plasticos_material_profile.models.material_normalizer import _CRM_ALIASES  # noqa: PLC0415
+./plasticos_material_profile/tests/test_material_profile_counts.py:3:import uuid
+./plasticos_material_profile/tests/test_material_profile_counts.py:4:from unittest.mock import patch
+./plasticos_material_profile/tests/test_material_profile_counts.py:6:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./plasticos_material_profile/tests/test_material_profile_counts.py:7:from odoo.tests import tagged
 ./plasticos_material_profile/tests/test_material_profile_intake_delta_contract.py:3:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_material_profile/tests/test_material_profile_intake_delta_contract.py:4:from odoo.tests.common import tagged
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:3:import uuid
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:5:from odoo.exceptions import ValidationError
 ./plasticos_material_profile/tests/test_nullable_form_uniqueness.py:6:from odoo.tests import TransactionCase, tagged
+./plasticos_material_profile/tests/test_sheet_grade_retirement.py:3:import importlib.util
+./plasticos_material_profile/tests/test_sheet_grade_retirement.py:4:import uuid
+./plasticos_material_profile/tests/test_sheet_grade_retirement.py:6:from odoo.modules.module import get_module_path
+./plasticos_material_profile/tests/test_sheet_grade_retirement.py:7:from odoo.tests import TransactionCase, tagged
 ./plasticos_offer/__init__.py:1:from . import models
 ./plasticos_offer/__init__.py:2:from . import wizards
 ./plasticos_offer/__init__.py:3:from .hooks import post_init_hook
@@ -1440,16 +1501,21 @@
 ./plasticos_order_lines/__init__.py:1:from . import models
 ./plasticos_order_lines/migrations/19.0.1.0.1/post-migrate.py:1:import logging
 ./plasticos_order_lines/migrations/19.0.1.0.1/post-migrate.py:3:from odoo import SUPERUSER_ID, api
+./plasticos_order_lines/migrations/19.0.1.1.0/post-migrate.py:6:from odoo import SUPERUSER_ID, api
+./plasticos_order_lines/migrations/19.0.1.1.0/post-migrate.py:10:    from odoo.addons.plasticos_material_profile.grade_migration import move_former_forms  # noqa: PLC0415
 ./plasticos_order_lines/models/__init__.py:1:from . import material_label
 ./plasticos_order_lines/models/__init__.py:2:from . import purchase_order_line
 ./plasticos_order_lines/models/__init__.py:3:from . import sale_order_line
 ./plasticos_order_lines/models/material_label.py:1:import re
 ./plasticos_order_lines/models/purchase_order_line.py:1:from odoo import api, fields, models
-./plasticos_order_lines/models/purchase_order_line.py:3:from .material_label import projected_material
+./plasticos_order_lines/models/purchase_order_line.py:2:from odoo.tools import get_lang
+./plasticos_order_lines/models/purchase_order_line.py:4:from .material_label import projected_material
 ./plasticos_order_lines/models/sale_order_line.py:1:from odoo import api, fields, models
 ./plasticos_order_lines/models/sale_order_line.py:3:from .material_label import projected_material
 ./plasticos_order_lines/tests/__init__.py:1:from . import test_onchange_purchase_order_line_plasticos
 ./plasticos_order_lines/tests/__init__.py:2:from . import test_onchange_sale_order_line_plasticos
+./plasticos_order_lines/tests/__init__.py:3:from . import test_material_grade_naming
+./plasticos_order_lines/tests/test_material_grade_naming.py:3:from odoo.tests import TransactionCase, tagged
 ./plasticos_order_lines/tests/test_onchange_purchase_order_line_plasticos.py:8:from odoo import fields
 ./plasticos_order_lines/tests/test_onchange_purchase_order_line_plasticos.py:9:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_order_lines/tests/test_onchange_purchase_order_line_plasticos.py:10:from odoo.tests import tagged
@@ -1769,21 +1835,21 @@
 ./plasticos_transaction/models/native_document_import.py:288:    from odoo.addons.plasticos_partner_import.erp.header_forensics import trade_date  # noqa: PLC0415
 ./plasticos_transaction/models/native_document_import.py:289:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
 ./plasticos_transaction/models/native_document_import.py:425:    from odoo.addons.plasticos_partner_import.erp.source_index import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:557:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:620:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:695:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:849:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:914:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:967:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1131:    from odoo.addons.plasticos_partner_import.erp.native_orders import vendor_bill_due_terms  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1158:    from odoo.addons.plasticos_partner_import.erp.native_orders import NOT_REALIZED  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1167:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1188:    from odoo.addons.plasticos_partner_import.erp.native_orders import quarantined_payable  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1244:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1360:    from odoo.addons.plasticos_partner_import.erp.native_orders import freight_vendor_id  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1369:    from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1543:    from odoo.addons.plasticos_partner_import.erp.mapping import SALES_REP_NAMES  # noqa: PLC0415
-./plasticos_transaction/models/native_document_import.py:1544:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:566:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:629:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:704:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:879:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:944:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:997:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1161:    from odoo.addons.plasticos_partner_import.erp.native_orders import vendor_bill_due_terms  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1188:    from odoo.addons.plasticos_partner_import.erp.native_orders import NOT_REALIZED  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1197:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1218:    from odoo.addons.plasticos_partner_import.erp.native_orders import quarantined_payable  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1274:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1390:    from odoo.addons.plasticos_partner_import.erp.native_orders import freight_vendor_id  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1405:        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1606:    from odoo.addons.plasticos_partner_import.erp.mapping import SALES_REP_NAMES  # noqa: PLC0415
+./plasticos_transaction/models/native_document_import.py:1607:    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
 ./plasticos_transaction/models/offer_bridge.py:1:from odoo import fields, models
 ./plasticos_transaction/models/partner_bridge.py:1:from odoo import api, fields, models
 ./plasticos_transaction/models/purchase_inherit.py:1:import logging
@@ -1816,6 +1882,7 @@
 ./plasticos_transaction/tests/__init__.py:8:from . import test_sale_order_transaction_autocreate
 ./plasticos_transaction/tests/__init__.py:9:from . import test_transaction_contracts
 ./plasticos_transaction/tests/__init__.py:10:from . import test_transaction_form_ui
+./plasticos_transaction/tests/__init__.py:11:from . import test_uniqueness_batch
 ./plasticos_transaction/tests/test_bridge_wiring_contracts.py:8:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_transaction/tests/test_bridge_wiring_contracts.py:9:from odoo.tests.common import tagged
 ./plasticos_transaction/tests/test_compliance_does_not_post.py:3:from unittest.mock import patch
@@ -1853,6 +1920,9 @@
 ./plasticos_transaction/tests/test_transaction_form_ui.py:9:from __future__ import annotations
 ./plasticos_transaction/tests/test_transaction_form_ui.py:11:from lxml import etree
 ./plasticos_transaction/tests/test_transaction_form_ui.py:13:from odoo.tests import TransactionCase, tagged
+./plasticos_transaction/tests/test_uniqueness_batch.py:3:from odoo.exceptions import UserError, ValidationError
+./plasticos_transaction/tests/test_uniqueness_batch.py:4:from odoo.tests.common import tagged
+./plasticos_transaction/tests/test_uniqueness_batch.py:8:    from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./plasticos_transaction/wizards/__init__.py:1:from . import transaction_bulk_update_wizard
 ./plasticos_transaction/wizards/__init__.py:2:from . import transaction_bulk_assign_wizard
 ./plasticos_transaction/wizards/__init__.py:3:from . import transaction_import_wizard
@@ -1917,14 +1987,15 @@
 ./plasticos_web_leads/models/__init__.py:8:from . import evidence_reconciler
 ./plasticos_web_leads/models/__init__.py:9:from . import image_analyzer
 ./plasticos_web_leads/models/__init__.py:10:from . import inference_provider
-./plasticos_web_leads/models/__init__.py:11:from . import quantity_normalizer
-./plasticos_web_leads/models/__init__.py:12:from . import review_snapshot
-./plasticos_web_leads/models/__init__.py:13:from . import triage_helpers
-./plasticos_web_leads/models/__init__.py:14:from . import web_lead
-./plasticos_web_leads/models/__init__.py:15:from . import web_lead_api_key_wizard
-./plasticos_web_leads/models/__init__.py:16:from . import web_lead_config
-./plasticos_web_leads/models/__init__.py:17:from . import web_lead_bridge
-./plasticos_web_leads/models/__init__.py:18:from . import web_lead_review_snapshot
+./plasticos_web_leads/models/__init__.py:11:from . import material_identity
+./plasticos_web_leads/models/__init__.py:12:from . import quantity_normalizer
+./plasticos_web_leads/models/__init__.py:13:from . import review_snapshot
+./plasticos_web_leads/models/__init__.py:14:from . import triage_helpers
+./plasticos_web_leads/models/__init__.py:15:from . import web_lead
+./plasticos_web_leads/models/__init__.py:16:from . import web_lead_api_key_wizard
+./plasticos_web_leads/models/__init__.py:17:from . import web_lead_config
+./plasticos_web_leads/models/__init__.py:18:from . import web_lead_bridge
+./plasticos_web_leads/models/__init__.py:19:from . import web_lead_review_snapshot
 ./plasticos_web_leads/models/ai_client.py:3:from __future__ import annotations
 ./plasticos_web_leads/models/ai_client.py:5:import json
 ./plasticos_web_leads/models/ai_client.py:6:import time
@@ -1980,6 +2051,8 @@
 ./plasticos_web_leads/models/inference_provider.py:16:from .evidence_keys import KEY_ERROR, KEY_ERROR_TYPE, KEY_MODEL, KEY_PROVIDER, KEY_ROLE, KEY_TRANSPORT
 ./plasticos_web_leads/models/inference_provider.py:66:        from openai import OpenAI  # type: ignore[import-untyped]
 ./plasticos_web_leads/models/inference_provider.py:80:        from anthropic import Anthropic  # type: ignore[import-untyped]
+./plasticos_web_leads/models/material_identity.py:7:from __future__ import annotations
+./plasticos_web_leads/models/material_identity.py:9:from collections.abc import Collection
 ./plasticos_web_leads/models/quantity_normalizer.py:3:from __future__ import annotations
 ./plasticos_web_leads/models/quantity_normalizer.py:5:import re
 ./plasticos_web_leads/models/quantity_normalizer.py:6:from dataclasses import asdict, dataclass
@@ -2011,7 +2084,10 @@
 ./plasticos_web_leads/models/web_lead.py:37:from .evidence_keys import (
 ./plasticos_web_leads/models/web_lead.py:49:from .evidence_reconciler import reconcile_evidence
 ./plasticos_web_leads/models/web_lead.py:50:from .inference_provider import InferenceProvider
-./plasticos_web_leads/models/web_lead.py:51:from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
+./plasticos_web_leads/models/web_lead.py:51:from .material_identity import merge_form_and_grade, split_material_code
+./plasticos_web_leads/models/web_lead.py:52:from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
+./plasticos_web_leads/models/web_lead.py:1051:        from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
+./plasticos_web_leads/models/web_lead.py:1112:            from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
 ./plasticos_web_leads/models/web_lead_api_key_wizard.py:3:from odoo import fields, models
 ./plasticos_web_leads/models/web_lead_bridge.py:1:from odoo import models
 ./plasticos_web_leads/models/web_lead_config.py:1:import logging
@@ -2026,6 +2102,7 @@
 ./plasticos_web_leads/tests/__init__.py:1:from . import test_web_lead_hardening
 ./plasticos_web_leads/tests/__init__.py:2:from . import test_web_lead_inbound_http
 ./plasticos_web_leads/tests/__init__.py:3:from . import test_web_lead_config_privilege
+./plasticos_web_leads/tests/__init__.py:4:from . import test_web_lead_material_grade
 ./plasticos_web_leads/tests/test_web_lead_config_privilege.py:9:from __future__ import annotations
 ./plasticos_web_leads/tests/test_web_lead_config_privilege.py:11:from unittest.mock import patch
 ./plasticos_web_leads/tests/test_web_lead_config_privilege.py:13:from odoo import Command
@@ -2048,6 +2125,9 @@
 ./plasticos_web_leads/tests/test_web_lead_inbound_http.py:10:from odoo.tests import HttpCase, tagged
 ./plasticos_web_leads/tests/test_web_lead_inbound_http.py:12:from ..adapters import registry
 ./plasticos_web_leads/tests/test_web_lead_inbound_http.py:13:from ..adapters.base import EVENT_SUBMITTED, PACKET_SCHEMA_VERSION, InboundEvent, WebLeadAdapter, WebLeadPacket
+./plasticos_web_leads/tests/test_web_lead_material_grade.py:3:from __future__ import annotations
+./plasticos_web_leads/tests/test_web_lead_material_grade.py:5:from unittest.mock import patch
+./plasticos_web_leads/tests/test_web_lead_material_grade.py:7:from odoo.tests import TransactionCase, tagged
 ./plasticos_web_leads/wizards/__init__.py:1:from . import lead_bulk_action_wizard
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:6:from odoo import _, api, fields, models
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:7:from odoo.exceptions import UserError
@@ -2146,6 +2226,18 @@
 ./scripts/audit/xml_field_audit.py:11:from collections import defaultdict
 ./scripts/audit/xml_field_audit.py:12:from datetime import datetime
 ./scripts/audit/xml_field_audit.py:13:from pathlib import Path
+./scripts/build_material_mapping.py:26:from __future__ import annotations
+./scripts/build_material_mapping.py:28:import argparse
+./scripts/build_material_mapping.py:29:import ast
+./scripts/build_material_mapping.py:30:import csv
+./scripts/build_material_mapping.py:31:import importlib.util
+./scripts/build_material_mapping.py:32:import re
+./scripts/build_material_mapping.py:33:import sys
+./scripts/build_material_mapping.py:34:import zipfile
+./scripts/build_material_mapping.py:35:from collections import defaultdict
+./scripts/build_material_mapping.py:36:from pathlib import Path
+./scripts/build_material_mapping.py:39:    from defusedxml import ElementTree as ET
+./scripts/build_material_mapping.py:46:    import xml.etree.ElementTree as ET  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
 ./scripts/build_pr_body.py:4:from __future__ import annotations
 ./scripts/build_pr_body.py:6:import subprocess
 ./scripts/build_pr_body.py:7:import sys
@@ -2368,17 +2460,6 @@
 ./tests/contracts/test_odoo_dual_write_contract.py:5:from pathlib import Path
 ./tests/cron_contract.py:7:from __future__ import annotations
 ./tests/cron_contract.py:9:from dataclasses import dataclass
-./tests/e2e/four_repo/run_odoo_driver.py:26:from __future__ import annotations
-./tests/e2e/four_repo/run_odoo_driver.py:28:import json
-./tests/e2e/four_repo/run_odoo_driver.py:29:import os
-./tests/e2e/four_repo/run_odoo_driver.py:30:import socket
-./tests/e2e/four_repo/run_odoo_driver.py:31:import sys
-./tests/e2e/four_repo/run_odoo_driver.py:32:import time
-./tests/e2e/four_repo/run_odoo_driver.py:33:from pathlib import Path
-./tests/e2e/four_repo/run_odoo_driver.py:53:from plasticos_gate.services import gate_client as gc  # noqa: E402
-./tests/e2e/four_repo/run_odoo_driver.py:54:from plasticos_gate.services.gate_builders import build_converge_request  # noqa: E402
-./tests/e2e/four_repo/run_odoo_driver.py:55:from plasticos_gate.services.gate_config import (  # noqa: E402
-./tests/e2e/four_repo/run_odoo_driver.py:61:from plasticos_gate.services.gate_mappers import (  # noqa: E402
 ./tests/integration/__init__.py:9:from __future__ import annotations
 ./tests/integration/__init__.py:11:import importlib
 ./tests/integration/__init__.py:12:import os
@@ -2690,11 +2771,8 @@
 ./tests/test_cron_xml_lock.py:9:from pathlib import Path
 ./tests/test_cron_xml_lock.py:11:import defusedxml.ElementTree as ET
 ./tests/test_cron_xml_lock.py:16:from cron_contract import (  # noqa: E402
-./tests/test_cypher_schema_alignment.py:14:import ast
-./tests/test_cypher_schema_alignment.py:15:import re
-./tests/test_cypher_schema_alignment.py:16:from collections import defaultdict
-./tests/test_cypher_schema_alignment.py:17:from pathlib import Path
-./tests/test_cypher_schema_alignment.py:19:import pytest
+./tests/test_documents_query_batch_structure.py:3:import ast
+./tests/test_documents_query_batch_structure.py:4:from pathlib import Path
 ./tests/test_enrichment_degraded_mode.py:3:from __future__ import annotations
 ./tests/test_enrichment_degraded_mode.py:5:import ast
 ./tests/test_enrichment_degraded_mode.py:6:from pathlib import Path
@@ -2831,15 +2909,6 @@
 ./tests/test_freight_reasoning_service.py:6:import sys
 ./tests/test_freight_reasoning_service.py:7:from pathlib import Path
 ./tests/test_freight_reasoning_service.py:8:from types import SimpleNamespace
-./tests/test_gap_fixes.py:12:from __future__ import annotations
-./tests/test_gap_fixes.py:14:from unittest.mock import MagicMock
-./tests/test_gap_fixes.py:16:import pytest
-./tests/test_gap_fixes.py:59:        import types
-./tests/test_gap_fixes.py:147:        import ast
-./tests/test_gap_fixes.py:148:        import os
-./tests/test_gap_fixes.py:169:        import ast
-./tests/test_gap_fixes.py:170:        import os
-./tests/test_gap_fixes.py:318:        import os
 ./tests/test_gate_canonical_contract.py:18:from __future__ import annotations
 ./tests/test_gate_canonical_contract.py:20:import sys
 ./tests/test_gate_canonical_contract.py:21:from pathlib import Path
@@ -2932,6 +3001,8 @@
 ./tests/test_install_smoke_evidence.py:21:import pytest
 ./tests/test_install_smoke_evidence.py:33:import json, os, sys, time
 ./tests/test_install_smoke_evidence.py:34:from pathlib import Path
+./tests/test_install_smoke_evidence.py:212:import hashlib
+./tests/test_install_smoke_evidence.py:213:from pathlib import Path
 ./tests/test_launch_invariants_crm_enrichment.py:12:from __future__ import annotations
 ./tests/test_launch_invariants_crm_enrichment.py:14:import ast
 ./tests/test_launch_invariants_crm_enrichment.py:15:import sys
@@ -2959,13 +3030,13 @@
 ./tests/test_make_pr_publication.py:13:import sys
 ./tests/test_make_pr_publication.py:14:from pathlib import Path
 ./tests/test_make_pr_publication.py:16:import pytest
-./tests/test_make_pr_publication.py:30:import json
-./tests/test_make_pr_publication.py:31:import os
-./tests/test_make_pr_publication.py:32:import subprocess
-./tests/test_make_pr_publication.py:33:import sys
-./tests/test_make_pr_publication.py:34:from urllib.parse import parse_qsl
-./tests/test_make_pr_publication.py:733:    from pr_autopilot import atomic_push
-./tests/test_make_pr_publication.py:1260:    import re
+./tests/test_make_pr_publication.py:35:import json
+./tests/test_make_pr_publication.py:36:import os
+./tests/test_make_pr_publication.py:37:import subprocess
+./tests/test_make_pr_publication.py:38:import sys
+./tests/test_make_pr_publication.py:39:from urllib.parse import parse_qsl
+./tests/test_make_pr_publication.py:889:    from pr_autopilot import atomic_push
+./tests/test_make_pr_publication.py:1415:    import re
 ./tests/test_makefile_failure_propagation.py:11:from __future__ import annotations
 ./tests/test_makefile_failure_propagation.py:13:import os
 ./tests/test_makefile_failure_propagation.py:14:import shutil
@@ -2982,12 +3053,32 @@
 ./tests/test_matching_gate_orchestrator.py:3:from __future__ import annotations
 ./tests/test_matching_gate_orchestrator.py:5:import ast
 ./tests/test_matching_gate_orchestrator.py:6:from pathlib import Path
+./tests/test_material_grade_codes.py:10:from __future__ import annotations
+./tests/test_material_grade_codes.py:12:import importlib.util
+./tests/test_material_grade_codes.py:13:from pathlib import Path
+./tests/test_material_grade_codes.py:15:from defusedxml import ElementTree
+./tests/test_material_ledger_resolution.py:9:from __future__ import annotations
+./tests/test_material_ledger_resolution.py:11:import csv
+./tests/test_material_ledger_resolution.py:12:import importlib.util
+./tests/test_material_ledger_resolution.py:13:import re
+./tests/test_material_ledger_resolution.py:14:from pathlib import Path
+./tests/test_material_ledger_resolution.py:16:from defusedxml import ElementTree
+./tests/test_material_mapping_masters.py:13:from __future__ import annotations
+./tests/test_material_mapping_masters.py:15:import ast
+./tests/test_material_mapping_masters.py:16:import csv
+./tests/test_material_mapping_masters.py:17:import importlib.util
+./tests/test_material_mapping_masters.py:18:from pathlib import Path
+./tests/test_material_mapping_masters.py:20:import pytest
+./tests/test_material_mapping_masters.py:21:from defusedxml import ElementTree
 ./tests/test_material_profile_intake_delta_bridge_pure.py:3:import importlib.util
 ./tests/test_material_profile_intake_delta_bridge_pure.py:4:import sys
 ./tests/test_material_profile_intake_delta_bridge_pure.py:5:import types
 ./tests/test_material_profile_intake_delta_bridge_pure.py:6:import unittest
 ./tests/test_material_profile_intake_delta_bridge_pure.py:7:from pathlib import Path
 ./tests/test_material_profile_intake_delta_bridge_pure.py:8:from types import SimpleNamespace
+./tests/test_model_inheritance_extension.py:3:from __future__ import annotations
+./tests/test_model_inheritance_extension.py:5:import importlib.util
+./tests/test_model_inheritance_extension.py:6:from pathlib import Path
 ./tests/test_mothball_migration.py:3:from __future__ import annotations
 ./tests/test_mothball_migration.py:5:import ast
 ./tests/test_mothball_migration.py:6:import importlib.util
@@ -3062,9 +3153,9 @@
 ./tests/test_phantom_enum_values.py:28:from typing import NamedTuple
 ./tests/test_phantom_enum_values.py:30:import defusedxml.ElementTree as ET
 ./tests/test_phantom_enum_values.py:31:import pytest
-./tests/test_phantom_enum_values.py:1418:            import ast as _ast
-./tests/test_phantom_enum_values.py:1419:            import pathlib as _pathlib
-./tests/test_phantom_enum_values.py:1603:            import warnings
+./tests/test_phantom_enum_values.py:1426:            import ast as _ast
+./tests/test_phantom_enum_values.py:1427:            import pathlib as _pathlib
+./tests/test_phantom_enum_values.py:1611:            import warnings
 ./tests/test_pr_check_scope.py:8:from __future__ import annotations
 ./tests/test_pr_check_scope.py:10:import json
 ./tests/test_pr_check_scope.py:11:import os
@@ -3073,7 +3164,7 @@
 ./tests/test_pr_check_scope.py:14:from dataclasses import dataclass
 ./tests/test_pr_check_scope.py:15:from pathlib import Path
 ./tests/test_pr_check_scope.py:17:import pytest
-./tests/test_pr_check_scope.py:349:    from pr_check_scope import select_tests  # noqa: E402
+./tests/test_pr_check_scope.py:350:    from pr_check_scope import select_tests  # noqa: E402
 ./tests/test_pre_push_validate.py:8:from __future__ import annotations
 ./tests/test_pre_push_validate.py:10:import os
 ./tests/test_pre_push_validate.py:11:import shutil
@@ -3169,7 +3260,7 @@
 ./tests/test_state_audit_containment.py:8:from pathlib import Path
 ./tests/test_suite_structure.py:23:import ast
 ./tests/test_suite_structure.py:24:from pathlib import Path
-./tests/test_suite_structure.py:265:            import warnings
+./tests/test_suite_structure.py:261:            import warnings
 ./tests/test_test_env_safety.py:10:from __future__ import annotations
 ./tests/test_test_env_safety.py:12:import json
 ./tests/test_test_env_safety.py:13:import os
@@ -3181,7 +3272,7 @@
 ./tests/test_test_env_safety.py:216:import json, os, sys
 ./tests/test_test_env_safety.py:261:    import re, time
 ./tests/test_test_env_safety.py:391:    import hashlib
-./tests/test_test_env_safety.py:1103:    import time
+./tests/test_test_env_safety.py:1133:    import time
 ./tests/test_transaction_bill_open.py:3:from pathlib import Path
 ./tests/test_transaction_profit_snapshot.py:7:from pathlib import Path
 ./tests/test_triage_pipeline.py:6:from __future__ import annotations
@@ -3238,6 +3329,14 @@
 ./tests/test_web_lead_evidence.py:20:from plasticos_web_leads.models.attachment_processor import (  # noqa: E402
 ./tests/test_web_lead_evidence.py:29:from plasticos_web_leads.models.evidence_reconciler import (  # noqa: E402
 ./tests/test_web_lead_evidence.py:33:from plasticos_web_leads.models.quantity_normalizer import normalize_quantity_evidence  # noqa: E402
+./tests/test_web_lead_material_identity.py:8:from __future__ import annotations
+./tests/test_web_lead_material_identity.py:10:import ast
+./tests/test_web_lead_material_identity.py:11:import importlib.util
+./tests/test_web_lead_material_identity.py:12:import sys
+./tests/test_web_lead_material_identity.py:13:import types
+./tests/test_web_lead_material_identity.py:14:from pathlib import Path
+./tests/test_web_lead_material_identity.py:15:from types import SimpleNamespace
+./tests/test_web_lead_material_identity.py:17:import pytest
 ./tests/test_web_lead_packet.py:3:from __future__ import annotations
 ./tests/test_web_lead_packet.py:5:import json
 ./tests/test_web_lead_packet.py:6:import sys
