@@ -52,15 +52,24 @@ class PlasticosMackWorkbenchConfig(models.Model):
 
     @api.constrains("active", "company_id")
     def _check_one_active_configuration_per_company(self):
-        for record in self:
-            if record.active and self.search_count(
-                [
-                    ("company_id", "=", record.company_id.id),
-                    ("active", "=", True),
-                    ("id", "!=", record.id),
-                ]
-            ):
+        active = self.filtered("active")
+        if not active:
+            return
+        seen_companies: set[int] = set()
+        for record in active:
+            company_id = record.company_id.id
+            if company_id in seen_companies:
                 raise ValidationError(_("Only one active Mack Workbench configuration is allowed per company."))
+            seen_companies.add(company_id)
+        if self.search(
+            [
+                ("company_id", "in", list(seen_companies)),
+                ("active", "=", True),
+                ("id", "not in", active.ids),
+            ],
+            limit=1,
+        ):
+            raise ValidationError(_("Only one active Mack Workbench configuration is allowed per company."))
 
     @api.constrains("internal_reviewer_id")
     def _check_internal_reviewer(self):

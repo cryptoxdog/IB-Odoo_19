@@ -53,6 +53,10 @@ NON_TEST_FILES = frozenset(
         "run_erp_import.py",
         "run_s1_s3_pristine_seams.py",
         "_runtime_env.py",
+        # Mack independent-session gates. Same rule as the other run_*.py files.
+        "_mack_runtime.py",
+        "run_mack_chat_intent_concurrency.py",
+        "run_mack_review_concurrency.py",
         # Disposable-database lifecycle imported by run_erp_import.py. Not a test.
         "scratch_db.py",
         # Odoo-free cron registry imported by the XML lock. Not a test module.
