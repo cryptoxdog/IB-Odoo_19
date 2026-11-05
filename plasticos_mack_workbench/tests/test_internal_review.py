@@ -68,6 +68,19 @@ class TestMackInternalReview(PlasticosTestCase):
         self.assertEqual(len(intake.mack_review_request_ids), 1)
         self.assertTrue(any(request.name in body.body for body in intake.message_ids))
 
+    def test_snapshot_hash_requires_exact_lowercase_sha256_without_whitespace(self):
+        intake = self._canonical_intake()
+        valid_hash = "a" * 64
+        for index, malformed in enumerate((f" {valid_hash}", f"{valid_hash} ", f" {valid_hash} ", valid_hash.upper())):
+            values = self._request_values(intake, key=f"mack-review-digest-invalid-{index}")
+            values["decision_snapshot_hash"] = malformed
+            with self.subTest(index=index), self.assertRaises(ValidationError):
+                self.Review.create(values)
+            self.assertEqual(
+                self.Review.search_count([("idempotency_key", "=", f"mack-review-digest-invalid-{index}")]),
+                0,
+            )
+
     def test_identical_retry_returns_prior_receipt_without_second_activity(self):
         intake = self._canonical_intake()
         values = self._request_values(intake, key="mack-review-retry-key")

@@ -224,7 +224,7 @@ class PlasticosMackInternalReview(models.Model):
                 raise ValidationError(_("CWI reference must be at most 256 characters."))
             if record.cwi_revision < 0:
                 raise ValidationError(_("CWI revision must be non-negative."))
-            if not _SHA256_RE.fullmatch((record.decision_snapshot_hash or "").strip()):
+            if not _SHA256_RE.fullmatch(record.decision_snapshot_hash or ""):
                 raise ValidationError(_("Decision snapshot hash must be a SHA-256 digest."))
             if not (record.reason or "").strip() or len(record.reason) > 4_096:
                 raise ValidationError(_("Review reason is required and must be at most 4096 characters."))
