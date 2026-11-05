@@ -435,7 +435,8 @@ class PlasticosTransactionDocs(models.Model):
                     ("res_model", "=", "plasticos.load"),
                     ("res_id", "in", list(summaries)),
                     ("summary", "in", list(summaries.values())),
-                ]
+                ],
+                order="id ASC",
             )
             existing_escalations = {(activity.res_id, activity.summary) for activity in activities}
 
