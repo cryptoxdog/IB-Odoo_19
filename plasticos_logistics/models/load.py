@@ -1002,7 +1002,7 @@ class PlasticosLoad(models.Model):
                     "load": rec,
                     "correlation_id": correlation_id,
                     "context": context,
-                    "proposal": proposal,
+                    "estimate_proposal": proposal,
                     "status": status,
                     "failure_code": failure_code,
                     "history_count": history_count,
@@ -1068,7 +1068,7 @@ class PlasticosLoad(models.Model):
         events = []
         for item in missing:
             rec = item["load"]
-            proposal = item["proposal"]
+            proposal = item["estimate_proposal"]
             status = item["status"]
             failure_code = item["failure_code"]
             estimate = by_load[rec.id]
