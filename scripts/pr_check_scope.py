@@ -24,15 +24,14 @@ The change set is the committed range from the merge-base with
 no base, no merge-base, no change, a selector error, ``PR_CHECK_SCOPE=full`` —
 keeps the whole gate (``audit=1 smoke=1 tests=all``).
 
-Test selection: a changed test module selects itself and, like any other
-changed path, every test module that names it as a whole word (its path, its
-stem of three characters or more, its addon, its dotted module path) — so a
-test that imports helpers from it runs too. A path outside ``tests/`` also
-selects the modules that read its top directory as a tree
-(``ROOT / "scripts"`` without a pinned file). A path
-under an addon also selects the modules that walk the addon tree
-(``plasticos_*`` globs). A harness change (``tests/conftest.py``,
-``tests/common.py``, ``pyproject.toml``, requirements) selects everything.
+Test selection: a changed test module selects itself. Any changed path also
+selects a test module whose source contains that repo-relative path, the same
+path with its suffix removed, or, for Python, the dotted module. A bare
+filename stem, an addon directory name, a quoted top-level directory, and a
+``plasticos_*`` tree walk do not select a test. A harness change
+(``tests/conftest.py``, ``tests/common.py``, ``tests/__init__.py``,
+``pyproject.toml``, ``constraints.txt``, or ``requirements*.txt``)
+selects everything.
 """
 
 from __future__ import annotations
@@ -56,7 +55,6 @@ INSTALLER_RE = re.compile(
 )
 HARNESS = {"tests/conftest.py", "tests/common.py", "tests/__init__.py", "pyproject.toml", "constraints.txt"}
 HARNESS_RE = re.compile(r"^requirements[^/]*\.txt$")
-TREE_WALK_RE = re.compile(r"plasticos_\*|startswith\(\s*[\"']plasticos_[\"']|glob\(\s*[\"']plasticos")
 
 
 def _git(root: Path, *args: str) -> str:
@@ -94,10 +92,6 @@ def tokens_for(rel: str) -> set[str]:
     found = {rel}
     if path.suffix:
         found.add(rel[: -len(path.suffix)])
-    if len(path.stem) >= 3:
-        found.add(path.stem)
-    if path.parts[0].startswith(ADDON_PREFIX):
-        found.add(path.parts[0])
     if path.suffix == ".py":
         found.add(".".join((*path.parts[:-1], path.stem)))
     return {t for t in found if t not in {"__init__", "__manifest__"}}
@@ -108,40 +102,22 @@ def _word_pattern(tokens: set[str]) -> re.Pattern[str]:
     return re.compile(r"(?<![A-Za-z0-9_])(?:" + "|".join(escaped) + r")(?![A-Za-z0-9_])")
 
 
-def _dir_pattern(dirs: set[str]) -> re.Pattern[str]:
-    # "scripts" or "scripts/" quoted and not followed by a pinned "/ "<file>"".
-    escaped = "|".join(re.escape(d) for d in sorted(dirs))
-    return re.compile(r"[\"'](?:" + escaped + r")/?[\"'](?!\s*/\s*[\"'])")
-
-
 def select_tests(root: Path, changed: list[str]) -> list[str] | str:
     if any(rel in HARNESS or HARNESS_RE.match(rel) for rel in changed):
         return "ALL"
     selected: set[str] = set()
     tokens: set[str] = set()
-    dirs: set[str] = set()
-    addon_changed = False
     for rel in changed:
         parts = Path(rel).parts
         if parts[0] == "tests" and parts[-1].startswith("test_") and rel.endswith(".py") and (root / rel).is_file():
             selected.add(rel)
-        if parts[0].startswith(ADDON_PREFIX):
-            addon_changed = True
-        elif len(parts) > 1 and parts[0] != "tests":
-            dirs.add(parts[0])
         tokens |= tokens_for(rel)
     word = _word_pattern(tokens) if tokens else None
-    tree = _dir_pattern(dirs) if dirs else None
     for module in sorted((root / "tests").rglob("test_*.py")):
         rel = module.relative_to(root).as_posix()
         if rel in selected:
             continue
-        text = module.read_text(encoding="utf-8", errors="replace")
-        if (
-            (word and word.search(text))
-            or (tree and tree.search(text))
-            or (addon_changed and TREE_WALK_RE.search(text))
-        ):
+        if word and word.search(module.read_text(encoding="utf-8", errors="replace")):
             selected.add(rel)
     return sorted(selected)
 

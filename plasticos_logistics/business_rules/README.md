@@ -6,7 +6,7 @@
 
 ## Mandatory agent and implementation use
 
-1. Before work on `plasticos_logistics` or cross-module behavior that materially changes Linda, read this index, the relevant `BRS-0N.md` documents, `SUPERSESSION.md`, and applicable Accepted repository ADRs under `docs/adr/`.
+1. Before work on `plasticos_logistics` or cross-module behavior that materially changes Linda, read this index, the relevant `BRS-0N.md` documents, `BRS-POS-10-linda-logistics-commercial-and-physical-communication.md`, the admitted `BRS-POS-09-R006` through `BRS-POS-09-R012` clauses in `SUPERSESSION.md`, and applicable Accepted repository ADRs under `docs/adr/`.
 2. Treat non-superseded BRS requirements as **target behavior** to realize/test, not as an assertion that code or external systems already implement them. Never silently weaken or delete a business requirement to pass a test.
 3. Read `SUPERSESSION.md` for the **narrow, later explicit operator rulings** on independent PO/SO issuance and fulfillment. These override only the identified older BRS assertions; every unrelated rule remains intact.
 4. The BRS documents constrain **what** the logistics product must do. Accepted ADRs govern **architecture/ownership and boundaries**. Neither silently repeals the other; when a genuine unresolved conflict remains, flag that precise conflict and stop the affected design or change.
@@ -40,3 +40,5 @@ The seven original `BRS-01..07.md`, 60 historical `rules.json`, `REGISTRY.json`,
 
 **Coding agents:** cite both affected `BRS-##-R###` and `BRS-POS-##-R###` where applicable. Tests must assert positive and negative outcomes on the exact installed Odoo 19 Enterprise revision. No BRS installation permits external sends, native AI activation, migration, merge or deployment. If the next code PR branches from this new BRS PR, rebind any older remediation scripts hard-pinned to PR #305; do not bypass their SHA guards.
 <!-- LINDA_BRS_NATIVE_ALIGNMENT_20261026_END -->
+
+The dated supersession of 2026-11-05 admits exactly one copied Native-First chapter, BRS-POS-10, and admits BRS-POS-09-R006 through BRS-POS-09-R012 as Linda external-send obligations. Every other BRS-POS chapter stays a cross-domain reference and is not a second copied authority. BRS-POS-04 through BRS-POS-08, BRS-POS-11 and BRS-POS-12 stay with their owners.

@@ -15,3 +15,19 @@
 A new or changed business rule requires a dated operator-approved supersession recording source revision/bytes, prior and successor ID, reason, exact affected owners, positive+negative acceptance implications and effective admission. Keep original frozen source chapter bytes and prior versions. Design questions needing new module fields or ownership go to their rightful ADR/architecture owner. A PR description, README, AI-generated plan or green test cannot independently rewrite business intent.
 
 No automatic activation, no code changes and no Odoo runtime tests occurred during installation. Future code PRs must be stacked on the accepted/current BRS installation head and cite exact BRS IDs.
+
+## 2026-11-05 external send {#2026-11-05-external-send}
+
+External-send ownership of these seven clauses moves to `plasticos_logistics`. The chapter file `BRS-POS-09-native-documents-requests-activities-automation-and-scheduler.md` stays byte-for-byte in this module. Documents and Activities keep status and activity supply. They do not send the external chase.
+
+| Rule ID | Title | External-send owner |
+| --- | --- | --- |
+| `BRS-POS-09-R006` | Only one external reminder writer | `plasticos_logistics` |
+| `BRS-POS-09-R007` | Supplier document business clock | `plasticos_logistics` |
+| `BRS-POS-09-R008` | Carrier document business clock | `plasticos_logistics` |
+| `BRS-POS-09-R009` | Buyer document business clock | `plasticos_logistics` |
+| `BRS-POS-09-R010` | No duplicate daily touch | `plasticos_logistics` |
+| `BRS-POS-09-R011` | Quiet hours and locale aware deadlines | `plasticos_logistics` |
+| `BRS-POS-09-R012` | Stop on verified or inapplicable | `plasticos_logistics` |
+
+`REGISTRY.json` `source_rule_ids`, `local_rule_count` (44) and `external_rule_count` (126) stay the installed-text inventory. `ownership_transferred` records the seven IDs. `ALL_170_RULES_SCOPE.csv` classifies them `CROSS_DOMAIN_CONSUMER_REFERENCE`. The logistics admission is the same date in `plasticos_logistics/business_rules/SUPERSESSION.md`, cross-referenced to the existing clocks `BRS-02-R007`, `BRS-06-R039` and `BRS-07-R051`. This entry does not install `BRS-POS-04` through `BRS-POS-08`, `BRS-POS-11` or `BRS-POS-12`.

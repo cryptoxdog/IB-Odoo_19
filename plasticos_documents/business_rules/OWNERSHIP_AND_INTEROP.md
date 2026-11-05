@@ -1,6 +1,6 @@
 # Documents business-rule ownership and integration boundary
 
-**Rule source:** BRS-POS-02 (native Originals), BRS-POS-03 (verification), BRS-POS-09 (Requests/automation). Their 44 verbatim rules are local. Other BRS-POS IDs remain owned by their respective domains and appear only as references in `ALL_170_RULES_SCOPE.csv`.
+**Rule source:** BRS-POS-02 (native Originals), BRS-POS-03 (verification), BRS-POS-09 (Requests/automation). All 44 rules are installed verbatim in this module. 37 remain Documents-owned. External-send ownership of `BRS-POS-09-R006` through `BRS-POS-09-R012` is `plasticos_logistics`; Documents and Activities supply status only. Other BRS-POS IDs remain owned by their respective domains and appear only as references in `ALL_170_RULES_SCOPE.csv`.
 
 | Fact / responsibility | One authoritative owner | Documents consumer obligation | Forbidden duplicate |
 |---|---|---|---|

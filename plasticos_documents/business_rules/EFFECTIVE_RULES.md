@@ -235,49 +235,49 @@ Due evaluations SHALL use Odoo ir.cron or supported native timed actions, not an
 Acceptance: AC-POS-09-005 · Runtime: **NOT_RUN**
 
 ### BRS-POS-09-R006 — Only one external reminder writer
-**LOCKED** · **Owner:** Odoo Documents/Activity, PlasticOS obligation service, Linda external mail
+**LOCKED** · **Owner:** plasticos_logistics (Linda external send); Documents and Activities supply status only
 
 For the same file, recipient, fulfillment episode and due date, Linda SHALL own at most one approved external reminder; PlasticOS Documents and Activities shall supply status, not duplicate mail.
 
 Acceptance: AC-POS-09-006 · Runtime: **NOT_RUN**
 
 ### BRS-POS-09-R007 — Supplier document business clock
-**LOCKED** · **Owner:** Odoo Documents/Activity, PlasticOS obligation service, Linda external mail
+**LOCKED** · **Owner:** plasticos_logistics (Linda external send); Documents and Activities supply status only
 
 Supplier missing-document chase SHALL start on the actual pickup event with business-day +1 reminder and +5 escalation for the applicable supplier obligation.
 
 Acceptance: AC-POS-09-007 · Runtime: **NOT_RUN**
 
 ### BRS-POS-09-R008 — Carrier document business clock
-**LOCKED** · **Owner:** Odoo Documents/Activity, PlasticOS obligation service, Linda external mail
+**LOCKED** · **Owner:** plasticos_logistics (Linda external send); Documents and Activities supply status only
 
 Carrier missing-document chase SHALL start on actual pickup with +2 business-day reminder and +6 escalation, independent of buyer invoice eligibility.
 
 Acceptance: AC-POS-09-008 · Runtime: **NOT_RUN**
 
 ### BRS-POS-09-R009 — Buyer document business clock
-**LOCKED** · **Owner:** Odoo Documents/Activity, PlasticOS obligation service, Linda external mail
+**LOCKED** · **Owner:** plasticos_logistics (Linda external send); Documents and Activities supply status only
 
 Buyer missing Receiving chase SHALL start on actual delivery with +1 business-day reminder and +5 escalation for that buyer obligation.
 
 Acceptance: AC-POS-09-009 · Runtime: **NOT_RUN**
 
 ### BRS-POS-09-R010 — No duplicate daily touch
-**LOCKED** · **Owner:** Odoo Documents/Activity, PlasticOS obligation service, Linda external mail
+**LOCKED** · **Owner:** plasticos_logistics (Linda external send); Documents and Activities supply status only
 
 Routine reminders SHALL not repeat more than once per exact party, obligation and local business day; retries shall preserve delivery uncertainty and revision identity.
 
 Acceptance: AC-POS-09-010 · Runtime: **NOT_RUN**
 
 ### BRS-POS-09-R011 — Quiet hours and locale aware deadlines
-**LOCKED** · **Owner:** Odoo Documents/Activity, PlasticOS obligation service, Linda external mail
+**LOCKED** · **Owner:** plasticos_logistics (Linda external send); Documents and Activities supply status only
 
 Linda-origin routine supplier/carrier appointment or document notices SHALL honor approved recipient/source local clocks and quiet hours; urgent internal exceptions remain visible.
 
 Acceptance: AC-POS-09-011 · Runtime: **NOT_RUN**
 
 ### BRS-POS-09-R012 — Stop on verified or inapplicable
-**LOCKED** · **Owner:** Odoo Documents/Activity, PlasticOS obligation service, Linda external mail
+**LOCKED** · **Owner:** plasticos_logistics (Linda external send); Documents and Activities supply status only
 
 Document verification, cancellation, source supersession or irrelevant fulfillment episode SHALL cancel/close pending reminder intents, requests and Activities while preserving the audit trail.
 

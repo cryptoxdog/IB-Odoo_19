@@ -6,12 +6,14 @@
 
 ## Read first
 
-1. `REGISTRY.json` and `EFFECTIVE_RULES.md` for the 44 local rule IDs, their statuses and exact normative text.
+1. `REGISTRY.json` and `EFFECTIVE_RULES.md` for the 44 installed verbatim rule IDs, their statuses and exact normative text. 37 remain Documents-owned. External-send ownership of `BRS-POS-09-R006` through `BRS-POS-09-R012` is `plasticos_logistics` by the dated supersession.
 2. The three original chapters `BRS-POS-02`, `BRS-POS-03`, `BRS-POS-09`, copied verbatim.
 3. `OWNERSHIP_AND_INTEROP.md`, `NATIVE_ODOO19_CAPABILITIES.md`, and `OPEN_DECISIONS_AND_PROOFS.md` for Odoo and other-module boundaries.
 4. `ACCEPTANCE.json`, `CROSS_DOMAIN_ACCEPTANCE.json`, `ACCEPTANCE.md` for both success and falsifying counterexamples.
-5. `ALL_170_RULES_SCOPE.csv`: 44 local normative records, relevant external dependencies by ID, and out-of-scope owners. **It never admits the other 126 rules as Documents-owned.**
+5. `ALL_170_RULES_SCOPE.csv`: 37 `DOCUMENTS_BRS_LOCAL` rows, the seven transferred external-send clauses as cross-domain references, and out-of-scope owners. **It never admits the other 126 rules as Documents-owned.** The registry count 44 is installed verbatim text (`44 + 126 = 170`), not current ownership.
 6. `SUPERSESSION.md` for effective interpretation and amendment discipline; applicable accepted `docs/adr/` always applies.
+
+External-send ownership of BRS-POS-09-R006 through BRS-POS-09-R012 moved to `plasticos_logistics` by the dated supersession in `SUPERSESSION.md`. The count 44 is installed verbatim text, not current ownership; 37 rules remain Documents-owned. BRS-POS-04 through BRS-POS-08, BRS-POS-11 and BRS-POS-12 stay with their owners.
 
 ## Ownership and reuse
 

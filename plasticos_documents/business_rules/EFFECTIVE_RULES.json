@@ -715,7 +715,7 @@
       "normative_text": "For the same file, recipient, fulfillment episode and due date, Linda SHALL own at most one approved external reminder; PlasticOS Documents and Activities shall supply status, not duplicate mail.",
       "status": "LOCKED",
       "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
-      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
       "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
       "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
       "source_file_refs": [
@@ -737,7 +737,7 @@
       "normative_text": "Supplier missing-document chase SHALL start on the actual pickup event with business-day +1 reminder and +5 escalation for the applicable supplier obligation.",
       "status": "LOCKED",
       "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
-      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
       "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
       "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
       "source_file_refs": [
@@ -759,7 +759,7 @@
       "normative_text": "Carrier missing-document chase SHALL start on actual pickup with +2 business-day reminder and +6 escalation, independent of buyer invoice eligibility.",
       "status": "LOCKED",
       "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
-      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
       "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
       "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
       "source_file_refs": [
@@ -781,7 +781,7 @@
       "normative_text": "Buyer missing Receiving chase SHALL start on actual delivery with +1 business-day reminder and +5 escalation for that buyer obligation.",
       "status": "LOCKED",
       "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
-      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
       "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
       "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
       "source_file_refs": [
@@ -803,7 +803,7 @@
       "normative_text": "Routine reminders SHALL not repeat more than once per exact party, obligation and local business day; retries shall preserve delivery uncertainty and revision identity.",
       "status": "LOCKED",
       "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
-      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
       "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
       "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
       "source_file_refs": [
@@ -825,7 +825,7 @@
       "normative_text": "Linda-origin routine supplier/carrier appointment or document notices SHALL honor approved recipient/source local clocks and quiet hours; urgent internal exceptions remain visible.",
       "status": "LOCKED",
       "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
-      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
       "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
       "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
       "source_file_refs": [
@@ -847,7 +847,7 @@
       "normative_text": "Document verification, cancellation, source supersession or irrelevant fulfillment episode SHALL cancel/close pending reminder intents, requests and Activities while preserving the audit trail.",
       "status": "LOCKED",
       "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
-      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
       "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
       "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
       "source_file_refs": [

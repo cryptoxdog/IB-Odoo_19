@@ -354,6 +354,7 @@ exec "{REAL_PYTHON}" "$@"
         bindir / "make",
         f"""#!/bin/bash
 echo "make PR_CHECK_FORCE_SMOKE=${{PR_CHECK_FORCE_SMOKE-}}" >> "{seq}"
+echo "argv: $*" >> "{seq}"
 if [[ "${{MAKE_DIRTY:-0}}" == "1" ]]; then
   echo dirty >> "$PWD/dirty.txt"
 fi
@@ -1099,6 +1100,8 @@ def test_operator_smoke_bypass_skips_only_the_smoke_recheck(tmp_path: Path) -> N
     assert "install-smoke BYPASSED by operator: docs-only change" in output
     text = _seq(seq)
     assert text.index("gitleaks ") < text.index("make ") < text.index("\npush\n")
+    assert "argv: pr-check" in text
+    assert "argv: test" not in text and "argv: audit audit-baseline test" not in text
     assert "smoke --recheck" not in text
 
     repo2, seq2 = _init_repo(tmp_path / "blank")

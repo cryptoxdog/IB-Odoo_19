@@ -163,18 +163,9 @@ if [[ "${SMOKE_BYPASS}" != "1" ]] && ! bash scripts/install_smoke.sh --resolve; 
   refuse "install-smoke --resolve rejected the effective module lists"
 fi
 
-# Publication tests copy this environment. A skip switch that reaches them
-# makes the suite refuse the publish, so the bypass never enters the test wave.
-if [[ "${SMOKE_BYPASS}" == "1" ]]; then
-  if ! env -u PR_SMOKE_BYPASS -u PR_CHECK_SKIP_SMOKE \
-    make -j"${PR_CHECK_JOBS:-4}" --no-print-directory audit audit-baseline test; then
-    refuse "make pr-check failed"
-  fi
-  if ! env -u PR_SMOKE_BYPASS -u PR_CHECK_SKIP_SMOKE \
-    make --no-print-directory pr-remote-feedback; then
-    refuse "make pr-check failed"
-  fi
-elif ! make pr-check; then
+# Leave PR_SMOKE_BYPASS set. pr_check_run.sh skips Docker while it is set, then
+# clears it before pytest, so the publication tests never see the switch.
+if ! make pr-check; then
   refuse "make pr-check failed"
 fi
 
@@ -182,8 +173,8 @@ if [[ "$(git rev-parse HEAD)" != "${LOCAL_SHA}" ]] || [[ -n "$(git status --porc
   refuse "HEAD or the worktree changed during validation"
 fi
 # make pr-check's receipt decides the recheck. A change that reaches no addon
-# or installer input needs no recheck. No receipt (the bypass branch above, or
-# a failed scope) means recheck.
+# or installer input needs no recheck. No receipt (a failed scope) means
+# recheck. An operator bypass skips the recheck even when the receipt asks.
 smoke_needed() {
   python3 - .cache/pr-check/scope.json <<'PY'
 import json

@@ -57,6 +57,15 @@
     "BRS-POS-09-R016",
     "BRS-POS-09-R017"
   ],
+  "ownership_transferred": [
+    {"id": "BRS-POS-09-R006", "external_send_owner": "plasticos_logistics", "documents_retains": "status and activity supply", "effective": "2026-11-05"},
+    {"id": "BRS-POS-09-R007", "external_send_owner": "plasticos_logistics", "documents_retains": "status and activity supply", "effective": "2026-11-05"},
+    {"id": "BRS-POS-09-R008", "external_send_owner": "plasticos_logistics", "documents_retains": "status and activity supply", "effective": "2026-11-05"},
+    {"id": "BRS-POS-09-R009", "external_send_owner": "plasticos_logistics", "documents_retains": "status and activity supply", "effective": "2026-11-05"},
+    {"id": "BRS-POS-09-R010", "external_send_owner": "plasticos_logistics", "documents_retains": "status and activity supply", "effective": "2026-11-05"},
+    {"id": "BRS-POS-09-R011", "external_send_owner": "plasticos_logistics", "documents_retains": "status and activity supply", "effective": "2026-11-05"},
+    {"id": "BRS-POS-09-R012", "external_send_owner": "plasticos_logistics", "documents_retains": "status and activity supply", "effective": "2026-11-05"}
+  ],
   "local_rule_count": 44,
   "external_rule_count": 126,
   "source_rule_text_policy": "VERBATIM_IMMUTABLE_COPY; supersede by dated approved amendment only",

@@ -741,3 +741,12 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > fixture: `scripts/test_env.sh clone` and `scripts/test_env.sh run` on the host compose stack.
 > Another database and the toolchain-image quick path are not an Odoo runtime result here.
 > An unproven fixture stops at `make test-env-rebuild`.
+
+> **2026-11-05 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-10-22 sentence that local pytest runs every test module touched by, or reading, the changed
+> paths is superseded for the local gate. `scripts/pr_check_scope.py` selects a changed `tests/test_*.py`
+> module and a test module whose source contains the changed repo-relative path, that path with its suffix
+> removed, or, for Python, the dotted module. A bare filename stem, an addon directory name, a quoted
+> top-level directory, and a `plasticos_*` tree walk do not select a test. Harness files, `PR_CHECK_SCOPE=full`,
+> an empty diff, an unknown base, and a scope-script failure still select the whole local suite.
+> `.github/workflows/ci.yml` still runs `pytest tests/` and stays the merge verdict.
