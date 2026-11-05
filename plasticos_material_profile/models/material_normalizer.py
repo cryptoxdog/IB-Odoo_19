@@ -99,14 +99,6 @@ _SPECS = {
     ),
     "clear film": _spec(polymer="LLDPE", material_grade="STRETCH_FILM", form="FILM", packaging_type="bales"),
     "mixed pails": _spec(polymer="HDPE", material_grade="BUCKETS", form="LOOSE"),
-    "ldpe/lldpe clear repro": _spec(
-        polymer="LLDPE",
-        form="PELLETS",
-        source="POST_INDUSTRIAL",
-        attributes=("repro",),
-        packaging_type="gaylords",
-        color="CLEAR",
-    ),
     "hdpe/pp transitional purge regrind (frac melt)": _spec(
         polymer="PP_PE", form="PURGE", source="POST_INDUSTRIAL", attributes=("frac_melt",), packaging_type="gaylords"
     ),

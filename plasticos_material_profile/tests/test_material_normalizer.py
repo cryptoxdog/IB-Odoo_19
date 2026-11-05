@@ -247,7 +247,7 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertEqual(sacks.attributes.mapped("code"), ["lined"])
         self.assertEqual(sacks.packaging_type.code, "bales")
 
-        for phrase in ("hdpe / ldpe regrind", "gaylords of amazon returns"):
+        for phrase in ("hdpe / ldpe regrind", "gaylords of amazon returns", "ldpe/lldpe clear repro"):
             with self.subTest(phrase=phrase):
                 self.assertEqual(normalize_material(self.env, phrase).unresolved, ("unresolved material",))
 
