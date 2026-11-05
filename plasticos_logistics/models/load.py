@@ -456,7 +456,8 @@ class PlasticosLoad(models.Model):
 
         Zero matches stay unlinked. Two or more eligible transactions are refused
         so the create rolls back instead of picking a sale order's first row.
-        The sale order row is locked and the candidate set is read again before the link.
+        Sale orders are locked, eligible transactions are read again under those
+        locks, and only then are these loads locked and refreshed.
         Only loads in this recordset are candidates. Another unlinked load on a
         different sale order is left untouched.
         """
@@ -469,15 +470,13 @@ class PlasticosLoad(models.Model):
         self._lock_rows("sale_order", sale_orders.ids)
         _grouped, eligible = self._eligible_transactions_for_sale_orders(sale_orders)
         self._lock_rows("plasticos_transaction", eligible.ids)
+        grouped, _eligible = self._eligible_transactions_for_sale_orders(sale_orders)
         self._lock_rows("plasticos_load", pending.ids)
         pending.invalidate_recordset(["transaction_id", "sale_order_id", "company_id"])
-        pending = pending.filtered(lambda rec: not rec.transaction_id and rec.sale_order_id)
-        if not pending:
-            return
-        sale_orders = pending.sale_order_id
-        grouped, _eligible = self._eligible_transactions_for_sale_orders(sale_orders)
         assignments = []
         for rec in pending:
+            if rec.transaction_id or not rec.sale_order_id:
+                continue
             candidates = grouped.get(rec.sale_order_id.id, self.env[PLASTICOS_TRANSACTION])
             if len(candidates) > 1:
                 raise ValidationError(
