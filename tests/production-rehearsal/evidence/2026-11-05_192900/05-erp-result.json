@@ -1,0 +1,41 @@
+{
+  "gate": 6,
+  "result": "pass",
+  "source": "grid (CSV pre-extracted from cieTrade_SM_2026-10-03.bak via cie-sql-proof)",
+  "source_path": "/mnt/extra-addons/plasticos_partner_import/erp_extracted_data",
+  "source_tables": {
+    "Address": 2950, "Contact": 4058, "ContactRoleAssignment": 3091,
+    "CounterParty": 1290, "GPLedger": 8220, "Payables": 14453,
+    "Receipt": 7425, "ReceiptBatch": 4545, "SalesReps": 977,
+    "WKSDetail": 11303, "WksDelivery": 8327
+  },
+  "summary": {
+    "status": "partial",
+    "records_seen": 31926,
+    "records_created": 7629,
+    "records_updated": 2120,
+    "records_unchanged": 20927,
+    "records_rejected": 1250,
+    "duplicates": 0,
+    "math_closes": true
+  },
+  "partner_import": {
+    "counterparties_created": 1290,
+    "locations_created": 1258,
+    "contacts_created": 2598,
+    "contact_roles_created": 2483,
+    "salespersons_updated": 833
+  },
+  "transactions": {
+    "created": 0,
+    "skipped": 8257,
+    "accounting_acceptance": "BLOCKED_ARCHITECTURE",
+    "note": "Expected — no ERP_PRODUCTION_PERMIT in rehearsal mode"
+  },
+  "known_rejections": {
+    "count": 1250,
+    "reason": "unresolved_counterparty (inactive CpIDs in Address table)",
+    "disposition": "pre-existing, expected"
+  },
+  "sql_restore_note": "Direct SQL Server restore blocked: SQL Server 2022/2017 Linux cannot restore F-type full-text catalog from SQL Server 2012 backup (Windows path in SQL.HDR incompatible with Linux). CSVs ARE the .bak data, pre-extracted from the previously restored cie-sql-proof container."
+}

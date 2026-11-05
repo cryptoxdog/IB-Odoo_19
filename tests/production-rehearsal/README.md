@@ -18,7 +18,7 @@
 bash tests/production-rehearsal/run.sh
 ```
 
-Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/`. The latest run is symlinked as `evidence/latest`. That directory is gitignored.
+Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and committed with the kit. `evidence/latest` points at the newest run. Do not put secrets in those files.
 
 ## Prerequisites
 
