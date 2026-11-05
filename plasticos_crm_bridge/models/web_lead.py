@@ -43,6 +43,11 @@ class PlasticosWebLeadCRM(models.Model):
             # Only an already-linked partner is kept; none is created here.
             "partner_id": self.partner_id.id if self.partner_id else False,
             "source_intake_id": self.intake_id.id if self.intake_id else False,
+            # HOT is eligibility: the material profile is carried only when the
+            # intake already qualified one. Partner stays unlinked until verified.
+            "material_profile_id": self.intake_id.material_profile_id.id
+            if self.intake_id and self.intake_id.material_profile_id
+            else False,
         }
 
         lead = self.env["crm.lead"].create(vals)

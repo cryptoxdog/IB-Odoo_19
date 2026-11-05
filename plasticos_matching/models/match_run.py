@@ -38,10 +38,10 @@ class PlasticosMatchRun(models.Model):
     display_name = fields.Char(compute="_compute_display_name", store=True)
     intake_id = fields.Many2one(
         "plasticos.intake",
-        required=True,
         index=True,
-        ondelete="cascade",
+        ondelete="restrict",
         tracking=True,
+        help="Optional originating intake. A lot run matched from a native opportunity has none.",
     )
     supplier_partner_id = fields.Many2one(
         "res.partner",
@@ -143,11 +143,22 @@ class PlasticosMatchRun(models.Model):
         string="Match Results",
     )
 
-    @api.depends("intake_id", "state")
+    @api.depends("intake_id", "supplier_partner_id", "state")
     def _compute_display_name(self):
         for rec in self:
-            intake = rec.intake_id.display_name if rec.intake_id else "?"
-            rec.display_name = f"Match run {rec.id or 'new'} [{rec.state}] / {intake}"
+            subject = rec.intake_id.display_name if rec.intake_id else (rec.supplier_partner_id.name or "?")
+            rec.display_name = f"Match run {rec.id or 'new'} [{rec.state}] / {subject}"
+
+    # ── Lineage extension points (CRM Bridge owns the opportunity fields) ──
+
+    def _plasticos_durable_lineage_fields(self):
+        """Extra run columns a durable failure receipt must carry; none in this module."""
+        return ()
+
+    def _plasticos_lot_retry_subject(self):
+        """Frozen lot subject for a retry of a run without an intake; none in this module."""
+        self.ensure_one()
+        return None
 
     # ── Receipt evidence guard ────────────────────────────────
 

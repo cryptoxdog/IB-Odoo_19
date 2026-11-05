@@ -4,4 +4,6 @@ from . import crm_lead_vanillasoft
 from . import crm_mapping
 from . import facility_profile
 from . import material_profile
+from . import match_lineage
+from . import opportunity_approval
 from . import web_lead

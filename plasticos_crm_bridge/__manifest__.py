@@ -1,6 +1,6 @@
 {
     "name": "PlastOS CRM Bridge",
-    "version": "19.0.3.4.19",
+    "version": "19.0.3.4.20",
     "author": "Igor Beylin",
     "summary": "CRM integration for plastics brokerage workflow",
     "depends": [
@@ -8,7 +8,8 @@
         "utm",
         "plasticos_security_base",
         "plasticos_web_leads",
-        # "plasticos_matching",  # Disabled - external microservice
+        "plasticos_matching",
+        "plasticos_offer",
         "plasticos_material_profile",
         "plasticos_facility_profile",
         "plasticos_transaction",

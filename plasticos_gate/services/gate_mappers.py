@@ -165,23 +165,28 @@ def map_match_response_to_matcher_dicts(
             continue
         if not item.eligible:
             continue
-        results.append(
-            {
-                "buyer_id": int(item.buyer_partner_id),
-                "buyer_name": item.buyer_name,
-                "total_score": item.normalized_score if item.normalized_score is not None else 0.0,
-                "typical_price": item.typical_price or 0.0,
-                "gates_passed": item.gates_passed,
-                "gates_failed": item.gates_failed,
-                "match_details": item.raw,
-                "facility_profile_id": item.facility_profile_id,
-                "reason": item.reason,
-                "match_source": "gate",
-                "gate_packet_id": audit.get("gate_packet_id"),
-                "gate_correlation_id": audit.get("gate_correlation_id"),
-            }
-        )
-    results.sort(key=lambda row: row.get("total_score") or 0.0, reverse=True)
+        # Missing evidence stays missing: a candidate Gate scored as None is not
+        # a zero, an unknown price is not 0.0, and an absent facility is omitted.
+        row = {
+            "buyer_id": int(item.buyer_partner_id),
+            "buyer_name": item.buyer_name,
+            "total_score": item.normalized_score,
+            "typical_price": item.typical_price,
+            "gates_passed": item.gates_passed,
+            "gates_failed": item.gates_failed,
+            "match_details": item.raw,
+            "reason": item.reason,
+            "match_source": "gate",
+            "gate_packet_id": audit.get("gate_packet_id"),
+            "gate_correlation_id": audit.get("gate_correlation_id"),
+        }
+        if item.facility_profile_id:
+            row["facility_profile_id"] = item.facility_profile_id
+        results.append(row)
+    results.sort(
+        key=lambda row: (row.get("total_score") is not None, row.get("total_score") or 0.0),
+        reverse=True,
+    )
     return results
 
 

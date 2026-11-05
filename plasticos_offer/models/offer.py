@@ -37,22 +37,15 @@ class PlasticosOffer(models.Model):
     # Origin
     # ═════════════════════════════════════════════════════════
 
-    # match_result_id disabled - plasticos_matching is external microservice
-    # match_result_id = fields.Many2one(
-    #     "plasticos.match.result",
-    #     string="Match Result",
-    #     index=True,
-    #     ondelete="set null",
-    #     help="The match result that originated this offer, if any.",
-    # )
+    # ``match_result_id`` (Gate result lineage) is owned by plasticos_crm_bridge,
+    # which depends on both this module and plasticos_matching.
     intake_id = fields.Many2one(
         "plasticos.intake",
         string="Intake",
-        required=True,
         index=True,
-        ondelete="cascade",
+        ondelete="restrict",
         tracking=True,
-        help="The intake record this offer is based on.",
+        help="Optional originating intake. An offer created from a native opportunity's Gate result has none.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -245,7 +238,7 @@ class PlasticosOffer(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
-    @api.depends("name", "intake_id", "buyer_id", "state")
+    @api.depends("name", "intake_id", "supplier_id", "buyer_id", "state")
     def _compute_display_name(self):
         for rec in self:
             # Display name without year: OFR-26-04001 → OFR-04001
@@ -255,13 +248,11 @@ class PlasticosOffer(models.Model):
                     short_name = f"{parts[0]}-{parts[2]}"
                 else:
                     short_name = rec.name
-                intake = rec.intake_id.display_name or "?"
-                buyer = rec.buyer_id.name or "?"
-                rec.display_name = f"{short_name}: {intake} → {buyer} [{rec.state or 'draft'}]"
             else:
-                intake = rec.intake_id.display_name or "?"
-                buyer = rec.buyer_id.name or "?"
-                rec.display_name = f"Offer: {intake} → {buyer} [{rec.state or 'draft'}]"
+                short_name = "Offer"
+            supply = rec.intake_id.display_name or rec.supplier_id.name or "?"
+            buyer = rec.buyer_id.name or "?"
+            rec.display_name = f"{short_name}: {supply} → {buyer} [{rec.state or 'draft'}]"
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -281,8 +272,36 @@ class PlasticosOffer(models.Model):
                 rec.copy_images_from("plasticos.intake", rec.intake_id.id)
         return records
 
+    # Commercial terms frozen once the offer leaves draft. State and response
+    # fields stay writable; a changed deal is a new offer, never a rewritten one.
+    _TERM_FIELDS = (
+        "price_per_lb",
+        "currency_id",
+        "quantity_lbs",
+        "loads",
+        "delivery_terms",
+        "payment_terms",
+        "valid_until",
+        "supplier_id",
+        "buyer_id",
+        "intake_id",
+    )
+
+    def _frozen_term_changes(self, vals):
+        """Term fields in ``vals`` whose value differs from the stored one."""
+        self.ensure_one()
+        changed = []
+        for name in self._TERM_FIELDS:
+            if name not in vals:
+                continue
+            current = self[name]
+            current = current.id if hasattr(current, "id") else current
+            if current != vals[name]:
+                changed.append(name)
+        return changed
+
     def write(self, vals):
-        """Guard against modifying closed offers (except state changes)."""
+        """Guard against modifying closed offers (except state changes) and against term rewrites after draft."""
         closed_states = ("accepted", "rejected", "expired", "cancelled")
         if "state" not in vals:
             for rec in self:
@@ -290,6 +309,15 @@ class PlasticosOffer(models.Model):
                     raise UserError(
                         f"Cannot modify offer '{rec.name}' in state '{rec.state}'. Closed offers are immutable."
                     )
+        for rec in self:
+            if rec.state == "draft":
+                continue
+            changed = rec._frozen_term_changes(vals)
+            if changed:
+                raise UserError(
+                    f"Offer '{rec.name}' was sent; its terms ({', '.join(changed)}) are immutable. "
+                    "Create a new offer instead."
+                )
         return super().write(vals)
 
     def unlink(self):

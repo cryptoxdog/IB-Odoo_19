@@ -1,4 +1,5 @@
-from odoo import Command, fields, models
+from odoo import Command, _, api, fields, models
+from odoo.exceptions import UserError
 
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 
@@ -43,7 +44,89 @@ class SaleOrder(models.Model):
             order.transaction_id = tx.id
             if tx.state == "draft":
                 tx.action_activate()
+            order._plasticos_link_accepted_offer(tx)
         return res
+
+    # ── Native opportunity → draft sale order (offer acceptance hand-off) ──
+
+    def _plasticos_require_opportunity_binding(self):
+        """``sale.order.opportunity_id`` (sale_crm) is the only order binding; stop when it is missing."""
+        if "opportunity_id" not in self._fields:
+            raise UserError(
+                _("sale.order has no opportunity_id: the sale_crm bridge is not installed, so no quotation is created.")
+            )
+
+    @api.model
+    def _plasticos_draft_order_for_offer(self, offer, opportunity_id, material_profile):
+        """Create or reuse the one draft sale order for an accepted offer on a native opportunity.
+
+        The order is bound through native ``opportunity_id`` and carries the
+        offer's sell terms on one line. Confirmation stays with the existing
+        compiler (``action_confirm``), which creates the transaction; nothing is
+        confirmed, posted or mailed here.
+        """
+        offer.ensure_one()
+        self._plasticos_require_opportunity_binding()
+        existing = self.search(
+            [
+                ("opportunity_id", "=", opportunity_id),
+                ("origin", "=", offer.name),
+                ("state", "in", ("draft", "sent")),
+            ],
+            order="id",
+            limit=1,
+        )
+        if existing:
+            return existing
+        polymer = material_profile.polymer_id if material_profile else False
+        if not polymer:
+            raise UserError(_("Offer %s has no approved material profile with a polymer to sell.") % offer.name)
+        template = polymer._purchase_product()
+        product = template.product_variant_id
+        if not product:
+            raise UserError(_("Polymer %s has no sellable product variant.") % polymer.name)
+        description = material_profile.display_name or product.display_name
+        line_name = _(
+            "%(material)s — %(qty)s lbs @ %(price)s/lb (offer %(offer)s)",
+            material=description,
+            qty=offer.quantity_lbs,
+            price=offer.price_per_lb,
+            offer=offer.name,
+        )
+        order = self.create(
+            {
+                "partner_id": offer.buyer_id.id,
+                "opportunity_id": opportunity_id,
+                "origin": offer.name,
+                "order_line": [
+                    Command.create(
+                        {
+                            "product_id": product.id,
+                            "name": line_name,
+                            "product_uom_qty": offer.quantity_lbs or 0.0,
+                            "price_unit": offer.price_per_lb or 0.0,
+                        }
+                    )
+                ],
+            }
+        )
+        order.message_post(
+            body=_("Draft quotation created from accepted offer %s. Confirm to compile the transaction.") % offer.name,
+            message_type="notification",
+            subtype_xmlid="mail.mt_note",
+        )
+        return order
+
+    def _plasticos_link_accepted_offer(self, transaction):
+        """Back-link the accepted offer named in ``origin`` to the compiled transaction."""
+        self.ensure_one()
+        if not self.origin or "plasticos.offer" not in self.env:
+            return
+        offers = self.env["plasticos.offer"].search(
+            [("name", "=", self.origin.strip()), ("state", "=", "accepted"), ("transaction_id", "=", False)]
+        )
+        if offers:
+            offers._plasticos_link_transaction(transaction)
 
     def _compile_worksheet_transactions(self):
         """One transaction per worksheet on each confirmed order. Safe to call again.

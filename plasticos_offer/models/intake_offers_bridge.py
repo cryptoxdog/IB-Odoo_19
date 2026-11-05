@@ -39,57 +39,19 @@ class PlasticosIntakeOffersBridge(models.Model):
         }
 
     def action_send_offers(self):
-        """Create plasticos.offer records for each selected match line."""
+        """Retired as an offer-creation authority.
+
+        Offers are created from reviewed Gate match results on the native
+        Opportunity (one matching command, one offer path). The selected
+        intake match lines and their typical price carry no commercial
+        authority, so this action no longer creates offers from them.
+        """
         self.ensure_one()
         self._assert_status("matched")
-        selected = self.match_line_ids.filtered("selected")
-        if not selected:
-            raise UserError("Please select at least one buyer to send offers to.")
-
         if not self.partner_id:
             raise UserError("Cannot send offers without a supplier. Set the Company on this intake first.")
-
-        offer_vals = []
-        for match in selected:
-            if not match.buyer_id:
-                _logger.warning(
-                    "Skipping match line %s — no buyer_id set (buyer_name=%s)",
-                    match.id,
-                    match.buyer_name,
-                )
-                continue
-            offer_vals.append(
-                {
-                    "intake_id": self.id,
-                    "supplier_id": self.partner_id.id,
-                    "buyer_id": match.buyer_id.id,
-                    "price_per_lb": match.typical_price or 0.0,
-                    "quantity_lbs": float(self.quantity_per_load_lbs or 0),
-                }
-            )
-
-        if not offer_vals:
-            raise UserError(
-                "No offers were created. Ensure selected buyer match lines have a Buyer set.\n\n"
-                "Use the bulk assign wizard to assign buyers to unresolved match lines."
-            )
-
-        offers_created = self.env["plasticos.offer"].create(offer_vals)
-
-        self.status = "offer_sent"
-        self.message_post(
-            body=(
-                f"Offers sent to {len(offers_created)} buyer(s): {', '.join(offers_created.mapped('buyer_id.name'))}"
-            ),
-            message_type="notification",
-            subtype_xmlid="mail.mt_note",
+        _logger.info("Intake %s: offer creation from match lines is retired; use the Opportunity.", self.id)
+        raise UserError(
+            "Offers are created from reviewed Gate match results on the Opportunity "
+            "(Match via Gate, review results, Create Offers). Selected match lines are display only."
         )
-
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Offers Created",
-            "res_model": "plasticos.offer",
-            "view_mode": "list,form",
-            "domain": [("intake_id", "=", self.id)],
-            "target": "current",
-        }
