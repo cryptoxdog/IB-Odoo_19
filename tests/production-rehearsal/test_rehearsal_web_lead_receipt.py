@@ -9,8 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-GATE = ROOT / "tests" / "production-rehearsal" / "weblead_e2e.sh"
+GATE = Path(__file__).resolve().parent / "weblead_e2e.sh"
 
 # The old failure was ``decision=hot (expected HOT)``. The comparison that
 # produced it bound the decision field to the display label.

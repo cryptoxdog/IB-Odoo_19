@@ -39,9 +39,9 @@ Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and committed with the kit.
 
 ### ERP source
 
-Gate 6 reads the restored ERP database. A `.bak` is the restore input; the importer does not open it. Restore the backup into SQL Server, then set `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` to that server and database before `run.sh`. The values are not printed. If either is unset, Gate 6 is blocked and VanillaSoft does not start.
+Gate 6 calls `make import-erp` on the cutover clone. The importer reads the database that is already restored in container `cie-sql-proof`: `host.docker.internal` port `14330`, database `cieTrade_SM`, login `erp_reader`. The password is the existing file `~/.l9/erp-proof/reader.pw`. It is not printed, and it is not written into `.env.local`. Each table is loaded by its projection script in `plasticos_partner_import/erp_extracted_data/`. An exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` still win over those defaults.
 
-The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`. Only `database` passes.
+The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`. Only `database` passes. Gate 7 then calls `make import-vanillasoft` on the same clone.
 
 ## Evidence structure
 
@@ -72,4 +72,6 @@ evidence/
 | `erp_slice.sh` | ERP 10% slice helper (called by run.sh) |
 | `crm_100.py` | Notes that Gate 7 is `make import-vanillasoft`; run.sh does not pipe this file |
 | `expected/blockers.yaml` | Named blockers beyond the wired end |
+| `test_erp_census_source.py` | Census `payload_kind` and the Gate 6 database source |
+| `test_rehearsal_web_lead_receipt.py` | Gate 5 scores `decision` `hot` and `state` `intake_created` |
 | `evidence/` | Per-run dated evidence subfolders |

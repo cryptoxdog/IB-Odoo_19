@@ -12,11 +12,13 @@ import sys
 import types
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "plasticos_partner_import"
 RUNNER = ROOT / PACKAGE / "scripts" / "run_erp_import.py"
-README = ROOT / "tests" / "production-rehearsal" / "README.md"
-GATE = ROOT / "tests" / "production-rehearsal" / "erp_slice.sh"
+KIT = Path(__file__).resolve().parent
+README = KIT / "README.md"
+GATE = KIT / "erp_slice.sh"
+RUN = KIT / "run.sh"
 
 
 def _load_write_census():
@@ -80,7 +82,22 @@ def test_census_records_payload_kind_and_origin(tmp_path):
 def test_rehearsal_refuses_the_frozen_grid():
     readme = README.read_text(encoding="utf-8")
     gate = GATE.read_text(encoding="utf-8")
+    run = RUN.read_text(encoding="utf-8")
     assert "CSV grid by default" not in readme
+    assert "If either is unset, Gate 6 is blocked" not in readme
+    assert "cieTrade_SM" in readme
+    assert "erp_extracted_data" in readme
     assert "payload_kind" in gate
     assert "database" in gate
     assert 'kind != "database"' in gate
+    assert "host.docker.internal" in gate
+    assert "cieTrade_SM" in gate
+    assert "14330" in gate
+    assert "reader.pw" in gate
+    assert "make import-erp" in gate
+    assert "make -C /mnt/extra-addons import-erp" not in gate
+    make_args = gate.split("make import-erp", 1)[1].split("2>&1", 1)[0]
+    assert "ERP_SQL_PASSWORD" not in make_args
+    assert "make import-vanillasoft" in run
+    assert "test_env.sh" in run
+    assert "VANILLASOFT_CONTACT_FLOOR" in run

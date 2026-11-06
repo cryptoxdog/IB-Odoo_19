@@ -205,11 +205,18 @@ PYEOF
   if echo "${VS_BIND_STATUS}" | grep -q "source=infisical"; then
     # Set a 7-day floor so only recent contacts are fetched (bounded rehearsal scope)
     VANILLASOFT_CALL_FLOOR="$(date -u -v-7d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)"
-    export VANILLASOFT_CALL_FLOOR
+    VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CALL_FLOOR}"
+    export VANILLASOFT_CALL_FLOOR VANILLASOFT_CONTACT_FLOOR
+    EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
+    VS_REPORT="/mnt/extra-addons/${EVIDENCE_REL}/06-crm-result.json"
 
-    VS_REPORT="${EVIDENCE_DIR}/06-crm-result.json"
-    if ODOO_DB_NAME="${CUTOVER_DB}" VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
-       make import-vanillasoft > "${EVIDENCE_DIR}/06-crm-log.txt" 2>&1; then
+    if bash "${ROOT}/scripts/test_env.sh" run "${CUTOVER_DB}" -- \
+      make import-vanillasoft \
+        ODOO_DB_NAME="${CUTOVER_DB}" \
+        VANILLASOFT_CALL_FLOOR="${VANILLASOFT_CALL_FLOOR}" \
+        VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CONTACT_FLOOR}" \
+        VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
+        > "${EVIDENCE_DIR}/06-crm-log.txt" 2>&1; then
       echo "  ✅ Gate 7 PASSED"
     else
       echo "  ❌ Gate 7 FAILED — see ${EVIDENCE_DIR}/06-crm-log.txt"

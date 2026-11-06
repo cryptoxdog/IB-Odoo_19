@@ -9,16 +9,45 @@ DB="${2:?db name required}"
 EVIDENCE_DIR="${3:?evidence_dir required}"
 
 SUMMARY_FILE="${EVIDENCE_DIR}/05-erp-summary.json"
+# The Odoo container sees the repo at /mnt/extra-addons. The summary must be
+# written there so the host evidence folder receives it through the bind mount.
+EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
+CONTAINER_SUMMARY="/mnt/extra-addons/${EVIDENCE_REL}/05-erp-summary.json"
+PROOF_PW="${HOME}/.l9/erp-proof/reader.pw"
 
 echo "→ [Gate 6] ERP 10% slice import on ${DB}"
 
-# ── Credential guard ─────────────────────────────────────────────────────────
-if [ -z "${ERP_SQL_SERVER:-}" ] || [ -z "${ERP_SQL_DATABASE:-}" ]; then
-  echo "  ❌ BLOCKED: ERP_SQL_SERVER or ERP_SQL_DATABASE is unset."
-  echo '{"gate":6,"result":"blocked","reason":"ERP_SQL_SERVER or ERP_SQL_DATABASE not set"}' > "${SUMMARY_FILE}"
+# The restored database and its reader login already exist. A .bak is not
+# opened here, and nothing is written to .env.local. An exported server and
+# database still win. The password stays in the environment, never on argv.
+if [ -z "${ERP_SQL_SERVER:-}" ] && [ -z "${ERP_SQL_DATABASE:-}" ]; then
+  if [ ! -s "${PROOF_PW}" ]; then
+    echo "  ❌ BLOCKED: ${PROOF_PW} is missing, and ERP_SQL_SERVER / ERP_SQL_DATABASE are unset."
+    echo '{"gate":6,"result":"blocked","reason":"existing ERP reader password file missing"}' > "${SUMMARY_FILE}"
+    exit 1
+  fi
+  ERP_SQL_SERVER="host.docker.internal"
+  ERP_SQL_PORT="14330"
+  ERP_SQL_DATABASE="cieTrade_SM"
+  ERP_SQL_USER="erp_reader"
+  ERP_SQL_PASSWORD="$(cat "${PROOF_PW}")"
+elif [ -z "${ERP_SQL_SERVER:-}" ] || [ -z "${ERP_SQL_DATABASE:-}" ]; then
+  echo "  ❌ BLOCKED: ERP_SQL_SERVER and ERP_SQL_DATABASE must both be set."
+  echo '{"gate":6,"result":"blocked","reason":"ERP_SQL_SERVER and ERP_SQL_DATABASE must both be set"}' > "${SUMMARY_FILE}"
   exit 1
+elif [ -z "${ERP_SQL_PASSWORD:-}" ] && [ -s "${PROOF_PW}" ]; then
+  ERP_SQL_USER="${ERP_SQL_USER:-erp_reader}"
+  ERP_SQL_PASSWORD="$(cat "${PROOF_PW}")"
 fi
-echo "  ✅ ERP credentials present (not printed)"
+if [ -z "${ERP_SQL_PORT:-}" ] && [ "${ERP_SQL_SERVER}" = "host.docker.internal" ]; then
+  ERP_SQL_PORT="14330"
+fi
+export ERP_SQL_SERVER ERP_SQL_DATABASE
+[ -n "${ERP_SQL_PORT:-}" ] && export ERP_SQL_PORT
+[ -n "${ERP_SQL_USER:-}" ] && export ERP_SQL_USER
+[ -n "${ERP_SQL_PASSWORD:-}" ] && export ERP_SQL_PASSWORD
+echo "  ✅ ERP source ${ERP_SQL_SERVER}:${ERP_SQL_PORT:-1433}/${ERP_SQL_DATABASE} (credential not printed)"
+echo "  ✅ Projection scripts: plasticos_partner_import/erp_extracted_data"
 
 # ── Safety guards ─────────────────────────────────────────────────────────────
 if [ "${ODOO_STAGE:-}" = "production" ]; then
@@ -45,14 +74,14 @@ fi
 # ── Run import via test_env.sh run ────────────────────────────────────────────
 echo "  → Running import-erp LIMIT=10% on ${DB}..."
 bash "${ROOT}/scripts/test_env.sh" run "${DB}" -- \
-  make -C /mnt/extra-addons import-erp \
+  make import-erp \
     ODOO_DB_NAME="${DB}" \
     LIMIT=10% \
     ERP_SQL_SERVER="${ERP_SQL_SERVER}" \
+    ERP_SQL_PORT="${ERP_SQL_PORT:-1433}" \
     ERP_SQL_DATABASE="${ERP_SQL_DATABASE}" \
     ${ERP_SQL_USER:+ERP_SQL_USER="${ERP_SQL_USER}"} \
-    ${ERP_SQL_PASSWORD:+ERP_SQL_PASSWORD="${ERP_SQL_PASSWORD}"} \
-    REPORT_PATH="${SUMMARY_FILE}" \
+    REPORT_PATH="${CONTAINER_SUMMARY}" \
   2>&1
 
 IMPORT_EXIT=$?
