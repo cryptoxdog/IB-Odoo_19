@@ -6,6 +6,7 @@ phantom-enum audit for plasticos_* modules.
 
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -13,16 +14,15 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from scripts.evidence_odoo_mapping_consumer import (  # noqa: E402
-    EvidenceApplyInput,
-    EvidenceOdooMapping,
-    MappingPolicy,
-    MappingProjection,
-    OdooFieldState,
-    build_review_proposal,
-    decide_apply,
-    load_evidence_odoo_mapping,
-)
+_mapping = importlib.import_module("scripts.evidence_odoo_mapping_consumer")
+EvidenceApplyInput = _mapping.EvidenceApplyInput
+EvidenceOdooMapping = _mapping.EvidenceOdooMapping
+MappingPolicy = _mapping.MappingPolicy
+MappingProjection = _mapping.MappingProjection
+OdooFieldState = _mapping.OdooFieldState
+build_review_proposal = _mapping.build_review_proposal
+decide_apply = _mapping.decide_apply
+load_evidence_odoo_mapping = _mapping.load_evidence_odoo_mapping
 
 CONTRACT_PATH = Path(__file__).resolve().parents[1] / "data" / "evidence_odoo_mapping.json"
 

@@ -15,6 +15,9 @@ pytest-cov==5.0.0
 # Directly imported by the pure web-lead attachment component; mirrors the
 # declaration in requirements.txt and the Odoo-free CI manifests.
 requests>=2.28.0
+# Odoo 19's pin for Python 3.12. The editor interpreter is this venv, and
+# plasticos_crm_bridge imports markupsafe.Markup. Odoo.sh already has it.
+MarkupSafe==2.1.5
 # XML parse in tests/test_phantom_enum_values.py. Pin matches ci.yml pure-python-tests.
 defusedxml==0.7.1
 # Direct read of the restored ERP SQL Server database (plasticos_partner_import/erp/reader.py,

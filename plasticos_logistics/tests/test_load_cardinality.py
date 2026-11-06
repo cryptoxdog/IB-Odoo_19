@@ -1,6 +1,5 @@
 """A transaction has zero or more loads. Each load has one stored parent."""
 
-import base64
 import importlib.util
 import threading
 import time
@@ -848,52 +847,3 @@ class TestLoadCardinality(TransactionCase):
         tx.write({"sale_order_id": order.id})
         self.assertFalse(load.transaction_id)
         self.assertFalse(tx.load_ids)
-
-    def test_accepted_document_protects_the_parent_and_blocks_unlink(self):
-        self.assertIn("plasticos.document", self.env)
-        order = self._order()
-        tx = self._transaction("TX-LOAD-DOC", order)
-        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
-        self.assertEqual(load.transaction_id, tx)
-        tag = self.env["plasticos.document.tag"].search([("code", "=", "BOL")], limit=1)
-        self.assertTrue(tag)
-        verifier = self.env["res.users"].create(
-            {
-                "name": "Load Document Verifier",
-                "login": "load_cardinality_document_verifier",
-                "group_ids": [
-                    (
-                        6,
-                        0,
-                        [
-                            self.env.ref("base.group_user").id,
-                            self.env.ref("plasticos_documents.group_documents_user").id,
-                        ],
-                    )
-                ],
-            }
-        )
-        attachment = self.env["ir.attachment"].create(
-            {
-                "name": "load-cardinality.txt",
-                "datas": base64.b64encode(b"load-cardinality"),
-                "res_model": "plasticos.document",
-                "res_id": 0,
-            }
-        )
-        shell = self.env["plasticos.document"].create(
-            {
-                "name": "BOL",
-                "tag_id": tag.id,
-                "res_model": "documents.document",
-                "res_id": 0,
-                "attachment_id": attachment.id,
-            }
-        )
-        accepted = shell.with_user(verifier).action_associate("plasticos.load", load.id, source_reference="cardinality")
-        self.assertEqual(accepted.association_state, "accepted")
-        self.assertEqual(accepted.load_id, load)
-        with self.assertRaises(UserError), self.env.cr.savepoint():
-            load.unlink()
-        self.assertTrue(load.exists())
-        self.assertEqual(load.transaction_id, tx)

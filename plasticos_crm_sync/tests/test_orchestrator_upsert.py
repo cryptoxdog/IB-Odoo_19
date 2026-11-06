@@ -30,6 +30,56 @@ from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
 
+class _RunConnectionAdapter:
+    """Contact-page adapter for one orchestrator run. Holds the page the test supplies."""
+
+    def __init__(self, leads, recent):
+        self._leads = leads
+        self._recent = recent
+
+    def healthcheck(self):
+        return True
+
+    def iter_contacts(self, **_kwargs):
+        yield self._leads, self._recent, False
+
+    def iter_calls(self, **_kwargs):
+        return iter(())
+
+    def iter_table_rows(self, _contact_external_id):
+        return iter(())
+
+
+class _PalletTableAdapter:
+    def iter_table_rows(self, contact_id):
+        yield CanonicalTableRow(
+            provider="vanillasoft",
+            contact_external_id=contact_id,
+            table_id="9",
+            table_name="Materials",
+            external_row_id="row-1",
+            fields={"Material": "Pallets"},
+        )
+
+
+class _ExcludedFieldTableAdapter:
+    def iter_table_rows(self, contact_id):
+        yield CanonicalTableRow(
+            provider="vanillasoft",
+            contact_external_id=contact_id,
+            table_id="9",
+            table_name="Materials",
+            external_row_id="excl-row",
+            fields={
+                "Material": "HDPE Drums",
+                "Notes": "ordinary notes mention Load Ready",
+                "FOB/FAS (HDPE)": "EXCL-FOB",
+                "Equipment": "EXCL-EQUIPMENT",
+                "Load Ready": "EXCL-LOAD-READY",
+            },
+        )
+
+
 class CrmSyncOrchestratorCase(TransactionCase):
     @classmethod
     def setUpClass(cls):
@@ -603,22 +653,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
 
         recent = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        class _Adapter:
-            def healthcheck(self):
-                return True
-
-            def iter_contacts(self, **_kwargs):
-                yield leads, recent, False
-
-            def iter_calls(self, **_kwargs):
-                return iter(())
-
-            def iter_table_rows(self, _contact_external_id):
-                return iter(())
-
         self.env["ir.config_parameter"].sudo().set_param("plasticos_crm_sync.approved_contact_crosswalk", "")
         orch = SyncOrchestrator(self.env)
-        orch._build_adapter = lambda _connection: _Adapter()
+        orch._build_adapter = lambda _connection: _RunConnectionAdapter(leads, recent)
         orch._try_advisory_lock = lambda _key: True
         orch._advisory_unlock = lambda _key: None
 
@@ -741,17 +778,6 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         lead = orch._upsert_lead(self.connection, self._lead("vs-table-mat"))
         lead.partner_id = facility
 
-        class Adapter:
-            def iter_table_rows(self, contact_id):
-                yield CanonicalTableRow(
-                    provider="vanillasoft",
-                    contact_external_id=contact_id,
-                    table_id="9",
-                    table_name="Materials",
-                    external_row_id="row-1",
-                    fields={"Material": "Pallets"},
-                )
-
         calls = []
         original = material_normalizer.normalize_material
 
@@ -766,14 +792,14 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             )
 
         with patch.object(material_normalizer, "normalize_material", wrapped):
-            orch._sync_tables_for_lead(self.connection, Adapter(), "vs-table-mat", lead)
+            orch._sync_tables_for_lead(self.connection, _PalletTableAdapter(), "vs-table-mat", lead)
         self.assertIn("Pallets", calls)
         profile = self._profiles(facility)
         self.assertEqual(profile.polymer_id.code, "PLASTIC_PALLETS")
         self.assertFalse(profile.form_id)
         notes = profile.freeform_notes
         with patch.object(material_normalizer, "normalize_material", wrapped):
-            orch._sync_tables_for_lead(self.connection, Adapter(), "vs-table-mat", lead)
+            orch._sync_tables_for_lead(self.connection, _PalletTableAdapter(), "vs-table-mat", lead)
         profile = self._profiles(facility)
         self.assertEqual(len(profile), 1)
         self.assertEqual(profile.freeform_notes, notes)
@@ -1754,23 +1780,6 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self._assert_tokens_absent(tokens, text)
         self._assert_tokens_absent(tokens, self._profile_notes(lead))
 
-        class Adapter:
-            def iter_table_rows(self, contact_id):
-                yield CanonicalTableRow(
-                    provider="vanillasoft",
-                    contact_external_id=contact_id,
-                    table_id="9",
-                    table_name="Materials",
-                    external_row_id="excl-row",
-                    fields={
-                        "Material": "HDPE Drums",
-                        "Notes": "ordinary notes mention Load Ready",
-                        "FOB/FAS (HDPE)": "EXCL-FOB",
-                        "Equipment": "EXCL-EQUIPMENT",
-                        "Load Ready": "EXCL-LOAD-READY",
-                    },
-                )
-
         row_model = self.env["plasticos.crm.external.table.row"]
         dirty = row_model.create(
             {
@@ -1783,8 +1792,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
                 "fields_json": {"Material": "HDPE Drums", "FOB/FAS (HDPE)": "EXCL-FOB"},
             }
         )
-        orch._sync_tables_for_lead(self.connection, Adapter(), "vs-excl-1", lead)
-        orch._sync_tables_for_lead(self.connection, Adapter(), "vs-excl-1", lead)
+        orch._sync_tables_for_lead(self.connection, _ExcludedFieldTableAdapter(), "vs-excl-1", lead)
+        orch._sync_tables_for_lead(self.connection, _ExcludedFieldTableAdapter(), "vs-excl-1", lead)
         self.assertEqual(row_model.search_count([("external_row_id", "=", "excl-row")]), 1)
         stored = dirty.fields_json
         self.assertEqual(stored.get("Material"), "HDPE Drums")
@@ -1794,7 +1803,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self._assert_tokens_absent(tokens, self._profile_notes(lead))
 
         orphan_model = self.env["plasticos.crm.sync.orphan"]
-        orch._sync_tables_for_lead(self.connection, Adapter(), "vs-excl-orphan", None)
+        orch._sync_tables_for_lead(self.connection, _ExcludedFieldTableAdapter(), "vs-excl-orphan", None)
         buffered = orphan_model.search([("contact_external_id", "=", "vs-excl-orphan"), ("kind", "=", "table_row")])
         self.assertEqual(len(buffered), 1)
         self._assert_tokens_absent(tokens, str(buffered.payload_json))
@@ -1819,7 +1828,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
                 },
             }
         )
-        orch._resolve_orphans(self.connection, Adapter(), None)
+        orch._resolve_orphans(self.connection, _ExcludedFieldTableAdapter(), None)
         landed = row_model.search([("external_row_id", "=", "excl-dirty-orphan")])
         self.assertEqual(len(landed), 1)
         self.assertEqual(landed.fields_json.get("Material"), "Pallets")

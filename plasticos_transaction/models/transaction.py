@@ -29,7 +29,7 @@ def _signed_move_total(moves) -> float:
 class PlasticosTransaction(models.Model):
     _name = "plasticos.transaction"
     _description = "Plasticos Transaction"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "mail.activity.mixin"]
 
     name = fields.Char(required=True, copy=False, default="New")
 
