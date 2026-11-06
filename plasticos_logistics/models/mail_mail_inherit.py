@@ -28,10 +28,10 @@ class MailMailInherit(models.Model):
     _inherit = "mail.mail"
 
     def send(self, auto_commit=False, raise_exception=False, post_send_callback=None):
-        # sudo: transport bookkeeping must see every Linda request and mail whatever user runs
-        # the queue; it only cancels or annotates Linda's own mail.
-        requests = self.env[LOGISTICS_REQUEST].sudo()
-        withheld, linda_mails, held = requests._guard_mails_before_send(self.sudo())
+        requests = self.env[LOGISTICS_REQUEST].sudo()  # sudo: queue bookkeeping reads every Linda request
+        withheld, linda_mails, held = requests._guard_mails_before_send(
+            self.sudo()  # sudo: queue may run as any user; only Linda mail is guarded
+        )
         options = {
             "auto_commit": auto_commit,
             "raise_exception": raise_exception,
@@ -63,7 +63,7 @@ class MailMailInherit(models.Model):
         mail_ids = tuple(mails.ids)
         if not mail_ids:
             return set()
-        requests = self.env[LOGISTICS_REQUEST].sudo()
+        requests = self.env[LOGISTICS_REQUEST].sudo()  # sudo: queue claim reads Linda rows by mail id
         if requests._table != REQUEST_TABLE:
             raise RuntimeError("Linda request storage name drifted")
         self.env.cr.execute(
@@ -86,7 +86,7 @@ class MailMailInherit(models.Model):
         two queue workers from both passing ``_guard_mails_before_send`` and
         both reaching SMTP.
         """
-        requests = self.env[LOGISTICS_REQUEST].sudo()
+        requests = self.env[LOGISTICS_REQUEST].sudo()  # sudo: queue claim locks the Linda request row
         if requests._table != REQUEST_TABLE:
             raise RuntimeError("Linda request storage name drifted")
         requests.flush_model()
@@ -183,12 +183,11 @@ class MailMailInherit(models.Model):
             failure_reason=failure_reason,
             failure_type=failure_type,
         )
-        # sudo: same bookkeeping scope as send(); mirrors only Linda mail.
         # The id lookup is raw SQL, so an ordinary message does not flush the request table.
         existing = self.exists()
         linda_ids = self._linda_request_mail_ids(existing)
         if linda_ids:
-            self.env[LOGISTICS_REQUEST].sudo()._reconcile_mails(
+            self.env[LOGISTICS_REQUEST].sudo()._reconcile_mails(  # sudo: mirrors only Linda mail after send
                 existing.filtered(lambda mail: mail.id in linda_ids),
                 failure_type=failure_type,
             )

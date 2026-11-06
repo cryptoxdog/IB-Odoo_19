@@ -285,13 +285,9 @@ class FacilityProfileCrmOwnership(models.Model):
         """Records mail.thread deletes by model and id, when that row cannot be retargeted."""
         if "mail.scheduled.message" not in self.env:
             return []
-        scheduled = (
-            self.env["mail.scheduled.message"]
-            .sudo()  # sudo: sync ACL cannot read a scheduled message
-            .search(
-                [("model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)],
-                limit=1,
-            )
+        scheduled = self.env["mail.scheduled.message"].search(
+            [("model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)],
+            limit=1,
         )
         if not scheduled:
             return []
@@ -302,13 +298,7 @@ class FacilityProfileCrmOwnership(models.Model):
         attachments = self.env["ir.attachment"].search([("res_model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)])
         if attachments:
             attachments.write({"res_id": target.id})
-        messages = (
-            self.env["mail.message"]
-            .sudo()
-            .search(  # sync ACL cannot read chatter; unlink would drop it
-                [("model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)]
-            )
-        )
+        messages = self.env["mail.message"].search([("model", "=", _PROFILE_MODEL), ("res_id", "=", source.id)])
         if messages:
             messages.write({"res_id": target.id})
         self._retarget_followers(source, target)

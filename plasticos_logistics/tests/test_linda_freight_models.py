@@ -65,8 +65,9 @@ class TestLindaFreightModels(PlasticosTestCase):
         # Odoo 19: the user/group relation is ``group_ids`` (``groups_id`` was removed).
         return self.env["res.users"].create({"name": login, "login": login, "group_ids": [(6, 0, groups.ids)]})
 
-    def _new_load(self):
+    def _new_load(self, buyer=None):
         # polymer_id / form_id are required=True (plasticos_intake/models/intake.py:181-196).
+        buyer = buyer or self.destination
         intake = self.env["plasticos.intake"].create(
             {
                 "partner_id": self.origin.id,
@@ -74,12 +75,12 @@ class TestLindaFreightModels(PlasticosTestCase):
                 "form_id": self.default_form.id,
             }
         )
-        sale = self.env["sale.order"].create({"partner_id": self.destination.id})
+        sale = self.env["sale.order"].create({"partner_id": buyer.id})
         load = self.env["plasticos.load"].create(
             {
                 "sale_order_id": sale.id,
                 "pickup_partner_id": self.origin.id,
-                "delivery_partner_id": self.destination.id,
+                "delivery_partner_id": buyer.id,
                 "reference_weight": 40000,
                 "rate_currency_id": self.currency.id,
             }
@@ -88,7 +89,7 @@ class TestLindaFreightModels(PlasticosTestCase):
             {
                 "sale_order_id": sale.id,
                 "supplier_id": self.origin.id,
-                "buyer_id": self.destination.id,
+                "buyer_id": buyer.id,
                 "intake_id": intake.id,
             }
         )
@@ -291,25 +292,34 @@ class TestLindaFreightModels(PlasticosTestCase):
             resolution_method="manual",
             context_fingerprint=context.fingerprint,
         )
-        sale = load.sale_order_id
-        lane_key = f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}"
+        other_buyer = self.env["res.partner"].create(
+            {"name": "Linda Other Buyer", "is_company": True, "customer_rank": 1}
+        )
+        other_load, other_context = self._new_load(buyer=other_buyer)
+        other_load._confirm_freight_rate(
+            rate=1100.0,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=other_context.fingerprint,
+        )
+
+        def legacy_vals(confirmed_load, amount):
+            sale = confirmed_load.sale_order_id
+            return {
+                "carrier_id": self.carrier.id,
+                "lane_key": f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}",
+                "rate_amount": amount,
+                "rate_date": fields.Date.to_date(confirmed_load.rate_confirmed_at),
+            }
+
         # sudo() justification: legacy rate memory is frozen for every role (no ACL grants
         # create); the fixture rows stand in for pre-existing cache rows seeded before the freeze.
         legacy_rows = (
             self.env["plasticos.rate.memory"]
             .sudo()
             .with_context(plasticos_logistics_legacy_rate_memory_migration=True)
-            .create(
-                [
-                    {
-                        "carrier_id": self.carrier.id,
-                        "lane_key": lane_key,
-                        "rate_amount": amount,
-                        "rate_date": fields.Date.to_date(load.rate_confirmed_at),
-                    }
-                    for amount in (1000.0, 1100.0)
-                ]
-            )
+            .create([legacy_vals(load, 1000.0), legacy_vals(other_load, 1100.0)])
         )
         evidence_cls = type(self.env[RATE_MEMORY_RECONCILIATION])
         real_create = evidence_cls.create
@@ -325,7 +335,7 @@ class TestLindaFreightModels(PlasticosTestCase):
         evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "in", legacy_rows.ids)])
         self.assertEqual(len(evidence), 2)
         self.assertEqual(set(evidence.mapped("disposition")), {"exact_single_match"})
-        self.assertEqual(evidence.mapped("canonical_load_id"), load)
+        self.assertEqual(set(evidence.mapped("canonical_load_id").ids), {load.id, other_load.id})
         # A second reconciliation of the same rows adds nothing.
         legacy_rows.action_reconcile_to_canonical_history()
         self.assertEqual(
