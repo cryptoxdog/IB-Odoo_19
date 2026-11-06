@@ -57,6 +57,7 @@ KNOWN_ODOO_ADDONS = frozenset(
         "purchase",
         "purchase_stock",
         "sale",
+        "sale_crm",
         "sale_management",
         "sale_stock",
         "sales_team",
