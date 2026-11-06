@@ -13,55 +13,74 @@ PAYLOAD="$(dirname "$0")/payloads/cognito_hot.json"
 RESULT_FILE="${EVIDENCE_DIR}/04-weblead-result.json"
 
 echo "→ [Gate 5] Web lead e2e on ${DB}:${PORT}"
+mkdir -p "${EVIDENCE_DIR}"
+TOKEN_LOG="${EVIDENCE_DIR}/04-weblead-token.log"
 
-# ── 1. Fetch the bearer token from the clone's ICP ──────────────────────────
-echo "  → Fetching bearer token from clone ICP (not printed)..."
-BEARER=$(docker compose -f "${ROOT}/docker-compose.yml" run --rm \
-  -e ODOO_DB="${DB}" \
-  odoo-test \
-  python3 -c "
-import sys, os
-sys.path.insert(0, '/mnt/extra-addons')
-os.environ.setdefault('ODOO_DB', '${DB}')
-import odoo
-odoo.tools.config.parse_config(['--config=/etc/odoo/odoo.conf', '-d', '${DB}'])
-with odoo.api.Environment.manage():
-    from odoo import registry
-    reg = registry('${DB}')
-    with reg.cursor() as cr:
-        env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
-        icp = env['ir.config_parameter']
-        key = icp.sudo().get_param('plasticos.web_lead.api_key', default='')
-        print(key)
-" 2>/dev/null | tr -d '[:space:]')
-
-if [ -z "${BEARER}" ]; then
-  echo "  ❌ No bearer token in ICP for ${DB}; copying from compose 'odoo' database..."
-  BEARER=$(docker compose -f "${ROOT}/docker-compose.yml" run --rm \
+# Same SELECT the controller uses in web_lead_api.py before authenticate().
+read_config_key() {
+  local db="$1"
+  docker compose -f "${ROOT}/docker-compose.yml" run --rm \
+    -e ODOO_DB="${db}" \
     odoo-test \
     python3 -c "
-import sys, os
-sys.path.insert(0, '/mnt/extra-addons')
-os.environ.setdefault('ODOO_DB', 'odoo')
-import odoo
-odoo.tools.config.parse_config(['--config=/etc/odoo/odoo.conf', '-d', 'odoo'])
-with odoo.api.Environment.manage():
-    from odoo import registry
-    try:
-        reg = registry('odoo')
-        with reg.cursor() as cr:
-            env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
-            icp = env['ir.config_parameter']
-            key = icp.sudo().get_param('plasticos.web_lead.api_key', default='')
-            print(key)
-    except Exception:
-        print('')
-" 2>/dev/null | tr -d '[:space:]')
-fi
+import odoo.tools
+from odoo.modules.registry import Registry
+odoo.tools.config.parse_config(['--config=/etc/odoo/odoo.conf', '-d', '${db}'])
+reg = Registry('${db}')
+with reg.cursor() as cr:
+    cr.execute(
+        '''
+        SELECT api_key
+        FROM plasticos_web_lead_config
+        WHERE COALESCE(is_active, TRUE) IS TRUE
+          AND api_key IS NOT NULL
+          AND BTRIM(api_key) <> %s
+        ORDER BY id ASC
+        LIMIT 1
+        ''',
+        ('',),
+    )
+    row = cr.fetchone()
+    print((row[0] if row else '').strip())
+" 2>>"${TOKEN_LOG}" | tr -d '[:space:]'
+}
 
+# ── 1. Bearer from plasticos.web.lead.config, the row the webhook checks ──
+echo "  → Reading plasticos.web.lead.config.api_key on ${DB} (not printed)..."
+BEARER="$(read_config_key "${DB}")"
+KEY_ON_CUTOVER=1
+if [ -z "${BEARER}" ] && [ "${DB}" != "odoo" ]; then
+  KEY_ON_CUTOVER=0
+  echo "  → Cutover config has no key; reading the same field on database odoo..."
+  BEARER="$(read_config_key odoo)"
+fi
+if [ -z "${BEARER}" ] && [ -n "${ODOO_WEB_LEAD_API_KEY:-}" ]; then
+  KEY_ON_CUTOVER=0
+  BEARER="${ODOO_WEB_LEAD_API_KEY}"
+  echo "  → Using ODOO_WEB_LEAD_API_KEY; it will be written onto the cutover config row."
+fi
 if [ -z "${BEARER}" ]; then
-  echo "  ❌ BLOCKED: no API key found. Set plasticos.web_lead.api_key ICP in ${DB} or in the odoo DB." | tee "${RESULT_FILE}"
+  echo "  ❌ BLOCKED: plasticos.web.lead.config.api_key is empty on ${DB}." | tee "${RESULT_FILE}"
   exit 1
+fi
+if [ "${KEY_ON_CUTOVER}" -eq 0 ]; then
+  echo "  → Writing that key onto ${DB} plasticos.web.lead.config so the webhook can read it..."
+  docker compose -f "${ROOT}/docker-compose.yml" run --rm \
+    -e ODOO_DB="${DB}" \
+    -e WEB_LEAD_BEARER="${BEARER}" \
+    odoo-test \
+    python3 -c "
+import os
+import odoo.tools
+from odoo.modules.registry import Registry
+odoo.tools.config.parse_config(['--config=/etc/odoo/odoo.conf', '-d', '${DB}'])
+reg = Registry('${DB}')
+with reg.cursor() as cr:
+    env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+    config = env['plasticos.web.lead.config'].get_config()
+    config.write({'api_key': os.environ['WEB_LEAD_BEARER'], 'is_active': True})
+    cr.commit()
+" >>"${TOKEN_LOG}" 2>&1
 fi
 
 # ── 2. Start Odoo HTTP on rehearsal port ────────────────────────────────────

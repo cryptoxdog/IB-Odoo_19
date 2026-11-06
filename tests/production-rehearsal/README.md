@@ -37,12 +37,11 @@ Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and committed with the kit.
 > `plasticos_crm_sync.vanillasoft_api_key` ICP param of `odoo_test_cutover`. The key is never
 > printed, never echoed, and never stored in the kit or evidence.
 
-### Optional / go-live only
+### ERP source
 
-- `ERP_SQL_SERVER` / `ERP_SQL_DATABASE` in `.env.local` — only needed if you want to restore
-  a fresh `.bak` via SQL Server. The ERP gate uses the pre-extracted CSV grid by default
-  (`erp_extracted_data/bulk/`). For go-live with a new `.bak`: restore on Windows SQL Server,
-  run the projection scripts to refresh the CSVs, then proceed.
+Gate 6 reads the restored ERP database. A `.bak` is the restore input; the importer does not open it. Restore the backup into SQL Server, then set `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` to that server and database before `run.sh`. The values are not printed. If either is unset, Gate 6 is blocked and VanillaSoft does not start.
+
+The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`. Only `database` passes.
 
 ## Evidence structure
 
