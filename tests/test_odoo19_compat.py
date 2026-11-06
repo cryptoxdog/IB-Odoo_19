@@ -48,7 +48,36 @@ _SQL_JUSTIFIED_FILES = {
     "plasticos_intake_normalizer/models/": "Batch normalization operations",
     # Test files use SQL to force states/data for edge case testing
     "/tests/": "Test fixture setup",
+    # Linda mail send: one read of flushed Linda rows, and a FOR UPDATE row lock so
+    # two mail workers cannot both reach SMTP for the same message
+    "plasticos_logistics/models/mail_mail_inherit.py": "Flushed Linda read and FOR UPDATE send lock",
+    # PostgreSQL advisory lock, the same accepted pattern as transaction.py
+    "plasticos_matching/models/match_exclusion.py": "Advisory lock for concurrency",
+    # Public route: compares the bearer token with every active api_key, a field
+    # restricted to groups="base.group_system"
+    "plasticos_web_leads/controllers/web_lead_api.py": "Bearer token check against group_system api_key",
 }
+
+_SQL_JUSTIFICATION_KEYWORDS = ("justification", "advisory", "performance", "atomic", "bulk")
+
+
+def _unjustified_sql_lines(py_file: str, lines: list[str]) -> list[str]:
+    """``path:line: source`` for each ``env.cr.execute`` that is neither allowlisted nor justified.
+
+    A path is allowlisted when it ends with, or contains, a ``_SQL_JUSTIFIED_FILES``
+    key. Otherwise a call needs a justification keyword on its own line or the line above.
+    """
+    if any(py_file.endswith(approved) or approved in py_file for approved in _SQL_JUSTIFIED_FILES):
+        return []
+    violations = []
+    for i, line in enumerate(lines, 1):
+        if "env.cr.execute" not in line:
+            continue
+        context_text = " ".join(lines[max(0, i - 2) : i]).lower()
+        if not any(kw in context_text for kw in _SQL_JUSTIFICATION_KEYWORDS):
+            violations.append(f"{py_file}:{i}: {line.strip()}")
+    return violations
+
 
 # Files/patterns where groups_id usage is valid (res.users manipulation, not ir.model.access)
 _GROUPS_ID_VALID_PATTERNS = [
@@ -185,31 +214,34 @@ class TestOdoo19APICompat(unittest.TestCase):
         self.assertEqual(violations, [], "Found old-style _constraints:\n" + "\n".join(violations))
 
     def test_no_direct_sql_without_justification(self):
-        """Direct SQL (env.cr.execute) should have a comment justification.
+        """Direct SQL (env.cr.execute) is allowlisted or carries a justification keyword.
 
         Files in _SQL_JUSTIFIED_FILES are pre-approved with documented reasons.
-        Other files need inline justification comments.
+        Other files need a justification keyword on the call line or the line above.
+        Scope is _PLASTICOS_MODULES only.
         """
         violations = []
         for py_file in _find_py_files():
-            # Skip pre-approved files (documented in _SQL_JUSTIFIED_FILES)
-            if any(py_file.endswith(approved) or approved in py_file for approved in _SQL_JUSTIFIED_FILES):
-                continue
             with open(py_file) as f:
-                lines = f.readlines()
-            for i, line in enumerate(lines, 1):
-                if "env.cr.execute" in line or "self.env.cr.execute" in line:
-                    # Check for justification comment on same or previous line
-                    context = lines[max(0, i - 2) : i]
-                    context_text = " ".join(context)
-                    justification_keywords = ["justification", "advisory", "performance", "atomic", "bulk"]
-                    if not any(kw in context_text.lower() for kw in justification_keywords):
-                        violations.append(f"{py_file}:{i}: {line.strip()}")
-        # Soft check — warning only for new violations
-        if violations:
-            import warnings
+                violations.extend(_unjustified_sql_lines(py_file, f.readlines()))
+        self.assertEqual(violations, [], "SQL without justification:\n" + "\n".join(violations))
 
-            warnings.warn("SQL without justification:\n" + "\n".join(violations[:5]), stacklevel=2)
+    def test_sql_classifier_rejects_an_unjustified_call(self):
+        """Negative case: an unlisted path with a bare env.cr.execute is a violation."""
+        lines = ["def _run(self):\n", "    self.env.cr.execute(\n", '        "SELECT 1"\n', "    )\n"]
+        self.assertEqual(
+            _unjustified_sql_lines("plasticos_example/models/example.py", lines),
+            ["plasticos_example/models/example.py:2: self.env.cr.execute("],
+        )
+
+    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
+        lines = ["def _run(self):\n", "    self.env.cr.execute(\n"]
+        for path in (
+            "plasticos_logistics/models/mail_mail_inherit.py",
+            "plasticos_matching/models/match_exclusion.py",
+            "plasticos_web_leads/controllers/web_lead_api.py",
+        ):
+            self.assertEqual(_unjustified_sql_lines(path, lines), [], path)
 
 
 class TestOdoo19XMLCompat(unittest.TestCase):
@@ -262,11 +294,7 @@ class TestOdoo19XMLCompat(unittest.TestCase):
                         if "<!--" in line:
                             continue
                         violations.append(f"{xml_file}:{i}: {line.strip()}")
-        # Soft check — Odoo still supports <tree> but <list> is preferred
-        if violations:
-            import warnings
-
-            warnings.warn("Found <tree> (prefer <list>):\n" + "\n".join(violations[:5]), stacklevel=2)
+        self.assertEqual(violations, [], "Found <tree> (use <list>):\n" + "\n".join(violations))
 
     def test_xml_well_formed(self):
         """All XML files should be well-formed."""
