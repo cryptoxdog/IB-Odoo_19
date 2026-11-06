@@ -103,6 +103,20 @@ def test_generic_comment_is_not_a_justification(tmp_path: Path):
     assert [item["line"] for item in _findings(tmp_path)] == [3]
 
 
+def test_prefix_less_same_line_comment_is_not_a_justification(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def recompute(self):
+            projected = self.sudo()  # compliance flags are a system effect of document association
+            return projected
+        """,
+    )
+    findings = _findings(tmp_path)
+    assert [item["line"] for item in findings] == [3]
+    assert findings[0]["type"] == "UNJUSTIFIED_SUDO"
+
+
 def test_empty_marker_is_not_a_justification(tmp_path: Path):
     _write(
         tmp_path,
@@ -209,7 +223,7 @@ def test_finding_schema_is_preserved(tmp_path: Path):
     (finding,) = _findings(tmp_path)
     assert set(finding) == {"type", "severity", "file", "line", "code", "message", "fix"}
     assert finding["type"] == "UNJUSTIFIED_SUDO"
-    assert finding["severity"] == "MODERATE"
+    assert finding["severity"] == "HIGH"
     assert finding["file"] == "models/sample.py"
     assert "proof of authorization" in finding["fix"]
 

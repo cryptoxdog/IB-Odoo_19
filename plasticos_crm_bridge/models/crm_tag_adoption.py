@@ -21,16 +21,14 @@ def role_tag_binding(env, name, xmlid):
     module, xml_name = xmlid.split(".", 1)
     data = (
         env["ir.model.data"]
-        .sudo()
-        .search(  # XML-id metadata, not a CRM customer record
-            [("module", "=", module), ("name", "=", xml_name)]
-        )
+        .sudo()  # sudo: sync reads one ir.model.data row; core grants it to group_erp_manager
+        .search([("module", "=", module), ("name", "=", xml_name)])
     )
     if not data:
         return MISSING_ROLE_TAG_BINDING
     if len(data) != 1 or data.model != "crm.tag":
         return None
-    tag = env["crm.tag"].sudo().browse(data.res_id).exists()  # role-tag row, not a customer record
+    tag = env["crm.tag"].sudo().browse(data.res_id).exists()  # sudo: sync reads the role tag named by the XML id
     if len(tag) != 1 or tag._name != "crm.tag" or tag.name != name:
         return None
     return tag
@@ -44,12 +42,12 @@ def adopt_role_tag(env, name, xmlid) -> bool:
         return False
     if found is not MISSING_ROLE_TAG_BINDING:
         return True
-    tags = env["crm.tag"].sudo().search([("name", "=", name)])  # installer reads role tags
+    tags = env["crm.tag"].search([("name", "=", name)])  # installer reads role tags
     if len(tags) != 1:
         if tags:
             return False
-        tags = env["crm.tag"].sudo().create({"name": name})  # installer creates the only role tag
-    env["ir.model.data"].sudo().create(  # installer binds the XML id to that tag
+        tags = env["crm.tag"].create({"name": name})  # installer creates the only role tag
+    env["ir.model.data"].create(  # installer binds the XML id to that tag
         {
             "module": module,
             "name": xml_name,

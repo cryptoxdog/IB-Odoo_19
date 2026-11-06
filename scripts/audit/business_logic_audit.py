@@ -207,7 +207,7 @@ class BusinessLogicAudit:
                 errors.append(
                     {
                         "type": "UNJUSTIFIED_SUDO",
-                        "severity": "MODERATE",
+                        "severity": "HIGH",
                         "file": str(py_file.relative_to(self.root_dir)),
                         "line": i,
                         "code": lines[i - 1].strip(),

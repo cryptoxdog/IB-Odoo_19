@@ -537,10 +537,8 @@ class PlasticosDocumentNativeBridge(models.Model):
             return self.env["res.company"]
         natives = (
             self.env["documents.document"]
-            .sudo()
-            .search(  # original company identity only; not an acceptance grant
-                [("attachment_id", "=", attachment.id), ("shortcut_document_id", "=", False)]
-            )
+            .sudo()  # sudo: original company identity only; not an acceptance grant
+            .search([("attachment_id", "=", attachment.id), ("shortcut_document_id", "=", False)])
         )
         companies = natives.mapped("company_id")
         if len(companies) > 1:

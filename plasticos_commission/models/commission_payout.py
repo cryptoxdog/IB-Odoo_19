@@ -129,7 +129,7 @@ class PlasticosCommissionPayout(models.Model):
             return marked
         source_rows = (
             self.env["ir.model.data"]
-            .sudo()
+            .sudo()  # sudo: core grants ir.model.data to group_erp_manager; reads legacy sale markers
             .search(
                 [
                     ("module", "=", "plasticos_transaction"),

@@ -324,8 +324,11 @@ class PlasticosLogisticsRequest(models.Model):
     @api.model
     def _linda_mode(self):
         """Configured Linda mode; anything unrecognized fails closed to ``off``."""
-        # sudo: reading one system parameter; purchase users have no ir.config_parameter access.
-        value = self.env["ir.config_parameter"].sudo().get_param(LINDA_MODE_PARAM, LINDA_MODE_OFF)
+        value = (
+            self.env["ir.config_parameter"]
+            .sudo()  # sudo: purchase users cannot read ir.config_parameter
+            .get_param(LINDA_MODE_PARAM, LINDA_MODE_OFF)
+        )
         mode = (value or LINDA_MODE_OFF).strip().lower()
         return mode if mode in LINDA_MODES else LINDA_MODE_OFF
 
@@ -587,10 +590,7 @@ class PlasticosLogisticsRequest(models.Model):
         mode = self._linda_mode()
         if mode == LINDA_MODE_OFF or any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS):
             return self.browse()
-        # sudo: evidence bookkeeping only. Roles allowed to confirm an order differ, and a
-        # missing evidence right must not roll back a native approval. Company, order and
-        # party are copied from the exact order; nothing is chosen.
-        evidence = self.sudo()
+        evidence = self.sudo()  # sudo: order confirm records Linda evidence without rolling back approval
         requests = self.browse()
         for order in orders:
             requests |= evidence._issue_order(order, mode, purpose)
@@ -703,9 +703,7 @@ class PlasticosLogisticsRequest(models.Model):
         cancel_purpose = CANCEL_PURPOSE_BY_ISSUE[issue_purpose]
         mode = self._linda_mode()
         notify = mode != LINDA_MODE_OFF and not any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS)
-        # sudo: evidence bookkeeping only, as in issuance; the canceling user may hold no
-        # right on requests, and a notice failure must never undo the native cancellation.
-        evidence = self.sudo()
+        evidence = self.sudo()  # sudo: cancellation records Linda evidence without undoing the cancel
         notices = self.browse()
         for order in orders:
             issues = evidence.search(
@@ -791,9 +789,7 @@ class PlasticosLogisticsRequest(models.Model):
         unknown row and queues the notice. A raw state write does not.
         Sent history is never touched.
         """
-        # sudo: mail.mail is readable and writable only by system users, and the caller may be
-        # any user editing or canceling the PO. Only Linda's own unsent mail is touched.
-        queued = self.sudo().filtered(lambda request: request.state == "queued")
+        queued = self.filtered(lambda request: request.state == "queued")
         uncertain = queued.filtered(lambda request: request.send_attempt_count)
         fresh = queued - uncertain
         if uncertain:
@@ -829,8 +825,9 @@ class PlasticosLogisticsRequest(models.Model):
     def _cancel_stale_for_orders(self, orders):
         """Cancel queued issues of these orders that no longer match their current payload."""
         order_field = next(spec.order_field for spec in ISSUE_SPECS.values() if spec.order_model == orders._name)
-        # sudo: same evidence scope as issuance; the order editor may hold no right on requests.
-        queued = self.sudo().search([(order_field, "in", orders.ids), ("state", "=", "queued")])
+        queued = self.sudo().search(  # sudo: the order editor may hold no right on Linda requests
+            [(order_field, "in", orders.ids), ("state", "=", "queued")]
+        )
         for request in queued:
             reason = request._current_block_reason()
             if reason:

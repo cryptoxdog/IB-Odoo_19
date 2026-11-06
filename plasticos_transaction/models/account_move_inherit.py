@@ -35,7 +35,7 @@ class AccountMove(models.Model):
             return set()
         markers = (
             self.env["ir.model.data"]
-            .sudo()
+            .sudo()  # sudo: core grants ir.model.data to group_erp_manager; reads legacy invoice markers
             .search(
                 [
                     ("module", "=", "plasticos_transaction"),

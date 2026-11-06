@@ -59,6 +59,13 @@ finding requiring re-review.
    `scripts/audit/odoo_audit.py`, `performance_audit.py`, or
    `security_audit.py` themselves to silence it — the scanners stay generic;
    only the log grows.
+6. **A general proof is not a special case.** A proof that holds for an AST
+   shape everywhere, locked on both sides by fixtures in
+   `tests/test_unbounded_search_intent.py`, belongs in the scanner
+   (`performance_audit.py`, `check_unbounded_searches` docstring is the
+   contract). A baseline entry does not remove a `MODERATE`
+   `UNBOUNDED_SEARCH` row from the report: those rows are the remediation
+   list, not debt to log.
 
 ## Stale entries
 
