@@ -1004,3 +1004,34 @@ def test_partner_mismatch_report_is_bounded(tmp_path: Path, source: str):
 def test_not_a_partner_mismatch_report_is_a_population_read(tmp_path: Path, source: str):
     _write(tmp_path, source)
     _assert_one_population_read(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "caller",
+    [
+        'return [] if self._projected_rows("verified") else [("id", "=", 0)]',
+        'rows = self._projected_rows("verified")\n        return [] if rows else [("id", "=", 0)]',
+        'return [("id", "=", 0)] if not self._projected_rows("verified") else []',
+        'return bool(self._projected_rows("verified")) and [("id", "=", 0)]',
+        'return [("active", "=", len(self._projected_rows("verified")) > 0)]',
+    ],
+)
+def test_helper_search_used_only_as_a_condition_is_a_population_read(tmp_path: Path, caller: str):
+    """An existence check needs one row, so it does not prove the population is required."""
+    _write(
+        tmp_path,
+        """
+class PlasticosDocument(models.Model):
+    _name = "plasticos.document.native"
+
+    def _projected_rows(self, flag):
+        matched = self.env["plasticos.document"].search([("state", "=", "accepted"), ("res_id", "!=", 0)])
+        return matched.filtered(flag)
+
+    def _search_verified(self, operator, value):
+        """
+        + caller
+        + "\n",
+    )
+    _tree(tmp_path)  # the fixture must parse, or the scanner would skip it silently
+    _assert_one_population_read(tmp_path)

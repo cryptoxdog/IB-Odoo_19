@@ -290,6 +290,7 @@ _WRITE_METHODS = frozenset({"create", "write", "unlink"})
 _LIKE_OPERATORS = frozenset({"=like", "=ilike"})
 _LIKE_WILDCARDS = ("%", "_")
 _DICT_READS = frozenset({"get", "items", "keys", "values"})
+_PREDICATE_CALLS = frozenset({"all", "any", "bool", "len"})
 
 
 def _search_calls(tree):
@@ -449,24 +450,84 @@ def _feeds_search_method(names, func, module):
 
 
 def _flows_into_return(node, func):
-    """``node`` is in a returned expression, or in one local that a return reads."""
+    """The rows of ``node`` build the returned domain, directly or through one local.
+
+    The call must be consumed as data (an argument of a domain-building call,
+    the base of ``.ids``, or the whole value of an assignment), and neither it
+    nor the local it reaches may sit only in a test position of the return
+    (``x if rows else y``, ``bool(rows)``, ``not rows``, a comparison or
+    ``and``/``or``). A caller that only checks existence needs one row, not
+    the population.
+    """
     parents = _parent_map(func)
+    if not _consumed_as_data(node, parents):
+        return False
     stmt = node
     while stmt is not None and not isinstance(stmt, ast.stmt):
         stmt = parents.get(stmt)
     if isinstance(stmt, ast.Return):
-        return True
+        return not _in_test_position(node, stmt, parents)
     if isinstance(stmt, ast.Assign):
         targets = [target.id for target in stmt.targets if isinstance(target, ast.Name)]
-        return len(targets) == len(stmt.targets) and any(_returns_name(func, name) for name in targets)
+        if len(targets) != len(stmt.targets) or _in_test_position(node, stmt, parents):
+            return False
+        return any(_returns_name_as_data(func, name, parents) for name in targets)
     if (
         isinstance(stmt, ast.Expr)
         and isinstance(stmt.value, ast.Call)
         and isinstance(stmt.value.func, ast.Attribute)
         and stmt.value.func.attr in {"append", "extend"}
         and isinstance(stmt.value.func.value, ast.Name)
+        and not _in_test_position(node, stmt, parents)
     ):
-        return _returns_name(func, stmt.value.func.value.id)
+        return _returns_name_as_data(func, stmt.value.func.value.id, parents)
+    return False
+
+
+def _consumed_as_data(node, parents):
+    parent = parents.get(node)
+    if isinstance(parent, ast.Assign):
+        return parent.value is node
+    if isinstance(parent, ast.Attribute):
+        return parent.attr == "ids" and parent.value is node
+    if isinstance(parent, ast.keyword):
+        parent = parents.get(parent)
+    return isinstance(parent, ast.Call) and parent.func is not node and not _is_predicate_call(parent)
+
+
+def _is_predicate_call(call):
+    return isinstance(call.func, ast.Name) and call.func.id in _PREDICATE_CALLS
+
+
+def _in_test_position(node, stop, parents):
+    """Whether ``node`` is read only as a condition on its way up to ``stop``."""
+    child = node
+    parent = parents.get(node)
+    while parent is not None and child is not stop:
+        if isinstance(parent, ast.IfExp) and child is parent.test:
+            return True
+        if isinstance(parent, (ast.Compare, ast.BoolOp)):
+            return True
+        if isinstance(parent, ast.UnaryOp) and isinstance(parent.op, ast.Not):
+            return True
+        if isinstance(parent, ast.Call) and _is_predicate_call(parent):
+            return True
+        child, parent = parent, parents.get(parent)
+    return False
+
+
+def _returns_name_as_data(func, name, parents):
+    for node in ast.walk(func):
+        if not (isinstance(node, ast.Return) and node.value is not None):
+            continue
+        for child in ast.walk(node.value):
+            if (
+                isinstance(child, ast.Name)
+                and child.id == name
+                and isinstance(child.ctx, ast.Load)
+                and not _in_test_position(child, node, parents)
+            ):
+                return True
     return False
 
 
