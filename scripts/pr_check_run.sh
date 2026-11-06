@@ -19,6 +19,12 @@
 # dotted module (the whole suite when the harness changed). Docker smoke runs
 # when an addon load input or an installer input changed. It clones the pinned
 # fixture and upgrades the roster; it does not install from an empty database.
+# The Odoo runtime tests (make runtime-test -> make test-module / test-odoo) run
+# in the same Docker stage, right after smoke, for the runtime= modules the
+# scope owner names. They follow the smoke switches: PR_SMOKE_BYPASS
+# (make pr-nosmoke) and PR_CHECK_SKIP_SMOKE=1 skip both. A scope of smoke=0
+# does not skip them: a change to an addon's own tests needs no smoke but still
+# runs that addon's tests.
 # Every doubt keeps the audit and pytest gate. GitHub ci.yml still runs
 # pytest tests/ on the PR.
 #
@@ -27,7 +33,7 @@
 #   PR_CHECK_SCOPE=full       run the whole gate regardless of what changed
 #   PR_CHECK_JOBS=N           parallel make jobs (default: 4)
 #   PR_CHECK_SKIP_REMOTE=1    skip GitHub/Sonar/review sync
-#   PR_CHECK_SKIP_SMOKE=1     skip Docker install-smoke
+#   PR_CHECK_SKIP_SMOKE=1     skip Docker install-smoke and the Odoo runtime tests
 #   PR_CHECK_FORCE_SMOKE=1    ignore install-smoke evidence and upgrade again
 #   PR_CHECK_SMOKE_CACHE=0    disable evidence reuse (always upgrade when not skipped)
 #
@@ -59,10 +65,12 @@ run_wave() {
 # Remember the skip, then drop it before pytest. Publication tests copy the
 # environment and refuse a publish when either switch is still set.
 SMOKE_SKIP=0
+RUNTIME_SKIP=0
 _bypass="${PR_SMOKE_BYPASS:-}"
 _bypass="${_bypass// /}"
 if [ "${PR_CHECK_SKIP_SMOKE:-0}" = "1" ] || [ -n "${_bypass}" ]; then
   SMOKE_SKIP=1
+  RUNTIME_SKIP=1
 fi
 unset _bypass
 unset PR_CHECK_SKIP_SMOKE PR_SMOKE_BYPASS
@@ -95,6 +103,21 @@ maybe_install_smoke() {
   "${MAKE}" --no-print-directory install-smoke
 }
 
+# The Docker stage's second half: Odoo runtime tests for the modules the scope
+# owner named. The skip is the operator's smoke switch only, never smoke=0.
+maybe_runtime_tests() {
+  local modules="$1"
+  if [ "${RUNTIME_SKIP}" = "1" ]; then
+    log "→ Odoo runtime tests skipped with install-smoke"
+    return 0
+  fi
+  if [ -z "${modules}" ]; then
+    log "→ Odoo runtime tests not needed: no PlasticOS module with Odoo tests changed"
+    return 0
+  fi
+  RUNTIME_MODULES="${modules}" "${MAKE}" --no-print-directory runtime-test
+}
+
 maybe_remote() {
   if [ "${PR_CHECK_SKIP_REMOTE:-0}" = "1" ]; then
     log "→ Remote PR feedback skipped (PR_CHECK_SKIP_REMOTE=1)"
@@ -123,10 +146,11 @@ case "$MODE" in
     # receipt never survives into this run.
     rm -f "$ROOT/.cache/pr-check/scope.json"
     scope="$(python3 "$ROOT/scripts/pr_check_scope.py" --base "${PR_BASE:-Staging}" --receipt "$ROOT/.cache/pr-check/scope.json")" \
-      || scope=$'audit=1\nsmoke=1\ntests=all\nreason=scope owner failed; whole gate'
+      || scope=$'audit=1\nsmoke=1\ntests=all\nruntime=all\nreason=scope owner failed; whole gate'
     scope_audit="$(printf '%s\n' "$scope" | sed -n 's/^audit=//p')"
     scope_smoke="$(printf '%s\n' "$scope" | sed -n 's/^smoke=//p')"
     scope_tests="$(printf '%s\n' "$scope" | sed -n 's/^tests=//p')"
+    scope_runtime="$(printf '%s\n' "$scope" | sed -n 's/^runtime=//p')"
     log "scope: $(printf '%s\n' "$scope" | sed -n 's/^reason=//p')"
     # Wave 1: local counterparts of ci.yml's static/baseline/pytest collectors.
     targets=()
@@ -151,6 +175,8 @@ case "$MODE" in
       log "→ install-smoke not needed: no addon load input or installer input changed"
     fi
     maybe_install_smoke
+    # Wave 2b: Odoo runtime tests on the pinned fixture, same switches as smoke.
+    maybe_runtime_tests "$scope_runtime"
     # Wave 3: remote signals when a PR/token exists.
     maybe_remote
     log ""

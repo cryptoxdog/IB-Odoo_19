@@ -1140,3 +1140,22 @@ test-scoped:
 .PHONY: test-env-rebuild
 test-env-rebuild:
 	bash scripts/test_env.sh rebuild
+
+# 2026-11-06 — Odoo runtime tests have two owners and no third. make test-module
+# and make test-odoo (recipes above, unchanged) run only through runtime-test:
+#   1. the Docker smoke stage of make pr-check (scripts/pr_check_run.sh). It
+#      passes RUNTIME_MODULES from scripts/pr_check_scope.py (runtime=): the
+#      declared roster modules the branch touched that ship a tests/ package,
+#      or "all" when the whole gate is kept. make pr-nosmoke, PR_CHECK_SKIP_SMOKE
+#      and a documentation-only branch skip it with install-smoke.
+#   2. the l9-pr-integration-testing skill, only when the operator invokes it:
+#      make runtime-test m=<module[,module...]> on the host compose stack.
+# Agents do not run make test-module or make test-odoo ad hoc.
+.PHONY: runtime-test
+runtime-test:
+	@mods='$(strip $(if $(m),$(m),$(RUNTIME_MODULES)))'; \
+	case "$$mods" in \
+	  "") echo "→ runtime tests: no PlasticOS module with Odoo tests reached" ;; \
+	  all) echo "→ runtime tests: whole roster (make test-odoo)"; $(MAKE) --no-print-directory test-odoo ;; \
+	  *) echo "→ runtime tests: $$mods (make test-module)"; $(MAKE) --no-print-directory test-module m="$$mods" ;; \
+	esac

@@ -26,12 +26,19 @@ for goal in "$@"; do
   esac
   if [ "$goal" = "test-scoped" ]; then
     echo "make test-scoped [${TEST_PATHS:-}]" >> "$FAKE_MAKE_LOG"
+  elif [ "$goal" = "runtime-test" ]; then
+    echo "make runtime-test [${RUNTIME_MODULES:-}]" >> "$FAKE_MAKE_LOG"
   else
     echo "make $goal" >> "$FAKE_MAKE_LOG"
   fi
   if [ "${FAKE_MAKE_FAIL:-}" = "$goal" ]; then exit 1; fi
 done
 exit 0
+"""
+
+# The declared roster test_env.sh accepts: plasticos_base ships Odoo tests,
+# plasticos_logistics does not, plasticos_extra is outside the roster.
+STUB_ROSTER = """print("plasticos_base,plasticos_logistics")
 """
 
 STUB_SMOKE = """#!/usr/bin/env bash
@@ -105,6 +112,7 @@ def repo(tmp_path: Path) -> Repo:
     for name in ("pr_check_run.sh", "pr_check_scope.py"):
         (root / "scripts" / name).write_text((ROOT / "scripts" / name).read_text())
     (root / "scripts/install_smoke.sh").write_text(STUB_SMOKE)
+    (root / "scripts/get_odoo_module_order.py").write_text(STUB_ROSTER)
     (root / "scripts/helper.py").write_text("print(1)\n")
     (root / ".gitignore").write_text(".cache/\n")
     addon = root / "plasticos_base"
@@ -113,7 +121,12 @@ def repo(tmp_path: Path) -> Repo:
     (addon / "__manifest__.py").write_text("{'name': 'f', 'installable': True, 'data': ['data/seed.xml']}\n")
     (addon / "__init__.py").write_text("")
     (addon / "data/seed.xml").write_text("<odoo/>\n")
+    (addon / "tests/__init__.py").write_text("from . import test_odoo\n")
     (addon / "tests/test_odoo.py").write_text("from odoo.tests import TransactionCase\n")
+    extra = root / "plasticos_extra" / "tests"
+    extra.mkdir(parents=True)
+    (extra / "__init__.py").write_text("")
+    (root / "plasticos_extra" / "models.py").write_text("VALUE = 0\n")
     (addon / "README.md").write_text("# addon docs\n")
     (root / "docs").mkdir()
     (root / "docs/guide.md").write_text("# guide\n")
@@ -163,7 +176,17 @@ def repo(tmp_path: Path) -> Repo:
         k: v
         for k, v in os.environ.items()
         if not k.startswith(
-            ("PR_CHECK_", "PR_BASE", "PR_SMOKE", "FAKE_", "COV_CORE_", "COVERAGE_", "PYTEST_", "TEST_PATHS")
+            (
+                "PR_CHECK_",
+                "PR_BASE",
+                "PR_SMOKE",
+                "FAKE_",
+                "COV_CORE_",
+                "COVERAGE_",
+                "PYTEST_",
+                "TEST_PATHS",
+                "RUNTIME_MODULES",
+            )
         )
     }
     env.pop("INSTALL_SMOKE_GATE", None)
@@ -203,6 +226,30 @@ def test_addon_odoo_test_change_needs_no_smoke(repo: Repo) -> None:
     repo.commit("odoo-test", **{"plasticos_base/tests/test_odoo.py": "from odoo.tests import TransactionCase  # x\n"})
     scope = repo.scope()
     assert scope["smoke"] == "0" and scope["audit"] == "1"
+    assert scope["runtime"] == "plasticos_base", "an addon's own tests still run at runtime"
+
+
+def test_runtime_selects_roster_modules_with_odoo_tests_only(repo: Repo) -> None:
+    repo.commit(
+        "addons",
+        **{
+            "plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n",
+            "plasticos_logistics/models/load.py": "class Load:\n    changed = True\n",
+            "plasticos_extra/models.py": "VALUE = 1\n",
+        },
+    )
+    assert repo.scope()["runtime"] == "plasticos_base", "no tests package and outside the roster are both dropped"
+
+
+def test_runtime_ignores_documentation_and_non_addon_paths(repo: Repo) -> None:
+    repo.commit("docs", **{"plasticos_base/README.md": "# changed\n", "scripts/helper.py": "print(3)\n"})
+    assert repo.scope()["runtime"] == ""
+
+
+def test_unreadable_roster_keeps_the_whole_runtime_gate(repo: Repo) -> None:
+    (repo.root / "scripts/get_odoo_module_order.py").write_text("raise SystemExit(1)\n")
+    repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
+    assert repo.scope()["runtime"] == "all"
 
 
 @pytest.mark.parametrize(
@@ -268,6 +315,7 @@ def test_harness_changes_and_the_force_switch_run_the_whole_suite(
 def test_no_change_and_an_unreachable_base_keep_the_whole_gate(repo: Repo) -> None:
     scope = repo.scope()
     assert scope["changed"] == "0" and scope["tests"] == "all" and scope["smoke"] == "1"
+    assert scope["runtime"] == "all"
     repo.commit("docs", **{"docs/guide.md": "# changed\n"})
     _git(repo.root, "remote", "set-url", "origin", str(repo.root / "nowhere.git"))
     scope = repo.scope()
@@ -283,6 +331,7 @@ def test_docs_only_gate_runs_no_collector_and_no_docker(repo: Repo) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     assert repo.calls() == [], repo.calls()
     assert "install-smoke not needed" in result.stdout and "audits skipped" in result.stdout
+    assert "Odoo runtime tests not needed" in result.stdout
     assert repo.receipt()["smoke"] == 0 and repo.receipt()["schema"] == "l9.pr-check-scope.v1"
 
 
@@ -300,6 +349,37 @@ def test_addon_change_reuses_smoke_evidence_without_a_fresh_upgrade(repo: Repo) 
     assert "make install-smoke" not in calls
     assert "full install-smoke is optional" not in result.stdout
     assert "make test" not in calls
+    assert calls[-1] == "make runtime-test [plasticos_base]"
+    assert calls.index("smoke --recheck") < calls.index("make runtime-test [plasticos_base]")
+    assert repo.receipt()["runtime"] == "plasticos_base"
+
+
+def test_addon_test_only_change_runs_runtime_tests_without_smoke(repo: Repo) -> None:
+    repo.commit("odoo-test", **{"plasticos_base/tests/test_odoo.py": "from odoo.tests import TransactionCase  # x\n"})
+    result = repo.run("full")
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = repo.calls()
+    assert "smoke --recheck" not in calls and "make install-smoke" not in calls
+    assert calls[-1] == "make runtime-test [plasticos_base]"
+
+
+@pytest.mark.parametrize(
+    "switch",
+    [{"PR_SMOKE_BYPASS": "no Docker in this container"}, {"PR_CHECK_SKIP_SMOKE": "1"}],
+)
+def test_smoke_switches_skip_runtime_tests_and_docker(repo: Repo, switch: dict) -> None:
+    repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
+    result = repo.run("full", **switch)
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = repo.calls()
+    assert not [c for c in calls if c.startswith(("smoke", "make install-smoke", "make runtime-test"))], calls
+    assert "Odoo runtime tests skipped with install-smoke" in result.stdout
+
+
+def test_a_failing_runtime_test_fails_the_gate(repo: Repo) -> None:
+    repo.commit("load", **{"plasticos_base/data/seed.xml": "<odoo><data/></odoo>\n"})
+    result = repo.run("full", FAKE_MAKE_FAIL="runtime-test")
+    assert result.returncode != 0
 
 
 def test_addon_change_upgrades_when_smoke_evidence_misses(repo: Repo) -> None:
@@ -337,6 +417,7 @@ def test_a_failing_scope_owner_keeps_the_whole_gate(repo: Repo) -> None:
     assert "whole gate" in result.stdout
     assert repo.calls()[:3] == ["make audit", "make audit-baseline", "make test"]
     assert "smoke --recheck" in repo.calls()
+    assert repo.calls()[-1] == "make runtime-test [all]"
     assert "full install-smoke is optional" not in result.stdout
     gated = repo.run("full")
     assert gated.returncode == 0, gated.stdout + gated.stderr
