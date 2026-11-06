@@ -68,7 +68,7 @@ class PlasticosTransactionDocs(models.Model):
         """
         if "plasticos.compliance.service" not in self.env:
             for tx in self:
-                projected = tx.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+                projected = tx.sudo()  # sudo: compliance flag write; document ACL still admits every internal user
                 projected.missing_supplier_docs = False
                 projected.missing_carrier_docs = False
                 projected.missing_buyer_docs = False
@@ -95,7 +95,7 @@ class PlasticosTransactionDocs(models.Model):
             )
             missing_set = set(missing_codes) if missing_codes else set()
 
-            projected = tx.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+            projected = tx.sudo()  # sudo: compliance flag write; document ACL still admits every internal user
             projected.missing_supplier_docs = bool(missing_set & supplier_tags)
             projected.missing_carrier_docs = bool(missing_set & carrier_tags)
             projected.missing_buyer_docs = bool(missing_set & buyer_tags)

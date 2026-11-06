@@ -423,7 +423,7 @@ class PlasticosDocument(models.Model):
         self._invalidate_native_attachments(attachments)
         # Trigger recompute after delete (both flags AND compliance)
         if transactions:
-            projected = transactions.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+            projected = transactions.sudo()  # sudo: compliance flags; group_user ACL still admits every internal user
             projected._compute_missing_doc_flags()
             if hasattr(projected, "_compute_compliance"):
                 projected._compute_compliance()
@@ -445,7 +445,7 @@ class PlasticosDocument(models.Model):
         """
         transactions = self._get_related_transactions(records)
         if transactions:
-            projected = transactions.sudo()  # compliance flags are a system effect of document association, not a documents-manager edit of the transaction
+            projected = transactions.sudo()  # sudo: compliance flags; group_user ACL still admits every internal user
             projected._compute_missing_doc_flags()
             # Issue 3 fix: compliance_status depends on documents too
             if hasattr(projected, "_compute_compliance"):
@@ -537,7 +537,7 @@ class PlasticosDocument(models.Model):
         # The command already checked the actor. ir.attachment rules hide an
         # original with no res_id from anyone but its author; the checksum read
         # is the evidence identity, not a second verification writer.
-        attachment = self.attachment_id.sudo()  # checksum only; actor already passed the command check
+        attachment = self.attachment_id.sudo()  # sudo: checksum only; verifier or override check already ran
         if (
             not attachment
             or not attachment.exists()
@@ -569,7 +569,7 @@ class PlasticosDocument(models.Model):
             return False
         if not self.active or not self.is_current or self.superseded_by or self._expiry_elapsed():
             return False
-        attachment = self.attachment_id.sudo()  # checksum only; actor already passed the command check
+        attachment = self.attachment_id.sudo()  # sudo: checksum of the attachment already linked to this document
         if not self.evidence_digest or not attachment or attachment.checksum != self.evidence_digest:
             return False
         if self.evidence_attachment_id and self.evidence_attachment_id != attachment:
@@ -618,7 +618,7 @@ class PlasticosDocument(models.Model):
         """
         if self.env.su:
             return self.env["res.company"], "exact association cannot be authorized through sudo"
-        owned = target.sudo()  # legal-company identity only; actor company_ids still gate acceptance
+        owned = target.sudo()  # sudo: legal-company identity only; actor company_ids still gate acceptance
         companies = self.env["res.company"]
         requires_company = False
         if target._name == "plasticos.transaction":
@@ -657,7 +657,7 @@ class PlasticosDocument(models.Model):
             raise UserError("UNRESOLVED: an attributable source reference is required.")
         if res_model not in ALLOWED_SUBJECTS or not res_id:
             raise UserError("UNRESOLVED: that record is not an exact evidence subject.")
-        attachment = self.attachment_id.sudo()  # checksum only; actor already passed the command check
+        attachment = self.attachment_id.sudo()  # sudo: checksum only; the verifier check already ran
         if (
             not attachment
             or not attachment.exists()
@@ -751,7 +751,11 @@ class PlasticosDocument(models.Model):
         now = fields.Datetime.now()
         for rec in self:
             if rec.verified:
-                digest = rec.attachment_id.sudo().checksum if rec.attachment_id else False  # same identity read
+                digest = (
+                    rec.attachment_id.sudo().checksum  # sudo: checksum after the verifier check
+                    if rec.attachment_id
+                    else False
+                )
                 if rec.evidence_digest and digest != rec.evidence_digest:
                     raise UserError("UNRESOLVED: the approved original was replaced. A new version is required.")
                 continue
@@ -761,7 +765,7 @@ class PlasticosDocument(models.Model):
                     "verified": True,
                     "verified_by": self.env.uid,
                     "verified_at": now,
-                    "evidence_digest": rec.attachment_id.sudo().checksum,  # same identity read
+                    "evidence_digest": rec.attachment_id.sudo().checksum,  # sudo: checksum after the verifier check
                     "evidence_attachment_id": rec.attachment_id.id,
                 }
             )
@@ -790,7 +794,7 @@ class PlasticosDocument(models.Model):
                 "override_at": now,
             }
             if not rec.evidence_digest:
-                vals["evidence_digest"] = rec.attachment_id.sudo().checksum  # same identity read
+                vals["evidence_digest"] = rec.attachment_id.sudo().checksum  # sudo: checksum after the override check
                 vals["evidence_attachment_id"] = rec.attachment_id.id
             rec._decision_write(vals)
             if rec.override_reason_draft:

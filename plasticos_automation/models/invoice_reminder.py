@@ -34,12 +34,9 @@ class AccountMove(models.Model):
             # An opening residual is not collectible by Odoo during parallel/shadow mode.
             # Explicit finance handover is a separate runtime authorization.
             if "plasticos_cutover_opening" in self._fields:
-                handover = (
-                    self.env["ir.config_parameter"]  # cron-sudo-justification: read system cutover handover flag
-                    .sudo()
-                    .get_param("plasticos_accounting.cutover_handover_enabled", default="0")
-                    == "1"
-                )
+                icp = self.env["ir.config_parameter"]
+                params = icp.sudo()  # cron-sudo-justification: read system cutover handover flag
+                handover = params.get_param("plasticos_accounting.cutover_handover_enabled", default="0") == "1"
                 if not handover:
                     domain.append(("plasticos_cutover_opening", "=", False))
             overdue = self.search(domain, order="invoice_date_due ASC, id ASC", limit=200)

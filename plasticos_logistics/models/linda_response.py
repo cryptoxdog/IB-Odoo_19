@@ -202,18 +202,21 @@ class PlasticosLogisticsResponse(models.Model):
         # the original MIME copy stays unbound (``original_not_retained``).
         # A composer path that posts message_type ``email`` for mail Linda
         # itself sent was not reproduced on this head, so that case stays Unknown.
-        # sudo: evidence bookkeeping only. The gateway runs as OdooBot and an order's
-        # followers may lack rights on requests; nothing but this evidence is written.
-        evidence = self.sudo()
+        evidence = self.sudo()  # sudo: gateway records Linda evidence a follower may not write
         responses = self.browse()
-        for message in messages.sudo():
+        for message in messages.sudo():  # sudo: gateway reads the new message when the follower cannot
             if message.message_type != "email" or message.model not in ORDER_FIELDS:
                 continue
             existing = evidence.search([("mail_message_id", "=", message.id)], limit=1)
             if existing:
                 responses |= existing
                 continue
-            order = self.env[message.model].sudo().browse(message.res_id).exists()
+            order = (
+                self.env[message.model]
+                .sudo()  # sudo: gateway reads the order named by the message
+                .browse(message.res_id)
+                .exists()
+            )
             order_field = ORDER_FIELDS[message.model]
             if not order or not evidence.env[LOGISTICS_REQUEST].search_count([(order_field, "=", order.id)]):
                 continue
