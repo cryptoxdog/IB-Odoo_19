@@ -87,9 +87,14 @@ def test_rehearsal_refuses_the_frozen_grid():
     assert "If either is unset, Gate 6 is blocked" not in readme
     assert "erp-proof/database" in readme
     assert "erp_extracted_data" in readme
-    assert "payload_kind" in gate
-    assert "database" in gate
-    assert 'kind != "database"' in gate
+    # The payload_kind rule lives in the kit helper erp_slice.sh calls; the
+    # behaviour (grid / statements / missing kind fail) is exercised in
+    # test_rehearsal_kit_lib.py::test_erp_fails_closed.
+    lib = (KIT / "rehearsal_lib.py").read_text(encoding="utf-8")
+    assert "rehearsal_lib.py" in (KIT / "rehearsal_common.sh").read_text(encoding="utf-8")
+    assert "rlib check-erp" in gate
+    assert "payload_kind" in lib
+    assert 'kind != "database"' in lib
     assert "host.docker.internal" in gate
     assert "erp-proof/database" in gate or "PROOF_DB" in gate
     assert "14330" in gate

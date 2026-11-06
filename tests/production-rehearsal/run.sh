@@ -6,12 +6,18 @@
 #
 # Evidence is written to:
 #   tests/production-rehearsal/evidence/YYYY-MM-DD_HHMMSS/
-# A symlink `evidence/latest` always points to the most recent run.
+# `evidence/latest` is repointed atomically once the verdict is written.
+#
+# Every gate writes exactly one receipt (gate-<n>.json, rehearsal_lib.py). The
+# verdict (verdict.json + verdict.txt) is written on success, on failure, on an
+# early refusal and on SIGINT/SIGTERM. `set -e` is deliberately not used: every
+# gate captures its own exit status so a failure is recorded, never lost.
 #
 # Prerequisites: see README.md.
 # Spec + acceptance criteria: see SPEC.md.
 # Named blockers: see expected/blockers.yaml.
-set -euo pipefail
+set -uo pipefail
+umask 077
 
 KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -29,29 +35,32 @@ if [ -z "${ROOT}" ]; then
   echo "❌ Cannot locate PlasticOS root (Makefile + docker-compose.yml not found above ${KIT_DIR})" >&2
   exit 2
 fi
+cd "${ROOT}" || exit 2
 
-cd "${ROOT}"
+# shellcheck source=rehearsal_common.sh source-path=SCRIPTDIR
+. "${KIT_DIR}/rehearsal_common.sh"
 
-# ── Load .env.local secrets (not printed) ────────────────────────────────────
-if [ -f "${ROOT}/.env.local" ]; then
-  set -a
-  # shellcheck source=/dev/null
-  . "${ROOT}/.env.local"
-  set +a
-fi
-if [ -f "${ROOT}/.env" ]; then
-  set -a
-  # shellcheck source=/dev/null
-  . "${ROOT}/.env"
-  set +a
-fi
+# ── Load .env.local / .env secrets (not printed) ────────────────────────────
+for _envfile in "${ROOT}/.env.local" "${ROOT}/.env"; do
+  if [ -f "${_envfile}" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    . "${_envfile}"
+    set +a
+  fi
+done
 
-# ── Create dated evidence folder ─────────────────────────────────────────────
+# ── Create this run's evidence folder (never reuses one) ─────────────────────
 RUN_TS="$(date -u +%Y-%m-%d_%H%M%S)"
-EVIDENCE_DIR="${KIT_DIR}/evidence/${RUN_TS}"
-mkdir -p "${EVIDENCE_DIR}"
-ln -sfn "${EVIDENCE_DIR}" "${KIT_DIR}/evidence/latest"
-export REHEARSAL_EVIDENCE_DIR="${EVIDENCE_DIR}"
+RUN_STARTED_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+EVIDENCE_ROOT="${KIT_DIR}/evidence"
+EVIDENCE_DIR="${EVIDENCE_ROOT}/${RUN_TS}"
+mkdir -p "${EVIDENCE_ROOT}"
+if ! mkdir "${EVIDENCE_DIR}"; then
+  echo "❌ Evidence folder ${EVIDENCE_DIR} already exists; refusing to overwrite a previous run." >&2
+  exit 2
+fi
+export REHEARSAL_EVIDENCE_DIR="${EVIDENCE_DIR}" RUN_STARTED_UTC
 
 echo "════════════════════════════════════════════════════════"
 echo " Staging → Production Promotion Rehearsal"
@@ -61,200 +70,382 @@ echo "════════════════════════�
 
 REHEARSAL_PORT="${REHEARSAL_PORT:-18069}"
 CUTOVER_DB="odoo_test_cutover"
-VERDICT="ready"
-FAILURES=()
+BRANCH=""
+HEAD_SHA=""
+ORIGIN_STAGING=""
+PROD_SHA=""
+CURRENT_GATE=0
+RUN_FAILURES=""
+FINALIZED=0
 
-# ── Gate 1 — Branch identity ─────────────────────────────────────────────────
+# gate_record <n> <STATE> <reason> [detail] [side_effects:0|1]
+gate_record() {
+  local n="$1" state="$2" reason="$3" detail="${4:-}" side="${5:-0}"
+  if [ "${side}" = "1" ]; then
+    rlib gate-write "${EVIDENCE_DIR}" "${n}" "${state}" "${reason}" --detail "${detail}" --side-effects
+  else
+    rlib gate-write "${EVIDENCE_DIR}" "${n}" "${state}" "${reason}" --detail "${detail}"
+  fi
+  case "${state}" in
+    PASS) echo "  ✅ Gate ${n} PASSED${detail:+ — ${detail}}" ;;
+    SKIPPED) echo "  ⏭  Gate ${n} SKIPPED: ${reason}" ;;
+    BLOCKED) echo "  ⛔ Gate ${n} BLOCKED: ${reason}${detail:+ — ${detail}}" ;;
+    *) echo "  ❌ Gate ${n} ${state}: ${reason}${detail:+ — ${detail}}" ;;
+  esac
+}
+
+gate_state() {
+  rlib gate-state "${EVIDENCE_DIR}" "$1"
+}
+
+# skip_from <first_gate> <reason> — SKIPPED for every later gate without a receipt.
+skip_from() {
+  local n="$1" reason="$2"
+  while [ "${n}" -le 7 ]; do
+    if [ "$(gate_state "${n}")" = "MISSING" ]; then
+      gate_record "${n}" SKIPPED "${reason}"
+    fi
+    n=$((n + 1))
+  done
+}
+
+add_run_failure() {
+  RUN_FAILURES="${RUN_FAILURES} $1"
+}
+
+finalize_run() {
+  [ "${FINALIZED}" = "1" ] && return 0
+  FINALIZED=1
+  local args="" item verdict
+  # Evidence must not hold a credential value. Values are read from the
+  # environment by name; a hit is redacted in place and fails the run.
+  if ! rlib scan-secrets "${EVIDENCE_DIR}" \
+    --env ERP_SQL_PASSWORD --env ODOO_WEB_LEAD_API_KEY --env VANILLASOFT_API_KEY \
+    --env POSTGRES_PASSWORD --env PGPASSWORD; then
+    add_run_failure "evidence-secret-redacted"
+  fi
+  for item in ${RUN_FAILURES}; do
+    args="${args} --run-failure ${item}"
+  done
+  # shellcheck disable=SC2086  # run-failure codes are single tokens
+  verdict="$(rlib finalize "${EVIDENCE_DIR}" --run-ts "${RUN_TS}" --staging-sha "${ORIGIN_STAGING}" \
+    --production-sha "${PROD_SHA}" --head-sha "${HEAD_SHA}" --branch "${BRANCH}" ${args})" || verdict="failed"
+  rlib link-latest "${EVIDENCE_ROOT}" "${EVIDENCE_DIR}" || echo "⚠️  evidence/latest was not repointed"
+  echo ""
+  echo "════════════════════════════════════════════════════════"
+  cat "${EVIDENCE_DIR}/verdict.txt" 2>/dev/null || echo "verdict=${verdict}"
+  if [ "${verdict}" = "ready" ]; then
+    echo " ✅ VERDICT: ready — every gate passed at ${ORIGIN_STAGING}"
+  else
+    echo " ❌ VERDICT: ${verdict}"
+  fi
+  echo "════════════════════════════════════════════════════════"
+  echo " Evidence: ${EVIDENCE_DIR}"
+  [ "${verdict}" = "ready" ]
+}
+
+# shellcheck disable=SC2329  # invoked by trap
+on_signal() {
+  local sig="$1" code="$2"
+  trap - INT TERM
+  echo ""
+  echo "⚠️  Interrupted by SIG${sig} during Gate ${CURRENT_GATE}"
+  if [ "${CURRENT_GATE}" -ge 1 ] && [ "$(gate_state "${CURRENT_GATE}")" = "MISSING" ]; then
+    gate_record "${CURRENT_GATE}" FAIL "interrupted-${sig}" "SIG${sig} before the gate finished" 1
+  fi
+  skip_from 1 "run-interrupted"
+  add_run_failure "interrupted-${sig}"
+  finalize_run
+  exit "${code}"
+}
+# shellcheck disable=SC2329  # invoked by trap
+on_exit() {
+  local rc=$?
+  if [ "${FINALIZED}" != "1" ]; then
+    if [ "${CURRENT_GATE}" -ge 1 ] && [ "$(gate_state "${CURRENT_GATE}")" = "MISSING" ]; then
+      gate_record "${CURRENT_GATE}" FAIL "aborted" "the orchestrator stopped (exit ${rc}) before the gate finished" 1
+    fi
+    skip_from 1 "run-aborted"
+    add_run_failure "aborted"
+    finalize_run
+    exit 1
+  fi
+}
+trap 'on_signal INT 130' INT
+trap 'on_signal TERM 143' TERM
+trap on_exit EXIT
+
+stop_run() {
+  finalize_run
+  exit 1
+}
+
+# ── Gate 1 — Revision identity (no side effects before it passes) ───────────
 echo ""
-echo "── Gate 1: Branch identity"
-BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-STAGING_HEAD="$(git rev-parse HEAD)"
-ORIGIN_STAGING="$(git rev-parse origin/Staging)"
-echo "  Branch: ${BRANCH}  HEAD: ${STAGING_HEAD}"
-echo "  origin/Staging: ${ORIGIN_STAGING}"
+echo "── Gate 1: Revision identity"
+CURRENT_GATE=1
+if ! git fetch --no-tags --quiet origin \
+  "+refs/heads/Staging:refs/remotes/origin/Staging" \
+  "+refs/heads/Production:refs/remotes/origin/Production" >"${EVIDENCE_DIR}/00-fetch.log" 2>&1; then
+  gate_record 1 FAIL "remote-fetch-failed" "git fetch of Staging and Production failed; remote state is unproven"
+  skip_from 2 "gate1-failed"
+  stop_run
+fi
+BRANCH="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo "(detached)")"
+HEAD_SHA="$(git rev-parse --verify --quiet 'HEAD^{commit}' || true)"
+ORIGIN_STAGING="$(git rev-parse --verify --quiet 'refs/remotes/origin/Staging^{commit}' || true)"
+PROD_SHA="$(git rev-parse --verify --quiet 'refs/remotes/origin/Production^{commit}' || true)"
+DIRTY_FILE="${EVIDENCE_DIR}/00-dirty.txt"
+if ! git status --porcelain=v1 --untracked-files=all -- . \
+  ':(exclude)tests/production-rehearsal/evidence' >"${DIRTY_FILE}" 2>&1; then
+  echo "git status failed" >>"${DIRTY_FILE}"
+  DIRTY_COUNT="unknown"
+else
+  DIRTY_COUNT="$(grep -c . "${DIRTY_FILE}" || true)"
+fi
 {
   echo "branch=${BRANCH}"
-  echo "HEAD=${STAGING_HEAD}"
+  echo "HEAD=${HEAD_SHA}"
   echo "origin/Staging=${ORIGIN_STAGING}"
-} > "${EVIDENCE_DIR}/00-staging-sha.txt"
+  echo "origin/Production=${PROD_SHA}"
+  echo "dirty_paths=${DIRTY_COUNT}"
+} >"${EVIDENCE_DIR}/00-staging-sha.txt"
+echo "  Branch: ${BRANCH}  HEAD: ${HEAD_SHA:-?}"
+echo "  origin/Staging: ${ORIGIN_STAGING:-?}  origin/Production: ${PROD_SHA:-?}"
 
-if [ "${BRANCH}" != "Staging" ] || [ "${STAGING_HEAD}" != "${ORIGIN_STAGING}" ]; then
-  echo "  ❌ Gate 1 FAILED: not on Staging or ahead of origin"
-  VERDICT="failed"; FAILURES+=("Gate1-branch-identity")
-else
-  echo "  ✅ Gate 1 PASSED"
+G1_REASON=""
+if [ -z "${HEAD_SHA}" ] || [ -z "${ORIGIN_STAGING}" ] || [ -z "${PROD_SHA}" ]; then
+  G1_REASON="ref-unresolved"
+elif [ "${BRANCH}" != "Staging" ]; then
+  G1_REASON="not-on-staging"
+elif [ "${HEAD_SHA}" != "${ORIGIN_STAGING}" ]; then
+  G1_REASON="head-not-origin-staging"
+elif [ "${DIRTY_COUNT}" != "0" ]; then
+  G1_REASON="worktree-dirty"
 fi
+if [ -n "${G1_REASON}" ]; then
+  echo "match=FAIL" >>"${EVIDENCE_DIR}/00-staging-sha.txt"
+  gate_record 1 FAIL "${G1_REASON}" "branch=${BRANCH} HEAD=${HEAD_SHA:-?} origin/Staging=${ORIGIN_STAGING:-?} dirty=${DIRTY_COUNT}"
+  skip_from 2 "gate1-failed"
+  stop_run
+fi
+echo "match=PASS" >>"${EVIDENCE_DIR}/00-staging-sha.txt"
+gate_record 1 PASS "revision-bound" "Staging ${ORIGIN_STAGING}"
+echo "origin/Production=${PROD_SHA}" >"${EVIDENCE_DIR}/01-production-sha.txt"
 
-# ── Gate 2 — Merge-tree ───────────────────────────────────────────────────────
+# ── Gate 2 — Merge-tree (read-only) ─────────────────────────────────────────
 echo ""
 echo "── Gate 2: Merge-tree (read-only)"
-PROD_SHA="$(git rev-parse origin/Production)"
-echo "  origin/Production: ${PROD_SHA}"
-echo "origin/Production=${PROD_SHA}" > "${EVIDENCE_DIR}/01-production-sha.txt"
-
-MT_OUT="$(git merge-tree origin/Production origin/Staging 2>&1)"
-MT_CONFLICTS=$(echo "${MT_OUT}" | grep -c "^<<<<<<" || true)
+CURRENT_GATE=2
+MT_OUT="$(git merge-tree --write-tree --name-only --messages "${PROD_SHA}" "${ORIGIN_STAGING}" 2>&1)"
+MT_RC=$?
+MT_TREE="$(printf '%s\n' "${MT_OUT}" | head -1)"
+MT_MARKERS="$(printf '%s\n' "${MT_OUT}" | grep -c '^<<<<<<<' || true)"
 {
   echo "origin/Production=${PROD_SHA}"
   echo "origin/Staging=${ORIGIN_STAGING}"
-  echo "conflict_markers=${MT_CONFLICTS}"
+  echo "exit_code=${MT_RC}"
+  echo "conflict_markers=${MT_MARKERS}"
   echo "---"
-  echo "${MT_OUT}"
-} > "${EVIDENCE_DIR}/02-merge-tree.txt"
-
-if [ "${MT_CONFLICTS}" -gt 0 ]; then
-  echo "  ❌ Gate 2 FAILED: ${MT_CONFLICTS} conflict markers"
-  VERDICT="failed"; FAILURES+=("Gate2-merge-conflict")
+  printf '%s\n' "${MT_OUT}"
+} >"${EVIDENCE_DIR}/02-merge-tree.txt"
+if [ "${MT_RC}" -eq 0 ] && printf '%s' "${MT_TREE}" | grep -Eq '^[0-9a-f]{40}([0-9a-f]{24})?$' \
+  && [ "${MT_MARKERS}" = "0" ]; then
+  echo "result=CLEAN" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+  gate_record 2 PASS "merge-clean" "tree ${MT_TREE}"
+elif [ "${MT_RC}" -eq 1 ]; then
+  echo "result=CONFLICT" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+  gate_record 2 FAIL "merge-conflict" "git merge-tree reported conflicts (exit 1)"
+  skip_from 3 "gate2-failed"
+  stop_run
 else
-  echo "  ✅ Gate 2 PASSED: clean merge (${PROD_SHA} ← ${STAGING_HEAD})"
+  echo "result=ERROR" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+  gate_record 2 FAIL "merge-tree-error" "git merge-tree exit ${MT_RC}; a clean merge is unproven"
+  skip_from 3 "gate2-failed"
+  stop_run
 fi
 
-# ── Gate 3 — Install-smoke ────────────────────────────────────────────────────
+# ── Gate 3 — Install-smoke ───────────────────────────────────────────────────
 echo ""
 echo "── Gate 3: Install-smoke"
+CURRENT_GATE=3
 SMOKE_LOG="${EVIDENCE_DIR}/03-install-smoke.txt"
-if make install-smoke > "${SMOKE_LOG}" 2>&1; then
-  echo "  ✅ Gate 3 PASSED"
+make install-smoke >"${SMOKE_LOG}" 2>&1
+SMOKE_RC=$?
+if [ "${SMOKE_RC}" -eq 0 ]; then
+  # A matching receipt is a cached fingerprint match, not a fresh install.
+  if grep -q "install-smoke evidence matches; not upgrading" "${SMOKE_LOG}"; then
+    gate_record 3 PASS "install-smoke-cached-receipt" "fingerprint receipt matched; no fresh install ran" 1
+  else
+    gate_record 3 PASS "install-smoke-ran" "make install-smoke exited 0" 1
+  fi
 else
-  echo "  ❌ Gate 3 FAILED — see ${SMOKE_LOG}"
-  VERDICT="failed"; FAILURES+=("Gate3-install-smoke")
+  gate_record 3 FAIL "install-smoke-failed" "make install-smoke exited ${SMOKE_RC}" 1
+  skip_from 4 "gate3-failed"
+  stop_run
 fi
 
-# ── Gate 4 — Cutover clone ────────────────────────────────────────────────────
+# ── Gate 4 — Cutover clone ───────────────────────────────────────────────────
 echo ""
 echo "── Gate 4: Cutover clone"
-bash scripts/test_env.sh clone "${CUTOVER_DB}" 2>&1
-bash scripts/test_env.sh upgrade "${CUTOVER_DB}" 2>&1 | tail -3
-bash scripts/test_env.sh assert-clone "${CUTOVER_DB}" 2>&1
-
-PARTNER_COUNT=$(docker compose exec -T db \
-  psql -U odoo -t -c \
-  "SELECT COUNT(*) FROM res_partner WHERE (customer_rank > 0 OR supplier_rank > 0) AND active = true;" \
-  "${CUTOVER_DB}" 2>/dev/null | tr -d '[:space:]')
-echo "  Business partners before data: ${PARTNER_COUNT:-0}"
-echo "partner_census_before_import=${PARTNER_COUNT:-0}" > "${EVIDENCE_DIR}/04-clone-census.txt"
-
-if [ "${PARTNER_COUNT:-0}" -gt 0 ]; then
-  echo "  ❌ Gate 4 FAILED: clone has ${PARTNER_COUNT} business partners already"
-  VERDICT="failed"; FAILURES+=("Gate4-clone-not-empty")
-else
-  echo "  ✅ Gate 4 PASSED"
+CURRENT_GATE=4
+CLONE_LOG="${EVIDENCE_DIR}/04-clone.log"
+G4_REASON=""
+if ! bash scripts/test_env.sh clone "${CUTOVER_DB}" >>"${CLONE_LOG}" 2>&1; then
+  G4_REASON="clone-failed"
+elif ! bash scripts/test_env.sh upgrade "${CUTOVER_DB}" >>"${CLONE_LOG}" 2>&1; then
+  G4_REASON="upgrade-failed"
+elif ! bash scripts/test_env.sh assert-clone "${CUTOVER_DB}" >>"${CLONE_LOG}" 2>&1; then
+  G4_REASON="assert-clone-failed"
 fi
+if [ -n "${G4_REASON}" ]; then
+  gate_record 4 FAIL "${G4_REASON}" "see 04-clone.log" 1
+  skip_from 5 "gate4-failed"
+  stop_run
+fi
+CENSUS_RAW="${EVIDENCE_DIR}/04-clone-census.raw"
+PARTNER_COUNT="$(business_partner_census "${CUTOVER_DB}" "${CENSUS_RAW}")"
+CENSUS_RC=$?
+echo "partner_census_before_import=${PARTNER_COUNT:-unknown}" >"${EVIDENCE_DIR}/04-clone-census.txt"
+if [ "${CENSUS_RC}" -ne 0 ]; then
+  gate_record 4 FAIL "census-unproven" "the business-partner census query failed or returned no integer" 1
+  skip_from 5 "gate4-failed"
+  stop_run
+elif [ "${PARTNER_COUNT}" -ne 0 ]; then
+  gate_record 4 FAIL "clone-not-empty" "${PARTNER_COUNT} business partners (inactive included) before import" 1
+  skip_from 5 "gate4-failed"
+  stop_run
+fi
+gate_record 4 PASS "clone-empty" "${CUTOVER_DB} verified, 0 business partners" 1
 
-# ── Gate 5 — Web lead e2e ─────────────────────────────────────────────────────
+# ── Gate 5 — Web lead e2e ────────────────────────────────────────────────────
 echo ""
 echo "── Gate 5: Web lead e2e"
-if bash "${KIT_DIR}/weblead_e2e.sh" "${ROOT}" "${CUTOVER_DB}" "${REHEARSAL_PORT}" "${EVIDENCE_DIR}"; then
-  echo "  ✅ Gate 5 PASSED"
-else
-  echo "  ❌ Gate 5 FAILED"
-  VERDICT="failed"; FAILURES+=("Gate5-weblead-e2e")
+CURRENT_GATE=5
+bash "${KIT_DIR}/weblead_e2e.sh" "${ROOT}" "${CUTOVER_DB}" "${REHEARSAL_PORT}" "${EVIDENCE_DIR}"
+G5_RC=$?
+if [ "$(gate_state 5)" = "MISSING" ]; then
+  gate_record 5 FAIL "helper-no-receipt" "weblead_e2e.sh exited ${G5_RC} without a gate receipt" 1
 fi
 
-# ── Gate 6 — ERP 10% slice ────────────────────────────────────────────────────
+# ── Gate 6 — ERP 10% slice ───────────────────────────────────────────────────
 echo ""
 echo "── Gate 6: ERP 10% slice"
-if bash "${KIT_DIR}/erp_slice.sh" "${ROOT}" "${CUTOVER_DB}" "${EVIDENCE_DIR}"; then
-  ERP_PASSED=1
-  echo "  ✅ Gate 6 PASSED"
-else
-  ERP_PASSED=0
-  echo "  ❌ Gate 6 FAILED"
-  VERDICT="failed"; FAILURES+=("Gate6-erp-import")
+CURRENT_GATE=6
+bash "${KIT_DIR}/erp_slice.sh" "${ROOT}" "${CUTOVER_DB}" "${EVIDENCE_DIR}"
+G6_RC=$?
+if [ "$(gate_state 6)" = "MISSING" ]; then
+  gate_record 6 FAIL "helper-no-receipt" "erp_slice.sh exited ${G6_RC} without a gate receipt" 1
 fi
 
-# ── Gate 7 — VanillaSoft 100 contacts ────────────────────────────────────────
+# ── Gate 7 — VanillaSoft seven-day window ────────────────────────────────────
 echo ""
-echo "── Gate 7: VanillaSoft 100 contacts"
-if [ "${ERP_PASSED}" -eq 0 ]; then
-  echo "  ⏭  Gate 7 SKIPPED: Gate 6 did not pass. VanillaSoft contacts resolve against ERP partners."
-  VERDICT="failed"; FAILURES+=("Gate7-skipped-erp-not-passed")
+echo "── Gate 7: VanillaSoft seven-day window"
+CURRENT_GATE=7
+if [ "$(gate_state 6)" != "PASS" ]; then
+  gate_record 7 SKIPPED "gate6-not-passed" "VanillaSoft contacts resolve against ERP partners"
 else
   # ── Bind VANILLASOFT_API_KEY from Infisical (value never printed) ──────────
   _GOV="${HOME}/.cursor-governance"
   [ -d "${_GOV}/ops/secrets" ] || _GOV="${HOME}/Cursor-Governance"
   _GOV_PY="${_GOV}/.venv/bin/python"
   [ -x "${_GOV_PY}" ] || _GOV_PY="python3"
-  _BIND_SCRIPT="${_GOV}/ops/secrets/capability_bind.py"
-
-  VS_BIND_STATUS=$("${_GOV_PY}" "${_BIND_SCRIPT}" --check VANILLASOFT_API_KEY 2>&1 || true)
-  if echo "${VS_BIND_STATUS}" | grep -q "source=infisical"; then
-    # Inject into clone ICP — value flows through python to psql, never touches shell stdout
-    "${_GOV_PY}" - <<PYEOF 2>/dev/null
-import sys
-sys.path.insert(0, "${_GOV}")
-from ops.secrets.capability_bind import bind
-val = bind("VANILLASOFT_API_KEY")
-import subprocess
-subprocess.run(
-    ["docker", "compose", "exec", "-T", "db", "psql", "-U", "odoo",
-     "-c", f"INSERT INTO ir_config_parameter (key,value) VALUES ('plasticos_crm_sync.vanillasoft_api_key',\$\${val}\$\$) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value;",
-     "${CUTOVER_DB}"],
-    check=True, capture_output=True
-)
-print("VanillaSoft API key injected from Infisical")
-PYEOF
-    echo "  ✅ VANILLASOFT_API_KEY bound from Infisical and injected into ${CUTOVER_DB} ICP"
+  VS_BIND_STATUS="$("${_GOV_PY}" "${_GOV}/ops/secrets/capability_bind.py" --check VANILLASOFT_API_KEY 2>&1 || true)"
+  if ! printf '%s\n' "${VS_BIND_STATUS}" | grep -q "source=infisical"; then
+    gate_record 7 BLOCKED "vanillasoft-key-unbound" "capability_bind did not report source=infisical"
   else
-    echo "  ❌ Gate 7 BLOCKED: VANILLASOFT_API_KEY not bound (${VS_BIND_STATUS})"
-    echo "     Add VANILLASOFT_API_KEY to ~/.cursor-governance/ops/secrets/infisical-cursor-governance.yaml"
-    VERDICT="blocked"; FAILURES+=("Gate7-vanillasoft-key-missing")
-    VS_BIND_STATUS="failed"  # mark skip
-  fi
+    # The key flows Infisical → this Python process → psql stdin. It is never on
+    # argv, never in the shell, never printed, and psql's output is discarded.
+    REHEARSAL_GOV="${_GOV}" REHEARSAL_DB="${CUTOVER_DB}" REHEARSAL_COMPOSE="${ROOT}/docker-compose.yml" \
+      "${_GOV_PY}" - >"${EVIDENCE_DIR}/06-crm-key.log" 2>&1 <<'PYEOF'
+import os
+import secrets
+import subprocess
+import sys
 
-  if echo "${VS_BIND_STATUS}" | grep -q "source=infisical"; then
-    # Set a 7-day floor so only recent contacts are fetched (bounded rehearsal scope)
-    VANILLASOFT_CALL_FLOOR="$(date -u -v-7d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)"
-    VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CALL_FLOOR}"
-    export VANILLASOFT_CALL_FLOOR VANILLASOFT_CONTACT_FLOOR
-    EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
-    VS_REPORT="/mnt/extra-addons/${EVIDENCE_REL}/06-crm-result.json"
+sys.path.insert(0, os.environ["REHEARSAL_GOV"])
+from ops.secrets.capability_bind import bind  # noqa: E402
 
-    if bash "${ROOT}/scripts/test_env.sh" run "${CUTOVER_DB}" -- \
-      make import-vanillasoft \
-        ODOO_DB_NAME="${CUTOVER_DB}" \
-        VANILLASOFT_CALL_FLOOR="${VANILLASOFT_CALL_FLOOR}" \
-        VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CONTACT_FLOOR}" \
-        VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
-        > "${EVIDENCE_DIR}/06-crm-log.txt" 2>&1; then
-      echo "  ✅ Gate 7 PASSED"
+value = bind("VANILLASOFT_API_KEY")
+if not value:
+    print("VanillaSoft key bound empty")
+    sys.exit(3)
+tag = "$vs" + secrets.token_hex(8) + "$"
+if tag in value:
+    sys.exit(4)
+sql = (
+    "INSERT INTO ir_config_parameter (key, value) VALUES "
+    f"('plasticos_crm_sync.vanillasoft_api_key', {tag}{value}{tag}) "
+    "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;\n"
+)
+done = subprocess.run(
+    ["docker", "compose", "-f", os.environ["REHEARSAL_COMPOSE"], "exec", "-T", "db",
+     "psql", "-U", "odoo", "-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", os.environ["REHEARSAL_DB"]],
+    input=sql, text=True, capture_output=True, check=False,
+)
+print(f"key injection exit={done.returncode}")
+sys.exit(0 if done.returncode == 0 else 5)
+PYEOF
+    VS_INJECT_RC=$?
+    if [ "${VS_INJECT_RC}" -ne 0 ]; then
+      gate_record 7 FAIL "vanillasoft-key-injection-failed" "exit ${VS_INJECT_RC}; see 06-crm-key.log" 1
     else
-      echo "  ❌ Gate 7 FAILED — see ${EVIDENCE_DIR}/06-crm-log.txt"
-      VERDICT="failed"; FAILURES+=("Gate7-vanillasoft-sync")
+      # Seven-day call and contact floor: a bounded window, not a contact count.
+      VANILLASOFT_CALL_FLOOR="$(date -u -v-7d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+      VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CALL_FLOOR}"
+      export VANILLASOFT_CALL_FLOOR VANILLASOFT_CONTACT_FLOOR
+      EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
+      VS_REPORT="/mnt/extra-addons/${EVIDENCE_REL}/06-crm-result.json"
+      bash "${ROOT}/scripts/test_env.sh" run "${CUTOVER_DB}" -- \
+        make import-vanillasoft \
+          ODOO_DB_NAME="${CUTOVER_DB}" \
+          VANILLASOFT_CALL_FLOOR="${VANILLASOFT_CALL_FLOOR}" \
+          VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CONTACT_FLOOR}" \
+          VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
+          >"${EVIDENCE_DIR}/06-crm-log.txt" 2>&1
+      VS_RC=$?
+      # Contacts that landed as crm.lead identities on this fresh clone.
+      printf '%s\n' "SELECT COUNT(*) FROM plasticos_crm_external_ref WHERE provider = 'vanillasoft' AND res_model = 'crm.lead';" \
+        | db_query "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-contacts.raw" \
+        || echo "query-failed" >"${EVIDENCE_DIR}/06-crm-contacts.raw"
+      rlib check-vanillasoft "${EVIDENCE_DIR}" \
+        --summary "${EVIDENCE_DIR}/06-crm-result.json" \
+        --import-exit "${VS_RC}" \
+        --contacts-file "${EVIDENCE_DIR}/06-crm-contacts.raw" \
+        --run-started "${RUN_STARTED_UTC}"
     fi
   fi
 fi
-
-# ── Confirm Production SHA unchanged ─────────────────────────────────────────
-echo ""
-PROD_SHA_FINAL="$(git rev-parse origin/Production)"
-if [ "${PROD_SHA_FINAL}" != "${PROD_SHA}" ]; then
-  echo "⚠️  origin/Production changed during rehearsal! Started=${PROD_SHA} Ended=${PROD_SHA_FINAL}"
-  VERDICT="failed"; FAILURES+=("Production-SHA-drifted")
-else
-  echo "✅ origin/Production unchanged at ${PROD_SHA}"
+if [ "$(gate_state 7)" = "MISSING" ]; then
+  gate_record 7 FAIL "no-receipt" "Gate 7 ended without a receipt" 1
 fi
+CURRENT_GATE=0
 
-# ── Write verdict ─────────────────────────────────────────────────────────────
+# ── Remote refs unchanged since Gate 1 ───────────────────────────────────────
 echo ""
-echo "════════════════════════════════════════════════════════"
+LS_REMOTE="$(git ls-remote origin refs/heads/Staging refs/heads/Production 2>/dev/null)"
+LS_RC=$?
+REMOTE_STAGING="$(printf '%s\n' "${LS_REMOTE}" | awk '$2 == "refs/heads/Staging" {print $1}')"
+REMOTE_PROD="$(printf '%s\n' "${LS_REMOTE}" | awk '$2 == "refs/heads/Production" {print $1}')"
 {
-  echo "run_ts=${RUN_TS}"
-  echo "staging_sha=${STAGING_HEAD}"
-  echo "production_sha=${PROD_SHA}"
-  echo "verdict=${VERDICT}"
-  if [ ${#FAILURES[@]} -gt 0 ]; then
-    echo "failures=${FAILURES[*]}"
-  fi
-} | tee "${EVIDENCE_DIR}/verdict.txt"
-
-if [ "${VERDICT}" = "ready" ]; then
-  echo " ✅ VERDICT: ready — Staging is promotable to Production"
+  echo "start_staging=${ORIGIN_STAGING}"
+  echo "end_staging=${REMOTE_STAGING}"
+  echo "start_production=${PROD_SHA}"
+  echo "end_production=${REMOTE_PROD}"
+} >"${EVIDENCE_DIR}/07-remote-refs.txt"
+if [ "${LS_RC}" -ne 0 ] || [ -z "${REMOTE_STAGING}" ] || [ -z "${REMOTE_PROD}" ]; then
+  echo "⚠️  Remote refs could not be re-read; readiness is unproven"
+  add_run_failure "remote-refs-unverifiable"
 else
-  echo " ❌ VERDICT: ${VERDICT} — Failed gates: ${FAILURES[*]:-none}"
+  if [ "${REMOTE_PROD}" != "${PROD_SHA}" ]; then
+    echo "⚠️  origin/Production moved during the rehearsal: ${PROD_SHA} → ${REMOTE_PROD}"
+    add_run_failure "production-ref-drifted"
+  fi
+  if [ "${REMOTE_STAGING}" != "${ORIGIN_STAGING}" ]; then
+    echo "⚠️  origin/Staging moved during the rehearsal: ${ORIGIN_STAGING} → ${REMOTE_STAGING}"
+    add_run_failure "staging-ref-drifted"
+  fi
 fi
-echo "════════════════════════════════════════════════════════"
-echo " Evidence: ${EVIDENCE_DIR}"
-echo " Latest:   ${KIT_DIR}/evidence/latest"
 
-[ "${VERDICT}" = "ready" ]
+finalize_run
+exit $?

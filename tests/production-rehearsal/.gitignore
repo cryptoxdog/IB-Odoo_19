@@ -1,0 +1,4 @@
+# Rehearsal runs write runtime logs. They stay local; tracked historical
+# evidence (evidence/2026-11-05_192900/, evidence/latest) is unaffected.
+evidence/20*/
+evidence/.latest.*
