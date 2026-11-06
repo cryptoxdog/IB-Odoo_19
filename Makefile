@@ -25,6 +25,14 @@
         setup-local-runtime check-local-runtime gate-db runtime-gates runtime-gate \
         runtime-gate-f1 runtime-gate-f1-accept test-odoo-local
 
+# 2026-11-06: keep the caller's ERP_SQL_PASSWORD before .env can replace it. A
+# value in .env overrides the environment inside make, so import-erp compares
+# the two and refuses a mismatch (import-erp-password-guard) instead of logging
+# in with the .env password. Raw text: no make or shell expansion. Not exported.
+ERP_SQL_PASSWORD_ORIGIN_BEFORE_ENV := $(origin ERP_SQL_PASSWORD)
+ERP_SQL_PASSWORD_BEFORE_ENV := $(value ERP_SQL_PASSWORD)
+unexport ERP_SQL_PASSWORD_BEFORE_ENV ERP_SQL_PASSWORD_ORIGIN_BEFORE_ENV
+
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
 export
@@ -995,6 +1003,26 @@ ERP_SQL_USER ?=
 ERP_SQL_PASSWORD ?=
 ERP_SQL_PORT ?=
 ERP_SQL_DRIVER ?=
+# 2026-11-06: the ERP password reaches the recipe shell unchanged. The recipe
+# writes "$(ERP_SQL_PASSWORD)" inside double quotes, so make would expand $ in
+# the value and the shell would run backticks and break on " or \ (SQL Server
+# then answers error 18456). ERP_SQL_PASSWORD_RAW carries the raw value in the
+# environment, and $(ERP_SQL_PASSWORD) expands to a shell reference to it, which
+# the shell substitutes without reinterpreting the value. A nested $(MAKE)
+# inherits that reference and keeps the parent's ERP_SQL_PASSWORD_RAW.
+ERP_SQL_PASSWORD_INDIRECT := $${ERP_SQL_PASSWORD_RAW}
+ifneq ($(ERP_SQL_PASSWORD_BEFORE_ENV),$(ERP_SQL_PASSWORD_INDIRECT))
+ERP_SQL_PASSWORD_RAW := $(value ERP_SQL_PASSWORD)
+ifeq ($(ERP_SQL_PASSWORD_ORIGIN_BEFORE_ENV)-$(origin ERP_SQL_PASSWORD),environment-file)
+ifneq ($(ERP_SQL_PASSWORD_BEFORE_ENV),$(ERP_SQL_PASSWORD_RAW))
+ERP_SQL_PASSWORD_CONFLICT := 1
+endif
+endif
+endif
+override ERP_SQL_PASSWORD := $(ERP_SQL_PASSWORD_INDIRECT)
+export ERP_SQL_PASSWORD_RAW
+unexport ERP_SQL_PASSWORD_INDIRECT ERP_SQL_PASSWORD_CONFLICT
+
 # The VanillaSoft driver reads two floors (plasticos_crm_sync/scripts/
 # import_vanillasoft_shell.py); both are forwarded verbatim.
 VANILLASOFT_CALL_FLOOR ?=
@@ -1051,6 +1079,15 @@ import-erp:
 			< plasticos_partner_import/scripts/import_erp_shell.py; \
 	else \
 		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
+	fi
+
+.PHONY: import-erp-password-guard
+import-erp: import-erp-password-guard
+import-erp-password-guard:
+	@if [ "$(ERP_SQL_PASSWORD_CONFLICT)" = "1" ]; then \
+		echo "❌ ERP_SQL_PASSWORD from the environment differs from the one in .env, which make would use instead." >&2; \
+		echo "   Remove ERP_SQL_PASSWORD from .env, or make the two match. Neither value is printed." >&2; \
+		exit 2; \
 	fi
 
 # Test-sized ERP import: a fresh clone of the pristine template, then the newest
