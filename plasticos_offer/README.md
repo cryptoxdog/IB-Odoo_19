@@ -39,7 +39,7 @@ Holds one commercial offer from a supplier to a buyer and its lifecycle from dra
   - `action_mark_responded` moves `sent` to `responded`.
   - `action_accept` accepts a `sent` or `responded` offer and records who accepted it and when.
   - `action_reject`, `action_cancel`, and `action_reset_to_draft` cover the rest.
-- **Frozen terms.** Once an offer leaves draft, a write that changes a term field (price, currency, quantity, loads, delivery and payment terms, validity, parties, intake) is refused. A closed offer refuses any write except a state change. A changed deal is a new offer.
+- **Frozen terms.** Once an offer leaves draft, a write that changes a term field (price, currency, quantity, loads, delivery and payment terms, validity, parties, intake) is refused. For an `accepted`, `rejected`, `expired`, or `cancelled` offer, a write without `state` is refused. A write that includes `state` skips that check, so it can still change non-term fields on a closed offer; only the term-field check applies to it. A changed deal is a new offer.
 - **Expiry.** Cron `ir_cron_expire_offers` calls `cron_expire_offers()` daily. It takes the advisory lock `plasticos_offer.ir_cron_expire_offers` and moves up to 500 `draft`, `sent`, or `responded` offers past `valid_until` to `expired`.
 - **Two creation paths, one price rule.** `models/offer_price_bridge.py` fills `price_per_lb` on create from the highest `plasticos.intake.match.typical_price` for that intake and buyer, and only when the new offer has an intake and a buyer, no `match_result_id`, and no price yet.
   - A manually entered intake offer gets that typical price as a starting value.
