@@ -31,7 +31,7 @@ nowhere: `conftest.py` collect-ignores it under pytest, and Odoo never loads it.
 Owner rule: the smallest addon whose dependency closure covers every PlasticOS model the file
 exercises. Where no single closure covers it (the leaf addons `plasticos_matching` /
 `plasticos_enrichment` have no dependants), the addon with the fewest uncovered models; those files are
-`post_install` and run against a full install (Odoo.sh, the `make test-module` fixture).
+`post_install` and run against a full install (Odoo.sh, or the pinned Docker fixture through `make runtime-test` in the `make pr-check` smoke stage).
 
 | File | Owner addon | Tags |
 |------|-------------|------|
@@ -104,7 +104,7 @@ assert_message_posted(test_case, record, keyword)
 
 ```bash
 # One addon's tests (Docker fixture DB; runs at_install + post_install of that addon)
-make test-module m=plasticos_claims
+make runtime-test m=plasticos_claims   # only under l9-pr-integration-testing; the smoke stage passes modules itself
 
 # All PlastOS tests
 odoo-bin -d testdb --test-tags plasticos --stop-after-init

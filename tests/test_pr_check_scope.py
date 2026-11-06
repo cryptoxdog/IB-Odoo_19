@@ -442,6 +442,6 @@ def test_real_repository_script_change_reaches_a_strict_subset() -> None:
     from pr_check_scope import select_tests  # noqa: E402
 
     selected = select_tests(ROOT, ["scripts/pr_check_run.sh"])
-    assert selected == ["tests/test_pr_check_scope.py"]
+    assert selected == ["tests/test_pr_check_scope.py", "tests/test_runtime_test_ownership.py"]
     docs = select_tests(ROOT, ["docs/" + "x.md"])
     assert docs == [], docs

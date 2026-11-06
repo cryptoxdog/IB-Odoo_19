@@ -2,16 +2,26 @@
 
 ## Tier map
 
-| Tier | Command | Needs Odoo Docker? | Blocks `make push`? |
+| Tier | Command | Needs Odoo Docker? | Blocks `make pr`? |
 |------|---------|--------------------|---------------------|
 | Pure pytest | `make test` / `pytest tests/` | No | Yes (`pr-check`) |
 | Install-smoke | `make install-smoke` | Yes | Yes (`pr-check`) |
-| Odoo native tests | `make test-odoo` | Yes (installed DB) | No (local / Odoo.sh) |
-| Single module | `make test-module m=plasticos_X` | Yes | No |
+| Odoo runtime tests | `make runtime-test` (smoke stage of `pr-check`, or `l9-pr-integration-testing`) → `test-module` / `test-odoo` | Yes (fixture clone) | Yes (`pr-check`) when the branch touched a roster module with Odoo tests; skipped by `make pr-nosmoke` |
 | Odoo.sh suite | Staging/Production rebuild | Remote | External status only |
 
 GHA **does not** run Odoo runtime install. Local Docker is the authority for
 registry load.
+
+## Owners
+
+Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc.
+
+| Owner | When | Modules |
+|-------|------|---------|
+| `make pr-check` smoke stage (`scripts/pr_check_run.sh`) | after install-smoke, on every `make pr` / pre-push gate | `runtime=` from `scripts/pr_check_scope.py`: roster modules the branch touched that ship a `tests/` package; `all` when the whole gate is kept |
+| `l9-pr-integration-testing` | only when the operator invokes it | `make runtime-test m=<modules>` on the host compose stack |
+
+`make pr-nosmoke reason=...` and `PR_CHECK_SKIP_SMOKE=1` skip the runtime tests with smoke. A scope of `smoke=0` does not: a change to an addon's own tests still runs them.
 
 ## Fixture
 
@@ -33,7 +43,7 @@ source is not one of those inputs.
 
 ## Test runner
 
-`make test-odoo` and `make test-module m=…` run inside `scripts/test_env.sh run`.
+`make runtime-test` dispatches to `make test-odoo` (`all`) or `make test-module m=…`, which run inside `scripts/test_env.sh run`.
 That treats a `--test-enable` run as its test runner:
 
 | Step | Behaviour |
@@ -54,15 +64,12 @@ Without `-u`, Odoo runs at_install and post_install tests of every loaded module
 core and Enterprise included, against the fixture's schema. That is why the
 runner always upgrades the roster.
 
-## After install-smoke green
+## Under l9-pr-integration-testing
 
 ```bash
-# Full native test enable on the worktree clone of the pinned fixture
-make test-odoo
-
-# Scoped
-make test-module m=plasticos_security_base
-make test-module m=plasticos_matching
+# Only when the operator invoked l9-pr-integration-testing; the smoke stage passes the modules itself
+make runtime-test m=plasticos_security_base,plasticos_matching
+make runtime-test m=all   # whole roster (make test-odoo)
 ```
 
 Use `TransactionCase` fixtures per `.cursor/rules/80-plasticos-testing-rules`
@@ -78,5 +85,5 @@ Use `TransactionCase` fixtures per `.cursor/rules/80-plasticos-testing-rules`
 ## When to stop at smoke
 
 If the user only needs "Odoo loads green" / Staging rebuild unblock, **install-smoke
-PASS is sufficient** before merge. Escalate to `test-odoo` when changing
-business logic under test tags or when Odoo.sh test suite is enabled on the branch.
+PASS is sufficient** before merge. The runtime tests for touched modules already run
+in the same smoke stage; a wider run is an explicit `l9-pr-integration-testing` invocation.

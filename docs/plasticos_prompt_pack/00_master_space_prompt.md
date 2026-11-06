@@ -29,7 +29,7 @@ PlasticOS is a recycled-plastics brokerage/marketplace running on Odoo 19 with 2
 | Upgrade module | `make update m=<module>` |
 | Upgrade multiple | `make update m=mod1,mod2,mod3` |
 | Run all tests | `make test` |
-| Run module tests | `make test-module m=<module>` |
+| Run module tests | `make runtime-test` — only the `make pr-check` smoke stage or an invoked `l9-pr-integration-testing`; never ad hoc |
 | PR gate (required) | `make pr-check` |
 | Full audit | `make audit` |
 | Quick audit | `make audit-quick` |

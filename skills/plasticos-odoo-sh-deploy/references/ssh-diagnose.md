@@ -80,7 +80,7 @@ ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "sed -n '85,110p' /home/odoo/src/use
 
 ## Odoo Runtime Tests vs Odoo.sh CI
 
-- **`make test-odoo`** / **`make test-module`** — local Docker only.
+- **Odoo runtime tests** — local Docker only. Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc.
 - **`ci/odoo.sh (dev)`** on PRs — external Odoo.sh status; not GitHub Actions.
 - Repo CI stays pure-Python (`make pr-check`).
 

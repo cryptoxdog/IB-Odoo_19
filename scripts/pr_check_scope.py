@@ -18,7 +18,7 @@ Prints ``KEY=VALUE`` lines::
                    input changed
     tests=all | <space-separated test modules> | (empty: no module to run)
     runtime=all | <comma-separated PlasticOS modules> | (empty)
-                   Odoo runtime tests (make runtime-test) for the declared
+                   Odoo runtime tests (the runtime-test goal) for the declared
                    roster modules the change touched that ship a tests/
                    package; ``all`` when the whole gate is kept
     reason=<one line>

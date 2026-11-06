@@ -102,7 +102,7 @@ PRs may show **`ci/odoo.sh (dev) — Odoo Test Suite`**. This is **not** a workf
 | `ci/odoo.sh (dev)` | Feature/dev branches on PRs | Yes — dev branch → Settings → Test suite |
 | `ci/odoo.sh (staging)` | `Staging` merges | No — Staging settings have no test suite toggle |
 
-- **Odoo runtime tests in this repo:** `make test-odoo` / `make test-module m=X` (Docker Compose).
+- **Odoo runtime tests in this repo:** Docker Compose, never GitHub Actions. Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc.
 - **Never add** an Odoo runtime job to `ci.yml`.
 - **Cannot disable via SSH** on Odoo.sh containers — branch policy is platform-side only.
 - **GitHub org rulesets 404:** `cryptoxdog/IB-Odoo_19` is a user repo, not an org — that API call is expected to 404 and is unrelated to CI.

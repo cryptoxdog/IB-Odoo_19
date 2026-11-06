@@ -10,7 +10,7 @@ alwaysApply: true
 
 ## Use this fixture
 
-`make test-module`, `make test-odoo`, `make test-db`, and `scripts/test_env.sh` clone that database. The clone name is the worktree's `odoo_test_<owner>`. The template is not a run target.
+Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc. Those runs, `make test-db`, and `scripts/test_env.sh` clone that database. The clone name is the worktree's `odoo_test_<owner>`. The template is not a run target.
 
 A module change is applied with `-u` on the clone. It does not rebuild the template. A `--test-enable` run under `scripts/test_env.sh run` (both Make test targets) upgrades every declared PlasticOS module on the clone, never `-u all`. It runs only the roster's tests, or only `m=`'s. It fails on a missing Odoo test summary, a failure, an error, or zero tests. The receipt is `.l9/runtime/test-env/<db>.test-receipt.json`. Any other `run` (an import, `shell`) first upgrades the roster on the clone, once per addon source digest.
 
