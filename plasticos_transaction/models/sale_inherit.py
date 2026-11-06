@@ -38,9 +38,27 @@ class SaleOrder(models.Model):
         if not recs_needing_tx:
             return res
         transactions = self.env[PLASTICOS_TRANSACTION]
+        # One create for the whole batch; create() returns records in vals order.
+        # Two orders in one batch may share an origin: the later one takes the
+        # suffixed name and leaves the invoice, exactly as it would have once the
+        # first transaction existed.
+        vals_list = []
+        names_taken = set()
+        invoices_taken = set()
         for order in recs_needing_tx:
             worksheet = (order.origin or "").strip()
-            tx = transactions.create(order._transaction_vals(False, worksheet))
+            vals = order._transaction_vals(False, worksheet)
+            if vals.get("name") in names_taken:
+                vals["name"] = f"{worksheet}-{order.name}"
+            if vals.get("name"):
+                names_taken.add(vals["name"])
+            if vals.get("customer_invoice_id") in invoices_taken:
+                vals.pop("customer_invoice_id")
+            if vals.get("customer_invoice_id"):
+                invoices_taken.add(vals["customer_invoice_id"])
+            vals_list.append(vals)
+        created = transactions.create(vals_list)
+        for order, tx in zip(recs_needing_tx, created, strict=True):
             order.transaction_id = tx.id
             if tx.state == "draft":
                 tx.action_activate()
@@ -137,17 +155,21 @@ class SaleOrder(models.Model):
         """
         transactions = self.env[PLASTICOS_TRANSACTION]
         documents = self.env.context.get("erp_documents_by_origin") or {}
-        for order in self:
-            if order.state != "sale":
-                continue
+        confirmed = self.filtered(lambda order: order.state == "sale")
+        worksheets = {worksheet for order in confirmed for worksheet in _worksheet_numbers(order.origin)}
+        # One query for the worksheets that are already transactions; a worksheet
+        # compiled below joins the set so the next order carrying it is skipped.
+        compiled = set(transactions.search([("name", "in", list(worksheets))]).mapped("name")) if worksheets else set()
+        for order in confirmed:
             for worksheet in _worksheet_numbers(order.origin):
-                if transactions.search([("name", "=", worksheet)], limit=1):
+                if worksheet in compiled:
                     continue
                 sales = (documents.get(worksheet) or {}).get("sales") or []
                 eligible = self.browse(sales).exists().filtered(lambda sale: sale.state == "sale").ids
                 if eligible and order.id != min(eligible):
                     continue
                 tx = transactions.with_context(import_mode=True).create(order._transaction_vals(True, worksheet))
+                compiled.add(worksheet)
                 if not order.transaction_id:
                     order.transaction_id = tx.id
                 order._post_worksheet_note(tx, worksheet, sales)

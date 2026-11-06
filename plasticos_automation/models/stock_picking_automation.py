@@ -60,6 +60,7 @@ class StockPickingAutomation(models.Model):
             )
 
             log_model = self.env["plasticos.automation.log"]
+            log_vals = []
 
             for picking in pickings:
                 picking.trucker_followup_count += 1
@@ -81,7 +82,7 @@ class StockPickingAutomation(models.Model):
                 if template:
                     template.send_mail(picking.id, force_send=False)
 
-                log_model.create(
+                log_vals.append(
                     {
                         "name": f"Trucker follow-up #{picking.trucker_followup_count} for {picking.name}",
                         "model_name": "stock.picking",
@@ -107,6 +108,8 @@ class StockPickingAutomation(models.Model):
                     picking.trucker_followup_count,
                     picking.name,
                 )
+            if log_vals:
+                log_model.create(log_vals)
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_trucker_followup"]

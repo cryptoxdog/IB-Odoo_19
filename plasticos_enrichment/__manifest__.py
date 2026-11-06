@@ -1,6 +1,6 @@
 {
     "name": "PlastOS Buyer CRM Enrichment Engine",
-    "version": "19.0.2.5.5",
+    "version": "19.0.2.5.6",
     "summary": "Gate-mediated partner enrichment (local crawl/inference retired — mothball M4)",
     "category": "CRM",
     "author": "PlastOS",

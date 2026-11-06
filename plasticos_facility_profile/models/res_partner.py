@@ -357,6 +357,7 @@ class ResPartner(models.Model):
 
     def _inverse_mobile(self):
         phone_model = self.env["plasticos.partner.phone"]
+        new_lines = []
         for partner in self:
             number = (partner.mobile or "").strip()
             lines = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")
@@ -366,9 +367,10 @@ class ResPartner(models.Model):
             if lines:
                 lines[:1].number = number
             else:
-                values = {"partner_id": partner.id, "label": "mobile"}
-                values["number"] = number
-                phone_model.create(values)
+                new_lines.append({"partner_id": partner.id, "label": "mobile", "number": number})
+        if new_lines:
+            # One create for every partner that had no mobile line yet.
+            phone_model.create(new_lines)
 
     @api.depends(
         "is_company",

@@ -297,8 +297,9 @@ class EnrichmentRun(models.Model):
             row_confidence = float(confidence) if confidence is not None else 1.0
         except (TypeError, ValueError):
             row_confidence = 1.0
-        for field_name, value in to_write.items():
-            self.env[PROVENANCE_MODEL].create(
+        # One provenance row per written field, created in one batch.
+        self.env[PROVENANCE_MODEL].create(
+            [
                 {
                     "run_id": self.id,
                     "partner_id": partner.id,
@@ -311,7 +312,9 @@ class EnrichmentRun(models.Model):
                     "inference_type": "explicit",
                     "status": "written",
                 }
-            )
+                for field_name, value in to_write.items()
+            ]
+        )
         return len(to_write)
 
     def _rollback_then_persist_operator_state(self, run_id, vals):
@@ -559,6 +562,13 @@ class EnrichmentRun(models.Model):
         updated = 0
         written = 0
 
+        # One query for the partner's profiles, keyed by the canonical (polymer, form)
+        # identity; a profile this run creates is added so a later raw material of
+        # the same identity merges into it instead of duplicating it.
+        profiles_by_identity = {}
+        for profile in MatProf.search([("partner_id", "=", partner.id)]):
+            profiles_by_identity.setdefault((profile.polymer_id.id, profile.form_id.id), profile)
+
         for ext in self.extraction_ids.filtered("is_injectable"):
             for raw_mat in ext.material_json or []:
                 profile_vals, prov_items, unmapped = svc.normalize_material(raw_mat)
@@ -591,13 +601,9 @@ class EnrichmentRun(models.Model):
                     svc._resolve_source_type_id(source_type) if source_type else self.env["plasticos.source.type"]
                 )
 
-                # Search by partner + polymer_id + form_id (canonical unique)
-                domain = [
-                    ("partner_id", "=", partner.id),
-                    ("polymer_id", "=", polymer_id.id),
-                    ("form_id", "=", form_id.id),
-                ]
-                existing = MatProf.search(domain, limit=1)
+                # Partner + polymer_id + form_id (canonical unique), from the one query above.
+                identity = (polymer_id.id, form_id.id)
+                existing = profiles_by_identity.get(identity, MatProf)
 
                 if existing:
                     # Identity codes are owned by plasticos.material.profile.
@@ -648,7 +654,7 @@ class EnrichmentRun(models.Model):
                     if source_type_id:
                         create_vals["source_type_id"] = source_type_id.id
                     create_vals.update(profile_vals)
-                    MatProf.create(create_vals)
+                    profiles_by_identity[identity] = MatProf.create(create_vals)
                     for field, value in profile_vals.items():
                         self._record_provenance(
                             partner,

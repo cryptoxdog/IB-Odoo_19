@@ -1,6 +1,7 @@
 """Odoo-runtime regression coverage for Linda's local freight persistence boundary."""
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -243,6 +244,93 @@ class TestLindaFreightModels(PlasticosTestCase):
             quote_model.create(
                 self._quote_values(request, recipient, supersedes_quote_id=first.id, source_message_id="revised-again")
             )
+
+    def test_supersession_check_counts_superseders_once_per_batch(self):
+        """A batch create superseding one prior twice is rejected; two priors superseded once each pass with one grouped count."""
+        _load, _context, request, recipient = self._new_request()
+        quote_model = self.env["plasticos.freight.quote"]
+        first = quote_model.create(self._quote_values(request, recipient))
+        with self.assertRaises(ValidationError):
+            quote_model.create(
+                [
+                    self._quote_values(request, recipient, supersedes_quote_id=first.id, source_message_id="batch-a"),
+                    self._quote_values(request, recipient, supersedes_quote_id=first.id, source_message_id="batch-b"),
+                ]
+            )
+        _load2, _context2, other_request, other_recipient = self._new_request()
+        other_first = quote_model.create(self._quote_values(other_request, other_recipient))
+        quote_cls = type(quote_model)
+        real_read_group = quote_cls._read_group
+        grouped = []
+
+        def counting_read_group(model, domain, *args, **kwargs):
+            grouped.append(domain)
+            return real_read_group(model, domain, *args, **kwargs)
+
+        with patch.object(quote_cls, "_read_group", counting_read_group):
+            pair = quote_model.create(
+                [
+                    self._quote_values(request, recipient, supersedes_quote_id=first.id, source_message_id="batch-c"),
+                    self._quote_values(
+                        other_request, other_recipient, supersedes_quote_id=other_first.id, source_message_id="batch-d"
+                    ),
+                ]
+            )
+        self.assertEqual(pair.mapped("supersedes_quote_id"), first | other_first)
+        lineage_counts = [
+            domain for domain in grouped if any(isinstance(t, tuple) and t[0] == "supersedes_quote_id" for t in domain)
+        ]
+        self.assertEqual(len(lineage_counts), 1, grouped)
+
+    def test_reconciliation_of_two_legacy_rows_creates_evidence_in_one_batch(self):
+        load, context = self._new_load()
+        load._confirm_freight_rate(
+            rate=1000.0,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=context.fingerprint,
+        )
+        sale = load.sale_order_id
+        lane_key = f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}"
+        # sudo() justification: legacy rate memory is frozen for every role (no ACL grants
+        # create); the fixture rows stand in for pre-existing cache rows seeded before the freeze.
+        legacy_rows = (
+            self.env["plasticos.rate.memory"]
+            .sudo()
+            .with_context(plasticos_logistics_legacy_rate_memory_migration=True)
+            .create(
+                [
+                    {
+                        "carrier_id": self.carrier.id,
+                        "lane_key": lane_key,
+                        "rate_amount": amount,
+                        "rate_date": fields.Date.to_date(load.rate_confirmed_at),
+                    }
+                    for amount in (1000.0, 1100.0)
+                ]
+            )
+        )
+        evidence_cls = type(self.env[RATE_MEMORY_RECONCILIATION])
+        real_create = evidence_cls.create
+        creates = []
+
+        def counting_create(model, vals_list):
+            creates.append(vals_list)
+            return real_create(model, vals_list)
+
+        with patch.object(evidence_cls, "create", counting_create):
+            legacy_rows.action_reconcile_to_canonical_history()
+        self.assertEqual(len(creates), 1, creates)
+        evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "in", legacy_rows.ids)])
+        self.assertEqual(len(evidence), 2)
+        self.assertEqual(set(evidence.mapped("disposition")), {"exact_single_match"})
+        self.assertEqual(evidence.mapped("canonical_load_id"), load)
+        # A second reconciliation of the same rows adds nothing.
+        legacy_rows.action_reconcile_to_canonical_history()
+        self.assertEqual(
+            self.env[RATE_MEMORY_RECONCILIATION].search_count([("legacy_rate_memory_id", "in", legacy_rows.ids)]), 2
+        )
 
     def test_logistics_user_can_create_reconciliation_evidence_but_cannot_mutate_it(self):
         """F2: Logistics holds create on reconciliation evidence; write and unlink stay denied."""
