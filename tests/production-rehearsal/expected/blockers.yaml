@@ -1,47 +1,124 @@
-# Known blockers beyond the wired end of Gate 5 (web lead).
-# These are by design — they are not failures of the rehearsal.
-# Update this file when the architecture advances.
+# Named blockers and design-scope notes for the promotion rehearsal.
+#
+# Only an entry with `verdict_effect: blocked` can turn a gate's BLOCKED
+# receipt into the run verdict `blocked` (common.py verdict_blocker_ids).
+# A BLOCKED receipt whose reason is not listed that way, any FAIL, and any
+# missing receipt make the verdict `failed`. `blocked` is never `ready`.
+# Entries without `verdict_effect` are documentation: they explain where the
+# wired path ends by design and never excuse a failure.
 #
 # Format:
-#   - id: blocker-id
+#   - id: blocker-id            (a gate receipt `reason` when verdict_effect is set)
 #     gate: N
-#     step: description of where the pipeline stops
+#     verdict_effect: blocked   (optional)
+#     status: open | fix-merged-not-proven | by-design
+#     step: where the pipeline stops
 #     reason: why it stops here
 #     adr: reference if applicable
 #     severity: expected | warning | error
 
 blockers:
 
+  # ── External prerequisites: the gate cannot run, nothing is proven ─────────
+
+  - id: vanillasoft-key-unbound
+    gate: 7
+    verdict_effect: blocked
+    status: open
+    step: capability_bind.py --check VANILLASOFT_API_KEY did not report source=infisical
+    reason: >
+      The VanillaSoft key is bound from Infisical only. Without it Gate 7 does
+      not run and the contact import is unproven.
+    severity: error
+
+  - id: vanillasoft-empty-window
+    gate: 7
+    verdict_effect: blocked
+    status: open
+    step: make import-vanillasoft over the seven-day call and contact floor
+    reason: >
+      The bounded window landed no contact. An empty window proves nothing
+      about the positive contact import; the window is never widened to
+      manufacture a pass.
+    severity: warning
+
+  - id: vanillasoft-scope-notice-partial
+    gate: 7
+    verdict_effect: blocked
+    status: open
+    step: import-vanillasoft summary final_status partial with only informational scope notices
+    reason: >
+      plasticos_crm_sync business_acceptance is FAIL for any partial. A partial
+      whose only causes are informational scope notices (no rejected row, no
+      required mapping) needs operator review before it can count.
+    severity: warning
+
+  - id: erp-proof-files-missing
+    gate: 6
+    verdict_effect: blocked
+    status: open
+    step: ~/.l9/erp-proof/{database,reader.pw} absent and ERP_SQL_SERVER / ERP_SQL_DATABASE unset
+    reason: >
+      Gate 6 reads only the restored SQL Server database. Without its
+      coordinates the import does not run.
+    severity: error
+
+  - id: erp-source-incomplete
+    gate: 6
+    verdict_effect: blocked
+    status: open
+    step: only one of ERP_SQL_SERVER / ERP_SQL_DATABASE exported
+    reason: Both must be set together, or neither (the proof files are then used).
+    severity: error
+
+  # ── Historical observations ──────────────────────────────────────────────
+
   - id: web-lead-crm-lead-http-context
     gate: 5
+    status: fix-merged-not-proven
     step: plasticos.web.lead._ensure_crm_lead_for_hot_intake → _create_crm_lead → message_post
     reason: >
-      In Odoo 19, public HTTP endpoint contexts set uid=None (unauthenticated request).
-      Even after sudo(), the mail-thread message_post calls self.env.user._is_public()
-      which requires a singleton res.users record. With an empty env.user, this raises
-      ValueError: Expected singleton: res.users(). The intake IS created correctly.
-      CRM lead is not created via HTTP. Fix: ensure SUPERUSER_ID is set before
-      message_post calls in the triage path (use with_user(SUPERUSER_ID)).
+      2026-11-05: public HTTP left env.user empty and message_post raised
+      Expected singleton: res.users(). PR 385 (merge 5b683806, on Staging)
+      binds SUPERUSER_ID inside plasticos_crm_bridge._create_crm_lead.
+      Run 2026-11-06_205618 (operator-supplied evidence, not committed; local
+      HEAD 9ef95a4b, which differed from origin/Staging) still ended Gate 5 at
+      state=error with the same singleton error, so the controller's HTTP user
+      context is reported open. PR 398 (merge 85eefe81, on Staging) binds the
+      authenticated webhook request to SUPERUSER_ID in web_lead_api.py. Owned
+      outside this kit. Gate 5 passes only when the stored crm.lead
+      opportunity is read back on a live run; this entry never excuses it.
     adr: rule 50-plasticos-web-lead-guard (do not edit web_lead.py write/unlink guards)
-    severity: warning
-    observed: 2026-11-05
-    evidence: intake_id=1 created, crm_lead_id=null, state=error
+    severity: error
+    observed: 2026-11-05, 2026-11-06
     fix_pr: https://github.com/cryptoxdog/IB-Odoo_19/pull/385
-    fix_note: >
-      Pull request 385 binds SUPERUSER_ID around lead creation, image sync,
-      and the opportunity note. This blocker stays until that commit is on Staging.
+
+  - id: erp-sql-login-18456
+    gate: 6
+    status: open
+    step: restored SQL Server login erp_reader
+    reason: >
+      Run 2026-11-06_205618 (operator-supplied evidence, not committed): SQL
+      Server error 18456 (login failed) for erp_reader. Gate 6
+      FAILs on it. Credential and source diagnosis are owned outside this kit.
+    severity: error
+    observed: 2026-11-06
+
+  # ── Design scope: where the wired path ends on purpose ───────────────────
 
   - id: web-lead-no-partner-creation
     gate: 5
+    status: by-design
     step: WebLead.admit_inbound → plasticos.intake created, crm.lead created
     reason: >
       Partner creation is intentionally deferred. The intake has no partner_id.
-      Buyer-match and partner resolution happen after human review of the lead.
+      Gate 5 fails if the POST creates a partner.
     adr: plasticos_web_leads rule 50-plasticos-web-lead-guard
     severity: expected
 
   - id: web-lead-no-gate-triage
     gate: 5
+    status: by-design
     step: plasticos.intake.action_match_to_buyers() requires GATE_URL
     reason: >
       Gate/CEG web-lead triage is Phase 3 (ADR-016). GATE_URL is not set
@@ -51,6 +128,7 @@ blockers:
 
   - id: web-lead-no-matching
     gate: 5
+    status: by-design
     step: No match run triggered from web lead path
     reason: >
       Matching requires imported buyers. ERP import (Gate 6) must run first.
@@ -59,16 +137,19 @@ blockers:
 
   - id: erp-10pct-slice
     gate: 6
+    status: by-design
     step: Newest 10% of transaction worksheets only
     reason: >
       LIMIT=10% is intentional for rehearsal speed. Full historical import
       is a separate operator task. All partner layers always run in full.
     severity: expected
 
-  - id: vanillasoft-100-contacts
+  - id: vanillasoft-seven-day-window
     gate: 7
+    status: by-design
     step: Bounded VanillaSoft import via make import-vanillasoft
     reason: >
-      The rehearsal sets VANILLASOFT_CALL_FLOOR to seven days ago.
-      A full VanillaSoft import is a separate operator task.
+      The rehearsal sets VANILLASOFT_CALL_FLOOR and VANILLASOFT_CONTACT_FLOOR
+      to seven days ago. It is a time window, not a 100-contact cap. A full
+      VanillaSoft import is a separate operator task.
     severity: expected

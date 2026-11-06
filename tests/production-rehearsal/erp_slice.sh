@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
-# Gate 6 — ERP 10% slice import.
-# Called by run.sh; writes summary to $EVIDENCE_DIR/05-erp-summary.json.
+# Gate 6 — ERP 10% slice import from the restored SQL Server database.
+#
+# The importer writes its own summary (05-erp-summary.json) and census
+# (05-erp-summary-census.json); this script never writes into either. The gate
+# verdict is $EVIDENCE_DIR/gate-6.json, written by common.py check-erp
+# from the summary, the census, the import exit code and a read-only count of
+# the imported counterparty, address and contact identities on the clone.
+# Exit 0 only on PASS.
 # Usage: bash erp_slice.sh <plasticos_root> <db> <evidence_dir>
-set -euo pipefail
+set -uo pipefail
+umask 077
 
 ROOT="${1:?plasticos_root required}"
 DB="${2:?db name required}"
 EVIDENCE_DIR="${3:?evidence_dir required}"
+KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=rehearsal_common.sh source-path=SCRIPTDIR
+. "${KIT_DIR}/rehearsal_common.sh"
 
 SUMMARY_FILE="${EVIDENCE_DIR}/05-erp-summary.json"
+IMPORT_LOG="${EVIDENCE_DIR}/05-erp-import.log"
+LAYERS_FILE="${EVIDENCE_DIR}/05-erp-layers.json"
 # The Odoo container sees the repo at /mnt/extra-addons. The summary must be
 # written there so the host evidence folder receives it through the bind mount.
 EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
@@ -19,14 +31,40 @@ PROOF_DB="${PROOF_DIR}/database"
 
 echo "→ [Gate 6] ERP 10% slice import on ${DB}"
 
+# gate6 <STATE> <reason> [detail] — scan, write the receipt, exit nonzero.
+gate6() {
+  local state="$1" reason="$2" detail="${3:-}"
+  if ! rlib scan-secrets "${EVIDENCE_DIR}" --env ERP_SQL_PASSWORD; then
+    state="FAIL"
+    reason="evidence-secret-redacted"
+    detail="the ERP reader password appeared in evidence and was redacted"
+  fi
+  rlib gate-write "${EVIDENCE_DIR}" 6 "${state}" "${reason}" --detail "${detail}" --side-effects
+  echo "  ❌ Gate 6 ${state}: ${reason}${detail:+ — ${detail}}"
+  exit 1
+}
+
+# ── Safety guards (before any read of the source or write to the clone) ─────
+if [ "${ODOO_STAGE:-}" = "production" ]; then
+  gate6 FAIL "production-stage-refused" "ODOO_STAGE=production; refusing a rehearsal import against production"
+fi
+if [ -n "${ERP_PRODUCTION_PERMIT:-}" ]; then
+  gate6 FAIL "production-permit-refused" "ERP_PRODUCTION_PERMIT is set; the rehearsal never passes a permit"
+fi
+if [ "${ERP_REQUIRE_EMPTY:-1}" != "1" ]; then
+  gate6 FAIL "empty-guard-disabled" "ERP_REQUIRE_EMPTY must stay 1 on the rehearsal clone"
+fi
+if [ -n "${ERP_PAYLOAD_ROOT:-}" ] || [ -n "${PAYLOAD_ROOT:-}" ]; then
+  gate6 FAIL "payload-root-refused" "a payload root selects the frozen grid; Gate 6 reads only the restored database"
+fi
+
 # The restored database and its reader login already exist. A .bak is not
 # opened here, and nothing is written to .env.local. An exported server and
 # database still win. The password stays in the environment, never on argv.
 if [ -z "${ERP_SQL_SERVER:-}" ] && [ -z "${ERP_SQL_DATABASE:-}" ]; then
   if [ ! -s "${PROOF_PW}" ] || [ ! -s "${PROOF_DB}" ]; then
-    echo "  ❌ BLOCKED: ${PROOF_DIR} is missing the reader password or database name, and ERP_SQL_SERVER / ERP_SQL_DATABASE are unset."
-    echo '{"gate":6,"result":"blocked","reason":"existing ERP proof files missing"}' > "${SUMMARY_FILE}"
-    exit 1
+    gate6 BLOCKED "erp-proof-files-missing" \
+      "${PROOF_DIR} lacks reader.pw or database and ERP_SQL_SERVER / ERP_SQL_DATABASE are unset"
   fi
   ERP_SQL_SERVER="host.docker.internal"
   ERP_SQL_PORT="14330"
@@ -34,9 +72,7 @@ if [ -z "${ERP_SQL_SERVER:-}" ] && [ -z "${ERP_SQL_DATABASE:-}" ]; then
   ERP_SQL_USER="erp_reader"
   ERP_SQL_PASSWORD="$(cat "${PROOF_PW}")"
 elif [ -z "${ERP_SQL_SERVER:-}" ] || [ -z "${ERP_SQL_DATABASE:-}" ]; then
-  echo "  ❌ BLOCKED: ERP_SQL_SERVER and ERP_SQL_DATABASE must both be set."
-  echo '{"gate":6,"result":"blocked","reason":"ERP_SQL_SERVER and ERP_SQL_DATABASE must both be set"}' > "${SUMMARY_FILE}"
-  exit 1
+  gate6 BLOCKED "erp-source-incomplete" "ERP_SQL_SERVER and ERP_SQL_DATABASE must both be set"
 elif [ -z "${ERP_SQL_PASSWORD:-}" ] && [ -s "${PROOF_PW}" ]; then
   ERP_SQL_USER="${ERP_SQL_USER:-erp_reader}"
   ERP_SQL_PASSWORD="$(cat "${PROOF_PW}")"
@@ -51,29 +87,16 @@ export ERP_SQL_SERVER ERP_SQL_DATABASE
 echo "  ✅ ERP source ${ERP_SQL_SERVER}:${ERP_SQL_PORT:-1433} (database and credential not printed)"
 echo "  ✅ Projection scripts: plasticos_partner_import/erp_extracted_data"
 
-# ── Safety guards ─────────────────────────────────────────────────────────────
-if [ "${ODOO_STAGE:-}" = "production" ]; then
-  echo "  ❌ BLOCKED: ODOO_STAGE=production — refusing rehearsal import against production."
-  exit 1
-fi
-# ERP_PRODUCTION_PERMIT is intentionally not set
-# ERP_REQUIRE_EMPTY is left at default (1) — the clone must have no business partners
-
-# ── Partner census before import ──────────────────────────────────────────────
+# ── Partner census before import (inactive partners count too) ─────────────
 echo "  → Partner census before import..."
-PARTNER_COUNT=$(docker compose -f "${ROOT}/docker-compose.yml" \
-  exec -T db \
-  psql -U odoo -t -c \
-  "SELECT COUNT(*) FROM res_partner WHERE (customer_rank > 0 OR supplier_rank > 0) AND active = true;" \
-  "${DB}" 2>/dev/null | tr -d '[:space:]')
+PARTNER_COUNT="$(business_partner_census "${DB}" "${EVIDENCE_DIR}/05-erp-census-before.raw")" \
+  || gate6 FAIL "census-unproven" "the business-partner census query failed or returned no integer"
 echo "  Business partners before import: ${PARTNER_COUNT}"
-if [ "${PARTNER_COUNT:-0}" -gt 0 ] && [ "${ERP_REQUIRE_EMPTY:-1}" = "1" ]; then
-  echo "  ❌ BLOCKED: ${PARTNER_COUNT} business partners already exist in ${DB}. Reclone before ERP import."
-  echo "{\"gate\":6,\"result\":\"blocked\",\"reason\":\"${PARTNER_COUNT} business partners already present\"}" > "${SUMMARY_FILE}"
-  exit 1
+if [ "${PARTNER_COUNT}" -ne 0 ]; then
+  gate6 FAIL "clone-not-empty" "${PARTNER_COUNT} business partners already exist in ${DB}; reclone first"
 fi
 
-# ── Run import via test_env.sh run ────────────────────────────────────────────
+# ── Run import via test_env.sh run (verified clone only) ────────────────────
 echo "  → Running import-erp LIMIT=10% on ${DB}..."
 bash "${ROOT}/scripts/test_env.sh" run "${DB}" -- \
   make import-erp \
@@ -84,64 +107,29 @@ bash "${ROOT}/scripts/test_env.sh" run "${DB}" -- \
     ERP_SQL_DATABASE="${ERP_SQL_DATABASE}" \
     ${ERP_SQL_USER:+ERP_SQL_USER="${ERP_SQL_USER}"} \
     REPORT_PATH="${CONTAINER_SUMMARY}" \
-  2>&1
-
+  >"${IMPORT_LOG}" 2>&1
 IMPORT_EXIT=$?
-if [ "${IMPORT_EXIT}" -ne 0 ]; then
-  echo "  ❌ Gate 6 FAILED: import-erp exited ${IMPORT_EXIT}"
-  echo "{\"gate\":6,\"result\":\"failed\",\"exit_code\":${IMPORT_EXIT}}" >> "${SUMMARY_FILE}"
-  exit 1
+echo "  import-erp exit ${IMPORT_EXIT} (log: 05-erp-import.log)"
+
+# ── Read the imported identities back from the clone (read-only) ────────────
+printf '%s\n' "SELECT json_build_object(
+  'counterparties', (SELECT COUNT(*) FROM ir_model_data d JOIN res_partner p ON p.id = d.res_id
+      WHERE d.module = 'plasticos_transaction' AND d.model = 'res.partner'
+        AND starts_with(d.name, 'legacy_erp_cp_')),
+  'addresses', (SELECT COUNT(*) FROM ir_model_data d JOIN res_partner p ON p.id = d.res_id
+      WHERE d.module = 'plasticos_transaction' AND d.model = 'res.partner'
+        AND starts_with(d.name, 'legacy_erp_address_')),
+  'contacts', (SELECT COUNT(*) FROM ir_model_data d JOIN res_partner p ON p.id = d.res_id
+      WHERE d.module = 'plasticos_transaction' AND d.model = 'res.partner'
+        AND starts_with(d.name, 'legacy_erp_contact_')
+        AND NOT starts_with(d.name, 'legacy_erp_contact_role_')));" \
+  | db_query "${DB}" "${LAYERS_FILE}" || rm -f "${LAYERS_FILE}"
+
+if ! rlib scan-secrets "${EVIDENCE_DIR}" --env ERP_SQL_PASSWORD; then
+  gate6 FAIL "evidence-secret-redacted" "the ERP reader password appeared in evidence and was redacted"
 fi
-
-# ── Validate summary ──────────────────────────────────────────────────────────
-if [ ! -f "${SUMMARY_FILE}" ]; then
-  echo "  ❌ Gate 6 FAILED: no summary JSON written."
-  exit 1
-fi
-
-python3 - "${SUMMARY_FILE}" <<'EOF'
-import json, os, sys
-
-with open(sys.argv[1]) as f:
-    s = json.load(f)
-
-seen = s.get("records_seen", 0)
-created = s.get("records_created", 0)
-updated = s.get("records_updated", 0)
-unchanged = s.get("records_unchanged", 0)
-rejected = s.get("records_rejected", 0)
-dups = s.get("duplicates", 0)
-
-total = created + updated + unchanged + rejected
-ok = True
-if seen != total:
-    print(f"  ❌ Census mismatch: seen={seen} != created+updated+unchanged+rejected={total}")
-    ok = False
-if dups != 0:
-    print(f"  ❌ Duplicates found: {dups}")
-    ok = False
-if created == 0:
-    print("  ❌ No records created — import may have been a no-op.")
-    ok = False
-
-census_file = os.path.splitext(sys.argv[1])[0] + "-census.json"
-try:
-    with open(census_file) as census_handle:
-        census = json.load(census_handle)
-except OSError as exc:
-    print(f"  ❌ Census missing: {census_file} ({exc})")
-    ok = False
-else:
-    kind = census.get("payload_kind")
-    if kind != "database":
-        print(f"  ❌ ERP source is {kind!r}; Gate 6 accepts only payload_kind database")
-        ok = False
-
-if ok:
-    print(f"  ✅ ERP summary valid: seen={seen} created={created} updated={updated} unchanged={unchanged} rejected={rejected} dups={dups}")
-    sys.exit(0)
-else:
-    sys.exit(1)
-EOF
-
-echo "  ✅ Gate 6 PASSED"
+rlib check-erp "${EVIDENCE_DIR}" \
+  --summary "${SUMMARY_FILE}" \
+  --import-exit "${IMPORT_EXIT}" \
+  --layers "${LAYERS_FILE}" \
+  --run-started "${RUN_STARTED_UTC:-}"
