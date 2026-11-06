@@ -1,11 +1,6 @@
-PlasticOS offer
+PlasticOS Offer
 ###############
 
-Offer generation and tracking for matched intakes through the sales cycle.
+Offer lifecycle management — from match to deal
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

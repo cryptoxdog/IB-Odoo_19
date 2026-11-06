@@ -1,11 +1,6 @@
-PlasticOS security uase
-#######################
+Plasticos — Security Base
+#########################
 
-Foundation security module defining groups and access control for all PlasticOS modules.
+Core RBAC roles, record rules, and private-partner flag for the Plasticos platform.
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

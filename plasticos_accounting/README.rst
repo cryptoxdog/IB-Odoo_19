@@ -1,11 +1,6 @@
-PlasticOS accounting
+PlasticOS Accounting
 ####################
 
-Accounting configuration including chart of accounts and payment terms.
+Accounting seed data: payment terms, chart of accounts, incoterms
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

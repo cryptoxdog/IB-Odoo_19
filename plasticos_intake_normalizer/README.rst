@@ -1,11 +1,6 @@
-PlasticOS intake normalizer
+Plasticos Intake Normalizer
 ###########################
 
-Batch normalization of intake records to standardize material specifications.
+Schema-driven intake normalization — validates, assembles, and stores L9-ready packets.
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

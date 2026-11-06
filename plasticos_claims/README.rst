@@ -1,7 +1,7 @@
-PlasticOS claims
+PlasticOS Claims
 ################
 
-Quality control claims management with escalation workflows and SLA monitoring.
+QC cases, claims, chargebacks, and compliance workflows
 
 **Features:**
 

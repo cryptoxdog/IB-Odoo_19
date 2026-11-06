@@ -1,11 +1,6 @@
-PlasticOS partner import
+Plasticos Partner Import
 ########################
 
-Bulk import service for partners and facilities from CSV files.
+Deterministic partner import; legacy ERP CSV import UI retired (direct SQL importer: make import-erp)
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.
