@@ -51,7 +51,7 @@ PASSWORDS = [
 ]
 
 
-def _run(tmp_path: Path, *, env_pw=None, cmdline_pw=None, dotenv=None, nested=False):
+def _run(tmp_path: Path, *, env_pw=None, cmdline_pw=None, dotenv=None, nested=False, extra_env=None, target=None):
     work = tmp_path / "work"
     work.mkdir()
     (work / "plasticos_partner_import").symlink_to(ROOT / "plasticos_partner_import")
@@ -73,6 +73,7 @@ def _run(tmp_path: Path, *, env_pw=None, cmdline_pw=None, dotenv=None, nested=Fa
     env["CAPTURE"] = str(capture)
     if env_pw is not None:
         env["ERP_SQL_PASSWORD"] = env_pw
+    env.update(extra_env or {})
 
     argv = ["make", "-s", "--no-print-directory", "-C", str(work), "-f", str(MAKEFILE)]
     if nested:
@@ -80,7 +81,7 @@ def _run(tmp_path: Path, *, env_pw=None, cmdline_pw=None, dotenv=None, nested=Fa
         extra.write_text(_NESTED, encoding="utf-8")
         argv += ["-f", str(extra), "nested"]
     else:
-        argv += ["import-erp", "ODOO_DB_NAME=probe_db"]
+        argv += [target or "import-erp", "ODOO_DB_NAME=probe_db"]
     if cmdline_pw is not None:
         argv.append(f"ERP_SQL_PASSWORD={cmdline_pw}")
     result = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=120, check=False)  # noqa: S603
@@ -139,3 +140,44 @@ def test_makefile_change_only_adds_lines():
     assert 'ERP_SQL_PASSWORD="$(ERP_SQL_PASSWORD)"' in text
     assert text.index("ERP_SQL_PASSWORD_BEFORE_ENV := $(value ERP_SQL_PASSWORD)") < text.index("-include .env")
     assert "import-erp: import-erp-password-guard" in text
+
+
+REFERENCE_TEXT = "${ERP_SQL_PASSWORD_RAW}"
+
+
+@pytest.mark.parametrize("route", ["environment", "command line"])
+def test_password_equal_to_the_reference_text_is_kept(tmp_path, route):
+    """A top-level make resolves the caller's value even when it reads like the internal reference."""
+    if route == "command line":
+        result, received = _run(tmp_path, cmdline_pw=REFERENCE_TEXT)
+    else:
+        result, received = _run(tmp_path, env_pw=REFERENCE_TEXT)
+    assert result.returncode == 0, result.stderr
+    assert received == REFERENCE_TEXT
+
+
+@pytest.mark.parametrize("password", ["caller-not-a-real-secret", REFERENCE_TEXT])
+def test_stale_inherited_raw_value_is_ignored_at_top_level(tmp_path, password):
+    result, received = _run(tmp_path, env_pw=password, extra_env={"ERP_SQL_PASSWORD_RAW": "stale-not-a-real-secret"})
+    assert result.returncode == 0, result.stderr
+    assert received == password
+
+
+def test_dotenv_conflict_is_refused_through_a_nested_make(tmp_path):
+    """The outer make finds the conflict; the nested import-erp must still refuse."""
+    caller = "caller-not-a-real-secret"
+    result, received = _run(tmp_path, env_pw=caller, dotenv="ERP_SQL_PASSWORD=other-not-a-real-secret\n", nested=True)
+    assert result.returncode != 0
+    assert received is None, "the importer must not be started"
+    assert "differs from the one in .env" in result.stderr
+
+
+def test_import_erp_test_refuses_a_dotenv_conflict_before_it_starts(tmp_path):
+    caller = "caller-not-a-real-secret"
+    result, received = _run(
+        tmp_path, env_pw=caller, dotenv="ERP_SQL_PASSWORD=other-not-a-real-secret\n", target="import-erp-test"
+    )
+    assert result.returncode != 0
+    assert received is None
+    assert "differs from the one in .env" in result.stderr
+    assert caller not in result.stdout + result.stderr

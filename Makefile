@@ -1009,9 +1009,20 @@ ERP_SQL_DRIVER ?=
 # then answers error 18456). ERP_SQL_PASSWORD_RAW carries the raw value in the
 # environment, and $(ERP_SQL_PASSWORD) expands to a shell reference to it, which
 # the shell substitutes without reinterpreting the value. A nested $(MAKE)
-# inherits that reference and keeps the parent's ERP_SQL_PASSWORD_RAW.
+# (MAKELEVEL > 0 with an inherited ERP_SQL_PASSWORD_RAW and that reference)
+# keeps the parent's ERP_SQL_PASSWORD_RAW and its conflict verdict. A top-level
+# make always resolves the caller's own value, even one equal to the reference.
 ERP_SQL_PASSWORD_INDIRECT := $${ERP_SQL_PASSWORD_RAW}
-ifneq ($(ERP_SQL_PASSWORD_BEFORE_ENV),$(ERP_SQL_PASSWORD_INDIRECT))
+ERP_SQL_PASSWORD_INHERITED :=
+ifneq ($(filter-out 0,$(MAKELEVEL)),)
+ifeq ($(origin ERP_SQL_PASSWORD_RAW),environment)
+ifeq ($(ERP_SQL_PASSWORD_BEFORE_ENV),$(ERP_SQL_PASSWORD_INDIRECT))
+ERP_SQL_PASSWORD_INHERITED := 1
+endif
+endif
+endif
+ifeq ($(ERP_SQL_PASSWORD_INHERITED),)
+ERP_SQL_PASSWORD_CONFLICT :=
 ERP_SQL_PASSWORD_RAW := $(value ERP_SQL_PASSWORD)
 ifeq ($(ERP_SQL_PASSWORD_ORIGIN_BEFORE_ENV)-$(origin ERP_SQL_PASSWORD),environment-file)
 ifneq ($(ERP_SQL_PASSWORD_BEFORE_ENV),$(ERP_SQL_PASSWORD_RAW))
@@ -1020,8 +1031,8 @@ endif
 endif
 endif
 override ERP_SQL_PASSWORD := $(ERP_SQL_PASSWORD_INDIRECT)
-export ERP_SQL_PASSWORD_RAW
-unexport ERP_SQL_PASSWORD_INDIRECT ERP_SQL_PASSWORD_CONFLICT
+export ERP_SQL_PASSWORD_RAW ERP_SQL_PASSWORD_CONFLICT
+unexport ERP_SQL_PASSWORD_INDIRECT ERP_SQL_PASSWORD_INHERITED
 
 # The VanillaSoft driver reads two floors (plasticos_crm_sync/scripts/
 # import_vanillasoft_shell.py); both are forwarded verbatim.
@@ -1083,6 +1094,8 @@ import-erp:
 
 .PHONY: import-erp-password-guard
 import-erp: import-erp-password-guard
+# import-erp-test runs import-erp in a nested make; refuse before cloning.
+import-erp-test: import-erp-password-guard
 import-erp-password-guard:
 	@if [ "$(ERP_SQL_PASSWORD_CONFLICT)" = "1" ]; then \
 		echo "❌ ERP_SQL_PASSWORD from the environment differs from the one in .env, which make would use instead." >&2; \
