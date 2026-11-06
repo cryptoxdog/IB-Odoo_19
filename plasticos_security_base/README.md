@@ -1,45 +1,84 @@
 ---
-component_id: "plasticos_security_base"
-component_name: "Plasticos Security Base"
-module_version: "19.0.1.1.0"
-layer: "foundation"
-domain: "plasticos"
-type: "odoo_module"
-status: "active"
-purpose: "Security groups and access control foundation"
-summary: "Role-based access control across all modules"
+auto_generated: false
+authority: derived-index
+component_id: plasticos_security_base
+component_name: Plasticos — Security Base
+module_version: 19.0.1.2.23
+layer: 1
+installable: true
+auto_install: true
+application: false
+depends:
+  - base
+  - plasticos_base
+  - base_geolocalize
+  - sale
+  - purchase
+  - purchase_stock
+  - account
+  - stock
+  - plasticos_transaction
+  - plasticos_partner_import
+  - plasticos_intake
+  - plasticos_material_profile
+  - plasticos_facility_profile
+  - plasticos_offer
+  - plasticos_logistics
+  - plasticos_documents
+  - plasticos_automation
+  - plasticos_web_leads
+models_owned: []
+models_extended:
+  - res.partner
+  - plasticos.partner.bulk.update.wizard
+crons: []
 ---
 
-# Plasticos Security Base
+# Plasticos — Security Base
 
-## Purpose
-Security groups and access control foundation
+The front matter above is a derived index. `__manifest__.py` and the `_inherit` lines in `models/` win on any conflict.
 
-## Summary
-Role-based access control across all modules
+## What it does
 
-## Structure
-```
-README.md
-README.rst
-__init__.py
-__manifest__.py
-models/
-security/
-views/
-```
+Defines the PlasticOS business roles, the record rules that limit what each role sees, and the private-contact flag on partners.
 
-## Dependencies
-base, sale, purchase, account, stock, plasticos_transaction, plasticos_intake, plasticos_material_profile, plasticos_facility_profile, plasticos_matching, plasticos_offer, plasticos_logistics, plasticos_documents, plasticos_automation, plasticos_web_leads
+## How it works
+
+- **Groups.** `security/security_groups.xml` defines eight groups: `group_sales_rep`, `group_logistics`, `group_accounting`, `group_logistics_ops`, `group_qc_manager`, `group_accounting_ops`, `group_operations_manager`, and `group_system_admin`. The manifest description's "three business roles" (Sales Rep, Logistics, Accounting) is the short list.
+- **Record rules.** `security/record_rules.xml` holds eleven `ir.rule` records:
+  - private partners and their extra phone numbers (`plasticos.partner.phone`);
+  - sales-rep row limits on `plasticos.transaction`, `sale.order`, `purchase.order`, `account.move`, and `plasticos.load`;
+  - company isolation on `plasticos.load`;
+  - own-rows for reps and all-rows for logistics and operations managers on `plasticos.load.dashboard`.
+- **Private contacts.** The `res.partner` extension adds `is_private`: a private contact is visible only to the user who created it and to system administrators. The `plasticos.partner.bulk.update.wizard` extension (the wizard is owned by `plasticos_partner_import`) writes `is_private` in bulk and posts the old and new status, the reason, and the user to the partner's chatter.
+- **Install hook.** `post_init_hook` calls `grant_seed_user_groups`, which assigns groups to the seed users with SQL on the relation table, because Odoo 19 removed `groups_id` from XML user creation.
+- **Access rows.** `security/ir.model.access.csv` holds this module's access rows.
 
 ## Models
-—
 
-## Tier
-foundation
+| Model                                  | Kind                | File                                   |
+| -------------------------------------- | ------------------- | -------------------------------------- |
+| `res.partner`                          | extended            | `models/res_partner.py`                |
+| `plasticos.partner.bulk.update.wizard` | extended, transient | `models/partner_bulk_update_wizard.py` |
 
+The module defines no model of its own.
 
-## Related Documentation
+## Runtime
 
-- `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
-- `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...
+- No cron.
+- `auto_install` is true.
+
+## Layer and dependencies
+
+`AGENTS.md` places this module in Layer 1. Its `depends` reach Layer 2 to Layer 5 modules (transaction, logistics, documents, automation, web leads, and others) because its record rules name their models. The manifest keeps `plasticos_matching` as a commented-out line, so matching is not a dependency.
+
+## Boundaries
+
+- Each model's own access rows stay in the module that defines the model.
+- No business logic beyond the privacy flag.
+
+## Read next
+
+- [`security/security_groups.xml`](security/security_groups.xml)
+- [`security/record_rules.xml`](security/record_rules.xml)
+- [`hooks.py`](hooks.py)
