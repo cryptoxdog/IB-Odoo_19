@@ -1573,47 +1573,164 @@ class TestPerModulePhantomAudit:
 # ═════════════════════════════════════════════════════════════════════════
 
 
+def _string_constants(node: ast.expr) -> list[str] | None:
+    """The strings of a str constant or a list/tuple of str constants, else None."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value]
+    if isinstance(node, (ast.List, ast.Tuple)) and node.elts:
+        values = [e.value for e in node.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+        if len(values) == len(node.elts):
+            return values
+    return None
+
+
+def _full_selection_keys(call: ast.Call) -> set[str] | None:
+    """Keys of a full ``fields.Selection`` list (positional or ``selection=``), else None.
+
+    ``selection_add`` is an extension, not a full definition, and is not read.
+    """
+    if not (isinstance(call.func, ast.Attribute) and call.func.attr == "Selection"):
+        return None
+    selection = call.args[0] if call.args else next((k.value for k in call.keywords if k.arg == "selection"), None)
+    if not isinstance(selection, ast.List):
+        return None
+    return {
+        elt.elts[0].value
+        for elt in selection.elts
+        if isinstance(elt, ast.Tuple)
+        and len(elt.elts) >= 2
+        and isinstance(elt.elts[0], ast.Constant)
+        and isinstance(elt.elts[0].value, str)
+    }
+
+
+def _full_selection_definitions(filepath: str, src: str):
+    """Model-owned full Selection lists in one source file.
+
+    Returns ``(definitions, unresolved)``. ``definitions`` is a list of
+    ``(model, field, keys, location)``; ``unresolved`` lists classes that define a
+    full Selection list but whose owning model cannot be read as string constants.
+
+    Owner: the class ``_name`` when it is a string constant; with no ``_name``,
+    each string in ``_inherit``. A class with ``_name`` never files its fields
+    under the models it inherits. Only direct class-body assignments are read.
+    """
+    try:
+        tree = ast.parse(src, filename=filepath)
+    except SyntaxError:
+        return [], []
+    definitions = []
+    unresolved = []
+    for cls in ast.walk(tree):
+        if not isinstance(cls, ast.ClassDef):
+            continue
+        attrs: dict[str, ast.expr] = {}
+        selections: list[tuple[str, set[str], int]] = []
+        for stmt in cls.body:
+            if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name)):
+                continue
+            target = stmt.targets[0].id
+            if target in ("_name", "_inherit"):
+                attrs[target] = stmt.value
+            elif isinstance(stmt.value, ast.Call):
+                keys = _full_selection_keys(stmt.value)
+                if keys is not None:
+                    selections.append((target, keys, stmt.lineno))
+        if not selections:
+            continue
+        if "_name" in attrs:
+            name = attrs["_name"]
+            owners = [name.value] if isinstance(name, ast.Constant) and isinstance(name.value, str) else None
+        elif "_inherit" in attrs:
+            owners = _string_constants(attrs["_inherit"])
+        else:
+            owners = None
+        if not owners:
+            unresolved.append(f"{filepath}:{cls.lineno}: class {cls.name} has no string-constant _name/_inherit")
+            continue
+        for field_name, keys, lineno in selections:
+            for model in owners:
+                definitions.append((model, field_name, keys, f"{filepath}:{lineno}"))
+    return definitions, unresolved
+
+
+def _selection_violations(sources) -> list[str]:
+    """Incompatible full redefinitions of one field on one model, plus unresolved owners.
+
+    ``sources`` yields ``(filepath, src)``. Definitions of the same ``(model, field)``
+    are compatible when one set contains every other set; equal sets pass.
+    """
+    by_field: dict[tuple[str, str], list[tuple[str, set[str]]]] = defaultdict(list)
+    violations: list[str] = []
+    for filepath, src in sources:
+        definitions, unresolved = _full_selection_definitions(filepath, src)
+        violations.extend(unresolved)
+        for model, field_name, keys, location in definitions:
+            by_field[(model, field_name)].append((location, keys))
+    for (model, field_name), defs in sorted(by_field.items()):
+        if len(defs) < 2:
+            continue
+        if any(all(keys >= other for _, other in defs) for _, keys in defs):
+            continue
+        detail = "; ".join(f"{loc} {sorted(keys)}" for loc, keys in defs)
+        violations.append(f"{model}.{field_name}: incompatible full Selection lists: {detail}")
+    return violations
+
+
 class TestSelectionFieldConsistency:
-    """When multiple modules define the SAME Selection field name
-    (e.g., via _inherit), their option sets must be identical or
-    one must be a strict superset of the other."""
+    """When several classes give the SAME model the SAME Selection field a full
+    option list, those lists must be identical or one must contain all the others.
 
-    def _find_selection_collisions(self):
-        """Return {field_name: {module: set(options)}} for fields
-        defined in multiple modules."""
-        field_by_module = defaultdict(lambda: defaultdict(set))
-
-        for mod in MODULES:
-            mod_path = REPO_ROOT / mod
-            for rel_path, src in _iter_python_files(mod_path):
-                field_opts, _, _ = _extract_selection_options_from_source(src, rel_path)
-                for field_name, keys in field_opts.items():
-                    field_by_module[field_name][mod].update(keys)
-
-        # Keep only fields defined in >1 module
-        return {fname: dict(modules) for fname, modules in field_by_module.items() if len(modules) > 1}
+    Identity is ``(model, field)``, never a bare attribute name: ``state`` on two
+    unrelated models is not a collision. Extensions use ``selection_add``.
+    """
 
     def test_shared_selection_fields_are_compatible(self):
-        collisions = self._find_selection_collisions()
-        violations = []
+        sources = ((str(rel_path), src) for mod in MODULES for rel_path, src in _iter_python_files(REPO_ROOT / mod))
+        violations = _selection_violations(sources)
+        assert violations == [], "Selection field conflicts:\n" + "\n".join(violations)
 
-        for field_name, module_opts in collisions.items():
-            all_sets = list(module_opts.values())
-            # Check: is one a superset of all others?
-            union = set().union(*all_sets)
-            for mod, opts in module_opts.items():
-                if opts != union and not union.issuperset(opts):
-                    violations.append(f"  Field '{field_name}' in {mod}: {sorted(opts)} vs union {sorted(union)}")
+    def test_same_model_incompatible_lists_are_a_violation(self):
+        a = "class A:\n    _name = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('b', 'B')])\n"
+        b = "class B:\n    _inherit = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('c', 'C')])\n"
+        violations = _selection_violations([("a.py", a), ("b.py", b)])
+        assert len(violations) == 1
+        assert violations[0].startswith("x.foo.state:")
 
-        # This is a warning, not a hard fail — extension modules
-        # legitimately add options via selection_add
-        if violations:
-            import warnings
+    def test_same_model_equal_or_superset_lists_pass(self):
+        a = "class A:\n    _name = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('b', 'B')])\n"
+        b = "class B:\n    _inherit = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('b', 'B')])\n"
+        c = "class C:\n    _inherit = 'x.foo'\n    state = fields.Selection([('a', 'A')])\n"
+        assert _selection_violations([("a.py", a), ("b.py", b), ("c.py", c)]) == []
 
-            warnings.warn(
-                "Selection fields defined in multiple modules with different option sets:\n" + "\n".join(violations),
-                stacklevel=1,
-            )
+    def test_different_models_sharing_a_field_name_do_not_collide(self):
+        a = "class A:\n    _name = 'x.foo'\n    state = fields.Selection([('a', 'A')])\n"
+        b = "class B:\n    _name = 'x.bar'\n    state = fields.Selection([('z', 'Z')])\n"
+        assert _selection_violations([("a.py", a), ("b.py", b)]) == []
+
+    def test_named_class_does_not_file_fields_under_inherited_mixin(self):
+        src = (
+            "class A:\n    _name = 'x.foo'\n    _inherit = 'mail.thread'\n    state = fields.Selection([('a', 'A')])\n"
+        )
+        definitions, unresolved = _full_selection_definitions("a.py", src)
+        assert unresolved == []
+        assert [(model, field) for model, field, _, _ in definitions] == [("x.foo", "state")]
+        other = "class B:\n    _inherit = 'mail.thread'\n    state = fields.Selection([('z', 'Z')])\n"
+        assert _selection_violations([("a.py", src), ("b.py", other)]) == []
+
+    def test_unresolved_owner_is_a_violation(self):
+        src = "class A:\n    _name = MODEL\n    state = fields.Selection([('a', 'A')])\n"
+        violations = _selection_violations([("a.py", src)])
+        assert len(violations) == 1
+        assert "class A" in violations[0]
+
+    def test_selection_add_and_nested_assignments_are_not_full_definitions(self):
+        src = (
+            "class A:\n    _inherit = 'x.foo'\n"
+            "    state = fields.Selection(selection_add=[('z', 'Z')])\n"
+            "    def _m(self):\n        state = fields.Selection([('q', 'Q')])\n"
+        )
+        assert _full_selection_definitions("a.py", src) == ([], [])
 
 
 # ═════════════════════════════════════════════════════════════════════════

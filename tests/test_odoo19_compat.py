@@ -8,8 +8,10 @@ Covers:
 """
 
 import glob
+import io
 import os
 import re
+import tokenize
 import unittest
 
 # =============================================================================
@@ -48,7 +50,67 @@ _SQL_JUSTIFIED_FILES = {
     "plasticos_intake_normalizer/models/": "Batch normalization operations",
     # Test files use SQL to force states/data for edge case testing
     "/tests/": "Test fixture setup",
+    # Linda mail send: one read of flushed Linda rows, and a FOR UPDATE row lock so
+    # two mail workers cannot both reach SMTP for the same message
+    "plasticos_logistics/models/mail_mail_inherit.py": "Flushed Linda read and FOR UPDATE send lock",
+    # PostgreSQL advisory lock, the same accepted pattern as transaction.py
+    "plasticos_matching/models/match_exclusion.py": "Advisory lock for concurrency",
+    # Public route: compares the bearer token with every active api_key, a field
+    # restricted to groups="base.group_system"
+    "plasticos_web_leads/controllers/web_lead_api.py": "Bearer token check against group_system api_key",
 }
+
+_SQL_JUSTIFICATION_KEYWORDS = ("justification", "advisory", "performance", "atomic", "bulk")
+
+
+def _code_only_lines(lines: list[str]) -> list[str]:
+    """``lines`` with comments and string literals blanked; raw lines if tokenizing fails."""
+    code = [""] * len(lines)
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO("".join(lines)).readline):
+            if tok.type in (tokenize.COMMENT, tokenize.STRING) or tok.start[0] != tok.end[0]:
+                continue
+            row = tok.start[0] - 1
+            if row < len(code):
+                code[row] += " " + tok.string
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return list(lines)
+    return code
+
+
+def _unjustified_sql_lines(py_file: str, lines: list[str]) -> list[str]:
+    """``path:line: source`` for each ``env.cr.execute`` call that is neither allowlisted nor justified.
+
+    A path is allowlisted when it ends with, or contains, a ``_SQL_JUSTIFIED_FILES``
+    key. Otherwise a call needs a justification keyword on its own line or the line above.
+    Mentions inside comments or string literals are not calls.
+    """
+    if any(py_file.endswith(approved) or approved in py_file for approved in _SQL_JUSTIFIED_FILES):
+        return []
+    code = _code_only_lines(lines)
+    violations = []
+    for i, line in enumerate(lines, 1):
+        if "env.cr.execute" not in line or "env . cr . execute" not in code[i - 1]:
+            continue
+        context_text = " ".join(lines[max(0, i - 2) : i]).lower()
+        if not any(kw in context_text for kw in _SQL_JUSTIFICATION_KEYWORDS):
+            violations.append(f"{py_file}:{i}: {line.strip()}")
+    return violations
+
+
+_XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def _tree_tag_lines(text: str) -> list[tuple[int, str]]:
+    """``(line, source)`` for each ``<tree>`` tag outside an XML comment, line numbers preserved."""
+    stripped = _XML_COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+    source = text.splitlines()
+    return [
+        (i, source[i - 1].strip())
+        for i, line in enumerate(stripped.splitlines(), 1)
+        if "<tree " in line or "<tree>" in line
+    ]
+
 
 # Files/patterns where groups_id usage is valid (res.users manipulation, not ir.model.access)
 _GROUPS_ID_VALID_PATTERNS = [
@@ -185,31 +247,43 @@ class TestOdoo19APICompat(unittest.TestCase):
         self.assertEqual(violations, [], "Found old-style _constraints:\n" + "\n".join(violations))
 
     def test_no_direct_sql_without_justification(self):
-        """Direct SQL (env.cr.execute) should have a comment justification.
+        """Direct SQL (env.cr.execute) is allowlisted or carries a justification keyword.
 
         Files in _SQL_JUSTIFIED_FILES are pre-approved with documented reasons.
-        Other files need inline justification comments.
+        Other files need a justification keyword on the call line or the line above.
+        Scope is _PLASTICOS_MODULES only.
         """
         violations = []
         for py_file in _find_py_files():
-            # Skip pre-approved files (documented in _SQL_JUSTIFIED_FILES)
-            if any(py_file.endswith(approved) or approved in py_file for approved in _SQL_JUSTIFIED_FILES):
-                continue
             with open(py_file) as f:
-                lines = f.readlines()
-            for i, line in enumerate(lines, 1):
-                if "env.cr.execute" in line or "self.env.cr.execute" in line:
-                    # Check for justification comment on same or previous line
-                    context = lines[max(0, i - 2) : i]
-                    context_text = " ".join(context)
-                    justification_keywords = ["justification", "advisory", "performance", "atomic", "bulk"]
-                    if not any(kw in context_text.lower() for kw in justification_keywords):
-                        violations.append(f"{py_file}:{i}: {line.strip()}")
-        # Soft check — warning only for new violations
-        if violations:
-            import warnings
+                violations.extend(_unjustified_sql_lines(py_file, f.readlines()))
+        self.assertEqual(violations, [], "SQL without justification:\n" + "\n".join(violations))
 
-            warnings.warn("SQL without justification:\n" + "\n".join(violations[:5]), stacklevel=2)
+    def test_sql_classifier_rejects_an_unjustified_call(self):
+        """Negative case: an unlisted path with a bare env.cr.execute is a violation."""
+        lines = ["def _run(self):\n", "    self.env.cr.execute(\n", '        "SELECT 1"\n', "    )\n"]
+        self.assertEqual(
+            _unjustified_sql_lines("plasticos_example/models/example.py", lines),
+            ["plasticos_example/models/example.py:2: self.env.cr.execute("],
+        )
+
+    def test_sql_classifier_ignores_comments_and_strings(self):
+        lines = [
+            "# do not call self.env.cr.execute( here\n",
+            "def _run(self):\n",
+            '    """Avoid self.env.cr.execute(...) in this method."""\n',
+            '    msg = "self.env.cr.execute("\n',
+        ]
+        self.assertEqual(_unjustified_sql_lines("plasticos_example/models/example.py", lines), [])
+
+    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
+        lines = ["def _run(self):\n", "    self.env.cr.execute(\n"]
+        for path in (
+            "plasticos_logistics/models/mail_mail_inherit.py",
+            "plasticos_matching/models/match_exclusion.py",
+            "plasticos_web_leads/controllers/web_lead_api.py",
+        ):
+            self.assertEqual(_unjustified_sql_lines(path, lines), [], path)
 
 
 class TestOdoo19XMLCompat(unittest.TestCase):
@@ -256,17 +330,12 @@ class TestOdoo19XMLCompat(unittest.TestCase):
         violations = []
         for xml_file in _find_xml_files():
             with open(xml_file) as f:
-                for i, line in enumerate(f, 1):
-                    if "<tree " in line or "<tree>" in line:
-                        # Allow if it's in a comment
-                        if "<!--" in line:
-                            continue
-                        violations.append(f"{xml_file}:{i}: {line.strip()}")
-        # Soft check — Odoo still supports <tree> but <list> is preferred
-        if violations:
-            import warnings
+                violations.extend(f"{xml_file}:{i}: {line}" for i, line in _tree_tag_lines(f.read()))
+        self.assertEqual(violations, [], "Found <tree> (use <list>):\n" + "\n".join(violations))
 
-            warnings.warn("Found <tree> (prefer <list>):\n" + "\n".join(violations[:5]), stacklevel=2)
+    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
+        text = '<odoo>\n<!-- example:\n  <tree>\n-->\n<!-- <tree> -->\n<tree string="x">\n</odoo>\n'
+        self.assertEqual(_tree_tag_lines(text), [(6, '<tree string="x">')])
 
     def test_xml_well_formed(self):
         """All XML files should be well-formed."""
