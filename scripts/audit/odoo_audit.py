@@ -251,6 +251,46 @@ class OdooAudit:
             return self._string_value(call.args[0], constants)
         return None
 
+    def _module_constants(self, tree):
+        """Module-level ``NAME = "literal"`` assignments, so ``_name = CONST`` resolves."""
+        constants = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                value = self._string_value(node.value, {})
+                if value:
+                    constants[node.targets[0].id] = value
+        return constants
+
+    def _class_header(self, cls, constants):
+        """``(_name, _inherit list, {field: comodel_or_None})`` declared directly on a class."""
+        name = None
+        parents = []
+        fields = {}
+        for stmt in cls.body:
+            if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1):
+                continue
+            target = stmt.targets[0]
+            if not isinstance(target, ast.Name):
+                continue
+            if target.id == "_name":
+                name = self._string_value(stmt.value, constants)
+            elif target.id == "_inherit":
+                parents = self._string_list(stmt.value, constants)
+            elif (
+                isinstance(stmt.value, ast.Call)
+                and isinstance(stmt.value.func, ast.Attribute)
+                and isinstance(stmt.value.func.value, ast.Name)
+                and stmt.value.func.value.id == "fields"
+            ):
+                field_type = stmt.value.func.attr
+                fields[target.id] = self._field_comodel(stmt.value, field_type, constants)
+        return name, parents, fields
+
+    @staticmethod
+    def _class_model(name, parents):
+        """The model a class belongs to: its ``_name``, else its single ``_inherit``."""
+        return name or (parents[0] if len(parents) == 1 else None)
+
     def scan_model_index(self):
         """Index every model class: resolved model name, module, parents and fields."""
         for py_file in sorted(self.root_dir.rglob("*/models/*.py")):
@@ -260,36 +300,11 @@ class OdooAudit:
                 tree = ast.parse(py_file.read_text(encoding="utf-8"))
             except (OSError, SyntaxError, UnicodeDecodeError):
                 continue
-            constants = {}
-            for node in tree.body:
-                if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-                    value = self._string_value(node.value, {})
-                    if value:
-                        constants[node.targets[0].id] = value
+            constants = self._module_constants(tree)
             module = self._module_of(py_file)
             for cls in (node for node in tree.body if isinstance(node, ast.ClassDef)):
-                name = None
-                parents = []
-                fields = {}
-                for stmt in cls.body:
-                    if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1):
-                        continue
-                    target = stmt.targets[0]
-                    if not isinstance(target, ast.Name):
-                        continue
-                    if target.id == "_name":
-                        name = self._string_value(stmt.value, constants)
-                    elif target.id == "_inherit":
-                        parents = self._string_list(stmt.value, constants)
-                    elif (
-                        isinstance(stmt.value, ast.Call)
-                        and isinstance(stmt.value.func, ast.Attribute)
-                        and isinstance(stmt.value.func.value, ast.Name)
-                        and stmt.value.func.value.id == "fields"
-                    ):
-                        field_type = stmt.value.func.attr
-                        fields[target.id] = self._field_comodel(stmt.value, field_type, constants)
-                model = name or (parents[0] if len(parents) == 1 else None)
+                name, parents, fields = self._class_header(cls, constants)
+                model = self._class_model(name, parents)
                 if not model:
                     continue
                 defines = bool(name) and name not in parents
@@ -575,50 +590,73 @@ class OdooAudit:
             ]
         )
 
+    @staticmethod
+    def _depends_paths(decorator):
+        """String paths named by an ``@api.depends(...)`` decorator; ``None`` for any other decorator."""
+        if not (isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute)):
+            return None
+        func = decorator.func
+        if func.attr != "depends" or not (isinstance(func.value, ast.Name) and func.value.id == "api"):
+            return None
+        return [arg.value for arg in decorator.args if isinstance(arg, ast.Constant) and isinstance(arg.value, str)]
+
     def check_compute_depends(self):
-        """Validate @api.depends() field references."""
+        """Validate ``@api.depends()`` base fields against the indexed model classes.
+
+        A class belongs to its ``_name``, or to its single ``_inherit`` when it only
+        extends. The valid fields are those visible on that model from the class's
+        module: every class of the model in the manifest depends closure, their
+        ``_inherit`` parents, and the verified framework mixins. A bridge file
+        whose first class extends another model no longer hides the fields its
+        later classes add. Models no repository class defines are not checked.
+        One finding per ``(model, compute method, base field)``.
+        """
         errors = []
-        for py_file in self.root_dir.rglob("*/models/*.py"):
+        seen = set()
+        for py_file in sorted(self.root_dir.rglob("*/models/*.py")):
             if skip_path(py_file):
                 continue
             try:
-                with open(py_file, encoding="utf-8") as f:
-                    content = f.read()
-            except Exception:
+                source = py_file.read_text(encoding="utf-8")
+                tree = ast.parse(source)
+            except (OSError, SyntaxError, UnicodeDecodeError):
                 continue
-
-            model_match = re.search(r'_name\s*=\s*["\']([^"\']+)["\']', content)
-            if not model_match:
-                continue
-            model_name = model_match.group(1)
-
-            for match in re.finditer(r"@api\.depends\(([^)]+)\)\s+def\s+(\w+)", content, re.MULTILINE):
-                depends_args = match.group(1)
-                compute_method = match.group(2)
-                field_names = re.findall(r'["\']([^"\']+)["\']', depends_args)
-
-                for field_path in field_names:
-                    base_field = field_path.split(".")[0]
-                    if base_field in self.MAGIC_FIELDS:
+            constants = self._module_constants(tree)
+            module = self._module_of(py_file)
+            for cls in (node for node in tree.body if isinstance(node, ast.ClassDef)):
+                name, parents, _fields = self._class_header(cls, constants)
+                model = self._class_model(name, parents)
+                if not model or model not in self.defined_models:
+                    continue
+                visible = self._visible_fields(model, module)
+                for func in cls.body:
+                    if not isinstance(func, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         continue
-                    if base_field in self.model_fields.get(model_name, {}):
-                        continue
-                    if base_field in self.inherited_fields.get(model_name, {}):
-                        continue
-                    line_num = content[: match.start()].count("\n") + 1
-                    errors.append(
-                        {
-                            "type": "INVALID_DEPENDS",
-                            "severity": "HIGH",
-                            "model": model_name,
-                            "compute_method": compute_method,
-                            "field": base_field,
-                            "file": str(py_file),
-                            "line": line_num,
-                            "message": f"@api.depends references non-existent field '{base_field}'",
-                            "note": "May be inherited from another module (_inherit)",
-                        }
-                    )
+                    for decorator in func.decorator_list:
+                        paths = self._depends_paths(decorator)
+                        if not paths:
+                            continue
+                        for field_path in paths:
+                            base_field = field_path.split(".")[0]
+                            if base_field in self.MAGIC_FIELDS or base_field in visible:
+                                continue
+                            key = (model, func.name, base_field)
+                            if key in seen:
+                                continue
+                            seen.add(key)
+                            errors.append(
+                                {
+                                    "type": "INVALID_DEPENDS",
+                                    "severity": "HIGH",
+                                    "model": model,
+                                    "compute_method": func.name,
+                                    "field": base_field,
+                                    "file": str(py_file),
+                                    "line": decorator.lineno,
+                                    "message": f"@api.depends references non-existent field '{base_field}'",
+                                    "note": "Resolved against every class of the model in the module's depends closure",
+                                }
+                            )
         return errors
 
     def check_security_rules(self):

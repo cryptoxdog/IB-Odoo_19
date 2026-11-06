@@ -21,16 +21,25 @@ class ResPartnerIntake(models.Model):
 
     @api.depends()
     def _compute_intake_count(self):
-        """Count intakes linked to this partner."""
+        """Count intakes linked to this partner as supplier or as facility, each intake once.
+
+        Two grouped reads replace one OR search per partner: intakes by partner,
+        then intakes by facility whose partner is not that same facility (those
+        were already counted by the first read).
+        """
         Intake = self.env["plasticos.intake"]
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = dict.fromkeys(stored_ids, 0)
+        if stored_ids:
+            for partner, count in Intake._read_group([("partner_id", "in", stored_ids)], ["partner_id"], ["__count"]):
+                counts[partner.id] = counts.get(partner.id, 0) + count
+            for facility, partner, count in Intake._read_group(
+                [("facility_id", "in", stored_ids)], ["facility_id", "partner_id"], ["__count"]
+            ):
+                if partner != facility:
+                    counts[facility.id] = counts.get(facility.id, 0) + count
         for rec in self:
-            rec.intake_count = Intake.search_count(
-                [
-                    "|",
-                    ("partner_id", "=", rec.id),
-                    ("facility_id", "=", rec.id),
-                ]
-            )
+            rec.intake_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     # ── Navigation Actions ────────────────────────────────────────
     def action_view_intakes(self):

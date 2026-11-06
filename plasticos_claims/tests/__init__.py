@@ -7,3 +7,5 @@ from . import test_depends_transaction_claims_bridge
 from . import test_integration_flows
 from . import test_selection_contracts
 from . import test_state_machines
+from . import test_claim_reference_uniqueness_batch
+from . import test_claim_reminder_batch

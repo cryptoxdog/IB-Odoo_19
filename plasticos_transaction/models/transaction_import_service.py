@@ -175,17 +175,12 @@ class PlasticosTransactionImportService(models.AbstractModel):
         return (tx, line_count)
 
     def _create_transaction_lines(self, tx, line_rows: list) -> int:
-        """Create transaction line records."""
+        """Create transaction line records in one batch."""
         Line = self.env["plasticos.transaction.line"]
-        count = 0
-
-        for row in line_rows:
-            line_vals = self._parse_line_row(tx, row)
-            if line_vals:
-                Line.create(line_vals)
-                count += 1
-
-        return count
+        vals_list = [line_vals for line_vals in (self._parse_line_row(tx, row) for row in line_rows) if line_vals]
+        if vals_list:
+            Line.create(vals_list)
+        return len(vals_list)
 
     def _parse_line_row(self, tx, row: dict) -> dict:
         """Parse a CSV row into transaction line values."""

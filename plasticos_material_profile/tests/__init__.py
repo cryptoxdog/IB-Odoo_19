@@ -5,3 +5,5 @@ from . import test_material_profile_intake_delta_contract
 from . import test_nullable_form_uniqueness
 from . import test_material_grade_migration
 from . import test_sheet_grade_retirement
+from . import test_code_uniqueness_batch
+from . import test_partner_profile_count_batch

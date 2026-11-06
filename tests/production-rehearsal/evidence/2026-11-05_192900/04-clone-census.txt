@@ -1,0 +1,6 @@
+db=odoo_test_cutover
+clone_of=odoo_test_tpl_ee_c9e8a81f52f23680
+parity=ee
+modules=170
+partner_census_before_import=0
+result=PASSED

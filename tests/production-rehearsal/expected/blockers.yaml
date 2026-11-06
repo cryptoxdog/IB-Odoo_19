@@ -1,0 +1,74 @@
+# Known blockers beyond the wired end of Gate 5 (web lead).
+# These are by design — they are not failures of the rehearsal.
+# Update this file when the architecture advances.
+#
+# Format:
+#   - id: blocker-id
+#     gate: N
+#     step: description of where the pipeline stops
+#     reason: why it stops here
+#     adr: reference if applicable
+#     severity: expected | warning | error
+
+blockers:
+
+  - id: web-lead-crm-lead-http-context
+    gate: 5
+    step: plasticos.web.lead._ensure_crm_lead_for_hot_intake → _create_crm_lead → message_post
+    reason: >
+      In Odoo 19, public HTTP endpoint contexts set uid=None (unauthenticated request).
+      Even after sudo(), the mail-thread message_post calls self.env.user._is_public()
+      which requires a singleton res.users record. With an empty env.user, this raises
+      ValueError: Expected singleton: res.users(). The intake IS created correctly.
+      CRM lead is not created via HTTP. Fix: ensure SUPERUSER_ID is set before
+      message_post calls in the triage path (use with_user(SUPERUSER_ID)).
+    adr: rule 50-plasticos-web-lead-guard (do not edit web_lead.py write/unlink guards)
+    severity: warning
+    observed: 2026-11-05
+    evidence: intake_id=1 created, crm_lead_id=null, state=error
+    fix_pr: https://github.com/cryptoxdog/IB-Odoo_19/pull/385
+    fix_note: >
+      Pull request 385 binds SUPERUSER_ID around lead creation, image sync,
+      and the opportunity note. This blocker stays until that commit is on Staging.
+
+  - id: web-lead-no-partner-creation
+    gate: 5
+    step: WebLead.admit_inbound → plasticos.intake created, crm.lead created
+    reason: >
+      Partner creation is intentionally deferred. The intake has no partner_id.
+      Buyer-match and partner resolution happen after human review of the lead.
+    adr: plasticos_web_leads rule 50-plasticos-web-lead-guard
+    severity: expected
+
+  - id: web-lead-no-gate-triage
+    gate: 5
+    step: plasticos.intake.action_match_to_buyers() requires GATE_URL
+    reason: >
+      Gate/CEG web-lead triage is Phase 3 (ADR-016). GATE_URL is not set
+      in the rehearsal environment. The intake is created but not triaged.
+    adr: ADR-016, ADR-002 §3
+    severity: expected
+
+  - id: web-lead-no-matching
+    gate: 5
+    step: No match run triggered from web lead path
+    reason: >
+      Matching requires imported buyers. ERP import (Gate 6) must run first.
+      The web lead path ends at crm.lead creation.
+    severity: expected
+
+  - id: erp-10pct-slice
+    gate: 6
+    step: Newest 10% of transaction worksheets only
+    reason: >
+      LIMIT=10% is intentional for rehearsal speed. Full historical import
+      is a separate operator task. All partner layers always run in full.
+    severity: expected
+
+  - id: vanillasoft-100-contacts
+    gate: 7
+    step: Bounded VanillaSoft import via make import-vanillasoft
+    reason: >
+      The rehearsal sets VANILLASOFT_CALL_FLOOR to seven days ago.
+      A full VanillaSoft import is a separate operator task.
+    severity: expected

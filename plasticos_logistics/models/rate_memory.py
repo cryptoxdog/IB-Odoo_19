@@ -47,6 +47,7 @@ class PlasticosRateMemory(models.Model):
             reconciliation_model.search([("legacy_rate_memory_id", "in", self.ids)]).mapped("legacy_rate_memory_id").ids
         )
         empty_loads = self.env["plasticos.load"].browse()
+        reconciliation_vals = []
         for record in self:
             if record.id in existing_legacy_ids:
                 continue
@@ -72,7 +73,7 @@ class PlasticosRateMemory(models.Model):
                 # ambiguous/no-match classification without creating an
                 # incorrectly company-scoped immutable record.
                 continue
-            reconciliation_model.create(
+            reconciliation_vals.append(
                 {
                     "company_id": company.id,
                     "legacy_rate_memory_id": record.id,
@@ -85,6 +86,9 @@ class PlasticosRateMemory(models.Model):
                     "candidate_count": len(candidates),
                 }
             )
+        if reconciliation_vals:
+            # One immutable classification per legacy row, created in one batch.
+            reconciliation_model.create(reconciliation_vals)
         return True
 
     def unlink(self):

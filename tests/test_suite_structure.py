@@ -53,6 +53,8 @@ NON_TEST_FILES = frozenset(
         "scratch_db.py",
         # Odoo-free cron registry imported by the XML lock. Not a test module.
         "cron_contract.py",
+        # Promotion-rehearsal note. run.sh does not execute it, and it is not a test module.
+        "crm_100.py",
     }
 )
 
