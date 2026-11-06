@@ -26,9 +26,11 @@
 ### Gate 5 — Web lead e2e
 - Odoo HTTP starts on rehearsal port (not 8069) on `odoo_test_cutover`
 - POST `payloads/cognito_hot.json` to `/api/v1/cognito-webhook`
-  - Response `status == 200`, `decision == "HOT"`
-  - `intake_id` is non-null (a `plasticos.intake` was created)
-  - `lead_id` is non-null (a `crm.lead` was created)
+  - HTTP 200 and JSON `status == "ok"`
+  - `decision == "hot"` (the selection value the controller returns)
+  - `intake_id` is non-null
+  - `web_lead_id` is non-null
+  - `state == "intake_created"` (`lead_id` in the body is the web-lead identity string, not a `crm.lead` id)
 - POST the same body a second time → same `web_lead_id` (idempotency)
 - Do NOT mock `evaluate_economic_opportunity`; a cold decision is a failure
 
