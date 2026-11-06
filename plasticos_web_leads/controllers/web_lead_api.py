@@ -1,7 +1,7 @@
 import json
 import logging
 
-from odoo import http
+from odoo import SUPERUSER_ID, http
 from odoo.exceptions import ConcurrencyError, UserError, ValidationError
 from odoo.http import Response, request
 
@@ -168,6 +168,14 @@ class WebLeadController(http.Controller):
             _logger.warning("Inbound auth failed for provider %s: %s", provider_key, result)
             return self._json_error(401, result)
 
+        # auth="none" leaves request.env.uid empty, so even after sudo() every
+        # env.user read sees res.users() and mail.thread (message_post calls
+        # env.user._is_public(), which needs a singleton) raises "Expected
+        # singleton". Bind the authenticated call to SUPERUSER_ID once, here,
+        # before any ORM write. uid SUPERUSER_ID already runs with su=True, so
+        # this grants nothing the sudo() below did not; it only gives the
+        # admission one real user. CRM keeps user_id=False explicitly.
+        request.update_env(user=SUPERUSER_ID)
         WebLead = request.env["plasticos.web.lead"].sudo()  # sudo after token validation
         try:
             event, lead = WebLead.admit_inbound(provider_key, body)
