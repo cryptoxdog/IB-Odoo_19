@@ -793,3 +793,9 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `plasticos_documents_native` keyset pagination, recognised by `scripts/audit/performance_audit.py` as one query
 > per page. Every baseline entry carries a `review:` reason. `make audit-baseline` still proves new 0; prune a
 > fixed line's entry in the same change, since its fingerprint includes the flagged source line.
+
+> **2026-11-06 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-11-05 sentence that `ci/baselines/extended_audit_baseline.json` has one `REAL_ACCEPT` entry on
+> `plasticos_enrichment/models/enrichment_run.py` is superseded. `action_inject` creates new material profiles
+> once after the raw-material walk, and fingerprint `13881d09c66d6989` is pruned. The extended baseline
+> `entries` array is empty.
