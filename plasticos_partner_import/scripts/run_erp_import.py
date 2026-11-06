@@ -106,9 +106,10 @@ def run(
 def census_path(report_path: str) -> str:
     """Sibling of the summary: ``<report>-census.json``.
 
-    The shared summary contract allows no extra keys, so the source-exception
-    census (every anomaly, and the grouped order-link, price-precision, and
-    payables census with dollar exposure) is written beside it.
+    The shared summary contract allows no extra keys, so the source identity
+    (``payload_kind``, ``source_origin``) and the source-exception census
+    (every anomaly, and the grouped order-link, price-precision, and payables
+    census with dollar exposure) are written beside it.
     """
     root, _ext = os.path.splitext(report_path)
     return f"{root}-census.json"
@@ -116,6 +117,8 @@ def census_path(report_path: str) -> str:
 
 def _write_census(path: str, result: dict) -> None:
     payload = {
+        "payload_kind": result.get("payload_kind") or "",
+        "source_origin": result.get("source_origin") or "",
         "census": result.get("census") or {},
         "anomalies": result.get("anomalies") or [],
         "unresolved": result.get("unresolved") or [],

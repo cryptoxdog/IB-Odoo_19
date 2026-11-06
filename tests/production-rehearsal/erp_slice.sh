@@ -69,7 +69,7 @@ if [ ! -f "${SUMMARY_FILE}" ]; then
 fi
 
 python3 - "${SUMMARY_FILE}" <<'EOF'
-import json, sys
+import json, os, sys
 
 with open(sys.argv[1]) as f:
     s = json.load(f)
@@ -92,6 +92,19 @@ if dups != 0:
 if created == 0:
     print("  ❌ No records created — import may have been a no-op.")
     ok = False
+
+census_file = os.path.splitext(sys.argv[1])[0] + "-census.json"
+try:
+    with open(census_file) as census_handle:
+        census = json.load(census_handle)
+except OSError as exc:
+    print(f"  ❌ Census missing: {census_file} ({exc})")
+    ok = False
+else:
+    kind = census.get("payload_kind")
+    if kind != "database":
+        print(f"  ❌ ERP source is {kind!r}; Gate 6 accepts only payload_kind database")
+        ok = False
 
 if ok:
     print(f"  ✅ ERP summary valid: seen={seen} created={created} updated={updated} unchanged={unchanged} rejected={rejected} dups={dups}")

@@ -34,6 +34,7 @@
 
 ### Gate 6 — ERP import (10% slice)
 - `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` are non-empty (not printed)
+- The census sibling `<summary>-census.json` has `payload_kind` equal to `database`. `grid` and `statements` fail the gate
 - `ERP_REQUIRE_EMPTY` is not set to 0 (default guard stays)
 - `ODOO_STAGE` is unset; `ERP_PRODUCTION_PERMIT` is not passed
 - Import exits 0 with a valid summary JSON
@@ -66,6 +67,6 @@
 ## Kit constraints
 
 - No secrets in any kit file
-- Bearer token for web lead is loaded from the clone's ICP at run time
+- Bearer token for web lead is `plasticos.web.lead.config.api_key`, the same row `web_lead_api.py` compares. A fresh cutover clone copies that field from the `odoo` database, or from `ODOO_WEB_LEAD_API_KEY`, onto its own config row before the POST. The value is not printed.
 - ERP credentials are loaded from `.env.local` at run time and not echoed
 - The template is never rebuilt by this kit
