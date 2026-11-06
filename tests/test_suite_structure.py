@@ -102,8 +102,8 @@ def _imports_odoo_at_module_level(source: str) -> bool:
     return False
 
 
-# Calls that make a claim, fail, or skip. ``self.assert*`` is matched by prefix.
-_ASSERTING_CALLS = frozenset({"pytest.raises", "pytest.fail", "pytest.skip", "self.skipTest"})
+# Calls that fail or skip. Other ``self.assert*`` calls are matched by prefix.
+_ASSERTING_CALLS = frozenset({"pytest.fail", "pytest.skip", "self.skipTest"})
 
 
 def _dotted_name(node: ast.expr) -> str | None:
@@ -118,8 +118,19 @@ def _dotted_name(node: ast.expr) -> str | None:
     return ".".join(reversed(parts))
 
 
+# Calls that only assert when entered as a context manager or given a callable:
+# a bare ``pytest.raises(ValueError)`` builds a context manager and checks nothing.
+_CONTEXT_ASSERTING_CALLS = frozenset({"pytest.raises", "pytest.warns", "pytest.deprecated_call"})
+_CONTEXT_ASSERTING_PREFIXES = ("self.assertRaises", "self.assertWarns", "self.assertLogs", "self.assertNoLogs")
+
+
 def _asserts_directly(node: ast.AST) -> bool:
-    """True when ``node`` contains an assert, ``raise AssertionError``, or an asserting call."""
+    """True when ``node`` contains an assert, ``raise AssertionError``, or an asserting call.
+
+    A context-manager assertion (``pytest.raises``, ``self.assertRaises`` ...) counts only
+    as a ``with`` item or when called with a callable argument.
+    """
+    with_items = {id(item.context_expr) for sub in ast.walk(node) if isinstance(sub, ast.With) for item in sub.items}
     for sub in ast.walk(node):
         if isinstance(sub, ast.Assert):
             return True
@@ -129,7 +140,13 @@ def _asserts_directly(node: ast.AST) -> bool:
                 return True
         if isinstance(sub, ast.Call):
             name = _dotted_name(sub.func)
-            if name is not None and (name in _ASSERTING_CALLS or name.startswith("self.assert")):
+            if name is None:
+                continue
+            if name in _CONTEXT_ASSERTING_CALLS or name.startswith(_CONTEXT_ASSERTING_PREFIXES):
+                if id(sub) in with_items or len(sub.args) >= 2:
+                    return True
+                continue
+            if name in _ASSERTING_CALLS or name.startswith("self.assert"):
                 return True
     return False
 
@@ -329,6 +346,18 @@ class TestAssertionDetector:
     def test_pytest_raises_is_a_claim(self):
         src = "import pytest\ndef test_raises():\n    with pytest.raises(ValueError):\n        int('x')\n"
         assert self._unasserted(src) == []
+
+    def test_bare_pytest_raises_is_reported(self):
+        src = "import pytest\ndef test_bare():\n    pytest.raises(ValueError)\n    int('x')\n"
+        assert self._unasserted(src) == ["test_bare"]
+
+    def test_pytest_raises_with_callable_is_a_claim(self):
+        src = "import pytest\ndef test_callable():\n    pytest.raises(ValueError, int, 'x')\n"
+        assert self._unasserted(src) == []
+
+    def test_bare_assert_raises_is_reported(self):
+        src = "class TestX:\n    def test_bare(self):\n        self.assertRaises(ValueError)\n"
+        assert self._unasserted(src) == ["test_bare"]
 
     def test_raise_assertion_error_is_a_claim(self):
         assert self._unasserted("def test_assertion_error():\n    raise AssertionError('x')\n") == []

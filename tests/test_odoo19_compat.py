@@ -8,8 +8,10 @@ Covers:
 """
 
 import glob
+import io
 import os
 import re
+import tokenize
 import unittest
 
 # =============================================================================
@@ -61,22 +63,53 @@ _SQL_JUSTIFIED_FILES = {
 _SQL_JUSTIFICATION_KEYWORDS = ("justification", "advisory", "performance", "atomic", "bulk")
 
 
+def _code_only_lines(lines: list[str]) -> list[str]:
+    """``lines`` with comments and string literals blanked; raw lines if tokenizing fails."""
+    code = [""] * len(lines)
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO("".join(lines)).readline):
+            if tok.type in (tokenize.COMMENT, tokenize.STRING) or tok.start[0] != tok.end[0]:
+                continue
+            row = tok.start[0] - 1
+            if row < len(code):
+                code[row] += " " + tok.string
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return list(lines)
+    return code
+
+
 def _unjustified_sql_lines(py_file: str, lines: list[str]) -> list[str]:
-    """``path:line: source`` for each ``env.cr.execute`` that is neither allowlisted nor justified.
+    """``path:line: source`` for each ``env.cr.execute`` call that is neither allowlisted nor justified.
 
     A path is allowlisted when it ends with, or contains, a ``_SQL_JUSTIFIED_FILES``
     key. Otherwise a call needs a justification keyword on its own line or the line above.
+    Mentions inside comments or string literals are not calls.
     """
     if any(py_file.endswith(approved) or approved in py_file for approved in _SQL_JUSTIFIED_FILES):
         return []
+    code = _code_only_lines(lines)
     violations = []
     for i, line in enumerate(lines, 1):
-        if "env.cr.execute" not in line:
+        if "env.cr.execute" not in line or "env . cr . execute" not in code[i - 1]:
             continue
         context_text = " ".join(lines[max(0, i - 2) : i]).lower()
         if not any(kw in context_text for kw in _SQL_JUSTIFICATION_KEYWORDS):
             violations.append(f"{py_file}:{i}: {line.strip()}")
     return violations
+
+
+_XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def _tree_tag_lines(text: str) -> list[tuple[int, str]]:
+    """``(line, source)`` for each ``<tree>`` tag outside an XML comment, line numbers preserved."""
+    stripped = _XML_COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+    source = text.splitlines()
+    return [
+        (i, source[i - 1].strip())
+        for i, line in enumerate(stripped.splitlines(), 1)
+        if "<tree " in line or "<tree>" in line
+    ]
 
 
 # Files/patterns where groups_id usage is valid (res.users manipulation, not ir.model.access)
@@ -234,6 +267,15 @@ class TestOdoo19APICompat(unittest.TestCase):
             ["plasticos_example/models/example.py:2: self.env.cr.execute("],
         )
 
+    def test_sql_classifier_ignores_comments_and_strings(self):
+        lines = [
+            "# do not call self.env.cr.execute( here\n",
+            "def _run(self):\n",
+            '    """Avoid self.env.cr.execute(...) in this method."""\n',
+            '    msg = "self.env.cr.execute("\n',
+        ]
+        self.assertEqual(_unjustified_sql_lines("plasticos_example/models/example.py", lines), [])
+
     def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
         lines = ["def _run(self):\n", "    self.env.cr.execute(\n"]
         for path in (
@@ -288,13 +330,12 @@ class TestOdoo19XMLCompat(unittest.TestCase):
         violations = []
         for xml_file in _find_xml_files():
             with open(xml_file) as f:
-                for i, line in enumerate(f, 1):
-                    if "<tree " in line or "<tree>" in line:
-                        # Allow if it's in a comment
-                        if "<!--" in line:
-                            continue
-                        violations.append(f"{xml_file}:{i}: {line.strip()}")
+                violations.extend(f"{xml_file}:{i}: {line}" for i, line in _tree_tag_lines(f.read()))
         self.assertEqual(violations, [], "Found <tree> (use <list>):\n" + "\n".join(violations))
+
+    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
+        text = '<odoo>\n<!-- example:\n  <tree>\n-->\n<!-- <tree> -->\n<tree string="x">\n</odoo>\n'
+        self.assertEqual(_tree_tag_lines(text), [(6, '<tree string="x">')])
 
     def test_xml_well_formed(self):
         """All XML files should be well-formed."""
