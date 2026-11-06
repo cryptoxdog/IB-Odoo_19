@@ -90,8 +90,8 @@ def test_rehearsal_refuses_the_frozen_grid():
     # The payload_kind rule lives in the kit helper erp_slice.sh calls; the
     # behaviour (grid / statements / missing kind fail) is exercised in
     # test_rehearsal_kit_lib.py::test_erp_fails_closed.
-    lib = (KIT / "rehearsal_lib.py").read_text(encoding="utf-8")
-    assert "rehearsal_lib.py" in (KIT / "rehearsal_common.sh").read_text(encoding="utf-8")
+    lib = (KIT / "common.py").read_text(encoding="utf-8")
+    assert "common.py" in (KIT / "rehearsal_common.sh").read_text(encoding="utf-8")
     assert "rlib check-erp" in gate
     assert "payload_kind" in lib
     assert 'kind != "database"' in lib

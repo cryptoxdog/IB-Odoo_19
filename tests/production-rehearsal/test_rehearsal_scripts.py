@@ -28,7 +28,7 @@ KIT_FILES = (
     "weblead_e2e.sh",
     "erp_slice.sh",
     "rehearsal_common.sh",
-    "rehearsal_lib.py",
+    "common.py",
     "expected/blockers.yaml",
     "payloads/cognito_hot.json",
 )
@@ -137,7 +137,7 @@ state_var="STUB_G${gate}_STATE"
 state="${!state_var:-PASS}"
 dir="${@: -1}"
 if [ "$state" != "none" ]; then
-  python3 "$(dirname "$0")/rehearsal_lib.py" gate-write "$dir" "$gate" "$state" "stub-$state"
+  python3 "$(dirname "$0")/common.py" gate-write "$dir" "$gate" "$state" "stub-$state"
 fi
 [ "$state" = "PASS" ]
 """

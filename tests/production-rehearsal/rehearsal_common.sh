@@ -9,7 +9,7 @@ REHEARSAL_PY="${REHEARSAL_PY:-python3}"
 
 # rlib <command> [args...] — the kit's Python helper (gate receipts, proof checks).
 rlib() {
-  "${REHEARSAL_PY}" "${KIT_DIR}/rehearsal_lib.py" "$@"
+  "${REHEARSAL_PY}" "${KIT_DIR}/common.py" "$@"
 }
 
 # db_query <db> <out_file> — run the SQL on stdin against <db> in the compose `db`

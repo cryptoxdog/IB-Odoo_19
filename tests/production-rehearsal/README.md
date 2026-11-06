@@ -79,7 +79,7 @@ evidence/
 | File | Role |
 |------|------|
 | `run.sh` | Orchestrator — runs the seven gates in order and always writes a verdict |
-| `rehearsal_lib.py` | Gate receipts, verdict, evidence scan, and the Gate 5/6/7 proof checks (stdlib) |
+| `common.py` | Gate receipts, verdict, evidence scan, and the Gate 5/6/7 proof checks (stdlib) |
 | `rehearsal_common.sh` | Shared shell helpers: `rlib`, `db_query`, partner census |
 | `weblead_e2e.sh` | Gate 5 helper (called by run.sh) |
 | `erp_slice.sh` | Gate 6 helper (called by run.sh) |

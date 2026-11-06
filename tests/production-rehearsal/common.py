@@ -2,7 +2,7 @@
 """Production-rehearsal kit helpers: gate receipts, verdict, and proof checks.
 
 Pure stdlib, no Odoo import. ``run.sh``, ``weblead_e2e.sh`` and
-``erp_slice.sh`` call it as ``python3 rehearsal_lib.py <command> ...``; the
+``erp_slice.sh`` call it as ``python3 common.py <command> ...``; the
 kit tests import it by path.
 
 Contract (SPEC.md):

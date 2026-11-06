@@ -1,4 +1,4 @@
-"""Rehearsal kit proof checks (rehearsal_lib.py): every fail-closed branch.
+"""Rehearsal kit proof checks (common.py): every fail-closed branch.
 
 Pure-python tier. Fixtures are built here; no Docker, SQL, HTTP or secret.
 Finding ids (RK-03 … RK-08) refer to the 2026-11-06 kit hardening contract.
@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 KIT = Path(__file__).resolve().parent
-_spec = importlib.util.spec_from_file_location("rehearsal_lib", KIT / "rehearsal_lib.py")
+_spec = importlib.util.spec_from_file_location("rehearsal_kit_common", KIT / "common.py")
 lib = importlib.util.module_from_spec(_spec)
 assert _spec.loader is not None
 _spec.loader.exec_module(lib)

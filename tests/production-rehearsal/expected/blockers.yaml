@@ -1,7 +1,7 @@
 # Named blockers and design-scope notes for the promotion rehearsal.
 #
 # Only an entry with `verdict_effect: blocked` can turn a gate's BLOCKED
-# receipt into the run verdict `blocked` (rehearsal_lib.py verdict_blocker_ids).
+# receipt into the run verdict `blocked` (common.py verdict_blocker_ids).
 # A BLOCKED receipt whose reason is not listed that way, any FAIL, and any
 # missing receipt make the verdict `failed`. `blocked` is never `ready`.
 # Entries without `verdict_effect` are documentation: they explain where the

@@ -8,7 +8,7 @@
 #   tests/production-rehearsal/evidence/YYYY-MM-DD_HHMMSS/
 # `evidence/latest` is repointed atomically once the verdict is written.
 #
-# Every gate writes exactly one receipt (gate-<n>.json, rehearsal_lib.py). The
+# Every gate writes exactly one receipt (gate-<n>.json, common.py). The
 # verdict (verdict.json + verdict.txt) is written on success, on failure, on an
 # early refusal and on SIGINT/SIGTERM. `set -e` is deliberately not used: every
 # gate captures its own exit status so a failure is recorded, never lost.

@@ -5,7 +5,7 @@
 # lead, its intake, and one unassigned, non-Won crm.lead opportunity bound to
 # that intake, no partner created, and a replay that changes nothing.
 #
-# Called by run.sh. Writes $EVIDENCE_DIR/gate-5.json (rehearsal_lib.py) and
+# Called by run.sh. Writes $EVIDENCE_DIR/gate-5.json (common.py) and
 # 04-weblead-*.json evidence. Exit 0 only on PASS.
 # Usage: bash weblead_e2e.sh <plasticos_root> <db> <rehearsal_port> <evidence_dir>
 set -uo pipefail

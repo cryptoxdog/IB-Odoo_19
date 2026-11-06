@@ -3,7 +3,7 @@
 #
 # The importer writes its own summary (05-erp-summary.json) and census
 # (05-erp-summary-census.json); this script never writes into either. The gate
-# verdict is $EVIDENCE_DIR/gate-6.json, written by rehearsal_lib.py check-erp
+# verdict is $EVIDENCE_DIR/gate-6.json, written by common.py check-erp
 # from the summary, the census, the import exit code and a read-only count of
 # the imported counterparty, address and contact identities on the clone.
 # Exit 0 only on PASS.

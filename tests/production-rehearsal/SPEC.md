@@ -6,7 +6,7 @@ at the end. It is evidence for a human promotion decision, not the decision.
 
 ## Receipts and verdict
 
-Every gate writes exactly one receipt, `gate-<n>.json` (`rehearsal_lib.py`,
+Every gate writes exactly one receipt, `gate-<n>.json` (`common.py`,
 schema `l9.plasticos.rehearsal.gate.v1`): gate, state, reason code, redacted
 detail, evidence files, exit code, whether it had side effects. States:
 
