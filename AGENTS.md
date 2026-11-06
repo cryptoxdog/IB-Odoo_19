@@ -771,6 +771,18 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > retired as offer-creation authority. Partner and Material Profile "Create Intake" actions open a native
 > Opportunity when CRM Bridge is installed.
 
+> **2026-11-06 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Odoo runtime tests (`make test-module` / `make test-odoo`) have two owners and no third. (1) The Docker smoke
+> stage of `make pr-check` (`scripts/pr_check_run.sh`) runs `make runtime-test` after install-smoke for the
+> `runtime=` modules `scripts/pr_check_scope.py` names: declared roster modules the branch touched that ship a
+> `tests/` package, or `all` when the whole gate is kept. `make pr-nosmoke reason=...` and `PR_CHECK_SKIP_SMOKE=1`
+> skip it with install-smoke; a documentation-, script- or harness-only branch reaches no module; a scope of
+> `smoke=0` does not skip it, so a change to an addon's own tests still runs them. (2) `l9-pr-integration-testing`,
+> only when the operator invokes it, runs `make runtime-test m=<modules>` on the host compose stack.
+> `make runtime-test` dispatches to the unchanged `test-module` / `test-odoo` recipes. Agents do not run
+> `make test-module` or `make test-odoo` ad hoc; the lines above that list them as commands are superseded.
+> `tests/test_runtime_test_ownership.py` enforces this.
+=======
 > **2026-11-05 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > the Audit Baselines table above is superseded on both rows. `ci/baselines/odoo_audit_baseline.json` has no
 > entries: `scripts/audit/odoo_audit.py` resolves `@api.depends` fields from its AST model index (a class belongs

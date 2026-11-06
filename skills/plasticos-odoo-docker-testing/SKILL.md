@@ -30,8 +30,8 @@ Gate-shell / security_base regressions (2026-08).
 | Env | Docker Desktop up; compose project `odoo19`; `odoo-enterprise` symlink present |
 | Order SSOT | `config/odoo_module_order.yaml` + `scripts/get_odoo_module_order.py` must match Gate architecture |
 | Load gate | `make install-smoke` must PASS before claiming Staging-ready. It clones `config/test_env_fixture.conf` and upgrades the roster |
-| Runtime | `make test-odoo` / `make test-module m=…` clone only `config/test_env_fixture.conf`. Do not use another database. `make test-env-rebuild` is the only template rebuild |
-| Integration | `l9-pr-integration-testing` in this repo runs `scripts/test_env.sh clone` and `scripts/test_env.sh run` against that template on the host compose stack. Another database, `odoo_install_smoke`, a from-empty install, and the toolchain-image quick path are blocked. An unproven fixture stops at `make test-env-rebuild` |
+| Runtime | Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc. The smoke stage runs `make runtime-test` for the roster modules the branch touched that ship Odoo tests; `make pr-nosmoke` skips it with smoke. The runs clone only `config/test_env_fixture.conf`. Do not use another database. `make test-env-rebuild` is the only template rebuild |
+| Integration | `l9-pr-integration-testing`, only when invoked, runs `make runtime-test m=<modules>` (`scripts/test_env.sh clone` + `run`) against that template on the host compose stack. Another database, `odoo_install_smoke`, a from-empty install, and the toolchain-image quick path are blocked. An unproven fixture stops at `make test-env-rebuild` |
 | Remote | Odoo.sh Staging rebuild / SSH only after local Docker green |
 | Architecture | Gate shells (`plasticos_matching`, `plasticos_enrichment`) install; deleted local engines never install |
 
@@ -40,7 +40,7 @@ Gate-shell / security_base regressions (2026-08).
 1. Explicit user request (smoke vs full e2e vs single module).
 2. `config/odoo_module_order.yaml` + module `__manifest__.py` `installable` / `auto_install`.
 3. `scripts/install_smoke.sh` (`make install-smoke`).
-4. `Makefile` targets: `install-smoke`, `test-odoo`, `test-module`, `pr-check`.
+4. `Makefile` targets: `install-smoke`, `pr-check`, and `runtime-test` (the only caller of `test-odoo` / `test-module`).
 5. Gate law: Odoo → Gate → EIE/CEG → Gate → Odoo — no local matching/IE.
 6. `plasticos-odoo-sh-deploy` for SSH after local green only.
 7. This skill's references.
@@ -55,7 +55,7 @@ Gate-shell / security_base regressions (2026-08).
    - Fast path: `ODOO_ENTERPRISE_MODULES=none make install-smoke`
    - Parity path: `make install-smoke` (enterprise list from yaml)
    - Evidence: every listed module `state=installed` + `✅ install-smoke PASSED`
-5. **Runtime tests** (optional / next) — [test-odoo-protocol.md](references/test-odoo-protocol.md).
+5. **Runtime tests** — run by the `make pr-check` smoke stage, or by an explicit `l9-pr-integration-testing` invocation; never ad hoc — [test-odoo-protocol.md](references/test-odoo-protocol.md).
 6. **Staging** — [staging-before-odoo-sh.md](references/staging-before-odoo-sh.md): merge → Odoo.sh rebuild; SSH only if still red after local green.
 
 ## Resource Map
@@ -63,7 +63,7 @@ Gate-shell / security_base regressions (2026-08).
 - [references/docker-env.md](references/docker-env.md) — containers, env vars, one-time setup.
 - [references/module-order-ssot.md](references/module-order-ssot.md) — install order, Gate shells vs excluded, version bumps.
 - [references/install-smoke-protocol.md](references/install-smoke-protocol.md) — smoke scopes, fatal filters, failure triage.
-- [references/test-odoo-protocol.md](references/test-odoo-protocol.md) — `test-odoo` / `test-module` / pytest tiers.
+- [references/test-odoo-protocol.md](references/test-odoo-protocol.md) — runtime-test owners, `test-odoo` / `test-module` runner, pytest tiers.
 - [references/staging-before-odoo-sh.md](references/staging-before-odoo-sh.md) — Docker-first promotion ladder.
 
 ## Validation

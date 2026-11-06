@@ -148,7 +148,7 @@ python3 ci/check_orm_integrity.py
 python3 ci/check_field_integrity.py
 
 # Run module tests before and after a change:
-make test-module m=<module>
+make runtime-test m=<module>   # only via the make pr-check smoke stage or l9-pr-integration-testing
 ```
 
 ### Regression Verdict

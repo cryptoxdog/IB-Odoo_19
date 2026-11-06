@@ -17,12 +17,16 @@ Prints ``KEY=VALUE`` lines::
     smoke=0|1      Odoo install-smoke when an addon load input or an installer
                    input changed
     tests=all | <space-separated test modules> | (empty: no module to run)
+    runtime=all | <comma-separated PlasticOS modules> | (empty)
+                   Odoo runtime tests (the runtime-test goal) for the declared
+                   roster modules the change touched that ship a tests/
+                   package; ``all`` when the whole gate is kept
     reason=<one line>
 
 The change set is the committed range from the merge-base with
 ``origin/<base>`` plus the working tree and untracked files. Every doubt —
 no base, no merge-base, no change, a selector error, ``PR_CHECK_SCOPE=full`` —
-keeps the whole gate (``audit=1 smoke=1 tests=all``).
+keeps the whole gate (``audit=1 smoke=1 tests=all runtime=all``).
 
 Test selection: a changed test module selects itself. Any changed path also
 selects a test module whose source contains that repo-relative path, the same
@@ -122,8 +126,42 @@ def select_tests(root: Path, changed: list[str]) -> list[str] | str:
     return sorted(selected)
 
 
+def runtime_roster(root: Path) -> list[str] | None:
+    """The declared PlasticOS roster ``scripts/test_env.sh`` accepts as a test scope."""
+    try:
+        out = subprocess.run(
+            [sys.executable, str(root / "scripts" / "get_odoo_module_order.py")],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return [m for m in out.strip().split(",") if m]
+
+
+def select_runtime(root: Path, changed: list[str]) -> str:
+    """Comma list of roster modules the change touched that ship Odoo tests.
+
+    A module outside the roster is refused by the runner, and a module with no
+    ``tests`` package would make it fail on zero tests, so both are dropped.
+    Documentation inside an addon does not select it. An unreadable roster
+    keeps the whole runtime gate.
+    """
+    touched = {
+        Path(rel).parts[0] for rel in changed if Path(rel).parts[0].startswith(ADDON_PREFIX) and not is_docs(rel)
+    }
+    if not touched:
+        return ""
+    roster = runtime_roster(root)
+    if roster is None:
+        return "all"
+    return ",".join(m for m in roster if m in touched and (root / m / "tests" / "__init__.py").is_file())
+
+
 def plan(root: Path, base: str) -> dict:
-    whole = {"audit": 1, "smoke": 1, "tests": "all"}
+    whole = {"audit": 1, "smoke": 1, "tests": "all", "runtime": "all"}
     if os.environ.get("PR_CHECK_SCOPE") == "full":
         return {"changed": None, **whole, "reason": "forced by PR_CHECK_SCOPE=full"}
     changed = changed_paths(root, base)
@@ -137,6 +175,7 @@ def plan(root: Path, base: str) -> dict:
         "audit": int(any(not is_docs(rel) for rel in changed)),
         "smoke": int(any(is_smoke_input(rel) for rel in changed)),
         "tests": "all" if tests == "ALL" else tests,
+        "runtime": select_runtime(root, changed),
         "reason": f"{len(changed)} changed path(s); "
         + ("whole test suite (harness changed)" if tests == "ALL" else f"{len(tests)} test module(s) reached"),
     }
@@ -159,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"audit={result['audit']}")
     print(f"smoke={result['smoke']}")
     print("tests=" + (tests if isinstance(tests, str) else " ".join(tests)))
+    print("runtime=" + result["runtime"])
     print("reason=" + result["reason"])
     return 0
 

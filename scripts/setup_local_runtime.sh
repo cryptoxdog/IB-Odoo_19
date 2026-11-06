@@ -57,7 +57,7 @@ odoo_src() { ls -d "$ODOO_SRC_DIR"/odoo-19.0* 2>/dev/null | sort | tail -1; }
 step "Preflight"
 [ "$(uname -s)" = "Linux" ] || die "This builder targets Linux (the runbook's
   \`initdb\`/\`pg_ctl\` invocations and /usr/lib/postgresql layout). On macOS use
-  the Docker path (make up / make test-odoo) or adapt L9_PG_BIN to Homebrew."
+  the Docker path (make up; runtime tests via make pr-check) or adapt L9_PG_BIN to Homebrew."
 command -v python3.12 >/dev/null || die "python3.12 not found (Odoo 19 targets 3.12)"
 [ -x "$PG_BIN/initdb" ] || die "PostgreSQL 16 not found at $PG_BIN — install postgresql-16 or set L9_PG_BIN"
 say "linux, python3.12, postgresql-16 present"
