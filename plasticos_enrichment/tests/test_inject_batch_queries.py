@@ -108,9 +108,18 @@ class TestInjectBatchQueries(PlasticosTestCase):
         self.assertEqual(len(profile_creates), 1, profile_creates)
         self.assertIsInstance(profile_creates[0], list)
         self.assertEqual(len(profile_creates[0]), 1)
-        partner_lookups = [
+        # The inject preloads every profile for the partner in one search. Creating
+        # that profile also runs the material-profile uniqueness pre-check, which
+        # searches partner + polymer + form + grade once per created row.
+        preload_lookups = [
             domain
             for domain in profile_searches
-            if any(term[0] == "partner_id" for term in domain if isinstance(term, tuple))
+            if [term[0] for term in domain if isinstance(term, tuple)] == ["partner_id"]
         ]
-        self.assertEqual(len(partner_lookups), 1, profile_searches)
+        uniqueness_lookups = [
+            domain
+            for domain in profile_searches
+            if any(isinstance(term, tuple) and term[0] == "material_grade_id" for term in domain)
+        ]
+        self.assertEqual(len(preload_lookups), 1, profile_searches)
+        self.assertEqual(len(uniqueness_lookups), 1, profile_searches)
