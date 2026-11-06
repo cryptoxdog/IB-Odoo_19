@@ -563,12 +563,15 @@ class EnrichmentRun(models.Model):
         written = 0
 
         # One query for the partner's profiles, keyed by the canonical (polymer, form)
-        # identity; a profile this run creates is added so a later raw material of
-        # the same identity merges into it instead of duplicating it.
+        # identity. New identities are inserted once after this walk so a later raw
+        # material of the same identity merges into that profile instead of duplicating it.
         profiles_by_identity = {}
         for profile in MatProf.search([("partner_id", "=", partner.id)]):
             profiles_by_identity.setdefault((profile.polymer_id.id, profile.form_id.id), profile)
 
+        pending_creates = []
+        pending_merges = []
+        queued_identities = set()
         for ext in self.extraction_ids.filtered("is_injectable"):
             for raw_mat in ext.material_json or []:
                 profile_vals, prov_items, unmapped = svc.normalize_material(raw_mat)
@@ -603,96 +606,122 @@ class EnrichmentRun(models.Model):
 
                 # Partner + polymer_id + form_id (canonical unique), from the one query above.
                 identity = (polymer_id.id, form_id.id)
-                existing = profiles_by_identity.get(identity, MatProf)
+                item = {
+                    "identity": identity,
+                    "profile_vals": profile_vals,
+                    "prov_items": prov_items,
+                    "unmapped": unmapped,
+                    "source_type_id": source_type_id,
+                    "polymer_id": polymer_id,
+                    "form_id": form_id,
+                }
+                if profiles_by_identity.get(identity) or identity in queued_identities:
+                    pending_merges.append(item)
+                    continue
+                create_vals = {
+                    "partner_id": partner.id,
+                    "polymer_id": polymer_id.id,
+                    "form_id": form_id.id,
+                }
+                if source_type_id:
+                    create_vals["source_type_id"] = source_type_id.id
+                create_vals.update(profile_vals)
+                item["create_vals"] = create_vals
+                pending_creates.append(item)
+                queued_identities.add(identity)
 
-                if existing:
-                    # Identity codes are owned by plasticos.material.profile.
-                    from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
-                        LEGACY_PROFILE_CODE_FIELDS,
-                    )
-
-                    merge_vals = {}
-                    for field, value in profile_vals.items():
-                        if field in LEGACY_PROFILE_CODE_FIELDS:
-                            continue
-                        current = existing[field]
-                        if not current:
-                            merge_vals[field] = value
-                            self._record_provenance(
-                                partner,
-                                field,
-                                str(value),
-                                str(current),
-                                "written",
-                                prov_items,
-                            )
-                            written += 1
-                        elif current != value:
-                            self._record_provenance(
-                                partner,
-                                field,
-                                str(value),
-                                str(current),
-                                "skipped_immutable",
-                                prov_items,
-                            )
-                    if source_type_id:
-                        merge_vals["source_type_id"] = source_type_id.id
-                    if merge_vals:
-                        existing.write(merge_vals)
-                        existing.message_post(
-                            body=(f"Enrichment {self.name} merged fields: {', '.join(merge_vals.keys())}"),
-                            subtype_xmlid=SUBTYPE_NOTE,
-                        )
-                        updated += 1
-                else:
-                    create_vals = {
-                        "partner_id": partner.id,
-                        "polymer_id": polymer_id.id,
-                        "form_id": form_id.id,
-                    }
-                    if source_type_id:
-                        create_vals["source_type_id"] = source_type_id.id
-                    create_vals.update(profile_vals)
-                    profiles_by_identity[identity] = MatProf.create(create_vals)
-                    for field, value in profile_vals.items():
-                        self._record_provenance(
-                            partner,
-                            field,
-                            str(value),
-                            "",
-                            "written",
-                            prov_items,
-                        )
-                        written += 1
+        if pending_creates:
+            created_profiles = MatProf.create([item["create_vals"] for item in pending_creates])
+            for item, record in zip(pending_creates, created_profiles, strict=True):
+                profiles_by_identity[item["identity"]] = record
+                for field, value in item["profile_vals"].items():
                     self._record_provenance(
                         partner,
-                        "polymer_id",
-                        str(polymer_id.id),
+                        field,
+                        str(value),
                         "",
                         "written",
-                        prov_items,
+                        item["prov_items"],
                     )
-                    self._record_provenance(
-                        partner,
-                        "form_id",
-                        str(form_id.id),
-                        "",
-                        "written",
-                        prov_items,
-                    )
-                    written += 2
-                    created += 1
-
-                for ufield, uval in unmapped:
+                    written += 1
+                self._record_provenance(
+                    partner,
+                    "polymer_id",
+                    str(item["polymer_id"].id),
+                    "",
+                    "written",
+                    item["prov_items"],
+                )
+                self._record_provenance(
+                    partner,
+                    "form_id",
+                    str(item["form_id"].id),
+                    "",
+                    "written",
+                    item["prov_items"],
+                )
+                written += 2
+                created += 1
+                for ufield, uval in item["unmapped"]:
                     self._record_provenance(
                         partner,
                         ufield,
                         str(uval),
                         "",
                         "unmapped",
-                        prov_items,
+                        item["prov_items"],
                     )
+
+        # Identity codes are owned by plasticos.material.profile.
+        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+            LEGACY_PROFILE_CODE_FIELDS,
+        )
+
+        for item in pending_merges:
+            existing = profiles_by_identity[item["identity"]]
+            merge_vals = {}
+            for field, value in item["profile_vals"].items():
+                if field in LEGACY_PROFILE_CODE_FIELDS:
+                    continue
+                current = existing[field]
+                if not current:
+                    merge_vals[field] = value
+                    self._record_provenance(
+                        partner,
+                        field,
+                        str(value),
+                        str(current),
+                        "written",
+                        item["prov_items"],
+                    )
+                    written += 1
+                elif current != value:
+                    self._record_provenance(
+                        partner,
+                        field,
+                        str(value),
+                        str(current),
+                        "skipped_immutable",
+                        item["prov_items"],
+                    )
+            if item["source_type_id"]:
+                merge_vals["source_type_id"] = item["source_type_id"].id
+            if merge_vals:
+                existing.write(merge_vals)
+                existing.message_post(
+                    body=(f"Enrichment {self.name} merged fields: {', '.join(merge_vals.keys())}"),
+                    subtype_xmlid=SUBTYPE_NOTE,
+                )
+                updated += 1
+            for ufield, uval in item["unmapped"]:
+                self._record_provenance(
+                    partner,
+                    ufield,
+                    str(uval),
+                    "",
+                    "unmapped",
+                    item["prov_items"],
+                )
 
         self.write(
             {

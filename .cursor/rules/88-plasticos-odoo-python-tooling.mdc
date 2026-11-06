@@ -39,7 +39,7 @@ alwaysApply: true
 ## Correctness authority
 
 ```
-plasticos_* models  → Odoo runtime tests (make test-odoo / Odoo.sh), not Pyright strict
+plasticos_* models  → Odoo runtime tests (make runtime-test in the pr-check smoke stage / Odoo.sh), not Pyright strict
 ci/ scripts/ tools/ → ruff + pure pytest tier
 ```
 

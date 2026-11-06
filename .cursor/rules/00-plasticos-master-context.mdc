@@ -65,7 +65,7 @@ Before writing any code or making any change, identify your task and consult the
 - **`86-ci-github-actions`** — SHA-pin third-party actions. Verify test files exist on the branch. Never re-enable disabled workflows.
 
 ### Writing or running tests
-- **`plasticos-odoo-docker-testing`** — Docker `install-smoke` / `test-odoo` before Odoo.sh; Gate-shell module-order SSOT.
+- **`plasticos-odoo-docker-testing`** — Docker `install-smoke` and the smoke-stage runtime tests (`make runtime-test`) before Odoo.sh; Gate-shell module-order SSOT.
 - **`80-plasticos-testing-rules`** — `TransactionCase`, `setUpClass` fixtures (never `skipTest`), `type='consu'` for storable in Odoo 19.
 
 ### Python editor tooling / pyproject / Pyright / autocomplete
@@ -74,7 +74,8 @@ Before writing any code or making any change, identify your task and consult the
 ### Deploying to Docker / running `make update`
 - **`30-plasticos-deploy-validation`** — Pre-deploy snapshot, log validation, ICP params check, pipeline_v2 guard.
 
-### Running Docker Odoo tests (`make test-module`, `make test-odoo`, `scripts/test_env.sh`)
+### Running Docker Odoo tests (`make runtime-test`, `scripts/test_env.sh`)
+- Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc.
 - **`36-plasticos-docker-test-fixture`** — Clone only `config/test_env_fixture.conf`. Do not use another database. Do not create a new template unless that fixture is gone and the user said to rebuild it.
 
 ### Final pre-go-live pass

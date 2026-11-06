@@ -122,7 +122,7 @@ docker compose run --rm odoo shell -d <DB_NAME>
 ### Step 6: Functional smoke test
 
 ```bash
-make test-module m=<module_name>
+make runtime-test m=<module_name>   # only via the make pr-check smoke stage or l9-pr-integration-testing
 # expands to: docker compose run --rm odoo --test-enable --stop-after-init -d odoo_test --log-level=test -u <module>
 ```
 

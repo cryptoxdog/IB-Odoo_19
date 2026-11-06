@@ -113,6 +113,6 @@ This is **not advisory** — SonarCloud classifies float equality as BUG (S1244)
 
 ```bash
 make test                        # full suite
-make test-module m=<module>      # single module
+make runtime-test m=<module>   # only via the make pr-check smoke stage or l9-pr-integration-testing
 # expands to: docker compose run --rm odoo --test-enable --stop-after-init -d odoo_test --log-level=test -u <module>
 ```

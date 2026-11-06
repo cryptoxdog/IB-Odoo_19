@@ -16,7 +16,7 @@ The file implements the inbound web lead pipeline for PlasticOS. It is a multi-s
 ## MANDATORY: Run Tests Before Any Change
 
 ```bash
-make test-module m=plasticos_web_leads
+make runtime-test m=plasticos_web_leads   # only via the make pr-check smoke stage or l9-pr-integration-testing
 # or at minimum:
 # find and run tests/test_web_lead*.py
 ```
