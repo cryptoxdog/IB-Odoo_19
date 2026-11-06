@@ -1,113 +1,134 @@
 ---
-component_id: "plasticos_logistics"
-component_name: "Plasticos Logistics"
-module_version: "19.0.1.10.0"
-layer: "core"
-domain: "plasticos"
-type: "odoo_module"
-status: "active"
-purpose: "Load management, dispatch, delivery tracking, and Odoo-local deterministic freight evidence"
-summary: "Logistics coordination with trucker communications plus SAL, manual-only RFQ, estimate, and calibration evidence"
+auto_generated: false
+authority: derived-index
+component_id: plasticos_logistics
+component_name: Plasticos Logistics Engine
+module_version: 19.0.1.14.15
+layer: 5
+installable: true
+auto_install: true
+application: true
+depends:
+  - plasticos_base
+  - plasticos_transaction
+  - sale_management
+  - stock
+  - purchase
+  - purchase_stock
+  - mail
+  - base_automation
+models_owned:
+  - plasticos.load
+  - plasticos.dispatch
+  - plasticos.load.dashboard
+  - plasticos.freight.quote.request
+  - plasticos.freight.quote.recipient
+  - plasticos.freight.quote
+  - plasticos.freight.estimate
+  - plasticos.freight.event
+  - plasticos.freight.calibration.observation
+  - plasticos.rate.memory
+  - plasticos.rate.memory.reconciliation
+  - plasticos.logistics.request
+  - plasticos.logistics.response
+  - plasticos.freight.actual.correction.wizard
+  - plasticos.load.bulk.update.wizard
+models_extended:
+  - plasticos.transaction
+  - sale.order
+  - purchase.order
+  - mail.mail
+crons:
+  - cron_escalation
+  - cron_dispatch_acknowledgment
+  - cron_supplier_confirmation
+  - cron_auto_create_do
 ---
 
-# Plasticos Logistics
+# Plasticos Logistics Engine
+
+The front matter above is a derived index. `__manifest__.py` and the `_name` / `_inherit` lines in `models/` and `wizards/` win on any conflict.
 
 ## Business requirements and implementation plan
 
 Linda's seven original BRS files (60 rule IDs) are in [`business_rules/`](business_rules/README.md), governed by the exact-ID [`SUPERSESSION.md`](business_rules/SUPERSESSION.md) and bound to WP00-WP11 and planned acceptance by [`LINDA_BUILD_PLAN.md`](LINDA_BUILD_PLAN.md). This is a target specification, not a runtime-completion claim.
 
-## Purpose
-Load management, dispatch, delivery tracking, and Odoo-local deterministic freight evidence
+Read [`AGENTS.md`](AGENTS.md) before changing Linda code. It requires BRS rule IDs in changes and tests and forbids unauthorized live sends.
 
-## Summary
-Logistics coordination with trucker communications plus Same As Last (SAL) resolution, manual-only RFQ
-evidence, nonbinding local estimates, and append-only calibration observations
+## What it does
 
-## Structure
-```
-BOL - DELIVERY-59422.pdf
-BOL - PICKUP-59422.pdf
-DELIVERY ORDER-59422.pdf
-README.md
-README.rst
-__init__.py
-__manifest__.py
-data/
-migrations/
-models/
-report/
-security/
-services/
-views/
-wizards/
-```
+Moves material from supplier to buyer: loads, readiness, rates, scheduling, dispatch, pickup, delivery, and close. It holds Odoo-local freight evidence (Same As Last resolution, manual-only quote requests, nonbinding estimates, calibration observations) and Linda's order-scoped supplier and buyer mail records.
 
-## Dependencies
-plasticos_base, plasticos_transaction, sale_management, stock, mail
+## How it works
+
+- **Load.** `plasticos.load` (`models/load.py`) is the unit of work. `state` runs `draft`, `awaiting_ready`, `ready_confirmed`, `rate_confirmed`, `scheduled`, `dispatched`, `picked_up`, `delivered`, `closed`, with `exception` beside them. Main commands: `action_confirm_ready`, `action_confirm_rate`, `action_schedule`, `action_dispatch`, `action_close`.
+- **Freight.**
+  - `action_resolve_freight` resolves Same As Last from executed-load history (`services/sal_resolver.py`). A miss never creates a quote request by itself.
+  - `action_create_freight_quote_request` opens one manual-only request (`plasticos.freight.quote.request`, its recipients and quotes).
+  - `action_request_freight_estimate` stores a nonbinding `plasticos.freight.estimate`. The math is `services/freight_estimation.py`: a Haversine-weighted curve over canonical executed lanes. That file reads and writes no model; `services/freight_history.py` supplies the evidence and the load writes the rows.
+  - `action_record_actual_freight_cost` and `action_correct_actual_freight_cost` append `plasticos.freight.calibration.observation` rows. Corrections do not reopen earlier evidence.
+  - `plasticos.freight.event` records freight decisions. `plasticos.rate.memory` is frozen: create and write raise outside its migration context. `plasticos.rate.memory.reconciliation` records its reconciliation.
+- **Dispatch documents.** `report/` defines BOL pickup, BOL delivery, delivery order, and a supplier purchase order report. `action_send_dispatch_packet` opens a composer; `action_send_dispatch_direct` sends the packet at once. Both use the `email_template_dispatch_packet` template from `plasticos_automation` and raise a clear error when that module is not installed.
+- **Linda order mail.** Approving a purchase order (`button_approve`) or confirming a sale order (`action_confirm`) records a `plasticos.logistics.request` when the order newly enters `purchase` or `sale`. Cancels record cancel requests.
+  - The system parameter `plasticos_logistics.linda_mode` is `off`, `shadow`, or `live`. Anything else is treated as `off`, and no value is seeded, so a fresh install records nothing.
+  - `shadow` records evidence and creates no mail. Only `live` queues mail through the native template.
+  - A request becomes `sent` only after Odoo Mail reports the `mail.mail` as sent; an unrecorded outcome becomes `unknown` and is not retried automatically.
+  - The `mail.mail` extension rechecks queued Linda mail at send time, sends it one at a time, and holds an issue mail until an earlier cancellation to the same party is confirmed sent.
+- **Linda replies.** `plasticos.logistics.response` records which request an incoming message answers, proven by `In-Reply-To` / `References`. Only exact standard replies ("confirmed", "confirm", "not ready") are classified; free-form replies stay unresolved. It changes no order, load, picking, or transaction. `data/linda_inbound_ai.xml` wires it to new `mail.message` records.
+- **Dashboard.** `plasticos.load.dashboard` is a read-only SQL view, one row per non-cancelled load.
+- **Extensions.** `plasticos.transaction` gets `load_ids`, `load_count`, and `action_view_loads`. `sale.order` gets `action_create_load`. Both order models get `linda_request_ids`.
+- **Install hook.** `post_init_hook` in `hooks.py` grants this module's groups to the users of the crons it owns.
 
 ## Models
-- `plasticos.load` — load spine, SAL provenance, freight context, recorded actuals
-- `plasticos.dispatch` — dispatch records
-- `plasticos.load.dashboard` — SQL-view dashboard (read-only)
-- `plasticos.freight.quote.request` — manual-only RFQ episode (immutable identity, workflow-owned lifecycle)
-- `plasticos.freight.quote.recipient` — recipient delivery/response ledger (workflow-owned evidence)
-- `plasticos.freight.quote` — immutable carrier response evidence; ranking is recommendation-only
-- `plasticos.freight.estimate` — immutable nonbinding local estimate evidence
-- `plasticos.freight.event` — immutable correlated freight event log
-- `plasticos.freight.calibration.observation` — append-only actual-cost calibration (one initial + one direct successor)
-- `plasticos.rate.memory` — legacy rate cache, frozen (read-only outside migration context)
-- `plasticos.rate.memory.reconciliation` — immutable legacy-cache reconciliation evidence
-- Transient: `plasticos.load.bulk.update.wizard`, `plasticos.freight.actual.correction.wizard`
 
-## Tier
-core
+| Model                                        | Kind             | File                                          |
+| -------------------------------------------- | ---------------- | --------------------------------------------- |
+| `plasticos.load`                             | owned            | `models/load.py`                              |
+| `plasticos.dispatch`                         | owned            | `models/dispatch.py`                          |
+| `plasticos.load.dashboard`                   | owned, SQL view  | `models/load_dashboard.py`                    |
+| `plasticos.freight.quote.request`            | owned            | `models/freight_quote.py`                     |
+| `plasticos.freight.quote.recipient`          | owned            | `models/freight_quote.py`                     |
+| `plasticos.freight.quote`                    | owned            | `models/freight_quote.py`                     |
+| `plasticos.freight.estimate`                 | owned            | `models/freight_estimate.py`                  |
+| `plasticos.freight.event`                    | owned            | `models/freight_governance.py`                |
+| `plasticos.freight.calibration.observation`  | owned            | `models/freight_governance.py`                |
+| `plasticos.rate.memory`                      | owned, frozen    | `models/rate_memory.py`                       |
+| `plasticos.rate.memory.reconciliation`       | owned            | `models/freight_governance.py`                |
+| `plasticos.logistics.request`                | owned            | `models/linda_request.py`                     |
+| `plasticos.logistics.response`               | owned            | `models/linda_response.py`                    |
+| `plasticos.freight.actual.correction.wizard` | owned, transient | `wizards/freight_actual_correction_wizard.py` |
+| `plasticos.load.bulk.update.wizard`          | owned, transient | `wizards/load_bulk_update_wizard.py`          |
+| `plasticos.transaction`                      | extended         | `models/transaction_inherit.py`               |
+| `sale.order`                                 | extended         | `models/sale_order_inherit.py`                |
+| `purchase.order`                             | extended         | `models/purchase_order_inherit.py`            |
+| `mail.mail`                                  | extended         | `models/mail_mail_inherit.py`                 |
 
-## Linda Deterministic Freight Policy
+## Runtime
 
-Linda freight estimation and quote recommendation are owned by this module. They do not depend on
-Constellation Gate, Cognitive Engine Graphs, Enrichment Inference Engine, an LLM, or an external
-freight-pricing service.
+All four crons are in `data/cron.xml` (`noupdate="0"`) and run as `plasticos_base.user_system_cron`:
 
-### Nonbinding estimate
+| Cron                           | Calls                                                          | Interval | `active` in XML |
+| ------------------------------ | -------------------------------------------------------------- | -------- | --------------- |
+| `cron_escalation`              | `plasticos.load._cron_escalation_check()`                      | 1 hour   | not set         |
+| `cron_dispatch_acknowledgment` | `plasticos.load._cron_check_dispatch_acknowledgments()`        | 4 hours  | true            |
+| `cron_supplier_confirmation`   | `plasticos.transaction._cron_supplier_confirmation_followup()` | 6 hours  | true            |
+| `cron_auto_create_do`          | `plasticos.transaction._cron_auto_create_delivery_orders()`    | 1 hour   | true            |
 
-`plasticos_logistics.services.freight_estimation` calculates a validated Haversine great-circle
-feature, then weights matching-currency executed outcomes using:
+The two transaction methods are defined in `plasticos_transaction`, not here.
 
-```text
-weight = 1 / max(origin_delta + destination_delta + lane_length_delta, 1 mile) × exp(-age_days / 180)
-target = sum(observed_amount × weight) / sum(weight)
-floor  = minimum observed matching-currency outcome
-ceiling = maximum observed matching-currency outcome
-```
+`auto_install` and `application` are true.
 
-The estimate is immutable evidence, never a carrier assignment or rate confirmation. There is no
-embedded road multiplier, fixed dollar-per-mile rule, fuel factor, market coefficient, currency
-conversion, or fabricated fallback value. Invalid geocodes and insufficient matching-currency
-evidence remain classified evidence gaps.
+## Boundaries
 
-Estimate identities are idempotent for the same source load, freight context, and evidence
-fingerprint. Canonical freight context v3 uses only declared structured location facts and current
-company-local history; formatted-address presentation fields do not affect the context identity.
-All estimate, calibration, and event evidence is server-created through authorized load actions,
-immutable after creation, and company-scoped.
+- No Gate, CEG, enrichment engine, LLM, or external pricing service. Freight estimation is local math.
+- Linda sends external mail only through native Odoo Mail, only in `live` mode. Installing this module or its BRS pack does not turn on live sends.
+- Freight estimates are nonbinding. No carrier is awarded automatically.
+- Registered BRS requirements are not evidence that the behaviour is implemented or validated at runtime.
 
-### Recommendation-only quote ranking
+## Read next
 
-`plasticos_logistics.services.freight_quote_ranking` ranks only valid, active, current-context
-quotes. The documented score weights price (55%), lane-history fit (20%), carrier-history fit
-(15%), response recency (5%), and timeliness (5%). Invalid, expired, stale, inactive, or blocked
-carrier responses are excluded. Lane and carrier history use only the quote currency; no currency
-conversion or cross-company evidence is silently introduced. Ranking never sets `selected`, confirms
-a load rate, changes a load state, or sends mail; a logistics operator retains those actions.
-
-### Deferred Gmail intake
-
-Inbound mailbox ingestion for `logistics2@scrapmanagement.com` is deferred until the mailbox OAuth
-authorization is supplied. When authorized, it must create idempotent response evidence from Gmail
-messages without sending, deleting, or modifying mail.
-
-
-## Related Documentation
-
-- `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
-- `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...
+- [`AGENTS.md`](AGENTS.md)
+- [`LINDA_BUILD_PLAN.md`](LINDA_BUILD_PLAN.md)
+- [`business_rules/README.md`](business_rules/README.md)
+- [`models/load.py`](models/load.py)
+- [`models/linda_request.py`](models/linda_request.py)

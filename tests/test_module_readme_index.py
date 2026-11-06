@@ -53,8 +53,14 @@ def _agents_layers() -> dict[str, int]:
 
 
 def _cron_ids(module: str) -> set[str]:
-    data = REPO / module / "data"
-    return {cron for path in data.glob("*.xml") for cron in CRON_ID.findall(path.read_text(encoding="utf-8"))}
+    """Cron xml ids declared anywhere in the module's XML, tests excluded (some live in views/)."""
+    root = REPO / module
+    return {
+        cron
+        for path in root.rglob("*.xml")
+        if "tests" not in path.relative_to(root).parts
+        for cron in CRON_ID.findall(path.read_text(encoding="utf-8"))
+    }
 
 
 @pytest.mark.parametrize("module", HANDWRITTEN_MODULES)
