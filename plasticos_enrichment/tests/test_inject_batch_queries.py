@@ -65,7 +65,12 @@ class TestInjectBatchQueries(PlasticosTestCase):
             {
                 "run_id": run.id,
                 "source_id": source.id,
-                "material_json": [{"polymer": "PP"}, {"polymer": "PP"}, {"polymer": "PP"}],
+                "material_json": [
+                    {"polymer": "PP"},
+                    {"polymer": "PP"},
+                    {"polymer": "PP"},
+                    {"polymer": "PP"},
+                ],
                 "confidence": 0.95,
                 "governance_passed": True,
             }
@@ -75,13 +80,20 @@ class TestInjectBatchQueries(PlasticosTestCase):
         service_cls = type(self.env["plasticos.enrichment.service"])
         profile_cls = type(self.env["plasticos.material.profile"])
         profile_searches = []
+        profile_creates = []
+        seen = {"n": 0}
 
         def normalize_material(_service, _raw):
-            return {"polymer": "PP", "form": "BALES", "freeform_notes": "batch inject"}, [], []
+            seen["n"] += 1
+            vals = {"polymer": "PP", "form": "BALES", "freeform_notes": "batch inject"}
+            if seen["n"] == 4:
+                vals["certification_notes"] = "merged note"
+            return vals, [], []
 
         with (
             patch.object(service_cls, "normalize_material", normalize_material),
             _counting(profile_cls, "search", profile_searches),
+            _counting(profile_cls, "create", profile_creates),
         ):
             run.action_inject()
         self.assertEqual(run.state, "injected")
@@ -90,10 +102,24 @@ class TestInjectBatchQueries(PlasticosTestCase):
         )
         self.assertEqual(len(profiles), 1)
         self.assertEqual(profiles.freeform_notes, "batch inject")
+        self.assertEqual(profiles.certification_notes, "merged note")
         self.assertEqual(run.profiles_created, 1)
-        partner_lookups = [
+        self.assertEqual(run.profiles_updated, 1)
+        self.assertEqual(len(profile_creates), 1, profile_creates)
+        self.assertIsInstance(profile_creates[0], list)
+        self.assertEqual(len(profile_creates[0]), 1)
+        # The inject preloads every profile for the partner in one search. Creating
+        # that profile also runs the material-profile uniqueness pre-check, which
+        # searches partner + polymer + form + grade once per created row.
+        preload_lookups = [
             domain
             for domain in profile_searches
-            if any(term[0] == "partner_id" for term in domain if isinstance(term, tuple))
+            if [term[0] for term in domain if isinstance(term, tuple)] == ["partner_id"]
         ]
-        self.assertEqual(len(partner_lookups), 1, profile_searches)
+        uniqueness_lookups = [
+            domain
+            for domain in profile_searches
+            if any(isinstance(term, tuple) and term[0] == "material_grade_id" for term in domain)
+        ]
+        self.assertEqual(len(preload_lookups), 1, profile_searches)
+        self.assertEqual(len(uniqueness_lookups), 1, profile_searches)

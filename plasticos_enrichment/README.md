@@ -1,7 +1,7 @@
 ---
 component_id: "plasticos_enrichment"
 component_name: "Plasticos Enrichment"
-module_version: "19.0.2.0.1"
+module_version: "19.0.2.5.7"
 layer: "capability"
 domain: "plasticos"
 type: "odoo_module"
@@ -42,6 +42,10 @@ views/
 
 `plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, `plasticos_material_profile`
 (Do **not** depend on retired `plasticos_inference_engine`.)
+
+## Install
+
+`auto_install` is `True`. Odoo installs this module once every dependency is present: `plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, and `plasticos_material_profile`. No production addon depends on it. The test pack names it, and that pack is `installable: False`. The flag is what puts the converge shell on a database that already has Gate and material profiles when the installer does not name this module. `plasticos_matching` uses the same flag for the match shell. The Docker roster also lists enrichment explicitly, at position 17 in `default_install_order` (`config/odoo_module_order.yaml`), so the smoke install names it as well as relying on the flag.
 
 ## Models
 
