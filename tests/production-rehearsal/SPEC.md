@@ -26,14 +26,19 @@
 ### Gate 5 — Web lead e2e
 - Odoo HTTP starts on rehearsal port (not 8069) on `odoo_test_cutover`
 - POST `payloads/cognito_hot.json` to `/api/v1/cognito-webhook`
-  - Response `status == 200`, `decision == "HOT"`
-  - `intake_id` is non-null (a `plasticos.intake` was created)
-  - `lead_id` is non-null (a `crm.lead` was created)
+  - HTTP 200 and JSON `status == "ok"`
+  - `decision == "hot"` (the selection value the controller returns)
+  - `intake_id` is non-null
+  - `web_lead_id` is non-null
+  - `state == "intake_created"` (`lead_id` in the body is the web-lead identity string, not a `crm.lead` id)
 - POST the same body a second time → same `web_lead_id` (idempotency)
 - Do NOT mock `evaluate_economic_opportunity`; a cold decision is a failure
 
 ### Gate 6 — ERP import (10% slice)
-- `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` are non-empty (not printed)
+- `make import-erp` runs through `scripts/test_env.sh run` on `odoo_test_cutover`
+- The source is the restored database already on `cie-sql-proof`: `host.docker.internal`, port `14330`, login `erp_reader`. The database name is `~/.l9/erp-proof/database` and the password is `~/.l9/erp-proof/reader.pw` (not printed). Exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` win when both are set
+- The importer executes the projection scripts in `plasticos_partner_import/erp_extracted_data/`
+- The census sibling `<summary>-census.json` has `payload_kind` equal to `database`. `grid` and `statements` fail the gate
 - `ERP_REQUIRE_EMPTY` is not set to 0 (default guard stays)
 - `ODOO_STAGE` is unset; `ERP_PRODUCTION_PERMIT` is not passed
 - Import exits 0 with a valid summary JSON
@@ -44,7 +49,7 @@
 ### Gate 7 — VanillaSoft contacts
 - Runs only when Gate 6 passed
 - `VANILLASOFT_API_KEY` is bound from Infisical and injected into the clone ICP. The value is not printed and is not stored in the kit
-- `make import-vanillasoft` on `odoo_test_cutover` with `VANILLASOFT_CALL_FLOOR` set to seven days ago
+- `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover`, with `VANILLASOFT_CALL_FLOOR` and `VANILLASOFT_CONTACT_FLOOR` set to seven days ago
 - The import exits 0 and writes `06-crm-result.json`
 
 ## Verdict rules
@@ -66,6 +71,6 @@
 ## Kit constraints
 
 - No secrets in any kit file
-- Bearer token for web lead is loaded from the clone's ICP at run time
-- ERP credentials are loaded from `.env.local` at run time and not echoed
+- Bearer token for web lead is `plasticos.web.lead.config.api_key`, the same row `web_lead_api.py` compares. A fresh cutover clone copies that field from the `odoo` database, or from `ODOO_WEB_LEAD_API_KEY`, onto its own config row before the POST. The value is not printed.
+- ERP credentials come from the existing `~/.l9/erp-proof/reader.pw` at run time and are not echoed. `.env.local` is not where they are stored
 - The template is never rebuilt by this kit

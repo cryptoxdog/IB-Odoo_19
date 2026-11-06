@@ -37,12 +37,11 @@ Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and committed with the kit.
 > `plasticos_crm_sync.vanillasoft_api_key` ICP param of `odoo_test_cutover`. The key is never
 > printed, never echoed, and never stored in the kit or evidence.
 
-### Optional / go-live only
+### ERP source
 
-- `ERP_SQL_SERVER` / `ERP_SQL_DATABASE` in `.env.local` — only needed if you want to restore
-  a fresh `.bak` via SQL Server. The ERP gate uses the pre-extracted CSV grid by default
-  (`erp_extracted_data/bulk/`). For go-live with a new `.bak`: restore on Windows SQL Server,
-  run the projection scripts to refresh the CSVs, then proceed.
+Gate 6 calls `make import-erp` on the cutover clone. The importer reads the database that is already restored in container `cie-sql-proof`: `host.docker.internal` port `14330`, login `erp_reader`. The database name is the existing file `~/.l9/erp-proof/database` and the password is `~/.l9/erp-proof/reader.pw`. Neither value is printed, and neither is written into `.env.local`. Each table is loaded by its projection script in `plasticos_partner_import/erp_extracted_data/`. An exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` still win over those defaults.
+
+The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`. Only `database` passes. Gate 7 then calls `make import-vanillasoft` on the same clone.
 
 ## Evidence structure
 
@@ -73,4 +72,6 @@ evidence/
 | `erp_slice.sh` | ERP 10% slice helper (called by run.sh) |
 | `crm_100.py` | Notes that Gate 7 is `make import-vanillasoft`; run.sh does not pipe this file |
 | `expected/blockers.yaml` | Named blockers beyond the wired end |
+| `test_erp_census_source.py` | Census `payload_kind` and the Gate 6 database source |
+| `test_rehearsal_web_lead_receipt.py` | Gate 5 scores `decision` `hot` and `state` `intake_created` |
 | `evidence/` | Per-run dated evidence subfolders |

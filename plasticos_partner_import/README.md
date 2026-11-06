@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_partner_import
 component_name: Plasticos Partner Import
-module_version: 19.0.2.10.34
+module_version: 19.0.2.10.35
 layer: 3
 installable: true
 auto_install: true
