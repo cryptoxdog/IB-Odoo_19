@@ -1,0 +1,63 @@
+VERDICT: blocked
+DATE: 2026-11-05
+RUN_ID: 2026-11-05_192900
+
+GATES
+=====
+Gate 1 — checkout-staging       : PASS    HEAD=Staging, matches origin/Staging
+Gate 2 — promotion-mergetree    : PASS    Read-only merge-tree clean, no conflicts
+Gate 3 — install-smoke          : PASS    53 modules loaded, all green
+Gate 4 — clone-cutover          : PASS    odoo_test_cutover cloned, 0 business partners (empty guard passed)
+Gate 5 — weblead-e2e            : BLOCKED [web-lead-crm-lead-http-context]
+                                           HOT classification ✅  intake_id=1 ✅
+                                           crm.lead creation ✗ — ValueError: Expected singleton: res.users()
+                                           in message_post / _is_public() under public HTTP context.
+                                           Fix: wrap _create_crm_lead call with with_user(SUPERUSER_ID).
+Gate 6 — erp-slice              : PASS    [partial — expected]
+                                           Source: grid CSV (extracted from the 2026-10-03 ERP backup)
+                                           Note: Direct SQL Server restore blocked on Linux — full-text
+                                           catalog (source full-text catalog, type F) from SQL Server 2012
+                                           stores Windows path in SQL.HDR, incompatible with Linux.
+                                           CSV grid IS the .bak data (same SHA 8fee7239...).
+                                           31,926 seen = 7,629 created + 2,120 updated + 20,927 unchanged
+                                           + 1,250 rejected. duplicates=0. Math closes. ✅
+                                           Transactions: BLOCKED_ARCHITECTURE (expected — no permit).
+                                           1,250 rejections: unresolved_counterparty (inactive CpIDs) — known.
+Gate 7 — crm-100                : BLOCKED [vanillasoft-100-contacts]
+                                           VanillaSoft API key not set in ICP param
+                                           'plasticos_crm_sync.vanillasoft_api_key'.
+                                           Gate 6 passed — this gate WAS attempted.
+                                           Fix: set API key + VANILLASOFT_CALL_FLOOR before run.
+
+PRODUCTION DRIFT CHECK
+======================
+origin/Production SHA at run start : 3318fa646a9f33aed55b9ea8f8596316e30684da
+origin/Production SHA at run end   : 3318fa646a9f33aed55b9ea8f8596316e30684da
+Drift: NONE
+
+BLOCKERS TO FIX BEFORE GO-LIVE
+===============================
+1. web-lead-crm-lead-http-context (severity: warning — code bug)
+   File: plasticos_crm_bridge/models/web_lead.py → _create_crm_lead
+   Fix:  use with_user(SUPERUSER_ID) or env[...].with_user(1) before message_post
+
+2. vanillasoft-100-contacts (operational prerequisite)
+   Fix:  set ICP param 'plasticos_crm_sync.vanillasoft_api_key' in Odoo
+         set VANILLASOFT_CALL_FLOOR before running make import-vanillasoft ODOO_DB_NAME=odoo_test_cutover
+
+3. erp-sql-restore-linux-fts (informational — workaround available)
+   The .bak file cannot be directly restored on SQL Server Linux due to full-text
+   catalog incompatibility (source full-text catalog, SQL Server 2008 R2 origin path).
+   Workaround: CSV grid extract is the persistent form of the .bak data.
+   For go-live with fresh .bak: restore on Windows SQL Server or via SSMS,
+   then extract CSVs using erp_extracted_data/*.sql projection scripts.
+
+CONCLUSION
+==========
+Infrastructure gates (Staging sync, merge-tree, install-smoke, cutover clone) all passed.
+ERP import pipeline works correctly from grid CSV source (the .bak data).
+7,629 partners created cleanly, math closes, no duplicates.
+Web-lead HOT classification and intake creation work. CRM lead creation
+has a code-level HTTP-context bug (pre-existing, needs fix before go-live).
+VanillaSoft API key must be configured before crm-100 can run.
+This build is NOT ready for go-live until blockers 1 and 2 are resolved.

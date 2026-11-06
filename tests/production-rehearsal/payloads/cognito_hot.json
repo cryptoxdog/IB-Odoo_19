@@ -1,0 +1,17 @@
+{
+  "Form": {"Id": "1", "Name": "Seller Intake"},
+  "Entry": {
+    "Number": "rehearsal-hot-001",
+    "Action": ""
+  },
+  "YourBusinessCompanyName": "Grade Co",
+  "Name": {"First": "Grade", "Last": "Co"},
+  "Email": "rehearsal@grade-co.example.com",
+  "Phone": "555-0190",
+  "DescribeYourMaterial": "HDPE plastic pallets",
+  "WhatIsTheSourceOfThisMaterial": "Manufacturing production scrap",
+  "WhatIsTheQuantity": "2 loads per month",
+  "WeightPerLoad": "40000 lbs",
+  "AreThereAnyContaminants": "none",
+  "UploadPhotosOfYourScrapUpTo10": []
+}

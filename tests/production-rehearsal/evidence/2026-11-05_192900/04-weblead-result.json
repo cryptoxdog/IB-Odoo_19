@@ -1,0 +1,19 @@
+{
+  "gate": 5,
+  "result": "blocked",
+  "blocker_id": "web-lead-crm-lead-http-context",
+  "http_code": 200,
+  "web_lead_id": 3,
+  "decision": "HOT",
+  "intake_id": 1,
+  "crm_lead_id": null,
+  "state": "error",
+  "error": "Expected singleton: res.users() in message_post after _create_crm_lead",
+  "idempotency": "not_tested_due_to_error",
+  "partial_pass": {
+    "classification": "HOT",
+    "intake_created": true,
+    "crm_lead_created": false
+  },
+  "notes": "HOT classification and intake creation work correctly. CRM lead creation fails because Odoo 19 public HTTP endpoint sets uid=None, and message_post calls env.user._is_public() which requires a singleton. Fix before go-live: wrap _create_crm_lead call with with_user(SUPERUSER_ID)."
+}
