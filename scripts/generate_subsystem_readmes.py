@@ -67,6 +67,24 @@ def _get_config_path(repo_root: Path) -> Path:
     return repo_root / "config" / "subsystems" / "readme_config.yaml"
 
 
+_FRONT_MATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
+_HANDWRITTEN_RE = re.compile(r"^auto_generated:\s*false\s*(?:#.*)?$", re.MULTILINE | re.IGNORECASE)
+
+
+def is_handwritten_readme(readme_path: Path) -> bool:
+    """True when ``readme_path`` declares ``auto_generated: false`` in its front matter.
+
+    Handwritten pages are owned by their authors. This generator never rewrites
+    them; a missing file or a generated stub is still written.
+    """
+    try:
+        text = readme_path.read_text(encoding="utf-8")
+    except (FileNotFoundError, IsADirectoryError):
+        return False
+    match = _FRONT_MATTER_RE.match(text)
+    return bool(match and _HANDWRITTEN_RE.search(match.group(1)))
+
+
 def _parse_manifest(manifest_path: Path) -> dict | None:
     """Parse __manifest__.py via AST literal_eval."""
     try:
@@ -417,16 +435,21 @@ def main() -> int:
         subsystems = {k: v for k, v in subsystems.items() if v.get("tier") == args.tier}
 
     written = 0
+    preserved = 0
     for sid, sub in subsystems.items():
         path = sub.get("path", sid)
         readme_path = repo_root / path / "README.md"
+        if is_handwritten_readme(readme_path):
+            preserved += 1
+            print(f"  Kept {readme_path.relative_to(repo_root)} (auto_generated: false)")
+            continue
         readme_path.parent.mkdir(parents=True, exist_ok=True)
         content = generate_readme(repo_root, config, sid, sub, core_docs)
         readme_path.write_text(content, encoding="utf-8")
         written += 1
         print(f"  Wrote {readme_path.relative_to(repo_root)}")
 
-    print(f"\nGenerated {written} README(s). Core docs used: {len(core_docs)}")
+    print(f"\nGenerated {written} README(s), kept {preserved} handwritten. Core docs used: {len(core_docs)}")
     return 0
 
 

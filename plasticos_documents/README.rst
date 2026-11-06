@@ -1,7 +1,7 @@
-PlasticOS documents
-###################
+Plasticos Documents Engine
+##########################
 
-Document handling used by plasticos_transaction and others.
+Document management, compliance, validation matrix, and transaction doc tracking
 
 **Features:**
 

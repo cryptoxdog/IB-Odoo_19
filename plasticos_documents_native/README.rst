@@ -1,7 +1,7 @@
-PlasticOS documents native
-##########################
+Plasticos Documents — Native Bridge
+###################################
 
-Bridge module for native Odoo Documents integration with PlasticOS workflows.
+Bridge to Odoo Enterprise Documents with AI auto-sort, email alias, and plastics-specific field extensions
 
 **Features:**
 
