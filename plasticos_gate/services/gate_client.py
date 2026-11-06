@@ -19,6 +19,7 @@ never re-derives retryability from an exception type or message.
 from __future__ import annotations
 
 import asyncio
+import importlib
 import logging
 import threading
 from enum import StrEnum
@@ -51,11 +52,11 @@ _SDK_CLIENT_ERRORS: tuple[type[BaseException], ...] = ()
 # can no longer be trusted and is dropped (see `_forget_admission`).
 _SDK_AUTHORIZATION_ERRORS: tuple[type[BaseException], ...] = ()
 try:
-    from constellation_node_sdk import (  # type: ignore[no-redef]  # noqa: F811
-        GateAuthorizationError,
-        GateClient,
-        GateClientError,
-    )
+    _sdk_client = importlib.import_module("constellation_node_sdk.gate.client")
+    _sdk_errors = importlib.import_module("constellation_node_sdk.gate.errors")
+    GateClient = _sdk_client.GateClient
+    GateAuthorizationError = _sdk_errors.GateAuthorizationError
+    GateClientError = _sdk_errors.GateClientError
 
     _SDK_CLIENT_ERRORS = (GateClientError,)
     _SDK_AUTHORIZATION_ERRORS = (GateAuthorizationError,)

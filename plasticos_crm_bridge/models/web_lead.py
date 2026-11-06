@@ -1,6 +1,8 @@
-from markupsafe import Markup
+import importlib
 
 from odoo import SUPERUSER_ID, fields, models
+
+Markup = importlib.import_module("markupsafe").Markup
 
 
 class PlasticosWebLeadCRM(models.Model):

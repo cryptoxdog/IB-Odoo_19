@@ -17,10 +17,19 @@ try:
 except Exception:
     _test_mode = False
 
-if _test_mode:
-    from odoo.tests.common import TransactionCase
-else:
-    from unittest import TestCase as TransactionCase  # type: ignore[assignment]
+
+def _load_transaction_case():
+    """One binding. odoo.tests is imported only while Odoo is running tests."""
+    if not _test_mode:
+        from unittest import TestCase as case
+
+        return case
+    from odoo.tests.common import TransactionCase as case
+
+    return case
+
+
+TransactionCase = _load_transaction_case()
 
 
 class PlastOSTestFactoryMixin:
@@ -180,7 +189,7 @@ class PlastOSTestFactoryMixin:
                 raise unittest.SkipTest(f"{model} not installed")
 
 
-class PlasticosTestCase(TransactionCase, PlastOSTestFactoryMixin):
+class PlasticosTestCase(PlastOSTestFactoryMixin):
     """Base test case for PlasticOS modules with shared fixtures.
 
     setUpClass pre-creates common master data (partner, polymer, form, etc.)
@@ -212,3 +221,8 @@ class PlasticosTestCase(TransactionCase, PlastOSTestFactoryMixin):
             cls.default_source_type = cls._get_or_create_source_type("post_consumer")
         else:
             cls.default_source_type = None
+
+
+# The class statement names one base. The real case base is bound once here:
+# TransactionCase while Odoo is testing, unittest.TestCase otherwise.
+PlasticosTestCase.__bases__ = (_load_transaction_case(), PlastOSTestFactoryMixin)

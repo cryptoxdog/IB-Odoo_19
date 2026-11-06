@@ -661,9 +661,9 @@ class CrmLeadPlastOS(models.Model):
         )
         self.message_post(
             body=_(
-                "Approved lot %(lot)s (%(source)s): %(partner)s / %(profile)s%(facility)s. Snapshot %(digest)s.",
+                "Approved lot %(lot)s (%(lot_source)s): %(partner)s / %(profile)s%(facility)s. Snapshot %(digest)s.",
                 lot=approval.id,
-                source=approval.source,
+                lot_source=approval.source,
                 partner=approval.partner_id.name,
                 profile=approval.material_profile_id.display_name,
                 facility=(" / " + approval.facility_profile_id.display_name) if approval.facility_profile_id else "",

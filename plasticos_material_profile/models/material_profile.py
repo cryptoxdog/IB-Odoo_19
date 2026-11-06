@@ -652,6 +652,14 @@ class PlasticosMaterialProfile(models.Model):
     # ═════════════════════════════════════════════════════════
     # NOTE: action_create_intake is added by plasticos_intake module.
 
+    def _purchase_line_description(self, po_line, line_vals):
+        """Label for a purchase line built from this profile.
+
+        ``plasticos_order_lines`` overrides this and reads ``material_description``,
+        the field that module defines on the purchase line.
+        """
+        return self.display_name
+
     def action_create_purchase_order(self):
         """Create a PO with a line pre-filled from this material profile.
 
@@ -684,7 +692,7 @@ class PlasticosMaterialProfile(models.Model):
             "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
             "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
         }
-        material = POLine.new(line_vals).material_description or self.display_name
+        material = self._purchase_line_description(POLine, line_vals) or self.display_name
         line_vals["name"] = f"{material} - {self.partner_id.name}"
 
         return {

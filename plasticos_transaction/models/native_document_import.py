@@ -684,12 +684,13 @@ def _upsert_order(importer, context, report, partner_by_cp, header, buysell, num
     return importer._upsert(model, xml_id, values, _silent(), None)
 
 
-def _silent():
-    class _Report:
-        def bump(self, *_args, **_kwargs):
-            return None
+class _SilentReport:
+    def bump(self, *_args, **_kwargs):
+        return None
 
-    return _Report()
+
+def _silent():
+    return _SilentReport()
 
 
 def _line_terms(context, report, detail_id, line, side):

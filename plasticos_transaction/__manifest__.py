@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "19.0.2.3.56",
+    "version": "19.0.2.3.57",
     "summary": "Core transaction lifecycle management with integrated commission engine",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -12,6 +12,7 @@
         "account",
         "account_debit_note",
         "sale_management",
+        "sale_crm",
         "purchase",
         "purchase_stock",
         "stock",
