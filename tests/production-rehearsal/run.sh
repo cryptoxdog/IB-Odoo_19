@@ -196,8 +196,10 @@ HEAD_SHA="$(git rev-parse --verify --quiet 'HEAD^{commit}' || true)"
 ORIGIN_STAGING="$(git rev-parse --verify --quiet 'refs/remotes/origin/Staging^{commit}' || true)"
 PROD_SHA="$(git rev-parse --verify --quiet 'refs/remotes/origin/Production^{commit}' || true)"
 DIRTY_FILE="${EVIDENCE_DIR}/00-dirty.txt"
+# Only the tracked `evidence/latest` pointer, which every run repoints, is
+# exempt. Run folders are git-ignored; committed historical evidence counts.
 if ! git status --porcelain=v1 --untracked-files=all -- . \
-  ':(exclude)tests/production-rehearsal/evidence' >"${DIRTY_FILE}" 2>&1; then
+  ':(exclude)tests/production-rehearsal/evidence/latest' >"${DIRTY_FILE}" 2>&1; then
   echo "git status failed" >>"${DIRTY_FILE}"
   DIRTY_COUNT="unknown"
 else
@@ -404,8 +406,10 @@ PYEOF
           VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
           >"${EVIDENCE_DIR}/06-crm-log.txt" 2>&1
       VS_RC=$?
-      # Contacts that landed as crm.lead identities on this fresh clone.
-      printf '%s\n' "SELECT COUNT(*) FROM plasticos_crm_external_ref WHERE provider = 'vanillasoft' AND res_model = 'crm.lead';" \
+      # Contacts that landed on this fresh clone, at either destination the
+      # importer accepts as durable (import_vanillasoft_shell._durable_ids):
+      # a crosswalk YES binds to an ERP person (res.partner), otherwise a crm.lead.
+      printf '%s\n' "SELECT COUNT(DISTINCT external_id) FROM plasticos_crm_external_ref WHERE provider = 'vanillasoft' AND res_model IN ('crm.lead', 'res.partner');" \
         | db_query "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-contacts.raw" \
         || echo "query-failed" >"${EVIDENCE_DIR}/06-crm-contacts.raw"
       rlib check-vanillasoft "${EVIDENCE_DIR}" \

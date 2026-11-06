@@ -40,7 +40,7 @@ behind a failed one is `SKIPPED`, never `PASS`.
 - `git fetch origin` of `Staging` and `Production` succeeds (no pull, merge, reset or checkout)
 - Current branch is `Staging`
 - `HEAD == refs/remotes/origin/Staging` after the fetch
-- The worktree is clean, untracked files included (only `tests/production-rehearsal/evidence/` is ignored)
+- The worktree is clean, untracked files included. Only the tracked `evidence/latest` pointer, which every run repoints, is exempt; run folders are git-ignored, and committed historical evidence counts
 - `origin/Staging` and `origin/Production` SHAs are recorded once and reused by every later gate
 
 A feature branch or worktree can run the kit tests, never a rehearsal that
@@ -108,7 +108,7 @@ claims `ready`.
   - `plasticos_crm_sync.services.import_summary.business_acceptance` is `PASS` → `PASS`
   - `partial` whose only causes are informational scope notices (no rejected row, no required mapping) → `BLOCKED vanillasoft-scope-notice-partial` (operator review)
   - any other `partial`, or `failed` → `FAIL`
-- At least one VanillaSoft contact landed as a `crm.lead` identity (`plasticos.crm.external.ref`, provider `vanillasoft`). An empty window is `BLOCKED vanillasoft-empty-window`: it cannot prove the contact import, and the window is never widened to get a pass
+- At least one VanillaSoft contact landed (`plasticos.crm.external.ref`, provider `vanillasoft`) at a destination the importer accepts as durable: an ERP person (`res.partner`, crosswalk YES) or a `crm.lead` (`import_vanillasoft_shell._durable_ids`). An empty window is `BLOCKED vanillasoft-empty-window`: it cannot prove the contact import, and the window is never widened to get a pass
 
 ## Out of scope
 

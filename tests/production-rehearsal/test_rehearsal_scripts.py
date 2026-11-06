@@ -23,6 +23,7 @@ import pytest
 KIT = Path(__file__).resolve().parent
 ROOT = KIT.parents[1]
 KIT_FILES = (
+    ".gitignore",
     "run.sh",
     "weblead_e2e.sh",
     "erp_slice.sh",
@@ -404,6 +405,45 @@ def test_gate4_fails_closed_and_stops(fx, env, reason):
     assert (gates[4]["state"], gates[4]["reason"]) == ("FAIL", reason)
     assert all(gates[g]["state"] == "SKIPPED" for g in range(5, 8))
     assert "helper5" not in fx.calls_text() and "helper6" not in fx.calls_text()
+
+
+def _commit_and_publish(fx: Fixture, message: str, *paths: Path) -> None:
+    # -f: the real repo tracks historical evidence that .gitignore now ignores.
+    _git(fx.repo, "add", "-f", "--", *(str(p) for p in paths), env=fx.env)
+    _git(fx.repo, "commit", "-qm", message, env=fx.env)
+    _git(fx.repo, "push", "-qf", "origin", "HEAD:refs/heads/Staging", env=fx.env)
+
+
+def test_gate1_sees_edits_to_committed_evidence(fx):
+    history = fx.kit / "evidence" / "2026-11-05_192900" / "verdict.txt"
+    history.parent.mkdir(parents=True)
+    history.write_text("VERDICT: blocked\n", encoding="utf-8")
+    _commit_and_publish(fx, "historical evidence", history)
+    history.write_text("VERDICT: ready\n", encoding="utf-8")
+    fx.run("run.sh")
+    gate1 = fx.gates()[1]
+    assert (gate1["state"], gate1["reason"]) == ("FAIL", "worktree-dirty")
+    assert "2026-11-05_192900/verdict.txt" in (fx.latest() / "00-dirty.txt").read_text()
+
+
+def test_a_previous_run_does_not_dirty_the_next(fx):
+    # The tracked `latest` pointer is repointed by every run; run folders are ignored.
+    (fx.kit / "evidence").mkdir(exist_ok=True)
+    (fx.kit / "evidence" / "latest").symlink_to("2026-11-05_192900")
+    _commit_and_publish(fx, "track latest", fx.kit / "evidence" / "latest")
+    fx.run("run.sh")
+    time.sleep(1.1)  # run folders are named by the UTC second
+    fx.run("run.sh")
+    assert fx.gates()[1]["state"] == "PASS"
+
+
+def test_gate7_counts_contacts_bound_to_erp_people(fx):
+    fx.with_capability_bind()
+    fx.stub_json("06-crm-result.json", _summary("vanillasoft"))
+    fx.run("run.sh")
+    sql = (fx.stub / "sql.log").read_text()
+    contacts = next(block for block in sql.split("----") if "plasticos_crm_external_ref" in block)
+    assert "'res.partner'" in contacts and "'crm.lead'" in contacts
 
 
 def test_gate4_census_counts_inactive_partners(fx):
