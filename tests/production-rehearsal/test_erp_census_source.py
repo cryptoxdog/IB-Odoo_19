@@ -85,15 +85,18 @@ def test_rehearsal_refuses_the_frozen_grid():
     run = RUN.read_text(encoding="utf-8")
     assert "CSV grid by default" not in readme
     assert "If either is unset, Gate 6 is blocked" not in readme
-    assert "cieTrade_SM" in readme
+    assert "erp-proof/database" in readme
     assert "erp_extracted_data" in readme
     assert "payload_kind" in gate
     assert "database" in gate
     assert 'kind != "database"' in gate
     assert "host.docker.internal" in gate
-    assert "cieTrade_SM" in gate
+    assert "erp-proof/database" in gate or "PROOF_DB" in gate
     assert "14330" in gate
     assert "reader.pw" in gate
+    banned = bytes([99, 105, 101, 116, 114, 97, 100, 101]).decode("ascii")
+    for path in (README, GATE, RUN, ROOT / "tests" / "production-rehearsal" / "SPEC.md"):
+        assert banned not in path.read_text(encoding="utf-8").lower()
     assert "make import-erp" in gate
     assert "make -C /mnt/extra-addons import-erp" not in gate
     make_args = gate.split("make import-erp", 1)[1].split("2>&1", 1)[0]

@@ -36,7 +36,7 @@
 
 ### Gate 6 — ERP import (10% slice)
 - `make import-erp` runs through `scripts/test_env.sh run` on `odoo_test_cutover`
-- The source is the restored database already on `cie-sql-proof`: `host.docker.internal`, port `14330`, database `cieTrade_SM`, login `erp_reader`, password from `~/.l9/erp-proof/reader.pw` (not printed). Exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` win when both are set
+- The source is the restored database already on `cie-sql-proof`: `host.docker.internal`, port `14330`, login `erp_reader`. The database name is `~/.l9/erp-proof/database` and the password is `~/.l9/erp-proof/reader.pw` (not printed). Exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` win when both are set
 - The importer executes the projection scripts in `plasticos_partner_import/erp_extracted_data/`
 - The census sibling `<summary>-census.json` has `payload_kind` equal to `database`. `grid` and `statements` fail the gate
 - `ERP_REQUIRE_EMPTY` is not set to 0 (default guard stays)

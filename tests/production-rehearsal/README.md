@@ -39,7 +39,7 @@ Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and committed with the kit.
 
 ### ERP source
 
-Gate 6 calls `make import-erp` on the cutover clone. The importer reads the database that is already restored in container `cie-sql-proof`: `host.docker.internal` port `14330`, database `cieTrade_SM`, login `erp_reader`. The password is the existing file `~/.l9/erp-proof/reader.pw`. It is not printed, and it is not written into `.env.local`. Each table is loaded by its projection script in `plasticos_partner_import/erp_extracted_data/`. An exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` still win over those defaults.
+Gate 6 calls `make import-erp` on the cutover clone. The importer reads the database that is already restored in container `cie-sql-proof`: `host.docker.internal` port `14330`, login `erp_reader`. The database name is the existing file `~/.l9/erp-proof/database` and the password is `~/.l9/erp-proof/reader.pw`. Neither value is printed, and neither is written into `.env.local`. Each table is loaded by its projection script in `plasticos_partner_import/erp_extracted_data/`. An exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` still win over those defaults.
 
 The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`. Only `database` passes. Gate 7 then calls `make import-vanillasoft` on the same clone.
 
