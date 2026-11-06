@@ -84,8 +84,10 @@ blockers:
       Run 2026-11-06_205618 (operator-supplied evidence, not committed; local
       HEAD 9ef95a4b, which differed from origin/Staging) still ended Gate 5 at
       state=error with the same singleton error, so the controller's HTTP user
-      context is reported open. That repair is owned outside this kit. Gate 5 passes only when the
-      stored crm.lead opportunity is read back; this entry never excuses it.
+      context is reported open. PR 398 (merge 85eefe81, on Staging) binds the
+      authenticated webhook request to SUPERUSER_ID in web_lead_api.py. Owned
+      outside this kit. Gate 5 passes only when the stored crm.lead
+      opportunity is read back on a live run; this entry never excuses it.
     adr: rule 50-plasticos-web-lead-guard (do not edit web_lead.py write/unlink guards)
     severity: error
     observed: 2026-11-05, 2026-11-06
