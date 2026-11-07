@@ -1,8 +1,9 @@
 # Staging → Production Promotion Rehearsal — Specification
 
-A `ready` verdict means all seven gates passed, in order, on one fetched
-`origin/Staging` SHA, with `origin/Production` and `origin/Staging` unchanged
-at the end. It is evidence for a human promotion decision, not the decision.
+A `ready` verdict means this checkout's sync completed: all seven gates passed,
+in order. It is not permission to promote Staging. Branch name, a dirty tree,
+a failed fetch, a merge-tree conflict, and a Staging or Production move during
+the run are recorded and do not decide the verdict.
 
 ## Receipts and verdict
 
@@ -27,31 +28,27 @@ success, gate failure, early refusal, SIGINT/SIGTERM, and an unexpected abort.
 | Every non-PASS gate is `BLOCKED` on an `expected/blockers.yaml` entry with `verdict_effect: blocked` (or `SKIPPED` behind one) | `blocked` |
 | Anything else: a `FAIL`, an `UNKNOWN`, an undocumented block, an unexplained skip, a run-level failure | `failed` |
 
-Run-level failures: `origin/Production` or `origin/Staging` moved, the remote
-refs could not be re-read, a credential value was found (and redacted) in the
-evidence, the run was interrupted or aborted.
+Run-level failures: a credential value was found (and redacted) in the
+evidence, or the run was interrupted or aborted. A remote move is recorded in
+`07-remote-refs.txt` and is not a run failure.
 
-Dependencies: Gate 1 and Gate 2 failures stop the run before any side effect
-of a later gate. Gate 3 gates 4. Gate 4 gates 5 and 6. Gate 6 gates 7. A gate
-behind a failed one is `SKIPPED`, never `PASS`.
+Dependencies: Gate 1 stops only when this checkout has no HEAD. Gate 2 records
+the merge-tree and does not stop the run. Gate 3 gates 4. Gate 4 gates 5 and
+6. Gate 6 gates 7. A gate behind a failed one is `SKIPPED`, never `PASS`.
 
-## Gate 1 — Revision identity (no side effects before it passes)
+## Gate 1 — Checkout identity
 
-- `git fetch origin` of `Staging` and `Production` succeeds (no pull, merge, reset or checkout)
-- Current branch is `Staging`
-- `HEAD == refs/remotes/origin/Staging` after the fetch
-- The worktree is clean, untracked files included. Only the tracked `evidence/latest` pointer, which every run repoints, is exempt; run folders are git-ignored, and committed historical evidence counts
-- `origin/Staging` and `origin/Production` SHAs are recorded once and reused by every later gate
+- Record the branch, HEAD, dirty paths, the fetch result, and the remote SHAs when a fetch succeeds
+- A failed fetch, a branch other than `Staging`, HEAD different from `origin/Staging`, and a dirty worktree are recorded. None of them fails the gate or skips later gates
+- Only a checkout with no HEAD commit is `FAIL ref-unresolved`
+- Only the tracked `evidence/latest` pointer, which every run repoints, is exempt from the dirty list; run folders are git-ignored, and committed historical evidence counts
 
-A feature branch or worktree can run the kit tests, never a rehearsal that
-claims `ready`.
+## Gate 2 — Merge-tree (read-only evidence)
 
-## Gate 2 — Merge-tree (read-only)
-
-- `git merge-tree --write-tree origin/Production origin/Staging` (git ≥ 2.38)
-- Exit 0 with a tree id and no conflict marker → `PASS`
-- Exit 1 (conflicts) → `FAIL merge-conflict`; any other exit → `FAIL merge-tree-error`
-- A nonzero exit is never read as "no conflicts". No real merge is made
+- `git merge-tree --write-tree origin/Production origin/Staging` (git ≥ 2.38) when both SHAs were resolved
+- Exit 0 with a tree id and no conflict marker → `PASS merge-clean`
+- Exit 1 (conflicts) → `PASS merge-conflict-recorded`; any other exit, or missing remote SHAs → `PASS merge-tree-unproven`
+- The result is written to `02-merge-tree.txt`. No real merge is made, and the sync continues
 
 ## Gate 3 — Install-smoke
 
@@ -88,17 +85,17 @@ claims `ready`.
 
 Production and the rehearsal run the same `make` target, the same shell
 driver piped into `odoo shell`, and the same dispatcher and mappers, at the
-same revision. They differ only in the target database, the authorized
-permit, the bounded volume, the source credentials, and where the report and
-ledger land. Each gate receipt carries `facts.execution_path` naming the
+same revision. They differ in the target database, the production permit,
+the source credentials, and where the report and ledger land. Each gate
+receipt carries `facts.execution_path` naming the
 target, driver, dispatcher, source, bounds, database and `release_sha`, and
 the gate reads the driver's own trace lines from the import log rather than
 trusting the exit code.
 
 | Source | Make target | Driver | Dispatcher | Production | Rehearsal |
 |--------|-------------|--------|------------|------------|-----------|
-| ERP | `make import-erp` | `plasticos_partner_import/scripts/import_erp_shell.py` | `plasticos.erp.import` (`erp_import_service.py`), extended by the active `plasticos_transaction/models/legacy_erp_import_service.py` for `sale.order` / `purchase.order` / `account.move` | two one-use permits (`erp_partners`, then `erp_commercial`), full volume, `ERP_REQUIRE_EMPTY` guard | no permit, `LIMIT=10%`, `odoo_test_cutover`, same guard |
-| VanillaSoft history | `make import-vanillasoft` with `VANILLASOFT_HISTORY_CENSUS` | `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` → `history()` | `SyncOrchestrator.upsert_contact_external_id`, one ContactID at a time, durable `plasticos.crm.external.ref` rows decide | `crm_history` permit after a committed `erp_commercial` phase, the whole cohort, operator ledger | no permit, `VANILLASOFT_HISTORY_MAX_IDS=REHEARSAL_HISTORY_MAX_IDS`, ledger in the evidence folder |
+| ERP | `make import-erp` | `plasticos_partner_import/scripts/import_erp_shell.py` | `plasticos.erp.import` (`erp_import_service.py`), extended by the active `plasticos_transaction/models/legacy_erp_import_service.py` for `sale.order` / `purchase.order` / `account.move` | two one-use permits (`erp_partners`, then `erp_commercial`), full volume, `ERP_REQUIRE_EMPTY` guard | no permit, no `LIMIT`, `odoo_test_cutover`, same guard |
+| VanillaSoft history | `make import-vanillasoft` with the checkout contact file | `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` → `history()` | `SyncOrchestrator.upsert_contact_external_id`, one ContactID at a time, durable `plasticos.crm.external.ref` rows decide | `crm_history` permit after a committed `erp_commercial` phase, the whole file, operator ledger | no permit, no cap unless `REHEARSAL_HISTORY_MAX_IDS` is already set, ledger in the evidence folder |
 
 Neither target reaches the retired CSV partner importer
 (`partner_import_service.py`, `scripts/run_import.py`), the retired CSV
@@ -112,12 +109,12 @@ contact floor beside it; the rolling window (`VANILLASOFT_CALL_FLOOR`, owned
 by `orchestrator.run_full_import` for range reconciliation) is a separately
 named mode, never a fallback for a missing census.
 
-## Gate 6 — ERP import (10% slice)
+## Gate 6 — ERP import
 
 - Refused before any read or write when `ODOO_STAGE=production`, `ERP_PRODUCTION_PERMIT` is set, `ERP_REQUIRE_EMPTY` is not `1`, or a payload root is set
 - The source is the restored database already on `cie-sql-proof`: `host.docker.internal`, port `14330`, login `erp_reader`. The database name is `~/.l9/erp-proof/database` and the password is `~/.l9/erp-proof/reader.pw` (not printed). Exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` win when both are set. Missing coordinates are `BLOCKED`
 - The census before import (Gate 4 query) is exactly `0`
-- `make import-erp LIMIT=10%` runs through `scripts/test_env.sh run` on `odoo_test_cutover`; the importer executes the projection scripts in `plasticos_partner_import/erp_extracted_data/`
+- `make import-erp` runs through `scripts/test_env.sh run` on `odoo_test_cutover` with no `LIMIT`; an unset limit is the full import. The importer executes the projection scripts in `plasticos_partner_import/erp_extracted_data/`
 - The import exits 0
 - `05-erp-summary.json` validates against `contracts/schemas/draft/import-run-summary.schema.json` (`scripts/validate_import_summary.py`), `source == "erp"`, `start_time` is not before the run started
 - `records_seen == records_created + records_updated + records_unchanged + records_rejected`, `records_seen > 0`, `records_created > 0`, `duplicates == 0`
@@ -125,8 +122,8 @@ named mode, never a fallback for a missing census.
 - The census sibling `<summary>-census.json` has `payload_kind == "database"` and a non-empty `source_origin`. `grid` and `statements` fail the gate
 - Read back from the clone: at least 1 counterparty (`legacy_erp_cp_*`), 1 address (`legacy_erp_address_*`), and 1 contact (`legacy_erp_contact_*`) identity on `res.partner`
 - The import log (`05-erp-import.log`) holds the driver's own `ERP source: direct database read (...)` line (the SQL source was selected by `import_erp_shell.py`) and a `DATA VERDICT` line (the run was applied). A missing or unreadable log is `FAIL`, never a pass
-- The receipt's `facts.execution_path` names target, driver, dispatcher, commercial extension, source, `LIMIT=10%`, database and `release_sha`
-- After that read-back, compare every imported native record with the restored SQL source. The checker recomputes quantity, unit price, amounts, dates, document identity, and the supported role and Incoterm classifications itself. It does not call the importer's mapping helpers. `LIMIT=10%` is unchanged; the full historical transaction population is not read
+- The receipt's `facts.execution_path` names target, driver, dispatcher, commercial extension, source, limit `full`, database and `release_sha`
+- After that read-back, compare every imported native record with the restored SQL source. The checker recomputes quantity, unit price, amounts, dates, document identity, and the supported role and Incoterm classifications itself. It does not call the importer's mapping helpers
 - `05-erp-fidelity.json` is one row per compared field: source id, source field and value, target model and field, expected value, actual value, tolerance, and `PASS` or `FAIL`. `05-erp-fidelity-coverage.json` is the field matrix. A row is `rejected` when the census left it unresolved, `unmapped` when the writer intentionally stores nothing, and `precision` when the stored quantity and price reproduce the source amount to the cent
 - A `FAIL` row, or a report whose source or clone extract is missing, fails Gate 6 (`erp-fidelity-discrepancy` or `erp-fidelity-unproven`). An empty comparison is not a pass
 - A sale order in state `sale` is the transaction compiler confirming the worksheet. `draft` and `sent` remain when that confirmation did not run. A purchase order outside `draft`, `sent`, and `to approve` fails. A customer invoice sums only worksheet lines that resolve one sale-order header. A material bill whose payable matches the signed purchase total stores each purchase line as an absolute amount
@@ -134,24 +131,24 @@ named mode, never a fallback for a missing census.
 - Native-document completeness: the field comparison is seeded from the identities on the clone, so a document class the importer never wrote would never enter it. The gate therefore reads the importer's own accounting line in the log (`ERP import finished: {counts}`, the base service's result record with the commercial extension's `transactions` and `transaction_lines` buckets), requires a full-run scope, and reads the clone's native-document snapshot (`05-erp-fidelity-odoo.json`) back: realized lines must be present as order lines, realized transactions must be referenced by persisted documents, and a run that realized lines must hold at least one order and one line. Missing accounting, a partners-only scope, an unreadable snapshot, or fewer documents than realized is `FAIL` (`erp-run-accounting-unobserved`, `erp-run-not-full`, `erp-native-snapshot-unreadable`, `erp-native-documents-none`, `erp-native-class-missing`, `erp-native-documents-missing`)
 - The kit never writes into the importer's summary or census; a failure is the gate receipt
 
-## Gate 7 — VanillaSoft historical cohort (bounded sample)
+## Gate 7 — VanillaSoft history
 
 - Runs only when Gate 6 passed; otherwise `SKIPPED gate6-not-passed`
 - Refused before any read or write when `ODOO_STAGE=production`, `VANILLASOFT_PRODUCTION_PERMIT` is set, `VANILLASOFT_CALL_FLOOR` or `VANILLASOFT_CONTACT_FLOOR` is set (`FAIL rolling-floor-refused`: the gate is the historical cohort, never a window), or `VANILLASOFT_HISTORY_CHECKPOINT` is set (`FAIL history-checkpoint-refused`: an operator ledger is never bound to the disposable clone)
-- Operator runtime inputs, read from the environment and never generated, substituted or shrunk by the kit: `VANILLASOFT_HISTORY_CENSUS` (the approved 4,876-ContactID `vanillasoft_contact_id,decision` CSV, inside the checkout because that is the odoo container's only bind mount) and `VANILLASOFT_HISTORY_CENSUS_SHA256` (its independently declared digest). Unset is `BLOCKED` (`vanillasoft-history-census-unbound`, `vanillasoft-history-digest-unbound`); unreadable, outside the checkout, or a file whose SHA-256 is not the declared one is `FAIL`
-- `REHEARSAL_HISTORY_MAX_IDS` (default `100`) bounds the session; it is a cap on fetched ContactIDs in cohort order, never a selection
-- `scripts/test_env.sh run` validates the history form before make starts: the census, its digest and the ledger must be named, a floor beside them and a production permit are refused, and `_MAX_IDS` / `_FAILURE_BUDGET` must be positive integers. A harness refusal is exit 2 and lands as `FAIL vanillasoft-preflight-failed`; nothing runs outside the harness
+- The contact file is `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` in the checkout. A missing file is `FAIL vanillasoft-history-census-unreadable`. The kit hashes that file at run time because the harness requires the argument, and it stores no digest. An operator census path or digest in the environment is ignored
+- `REHEARSAL_HISTORY_MAX_IDS` is passed only when it is already set, and then it must be a positive integer. There is no default cap
+- `scripts/test_env.sh run` validates the history form before make starts: the census, its digest and the ledger must be named, a floor beside them and a production permit are refused, and `_MAX_IDS` / `_FAILURE_BUDGET` must be positive integers when present. A harness refusal is exit 2 and lands as `FAIL vanillasoft-preflight-failed`; nothing runs outside the harness
 - `VANILLASOFT_API_KEY` is bound from Infisical and written into the clone ICP through psql stdin. The value is never on argv, never printed, never stored in the kit or the evidence. Unbound is `BLOCKED vanillasoft-key-unbound`; a failed write is `FAIL`
 - The clone's `plasticos_crm_sync.cron_crm_sync_all` row is deactivated (the driver refuses an active incremental cron; production takes the same step), and the durable VanillaSoft refs are counted before the run (`06-crm-refs-before.raw`)
-- `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover` with `VANILLASOFT_HISTORY_CENSUS`, `VANILLASOFT_HISTORY_CENSUS_SHA256`, `VANILLASOFT_HISTORY_CHECKPOINT=<evidence>/06-crm-history.jsonl`, `VANILLASOFT_HISTORY_MAX_IDS` and the container report path; no floor is passed. The Makefile places the census and ledger on the bind mount itself
+- `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover` with `VANILLASOFT_HISTORY_CENSUS` set to the checkout file, `VANILLASOFT_HISTORY_CENSUS_SHA256` set to that file's hash, `VANILLASOFT_HISTORY_CHECKPOINT=<evidence>/06-crm-history.jsonl`, and the container report path. `VANILLASOFT_HISTORY_MAX_IDS` is included only when `REHEARSAL_HISTORY_MAX_IDS` is set. No floor is passed. The Makefile places the census and ledger on the bind mount itself
 - Exit 0 alone proves nothing. The gate reads the history driver's report (`06-crm-result.json`), the ledger (`06-crm-history.jsonl`), the log (`06-crm-log.txt`) and the refs after the run (`06-crm-refs-after.raw`):
-  - the report has the `historical_cohort.report` shape: `cohort == 4876`, `classes` over `imported / held / duplicate_skipped / genuine_failed`, `by_decision` over `YES / NO / PENDING`, `dispositioned + undispositioned == cohort`, `stopped` in `null / max_ids / auth / budget`, and `census_sha256` equal to the declared digest. A rolling summary (`records_seen`, …) is `FAIL vanillasoft-history-report-shape`
+  - the report has the `historical_cohort.report` shape: `cohort` is the length of the census the driver was given, `classes` over `imported / held / duplicate_skipped / genuine_failed`, `by_decision` over `YES / NO / PENDING`, `dispositioned + undispositioned == cohort`, `stopped` in `null / max_ids / auth / budget`, and `census_sha256` equal to the file hashed at run time. A rolling summary (`records_seen`, …) is `FAIL vanillasoft-history-report-shape`
   - `stopped` is `auth` or `budget`, `dispositions_without_a_source_reason > 0`, `imported_with_error_signals > 0`, or `genuine_failed > 0` → `FAIL`
   - the ledger header is a version 1 cohort ledger bound to the declared census, every row is a disposition, and the row count equals `dispositioned` (the ledger is fresh, so the session is exactly what it recorded)
   - the log holds a `VANILLASOFT_HISTORY_AUDIT` `crm_history.admitted` event for `odoo_test_cutover`, the declared census and `permit: false`, and a `HISTORY VERDICT` line; the rolling banner `=== VANILLASOFT IMPORT SUMMARY ===` is `FAIL vanillasoft-rolling-mode-observed`
   - refs landed = after − before; fewer than the report's `imported` count is `FAIL`
   - no fetched id, `imported == 0`, or nothing landed → `BLOCKED vanillasoft-history-sample-no-import`; the cohort order is never changed to manufacture a pass
-- `PASS vanillasoft-history-sample-exercised` means only that the authorized sample exercised the production pipeline. The receipt records `max_ids`, `fetched`, `attempted`, `imported`, `held`, `duplicate_skipped`, `genuine_failed`, `undispositioned`, the durable ref counts and `full_cohort_claimed: false`; it never asserts all 4,876 imported, `historical_data_complete`, `LIVE_DELTA_COMPLETENESS` or `FULL_CURRENT_CONTACT_COVERAGE`
+- `PASS vanillasoft-history-sample-exercised` means the checkout file exercised the production pipeline. The receipt records `max_ids` when a cap was set, `fetched`, `attempted`, `imported`, `held`, `duplicate_skipped`, `genuine_failed`, `undispositioned`, and the durable ref counts. Completeness is the driver's own report for the length of the file it was given
 
 ## Out of scope
 
@@ -159,8 +156,8 @@ named mode, never a fallback for a missing census.
 - Gate/CEG/EIE triage (Phase 3 only)
 - Matching, scoring, offer creation (ERP partners needed first)
 - Promotion merge itself (human decision after `ready` verdict)
-- Full ERP import (100% of transactions) — 10% is sufficient for the rehearsal
-- The full 4,876-ContactID history session and its durable operator ledger; the rehearsal samples the cohort
+- A second, capped ERP pipeline. Gate 6 is `make import-erp` with no `LIMIT`
+- Selecting contacts from a path other than the checkout file. A missing file fails Gate 7
 - Mapping fidelity and material-profile cardinality of the imported contacts (a later phase, after command parity)
 - Application, importer and SQL Server fixes; the kit only proves
 

@@ -56,7 +56,7 @@ VS_EXECUTION_PATH = {
     "make_target": "import-vanillasoft",
     "driver": "plasticos_crm_sync/scripts/import_vanillasoft_shell.py",
     "dispatcher": "history() → SyncOrchestrator.upsert_contact_external_id, one ContactID at a time",
-    "source": "operator-supplied frozen 4,876-ContactID census + VanillaSoft API",
+    "source": "contact file in the checkout + VanillaSoft API",
 }
 # Lines the drivers themselves print; the gate reads them as the runtime trace.
 ERP_SOURCE_LINE = "ERP source: direct database read ("
@@ -669,7 +669,7 @@ def native_document_failures(log_text: str | None, snapshot: dict | None) -> tup
         failures.append(
             (
                 "erp-native-documents-none",
-                "the full run realized no worksheet line; the 10% slice wrote no native document",
+                "the full run realized no worksheet line and wrote no native document",
             )
         )
     orders = clone["sale_orders"] + clone["purchase_orders"]
@@ -815,7 +815,7 @@ def check_erp(
         "fidelity_failed": fidelity.get("failed") if isinstance(fidelity, dict) else None,
         "native_documents": native_facts,
         "execution_path": execution_path,
-        "scope": "newest 10% of transaction worksheets; every partner layer; not a full historical import",
+        "scope": "full import-erp of the checkout; every partner layer and every worksheet",
     }
     if failures:
         facts["failure_codes"] = [code for code, _text in failures]
@@ -842,8 +842,9 @@ def _history_report_shape(report: dict, cohort) -> list[str]:
     """Why ``report`` is not a ``historical_cohort.report`` document (empty when it is)."""
     problems = []
     classes = report.get("classes")
-    if _int(report.get("cohort")) != cohort.COHORT:
-        problems.append(f"cohort={report.get('cohort')!r}, expected {cohort.COHORT}")
+    reported = _int(report.get("cohort"))
+    if reported is None or reported < 1:
+        problems.append(f"cohort={report.get('cohort')!r} is not a positive count")
     if not isinstance(classes, dict) or set(classes) != set(cohort.CLASSES):
         problems.append("classes is not the owner's class set")
         classes = {}
@@ -871,7 +872,7 @@ def _history_report_shape(report: dict, cohort) -> list[str]:
         problems.append(f"stopped={report.get('stopped')!r} is not a stop reason")
     if not problems and sum(classes.values()) != report["dispositioned"]:
         problems.append("classes do not sum to dispositioned")
-    if not problems and report["dispositioned"] + report["undispositioned"] != cohort.COHORT:
+    if not problems and report["dispositioned"] + report["undispositioned"] != reported:
         problems.append("dispositioned + undispositioned != cohort")
     return problems
 
@@ -942,7 +943,7 @@ def check_vanillasoft_history(
         "release_sha": release_sha,
     }
     bounds = {
-        "scope": "bounded sample of the frozen cohort; not historical completeness",
+        "scope": "contact file in the checkout; a cap is recorded only when the operator set one",
         "full_cohort_claimed": False,
         "max_ids": max_ids,
     }

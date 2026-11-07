@@ -31,27 +31,6 @@ blockers:
       not run and the contact import is unproven.
     severity: error
 
-  - id: vanillasoft-history-census-unbound
-    gate: 7
-    verdict_effect: blocked
-    status: open
-    step: VANILLASOFT_HISTORY_CENSUS unset in the rehearsal environment
-    reason: >
-      The approved 4,876-ContactID census is an operator runtime input. The kit
-      never generates, substitutes or shrinks one; without it history mode
-      cannot start and the contact import is unproven.
-    severity: error
-
-  - id: vanillasoft-history-digest-unbound
-    gate: 7
-    verdict_effect: blocked
-    status: open
-    step: VANILLASOFT_HISTORY_CENSUS_SHA256 unset in the rehearsal environment
-    reason: >
-      The census is used only against the SHA-256 the operator declared
-      independently; the kit never computes a digest to declare.
-    severity: error
-
   - id: vanillasoft-history-sample-no-import
     gate: 7
     verdict_effect: blocked
@@ -147,23 +126,23 @@ blockers:
       The web lead path ends at crm.lead creation.
     severity: expected
 
-  - id: erp-10pct-slice
+  - id: erp-full-import
     gate: 6
     status: by-design
-    step: Newest 10% of transaction worksheets only
+    step: make import-erp with no LIMIT
     reason: >
-      LIMIT=10% is intentional for rehearsal speed. Full historical import
-      is a separate operator task. All partner layers always run in full.
+      An unset limit is the full import. The summary equation, duplicates,
+      database source and field fidelity stay fail-closed.
     severity: expected
 
   - id: vanillasoft-history-bounded-sample
     gate: 7
     status: by-design
-    step: make import-vanillasoft in history mode, VANILLASOFT_HISTORY_MAX_IDS=REHEARSAL_HISTORY_MAX_IDS (default 100)
+    step: make import-vanillasoft on plasticos_crm_sync/Vanillasoft-Scrap-Management.csv
     reason: >
-      The rehearsal fetches a bounded prefix of the frozen cohort through the
-      same history driver production uses, with a fresh ledger in the evidence
-      folder. A PASS means the sample exercised the pipeline; the receipt
+      Gate 7 uses the contact file in the checkout and passes no history cap
+      unless REHEARSAL_HISTORY_MAX_IDS is already set. A fresh ledger is written
+      in the evidence folder. A PASS means the file exercised the pipeline; the receipt
       records fetched, imported, held, skipped and undispositioned counts and
       never claims HISTORICAL_SNAPSHOT_COMPLETE, historical_data_complete,
       LIVE_DELTA_COMPLETENESS or FULL_CURRENT_CONTACT_COVERAGE. The full

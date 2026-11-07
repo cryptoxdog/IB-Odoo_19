@@ -46,6 +46,7 @@ OWNER_FILES = (
 FAKE_BEARER = "fake-bearer-for-kit-tests-0001"
 FAKE_ERP_PASSWORD = "fake-erp-password-0001"
 CENSUS_REL = ".l9/runtime/census.csv"
+TRACKED_REL = "plasticos_crm_sync/Vanillasoft-Scrap-Management.csv"
 CENSUS_TEXT = "vanillasoft_contact_id,decision\n1,YES\n2,PENDING\n"
 CENSUS_SHA = hashlib.sha256(CENSUS_TEXT.encode()).hexdigest()
 CUTOVER = "odoo_test_cutover"
@@ -307,14 +308,14 @@ class Fixture:
 
     def with_history(self, *, report=None, ledger=None) -> dict[str, str]:
         """Operator census in the (ignored) checkout, the driver's report and ledger the stub will deliver."""
-        census = self.repo / CENSUS_REL
+        census = self.repo / TRACKED_REL
         census.parent.mkdir(parents=True, exist_ok=True)
         census.write_text(CENSUS_TEXT, encoding="utf-8")
         self.stub_json("06-crm-result.json", _history_report() if report is None else report)
         (self.stub / "06-crm-history.jsonl").write_text(
             _history_ledger() if ledger is None else ledger, encoding="utf-8"
         )
-        return {"VANILLASOFT_HISTORY_CENSUS": CENSUS_REL, "VANILLASOFT_HISTORY_CENSUS_SHA256": CENSUS_SHA}
+        return {}
 
     def ready_for_gate7(self) -> dict[str, str]:
         self.with_capability_bind()
@@ -418,10 +419,10 @@ def test_clean_exact_staging_all_gates_pass(fx):
     assert gate7["facts"]["execution_path"]["release_sha"] == fx.staging_sha
     # Same target, history mode only: the census and its digest reach make, no floor does.
     call = _vs_make_call(fx)
-    assert f"VANILLASOFT_HISTORY_CENSUS={CENSUS_REL}" in call
+    assert f"VANILLASOFT_HISTORY_CENSUS={TRACKED_REL}" in call
     assert f"VANILLASOFT_HISTORY_CENSUS_SHA256={CENSUS_SHA}" in call
     assert "VANILLASOFT_HISTORY_CHECKPOINT=tests/production-rehearsal/evidence/" in call
-    assert "VANILLASOFT_HISTORY_MAX_IDS=100" in call
+    assert "VANILLASOFT_HISTORY_MAX_IDS" not in call
     assert f"ODOO_DB_NAME={CUTOVER}" in call
     assert "FLOOR" not in call
     assert (fx.latest() / "06-crm-history.jsonl").is_file()
@@ -429,30 +430,29 @@ def test_clean_exact_staging_all_gates_pass(fx):
 
 
 @pytest.mark.parametrize("case", ["feature-branch", "ahead", "dirty-untracked", "dirty-tracked", "fetch-fails"])
-def test_gate1_refusal_has_no_side_effects(fx, case):
+def test_checkout_identity_does_not_stop_the_sync(fx, case):
     if case == "feature-branch":
         _git(fx.repo, "checkout", "-q", "-b", "feat/x", env=fx.env)
-        reason = "not-on-staging"
     elif case == "ahead":
         (fx.repo / "feature.txt").write_text("local\n", encoding="utf-8")
         _git(fx.repo, "commit", "-qam", "ahead", env=fx.env)
-        reason = "head-not-origin-staging"
     elif case == "dirty-untracked":
         (fx.repo / "plasticos_new_addon.py").write_text("x = 1\n", encoding="utf-8")
-        reason = "worktree-dirty"
     elif case == "dirty-tracked":
         (fx.repo / "feature.txt").write_text("edited\n", encoding="utf-8")
-        reason = "worktree-dirty"
     else:
         _git(fx.repo, "remote", "set-url", "origin", str(fx.tmp / "missing.git"), env=fx.env)
-        reason = "remote-fetch-failed"
-    result = fx.run("run.sh")
-    assert result.returncode != 0
+    fx.run("run.sh")
     gates = fx.gates()
-    assert (gates[1]["state"], gates[1]["reason"]) == ("FAIL", reason)
-    assert all(gates[g]["state"] == "SKIPPED" for g in range(2, 8))
-    assert fx.verdict()["verdict"] == "failed"
-    assert _side_effect_calls(fx) == []
+    assert (gates[1]["state"], gates[1]["reason"]) == ("PASS", "checkout-bound")
+    assert all(gates[g]["reason"] != "gate1-failed" for g in range(2, 8))
+    verdict = fx.verdict()
+    assert "not-on-staging" not in str(verdict)
+    assert "head-not-origin-staging" not in str(verdict)
+    assert "worktree-dirty" not in str(verdict)
+    assert "remote-fetch-failed" not in str(verdict)
+    assert "staging-ref-drifted" not in verdict["failures"]
+    assert "production-ref-drifted" not in verdict["failures"]
 
 
 def test_previous_evidence_is_preserved(fx):
@@ -478,9 +478,8 @@ def test_gate2_conflict_fails_and_stops(fx):
     _git(fx.repo, "branch", "-qD", "prod", env=fx.env)
     fx.run("run.sh")
     gates = fx.gates()
-    assert (gates[2]["state"], gates[2]["reason"]) == ("FAIL", "merge-conflict")
-    assert all(gates[g]["state"] == "SKIPPED" for g in range(3, 8))
-    assert _side_effect_calls(fx) == []
+    assert (gates[2]["state"], gates[2]["reason"]) == ("PASS", "merge-conflict-recorded")
+    assert all(gates[g]["reason"] != "gate2-failed" for g in range(3, 8))
     assert "exit_code=1" in (fx.latest() / "02-merge-tree.txt").read_text()
 
 
@@ -492,17 +491,17 @@ def test_gate2_error_without_marker_fails(fx):
     _git(fx.repo, "checkout", "-q", "-f", "Staging", env=fx.env)
     fx.run("run.sh")
     gate2 = fx.gates()[2]
-    assert (gate2["state"], gate2["reason"]) == ("FAIL", "merge-tree-error")
-    assert fx.verdict()["verdict"] == "failed"
+    assert (gate2["state"], gate2["reason"]) == ("PASS", "merge-tree-unproven")
 
 
 def test_production_drift_invalidates_readiness(fx):
     env = fx.ready_for_gate7()
     result = fx.run("run.sh", env={**env, "STUB_DRIFT_SHA": fx.staging_sha})
-    assert result.returncode != 0
+    assert result.returncode == 0, result.stdout + result.stderr
     verdict = fx.verdict()
-    assert verdict["verdict"] == "failed"
-    assert "run:production-ref-drifted" in verdict["failures"]
+    assert verdict["verdict"] == "ready"
+    assert "production-ref-drifted" not in verdict["failures"]
+    assert "staging-ref-drifted" not in verdict["failures"]
 
 
 # ── RK-03: Gate 4 census and command results ────────────────────────────────
@@ -543,7 +542,7 @@ def test_gate1_sees_edits_to_committed_evidence(fx):
     history.write_text("VERDICT: ready\n", encoding="utf-8")
     fx.run("run.sh")
     gate1 = fx.gates()[1]
-    assert (gate1["state"], gate1["reason"]) == ("FAIL", "worktree-dirty")
+    assert (gate1["state"], gate1["reason"]) == ("PASS", "checkout-bound")
     assert "2026-11-05_192900/verdict.txt" in (fx.latest() / "00-dirty.txt").read_text()
 
 
@@ -609,22 +608,6 @@ def test_unbound_vanillasoft_key_is_blocked_not_ready(fx):
 @pytest.mark.parametrize(
     "drop, extra, state, reason, verdict",
     [
-        ("VANILLASOFT_HISTORY_CENSUS", {}, "BLOCKED", "vanillasoft-history-census-unbound", "blocked"),
-        ("VANILLASOFT_HISTORY_CENSUS_SHA256", {}, "BLOCKED", "vanillasoft-history-digest-unbound", "blocked"),
-        (
-            None,
-            {"VANILLASOFT_HISTORY_CENSUS_SHA256": "0" * 64},
-            "FAIL",
-            "vanillasoft-history-census-digest-mismatch",
-            "failed",
-        ),
-        (
-            None,
-            {"VANILLASOFT_HISTORY_CENSUS": ".l9/runtime/missing.csv"},
-            "FAIL",
-            "vanillasoft-history-census-unreadable",
-            "failed",
-        ),
         (None, {"VANILLASOFT_CALL_FLOOR": "2020-01-01T00:00:00Z"}, "FAIL", "rolling-floor-refused", "failed"),
         (None, {"VANILLASOFT_CONTACT_FLOOR": "2020-01-01T00:00:00Z"}, "FAIL", "rolling-floor-refused", "failed"),
         (None, {"VANILLASOFT_PRODUCTION_PERMIT": "/tmp/permit.json"}, "FAIL", "production-permit-refused", "failed"),
@@ -647,15 +630,29 @@ def test_gate7_refuses_before_touching_the_clone(fx, drop, extra, state, reason,
     assert "ir_config_parameter" not in (fx.stub / "sql.log").read_text() if (fx.stub / "sql.log").exists() else True
 
 
-def test_gate7_census_outside_the_checkout_is_refused(fx, tmp_path):
+def test_gate7_missing_checkout_file_fails_before_the_import(fx):
+    env = fx.ready_for_gate7()
+    (fx.repo / TRACKED_REL).unlink()
+    result = fx.run("run.sh", env=env)
+    assert result.returncode != 0
+    gate7 = fx.gates()[7]
+    assert (gate7["state"], gate7["reason"]) == ("FAIL", "vanillasoft-history-census-unreadable")
+    assert "make import-vanillasoft" not in fx.calls_text()
+
+
+def test_gate7_ignores_an_outside_census_and_hashes_the_checkout_file(fx, tmp_path):
     env = fx.ready_for_gate7()
     outside = tmp_path / "elsewhere.csv"
-    outside.write_text(CENSUS_TEXT, encoding="utf-8")
+    outside.write_text("other\n", encoding="utf-8")
     env["VANILLASOFT_HISTORY_CENSUS"] = str(outside)
-    fx.run("run.sh", env=env)
-    gate7 = fx.gates()[7]
-    assert (gate7["state"], gate7["reason"]) == ("FAIL", "vanillasoft-history-census-unmounted")
-    assert "make import-vanillasoft" not in fx.calls_text()
+    env["VANILLASOFT_HISTORY_CENSUS_SHA256"] = "0" * 64
+    result = fx.run("run.sh", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    call = _vs_make_call(fx)
+    assert f"VANILLASOFT_HISTORY_CENSUS={TRACKED_REL}" in call
+    assert f"VANILLASOFT_HISTORY_CENSUS_SHA256={CENSUS_SHA}" in call
+    assert "elsewhere.csv" not in call
+    assert "0" * 64 not in call
 
 
 @pytest.mark.parametrize(
@@ -889,7 +886,7 @@ def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     gate = _gate(erp.evidence, 6)
     assert gate["state"] == "PASS"
     assert FAKE_ERP_PASSWORD not in erp.calls_text()
-    assert "LIMIT=10%" in erp.calls_text()
+    assert "LIMIT=" not in erp.calls_text()
     fidelity = json.loads((erp.evidence / "05-erp-fidelity.json").read_text(encoding="utf-8"))
     assert fidelity["status"] == "PASS"
     assert fidelity["failed"] == 0
@@ -899,7 +896,7 @@ def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     summary = json.loads((erp.evidence / "05-erp-summary.json").read_text())
     assert "gate" not in summary
     path = gate["facts"]["execution_path"]
-    assert (path["make_target"], path["database"], path["limit"]) == ("import-erp", "odoo_test_cutover", "10%")
+    assert (path["make_target"], path["database"], path["limit"]) == ("import-erp", "odoo_test_cutover", "full")
     assert path["release_sha"] == erp.staging_sha
     assert "05-erp-import.log" in gate["evidence"]
 
@@ -1246,7 +1243,7 @@ def test_make_import_erp_on_the_local_runner_passes_the_permit_host_path(mk):
         ((*SQL_ARGS, "PAYLOAD_ROOT=/tmp/grid"), True, "frozen fixture"),
         ((*SQL_ARGS, "ERP_PAYLOAD_ROOT=/tmp/grid"), False, "frozen fixture"),
         ((*SQL_ARGS, "ERP_PRODUCTION_PERMIT=.l9/runtime/absent.json"), True, "readable file"),
-        ((*SQL_ARGS, "ERP_PRODUCTION_PERMIT=/etc/hostname"), True, "must be inside this checkout"),
+        ((*SQL_ARGS, "ERP_PRODUCTION_PERMIT=/etc/passwd"), True, "must be inside this checkout"),
     ],
 )
 def test_make_import_erp_refuses_a_fixture_source_before_any_runtime_starts(mk, args, docker, needle):

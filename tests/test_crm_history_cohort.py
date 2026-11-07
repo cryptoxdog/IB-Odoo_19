@@ -221,6 +221,22 @@ def test_report_sums_to_the_cohort_and_trusts_only_durable_refs():
     assert verdict["FULL_CURRENT_CONTACT_COVERAGE"] == "UNKNOWN"
 
 
+def test_report_stamps_the_length_of_the_census_it_was_given():
+    census = {"1": "YES", "2": "PENDING"}
+    ledger = {
+        "2": {
+            "vanillasoft_contact_id": "2",
+            "decision": "PENDING",
+            "class": cohort.HELD,
+            "signals": [{"level": "ERROR", "reason": "waiting"}],
+        }
+    }
+    verdict = cohort.report(census, {"1"}, ledger)
+    assert verdict["cohort"] == 2
+    assert verdict["dispositioned"] + verdict["undispositioned"] == 2
+    assert verdict["HISTORICAL_SNAPSHOT_COMPLETE"]
+
+
 def test_report_counts_undispositioned_and_unknown_reasons():
     ledger = {NO_IDS[0]: {**_row(NO_IDS[0]), "signals": [{"level": "UNKNOWN", "reason": "outcome none"}]}}
     verdict = cohort.report(CENSUS, set(), ledger)

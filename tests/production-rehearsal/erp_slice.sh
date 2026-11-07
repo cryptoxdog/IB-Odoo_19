@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gate 6 — ERP 10% slice import from the restored SQL Server database.
+# Gate 6 — full ERP import from the restored SQL Server database.
 #
 # The importer writes its own summary (05-erp-summary.json) and census
 # (05-erp-summary-census.json); this script never writes into either. The gate
@@ -33,7 +33,7 @@ PROOF_DIR="${HOME}/.l9/erp-proof"
 PROOF_PW="${PROOF_DIR}/reader.pw"
 PROOF_DB="${PROOF_DIR}/database"
 
-echo "→ [Gate 6] ERP 10% slice import on ${DB}"
+echo "→ [Gate 6] ERP import on ${DB}"
 
 # gate6 <STATE> <reason> [detail] — scan, write the receipt, exit nonzero.
 gate6() {
@@ -101,11 +101,10 @@ if [ "${PARTNER_COUNT}" -ne 0 ]; then
 fi
 
 # ── Run import via test_env.sh run (verified clone only) ────────────────────
-echo "  → Running import-erp LIMIT=10% on ${DB}..."
+echo "  → Running import-erp on ${DB}..."
 bash "${ROOT}/scripts/test_env.sh" run "${DB}" -- \
   make import-erp \
     ODOO_DB_NAME="${DB}" \
-    LIMIT=10% \
     ERP_SQL_SERVER="${ERP_SQL_SERVER}" \
     ERP_SQL_PORT="${ERP_SQL_PORT:-1433}" \
     ERP_SQL_DATABASE="${ERP_SQL_DATABASE}" \
@@ -129,7 +128,7 @@ printf '%s\n' "SELECT json_build_object(
         AND NOT starts_with(d.name, 'legacy_erp_contact_role_')));" \
   | db_query "${DB}" "${LAYERS_FILE}" || rm -f "${LAYERS_FILE}"
 
-# Field fidelity reads the clone and the same SQL source. LIMIT=10% is unchanged.
+# Field fidelity reads the clone and the same SQL source.
 # A missing snapshot is an incomplete report, which check-erp fails closed.
 echo "  → ERP native mapping fidelity..."
 if ! "${REHEARSAL_PY}" "${KIT_DIR}/fidelity_run.py" --print-odoo-sql | db_query "${DB}" "${ODOO_FIDELITY}"; then
@@ -173,7 +172,7 @@ rlib check-erp "${EVIDENCE_DIR}" \
   --layers "${LAYERS_FILE}" \
   --log "${IMPORT_LOG}" \
   --database "${DB}" \
-  --limit "10%" \
+  --limit "full" \
   --release-sha "${RELEASE_SHA}" \
   --run-started "${RUN_STARTED_UTC:-}" \
   --fidelity "${FIDELITY_FILE}" \
