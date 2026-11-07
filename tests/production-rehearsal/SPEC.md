@@ -134,7 +134,7 @@ named mode, never a fallback for a missing census.
 - Refused before any read or write when `ODOO_STAGE=production`, `VANILLASOFT_PRODUCTION_PERMIT` is set, `VANILLASOFT_CALL_FLOOR` or `VANILLASOFT_CONTACT_FLOOR` is set (`FAIL rolling-floor-refused`: the gate is the historical cohort, never a window), or `VANILLASOFT_HISTORY_CHECKPOINT` is set (`FAIL history-checkpoint-refused`: an operator ledger is never bound to the disposable clone)
 - Operator runtime inputs, read from the environment and never generated, substituted or shrunk by the kit: `VANILLASOFT_HISTORY_CENSUS` (the approved 4,876-ContactID `vanillasoft_contact_id,decision` CSV, inside the checkout because that is the odoo container's only bind mount) and `VANILLASOFT_HISTORY_CENSUS_SHA256` (its independently declared digest). Unset is `BLOCKED` (`vanillasoft-history-census-unbound`, `vanillasoft-history-digest-unbound`); unreadable, outside the checkout, or a file whose SHA-256 is not the declared one is `FAIL`
 - `REHEARSAL_HISTORY_MAX_IDS` (default `100`) bounds the session; it is a cap on fetched ContactIDs in cohort order, never a selection
-- `scripts/test_env.sh run` must forward the history settings to `make import-vanillasoft`; while its `parse_run` admits only the rolling floors the gate is `BLOCKED vanillasoft-history-harness-unforwarded` and nothing runs outside the harness
+- `scripts/test_env.sh run` validates the history form before make starts: the census, its digest and the ledger must be named, a floor beside them and a production permit are refused, and `_MAX_IDS` / `_FAILURE_BUDGET` must be positive integers. A harness refusal is exit 2 and lands as `FAIL vanillasoft-preflight-failed`; nothing runs outside the harness
 - `VANILLASOFT_API_KEY` is bound from Infisical and written into the clone ICP through psql stdin. The value is never on argv, never printed, never stored in the kit or the evidence. Unbound is `BLOCKED vanillasoft-key-unbound`; a failed write is `FAIL`
 - The clone's `plasticos_crm_sync.cron_crm_sync_all` row is deactivated (the driver refuses an active incremental cron; production takes the same step), and the durable VanillaSoft refs are counted before the run (`06-crm-refs-before.raw`)
 - `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover` with `VANILLASOFT_HISTORY_CENSUS`, `VANILLASOFT_HISTORY_CENSUS_SHA256`, `VANILLASOFT_HISTORY_CHECKPOINT=<evidence>/06-crm-history.jsonl`, `VANILLASOFT_HISTORY_MAX_IDS` and the container report path; no floor is passed. The Makefile places the census and ledger on the bind mount itself
@@ -156,7 +156,7 @@ named mode, never a fallback for a missing census.
 - Full ERP import (100% of transactions) — 10% is sufficient for the rehearsal
 - The full 4,876-ContactID history session and its durable operator ledger; the rehearsal samples the cohort
 - Mapping fidelity and material-profile cardinality of the imported contacts (a later phase, after command parity)
-- Application, importer, harness (`scripts/test_env.sh`) and SQL Server fixes; the kit only proves
+- Application, importer and SQL Server fixes; the kit only proves
 
 ## Kit constraints
 

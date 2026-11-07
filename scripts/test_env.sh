@@ -1042,6 +1042,14 @@ clone_template() {
 #                                                  the Makefile test recipes, verbatim
 #   make import-erp ODOO_DB_NAME=<db> [ERP_*|LIMIT|DRY|...=V]
 #                                                  the Makefile ERP import, verbatim
+#   make import-vanillasoft ODOO_DB_NAME=<db> VANILLASOFT_CALL_FLOOR=.. VANILLASOFT_CONTACT_FLOOR=..
+#                                                  the rolling window, both floors explicit
+#   make import-vanillasoft ODOO_DB_NAME=<db> VANILLASOFT_HISTORY_CENSUS=.. _CENSUS_SHA256=.. _CHECKPOINT=..
+#                                                  the historical cohort (2026-11-07): the census
+#                                                  selects it, a floor beside it is refused, the
+#                                                  optional _MAX_IDS / _FAILURE_BUDGET are integers
+# A production permit (ERP_PRODUCTION_PERMIT, VANILLASOFT_PRODUCTION_PERMIT) is
+# never forwarded: the verified clone is never a production target.
 # Anything that would point Odoo, Postgres, or compose elsewhere is refused.
 RUN_MODE=""
 RUN_OPTS=()
@@ -1063,20 +1071,33 @@ parse_run() {
       import_target="$1"
       RUN_ARGS+=("$1")
       shift
+      local vs_history="" vs_floor=""
       for arg in "$@"; do
         name="${arg%%=*}"
         case "$arg" in
           ODOO_DB_NAME=*)
             [ "${arg#ODOO_DB_NAME=}" = "$target" ] || refuse "'$arg' would redirect the import away from the verified clone $target"
             ;;
+          ERP_PRODUCTION_PERMIT=* | VANILLASOFT_PRODUCTION_PERMIT=*)
+            refuse "'$name=' is not forwarded: the verified clone is never a production target"
+            ;;
           *=*)
             if [ "$import_target" = "import-erp" ]; then
               [[ "$name" =~ ^(ERP_[A-Z_]+|LIMIT|DRY|PAYLOAD_ROOT|REPORT_PATH|PARTNERS_ONLY|LAYER)$ ]] ||
                 refuse "'$name=' is not an ERP import setting; run does not forward it"
             else
-              [[ "$name" =~ ^VANILLASOFT_(CALL_FLOOR|CONTACT_FLOOR|REPORT_PATH)$ ]] ||
-                refuse "'$name=' is not a VanillaSoft import floor; run does not forward it"
-              [ -n "${arg#*=}" ] || refuse "'$name=' must name an explicit bound"
+              [[ "$name" =~ ^VANILLASOFT_(CALL_FLOOR|CONTACT_FLOOR|REPORT_PATH|HISTORY_(CENSUS|CENSUS_SHA256|CHECKPOINT|MAX_IDS|FAILURE_BUDGET))$ ]] ||
+                refuse "'$name=' is not a VanillaSoft import setting; run does not forward it"
+              [ -n "${arg#*=}" ] || refuse "'$name=' must name an explicit value"
+              case "$name" in
+                VANILLASOFT_HISTORY_*) vs_history=1 ;;
+                VANILLASOFT_CALL_FLOOR | VANILLASOFT_CONTACT_FLOOR) vs_floor=1 ;;
+              esac
+              case "$name" in
+                VANILLASOFT_HISTORY_MAX_IDS | VANILLASOFT_HISTORY_FAILURE_BUDGET)
+                  [[ "${arg#*=}" =~ ^[1-9][0-9]*$ ]] || refuse "'$name=' must be a positive integer"
+                  ;;
+              esac
             fi
             ;;
           *) refuse "'$arg' is not accepted after 'make $import_target'" ;;
@@ -1085,10 +1106,20 @@ parse_run() {
       done
       [[ " ${RUN_ARGS[*]} " == *" ODOO_DB_NAME=$target "* ]] || refuse "make $import_target must name ODOO_DB_NAME=$target"
       if [ "$import_target" = "import-vanillasoft" ]; then
-        [[ " ${RUN_ARGS[*]} " == *" VANILLASOFT_CALL_FLOOR="* ]] ||
-          refuse "import-vanillasoft requires VANILLASOFT_CALL_FLOOR"
-        [[ " ${RUN_ARGS[*]} " == *" VANILLASOFT_CONTACT_FLOOR="* ]] ||
-          refuse "import-vanillasoft requires VANILLASOFT_CONTACT_FLOOR"
+        if [ -n "$vs_history" ]; then
+          # The historical cohort: one mode, every identity input explicit, no window.
+          [ -z "$vs_floor" ] ||
+            refuse "import-vanillasoft history mode refuses VANILLASOFT_CALL_FLOOR / VANILLASOFT_CONTACT_FLOOR; the rolling window is another import"
+          for name in VANILLASOFT_HISTORY_CENSUS VANILLASOFT_HISTORY_CENSUS_SHA256 VANILLASOFT_HISTORY_CHECKPOINT; do
+            [[ " ${RUN_ARGS[*]} " == *" $name="* ]] ||
+              refuse "import-vanillasoft history mode requires $name"
+          done
+        else
+          [[ " ${RUN_ARGS[*]} " == *" VANILLASOFT_CALL_FLOOR="* ]] ||
+            refuse "import-vanillasoft requires VANILLASOFT_CALL_FLOOR (rolling window) or VANILLASOFT_HISTORY_CENSUS (historical cohort)"
+          [[ " ${RUN_ARGS[*]} " == *" VANILLASOFT_CONTACT_FLOOR="* ]] ||
+            refuse "import-vanillasoft requires VANILLASOFT_CONTACT_FLOOR"
+        fi
       fi
       return 0
       ;;

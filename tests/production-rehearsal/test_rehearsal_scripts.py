@@ -168,8 +168,6 @@ case "$sub" in
 esac
 exit 0
 """
-# The harness as it is on Staging: no history setting is forwarded.
-TEST_ENV_STUB_UNAMENDED = TEST_ENV_STUB.replace("VANILLASOFT_HISTORY", "VANILLASOFT_LEGACY")
 
 GATE_HELPER_STUB = r"""#!/usr/bin/env bash
 # Fixture stand-in for a gate helper: writes the receipt the test asks for.
@@ -651,23 +649,6 @@ def test_gate7_census_outside_the_checkout_is_refused(fx, tmp_path):
     gate7 = fx.gates()[7]
     assert (gate7["state"], gate7["reason"]) == ("FAIL", "vanillasoft-history-census-unmounted")
     assert "make import-vanillasoft" not in fx.calls_text()
-
-
-def test_gate7_is_blocked_while_the_harness_does_not_forward_history_settings(fx):
-    """scripts/test_env.sh on Staging admits only the rolling floors (contract U-04): BLOCKED, never a floor."""
-    fx._exe(fx.repo / "scripts" / "test_env.sh", TEST_ENV_STUB_UNAMENDED)
-    _git(fx.repo, "add", "scripts/test_env.sh", env=fx.env)
-    _git(fx.repo, "commit", "-qm", "harness as on Staging", env=fx.env)
-    _git(fx.repo, "push", "-qf", "origin", "HEAD:refs/heads/Staging", env=fx.env)
-    env = fx.ready_for_gate7()
-    result = fx.run("run.sh", env=env)
-    assert result.returncode != 0
-    gate7 = fx.gates()[7]
-    assert (gate7["state"], gate7["reason"]) == ("BLOCKED", "vanillasoft-history-harness-unforwarded")
-    assert "scripts/test_env.sh" in gate7["detail"]
-    assert fx.verdict()["verdict"] == "blocked"
-    assert "make import-vanillasoft" not in fx.calls_text()
-    assert "FLOOR" not in fx.calls_text()
 
 
 @pytest.mark.parametrize(

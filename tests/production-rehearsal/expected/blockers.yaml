@@ -52,21 +52,6 @@ blockers:
       independently; the kit never computes a digest to declare.
     severity: error
 
-  - id: vanillasoft-history-harness-unforwarded
-    gate: 7
-    verdict_effect: blocked
-    status: open
-    step: scripts/test_env.sh run (parse_run) forwards only VANILLASOFT_CALL_FLOOR / CONTACT_FLOOR / REPORT_PATH to make import-vanillasoft and requires both floors
-    reason: >
-      The verified-clone harness does not yet admit the history settings
-      (VANILLASOFT_HISTORY_CENSUS, _CENSUS_SHA256, _CHECKPOINT, _MAX_IDS,
-      _FAILURE_BUDGET) and still demands a rolling floor, which history mode
-      refuses. The harness is owned outside the kit (contract U-04); Gate 7
-      does not route around it, and a run outside the harness is not a
-      rehearsal of the verified clone.
-    severity: error
-    observed: 2026-11-07
-
   - id: vanillasoft-history-sample-no-import
     gate: 7
     verdict_effect: blocked

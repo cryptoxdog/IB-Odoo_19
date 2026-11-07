@@ -515,7 +515,6 @@ def test_blockers_file_names_the_verdict_blockers():
         "erp-proof-files-missing",
         "vanillasoft-history-census-unbound",
         "vanillasoft-history-digest-unbound",
-        "vanillasoft-history-harness-unforwarded",
         "vanillasoft-history-sample-no-import",
     } <= ids
     # The rolling-window blockers are gone with the mode.

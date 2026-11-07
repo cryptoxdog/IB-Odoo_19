@@ -36,7 +36,7 @@ Exit 0 only on `ready`. Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and
 - git ≥ 2.38 (`merge-tree --write-tree`), curl ≥ 7.55 (`-H @file`)
 - Gate 7 runtime inputs in the environment: `VANILLASOFT_HISTORY_CENSUS` (the approved 4,876-ContactID census, placed inside the checkout under an ignored path such as `.l9/runtime/`, because the odoo container reads only that bind mount) and `VANILLASOFT_HISTORY_CENSUS_SHA256` (its independently verified digest). Optional `REHEARSAL_HISTORY_MAX_IDS` (default 100). The kit never writes, shrinks or re-digests a census; unset inputs are `BLOCKED`
 - No `VANILLASOFT_CALL_FLOOR`, `VANILLASOFT_CONTACT_FLOOR`, `VANILLASOFT_HISTORY_CHECKPOINT`, `VANILLASOFT_PRODUCTION_PERMIT`, `ERP_PRODUCTION_PERMIT` or `ODOO_STAGE=production` in the environment: each is a refusal, never ignored
-- `scripts/test_env.sh run` forwarding the `VANILLASOFT_HISTORY_*` settings to `make import-vanillasoft`; until its owner admits them Gate 7 is `BLOCKED vanillasoft-history-harness-unforwarded` (see `expected/blockers.yaml`)
+- `scripts/test_env.sh run` admits the history form of `make import-vanillasoft` (census, digest, ledger, optional bounds; no floor, no permit) and refuses anything else before make starts
 
 ### Credentials (auto-resolved — no manual setup required)
 

@@ -383,12 +383,10 @@ else
     gate_record 7 FAIL "vanillasoft-history-census-unmounted" "the census must be inside the checkout, the only bind mount the odoo container reads"
   elif [ "${VS_CENSUS_ACTUAL}" != "${VS_CENSUS_SHA}" ]; then
     gate_record 7 FAIL "vanillasoft-history-census-digest-mismatch" "the census file's SHA-256 is not the declared VANILLASOFT_HISTORY_CENSUS_SHA256"
-  # scripts/test_env.sh run forwards only the make settings it names. Until its
-  # owner admits the history settings, the bounded history run cannot reach the
-  # verified clone through the harness, and nothing else is a substitute.
-  elif ! grep -q "VANILLASOFT_HISTORY_CENSUS" "${ROOT}/scripts/test_env.sh"; then
-    gate_record 7 BLOCKED "vanillasoft-history-harness-unforwarded" "scripts/test_env.sh run does not forward VANILLASOFT_HISTORY_* to make import-vanillasoft (owner: scripts/test_env.sh parse_run)"
   else
+    # scripts/test_env.sh run validates the history form itself (census, digest
+    # and ledger named, no floor, no permit) before make starts; a refusal
+    # there is exit 2 and lands as FAIL vanillasoft-preflight-failed below.
     G7_STATE="run"
   fi
 fi
