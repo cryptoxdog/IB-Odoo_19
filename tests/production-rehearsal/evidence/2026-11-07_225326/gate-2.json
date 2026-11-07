@@ -1,0 +1,13 @@
+{
+  "detail": "tree 481332c6a18b9ca023122562b4fa813830711a86",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 2,
+  "name": "merge-tree",
+  "reason": "merge-clean",
+  "recorded_at": "2026-11-07T22:53:27Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": false,
+  "state": "PASS"
+}

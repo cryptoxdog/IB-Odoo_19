@@ -1,0 +1,13 @@
+{
+  "detail": "",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 7,
+  "name": "vanillasoft",
+  "reason": "gate4-failed",
+  "recorded_at": "2026-11-07T22:54:00Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": false,
+  "state": "SKIPPED"
+}

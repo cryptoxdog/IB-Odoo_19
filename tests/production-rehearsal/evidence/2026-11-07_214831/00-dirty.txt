@@ -1,0 +1,9 @@
+?? "docs/campaigns/11-03-26/PLAN Partners First Native Opportunity Matching Canonical Revision.md"
+?? docs/campaigns/11-03-26/material_mapping_resolution_ledger_11-05-26.csv
+?? "docs/campaigns/11-03-26/odoo test failures/Screenshot 2026-11-05 at 3.15.13 PM.png"
+?? "docs/campaigns/11-03-26/odoo test failures/Screenshot 2026-11-05 at 3.15.22 PM.png"
+?? "docs/campaigns/11-03-26/odoo test failures/Screenshot 2026-11-05 at 3.15.48 PM.png"
+?? "docs/campaigns/11-03-26/odoo test failures/Screenshot 2026-11-05 at 3.15.54 PM.png"
+?? docs/campaigns/INVARIANT_ALIGNMENT_AND_IRREDUCIBILITY.md
+?? tests/production-rehearsal/evidence/debug-gate5/04-weblead-health.json
+?? tests/production-rehearsal/evidence/debug-gate5/04-weblead-result.json

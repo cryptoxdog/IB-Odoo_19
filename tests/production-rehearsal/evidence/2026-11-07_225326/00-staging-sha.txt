@@ -1,0 +1,6 @@
+branch=fix/rehearsal-kit-checkout-sync
+HEAD=be363b7f5394b36c11918951d98b5b79a1897aed
+origin/Staging=8171f70b2c33b0d7ec626a7965a4648d25164d34
+origin/Production=3318fa646a9f33aed55b9ea8f8596316e30684da
+dirty_paths=10
+fetch_ok=1

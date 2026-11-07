@@ -1,0 +1,12 @@
+run_ts=2026-11-07_214831
+staging_sha=8171f70b2c33b0d7ec626a7965a4648d25164d34
+production_sha=3318fa646a9f33aed55b9ea8f8596316e30684da
+verdict=failed
+failures=Gate1-FAIL:not-on-staging Gate2-SKIPPED:gate1-failed Gate3-SKIPPED:gate1-failed Gate4-SKIPPED:gate1-failed Gate5-SKIPPED:gate1-failed Gate6-SKIPPED:gate1-failed Gate7-SKIPPED:gate1-failed
+gate1=FAIL not-on-staging
+gate2=SKIPPED gate1-failed
+gate3=SKIPPED gate1-failed
+gate4=SKIPPED gate1-failed
+gate5=SKIPPED gate1-failed
+gate6=SKIPPED gate1-failed
+gate7=SKIPPED gate1-failed

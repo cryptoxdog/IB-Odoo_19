@@ -1,0 +1,5 @@
+run_ts=2026-11-06_195030
+staging_sha=9ef95a4b09f5612d0886077d9e1974b65901fb32
+production_sha=3318fa646a9f33aed55b9ea8f8596316e30684da
+verdict=failed
+failures=Gate1-branch-identity Gate5-weblead-e2e Gate6-erp-import Gate7-skipped-erp-not-passed
