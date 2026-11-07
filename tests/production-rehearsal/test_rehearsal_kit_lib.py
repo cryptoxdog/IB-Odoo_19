@@ -65,16 +65,71 @@ def test_parse_count_refuses_anything_else(text):
 LAYERS = {"counterparties": 3, "addresses": 2, "contacts": 4}
 CENSUS = {"payload_kind": "database", "source_origin": "erp-host/erp_db", "census": {}, "unresolved": []}
 # What the real driver prints on an applied direct-SQL run (import_erp_shell.py).
-ERP_LOG = "ERP source: direct database read (erp-host/erp_db)\nres.partner before import: 3\nDATA VERDICT {}\n"
+ERP_COUNTS = (
+    "{'counterparties': {'created': 3, 'updated': 0, 'skipped': 0, 'rejected': 0}, "
+    "'transactions': {'created': 1, 'updated': 0, 'skipped': 9, 'rejected': 0}, "
+    "'transaction_lines': {'created': 2, 'updated': 0, 'skipped': 18, 'rejected': 0}}"
+)
 
 
-def _erp(tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, log=ERP_LOG):
+def _erp_log(scope: str = "", counts: str = ERP_COUNTS) -> str:
+    return (
+        "ERP source: direct database read (erp-host/erp_db)\nres.partner before import: 3\n"
+        f"2026-11-06 20:02:00,000 7 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: "
+        f"ERP import finished{scope}: {counts}\nDATA VERDICT {{}}\n"
+    )
+
+
+ERP_LOG = _erp_log()
+# The clone's native-document snapshot (fidelity_run.py --print-odoo-sql): one worksheet, both sides.
+SNAPSHOT = {
+    "evidence": "complete",
+    "partners": [],
+    "sale_orders": [{"xmlid": "legacy_erp_so_1", "name": "1", "origin": "100"}],
+    "purchase_orders": [{"xmlid": "legacy_erp_po_2", "name": "2", "origin": "100"}],
+    "sale_lines": [{"xmlid": "legacy_erp_sol_900"}],
+    "purchase_lines": [{"xmlid": "legacy_erp_pol_900"}],
+    "invoices": [{"xmlid": "legacy_erp_outinv_100", "invoice_origin": "100"}],
+    "bills": [{"xmlid": "legacy_erp_ininv_5", "invoice_origin": "100"}],
+    "ledger_moves": [],
+}
+
+
+def _fidelity_pass() -> dict:
+    return {
+        "schema": "l9.plasticos.rehearsal.fidelity.v1",
+        "evidence": "complete",
+        "status": "PASS",
+        "failed": 0,
+        "compared": 1,
+        "rows": [
+            {
+                "source_id": "1",
+                "source_table": "CounterParty",
+                "source_field": "CompanyNm",
+                "source_value": "Acme",
+                "target_model": "res.partner",
+                "target_field": "name",
+                "expected": "Acme",
+                "actual": "Acme",
+                "tolerance": None,
+                "result": "PASS",
+                "classification": "mapped",
+            }
+        ],
+    }
+
+
+def _erp(
+    tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, fidelity="pass", log=ERP_LOG, snapshot=SNAPSHOT
+):
     s = tmp_path / "05-erp-summary.json"
     c = tmp_path / "05-erp-summary-census.json"
     if summary is not None:
         _write(s, summary)
     if census is not None:
         _write(c, census)
+    report = None if fidelity is None else fidelity if isinstance(fidelity, dict) else _fidelity_pass()
     return lib.check_erp(
         s,
         c,
@@ -85,6 +140,8 @@ def _erp(tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, log=
         database="odoo_test_cutover",
         limit="10%",
         release_sha="a" * 40,
+        fidelity=report,
+        snapshot=snapshot,
     )
 
 
@@ -176,6 +233,90 @@ def test_erp_sql_login_failure_is_a_fail_not_a_pass(tmp_path):
     # SQL Server 18456 surfaces as a nonzero import with no summary.
     result = _erp(tmp_path, None, None, None, import_exit=2)
     assert (result["state"], result["reason"]) == ("FAIL", "erp-import-exit")
+
+
+def test_erp_native_documents_are_accounted_from_the_importers_own_counts(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), CENSUS)
+    assert result["state"] == "PASS", result
+    native = result["facts"]["native_documents"]
+    assert (native["realized_transactions"], native["realized_lines"], native["scope"]) == (1, 2, "")
+    assert native["clone"]["worksheets"] == 1 and native["clone"]["sale_lines"] == 1
+
+
+def _snapshot(**over) -> dict:
+    return {**SNAPSHOT, **over}
+
+
+@pytest.mark.parametrize(
+    "kwargs, reason",
+    [
+        ({"log": _erp_log().replace("ERP import finished", "ERP import ended")}, "erp-run-accounting-unobserved"),
+        ({"log": _erp_log(counts="{not a dict")}, "erp-run-accounting-unobserved"),
+        ({"log": _erp_log(counts="{'counterparties': {'created': 1, 'updated': 0}}")}, "erp-run-accounting-unobserved"),
+        ({"log": _erp_log(scope=" (partners only)")}, "erp-run-not-full"),
+        ({"log": _erp_log(scope=" (counterparties)")}, "erp-run-not-full"),
+        ({"snapshot": None}, "erp-native-snapshot-unreadable"),
+        ({"snapshot": {"evidence": "missing"}}, "erp-native-snapshot-unreadable"),
+        ({"log": _erp_log(counts=ERP_COUNTS.replace("'created': 2", "'created': 0"))}, "erp-native-documents-none"),
+        ({"snapshot": _snapshot(sale_orders=[], purchase_orders=[])}, "erp-native-class-missing"),
+        ({"snapshot": _snapshot(sale_lines=[], purchase_lines=[])}, "erp-native-class-missing"),
+        ({"snapshot": _snapshot(purchase_lines=[])}, "erp-native-documents-missing"),
+        ({"log": _erp_log(counts=ERP_COUNTS.replace("'created': 1", "'created': 3"))}, "erp-native-documents-missing"),
+        (
+            {
+                "snapshot": _snapshot(
+                    sale_orders=[], purchase_orders=[], sale_lines=[], purchase_lines=[], invoices=[], bills=[]
+                )
+            },
+            "erp-native-class-missing",
+        ),
+    ],
+)
+def test_erp_silently_omitted_native_documents_fail_the_gate(tmp_path, kwargs, reason):
+    """Codex finding on PR #401: a document class the importer never wrote never entered the comparison."""
+    result = _erp(tmp_path, _summary("erp"), CENSUS, **kwargs)
+    assert result["state"] == "FAIL"
+    assert reason in result["facts"]["failure_codes"], result["facts"]["failure_codes"]
+
+
+def test_erp_without_a_fidelity_report_is_unproven(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=None)
+    assert result["state"] == "FAIL"
+    assert result["reason"] == "erp-fidelity-unproven"
+
+
+def test_erp_fidelity_discrepancy_fails_a_balanced_import(tmp_path):
+    report = _fidelity_pass()
+    report["rows"][0]["actual"] = "Other"
+    report["rows"][0]["result"] = "FAIL"
+    report["rows"][0]["classification"] = "defect"
+    report["status"] = "FAIL"
+    report["failed"] = 1
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=report)
+    assert result["state"] == "FAIL"
+    assert result["reason"] == "erp-fidelity-discrepancy"
+
+
+def test_erp_rejected_rows_do_not_pass_without_a_mapped_comparison(tmp_path):
+    report = _fidelity_pass()
+    report["rows"] = [
+        {
+            "source_id": "9",
+            "source_table": "Address",
+            "source_field": "parent_not_imported",
+            "source_value": "missing parent",
+            "target_model": "",
+            "target_field": "",
+            "expected": None,
+            "actual": None,
+            "tolerance": None,
+            "result": "PASS",
+            "classification": "rejected",
+        }
+    ]
+    report["compared"] = 0
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=report)
+    assert result["reason"] == "erp-fidelity-unproven"
 
 
 # ── RK-06: VanillaSoft historical cohort (bounded) ──────────────────────────

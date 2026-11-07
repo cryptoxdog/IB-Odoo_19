@@ -23,6 +23,7 @@ Contract (SPEC.md):
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import hashlib
 import importlib.util
@@ -533,6 +534,170 @@ def check_weblead_persistence(
 ERP_LAYERS = ("counterparties", "addresses", "contacts")
 
 
+FIDELITY_SCHEMA = "l9.plasticos.rehearsal.fidelity.v1"
+_FIDELITY_PASS = frozenset({"mapped", "precision", "rejected", "unmapped"})
+
+
+def fidelity_failures(report: dict | None) -> list[tuple[str, str]]:
+    """A missing extract or a proven field discrepancy fails. Skips are not passes of a value."""
+    if not isinstance(report, dict) or report.get("schema") != FIDELITY_SCHEMA:
+        return [("erp-fidelity-unproven", "mapping fidelity report is missing or not the kit contract")]
+    if report.get("evidence") != "complete":
+        return [
+            ("erp-fidelity-unproven", str(report.get("missing_reason") or "source or target evidence is incomplete"))
+        ]
+    rows = report.get("rows")
+    if not isinstance(rows, list):
+        return [("erp-fidelity-unproven", "fidelity rows are missing")]
+    failed = 0
+    compared = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            return [("erp-fidelity-unproven", "a fidelity row is not an object")]
+        result = row.get("result")
+        classification = row.get("classification")
+        if result == "FAIL":
+            failed += 1
+            continue
+        if result != "PASS" or classification not in _FIDELITY_PASS:
+            return [("erp-fidelity-unproven", "a fidelity row has no PASS/FAIL verdict")]
+        if classification in {"mapped", "precision"}:
+            if row.get("expected") is None or row.get("actual") is None:
+                return [("erp-fidelity-unproven", "a mapped comparison is missing an expected or actual value")]
+            compared += 1
+    if failed or report.get("failed"):
+        count = failed or report.get("failed")
+        return [("erp-fidelity-discrepancy", f"{count} mapped field value(s) differ from the source")]
+    if report.get("status") != "PASS" or compared < 1:
+        return [("erp-fidelity-unproven", "no mapped field was compared against persisted Odoo")]
+    return []
+
+
+# The base ERP service logs its result accounting once per run
+# (erp_import_service.py: "ERP import finished<scope>: {counts}"), with the
+# commercial extension's transactions / transaction_lines buckets included.
+# That line is the importer's own statement of what it realized; the native
+# documents on the clone are read back and must account for it.
+_ERP_FINISHED = re.compile(r"ERP import finished(?P<scope>[^:]*): (?P<counts>\{.*\})\s*$", re.M)
+NATIVE_DOCUMENT_KINDS = (
+    "sale_orders",
+    "purchase_orders",
+    "sale_lines",
+    "purchase_lines",
+    "invoices",
+    "bills",
+    "ledger_moves",
+)
+
+
+def erp_run_counts(log_text: str | None) -> tuple[str | None, dict | None]:
+    """``(scope, counts)`` from the importer's last accounting line, or ``(None, None)``."""
+    if not log_text:
+        return None, None
+    matches = list(_ERP_FINISHED.finditer(log_text))
+    if not matches:
+        return None, None
+    match = matches[-1]
+    try:
+        counts = ast.literal_eval(match.group("counts"))
+    except (ValueError, SyntaxError):
+        return match.group("scope").strip(), None
+    return match.group("scope").strip(), counts if isinstance(counts, dict) else None
+
+
+def _bucket(counts: dict, name: str) -> int | None:
+    bucket = counts.get(name)
+    if not isinstance(bucket, dict):
+        return None
+    created = _int(bucket.get("created"))
+    updated = _int(bucket.get("updated"))
+    if created is None or updated is None:
+        return None
+    return created + updated
+
+
+def native_document_census(snapshot: dict) -> dict:
+    """Per-kind counts of the native documents the clone holds, and the worksheets they reference."""
+    census = {kind: len(snapshot.get(kind) or []) for kind in NATIVE_DOCUMENT_KINDS}
+    worksheets: set[str] = set()
+    for kind in ("sale_orders", "purchase_orders"):
+        for order in snapshot.get(kind) or []:
+            if isinstance(order, dict):
+                worksheets.update(part.strip() for part in str(order.get("origin") or "").split(",") if part.strip())
+    for kind in ("invoices", "bills"):
+        for move in snapshot.get(kind) or []:
+            if isinstance(move, dict) and str(move.get("invoice_origin") or "").strip():
+                worksheets.add(str(move["invoice_origin"]).strip())
+    census["worksheets"] = len(worksheets)
+    return census
+
+
+def native_document_failures(log_text: str | None, snapshot: dict | None) -> tuple[list[tuple[str, str]], dict]:
+    """The clone must hold the native documents the importer says it realized.
+
+    The field comparison is seeded from the identities on the clone, so a
+    document class the importer silently never wrote would never enter it.
+    The importer's own accounting line (transactions and transaction_lines
+    realized) is the expectation; the read-back snapshot must account for it,
+    and a full run must have written at least one order and one line.
+    """
+    failures: list[tuple[str, str]] = []
+    scope, counts = erp_run_counts(log_text)
+    facts: dict = {"scope": scope, "realized_transactions": None, "realized_lines": None, "clone": None}
+    if counts is None:
+        failures.append(
+            ("erp-run-accounting-unobserved", "the importer printed no readable 'ERP import finished' accounting")
+        )
+        return failures, facts
+    if scope:
+        failures.append(("erp-run-not-full", f"the run was{scope}; Gate 6 requires the full import"))
+    realized_transactions = _bucket(counts, "transactions")
+    realized_lines = _bucket(counts, "transaction_lines")
+    facts["realized_transactions"] = realized_transactions
+    facts["realized_lines"] = realized_lines
+    if realized_transactions is None or realized_lines is None:
+        failures.append(
+            ("erp-run-accounting-unobserved", "the accounting carries no transactions / transaction_lines buckets")
+        )
+        return failures, facts
+    if not isinstance(snapshot, dict) or snapshot.get("evidence") != "complete":
+        failures.append(("erp-native-snapshot-unreadable", "the clone's native-document snapshot was not read"))
+        return failures, facts
+    clone = native_document_census(snapshot)
+    facts["clone"] = clone
+    if realized_lines == 0:
+        failures.append(
+            (
+                "erp-native-documents-none",
+                "the full run realized no worksheet line; the 10% slice wrote no native document",
+            )
+        )
+    orders = clone["sale_orders"] + clone["purchase_orders"]
+    lines = clone["sale_lines"] + clone["purchase_lines"]
+    if realized_lines and (orders == 0 or lines == 0):
+        failures.append(
+            (
+                "erp-native-class-missing",
+                f"{realized_lines} lines realized but the clone holds {orders} orders and {lines} lines",
+            )
+        )
+    if lines < realized_lines:
+        failures.append(
+            (
+                "erp-native-documents-missing",
+                f"{realized_lines} worksheet lines realized but {lines} order lines persisted",
+            )
+        )
+    if clone["worksheets"] < realized_transactions:
+        failures.append(
+            (
+                "erp-native-documents-missing",
+                f"{realized_transactions} transactions realized but {clone['worksheets']} worksheets carry a native document",
+            )
+        )
+    return failures, facts
+
+
 def _read_text(path: Path | str | None) -> str | None:
     if not path:
         return None
@@ -549,6 +714,8 @@ def check_erp(
     import_exit: int,
     layers: dict | None,
     run_started: str | None = None,
+    fidelity: dict | None = None,
+    snapshot: dict | None = None,
     log_text: str | None = None,
     database: str = "",
     limit: str = "",
@@ -631,6 +798,9 @@ def check_erp(
             else:
                 layer_counts[layer] = count
 
+    failures.extend(fidelity_failures(fidelity))
+    native_failures, native_facts = native_document_failures(log_text, snapshot)
+    failures.extend(native_failures)
     facts = {
         "final_status": status,
         "disposition": disposition,
@@ -641,6 +811,9 @@ def check_erp(
         "records_rejected": summary.get("records_rejected"),
         "unresolved": len(unresolved) if isinstance(unresolved, list) else None,
         "layers": layer_counts,
+        "fidelity_compared": fidelity.get("compared") if isinstance(fidelity, dict) else None,
+        "fidelity_failed": fidelity.get("failed") if isinstance(fidelity, dict) else None,
+        "native_documents": native_facts,
         "execution_path": execution_path,
         "scope": "newest 10% of transaction worksheets; every partner layer; not a full historical import",
     }
@@ -908,6 +1081,15 @@ def _emit_result(args, result: dict, evidence: list[str], side_effects: bool) ->
     return EXIT_FOR_STATE[result["state"]]
 
 
+def _read_snapshot(path: str | None) -> dict | None:
+    if not path:
+        return None
+    try:
+        return load_json_file(path, "native-document snapshot")
+    except ProofError:
+        return None
+
+
 def _read_layers(path: str | None) -> dict | None:
     if not path:
         return None
@@ -968,6 +1150,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--import-exit", type=int, required=True)
     p.add_argument("--layers")
     p.add_argument("--run-started")
+    p.add_argument("--fidelity")
+    p.add_argument("--snapshot", help="the clone's native-document snapshot (05-erp-fidelity-odoo.json)")
     p.add_argument("--log", help="the importer's stdout; the driver's own source and verdict lines are the trace")
     p.add_argument("--database", default="")
     p.add_argument("--limit", default="")
@@ -1074,18 +1258,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "check-erp":
         summary = Path(args.summary)
         census = summary.with_name(summary.stem + "-census.json")
+        fidelity = None
+        if getattr(args, "fidelity", None):
+            with contextlib.suppress(ProofError):
+                fidelity = load_json_file(args.fidelity, "ERP fidelity")
         result = check_erp(
             summary,
             census,
             import_exit=args.import_exit,
             layers=_read_layers(args.layers),
             run_started=args.run_started,
+            fidelity=fidelity,
+            snapshot=_read_snapshot(args.snapshot),
             log_text=_read_text(args.log),
             database=args.database,
             limit=args.limit,
             release_sha=args.release_sha,
         )
         evidence = [summary.name, census.name] + ([Path(args.log).name] if args.log else [])
+        evidence += ["05-erp-fidelity.json", "05-erp-fidelity-coverage.json"]
         return _emit_result(args, result, evidence, True)
     if args.command == "check-vanillasoft-history":
 
