@@ -66,14 +66,40 @@ LAYERS = {"counterparties": 3, "addresses": 2, "contacts": 4}
 CENSUS = {"payload_kind": "database", "source_origin": "erp-host/erp_db", "census": {}, "unresolved": []}
 
 
-def _erp(tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0):
+def _fidelity_pass() -> dict:
+    return {
+        "schema": "l9.plasticos.rehearsal.fidelity.v1",
+        "evidence": "complete",
+        "status": "PASS",
+        "failed": 0,
+        "compared": 1,
+        "rows": [
+            {
+                "source_id": "1",
+                "source_table": "CounterParty",
+                "source_field": "CompanyNm",
+                "source_value": "Acme",
+                "target_model": "res.partner",
+                "target_field": "name",
+                "expected": "Acme",
+                "actual": "Acme",
+                "tolerance": None,
+                "result": "PASS",
+                "classification": "mapped",
+            }
+        ],
+    }
+
+
+def _erp(tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, fidelity="pass"):
     s = tmp_path / "05-erp-summary.json"
     c = tmp_path / "05-erp-summary-census.json"
     if summary is not None:
         _write(s, summary)
     if census is not None:
         _write(c, census)
-    return lib.check_erp(s, c, import_exit=import_exit, layers=layers, run_started=RUN_STARTED)
+    report = None if fidelity is None else fidelity if isinstance(fidelity, dict) else _fidelity_pass()
+    return lib.check_erp(s, c, import_exit=import_exit, layers=layers, run_started=RUN_STARTED, fidelity=report)
 
 
 def test_erp_complete_database_run_passes(tmp_path):
@@ -143,6 +169,46 @@ def test_erp_sql_login_failure_is_a_fail_not_a_pass(tmp_path):
     # SQL Server 18456 surfaces as a nonzero import with no summary.
     result = _erp(tmp_path, None, None, None, import_exit=2)
     assert (result["state"], result["reason"]) == ("FAIL", "erp-import-exit")
+
+
+def test_erp_without_a_fidelity_report_is_unproven(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=None)
+    assert result["state"] == "FAIL"
+    assert result["reason"] == "erp-fidelity-unproven"
+
+
+def test_erp_fidelity_discrepancy_fails_a_balanced_import(tmp_path):
+    report = _fidelity_pass()
+    report["rows"][0]["actual"] = "Other"
+    report["rows"][0]["result"] = "FAIL"
+    report["rows"][0]["classification"] = "defect"
+    report["status"] = "FAIL"
+    report["failed"] = 1
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=report)
+    assert result["state"] == "FAIL"
+    assert result["reason"] == "erp-fidelity-discrepancy"
+
+
+def test_erp_rejected_rows_do_not_pass_without_a_mapped_comparison(tmp_path):
+    report = _fidelity_pass()
+    report["rows"] = [
+        {
+            "source_id": "9",
+            "source_table": "Address",
+            "source_field": "parent_not_imported",
+            "source_value": "missing parent",
+            "target_model": "",
+            "target_field": "",
+            "expected": None,
+            "actual": None,
+            "tolerance": None,
+            "result": "PASS",
+            "classification": "rejected",
+        }
+    ]
+    report["compared"] = 0
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=report)
+    assert result["reason"] == "erp-fidelity-unproven"
 
 
 # ── RK-06: VanillaSoft ──────────────────────────────────────────────────────

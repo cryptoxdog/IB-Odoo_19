@@ -9,6 +9,7 @@ no side effect. No Docker, database, HTTP server or secret is used.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
@@ -29,6 +30,8 @@ KIT_FILES = (
     "erp_slice.sh",
     "rehearsal_common.sh",
     "common.py",
+    "fidelity.py",
+    "fidelity_run.py",
     "expected/blockers.yaml",
     "payloads/cognito_hot.json",
 )
@@ -64,6 +67,7 @@ case "$args" in
     sql="$(cat)"
     printf '%s\n----\n' "$sql" >> "$STUB_DIR/sql.log"
     case "$sql" in
+      *fidelity_odoo*) cat "$STUB_DIR/fidelity-odoo.json" || exit 1 ;;
       *customer_rank*)
         if [ -n "${STUB_CENSUS_RC:-}" ]; then echo "ERROR: boom" >&2; exit "$STUB_CENSUS_RC"; fi
         printf '%s\n' "${STUB_CENSUS-0}" ;;
@@ -649,6 +653,14 @@ ERP_ENV = {
 }
 
 
+def _fidelity_module():
+    spec = importlib.util.spec_from_file_location("rehearsal_fidelity", KIT / "fidelity.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 @pytest.fixture
 def erp(tmp_path):
     fixture = Fixture(tmp_path, stub_helpers=False)
@@ -657,6 +669,10 @@ def erp(tmp_path):
     fixture.stub_json("05-erp-summary.json", _summary("erp"))
     fixture.stub_json("05-erp-summary-census.json", ERP_CENSUS)
     fixture.stub_json("layers.json", {"counterparties": 2, "addresses": 1, "contacts": 3})
+    odoo, source = _fidelity_module().fixture_bundles()
+    fixture.stub_json("fidelity-odoo.json", odoo)
+    fixture.stub_json("fidelity-source.json", source)
+    fixture.env["REHEARSAL_FIDELITY_SOURCE"] = str(fixture.stub / "fidelity-source.json")
     return fixture
 
 
@@ -670,8 +686,31 @@ def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     assert _gate(erp.evidence, 6)["state"] == "PASS"
     assert FAKE_ERP_PASSWORD not in erp.calls_text()
     assert "LIMIT=10%" in erp.calls_text()
+    fidelity = json.loads((erp.evidence / "05-erp-fidelity.json").read_text(encoding="utf-8"))
+    assert fidelity["status"] == "PASS"
+    assert fidelity["failed"] == 0
+    assert fidelity["compared"] > 0
+    coverage = json.loads((erp.evidence / "05-erp-fidelity-coverage.json").read_text(encoding="utf-8"))
+    assert any(row["source_field"] == "CompanyNm" for row in coverage["fields"])
     summary = json.loads((erp.evidence / "05-erp-summary.json").read_text())
     assert "gate" not in summary
+
+
+def test_erp_slice_fidelity_discrepancy_fails_the_gate(erp):
+    source = json.loads((erp.stub / "fidelity-source.json").read_text(encoding="utf-8"))
+    source["counterparties"]["10"]["CompanyNm"] = "Other Name"
+    bad = erp.stub / "fidelity-source-bad.json"
+    bad.write_text(json.dumps(source), encoding="utf-8")
+    result = _run_erp(erp, REHEARSAL_FIDELITY_SOURCE=str(bad))
+    assert result.returncode != 0
+    gate = _gate(erp.evidence, 6)
+    assert gate["state"] == "FAIL"
+    assert gate["reason"] == "erp-fidelity-discrepancy"
+    report = json.loads((erp.evidence / "05-erp-fidelity.json").read_text(encoding="utf-8"))
+    failed = [row for row in report["rows"] if row["result"] == "FAIL" and row["source_field"] == "CompanyNm"]
+    assert failed
+    assert failed[0]["expected"] == "Other Name"
+    assert failed[0]["actual"] == "Acme"
 
 
 @pytest.mark.parametrize(

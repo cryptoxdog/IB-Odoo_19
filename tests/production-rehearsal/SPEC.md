@@ -96,6 +96,11 @@ claims `ready`.
 - `final_status`: `success` passes; `failed` fails; `partial` passes only when the census lists source-attributed `unresolved` rows (table, kind, key) and no run-level error (`reconciliation`, `payables_reconciliation`) — receipt disposition `partial-source-explained`
 - The census sibling `<summary>-census.json` has `payload_kind == "database"` and a non-empty `source_origin`. `grid` and `statements` fail the gate
 - Read back from the clone: at least 1 counterparty (`legacy_erp_cp_*`), 1 address (`legacy_erp_address_*`), and 1 contact (`legacy_erp_contact_*`) identity on `res.partner`
+- After that read-back, compare every imported native record with the restored SQL source. The checker recomputes quantity, unit price, amounts, dates, document identity, and the supported role and Incoterm classifications itself. It does not call the importer's mapping helpers. `LIMIT=10%` is unchanged; the full historical transaction population is not read
+- `05-erp-fidelity.json` is one row per compared field: source id, source field and value, target model and field, expected value, actual value, tolerance, and `PASS` or `FAIL`. `05-erp-fidelity-coverage.json` is the field matrix. A row is `rejected` when the census left it unresolved, `unmapped` when the writer intentionally stores nothing, and `precision` when the stored quantity and price reproduce the source amount to the cent
+- A `FAIL` row, or a report whose source or clone extract is missing, fails Gate 6 (`erp-fidelity-discrepancy` or `erp-fidelity-unproven`). An empty comparison is not a pass
+- A sale order in state `sale` is the transaction compiler confirming the worksheet. `draft` and `sent` remain when that confirmation did not run. A purchase order outside `draft`, `sent`, and `to approve` fails. A customer invoice sums only worksheet lines that resolve one sale-order header. A material bill whose payable matches the signed purchase total stores each purchase line as an absolute amount
+- QuickBooks, opening balances, AR/AP aging, ledger reconciliation, posting historical accounting documents, and financial cutover authorization are outside this check. A historical invoice or bill that is not `draft` fails
 - The kit never writes into the importer's summary or census; a failure is the gate receipt
 
 ## Gate 7 — VanillaSoft seven-day window

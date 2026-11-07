@@ -11,7 +11,7 @@
 | All PlasticOS + Enterprise modules load | `make install-smoke` on the pinned fixture (cached fingerprint match is labelled as such) |
 | The clone is fresh and empty | `test_env.sh clone/upgrade/assert-clone` + business-partner census (inactive included) |
 | Web lead webhook reaches the wired end (crm.lead) | HOT Cognito POST → intake → one unassigned non-Won opportunity, read back from the clone; replay creates nothing |
-| ERP counterparties, addresses, contacts import from the restored database | `make import-erp LIMIT=10%`, summary + census + clone layer counts |
+| ERP counterparties, addresses, contacts, and the 10% native documents | `make import-erp LIMIT=10%`, summary + census + clone layer counts + field-level source comparison |
 | VanillaSoft contacts import against ERP partners | `make import-vanillasoft` over a seven-day window, judged by the owner's business acceptance |
 
 ## Run

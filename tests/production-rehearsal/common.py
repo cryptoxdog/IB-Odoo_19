@@ -496,6 +496,45 @@ def check_weblead_persistence(
 ERP_LAYERS = ("counterparties", "addresses", "contacts")
 
 
+FIDELITY_SCHEMA = "l9.plasticos.rehearsal.fidelity.v1"
+_FIDELITY_PASS = frozenset({"mapped", "precision", "rejected", "unmapped"})
+
+
+def fidelity_failures(report: dict | None) -> list[tuple[str, str]]:
+    """A missing extract or a proven field discrepancy fails. Skips are not passes of a value."""
+    if not isinstance(report, dict) or report.get("schema") != FIDELITY_SCHEMA:
+        return [("erp-fidelity-unproven", "mapping fidelity report is missing or not the kit contract")]
+    if report.get("evidence") != "complete":
+        return [
+            ("erp-fidelity-unproven", str(report.get("missing_reason") or "source or target evidence is incomplete"))
+        ]
+    rows = report.get("rows")
+    if not isinstance(rows, list):
+        return [("erp-fidelity-unproven", "fidelity rows are missing")]
+    failed = 0
+    compared = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            return [("erp-fidelity-unproven", "a fidelity row is not an object")]
+        result = row.get("result")
+        classification = row.get("classification")
+        if result == "FAIL":
+            failed += 1
+            continue
+        if result != "PASS" or classification not in _FIDELITY_PASS:
+            return [("erp-fidelity-unproven", "a fidelity row has no PASS/FAIL verdict")]
+        if classification in {"mapped", "precision"}:
+            if row.get("expected") is None or row.get("actual") is None:
+                return [("erp-fidelity-unproven", "a mapped comparison is missing an expected or actual value")]
+            compared += 1
+    if failed or report.get("failed"):
+        count = failed or report.get("failed")
+        return [("erp-fidelity-discrepancy", f"{count} mapped field value(s) differ from the source")]
+    if report.get("status") != "PASS" or compared < 1:
+        return [("erp-fidelity-unproven", "no mapped field was compared against persisted Odoo")]
+    return []
+
+
 def check_erp(
     summary_path: Path | str,
     census_path: Path | str,
@@ -503,8 +542,9 @@ def check_erp(
     import_exit: int,
     layers: dict | None,
     run_started: str | None = None,
+    fidelity: dict | None = None,
 ) -> dict:
-    """Judge a ``make import-erp`` run from its own summary, census and the clone's layer counts."""
+    """Judge a ``make import-erp`` run from its own summary, census, layer counts and field fidelity."""
     if import_exit != 0:
         return _result("FAIL", "erp-import-exit", f"import-erp exited {import_exit}", import_exit=import_exit)
     try:
@@ -560,6 +600,7 @@ def check_erp(
             else:
                 layer_counts[layer] = count
 
+    failures.extend(fidelity_failures(fidelity))
     facts = {
         "final_status": status,
         "disposition": disposition,
@@ -569,6 +610,8 @@ def check_erp(
         "records_rejected": summary.get("records_rejected"),
         "unresolved": len(unresolved) if isinstance(unresolved, list) else None,
         "layers": layer_counts,
+        "fidelity_compared": fidelity.get("compared") if isinstance(fidelity, dict) else None,
+        "fidelity_failed": fidelity.get("failed") if isinstance(fidelity, dict) else None,
     }
     if failures:
         facts["failure_codes"] = [code for code, _text in failures]
@@ -718,6 +761,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--import-exit", type=int, required=True)
     p.add_argument("--layers")
     p.add_argument("--run-started")
+    p.add_argument("--fidelity")
 
     p = sub.add_parser("check-vanillasoft")
     p.add_argument("evidence_dir")
@@ -806,14 +850,24 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "check-erp":
         summary = Path(args.summary)
         census = summary.with_name(summary.stem + "-census.json")
+        fidelity = None
+        if getattr(args, "fidelity", None):
+            with contextlib.suppress(ProofError):
+                fidelity = load_json_file(args.fidelity, "ERP fidelity")
         result = check_erp(
             summary,
             census,
             import_exit=args.import_exit,
             layers=_read_layers(args.layers),
             run_started=args.run_started,
+            fidelity=fidelity,
         )
-        return _emit_result(args, result, [summary.name, census.name], True)
+        return _emit_result(
+            args,
+            result,
+            [summary.name, census.name, "05-erp-fidelity.json", "05-erp-fidelity-coverage.json"],
+            True,
+        )
     if args.command == "check-vanillasoft":
         contacts = None
         if args.contacts_file:
