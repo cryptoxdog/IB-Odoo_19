@@ -340,13 +340,59 @@ if [ "$(gate_state 6)" = "MISSING" ]; then
   gate_record 6 FAIL "helper-no-receipt" "erp_slice.sh exited ${G6_RC} without a gate receipt" 1
 fi
 
-# ── Gate 7 — VanillaSoft seven-day window ────────────────────────────────────
+# ── Gate 7 — VanillaSoft historical cohort (bounded sample) ──────────────────
+# The same `make import-vanillasoft` production runs, in its history mode:
+# the operator's frozen 4,876-ContactID census (VANILLASOFT_HISTORY_CENSUS and
+# its declared SHA-256 come from the environment; the kit never writes one),
+# fetched one ContactID at a time through the history driver, capped at
+# REHEARSAL_HISTORY_MAX_IDS. The ledger is this run's evidence file, so a
+# production checkpoint is never bound to the disposable clone. A PASS proves
+# only that the sample exercised the pipeline; it never claims the cohort.
 echo ""
-echo "── Gate 7: VanillaSoft seven-day window"
+echo "── Gate 7: VanillaSoft historical cohort (bounded sample)"
 CURRENT_GATE=7
+REHEARSAL_HISTORY_MAX_IDS="${REHEARSAL_HISTORY_MAX_IDS:-100}"
+VS_CENSUS="${VANILLASOFT_HISTORY_CENSUS:-}"
+VS_CENSUS_SHA="$(printf '%s' "${VANILLASOFT_HISTORY_CENSUS_SHA256:-}" | tr '[:upper:]' '[:lower:]')"
+VS_LEDGER="${EVIDENCE_DIR}/06-crm-history.jsonl"
+G7_STATE=""
 if [ "$(gate_state 6)" != "PASS" ]; then
   gate_record 7 SKIPPED "gate6-not-passed" "VanillaSoft contacts resolve against ERP partners"
+# ── Safety guards: the rehearsal is never production and never a rolling window
+elif [ "${ODOO_STAGE:-}" = "production" ]; then
+  gate_record 7 FAIL "production-stage-refused" "ODOO_STAGE=production; refusing a rehearsal import against production"
+elif [ -n "${VANILLASOFT_PRODUCTION_PERMIT:-}" ]; then
+  gate_record 7 FAIL "production-permit-refused" "VANILLASOFT_PRODUCTION_PERMIT is set; the rehearsal never passes a permit"
+elif [ -n "${VANILLASOFT_CALL_FLOOR:-}${VANILLASOFT_CONTACT_FLOOR:-}" ]; then
+  gate_record 7 FAIL "rolling-floor-refused" "a VanillaSoft call or contact floor is set; Gate 7 runs the historical cohort, not a window"
+elif [ -n "${VANILLASOFT_HISTORY_CHECKPOINT:-}" ]; then
+  gate_record 7 FAIL "history-checkpoint-refused" "VANILLASOFT_HISTORY_CHECKPOINT is set; the rehearsal writes its own ledger and never binds an operator ledger to the clone"
+# ── Runtime inputs the operator supplies (never generated here) ──────────────
+elif [ -z "${VS_CENSUS}" ]; then
+  gate_record 7 BLOCKED "vanillasoft-history-census-unbound" "VANILLASOFT_HISTORY_CENSUS is unset; the approved 4,876-ContactID census is an operator runtime input"
+elif [ -z "${VS_CENSUS_SHA}" ]; then
+  gate_record 7 BLOCKED "vanillasoft-history-digest-unbound" "VANILLASOFT_HISTORY_CENSUS_SHA256 is unset; the census is used only against its independently declared digest"
+elif [ ! -r "${VS_CENSUS}" ]; then
+  gate_record 7 FAIL "vanillasoft-history-census-unreadable" "VANILLASOFT_HISTORY_CENSUS names a file that cannot be read"
+elif ! printf '%s\n' "${REHEARSAL_HISTORY_MAX_IDS}" | grep -Eq '^[1-9][0-9]*$'; then
+  gate_record 7 FAIL "vanillasoft-history-bound-invalid" "REHEARSAL_HISTORY_MAX_IDS must be a positive integer"
 else
+  VS_CENSUS_ABS="$(cd "$(dirname "${VS_CENSUS}")" && pwd)/$(basename "${VS_CENSUS}")"
+  VS_CENSUS_ACTUAL="$(rlib sha256 "${VS_CENSUS}" 2>/dev/null || true)"
+  if [ "${VS_CENSUS_ABS#"${ROOT}/"}" = "${VS_CENSUS_ABS}" ]; then
+    gate_record 7 FAIL "vanillasoft-history-census-unmounted" "the census must be inside the checkout, the only bind mount the odoo container reads"
+  elif [ "${VS_CENSUS_ACTUAL}" != "${VS_CENSUS_SHA}" ]; then
+    gate_record 7 FAIL "vanillasoft-history-census-digest-mismatch" "the census file's SHA-256 is not the declared VANILLASOFT_HISTORY_CENSUS_SHA256"
+  # scripts/test_env.sh run forwards only the make settings it names. Until its
+  # owner admits the history settings, the bounded history run cannot reach the
+  # verified clone through the harness, and nothing else is a substitute.
+  elif ! grep -q "VANILLASOFT_HISTORY_CENSUS" "${ROOT}/scripts/test_env.sh"; then
+    gate_record 7 BLOCKED "vanillasoft-history-harness-unforwarded" "scripts/test_env.sh run does not forward VANILLASOFT_HISTORY_* to make import-vanillasoft (owner: scripts/test_env.sh parse_run)"
+  else
+    G7_STATE="run"
+  fi
+fi
+if [ "${G7_STATE}" = "run" ]; then
   # ── Bind VANILLASOFT_API_KEY from Infisical (value never printed) ──────────
   _GOV="${HOME}/.cursor-governance"
   [ -d "${_GOV}/ops/secrets" ] || _GOV="${HOME}/Cursor-Governance"
@@ -392,30 +438,45 @@ PYEOF
     if [ "${VS_INJECT_RC}" -ne 0 ]; then
       gate_record 7 FAIL "vanillasoft-key-injection-failed" "exit ${VS_INJECT_RC}; see 06-crm-key.log" 1
     else
-      # Seven-day call and contact floor: a bounded window, not a contact count.
-      VANILLASOFT_CALL_FLOOR="$(date -u -v-7d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)"
-      VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CALL_FLOOR}"
-      export VANILLASOFT_CALL_FLOOR VANILLASOFT_CONTACT_FLOOR
+      # The history driver refuses while the incremental cron is active. The
+      # clone inherits the template's cron row, so it is deactivated here, the
+      # same operator step production takes before its history run.
+      printf '%s\n' "UPDATE ir_cron SET active = false WHERE id IN (SELECT res_id FROM ir_model_data WHERE module = 'plasticos_crm_sync' AND name = 'cron_crm_sync_all' AND model = 'ir.cron');" \
+        | db_query "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-cron.raw" \
+        || echo "query-failed" >>"${EVIDENCE_DIR}/06-crm-cron.raw"
+      # Durable VanillaSoft refs before the run: the fresh clone should hold none.
+      VS_REFS_BEFORE="$(vanillasoft_ref_census "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-refs-before.raw")" \
+        || echo "query-failed" >"${EVIDENCE_DIR}/06-crm-refs-before.raw"
+      echo "durable_refs_before=${VS_REFS_BEFORE:-unknown}" >"${EVIDENCE_DIR}/06-crm-refs.txt"
       EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
       VS_REPORT="/mnt/extra-addons/${EVIDENCE_REL}/06-crm-result.json"
+      # Host paths, relative to the checkout: the Makefile places them on the
+      # container's bind mount itself (runtime_path). The report path is the
+      # container path, as for Gate 6. No floor is passed: history mode only.
       bash "${ROOT}/scripts/test_env.sh" run "${CUTOVER_DB}" -- \
         make import-vanillasoft \
           ODOO_DB_NAME="${CUTOVER_DB}" \
-          VANILLASOFT_CALL_FLOOR="${VANILLASOFT_CALL_FLOOR}" \
-          VANILLASOFT_CONTACT_FLOOR="${VANILLASOFT_CONTACT_FLOOR}" \
+          VANILLASOFT_HISTORY_CENSUS="${VS_CENSUS_ABS#"${ROOT}/"}" \
+          VANILLASOFT_HISTORY_CENSUS_SHA256="${VS_CENSUS_SHA}" \
+          VANILLASOFT_HISTORY_CHECKPOINT="${EVIDENCE_REL}/06-crm-history.jsonl" \
+          VANILLASOFT_HISTORY_MAX_IDS="${REHEARSAL_HISTORY_MAX_IDS}" \
           VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
           >"${EVIDENCE_DIR}/06-crm-log.txt" 2>&1
       VS_RC=$?
-      # Contacts that landed on this fresh clone, at either destination the
-      # importer accepts as durable (import_vanillasoft_shell._durable_ids):
-      # a crosswalk YES binds to an ERP person (res.partner), otherwise a crm.lead.
-      printf '%s\n' "SELECT COUNT(DISTINCT external_id) FROM plasticos_crm_external_ref WHERE provider = 'vanillasoft' AND res_model IN ('crm.lead', 'res.partner');" \
-        | db_query "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-contacts.raw" \
-        || echo "query-failed" >"${EVIDENCE_DIR}/06-crm-contacts.raw"
-      rlib check-vanillasoft "${EVIDENCE_DIR}" \
-        --summary "${EVIDENCE_DIR}/06-crm-result.json" \
+      VS_REFS_AFTER="$(vanillasoft_ref_census "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-refs-after.raw")" \
+        || echo "query-failed" >"${EVIDENCE_DIR}/06-crm-refs-after.raw"
+      echo "durable_refs_after=${VS_REFS_AFTER:-unknown}" >>"${EVIDENCE_DIR}/06-crm-refs.txt"
+      rlib check-vanillasoft-history "${EVIDENCE_DIR}" \
+        --report "${EVIDENCE_DIR}/06-crm-result.json" \
         --import-exit "${VS_RC}" \
-        --contacts-file "${EVIDENCE_DIR}/06-crm-contacts.raw" \
+        --ledger "${VS_LEDGER}" \
+        --log "${EVIDENCE_DIR}/06-crm-log.txt" \
+        --refs-before "${EVIDENCE_DIR}/06-crm-refs-before.raw" \
+        --refs-after "${EVIDENCE_DIR}/06-crm-refs-after.raw" \
+        --census-sha256 "${VS_CENSUS_SHA}" \
+        --database "${CUTOVER_DB}" \
+        --max-ids "${REHEARSAL_HISTORY_MAX_IDS}" \
+        --release-sha "${HEAD_SHA}" \
         --run-started "${RUN_STARTED_UTC}"
     fi
   fi

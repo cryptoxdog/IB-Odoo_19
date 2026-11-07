@@ -11,8 +11,13 @@
 | All PlasticOS + Enterprise modules load | `make install-smoke` on the pinned fixture (cached fingerprint match is labelled as such) |
 | The clone is fresh and empty | `test_env.sh clone/upgrade/assert-clone` + business-partner census (inactive included) |
 | Web lead webhook reaches the wired end (crm.lead) | HOT Cognito POST → intake → one unassigned non-Won opportunity, read back from the clone; replay creates nothing |
-| ERP counterparties, addresses, contacts import from the restored database | `make import-erp LIMIT=10%`, summary + census + clone layer counts |
-| VanillaSoft contacts import against ERP partners | `make import-vanillasoft` over a seven-day window, judged by the owner's business acceptance |
+| ERP counterparties, addresses, contacts import from the restored database | `make import-erp LIMIT=10%`, summary + census + driver trace in the log + clone layer counts |
+| VanillaSoft historical contacts import against ERP partners | `make import-vanillasoft` in history mode over a bounded prefix of the frozen 4,876-ContactID census, judged by the history driver's own report, ledger, audit trail and durable refs read back from the clone |
+
+Both import gates run the same `make` target, driver and dispatcher production
+runs, at the same revision; the receipt's `execution_path` names them and the
+only differences (database, permit, volume, credentials, evidence location).
+SPEC.md "Execution-path parity" is the contract.
 
 ## Run
 
@@ -29,6 +34,9 @@ Exit 0 only on `ready`. Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and
 - The pinned fixture `odoo_test_tpl_ee_c9e8a81f52f23680` is admitted (`bash scripts/test_env.sh status`)
 - Exclusive use of the shared runtime: the Compose project, `odoo_test_cutover`, the rehearsal port (`REHEARSAL_PORT`, default 18069) and container `odoo_rehearsal_<port>`. Gate 5 refuses an existing container or an answering port instead of removing it
 - git ≥ 2.38 (`merge-tree --write-tree`), curl ≥ 7.55 (`-H @file`)
+- Gate 7 runtime inputs in the environment: `VANILLASOFT_HISTORY_CENSUS` (the approved 4,876-ContactID census, placed inside the checkout under an ignored path such as `.l9/runtime/`, because the odoo container reads only that bind mount) and `VANILLASOFT_HISTORY_CENSUS_SHA256` (its independently verified digest). Optional `REHEARSAL_HISTORY_MAX_IDS` (default 100). The kit never writes, shrinks or re-digests a census; unset inputs are `BLOCKED`
+- No `VANILLASOFT_CALL_FLOOR`, `VANILLASOFT_CONTACT_FLOOR`, `VANILLASOFT_HISTORY_CHECKPOINT`, `VANILLASOFT_PRODUCTION_PERMIT`, `ERP_PRODUCTION_PERMIT` or `ODOO_STAGE=production` in the environment: each is a refusal, never ignored
+- `scripts/test_env.sh run` forwarding the `VANILLASOFT_HISTORY_*` settings to `make import-vanillasoft`; until its owner admits them Gate 7 is `BLOCKED vanillasoft-history-harness-unforwarded` (see `expected/blockers.yaml`)
 
 ### Credentials (auto-resolved — no manual setup required)
 
@@ -44,7 +52,11 @@ Each helper scans the evidence for the credential values it handled; a hit is re
 
 Gate 6 calls `make import-erp` on the cutover clone. The importer reads the database that is already restored in container `cie-sql-proof`: `host.docker.internal` port `14330`, login `erp_reader`. The database name is the existing file `~/.l9/erp-proof/database` and the password is `~/.l9/erp-proof/reader.pw`. Neither value is printed, and neither is written into `.env.local`. Each table is loaded by its projection script in `plasticos_partner_import/erp_extracted_data/`. An exported `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` still win over those defaults.
 
-The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`, and refuses a payload root outright. Only `database` passes. Gate 7 then calls `make import-vanillasoft` on the same clone.
+The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`, and refuses a payload root outright. Only `database` passes, and the import log must carry the driver's own `ERP source: direct database read` and `DATA VERDICT` lines. `make import-erp` itself now refuses to start without `ERP_SQL_SERVER` and `ERP_SQL_DATABASE`, on every runner.
+
+### VanillaSoft history source
+
+Gate 7 calls `make import-vanillasoft` on the same clone in its history mode: `VANILLASOFT_HISTORY_CENSUS` and `VANILLASOFT_HISTORY_CENSUS_SHA256` from the environment, a fresh ledger at `<evidence>/06-crm-history.jsonl`, and `VANILLASOFT_HISTORY_MAX_IDS=REHEARSAL_HISTORY_MAX_IDS`. The driver (`plasticos_crm_sync/scripts/import_vanillasoft_shell.py`, `history()`) verifies the census against the declared digest and the packaged crosswalk, fetches each planned ContactID through `SyncOrchestrator.upsert_contact_external_id`, and writes its own report. A rolling floor in the environment fails the gate; the rolling window is a different, explicitly named mode of the same target (`VANILLASOFT_CALL_FLOOR` without a census) and is never a fallback.
 
 ## Evidence structure
 
@@ -63,8 +75,11 @@ evidence/
     ├── 05-erp-summary.json        ← importer summary (the kit never writes into it)
     ├── 05-erp-summary-census.json ← importer census (payload_kind, source_origin)
     ├── 05-erp-layers.json, 05-erp-import.log
-    ├── 06-crm-result.json         ← VanillaSoft importer summary
-    ├── 06-crm-log.txt, 06-crm-contacts.raw
+    ├── 06-crm-result.json         ← history driver report (cohort, classes, by_decision, stopped, census_sha256)
+    ├── 06-crm-history.jsonl       ← this run's append-only ledger (header bound to census + database uuid)
+    ├── 06-crm-log.txt             ← driver stdout: VANILLASOFT_HISTORY_AUDIT events, HISTORY VERDICT
+    ├── 06-crm-refs-before.raw, 06-crm-refs-after.raw, 06-crm-refs.txt
+    ├── 06-crm-cron.raw            ← incremental cron deactivated on the clone
     ├── 07-remote-refs.txt         ← Staging/Production at start and end
     ├── verdict.json               ← machine verdict
     └── verdict.txt                ← ready | blocked | failed + reasons + per-gate lines
@@ -79,15 +94,15 @@ evidence/
 | File | Role |
 |------|------|
 | `run.sh` | Orchestrator — runs the seven gates in order and always writes a verdict |
-| `common.py` | Gate receipts, verdict, evidence scan, and the Gate 5/6/7 proof checks (stdlib) |
-| `rehearsal_common.sh` | Shared shell helpers: `rlib`, `db_query`, partner census |
+| `common.py` | Gate receipts, verdict, evidence scan, execution-path facts, and the Gate 5/6/7 proof checks (stdlib; the Gate 7 shape comes from the owner module `historical_cohort.py`) |
+| `rehearsal_common.sh` | Shared shell helpers: `rlib`, `db_query`, partner census, VanillaSoft ref census |
 | `weblead_e2e.sh` | Gate 5 helper (called by run.sh) |
 | `erp_slice.sh` | Gate 6 helper (called by run.sh) |
 | `payloads/cognito_hot.json` | Proven HOT Cognito webhook body |
-| `crm_100.py` | Historical note; Gate 7 is `make import-vanillasoft` in run.sh |
+| `crm_100.py` | Historical note; Gate 7 is `make import-vanillasoft` (history mode) in run.sh |
 | `expected/blockers.yaml` | Blockers that may make a verdict `blocked`, and design-scope notes |
 | `test_rehearsal_kit_lib.py` | Every fail-closed branch of the proof checks and the verdict |
-| `test_rehearsal_scripts.py` | The real scripts in a throwaway git repo with stubbed make/docker/curl/test_env |
+| `test_rehearsal_scripts.py` | The real scripts in a throwaway git repo with stubbed make/docker/curl/test_env, plus the real Makefile import targets against a stub docker (mode selection, forwarding, refusals, legacy-path injection) |
 | `test_erp_census_source.py` | Census `payload_kind` and the Gate 6 database source |
 | `test_rehearsal_web_lead_receipt.py` | Gate 5 scores `decision` `hot` and `state` `intake_created` |
 | `evidence/` | Per-run dated evidence subfolders (local) |

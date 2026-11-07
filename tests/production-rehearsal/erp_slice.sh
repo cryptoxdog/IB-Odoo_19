@@ -128,8 +128,16 @@ printf '%s\n' "SELECT json_build_object(
 if ! rlib scan-secrets "${EVIDENCE_DIR}" --env ERP_SQL_PASSWORD; then
   gate6 FAIL "evidence-secret-redacted" "the ERP reader password appeared in evidence and was redacted"
 fi
+# The receipt names the one execution path (target, driver, dispatcher, source,
+# bounds, database, revision) and reads the driver's own trace lines from the
+# import log; a log without them is a failure, never a pass.
+RELEASE_SHA="$(git -C "${ROOT}" rev-parse --verify --quiet 'HEAD^{commit}' || true)"
 rlib check-erp "${EVIDENCE_DIR}" \
   --summary "${SUMMARY_FILE}" \
   --import-exit "${IMPORT_EXIT}" \
   --layers "${LAYERS_FILE}" \
+  --log "${IMPORT_LOG}" \
+  --database "${DB}" \
+  --limit "10%" \
+  --release-sha "${RELEASE_SHA}" \
   --run-started "${RUN_STARTED_UTC:-}"

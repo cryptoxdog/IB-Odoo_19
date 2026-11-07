@@ -31,26 +31,53 @@ blockers:
       not run and the contact import is unproven.
     severity: error
 
-  - id: vanillasoft-empty-window
+  - id: vanillasoft-history-census-unbound
     gate: 7
     verdict_effect: blocked
     status: open
-    step: make import-vanillasoft over the seven-day call and contact floor
+    step: VANILLASOFT_HISTORY_CENSUS unset in the rehearsal environment
     reason: >
-      The bounded window landed no contact. An empty window proves nothing
-      about the positive contact import; the window is never widened to
-      manufacture a pass.
-    severity: warning
+      The approved 4,876-ContactID census is an operator runtime input. The kit
+      never generates, substitutes or shrinks one; without it history mode
+      cannot start and the contact import is unproven.
+    severity: error
 
-  - id: vanillasoft-scope-notice-partial
+  - id: vanillasoft-history-digest-unbound
     gate: 7
     verdict_effect: blocked
     status: open
-    step: import-vanillasoft summary final_status partial with only informational scope notices
+    step: VANILLASOFT_HISTORY_CENSUS_SHA256 unset in the rehearsal environment
     reason: >
-      plasticos_crm_sync business_acceptance is FAIL for any partial. A partial
-      whose only causes are informational scope notices (no rejected row, no
-      required mapping) needs operator review before it can count.
+      The census is used only against the SHA-256 the operator declared
+      independently; the kit never computes a digest to declare.
+    severity: error
+
+  - id: vanillasoft-history-harness-unforwarded
+    gate: 7
+    verdict_effect: blocked
+    status: open
+    step: scripts/test_env.sh run (parse_run) forwards only VANILLASOFT_CALL_FLOOR / CONTACT_FLOOR / REPORT_PATH to make import-vanillasoft and requires both floors
+    reason: >
+      The verified-clone harness does not yet admit the history settings
+      (VANILLASOFT_HISTORY_CENSUS, _CENSUS_SHA256, _CHECKPOINT, _MAX_IDS,
+      _FAILURE_BUDGET) and still demands a rolling floor, which history mode
+      refuses. The harness is owned outside the kit (contract U-04); Gate 7
+      does not route around it, and a run outside the harness is not a
+      rehearsal of the verified clone.
+    severity: error
+    observed: 2026-11-07
+
+  - id: vanillasoft-history-sample-no-import
+    gate: 7
+    verdict_effect: blocked
+    status: open
+    step: bounded history session landed no durable ContactID on the clone
+    reason: >
+      The first REHEARSAL_HISTORY_MAX_IDS planned ids of the frozen cohort
+      produced no durable external ref (all held behind missing ERP people,
+      or nothing fetched). That proves nothing about the positive import;
+      the cohort order and selection are never changed to manufacture one
+      (contract U-03).
     severity: warning
 
   - id: erp-proof-files-missing
@@ -144,12 +171,16 @@ blockers:
       is a separate operator task. All partner layers always run in full.
     severity: expected
 
-  - id: vanillasoft-seven-day-window
+  - id: vanillasoft-history-bounded-sample
     gate: 7
     status: by-design
-    step: Bounded VanillaSoft import via make import-vanillasoft
+    step: make import-vanillasoft in history mode, VANILLASOFT_HISTORY_MAX_IDS=REHEARSAL_HISTORY_MAX_IDS (default 100)
     reason: >
-      The rehearsal sets VANILLASOFT_CALL_FLOOR and VANILLASOFT_CONTACT_FLOOR
-      to seven days ago. It is a time window, not a 100-contact cap. A full
-      VanillaSoft import is a separate operator task.
+      The rehearsal fetches a bounded prefix of the frozen cohort through the
+      same history driver production uses, with a fresh ledger in the evidence
+      folder. A PASS means the sample exercised the pipeline; the receipt
+      records fetched, imported, held, skipped and undispositioned counts and
+      never claims HISTORICAL_SNAPSHOT_COMPLETE, historical_data_complete,
+      LIVE_DELTA_COMPLETENESS or FULL_CURRENT_CONTACT_COVERAGE. The full
+      cohort is a separate operator session with its durable ledger.
     severity: expected

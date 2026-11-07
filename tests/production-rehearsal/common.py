@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import importlib.util
 import json
 import os
@@ -36,8 +37,33 @@ from pathlib import Path
 KIT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = KIT_DIR.parents[1]
 VALIDATOR = REPO_ROOT / "scripts" / "validate_import_summary.py"
-CRM_SUMMARY = REPO_ROOT / "plasticos_crm_sync" / "services" / "import_summary.py"
+CRM_COHORT = REPO_ROOT / "plasticos_crm_sync" / "services" / "historical_cohort.py"
 BLOCKERS = KIT_DIR / "expected" / "blockers.yaml"
+
+# The one execution path each gate must observe: the Make target, the shell
+# driver it pipes into `odoo shell`, and the service that driver dispatches to.
+# Production runs the same target and driver; the rehearsal differs only in the
+# database, the bounds, the credentials and where the evidence lands.
+ERP_EXECUTION_PATH = {
+    "make_target": "import-erp",
+    "driver": "plasticos_partner_import/scripts/import_erp_shell.py",
+    "dispatcher": "plasticos.erp.import (plasticos_partner_import/models/erp_import_service.py)",
+    "commercial_extension": "plasticos_transaction/models/legacy_erp_import_service.py (_inherit plasticos.erp.import)",
+    "source": "restored ERP SQL Server database (reader.PayloadKind.DATABASE)",
+}
+VS_EXECUTION_PATH = {
+    "make_target": "import-vanillasoft",
+    "driver": "plasticos_crm_sync/scripts/import_vanillasoft_shell.py",
+    "dispatcher": "history() → SyncOrchestrator.upsert_contact_external_id, one ContactID at a time",
+    "source": "operator-supplied frozen 4,876-ContactID census + VanillaSoft API",
+}
+# Lines the drivers themselves print; the gate reads them as the runtime trace.
+ERP_SOURCE_LINE = "ERP source: direct database read ("
+ERP_VERDICT_LINE = "DATA VERDICT "
+VS_AUDIT_PREFIX = "VANILLASOFT_HISTORY_AUDIT "
+VS_VERDICT_PREFIX = "HISTORY VERDICT "
+VS_ROLLING_BANNER = "=== VANILLASOFT IMPORT SUMMARY ==="
+VS_STOP_OK = (None, "max_ids")
 
 GATES: tuple[tuple[int, str], ...] = (
     (1, "branch-identity"),
@@ -139,6 +165,9 @@ def _load_module(name: str, path: Path):
     if spec is None or spec.loader is None:
         raise ProofError(f"cannot load {path}")
     module = importlib.util.module_from_spec(spec)
+    # Registered before execution: a dataclass in the owner module resolves its
+    # annotations through sys.modules.
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -148,9 +177,17 @@ def validate_import_summary(summary: dict) -> list[str]:
     return list(_load_module("_rehearsal_summary_validator", VALIDATOR).validate_summary(summary))
 
 
-def crm_business_acceptance(summary: dict) -> str:
-    """Owner acceptance of a VanillaSoft summary (``plasticos_crm_sync.services.import_summary``)."""
-    return _load_module("_rehearsal_crm_summary", CRM_SUMMARY).business_acceptance(summary)
+def crm_cohort():
+    """The history owner (``plasticos_crm_sync.services.historical_cohort``): cohort size, classes, partition."""
+    return _load_module("_rehearsal_crm_cohort", CRM_COHORT)
+
+
+def sha256_file(path: Path | str) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 16), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _int(value: object) -> int | None:
@@ -496,6 +533,15 @@ def check_weblead_persistence(
 ERP_LAYERS = ("counterparties", "addresses", "contacts")
 
 
+def _read_text(path: Path | str | None) -> str | None:
+    if not path:
+        return None
+    try:
+        return Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+
+
 def check_erp(
     summary_path: Path | str,
     census_path: Path | str,
@@ -503,18 +549,36 @@ def check_erp(
     import_exit: int,
     layers: dict | None,
     run_started: str | None = None,
+    log_text: str | None = None,
+    database: str = "",
+    limit: str = "",
+    release_sha: str = "",
 ) -> dict:
-    """Judge a ``make import-erp`` run from its own summary, census and the clone's layer counts."""
+    """Judge a ``make import-erp`` run from its own summary, census, log and the clone's layer counts.
+
+    ``log_text`` is the importer's stdout (``05-erp-import.log``): the driver
+    prints ``ERP source: direct database read (...)`` only when it selected
+    the SQL source, and ``DATA VERDICT`` only for an applied run, so both are
+    the runtime trace of the one canonical path (``ERP_EXECUTION_PATH``).
+    ``None`` means the log was not read, which is a failure, not a pass.
+    """
+    execution_path = {**ERP_EXECUTION_PATH, "database": database, "limit": limit, "release_sha": release_sha}
     if import_exit != 0:
-        return _result("FAIL", "erp-import-exit", f"import-erp exited {import_exit}", import_exit=import_exit)
+        return _result(
+            "FAIL",
+            "erp-import-exit",
+            f"import-erp exited {import_exit}",
+            import_exit=import_exit,
+            execution_path=execution_path,
+        )
     try:
         summary = load_json_file(summary_path, "ERP summary")
     except ProofError as exc:
-        return _result("FAIL", "erp-summary-unreadable", str(exc))
+        return _result("FAIL", "erp-summary-unreadable", str(exc), execution_path=execution_path)
     try:
         census = load_json_file(census_path, "ERP census")
     except ProofError as exc:
-        return _result("FAIL", "erp-census-unreadable", str(exc))
+        return _result("FAIL", "erp-census-unreadable", str(exc), execution_path=execution_path)
 
     failures = [(f"erp-{code}", text) for code, text in _common_summary_failures(summary, "erp", run_started)]
     kind = census.get("payload_kind")
@@ -522,6 +586,13 @@ def check_erp(
         failures.append(("erp-source-not-database", f"payload_kind={kind!r}; Gate 6 accepts only database"))
     if not str(census.get("source_origin") or "").strip():
         failures.append(("erp-source-unattributed", "census source_origin is empty"))
+    if log_text is None:
+        failures.append(("erp-log-unreadable", "the import log was not read; the driver trace is unproven"))
+    else:
+        if ERP_SOURCE_LINE not in log_text:
+            failures.append(("erp-dispatcher-unobserved", "the driver never reported a direct database read"))
+        if ERP_VERDICT_LINE not in log_text:
+            failures.append(("erp-verdict-unobserved", "the driver printed no DATA VERDICT; the run was not applied"))
 
     status = summary.get("final_status")
     unresolved = census.get("unresolved")
@@ -564,11 +635,14 @@ def check_erp(
         "final_status": status,
         "disposition": disposition,
         "payload_kind": kind,
+        "source_origin": census.get("source_origin"),
         "records_seen": summary.get("records_seen"),
         "records_created": summary.get("records_created"),
         "records_rejected": summary.get("records_rejected"),
         "unresolved": len(unresolved) if isinstance(unresolved, list) else None,
         "layers": layer_counts,
+        "execution_path": execution_path,
+        "scope": "newest 10% of transaction worksheets; every partner layer; not a full historical import",
     }
     if failures:
         facts["failure_codes"] = [code for code, _text in failures]
@@ -576,70 +650,243 @@ def check_erp(
     return _result("PASS", f"erp-{disposition}", "", **facts)
 
 
-# ── Gate 7: VanillaSoft ─────────────────────────────────────────────────────
+# ── Gate 7: VanillaSoft historical cohort (bounded) ─────────────────────────
 
 
-def check_vanillasoft(
-    summary_path: Path | str,
+def _audit_events(log_text: str) -> list[dict]:
+    """The ``crm_history.*`` audit records the history driver prints, in order."""
+    events = []
+    for line in log_text.splitlines():
+        if line.startswith(VS_AUDIT_PREFIX):
+            with contextlib.suppress(ValueError):
+                record = json.loads(line[len(VS_AUDIT_PREFIX) :])
+                if isinstance(record, dict):
+                    events.append(record)
+    return events
+
+
+def _history_report_shape(report: dict, cohort) -> list[str]:
+    """Why ``report`` is not a ``historical_cohort.report`` document (empty when it is)."""
+    problems = []
+    classes = report.get("classes")
+    if _int(report.get("cohort")) != cohort.COHORT:
+        problems.append(f"cohort={report.get('cohort')!r}, expected {cohort.COHORT}")
+    if not isinstance(classes, dict) or set(classes) != set(cohort.CLASSES):
+        problems.append("classes is not the owner's class set")
+        classes = {}
+    for name, count in classes.items():
+        if _int(count) is None or count < 0:
+            problems.append(f"classes.{name} is not a count")
+    by_decision = report.get("by_decision")
+    if not isinstance(by_decision, dict) or set(by_decision) != set(cohort.PARTITION):
+        problems.append("by_decision is not the YES/NO/PENDING partition")
+    for key in (
+        "dispositioned",
+        "undispositioned",
+        "dispositions_without_a_source_reason",
+        "imported_with_error_signals",
+    ):
+        if _int(report.get(key)) is None or report[key] < 0:
+            problems.append(f"{key} is not a count")
+    for key in ("HISTORICAL_SNAPSHOT_COMPLETE", "historical_data_complete"):
+        if not isinstance(report.get(key), bool):
+            problems.append(f"{key} is not a boolean")
+    for key in ("LIVE_DELTA_COMPLETENESS", "FULL_CURRENT_CONTACT_COVERAGE", "census_sha256"):
+        if key not in report:
+            problems.append(f"{key} is missing")
+    if report.get("stopped") is not None and report.get("stopped") not in cohort_stop_values():
+        problems.append(f"stopped={report.get('stopped')!r} is not a stop reason")
+    if not problems and sum(classes.values()) != report["dispositioned"]:
+        problems.append("classes do not sum to dispositioned")
+    if not problems and report["dispositioned"] + report["undispositioned"] != cohort.COHORT:
+        problems.append("dispositioned + undispositioned != cohort")
+    return problems
+
+
+def cohort_stop_values() -> tuple[str, ...]:
+    return ("max_ids", "auth", "budget")
+
+
+def _read_ledger(path: Path | str | None, cohort, *, census_sha256: str) -> tuple[dict | None, list[dict], str]:
+    """``(header, rows, problem)`` of the checkpoint ledger; ``problem`` is empty when it is trustworthy."""
+    if not path:
+        return None, [], "no ledger path"
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        return None, [], f"ledger unreadable: {exc}"
+    try:
+        header = json.loads(lines[0])
+    except (IndexError, ValueError):
+        return None, [], "ledger has no readable header"
+    if not isinstance(header, dict) or header.get("kind") != cohort.LEDGER_HEADER_KIND:
+        return header, [], "ledger header is not a cohort ledger header"
+    if header.get("version") != cohort.LEDGER_VERSION:
+        return header, [], f"ledger version {header.get('version')!r} is not {cohort.LEDGER_VERSION}"
+    if header.get("census_sha256") != census_sha256:
+        return header, [], "ledger belongs to another census"
+    rows = []
+    for position, line in enumerate(lines[1:], start=2):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            return header, rows, f"ledger line {position} is not JSON"
+        if not isinstance(row, dict) or row.get("class") not in cohort.CLASSES:
+            return header, rows, f"ledger line {position} is not a cohort disposition"
+        rows.append(row)
+    return header, rows, ""
+
+
+def check_vanillasoft_history(
+    report_path: Path | str,
     *,
     import_exit: int,
-    contacts_landed: int | None,
+    ledger_path: Path | str | None,
+    log_text: str | None,
+    refs_before: int | None,
+    refs_after: int | None,
+    census_sha256: str,
+    database: str,
+    max_ids: int | None,
     run_started: str | None = None,
+    release_sha: str = "",
 ) -> dict:
-    """Judge a ``make import-vanillasoft`` run: exit code, summary contract, owner acceptance, landed contacts."""
-    if import_exit == 2:
-        return _result("FAIL", "vanillasoft-preflight-failed", "import-vanillasoft preflight refused (exit 2)")
-    if import_exit != 0:
-        return _result("FAIL", "vanillasoft-import-exit", f"import-vanillasoft exited {import_exit}")
-    try:
-        summary = load_json_file(summary_path, "VanillaSoft summary")
-    except ProofError as exc:
-        return _result("FAIL", "vanillasoft-summary-unreadable", str(exc))
+    """Judge a bounded ``make import-vanillasoft`` history session on the clone.
 
-    common = _common_summary_failures(summary, "vanillasoft", run_started)
-    hard = [(f"vanillasoft-{code}", text) for code, text in common if code != "summary-empty"]
-    if hard:
-        return _result("FAIL", hard[0][0], "; ".join(text for _c, text in hard))
+    A ``PASS`` means only that the authorized sample exercised the production
+    pipeline: history mode was admitted on this database for this census, every
+    fetched ContactID has a source-attributed disposition, none failed, and at
+    least one landed durably. It never asserts the cohort is complete.
+    """
+    cohort = crm_cohort()
+    execution_path = {
+        **VS_EXECUTION_PATH,
+        "database": database,
+        "census_sha256": census_sha256,
+        "max_ids": max_ids,
+        "release_sha": release_sha,
+    }
+    bounds = {
+        "scope": "bounded sample of the frozen cohort; not historical completeness",
+        "full_cohort_claimed": False,
+        "max_ids": max_ids,
+    }
+    base = {"execution_path": execution_path, **bounds}
+    if import_exit == 2:
+        return _result("FAIL", "vanillasoft-preflight-failed", "import-vanillasoft refused (exit 2)", **base)
+    if import_exit != 0:
+        return _result("FAIL", "vanillasoft-history-import-exit", f"import-vanillasoft exited {import_exit}", **base)
+    try:
+        report = load_json_file(report_path, "history report")
+    except ProofError as exc:
+        return _result("FAIL", "vanillasoft-history-report-unreadable", str(exc), **base)
+
+    failures: list[tuple[str, str]] = []
+    problems = _history_report_shape(report, cohort)
+    if problems:
+        return _result("FAIL", "vanillasoft-history-report-shape", "; ".join(problems[:5]), **base)
+    classes = report["classes"]
+    if str(report.get("census_sha256") or "").lower() != census_sha256:
+        failures.append(("vanillasoft-history-census-mismatch", "the report names another census"))
+    if report.get("stopped") == "auth":
+        failures.append(("vanillasoft-history-credential-rejected", "VanillaSoft rejected the credential"))
+    elif report.get("stopped") == "budget":
+        failures.append(("vanillasoft-history-failure-budget", "the consecutive failure budget stopped the run"))
+    if report["dispositions_without_a_source_reason"]:
+        failures.append(
+            (
+                "vanillasoft-history-unexplained-dispositions",
+                f"{report['dispositions_without_a_source_reason']} dispositions carry no source reason",
+            )
+        )
+    if report["imported_with_error_signals"]:
+        failures.append(
+            (
+                "vanillasoft-history-imported-with-errors",
+                f"{report['imported_with_error_signals']} imported ids logged ERROR",
+            )
+        )
+    if classes[cohort.GENUINE_FAILED]:
+        failures.append(("vanillasoft-history-genuine-failures", f"{classes[cohort.GENUINE_FAILED]} ContactIDs failed"))
+
+    header, rows, ledger_problem = _read_ledger(ledger_path, cohort, census_sha256=census_sha256)
+    fetched = sum(1 for row in rows if row.get("importer_outcome") != "not_fetched")
+    if ledger_problem:
+        failures.append(("vanillasoft-history-ledger-invalid", ledger_problem))
+    elif len(rows) != report["dispositioned"]:
+        failures.append(
+            (
+                "vanillasoft-history-ledger-mismatch",
+                f"{len(rows)} ledger rows != {report['dispositioned']} dispositioned",
+            )
+        )
+
+    admitted = None
+    if log_text is None:
+        failures.append(("vanillasoft-history-log-unreadable", "the import log was not read"))
+    else:
+        events = _audit_events(log_text)
+        admitted = next((e for e in events if e.get("event") == "crm_history.admitted"), None)
+        if VS_ROLLING_BANNER in log_text:
+            failures.append(("vanillasoft-rolling-mode-observed", "the driver ran the rolling full import"))
+        if admitted is None:
+            failures.append(("vanillasoft-history-not-admitted", "no crm_history.admitted audit event"))
+        else:
+            if admitted.get("database") != database:
+                failures.append(("vanillasoft-history-wrong-database", f"admitted on {admitted.get('database')!r}"))
+            if admitted.get("census_sha256") != census_sha256:
+                failures.append(("vanillasoft-history-admitted-other-census", "admitted for another census"))
+            if admitted.get("permit") is not False:
+                failures.append(("vanillasoft-history-permit-used", "a permit was consumed on the rehearsal clone"))
+        if VS_VERDICT_PREFIX not in log_text:
+            failures.append(("vanillasoft-history-verdict-unobserved", "the driver printed no HISTORY VERDICT"))
+
+    landed = None
+    if refs_before is None or refs_after is None:
+        failures.append(("vanillasoft-history-refs-unavailable", "durable external refs were not read back"))
+    else:
+        landed = refs_after - refs_before
+        if landed < classes[cohort.IMPORTED]:
+            failures.append(
+                (
+                    "vanillasoft-history-durable-mismatch",
+                    f"{landed} refs landed on the clone but the report counts {classes[cohort.IMPORTED]} imported",
+                )
+            )
 
     facts = {
-        "final_status": summary.get("final_status"),
-        "records_seen": summary.get("records_seen"),
-        "records_rejected": summary.get("records_rejected"),
-        "contacts_landed": contacts_landed,
+        **base,
+        "fetched": fetched,
+        "attempted": classes[cohort.IMPORTED] + classes[cohort.HELD] + classes[cohort.GENUINE_FAILED],
+        "imported": classes[cohort.IMPORTED],
+        "held": classes[cohort.HELD],
+        "duplicate_skipped": classes[cohort.DUPLICATE_SKIPPED],
+        "genuine_failed": classes[cohort.GENUINE_FAILED],
+        "dispositioned": report["dispositioned"],
+        "undispositioned": report["undispositioned"],
+        "stopped": report.get("stopped"),
+        "historical_snapshot_complete": report["HISTORICAL_SNAPSHOT_COMPLETE"],
+        "durable_refs_before": refs_before,
+        "durable_refs_after": refs_after,
+        "durable_refs_landed": landed,
+        "ledger_rows": len(rows),
+        "ledger_database_uuid": (header or {}).get("database_uuid"),
+        "admitted": admitted is not None,
     }
-    if contacts_landed is None:
-        return _result("FAIL", "vanillasoft-contact-census-unavailable", "landed contacts were not read", **facts)
-    if summary["records_seen"] == 0 or contacts_landed == 0:
+    if failures:
+        facts["failure_codes"] = [code for code, _text in failures]
+        return _result("FAIL", failures[0][0], "; ".join(text for _c, text in failures), **facts)
+    if fetched == 0 or classes[cohort.IMPORTED] == 0 or not landed:
         return _result(
             "BLOCKED",
-            "vanillasoft-empty-window",
-            "the seven-day window imported no contact; the positive contact import is unproven",
+            "vanillasoft-history-sample-no-import",
+            "the bounded sample landed no durable import; the positive contact import is unproven and "
+            "the cohort order is never changed to manufacture one",
             **facts,
         )
-
-    status = summary.get("final_status")
-    if crm_business_acceptance(summary) == "PASS":
-        return _result("PASS", "vanillasoft-success", "", **facts)
-    errors = summary.get("errors") or []
-    scope_only = (
-        status == "partial"
-        and summary["records_rejected"] == 0
-        and errors
-        and all(row.get("informational") is True for row in errors)
-    )
-    if scope_only:
-        return _result(
-            "BLOCKED",
-            "vanillasoft-scope-notice-partial",
-            "partial on informational scope notices only; owner business acceptance is FAIL",
-            **facts,
-        )
-    return _result(
-        "FAIL",
-        "vanillasoft-business-acceptance",
-        f"final_status={status}; rejected={summary['records_rejected']}; errors={len(errors)}",
-        **facts,
-    )
+    return _result("PASS", "vanillasoft-history-sample-exercised", "", **facts)
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────
@@ -705,6 +952,9 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("count")
     p.add_argument("file")
 
+    p = sub.add_parser("sha256")
+    p.add_argument("file")
+
     p = sub.add_parser("check-weblead")
     p.add_argument("evidence_dir")
     p.add_argument("--gate", type=int, default=5)
@@ -718,14 +968,25 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--import-exit", type=int, required=True)
     p.add_argument("--layers")
     p.add_argument("--run-started")
+    p.add_argument("--log", help="the importer's stdout; the driver's own source and verdict lines are the trace")
+    p.add_argument("--database", default="")
+    p.add_argument("--limit", default="")
+    p.add_argument("--release-sha", default="")
 
-    p = sub.add_parser("check-vanillasoft")
+    p = sub.add_parser("check-vanillasoft-history")
     p.add_argument("evidence_dir")
     p.add_argument("--gate", type=int, default=7)
-    p.add_argument("--summary", required=True)
+    p.add_argument("--report", required=True, help="the history driver's verdict JSON (VANILLASOFT_REPORT_PATH)")
     p.add_argument("--import-exit", type=int, required=True)
-    p.add_argument("--contacts-file")
+    p.add_argument("--ledger", help="the append-only checkpoint written for this run")
+    p.add_argument("--log", help="the importer's stdout; the audit and verdict lines are the trace")
+    p.add_argument("--refs-before")
+    p.add_argument("--refs-after")
+    p.add_argument("--census-sha256", required=True)
+    p.add_argument("--database", required=True)
+    p.add_argument("--max-ids", type=int)
     p.add_argument("--run-started")
+    p.add_argument("--release-sha", default="")
 
     args = parser.parse_args(argv)
 
@@ -778,6 +1039,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"invalid count: {exc}", file=sys.stderr)
             return 2
         return 0
+    if args.command == "sha256":
+        try:
+            print(sha256_file(args.file))
+        except OSError as exc:
+            print(f"unreadable: {exc}", file=sys.stderr)
+            return 2
+        return 0
     if args.command == "check-weblead":
         try:
             docs = {
@@ -812,17 +1080,37 @@ def main(argv: list[str] | None = None) -> int:
             import_exit=args.import_exit,
             layers=_read_layers(args.layers),
             run_started=args.run_started,
+            log_text=_read_text(args.log),
+            database=args.database,
+            limit=args.limit,
+            release_sha=args.release_sha,
         )
-        return _emit_result(args, result, [summary.name, census.name], True)
-    if args.command == "check-vanillasoft":
-        contacts = None
-        if args.contacts_file:
+        evidence = [summary.name, census.name] + ([Path(args.log).name] if args.log else [])
+        return _emit_result(args, result, evidence, True)
+    if args.command == "check-vanillasoft-history":
+
+        def _count(path: str | None) -> int | None:
+            if not path:
+                return None
             with contextlib.suppress(OSError, ProofError):
-                contacts = parse_count(Path(args.contacts_file).read_text(encoding="utf-8"))
-        result = check_vanillasoft(
-            args.summary, import_exit=args.import_exit, contacts_landed=contacts, run_started=args.run_started
+                return parse_count(Path(path).read_text(encoding="utf-8"))
+            return None
+
+        result = check_vanillasoft_history(
+            args.report,
+            import_exit=args.import_exit,
+            ledger_path=args.ledger,
+            log_text=_read_text(args.log),
+            refs_before=_count(args.refs_before),
+            refs_after=_count(args.refs_after),
+            census_sha256=args.census_sha256.strip().lower(),
+            database=args.database,
+            max_ids=args.max_ids,
+            run_started=args.run_started,
+            release_sha=args.release_sha,
         )
-        return _emit_result(args, result, [Path(args.summary).name], True)
+        evidence = [Path(p).name for p in (args.report, args.ledger, args.log) if p]
+        return _emit_result(args, result, evidence, True)
     return 2
 
 

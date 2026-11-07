@@ -84,6 +84,34 @@ claims `ready`.
   - exactly one `crm.lead` has `source_intake_id` = that intake; it is the linked one, `type = opportunity`, active, unassigned (`user_id` empty), no partner, and its stage is not Won
 - Do NOT mock `evaluate_economic_opportunity`; a cold decision is a failure
 
+## Execution-path parity (Gates 6 and 7)
+
+Production and the rehearsal run the same `make` target, the same shell
+driver piped into `odoo shell`, and the same dispatcher and mappers, at the
+same revision. They differ only in the target database, the authorized
+permit, the bounded volume, the source credentials, and where the report and
+ledger land. Each gate receipt carries `facts.execution_path` naming the
+target, driver, dispatcher, source, bounds, database and `release_sha`, and
+the gate reads the driver's own trace lines from the import log rather than
+trusting the exit code.
+
+| Source | Make target | Driver | Dispatcher | Production | Rehearsal |
+|--------|-------------|--------|------------|------------|-----------|
+| ERP | `make import-erp` | `plasticos_partner_import/scripts/import_erp_shell.py` | `plasticos.erp.import` (`erp_import_service.py`), extended by the active `plasticos_transaction/models/legacy_erp_import_service.py` for `sale.order` / `purchase.order` / `account.move` | two one-use permits (`erp_partners`, then `erp_commercial`), full volume, `ERP_REQUIRE_EMPTY` guard | no permit, `LIMIT=10%`, `odoo_test_cutover`, same guard |
+| VanillaSoft history | `make import-vanillasoft` with `VANILLASOFT_HISTORY_CENSUS` | `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` → `history()` | `SyncOrchestrator.upsert_contact_external_id`, one ContactID at a time, durable `plasticos.crm.external.ref` rows decide | `crm_history` permit after a committed `erp_commercial` phase, the whole cohort, operator ledger | no permit, `VANILLASOFT_HISTORY_MAX_IDS=REHEARSAL_HISTORY_MAX_IDS`, ledger in the evidence folder |
+
+Neither target reaches the retired CSV partner importer
+(`partner_import_service.py`, `scripts/run_import.py`), the retired CSV
+transaction importer (`transaction_import_service.py`,
+`scripts/run_transaction_import.py`, the wizard) or a second mapper; the kit
+tests hold that call graph at the candidate revision. `make import-erp`
+refuses to start without `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` and refuses a
+payload root, so the frozen grid is never a silent source. `make
+import-vanillasoft` selects history mode from the census and refuses a call or
+contact floor beside it; the rolling window (`VANILLASOFT_CALL_FLOOR`, owned
+by `orchestrator.run_full_import` for range reconciliation) is a separately
+named mode, never a fallback for a missing census.
+
 ## Gate 6 — ERP import (10% slice)
 
 - Refused before any read or write when `ODOO_STAGE=production`, `ERP_PRODUCTION_PERMIT` is set, `ERP_REQUIRE_EMPTY` is not `1`, or a payload root is set
@@ -96,19 +124,28 @@ claims `ready`.
 - `final_status`: `success` passes; `failed` fails; `partial` passes only when the census lists source-attributed `unresolved` rows (table, kind, key) and no run-level error (`reconciliation`, `payables_reconciliation`) — receipt disposition `partial-source-explained`
 - The census sibling `<summary>-census.json` has `payload_kind == "database"` and a non-empty `source_origin`. `grid` and `statements` fail the gate
 - Read back from the clone: at least 1 counterparty (`legacy_erp_cp_*`), 1 address (`legacy_erp_address_*`), and 1 contact (`legacy_erp_contact_*`) identity on `res.partner`
+- The import log (`05-erp-import.log`) holds the driver's own `ERP source: direct database read (...)` line (the SQL source was selected by `import_erp_shell.py`) and a `DATA VERDICT` line (the run was applied). A missing or unreadable log is `FAIL`, never a pass
+- The receipt's `facts.execution_path` names target, driver, dispatcher, commercial extension, source, `LIMIT=10%`, database and `release_sha`
 - The kit never writes into the importer's summary or census; a failure is the gate receipt
 
-## Gate 7 — VanillaSoft seven-day window
+## Gate 7 — VanillaSoft historical cohort (bounded sample)
 
 - Runs only when Gate 6 passed; otherwise `SKIPPED gate6-not-passed`
+- Refused before any read or write when `ODOO_STAGE=production`, `VANILLASOFT_PRODUCTION_PERMIT` is set, `VANILLASOFT_CALL_FLOOR` or `VANILLASOFT_CONTACT_FLOOR` is set (`FAIL rolling-floor-refused`: the gate is the historical cohort, never a window), or `VANILLASOFT_HISTORY_CHECKPOINT` is set (`FAIL history-checkpoint-refused`: an operator ledger is never bound to the disposable clone)
+- Operator runtime inputs, read from the environment and never generated, substituted or shrunk by the kit: `VANILLASOFT_HISTORY_CENSUS` (the approved 4,876-ContactID `vanillasoft_contact_id,decision` CSV, inside the checkout because that is the odoo container's only bind mount) and `VANILLASOFT_HISTORY_CENSUS_SHA256` (its independently declared digest). Unset is `BLOCKED` (`vanillasoft-history-census-unbound`, `vanillasoft-history-digest-unbound`); unreadable, outside the checkout, or a file whose SHA-256 is not the declared one is `FAIL`
+- `REHEARSAL_HISTORY_MAX_IDS` (default `100`) bounds the session; it is a cap on fetched ContactIDs in cohort order, never a selection
+- `scripts/test_env.sh run` must forward the history settings to `make import-vanillasoft`; while its `parse_run` admits only the rolling floors the gate is `BLOCKED vanillasoft-history-harness-unforwarded` and nothing runs outside the harness
 - `VANILLASOFT_API_KEY` is bound from Infisical and written into the clone ICP through psql stdin. The value is never on argv, never printed, never stored in the kit or the evidence. Unbound is `BLOCKED vanillasoft-key-unbound`; a failed write is `FAIL`
-- `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover`, with `VANILLASOFT_CALL_FLOOR` and `VANILLASOFT_CONTACT_FLOOR` set to seven days ago. This is a time window, not a 100-contact cap
-- Exit 0 alone proves nothing (the importer exits 0 on `partial`). The gate reads `06-crm-result.json`:
-  - schema-valid, `source == "vanillasoft"`, written after the run started, the census equation closes, `duplicates == 0`
-  - `plasticos_crm_sync.services.import_summary.business_acceptance` is `PASS` → `PASS`
-  - `partial` whose only causes are informational scope notices (no rejected row, no required mapping) → `BLOCKED vanillasoft-scope-notice-partial` (operator review)
-  - any other `partial`, or `failed` → `FAIL`
-- At least one VanillaSoft contact landed (`plasticos.crm.external.ref`, provider `vanillasoft`) at a destination the importer accepts as durable: an ERP person (`res.partner`, crosswalk YES) or a `crm.lead` (`import_vanillasoft_shell._durable_ids`). An empty window is `BLOCKED vanillasoft-empty-window`: it cannot prove the contact import, and the window is never widened to get a pass
+- The clone's `plasticos_crm_sync.cron_crm_sync_all` row is deactivated (the driver refuses an active incremental cron; production takes the same step), and the durable VanillaSoft refs are counted before the run (`06-crm-refs-before.raw`)
+- `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover` with `VANILLASOFT_HISTORY_CENSUS`, `VANILLASOFT_HISTORY_CENSUS_SHA256`, `VANILLASOFT_HISTORY_CHECKPOINT=<evidence>/06-crm-history.jsonl`, `VANILLASOFT_HISTORY_MAX_IDS` and the container report path; no floor is passed. The Makefile places the census and ledger on the bind mount itself
+- Exit 0 alone proves nothing. The gate reads the history driver's report (`06-crm-result.json`), the ledger (`06-crm-history.jsonl`), the log (`06-crm-log.txt`) and the refs after the run (`06-crm-refs-after.raw`):
+  - the report has the `historical_cohort.report` shape: `cohort == 4876`, `classes` over `imported / held / duplicate_skipped / genuine_failed`, `by_decision` over `YES / NO / PENDING`, `dispositioned + undispositioned == cohort`, `stopped` in `null / max_ids / auth / budget`, and `census_sha256` equal to the declared digest. A rolling summary (`records_seen`, …) is `FAIL vanillasoft-history-report-shape`
+  - `stopped` is `auth` or `budget`, `dispositions_without_a_source_reason > 0`, `imported_with_error_signals > 0`, or `genuine_failed > 0` → `FAIL`
+  - the ledger header is a version 1 cohort ledger bound to the declared census, every row is a disposition, and the row count equals `dispositioned` (the ledger is fresh, so the session is exactly what it recorded)
+  - the log holds a `VANILLASOFT_HISTORY_AUDIT` `crm_history.admitted` event for `odoo_test_cutover`, the declared census and `permit: false`, and a `HISTORY VERDICT` line; the rolling banner `=== VANILLASOFT IMPORT SUMMARY ===` is `FAIL vanillasoft-rolling-mode-observed`
+  - refs landed = after − before; fewer than the report's `imported` count is `FAIL`
+  - no fetched id, `imported == 0`, or nothing landed → `BLOCKED vanillasoft-history-sample-no-import`; the cohort order is never changed to manufacture a pass
+- `PASS vanillasoft-history-sample-exercised` means only that the authorized sample exercised the production pipeline. The receipt records `max_ids`, `fetched`, `attempted`, `imported`, `held`, `duplicate_skipped`, `genuine_failed`, `undispositioned`, the durable ref counts and `full_cohort_claimed: false`; it never asserts all 4,876 imported, `historical_data_complete`, `LIVE_DELTA_COMPLETENESS` or `FULL_CURRENT_CONTACT_COVERAGE`
 
 ## Out of scope
 
@@ -117,7 +154,9 @@ claims `ready`.
 - Matching, scoring, offer creation (ERP partners needed first)
 - Promotion merge itself (human decision after `ready` verdict)
 - Full ERP import (100% of transactions) — 10% is sufficient for the rehearsal
-- Application, importer, and SQL Server fixes; the kit only proves
+- The full 4,876-ContactID history session and its durable operator ledger; the rehearsal samples the cohort
+- Mapping fidelity and material-profile cardinality of the imported contacts (a later phase, after command parity)
+- Application, importer, harness (`scripts/test_env.sh`) and SQL Server fixes; the kit only proves
 
 ## Kit constraints
 
