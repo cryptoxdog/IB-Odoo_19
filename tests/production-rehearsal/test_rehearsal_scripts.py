@@ -9,8 +9,11 @@ no side effect. No Docker, database, HTTP server or secret is used.
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -22,6 +25,7 @@ import pytest
 
 KIT = Path(__file__).resolve().parent
 ROOT = KIT.parents[1]
+MAKEFILE = ROOT / "Makefile"
 KIT_FILES = (
     ".gitignore",
     "run.sh",
@@ -35,12 +39,22 @@ KIT_FILES = (
 OWNER_FILES = (
     "scripts/validate_import_summary.py",
     "contracts/schemas/draft/import-run-summary.schema.json",
-    "plasticos_crm_sync/services/import_summary.py",
+    "plasticos_crm_sync/services/historical_cohort.py",
 )
 FAKE_BEARER = "fake-bearer-for-kit-tests-0001"
 FAKE_ERP_PASSWORD = "fake-erp-password-0001"
+CENSUS_REL = ".l9/runtime/census.csv"
+CENSUS_TEXT = "vanillasoft_contact_id,decision\n1,YES\n2,PENDING\n"
+CENSUS_SHA = hashlib.sha256(CENSUS_TEXT.encode()).hexdigest()
+CUTOVER = "odoo_test_cutover"
 
 pytestmark = pytest.mark.skipif(shutil.which("git") is None or shutil.which("bash") is None, reason="needs git+bash")
+
+_spec = importlib.util.spec_from_file_location("rehearsal_kit_common_scripts", KIT / "common.py")
+lib = importlib.util.module_from_spec(_spec)
+assert _spec.loader is not None
+_spec.loader.exec_module(lib)
+cohort = lib.crm_cohort()
 
 # ── stubs ────────────────────────────────────────────────────────────────────
 
@@ -68,7 +82,11 @@ case "$args" in
         if [ -n "${STUB_CENSUS_RC:-}" ]; then echo "ERROR: boom" >&2; exit "$STUB_CENSUS_RC"; fi
         printf '%s\n' "${STUB_CENSUS-0}" ;;
       *legacy_erp_cp_*) cat "$STUB_DIR/layers.json" || exit 1 ;;
-      *plasticos_crm_external_ref*) printf '%s\n' "${STUB_CONTACTS-2}" ;;
+      *plasticos_crm_external_ref*)
+        n="$(cat "$STUB_DIR/refs.n" 2>/dev/null || echo 0)"
+        if [ "$n" = 0 ]; then printf '%s\n' "${STUB_REFS_BEFORE-0}"; else printf '%s\n' "${STUB_REFS_AFTER-3}"; fi
+        echo $((n + 1)) > "$STUB_DIR/refs.n" ;;
+      *"UPDATE ir_cron"*) printf 'cron\n' >> "$STUB_DIR/cron.log" ;;
       *"'web_leads'"*)
         n="$(cat "$STUB_DIR/snap.n" 2>/dev/null || echo 0)"
         cat "$STUB_DIR/snap.$n.json"; echo $((n + 1)) > "$STUB_DIR/snap.n" ;;
@@ -107,6 +125,9 @@ case "$url" in
 esac
 """
 
+# Stands in for the amended verified-clone harness: it forwards the history
+# settings (VANILLASOFT_HISTORY_CENSUS …) and prints what the real drivers
+# print on the paths the gates read as the runtime trace.
 TEST_ENV_STUB = r"""#!/usr/bin/env bash
 printf 'test_env %s\n' "$*" >> "$CALL_LOG"
 sub="$1"
@@ -115,8 +136,16 @@ case "$sub" in
   upgrade) exit "${STUB_TE_UPGRADE_RC:-0}" ;;
   assert-clone) exit "${STUB_TE_ASSERT_RC:-0}" ;;
   run)
+    target=""; db=""; sha=""
     for arg in "$@"; do
       case "$arg" in
+        import-erp|import-vanillasoft) target="$arg" ;;
+        ODOO_DB_NAME=*) db="${arg#*=}" ;;
+        VANILLASOFT_HISTORY_CENSUS_SHA256=*) sha="${arg#*=}" ;;
+        VANILLASOFT_HISTORY_CENSUS=*) [ -r "${STUB_REPO}/${arg#*=}" ] || { echo "census unreadable"; exit 2; } ;;
+        VANILLASOFT_HISTORY_CHECKPOINT=*)
+          if [ -f "$STUB_DIR/06-crm-history.jsonl" ]; then cp "$STUB_DIR/06-crm-history.jsonl" "${STUB_REPO}/${arg#*=}"; fi ;;
+        VANILLASOFT_CALL_FLOOR=*|VANILLASOFT_CONTACT_FLOOR=*) echo "floor given with the census"; exit 2 ;;
         REPORT_PATH=*|VANILLASOFT_REPORT_PATH=*)
           path="${arg#*=}"; host="${STUB_REPO}${path#/mnt/extra-addons}"
           base="$(basename "$host" .json)"
@@ -124,6 +153,17 @@ case "$sub" in
           if [ -f "$STUB_DIR/$base-census.json" ]; then cp "$STUB_DIR/$base-census.json" "$(dirname "$host")/$base-census.json"; fi ;;
       esac
     done
+    if [ "$target" = import-erp ] && [ "${STUB_ERP_TRACE:-1}" = 1 ]; then
+      echo "ERP source: direct database read (stub)"; echo "DATA VERDICT {}"
+    fi
+    if [ "$target" = import-vanillasoft ]; then
+      case "${STUB_VS_TRACE:-history}" in
+        history)
+          printf 'VANILLASOFT_HISTORY_AUDIT {"event": "crm_history.admitted", "database": "%s", "permit": false, "census_sha256": "%s"}\n' "$db" "$sha"
+          echo "HISTORY VERDICT {}" ;;
+        rolling) echo "=== VANILLASOFT IMPORT SUMMARY ===" ;;
+      esac
+    fi
     exit "${STUB_TE_RUN_RC:-0}" ;;
 esac
 exit 0
@@ -218,6 +258,9 @@ class Fixture:
             shutil.copy2(ROOT / rel, self.repo / rel)
         (self.repo / "Makefile").write_text("all:\n", encoding="utf-8")
         (self.repo / "docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
+        # The real repository ignores .l9/runtime/: the census lives there so a
+        # clean tree (Gate 1) and a mounted census (Gate 7) hold together.
+        (self.repo / ".gitignore").write_text(".l9/runtime/\n", encoding="utf-8")
         self._exe(self.repo / "scripts" / "test_env.sh", TEST_ENV_STUB)
         self.kit = kit
 
@@ -255,6 +298,21 @@ class Fixture:
         (target.parent / "__init__.py").write_text("", encoding="utf-8")
         (target.parent.parent / "__init__.py").write_text("", encoding="utf-8")
 
+    def with_history(self, *, report=None, ledger=None) -> dict[str, str]:
+        """Operator census in the (ignored) checkout, the driver's report and ledger the stub will deliver."""
+        census = self.repo / CENSUS_REL
+        census.parent.mkdir(parents=True, exist_ok=True)
+        census.write_text(CENSUS_TEXT, encoding="utf-8")
+        self.stub_json("06-crm-result.json", _history_report() if report is None else report)
+        (self.stub / "06-crm-history.jsonl").write_text(
+            _history_ledger() if ledger is None else ledger, encoding="utf-8"
+        )
+        return {"VANILLASOFT_HISTORY_CENSUS": CENSUS_REL, "VANILLASOFT_HISTORY_CENSUS_SHA256": CENSUS_SHA}
+
+    def ready_for_gate7(self) -> dict[str, str]:
+        self.with_capability_bind()
+        return self.with_history()
+
     def run(self, script: str, *args: str, env: dict | None = None, timeout: int = 25):
         full = {**self.env, **(env or {})}
         return subprocess.run(
@@ -281,6 +339,45 @@ class Fixture:
         return json.loads((self.latest() / "verdict.json").read_text())
 
 
+def _history_report(**over) -> dict:
+    classes = {cohort.IMPORTED: 3, cohort.HELD: 1, cohort.DUPLICATE_SKIPPED: 1, cohort.GENUINE_FAILED: 0}
+    classes.update(over.pop("classes", {}))
+    dispositioned = sum(classes.values())
+    by_decision = {d: dict.fromkeys(cohort.CLASSES, 0) for d in cohort.PARTITION}
+    by_decision["YES"].update(classes)
+    base = {
+        "cohort": cohort.COHORT,
+        "dispositioned": dispositioned,
+        "undispositioned": cohort.COHORT - dispositioned,
+        "classes": classes,
+        "by_decision": by_decision,
+        "dispositions_without_a_source_reason": 0,
+        "imported_with_error_signals": 0,
+        "HISTORICAL_SNAPSHOT_COMPLETE": False,
+        "historical_data_complete": False,
+        "LIVE_DELTA_COMPLETENESS": "NOT_RUN",
+        "FULL_CURRENT_CONTACT_COVERAGE": "UNKNOWN",
+        "stopped": "max_ids",
+        "census_sha256": CENSUS_SHA,
+    }
+    base.update(over)
+    return base
+
+
+def _history_ledger(rows=None) -> str:
+    head = {"kind": "header", "version": 1, "census_sha256": CENSUS_SHA, "database_uuid": "u" * 8, "created_at": "t"}
+    if rows is None:
+        rows = [
+            {"vanillasoft_contact_id": str(i), "class": cohort.IMPORTED, "importer_outcome": "created", "signals": []}
+            for i in (1, 2, 3)
+        ]
+        rows.append({"vanillasoft_contact_id": "4", "class": cohort.HELD, "importer_outcome": "failed", "signals": []})
+        rows.append(
+            {"vanillasoft_contact_id": "5", "class": cohort.DUPLICATE_SKIPPED, "importer_outcome": "not_fetched"}
+        )
+    return "\n".join(json.dumps(line) for line in [head, *rows]) + "\n"
+
+
 @pytest.fixture
 def fx(tmp_path):
     return Fixture(tmp_path, stub_helpers=True)
@@ -290,13 +387,16 @@ def _side_effect_calls(fx: Fixture) -> list[str]:
     return [line for line in fx.calls_text().splitlines() if line.split(" ", 1)[0] in ("make", "docker", "test_env")]
 
 
+def _vs_make_call(fx: Fixture) -> str:
+    return next((line for line in fx.calls_text().splitlines() if "make import-vanillasoft" in line), "")
+
+
 # ── RK-01: revision identity refuses before any side effect ─────────────────
 
 
 def test_clean_exact_staging_all_gates_pass(fx):
-    fx.with_capability_bind()
-    fx.stub_json("06-crm-result.json", _summary("vanillasoft"))
-    result = fx.run("run.sh")
+    env = fx.ready_for_gate7()
+    result = fx.run("run.sh", env=env)
     assert result.returncode == 0, result.stdout + result.stderr
     assert fx.verdict()["verdict"] == "ready"
     assert all(g["state"] == "PASS" for g in fx.gates().values())
@@ -304,6 +404,21 @@ def test_clean_exact_staging_all_gates_pass(fx):
     assert "fake-vanillasoft-key-0001" not in fx.calls_text()
     text = (fx.latest() / "verdict.txt").read_text()
     assert "verdict=ready" in text
+    gate7 = fx.gates()[7]
+    assert gate7["reason"] == "vanillasoft-history-sample-exercised"
+    assert gate7["facts"]["full_cohort_claimed"] is False
+    assert gate7["facts"]["execution_path"]["database"] == CUTOVER
+    assert gate7["facts"]["execution_path"]["release_sha"] == fx.staging_sha
+    # Same target, history mode only: the census and its digest reach make, no floor does.
+    call = _vs_make_call(fx)
+    assert f"VANILLASOFT_HISTORY_CENSUS={CENSUS_REL}" in call
+    assert f"VANILLASOFT_HISTORY_CENSUS_SHA256={CENSUS_SHA}" in call
+    assert "VANILLASOFT_HISTORY_CHECKPOINT=tests/production-rehearsal/evidence/" in call
+    assert "VANILLASOFT_HISTORY_MAX_IDS=100" in call
+    assert f"ODOO_DB_NAME={CUTOVER}" in call
+    assert "FLOOR" not in call
+    assert (fx.latest() / "06-crm-history.jsonl").is_file()
+    assert (fx.stub / "cron.log").read_text().strip() == "cron"
 
 
 @pytest.mark.parametrize("case", ["feature-branch", "ahead", "dirty-untracked", "dirty-tracked", "fetch-fails"])
@@ -375,9 +490,8 @@ def test_gate2_error_without_marker_fails(fx):
 
 
 def test_production_drift_invalidates_readiness(fx):
-    fx.with_capability_bind()
-    fx.stub_json("06-crm-result.json", _summary("vanillasoft"))
-    result = fx.run("run.sh", env={"STUB_DRIFT_SHA": fx.staging_sha})
+    env = fx.ready_for_gate7()
+    result = fx.run("run.sh", env={**env, "STUB_DRIFT_SHA": fx.staging_sha})
     assert result.returncode != 0
     verdict = fx.verdict()
     assert verdict["verdict"] == "failed"
@@ -438,12 +552,13 @@ def test_a_previous_run_does_not_dirty_the_next(fx):
 
 
 def test_gate7_counts_contacts_bound_to_erp_people(fx):
-    fx.with_capability_bind()
-    fx.stub_json("06-crm-result.json", _summary("vanillasoft"))
-    fx.run("run.sh")
+    fx.run("run.sh", env=fx.ready_for_gate7())
     sql = (fx.stub / "sql.log").read_text()
-    contacts = next(block for block in sql.split("----") if "plasticos_crm_external_ref" in block)
-    assert "'res.partner'" in contacts and "'crm.lead'" in contacts
+    blocks = [block for block in sql.split("----") if "plasticos_crm_external_ref" in block]
+    assert len(blocks) == 2, "durable refs are read before and after the import"
+    assert all("'res.partner'" in block and "'crm.lead'" in block for block in blocks)
+    facts = fx.gates()[7]["facts"]
+    assert (facts["durable_refs_before"], facts["durable_refs_after"], facts["durable_refs_landed"]) == (0, 3, 3)
 
 
 def test_gate4_census_counts_inactive_partners(fx):
@@ -472,30 +587,115 @@ def test_helper_without_receipt_is_a_failure(fx):
 
 
 def test_unbound_vanillasoft_key_is_blocked_not_ready(fx):
-    result = fx.run("run.sh")
+    env = fx.with_history()
+    result = fx.run("run.sh", env=env)
     assert result.returncode != 0
     gate7 = fx.gates()[7]
     assert (gate7["state"], gate7["reason"]) == ("BLOCKED", "vanillasoft-key-unbound")
     assert fx.verdict()["verdict"] == "blocked"
+    assert "make import-vanillasoft" not in fx.calls_text()
+
+
+# ── Gate 7: operator inputs and guards are judged before any side effect ────
 
 
 @pytest.mark.parametrize(
-    "summary, env, state, reason",
+    "drop, extra, state, reason, verdict",
     [
-        (None, {}, "FAIL", "vanillasoft-summary-unreadable"),
-        (_summary("vanillasoft", final_status="failed"), {}, "FAIL", "vanillasoft-business-acceptance"),
-        (_summary("vanillasoft"), {"STUB_TE_RUN_RC": "1"}, "FAIL", "vanillasoft-import-exit"),
-        (_summary("vanillasoft"), {"STUB_CONTACTS": "0"}, "BLOCKED", "vanillasoft-empty-window"),
+        ("VANILLASOFT_HISTORY_CENSUS", {}, "BLOCKED", "vanillasoft-history-census-unbound", "blocked"),
+        ("VANILLASOFT_HISTORY_CENSUS_SHA256", {}, "BLOCKED", "vanillasoft-history-digest-unbound", "blocked"),
+        (
+            None,
+            {"VANILLASOFT_HISTORY_CENSUS_SHA256": "0" * 64},
+            "FAIL",
+            "vanillasoft-history-census-digest-mismatch",
+            "failed",
+        ),
+        (
+            None,
+            {"VANILLASOFT_HISTORY_CENSUS": ".l9/runtime/missing.csv"},
+            "FAIL",
+            "vanillasoft-history-census-unreadable",
+            "failed",
+        ),
+        (None, {"VANILLASOFT_CALL_FLOOR": "2020-01-01T00:00:00Z"}, "FAIL", "rolling-floor-refused", "failed"),
+        (None, {"VANILLASOFT_CONTACT_FLOOR": "2020-01-01T00:00:00Z"}, "FAIL", "rolling-floor-refused", "failed"),
+        (None, {"VANILLASOFT_PRODUCTION_PERMIT": "/tmp/permit.json"}, "FAIL", "production-permit-refused", "failed"),
+        (None, {"ODOO_STAGE": "production"}, "FAIL", "production-stage-refused", "failed"),
+        (None, {"VANILLASOFT_HISTORY_CHECKPOINT": "/srv/ledger.jsonl"}, "FAIL", "history-checkpoint-refused", "failed"),
+        (None, {"REHEARSAL_HISTORY_MAX_IDS": "0"}, "FAIL", "vanillasoft-history-bound-invalid", "failed"),
     ],
 )
-def test_gate7_reads_the_summary_not_the_exit_code(fx, summary, env, state, reason):
-    fx.with_capability_bind()
-    if summary is not None:
-        fx.stub_json("06-crm-result.json", summary)
-    fx.run("run.sh", env=env)
+def test_gate7_refuses_before_touching_the_clone(fx, drop, extra, state, reason, verdict):
+    env = fx.ready_for_gate7()
+    if drop:
+        env.pop(drop)
+    env.update(extra)
+    result = fx.run("run.sh", env=env)
+    assert result.returncode != 0
     gate7 = fx.gates()[7]
     assert (gate7["state"], gate7["reason"]) == (state, reason)
+    assert fx.verdict()["verdict"] == verdict
+    assert "make import-vanillasoft" not in fx.calls_text()
+    assert "ir_config_parameter" not in (fx.stub / "sql.log").read_text() if (fx.stub / "sql.log").exists() else True
+
+
+def test_gate7_census_outside_the_checkout_is_refused(fx, tmp_path):
+    env = fx.ready_for_gate7()
+    outside = tmp_path / "elsewhere.csv"
+    outside.write_text(CENSUS_TEXT, encoding="utf-8")
+    env["VANILLASOFT_HISTORY_CENSUS"] = str(outside)
+    fx.run("run.sh", env=env)
+    gate7 = fx.gates()[7]
+    assert (gate7["state"], gate7["reason"]) == ("FAIL", "vanillasoft-history-census-unmounted")
+    assert "make import-vanillasoft" not in fx.calls_text()
+
+
+@pytest.mark.parametrize(
+    "report, ledger, env, state, reason",
+    [
+        (False, None, {}, "FAIL", "vanillasoft-history-report-unreadable"),
+        (_summary("vanillasoft"), None, {}, "FAIL", "vanillasoft-history-report-shape"),
+        (_history_report(census_sha256="e" * 64), None, {}, "FAIL", "vanillasoft-history-census-mismatch"),
+        (_history_report(classes={cohort.GENUINE_FAILED: 2}), None, {}, "FAIL", "vanillasoft-history-genuine-failures"),
+        (_history_report(stopped="budget"), None, {}, "FAIL", "vanillasoft-history-failure-budget"),
+        (None, _history_ledger(rows=[]), {}, "FAIL", "vanillasoft-history-ledger-mismatch"),
+        (None, None, {"STUB_TE_RUN_RC": "1"}, "FAIL", "vanillasoft-history-import-exit"),
+        (None, None, {"STUB_TE_RUN_RC": "2"}, "FAIL", "vanillasoft-preflight-failed"),
+        (None, None, {"STUB_VS_TRACE": "rolling"}, "FAIL", "vanillasoft-rolling-mode-observed"),
+        (None, None, {"STUB_VS_TRACE": "none"}, "FAIL", "vanillasoft-history-not-admitted"),
+        (None, None, {"STUB_REFS_AFTER": "1"}, "FAIL", "vanillasoft-history-durable-mismatch"),
+        (
+            _history_report(classes={cohort.IMPORTED: 0, cohort.HELD: 4}),
+            _history_ledger(
+                [
+                    {"vanillasoft_contact_id": str(i), "class": cohort.HELD, "importer_outcome": "failed"}
+                    for i in range(1, 5)
+                ]
+                + [
+                    {
+                        "vanillasoft_contact_id": "5",
+                        "class": cohort.DUPLICATE_SKIPPED,
+                        "importer_outcome": "not_fetched",
+                    }
+                ]
+            ),
+            {"STUB_REFS_AFTER": "0"},
+            "BLOCKED",
+            "vanillasoft-history-sample-no-import",
+        ),
+    ],
+)
+def test_gate7_reads_the_history_report_ledger_and_trace_not_the_exit_code(fx, report, ledger, env, state, reason):
+    fx.with_capability_bind()
+    hist_env = fx.with_history(report=report if report is not False else None, ledger=ledger)
+    if report is False:
+        (fx.stub / "06-crm-result.json").unlink()
+    fx.run("run.sh", env={**hist_env, **env})
+    gate7 = fx.gates()[7]
+    assert (gate7["state"], gate7["reason"]) == (state, reason), gate7
     assert fx.verdict()["verdict"] != "ready"
+    assert "complete" not in gate7["reason"]
 
 
 def test_sigterm_writes_a_complete_failed_verdict(fx):
@@ -667,11 +867,22 @@ def _run_erp(erp, **env):
 def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     result = _run_erp(erp)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert _gate(erp.evidence, 6)["state"] == "PASS"
+    gate = _gate(erp.evidence, 6)
+    assert gate["state"] == "PASS"
     assert FAKE_ERP_PASSWORD not in erp.calls_text()
     assert "LIMIT=10%" in erp.calls_text()
     summary = json.loads((erp.evidence / "05-erp-summary.json").read_text())
     assert "gate" not in summary
+    path = gate["facts"]["execution_path"]
+    assert (path["make_target"], path["database"], path["limit"]) == ("import-erp", "odoo_test_cutover", "10%")
+    assert path["release_sha"] == erp.staging_sha
+    assert "05-erp-import.log" in gate["evidence"]
+
+
+def test_erp_slice_fails_without_the_drivers_source_line(erp):
+    result = _run_erp(erp, STUB_ERP_TRACE="0")
+    assert result.returncode != 0
+    assert "erp-dispatcher-unobserved" in _gate(erp.evidence, 6)["facts"]["failure_codes"]
 
 
 @pytest.mark.parametrize(
@@ -727,3 +938,328 @@ def test_erp_slice_redacts_a_leaked_password(erp):
     assert result.returncode != 0
     assert _gate(erp.evidence, 6)["reason"] == "evidence-secret-redacted"
     assert FAKE_ERP_PASSWORD not in (erp.evidence / "05-erp-import.log").read_text()
+
+
+# ── Makefile dispatch parity: the real import targets against a stub docker ──
+#
+# `make import-erp` and `make import-vanillasoft` run from a scratch checkout
+# whose `docker` records every compose call (argv and the driver piped on
+# stdin) and whose no-Docker `odoo` records its environment. No container,
+# database or credential is touched. The same recipe lines production runs
+# are the ones under test.
+
+MAKE_DOCKER_STUB = r"""#!/usr/bin/env bash
+[ "$1" = info ] && exit "${STUB_DOCKER_INFO_RC:-0}"
+n="$(ls "$STUB_DIR"/compose.*.argv 2>/dev/null | wc -l | tr -d ' ')"
+printf '%s\n' "$@" > "$STUB_DIR/compose.$n.argv"
+cat > "$STUB_DIR/compose.$n.stdin"
+exit 0
+"""
+MAKE_ODOO_STUB = """#!/usr/bin/env python3
+import json, os, sys
+json.dump({"argv": sys.argv[1:], "env": dict(os.environ), "stdin": sys.stdin.read()}, open(os.environ["ODOO_DUMP"], "w"))
+"""
+ERP_DRIVER = "plasticos_partner_import/scripts/import_erp_shell.py"
+VS_DRIVER = "plasticos_crm_sync/scripts/import_vanillasoft_shell.py"
+RETIRED = (
+    "run_import.py",
+    "run_transaction_import.py",
+    "partner_import_service",
+    "transaction_import_service",
+    "transaction_import_wizard",
+    "run_csv_import",
+    "run_full_import",
+    "action_import",
+)
+SHA64 = "b" * 64
+
+pytestmark_make = pytest.mark.skipif(shutil.which("make") is None, reason="needs make")
+
+
+class MakeProbe:
+    def __init__(self, tmp: Path):
+        self.work = tmp / "work"
+        self.stub = tmp / "stub"
+        self.bin = tmp / "bin"
+        self.venv = tmp / "venv"
+        for path in (self.work / ".l9" / "runtime" / "ledger", self.stub, self.bin, self.venv / "bin"):
+            path.mkdir(parents=True)
+        for addon in ("plasticos_partner_import", "plasticos_crm_sync"):
+            (self.work / addon).symlink_to(ROOT / addon)
+        docker = self.bin / "docker"
+        docker.write_text(MAKE_DOCKER_STUB, encoding="utf-8")
+        docker.chmod(0o755)
+        odoo = self.venv / "bin" / "odoo"
+        odoo.write_text(MAKE_ODOO_STUB, encoding="utf-8")
+        odoo.chmod(0o755)
+        (self.work / CENSUS_REL).write_text(CENSUS_TEXT, encoding="utf-8")
+        (self.work / ".l9" / "runtime" / "permit.json").write_text("{}", encoding="utf-8")
+        self.dump = tmp / "odoo.json"
+
+    def run(self, target: str, *args: str, docker: bool = True, env: dict | None = None):
+        for old in self.stub.glob("compose.*"):
+            old.unlink()
+        base = {
+            k: v
+            for k, v in os.environ.items()
+            if not k.startswith(("ERP_", "VANILLASOFT_", "MAKE", "ODOO_"))
+            and k not in {"MFLAGS", "GNUMAKEFLAGS", "TEST_ENV_VERIFIED_CLONE"}
+        }
+        base["PATH"] = f"{self.bin}{os.pathsep}{base['PATH']}"
+        base["STUB_DIR"] = str(self.stub)
+        base["ODOO_DUMP"] = str(self.dump)
+        if not docker:
+            base["STUB_DOCKER_INFO_RC"] = "1"
+        base.update(env or {})
+        argv = ["make", "-s", "--no-print-directory", "-C", str(self.work), "-f", str(MAKEFILE), target]
+        argv += [*args, "ODOO_DB_NAME=probe_db", f"L9_ODOO_VENV={self.venv}"]
+        return subprocess.run(argv, env=base, capture_output=True, text=True, timeout=120, check=False)  # noqa: S603
+
+    def compose_calls(self) -> list[dict]:
+        calls = []
+        for argv_file in sorted(self.stub.glob("compose.*.argv")):
+            argv = argv_file.read_text(encoding="utf-8").splitlines()
+            flags = {}
+            for i, item in enumerate(argv):
+                if item == "-e" and "=" in argv[i + 1]:
+                    key, value = argv[i + 1].split("=", 1)
+                    flags[key] = value
+            calls.append({"argv": argv, "env": flags, "stdin": argv_file.with_suffix(".stdin").read_text()})
+        return calls
+
+    def odoo_run(self) -> dict | None:
+        return json.loads(self.dump.read_text()) if self.dump.exists() else None
+
+
+@pytest.fixture
+def mk(tmp_path):
+    if shutil.which("make") is None:
+        pytest.skip("needs make")
+    return MakeProbe(tmp_path)
+
+
+HISTORY_ARGS = (
+    f"VANILLASOFT_HISTORY_CENSUS={CENSUS_REL}",
+    f"VANILLASOFT_HISTORY_CENSUS_SHA256={SHA64}",
+    "VANILLASOFT_HISTORY_CHECKPOINT=.l9/runtime/ledger/history.jsonl",
+    "VANILLASOFT_HISTORY_MAX_IDS=100",
+)
+SQL_ARGS = ("ERP_SQL_SERVER=erp-host.invalid", "ERP_SQL_DATABASE=erp_probe")
+
+
+def test_make_import_vanillasoft_history_mode_forwards_every_input_onto_the_mount(mk):
+    result = mk.run(
+        "import-vanillasoft", *HISTORY_ARGS, "VANILLASOFT_HISTORY_FAILURE_BUDGET=5", env={"ODOO_STAGE": "stage-x"}
+    )
+    assert result.returncode == 0, result.stderr
+    assert "mode: history" in result.stdout
+    (call,) = mk.compose_calls()
+    # The permit is verified against the stage the driver observes; compose passes only -e variables.
+    assert call["env"]["ODOO_STAGE"] == "stage-x"
+    assert call["argv"][:3] == ["compose", "run", "--rm"]
+    assert call["argv"][call["argv"].index("-w") + 1] == "/mnt/extra-addons"
+    assert call["env"]["VANILLASOFT_HISTORY_CENSUS"] == f"/mnt/extra-addons/{CENSUS_REL}"
+    assert call["env"]["VANILLASOFT_HISTORY_CENSUS_SHA256"] == SHA64
+    assert call["env"]["VANILLASOFT_HISTORY_CHECKPOINT"] == "/mnt/extra-addons/.l9/runtime/ledger/history.jsonl"
+    assert call["env"]["VANILLASOFT_HISTORY_MAX_IDS"] == "100"
+    assert call["env"]["VANILLASOFT_HISTORY_FAILURE_BUDGET"] == "5"
+    assert call["env"]["VANILLASOFT_PRODUCTION_PERMIT"] == ""
+    assert call["env"]["VANILLASOFT_CALL_FLOOR"] == "" and call["env"]["VANILLASOFT_CONTACT_FLOOR"] == ""
+    assert call["argv"][-5:] == ["odoo", "odoo", "shell", "-d", "probe_db"] or "shell" in call["argv"]
+    assert call["stdin"] == (ROOT / VS_DRIVER).read_text(encoding="utf-8")
+
+
+def test_make_import_vanillasoft_history_mode_on_the_local_runner_passes_host_paths(mk):
+    result = mk.run("import-vanillasoft", *HISTORY_ARGS, docker=False, env={"ODOO_STAGE": "stage-x"})
+    assert result.returncode == 0, result.stderr
+    assert mk.compose_calls() == []
+    run = mk.odoo_run()
+    assert run is not None
+    assert run["env"]["ODOO_STAGE"] == "stage-x"
+    assert run["env"]["VANILLASOFT_HISTORY_CENSUS"] == CENSUS_REL
+    assert run["env"]["VANILLASOFT_HISTORY_CHECKPOINT"] == ".l9/runtime/ledger/history.jsonl"
+    assert run["env"]["VANILLASOFT_HISTORY_CENSUS_SHA256"] == SHA64
+    assert run["env"]["VANILLASOFT_CALL_FLOOR"] == ""
+    assert run["stdin"] == (ROOT / VS_DRIVER).read_text(encoding="utf-8")
+    assert run["argv"][:3] == ["shell", "-d", "probe_db"]
+
+
+def test_make_import_vanillasoft_rolling_mode_is_named_and_carries_no_history_input(mk):
+    result = mk.run("import-vanillasoft", "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z")
+    assert result.returncode == 0, result.stderr
+    assert "mode: rolling" in result.stdout and "not the historical cohort" in result.stdout
+    (call,) = mk.compose_calls()
+    assert call["env"]["VANILLASOFT_CALL_FLOOR"] == "2020-01-01T00:00:00Z"
+    assert all(call["env"][k] == "" for k in call["env"] if k.startswith("VANILLASOFT_HISTORY"))
+    assert call["stdin"] == (ROOT / VS_DRIVER).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "args, needle",
+    [
+        ((), "no mode selected"),
+        ((*HISTORY_ARGS, "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z"), "cannot be combined"),
+        ((*HISTORY_ARGS, "VANILLASOFT_CONTACT_FLOOR=2020-01-01T00:00:00Z"), "cannot be combined"),
+        (
+            ("VANILLASOFT_CALL_FLOOR=x", "VANILLASOFT_HISTORY_MAX_IDS=5"),
+            "history settings without VANILLASOFT_HISTORY_CENSUS",
+        ),
+        (("VANILLASOFT_HISTORY_CENSUS_SHA256=" + SHA64,), "history settings without VANILLASOFT_HISTORY_CENSUS"),
+        ((HISTORY_ARGS[0], "VANILLASOFT_HISTORY_CENSUS_SHA256=abc", HISTORY_ARGS[2]), "64 hex characters"),
+        ((HISTORY_ARGS[0], HISTORY_ARGS[1]), "VANILLASOFT_HISTORY_CHECKPOINT must name"),
+        (
+            (HISTORY_ARGS[0], HISTORY_ARGS[1], "VANILLASOFT_HISTORY_CHECKPOINT=.l9/runtime/absent/x.jsonl"),
+            "must exist and be writable",
+        ),
+        ((*HISTORY_ARGS[1:], "VANILLASOFT_HISTORY_CENSUS=.l9/runtime/absent.csv"), "readable census file"),
+        ((*HISTORY_ARGS, "VANILLASOFT_HISTORY_MAX_IDS=0"), "positive integers"),
+        ((*HISTORY_ARGS, "VANILLASOFT_HISTORY_FAILURE_BUDGET=many"), "positive integers"),
+        ((*HISTORY_ARGS, "VANILLASOFT_PRODUCTION_PERMIT=.l9/runtime/absent-permit.json"), "readable file"),
+    ],
+)
+def test_make_import_vanillasoft_refuses_before_any_runtime_starts(mk, args, needle):
+    result = mk.run("import-vanillasoft", *args)
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert needle in result.stderr
+    assert mk.compose_calls() == []
+    assert mk.odoo_run() is None
+
+
+@pytest.mark.parametrize(
+    "var", ["VANILLASOFT_HISTORY_CENSUS", "VANILLASOFT_HISTORY_CHECKPOINT", "VANILLASOFT_PRODUCTION_PERMIT"]
+)
+def test_make_import_vanillasoft_docker_refuses_a_file_outside_the_bind_mount(mk, tmp_path, var):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "f").write_text(CENSUS_TEXT, encoding="utf-8")
+    args = [a for a in HISTORY_ARGS if not a.startswith(f"{var}=")]
+    args.append(f"{var}={outside / 'f'}")
+    result = mk.run("import-vanillasoft", *args)
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert f"{var} must be inside this checkout" in result.stderr
+    assert mk.compose_calls() == []
+
+
+def test_make_import_erp_forwards_the_permit_and_pipes_only_the_erp_driver(mk):
+    result = mk.run(
+        "import-erp",
+        *SQL_ARGS,
+        "ERP_PRODUCTION_PERMIT=.l9/runtime/permit.json",
+        "LIMIT=10%",
+        env={"ODOO_STAGE": "stage-x"},
+    )
+    assert result.returncode == 0, result.stderr
+    (call,) = mk.compose_calls()
+    assert call["env"]["ERP_PRODUCTION_PERMIT"] == "/mnt/extra-addons/.l9/runtime/permit.json"
+    assert call["env"]["ODOO_STAGE"] == "stage-x"
+    assert "ODOO_STAGE" not in [a.split("=")[0] for a in SQL_ARGS]  # it came from the environment, not argv
+    assert call["env"]["ERP_SQL_SERVER"] == "erp-host.invalid" and call["env"]["ERP_SQL_DATABASE"] == "erp_probe"
+    assert call["env"]["ERP_LIMIT"] == "10%" and call["env"]["ERP_REQUIRE_EMPTY"] == "1"
+    assert call["env"]["ERP_PAYLOAD_ROOT"] == "" and call["env"]["ERP_TARGET_DB"] == "probe_db"
+    assert call["stdin"] == (ROOT / ERP_DRIVER).read_text(encoding="utf-8")
+    assert "plasticos.erp.import" in result.stdout
+
+
+def test_make_import_erp_on_the_local_runner_passes_the_permit_host_path(mk):
+    result = mk.run(
+        "import-erp",
+        *SQL_ARGS,
+        "ERP_PRODUCTION_PERMIT=.l9/runtime/permit.json",
+        docker=False,
+        env={"ODOO_STAGE": "stage-x"},
+    )
+    assert result.returncode == 0, result.stderr
+    run = mk.odoo_run()
+    assert run is not None
+    assert run["env"]["ERP_PRODUCTION_PERMIT"] == ".l9/runtime/permit.json"
+    assert run["env"]["ODOO_STAGE"] == "stage-x"
+    assert run["env"]["ERP_SQL_DATABASE"] == "erp_probe"
+    assert run["stdin"] == (ROOT / ERP_DRIVER).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "args, docker, needle",
+    [
+        ((), True, "ERP_SQL_SERVER and ERP_SQL_DATABASE must both"),
+        ((), False, "ERP_SQL_SERVER and ERP_SQL_DATABASE must both"),
+        (("ERP_SQL_SERVER=erp-host.invalid",), True, "ERP_SQL_SERVER and ERP_SQL_DATABASE must both"),
+        ((*SQL_ARGS, "PAYLOAD_ROOT=/tmp/grid"), True, "frozen fixture"),
+        ((*SQL_ARGS, "ERP_PAYLOAD_ROOT=/tmp/grid"), False, "frozen fixture"),
+        ((*SQL_ARGS, "ERP_PRODUCTION_PERMIT=.l9/runtime/absent.json"), True, "readable file"),
+        ((*SQL_ARGS, "ERP_PRODUCTION_PERMIT=/etc/hostname"), True, "must be inside this checkout"),
+    ],
+)
+def test_make_import_erp_refuses_a_fixture_source_before_any_runtime_starts(mk, args, docker, needle):
+    result = mk.run("import-erp", *args, docker=docker)
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert needle in result.stderr
+    assert mk.compose_calls() == []
+    assert mk.odoo_run() is None
+
+
+# ── Static dispatch contract, and its negative proof (legacy-path injection) ─
+
+
+def _recipe(text: str, target: str) -> str:
+    match = re.search(rf"(?ms)^{re.escape(target)}:\n(.*?)(?=^\S|\Z)", text)
+    assert match, f"{target} recipe not found"
+    return match.group(1)
+
+
+def assert_canonical_dispatch(makefile_text: str) -> None:
+    """Both import targets pipe only their canonical driver, on both runtimes, and name no retired path."""
+    erp = _recipe(makefile_text, "import-erp")
+    vs = _recipe(makefile_text, "import-vanillasoft")
+    assert erp.count(f"< {ERP_DRIVER}") == 2, "import-erp must pipe import_erp_shell.py on both runtimes"
+    assert vs.count(f"< {VS_DRIVER}") == 2, "import-vanillasoft must pipe import_vanillasoft_shell.py on both runtimes"
+    assert "< " + ERP_DRIVER not in vs and "< " + VS_DRIVER not in erp
+    for body, name in ((erp, "import-erp"), (vs, "import-vanillasoft")):
+        for retired in RETIRED:
+            assert retired not in body, f"{name} reaches retired path {retired}"
+        assert body.count("odoo shell -d $(ODOO_DB_NAME)") + body.count("shell -d $(ODOO_DB_NAME)") >= 2
+    assert erp.count("$(erp_source_guard)") == 2
+    assert erp.count('ERP_PRODUCTION_PERMIT="$(call runtime_path,$(ERP_PRODUCTION_PERMIT))"') == 1
+    assert erp.count('ERP_PRODUCTION_PERMIT="$(ERP_PRODUCTION_PERMIT)"') == 1
+    assert erp.count('ODOO_STAGE="$(ODOO_STAGE)"') == 2 and vs.count('ODOO_STAGE="$(ODOO_STAGE)"') == 2
+    assert "$(vanillasoft_mode_guard)" in vs
+    for var in (
+        "VANILLASOFT_HISTORY_CENSUS",
+        "VANILLASOFT_HISTORY_CENSUS_SHA256",
+        "VANILLASOFT_HISTORY_CHECKPOINT",
+        "VANILLASOFT_HISTORY_MAX_IDS",
+        "VANILLASOFT_HISTORY_FAILURE_BUDGET",
+        "VANILLASOFT_PRODUCTION_PERMIT",
+    ):
+        assert vs.count(f"{var}=") == 2, f"{var} must reach both runtimes"
+    assert "import-erp-test" in makefile_text and "$(MAKE) import-erp " in _recipe(makefile_text, "import-erp-test")
+
+
+def test_makefile_import_targets_dispatch_only_through_the_canonical_drivers():
+    assert_canonical_dispatch(MAKEFILE.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda t: t.replace(f"< {ERP_DRIVER}", "< plasticos_partner_import/scripts/run_import.py", 1),
+        lambda t: t.replace(f"< {ERP_DRIVER}", "< plasticos_transaction/scripts/run_transaction_import.py"),
+        lambda t: t.replace(f"< {VS_DRIVER}", "< plasticos_crm_sync/scripts/run_full_import.py", 1),
+        lambda t: (
+            _recipe(t, "import-vanillasoft").join(
+                t.split(_recipe(t, "import-vanillasoft"), 1)[:1]
+                + [
+                    "\t@python3 -c 'from plasticos_partner_import.models.partner_import_service import run_csv_import'\n"
+                ]
+            )
+            + t.split(_recipe(t, "import-vanillasoft"), 1)[1]
+        ),
+        lambda t: t.replace("$(erp_source_guard); \\\n", "", 1),
+        lambda t: t.replace('-e VANILLASOFT_HISTORY_CENSUS_SHA256="$(VANILLASOFT_HISTORY_CENSUS_SHA256)" \\\n', ""),
+    ],
+)
+def test_injected_legacy_or_withheld_path_fails_the_dispatch_contract(mutate):
+    text = MAKEFILE.read_text(encoding="utf-8")
+    mutated = mutate(text)
+    assert mutated != text, "the mutation must change the Makefile, or this proves nothing"
+    with pytest.raises(AssertionError):
+        assert_canonical_dispatch(mutated)

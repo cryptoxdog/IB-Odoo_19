@@ -811,3 +811,46 @@ def test_full_import_mode_is_unchanged_without_the_census(monkeypatch, capsys):
     monkeypatch.delenv("VANILLASOFT_CALL_FLOOR", raising=False)
     assert shell.main() == 2
     assert "VANILLASOFT_CALL_FLOOR" in capsys.readouterr().out
+
+
+# ── command dispatch (2026-11-07): make import-vanillasoft is the history path ─
+
+MAKEFILE = ROOT / "Makefile"
+SHELL_DRIVER = ROOT / "plasticos_crm_sync" / "scripts" / "import_vanillasoft_shell.py"
+HISTORY_VARS = (
+    "VANILLASOFT_HISTORY_CENSUS",
+    "VANILLASOFT_HISTORY_CENSUS_SHA256",
+    "VANILLASOFT_HISTORY_CHECKPOINT",
+    "VANILLASOFT_HISTORY_MAX_IDS",
+    "VANILLASOFT_HISTORY_FAILURE_BUDGET",
+    "VANILLASOFT_PRODUCTION_PERMIT",
+)
+
+
+def test_make_import_vanillasoft_forwards_the_history_inputs_and_pipes_the_history_driver():
+    text = MAKEFILE.read_text(encoding="utf-8")
+    recipe = text.split("\nimport-vanillasoft:\n", 1)[1].split("\n\n", 1)[0]
+    assert recipe.count("< plasticos_crm_sync/scripts/import_vanillasoft_shell.py") == 2, "both runtimes, one driver"
+    for var in HISTORY_VARS:
+        assert recipe.count(f"{var}=") == 2, f"{var} must reach both runtimes"
+    assert "$(vanillasoft_mode_guard)" in recipe
+    guard = text.split("\nvanillasoft_mode_guard = ", 1)[1].split("\n\n", 1)[0]
+    assert "cannot be combined" in guard, "a floor beside the census is refused"
+    assert "nothing falls back to the rolling window" in guard
+    for retired in ("run_import.py", "run_csv_import", "partner_import_service", "transaction_import"):
+        assert retired not in recipe
+
+
+def test_shell_main_dispatches_history_before_any_floor_and_fetches_through_the_orchestrator_seam():
+    import ast  # noqa: PLC0415
+
+    tree = ast.parse(SHELL_DRIVER.read_text(encoding="utf-8"))
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    first = functions["main"].body[0]
+    assert isinstance(first, ast.If) and ast.unparse(first.test) == "_env_flag(HISTORY_CENSUS_ENV)"
+    assert ast.unparse(first.body[0]) == "return history(_odoo_env())"
+    calls = {ast.unparse(n.func) for n in ast.walk(functions["_fetch_one"]) if isinstance(n, ast.Call)}
+    assert "orchestrator.upsert_contact_external_id" in calls
+    history_src = ast.unparse(functions["history"]) + ast.unparse(functions["_history_loop"])
+    assert "run_full_import" not in history_src
+    assert "SyncOrchestrator" in ast.unparse(functions["history"])

@@ -1034,11 +1034,73 @@ override ERP_SQL_PASSWORD := $(ERP_SQL_PASSWORD_INDIRECT)
 export ERP_SQL_PASSWORD_RAW ERP_SQL_PASSWORD_CONFLICT
 unexport ERP_SQL_PASSWORD_INDIRECT ERP_SQL_PASSWORD_INHERITED
 
+# 2026-11-07 — one authoritative execution path per historical source
+# (IB-ODOO19-CANONICAL-IMPORT-PARITY-2026-11-07-R2). import-erp reads only the
+# restored ERP SQL Server database: without ERP_SQL_SERVER and ERP_SQL_DATABASE
+# the reader (plasticos_partner_import/erp/reader.py) would select the frozen
+# grid under erp_extracted_data/, so the recipe refuses before any runtime
+# starts, and a payload root is refused the same way. The grid and statement
+# fixtures stay available to isolated tests only. The DRY=1 and PAYLOAD_ROOT
+# examples above are historical: a preview names the database too.
+# ERP_PRODUCTION_PERMIT (plasticos_partner_import/erp/production_permit.py) is
+# forwarded to both runtimes; the promotion rehearsal never sets it. A permit
+# is verified against the stage the driver observes, and `docker compose run`
+# passes only the variables named with -e, so ODOO_STAGE is forwarded the same
+# way on the Docker runtime (the local runtime inherits it); the rehearsal
+# refuses ODOO_STAGE=production before either target runs.
+ERP_PRODUCTION_PERMIT ?=
+ODOO_STAGE ?=
+# Inside the odoo container the repository checkout is the only bind mount
+# (docker-compose.yml: .:/mnt/extra-addons). A file the driver must open on the
+# Docker runtime (permit, census, ledger) is given as a host path, relative to
+# the checkout or absolute inside it, and translated onto that mount; a path
+# outside the checkout cannot be reached there and is refused. The no-Docker
+# runtime opens the host path as given.
+MOUNT_ROOT := /mnt/extra-addons
+in_repo = $(if $(filter $(CURDIR)/%,$(abspath $(1))),1,)
+runtime_path = $(if $(1),$(if $(call in_repo,$(1)),$(MOUNT_ROOT)/$(patsubst $(CURDIR)/%,%,$(abspath $(1))),$(1)),)
+# $(call mount_guard,<VAR ...>,<target>): every named path is inside the checkout.
+mount_guard = $(foreach name,$(1),[ -z "$($(name))" ] || [ -n "$(call in_repo,$($(name)))" ] || { echo "❌ $(2) refused: $(name) must be inside this checkout, the only bind mount the odoo container can read (an ignored path such as .l9/runtime/ works)" >&2; exit 2; };) true
+erp_source_guard = [ -z "$(ERP_PAYLOAD_ROOT)" ] || { echo "❌ import-erp refused: PAYLOAD_ROOT / ERP_PAYLOAD_ROOT selects a frozen fixture; the canonical import reads only the restored ERP database (ADR-021)" >&2; exit 2; }; \
+	{ [ -n "$(ERP_SQL_SERVER)" ] && [ -n "$(ERP_SQL_DATABASE)" ]; } || { echo "❌ import-erp refused: ERP_SQL_SERVER and ERP_SQL_DATABASE must both name the restored ERP database; without them the reader would fall back to the frozen grid" >&2; exit 2; }; \
+	[ -z "$(ERP_PRODUCTION_PERMIT)" ] || [ -r "$(ERP_PRODUCTION_PERMIT)" ] || { echo "❌ import-erp refused: ERP_PRODUCTION_PERMIT does not name a readable file" >&2; exit 2; }
+
 # The VanillaSoft driver reads two floors (plasticos_crm_sync/scripts/
 # import_vanillasoft_shell.py); both are forwarded verbatim.
 VANILLASOFT_CALL_FLOOR ?=
 VANILLASOFT_CONTACT_FLOOR ?=
 VANILLASOFT_REPORT_PATH ?= .l9/pr/import-vanillasoft-summary.json
+# 2026-11-07 — make import-vanillasoft has two explicit modes and no default.
+# Historical cohort (the canonical historical import): VANILLASOFT_HISTORY_CENSUS
+# names the operator's frozen 4,876-ContactID census and selects
+# import_vanillasoft_shell.history(), which fetches every planned id through
+# SyncOrchestrator.upsert_contact_external_id. It needs the declared census
+# SHA-256 and an append-only ledger on durable storage, takes an optional
+# session cap and failure budget, and refuses a call or contact floor: the
+# rolling window is another import, never a fallback for a missing census.
+# Rolling window (plasticos_crm_sync.services.orchestrator.run_full_import):
+# VANILLASOFT_CALL_FLOOR, an explicit ISO-8601 UTC instant, without a census.
+# Neither mode starts without its inputs; nothing is imported on a refusal.
+VANILLASOFT_HISTORY_CENSUS ?=
+VANILLASOFT_HISTORY_CENSUS_SHA256 ?=
+VANILLASOFT_HISTORY_CHECKPOINT ?=
+VANILLASOFT_HISTORY_MAX_IDS ?=
+VANILLASOFT_HISTORY_FAILURE_BUDGET ?=
+VANILLASOFT_PRODUCTION_PERMIT ?=
+VANILLASOFT_MODE = $(if $(VANILLASOFT_HISTORY_CENSUS),history,rolling)
+VANILLASOFT_HISTORY_VARS := VANILLASOFT_HISTORY_CENSUS VANILLASOFT_HISTORY_CHECKPOINT VANILLASOFT_PRODUCTION_PERMIT
+vanillasoft_mode_guard = if [ -n "$(VANILLASOFT_HISTORY_CENSUS)" ]; then \
+	[ -z "$(VANILLASOFT_CALL_FLOOR)$(VANILLASOFT_CONTACT_FLOOR)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CENSUS selects the historical cohort; VANILLASOFT_CALL_FLOOR / VANILLASOFT_CONTACT_FLOOR belong to the rolling window and cannot be combined with it" >&2; exit 2; }; \
+	[ -r "$(VANILLASOFT_HISTORY_CENSUS)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CENSUS does not name a readable census file" >&2; exit 2; }; \
+	printf '%s\n' "$(VANILLASOFT_HISTORY_CENSUS_SHA256)" | grep -Eq '^[0-9a-fA-F]{64}$$' || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CENSUS_SHA256 must declare the census SHA-256 (64 hex characters)" >&2; exit 2; }; \
+	[ -n "$(VANILLASOFT_HISTORY_CHECKPOINT)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CHECKPOINT must name the append-only ledger on durable operator storage" >&2; exit 2; }; \
+	ledger_dir="$$(dirname "$(VANILLASOFT_HISTORY_CHECKPOINT)")"; { [ -d "$$ledger_dir" ] && [ -w "$$ledger_dir" ]; } || { echo "❌ import-vanillasoft refused: the ledger directory $$ledger_dir must exist and be writable" >&2; exit 2; }; \
+	for bound in "$(VANILLASOFT_HISTORY_MAX_IDS)" "$(VANILLASOFT_HISTORY_FAILURE_BUDGET)"; do [ -z "$$bound" ] || printf '%s\n' "$$bound" | grep -Eq '^[1-9][0-9]*$$' || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_MAX_IDS and VANILLASOFT_HISTORY_FAILURE_BUDGET must be positive integers" >&2; exit 2; }; done; \
+	[ -z "$(VANILLASOFT_PRODUCTION_PERMIT)" ] || [ -r "$(VANILLASOFT_PRODUCTION_PERMIT)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_PRODUCTION_PERMIT does not name a readable file" >&2; exit 2; }; \
+	else \
+	[ -z "$(VANILLASOFT_HISTORY_CENSUS_SHA256)$(VANILLASOFT_HISTORY_CHECKPOINT)$(VANILLASOFT_HISTORY_MAX_IDS)$(VANILLASOFT_HISTORY_FAILURE_BUDGET)$(VANILLASOFT_PRODUCTION_PERMIT)" ] || { echo "❌ import-vanillasoft refused: history settings without VANILLASOFT_HISTORY_CENSUS; the census is the historical import's identity and nothing falls back to the rolling window" >&2; exit 2; }; \
+	[ -n "$(VANILLASOFT_CALL_FLOOR)" ] || { echo "❌ import-vanillasoft refused: no mode selected. Historical cohort: VANILLASOFT_HISTORY_CENSUS=<census.csv> VANILLASOFT_HISTORY_CENSUS_SHA256=<sha256> VANILLASOFT_HISTORY_CHECKPOINT=<ledger.jsonl>. Rolling window: VANILLASOFT_CALL_FLOOR=<ISO-8601 UTC>. Nothing was imported." >&2; exit 2; }; \
+	fi
 
 # Prefers the docker runtime; falls back to the no-Docker local harness
 # (L9_ODOO_VENV, see scripts/setup_local_runtime.sh). Fails closed when
@@ -1053,8 +1115,13 @@ import-erp:
 	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ] && [ "$$TEST_ENV_VERIFIED_CLONE" != "$(ODOO_DB_NAME)" ]; then echo "❌ test-env refused: ODOO_DB_NAME=$(ODOO_DB_NAME) is not the verified clone $$TEST_ENV_VERIFIED_CLONE" >&2; exit 2; fi
 	@test -d plasticos_partner_import/erp_extracted_data || { echo "❌ Preflight failed: ERP projection scripts missing (plasticos_partner_import/erp_extracted_data)"; exit 1; }
 	@echo "→ ERP import on database $(ODOO_DB_NAME) $(if $(ERP_DRY),[DRY RUN],)$(if $(ERP_SQL_SERVER), [direct SQL read],)…"
+	@echo "   path: make import-erp → plasticos_partner_import/scripts/import_erp_shell.py → plasticos.erp.import (direct SQL source required)$(if $(ERP_PRODUCTION_PERMIT), permit $(ERP_PRODUCTION_PERMIT),)"
 	@if docker info >/dev/null 2>&1; then \
+		$(erp_source_guard); \
+		$(call mount_guard,ERP_PRODUCTION_PERMIT,import-erp); \
 		docker compose run --rm -w /mnt/extra-addons \
+			-e ERP_PRODUCTION_PERMIT="$(call runtime_path,$(ERP_PRODUCTION_PERMIT))" \
+			-e ODOO_STAGE="$(ODOO_STAGE)" \
 			-e ERP_DRY="$(ERP_DRY)" \
 			-e ERP_LIMIT="$(ERP_LIMIT)" \
 			-e ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" \
@@ -1075,6 +1142,9 @@ import-erp:
 		echo "❌ test-env refused: $(ODOO_DB_NAME) was verified on the Docker stack and Docker is unreachable; the no-Docker harness is another server" >&2; exit 2; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
+		$(erp_source_guard); \
+		ERP_PRODUCTION_PERMIT="$(ERP_PRODUCTION_PERMIT)" \
+		ODOO_STAGE="$(ODOO_STAGE)" \
 		ERP_DRY="$(ERP_DRY)" ERP_LIMIT="$(ERP_LIMIT)" \
 		ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
 		ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
@@ -1120,9 +1190,20 @@ import-erp-test:
 # back to the local harness, fails closed on material errors.
 import-vanillasoft:
 	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ] && [ "$$TEST_ENV_VERIFIED_CLONE" != "$(ODOO_DB_NAME)" ]; then echo "❌ test-env refused: ODOO_DB_NAME=$(ODOO_DB_NAME) is not the verified clone $$TEST_ENV_VERIFIED_CLONE" >&2; exit 2; fi
+	@$(vanillasoft_mode_guard)
 	@echo "→ VanillaSoft full import on database $(ODOO_DB_NAME)…"
+	@echo "   mode: $(VANILLASOFT_MODE) — plasticos_crm_sync/scripts/import_vanillasoft_shell.py$(if $(VANILLASOFT_HISTORY_CENSUS), history(): census sha256 $(VANILLASOFT_HISTORY_CENSUS_SHA256) ledger $(VANILLASOFT_HISTORY_CHECKPOINT) max_ids $(or $(VANILLASOFT_HISTORY_MAX_IDS),all) (not the rolling window), rolling window from $(VANILLASOFT_CALL_FLOOR) (not the historical cohort))"
 	@if docker info >/dev/null 2>&1; then \
+		$(call mount_guard,$(VANILLASOFT_HISTORY_VARS),import-vanillasoft); \
 		docker compose run --rm \
+			-w $(MOUNT_ROOT) \
+			-e VANILLASOFT_HISTORY_CENSUS="$(call runtime_path,$(VANILLASOFT_HISTORY_CENSUS))" \
+			-e VANILLASOFT_HISTORY_CENSUS_SHA256="$(VANILLASOFT_HISTORY_CENSUS_SHA256)" \
+			-e VANILLASOFT_HISTORY_CHECKPOINT="$(call runtime_path,$(VANILLASOFT_HISTORY_CHECKPOINT))" \
+			-e VANILLASOFT_HISTORY_MAX_IDS="$(VANILLASOFT_HISTORY_MAX_IDS)" \
+			-e VANILLASOFT_HISTORY_FAILURE_BUDGET="$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" \
+			-e VANILLASOFT_PRODUCTION_PERMIT="$(call runtime_path,$(VANILLASOFT_PRODUCTION_PERMIT))" \
+			-e ODOO_STAGE="$(ODOO_STAGE)" \
 			-e VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" \
 			-e VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
 			-e VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
@@ -1131,6 +1212,10 @@ import-vanillasoft:
 		echo "❌ test-env refused: $(ODOO_DB_NAME) was verified on the Docker stack and Docker is unreachable; the no-Docker harness is another server" >&2; exit 2; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
+		VANILLASOFT_HISTORY_CENSUS="$(VANILLASOFT_HISTORY_CENSUS)" VANILLASOFT_HISTORY_CENSUS_SHA256="$(VANILLASOFT_HISTORY_CENSUS_SHA256)" \
+		VANILLASOFT_HISTORY_CHECKPOINT="$(VANILLASOFT_HISTORY_CHECKPOINT)" VANILLASOFT_HISTORY_MAX_IDS="$(VANILLASOFT_HISTORY_MAX_IDS)" \
+		VANILLASOFT_HISTORY_FAILURE_BUDGET="$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" VANILLASOFT_PRODUCTION_PERMIT="$(VANILLASOFT_PRODUCTION_PERMIT)" \
+		ODOO_STAGE="$(ODOO_STAGE)" \
 		VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
 		VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
 		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \

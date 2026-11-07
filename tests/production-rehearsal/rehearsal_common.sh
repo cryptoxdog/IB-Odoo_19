@@ -32,3 +32,18 @@ business_partner_census() {
   fi
   rlib count "${out}"
 }
+
+# vanillasoft_ref_census <db> <out_file> — VanillaSoft ContactIDs with a durable
+# external ref at either destination the history driver accepts
+# (import_vanillasoft_shell._durable_ids): an ERP person (res.partner) for a
+# crosswalk YES, otherwise a crm.lead. Gate 7 reads it before and after the
+# import; the difference is what this run landed. Strict count, never zero on
+# a failed query.
+vanillasoft_ref_census() {
+  local db="$1" out="$2"
+  if ! printf '%s\n' "SELECT COUNT(DISTINCT external_id) FROM plasticos_crm_external_ref WHERE provider = 'vanillasoft' AND res_model IN ('crm.lead', 'res.partner');" \
+    | db_query "${db}" "${out}"; then
+    return 2
+  fi
+  rlib count "${out}"
+}
