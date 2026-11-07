@@ -142,10 +142,14 @@ if [ -n "${STUB_DIR:-}" ] || "${REHEARSAL_PY}" -c 'import pymssql' >/dev/null 2>
     --coverage "${COVERAGE_FILE}" \
     --census "${SUMMARY_FILE%.json}-census.json" || true
 else
-  docker compose -f "${ROOT}/docker-compose.yml" exec -T \
+  # The compose stack declares db, odoo, odoo-test and odoo-test-demo (no `web`),
+  # and `exec` needs a running service. `run --rm --no-deps` starts the same
+  # odoo image make import-erp uses, whose entrypoint execs python3 directly;
+  # the SQL password travels in the environment (-e NAME, no value), never argv.
+  docker compose -f "${ROOT}/docker-compose.yml" run --rm --no-deps -T \
     -e ERP_SQL_SERVER -e ERP_SQL_PORT -e ERP_SQL_DATABASE -e ERP_SQL_USER -e ERP_SQL_PASSWORD \
     -e FIDELITY_IN_WEB=1 \
-    web python3 /mnt/extra-addons/tests/production-rehearsal/fidelity_run.py \
+    odoo python3 /mnt/extra-addons/tests/production-rehearsal/fidelity_run.py \
     --odoo "/mnt/extra-addons/${EVIDENCE_REL}/05-erp-fidelity-odoo.json" \
     --out "/mnt/extra-addons/${EVIDENCE_REL}/05-erp-fidelity.json" \
     --coverage "/mnt/extra-addons/${EVIDENCE_REL}/05-erp-fidelity-coverage.json" \
@@ -159,9 +163,18 @@ fi
 if ! rlib scan-secrets "${EVIDENCE_DIR}" --env ERP_SQL_PASSWORD; then
   gate6 FAIL "evidence-secret-redacted" "the ERP reader password appeared in evidence and was redacted"
 fi
+# The receipt names the one execution path (target, driver, dispatcher, source,
+# bounds, database, revision) and reads the driver's own trace lines from the
+# import log; a log without them is a failure, never a pass.
+RELEASE_SHA="$(git -C "${ROOT}" rev-parse --verify --quiet 'HEAD^{commit}' || true)"
 rlib check-erp "${EVIDENCE_DIR}" \
   --summary "${SUMMARY_FILE}" \
   --import-exit "${IMPORT_EXIT}" \
   --layers "${LAYERS_FILE}" \
+  --log "${IMPORT_LOG}" \
+  --database "${DB}" \
+  --limit "10%" \
+  --release-sha "${RELEASE_SHA}" \
   --run-started "${RUN_STARTED_UTC:-}" \
-  --fidelity "${FIDELITY_FILE}"
+  --fidelity "${FIDELITY_FILE}" \
+  --snapshot "${ODOO_FIDELITY}"

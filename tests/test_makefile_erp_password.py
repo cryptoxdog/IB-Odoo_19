@@ -71,6 +71,11 @@ def _run(tmp_path: Path, *, env_pw=None, cmdline_pw=None, dotenv=None, nested=Fa
     }
     env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
     env["CAPTURE"] = str(capture)
+    # 2026-11-07: import-erp refuses to start without the direct SQL source
+    # (the reader would otherwise select the frozen grid); the password
+    # forwarding under test is unchanged.
+    env["ERP_SQL_SERVER"] = "erp-host.invalid"
+    env["ERP_SQL_DATABASE"] = "erp_probe"
     if env_pw is not None:
         env["ERP_SQL_PASSWORD"] = env_pw
     env.update(extra_env or {})

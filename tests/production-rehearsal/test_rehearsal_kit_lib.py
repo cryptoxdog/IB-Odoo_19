@@ -64,6 +64,35 @@ def test_parse_count_refuses_anything_else(text):
 
 LAYERS = {"counterparties": 3, "addresses": 2, "contacts": 4}
 CENSUS = {"payload_kind": "database", "source_origin": "erp-host/erp_db", "census": {}, "unresolved": []}
+# What the real driver prints on an applied direct-SQL run (import_erp_shell.py).
+ERP_COUNTS = (
+    "{'counterparties': {'created': 3, 'updated': 0, 'skipped': 0, 'rejected': 0}, "
+    "'transactions': {'created': 1, 'updated': 0, 'skipped': 9, 'rejected': 0}, "
+    "'transaction_lines': {'created': 2, 'updated': 0, 'skipped': 18, 'rejected': 0}}"
+)
+
+
+def _erp_log(scope: str = "", counts: str = ERP_COUNTS) -> str:
+    return (
+        "ERP source: direct database read (erp-host/erp_db)\nres.partner before import: 3\n"
+        f"2026-11-06 20:02:00,000 7 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: "
+        f"ERP import finished{scope}: {counts}\nDATA VERDICT {{}}\n"
+    )
+
+
+ERP_LOG = _erp_log()
+# The clone's native-document snapshot (fidelity_run.py --print-odoo-sql): one worksheet, both sides.
+SNAPSHOT = {
+    "evidence": "complete",
+    "partners": [],
+    "sale_orders": [{"xmlid": "legacy_erp_so_1", "name": "1", "origin": "100"}],
+    "purchase_orders": [{"xmlid": "legacy_erp_po_2", "name": "2", "origin": "100"}],
+    "sale_lines": [{"xmlid": "legacy_erp_sol_900"}],
+    "purchase_lines": [{"xmlid": "legacy_erp_pol_900"}],
+    "invoices": [{"xmlid": "legacy_erp_outinv_100", "invoice_origin": "100"}],
+    "bills": [{"xmlid": "legacy_erp_ininv_5", "invoice_origin": "100"}],
+    "ledger_moves": [],
+}
 
 
 def _fidelity_pass() -> dict:
@@ -91,7 +120,9 @@ def _fidelity_pass() -> dict:
     }
 
 
-def _erp(tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, fidelity="pass"):
+def _erp(
+    tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, fidelity="pass", log=ERP_LOG, snapshot=SNAPSHOT
+):
     s = tmp_path / "05-erp-summary.json"
     c = tmp_path / "05-erp-summary-census.json"
     if summary is not None:
@@ -99,13 +130,46 @@ def _erp(tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, fide
     if census is not None:
         _write(c, census)
     report = None if fidelity is None else fidelity if isinstance(fidelity, dict) else _fidelity_pass()
-    return lib.check_erp(s, c, import_exit=import_exit, layers=layers, run_started=RUN_STARTED, fidelity=report)
+    return lib.check_erp(
+        s,
+        c,
+        import_exit=import_exit,
+        layers=layers,
+        run_started=RUN_STARTED,
+        log_text=log,
+        database="odoo_test_cutover",
+        limit="10%",
+        release_sha="a" * 40,
+        fidelity=report,
+        snapshot=snapshot,
+    )
 
 
 def test_erp_complete_database_run_passes(tmp_path):
     result = _erp(tmp_path, _summary("erp"), CENSUS)
     assert result["state"] == "PASS"
     assert result["facts"]["layers"] == LAYERS
+    path = result["facts"]["execution_path"]
+    assert path["make_target"] == "import-erp"
+    assert path["driver"] == "plasticos_partner_import/scripts/import_erp_shell.py"
+    assert "plasticos.erp.import" in path["dispatcher"]
+    assert "legacy_erp_import_service.py" in path["commercial_extension"]
+    assert (path["database"], path["limit"], path["release_sha"]) == ("odoo_test_cutover", "10%", "a" * 40)
+
+
+@pytest.mark.parametrize(
+    "log, reason",
+    [
+        (None, "erp-log-unreadable"),
+        ("res.partner before import: 3\nDATA VERDICT {}\n", "erp-dispatcher-unobserved"),
+        ("ERP source: direct database read (x)\n", "erp-verdict-unobserved"),
+        ("", "erp-dispatcher-unobserved"),
+    ],
+)
+def test_erp_requires_the_drivers_own_trace_in_the_log(tmp_path, log, reason):
+    result = _erp(tmp_path, _summary("erp"), CENSUS, log=log)
+    assert result["state"] == "FAIL"
+    assert reason in result["facts"]["failure_codes"]
 
 
 def test_erp_partial_with_attributed_unresolved_rows_passes_with_disposition(tmp_path):
@@ -171,6 +235,50 @@ def test_erp_sql_login_failure_is_a_fail_not_a_pass(tmp_path):
     assert (result["state"], result["reason"]) == ("FAIL", "erp-import-exit")
 
 
+def test_erp_native_documents_are_accounted_from_the_importers_own_counts(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), CENSUS)
+    assert result["state"] == "PASS", result
+    native = result["facts"]["native_documents"]
+    assert (native["realized_transactions"], native["realized_lines"], native["scope"]) == (1, 2, "")
+    assert native["clone"]["worksheets"] == 1 and native["clone"]["sale_lines"] == 1
+
+
+def _snapshot(**over) -> dict:
+    return {**SNAPSHOT, **over}
+
+
+@pytest.mark.parametrize(
+    "kwargs, reason",
+    [
+        ({"log": _erp_log().replace("ERP import finished", "ERP import ended")}, "erp-run-accounting-unobserved"),
+        ({"log": _erp_log(counts="{not a dict")}, "erp-run-accounting-unobserved"),
+        ({"log": _erp_log(counts="{'counterparties': {'created': 1, 'updated': 0}}")}, "erp-run-accounting-unobserved"),
+        ({"log": _erp_log(scope=" (partners only)")}, "erp-run-not-full"),
+        ({"log": _erp_log(scope=" (counterparties)")}, "erp-run-not-full"),
+        ({"snapshot": None}, "erp-native-snapshot-unreadable"),
+        ({"snapshot": {"evidence": "missing"}}, "erp-native-snapshot-unreadable"),
+        ({"log": _erp_log(counts=ERP_COUNTS.replace("'created': 2", "'created': 0"))}, "erp-native-documents-none"),
+        ({"snapshot": _snapshot(sale_orders=[], purchase_orders=[])}, "erp-native-class-missing"),
+        ({"snapshot": _snapshot(sale_lines=[], purchase_lines=[])}, "erp-native-class-missing"),
+        ({"snapshot": _snapshot(purchase_lines=[])}, "erp-native-documents-missing"),
+        ({"log": _erp_log(counts=ERP_COUNTS.replace("'created': 1", "'created': 3"))}, "erp-native-documents-missing"),
+        (
+            {
+                "snapshot": _snapshot(
+                    sale_orders=[], purchase_orders=[], sale_lines=[], purchase_lines=[], invoices=[], bills=[]
+                )
+            },
+            "erp-native-class-missing",
+        ),
+    ],
+)
+def test_erp_silently_omitted_native_documents_fail_the_gate(tmp_path, kwargs, reason):
+    """Codex finding on PR #401: a document class the importer never wrote never entered the comparison."""
+    result = _erp(tmp_path, _summary("erp"), CENSUS, **kwargs)
+    assert result["state"] == "FAIL"
+    assert reason in result["facts"]["failure_codes"], result["facts"]["failure_codes"]
+
+
 def test_erp_without_a_fidelity_report_is_unproven(tmp_path):
     result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=None)
     assert result["state"] == "FAIL"
@@ -211,79 +319,180 @@ def test_erp_rejected_rows_do_not_pass_without_a_mapped_comparison(tmp_path):
     assert result["reason"] == "erp-fidelity-unproven"
 
 
-# ── RK-06: VanillaSoft ──────────────────────────────────────────────────────
+# ── RK-06: VanillaSoft historical cohort (bounded) ──────────────────────────
+
+cohort = lib.crm_cohort()
+SHA = "f" * 64
+DB = "odoo_test_cutover"
+DB_UUID = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"
+ADMITTED = json.dumps({"event": "crm_history.admitted", "database": DB, "permit": False, "census_sha256": SHA})
 
 
-def _vs(tmp_path, summary=None, import_exit=0, contacts=3):
+def _report(**over) -> dict:
+    classes = {cohort.IMPORTED: 3, cohort.HELD: 1, cohort.DUPLICATE_SKIPPED: 1, cohort.GENUINE_FAILED: 0}
+    classes.update(over.pop("classes", {}))
+    dispositioned = sum(classes.values())
+    by_decision = {d: dict.fromkeys(cohort.CLASSES, 0) for d in cohort.PARTITION}
+    by_decision["YES"].update(classes)
+    base = {
+        "cohort": cohort.COHORT,
+        "dispositioned": dispositioned,
+        "undispositioned": cohort.COHORT - dispositioned,
+        "classes": classes,
+        "by_decision": by_decision,
+        "dispositions_without_a_source_reason": 0,
+        "imported_with_error_signals": 0,
+        "HISTORICAL_SNAPSHOT_COMPLETE": False,
+        "historical_data_complete": False,
+        "LIVE_DELTA_COMPLETENESS": "NOT_RUN",
+        "FULL_CURRENT_CONTACT_COVERAGE": "UNKNOWN",
+        "stopped": "max_ids",
+        "census_sha256": SHA,
+    }
+    base.update(over)
+    return base
+
+
+def _ledger(rows=None, *, sha=SHA, header=None) -> str:
+    head = header or {"kind": "header", "version": 1, "census_sha256": sha, "database_uuid": DB_UUID, "created_at": "t"}
+    if rows is None:
+        rows = [
+            {"vanillasoft_contact_id": str(i), "class": cohort.IMPORTED, "importer_outcome": "created", "signals": []}
+            for i in (1, 2, 3)
+        ]
+        rows.append({"vanillasoft_contact_id": "4", "class": cohort.HELD, "importer_outcome": "failed", "signals": []})
+        rows.append(
+            {"vanillasoft_contact_id": "5", "class": cohort.DUPLICATE_SKIPPED, "importer_outcome": "not_fetched"}
+        )
+    return "\n".join(json.dumps(line) for line in [head, *rows]) + "\n"
+
+
+def _log(admitted=ADMITTED, verdict=True, rolling=False) -> str:
+    lines = []
+    if admitted:
+        lines.append(lib.VS_AUDIT_PREFIX + admitted)
+    if rolling:
+        lines.append(lib.VS_ROLLING_BANNER)
+    if verdict:
+        lines.append(lib.VS_VERDICT_PREFIX + json.dumps(_report()))
+    return "\n".join(lines) + "\n"
+
+
+def _vs(tmp_path, report=_report(), *, import_exit=0, ledger=_ledger(), log=_log(), before=0, after=3, max_ids=100):
     path = tmp_path / "06-crm-result.json"
-    if summary is not None:
-        _write(path, summary)
-    return lib.check_vanillasoft(path, import_exit=import_exit, contacts_landed=contacts, run_started=RUN_STARTED)
+    if report is not None:
+        _write(path, report)
+    ledger_path = None
+    if ledger is not None:
+        ledger_path = _write(tmp_path / "06-crm-history.jsonl", ledger)
+    return lib.check_vanillasoft_history(
+        path,
+        import_exit=import_exit,
+        ledger_path=ledger_path,
+        log_text=log,
+        refs_before=before,
+        refs_after=after,
+        census_sha256=SHA,
+        database=DB,
+        max_ids=max_ids,
+        run_started=RUN_STARTED,
+        release_sha="a" * 40,
+    )
 
 
-def test_vanillasoft_success_with_landed_contacts_passes(tmp_path):
-    assert _vs(tmp_path, _summary("vanillasoft"))["state"] == "PASS"
+def test_vanillasoft_bounded_sample_passes_without_claiming_the_cohort(tmp_path):
+    result = _vs(tmp_path)
+    assert (result["state"], result["reason"]) == ("PASS", "vanillasoft-history-sample-exercised")
+    facts = result["facts"]
+    assert facts["full_cohort_claimed"] is False
+    assert facts["historical_snapshot_complete"] is False
+    assert (facts["fetched"], facts["attempted"], facts["imported"], facts["held"]) == (4, 4, 3, 1)
+    assert (facts["duplicate_skipped"], facts["undispositioned"], facts["max_ids"]) == (1, cohort.COHORT - 5, 100)
+    assert (facts["durable_refs_landed"], facts["ledger_rows"], facts["admitted"]) == (3, 5, True)
+    assert facts["ledger_database_uuid"] == DB_UUID
+    path = facts["execution_path"]
+    assert path["make_target"] == "import-vanillasoft"
+    assert path["driver"] == "plasticos_crm_sync/scripts/import_vanillasoft_shell.py"
+    assert "upsert_contact_external_id" in path["dispatcher"]
+    assert (path["database"], path["census_sha256"], path["release_sha"]) == (DB, SHA, "a" * 40)
+    assert "complete" not in result["reason"]
+
+
+ROLLING_SUMMARY = _summary("vanillasoft")
 
 
 @pytest.mark.parametrize(
-    "summary, import_exit, contacts, state, reason",
+    "kwargs, reason",
     [
-        (None, 0, 3, "FAIL", "vanillasoft-summary-unreadable"),
-        (_summary("vanillasoft", final_status="failed"), 0, 3, "FAIL", "vanillasoft-business-acceptance"),
+        ({"report": None}, "vanillasoft-history-report-unreadable"),
+        ({"report": ROLLING_SUMMARY}, "vanillasoft-history-report-shape"),
+        ({"report": _report(cohort=100)}, "vanillasoft-history-report-shape"),
+        ({"report": _report(classes={"extra": 1})}, "vanillasoft-history-report-shape"),
+        ({"report": _report(stopped="later")}, "vanillasoft-history-report-shape"),
+        ({"report": _report(undispositioned=1)}, "vanillasoft-history-report-shape"),
+        ({"report": _report(HISTORICAL_SNAPSHOT_COMPLETE="yes")}, "vanillasoft-history-report-shape"),
+        ({"report": _report(census_sha256="e" * 64)}, "vanillasoft-history-census-mismatch"),
+        ({"report": _report(stopped="auth")}, "vanillasoft-history-credential-rejected"),
+        ({"report": _report(stopped="budget")}, "vanillasoft-history-failure-budget"),
+        ({"report": _report(dispositions_without_a_source_reason=1)}, "vanillasoft-history-unexplained-dispositions"),
+        ({"report": _report(imported_with_error_signals=1)}, "vanillasoft-history-imported-with-errors"),
+        ({"report": _report(classes={cohort.GENUINE_FAILED: 1})}, "vanillasoft-history-genuine-failures"),
+        ({"ledger": None}, "vanillasoft-history-ledger-invalid"),
+        ({"ledger": _ledger(sha="e" * 64)}, "vanillasoft-history-ledger-invalid"),
+        ({"ledger": _ledger(header={"kind": "row"})}, "vanillasoft-history-ledger-invalid"),
         (
-            _summary(
-                "vanillasoft",
-                final_status="partial",
-                records_rejected=1,
-                records_unchanged=1,
-                errors=[{"record_ref": "c1", "message": "identity conflict"}],
-            ),
-            0,
-            3,
-            "FAIL",
-            "vanillasoft-business-acceptance",
+            {"ledger": _ledger(rows=[{"vanillasoft_contact_id": "1", "class": "maybe"}])},
+            "vanillasoft-history-ledger-invalid",
         ),
-        (
-            _summary(
-                "vanillasoft",
-                final_status="success",
-                errors=[{"record_ref": "c1", "message": "material", "category": "required_mapping"}],
-            ),
-            0,
-            3,
-            "FAIL",
-            "vanillasoft-business-acceptance",
-        ),
-        (
-            _summary(
-                "vanillasoft",
-                final_status="partial",
-                errors=[{"record_ref": "scope", "message": "watermark clamped", "informational": True}],
-            ),
-            0,
-            3,
-            "BLOCKED",
-            "vanillasoft-scope-notice-partial",
-        ),
-        ({"source": "vanillasoft"}, 0, 3, "FAIL", "vanillasoft-summary-schema-invalid"),
-        (_summary("erp"), 0, 3, "FAIL", "vanillasoft-summary-wrong-source"),
-        (_summary("vanillasoft", duplicates=2), 0, 3, "FAIL", "vanillasoft-summary-duplicates"),
-        (
-            _summary("vanillasoft", records_seen=0, records_valid=0, records_created=0, records_unchanged=0),
-            0,
-            0,
-            "BLOCKED",
-            "vanillasoft-empty-window",
-        ),
-        (_summary("vanillasoft"), 0, 0, "BLOCKED", "vanillasoft-empty-window"),
-        (_summary("vanillasoft"), 0, None, "FAIL", "vanillasoft-contact-census-unavailable"),
-        (_summary("vanillasoft"), 2, 3, "FAIL", "vanillasoft-preflight-failed"),
-        (_summary("vanillasoft"), 1, 3, "FAIL", "vanillasoft-import-exit"),
+        ({"ledger": _ledger(rows=[])}, "vanillasoft-history-ledger-mismatch"),
+        ({"log": None}, "vanillasoft-history-log-unreadable"),
+        ({"log": _log(admitted=None)}, "vanillasoft-history-not-admitted"),
+        ({"log": _log(admitted=ADMITTED.replace(DB, "odoo"))}, "vanillasoft-history-wrong-database"),
+        ({"log": _log(admitted=ADMITTED.replace("false", "true"))}, "vanillasoft-history-permit-used"),
+        ({"log": _log(admitted=ADMITTED.replace(SHA, "e" * 64))}, "vanillasoft-history-admitted-other-census"),
+        ({"log": _log(rolling=True)}, "vanillasoft-rolling-mode-observed"),
+        ({"log": _log(verdict=False)}, "vanillasoft-history-verdict-unobserved"),
+        ({"before": None}, "vanillasoft-history-refs-unavailable"),
+        ({"after": None}, "vanillasoft-history-refs-unavailable"),
+        ({"after": 2}, "vanillasoft-history-durable-mismatch"),
+        ({"import_exit": 2}, "vanillasoft-preflight-failed"),
+        ({"import_exit": 1}, "vanillasoft-history-import-exit"),
     ],
 )
-def test_vanillasoft_never_passes_on_exit_code_alone(tmp_path, summary, import_exit, contacts, state, reason):
-    result = _vs(tmp_path, summary, import_exit, contacts)
-    assert (result["state"], result["reason"]) == (state, reason)
+def test_vanillasoft_history_never_passes_on_exit_code_alone(tmp_path, kwargs, reason):
+    result = _vs(tmp_path, **kwargs)
+    assert result["state"] == "FAIL"
+    assert reason in result["facts"].get("failure_codes", [result["reason"]])
+
+
+def _nothing_imported():
+    rows = [{"vanillasoft_contact_id": "1", "class": cohort.HELD, "importer_outcome": "failed", "signals": []}]
+    return {"report": _report(classes={cohort.IMPORTED: 0, cohort.DUPLICATE_SKIPPED: 0}), "ledger": _ledger(rows=rows)}
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {**_nothing_imported(), "after": 0},
+        {
+            "report": _report(classes={cohort.IMPORTED: 0, cohort.HELD: 0, cohort.DUPLICATE_SKIPPED: 1}),
+            "ledger": _ledger(
+                rows=[
+                    {
+                        "vanillasoft_contact_id": "5",
+                        "class": cohort.DUPLICATE_SKIPPED,
+                        "importer_outcome": "not_fetched",
+                    }
+                ]
+            ),
+            "after": 0,
+        },
+    ],
+)
+def test_vanillasoft_history_sample_without_a_durable_import_is_blocked(tmp_path, kwargs):
+    result = _vs(tmp_path, **kwargs)
+    assert (result["state"], result["reason"]) == ("BLOCKED", "vanillasoft-history-sample-no-import")
+    assert result["facts"]["imported"] == 0
 
 
 # ── RK-04: web lead persistence and idempotency ─────────────────────────────
@@ -442,10 +651,20 @@ def test_finalize_all_pass_is_ready(tmp_path):
 
 def test_blockers_file_names_the_verdict_blockers():
     ids = lib.verdict_blocker_ids()
-    assert {"vanillasoft-key-unbound", "erp-proof-files-missing", "vanillasoft-empty-window"} <= ids
+    assert {
+        "vanillasoft-key-unbound",
+        "erp-proof-files-missing",
+        "vanillasoft-history-census-unbound",
+        "vanillasoft-history-digest-unbound",
+        "vanillasoft-history-sample-no-import",
+    } <= ids
+    # The rolling-window blockers are gone with the mode.
+    assert not {"vanillasoft-empty-window", "vanillasoft-scope-notice-partial"} & ids
     entries = lib.load_blockers()
     # Design-scope notes never turn a failure into a block.
     assert entries["web-lead-no-partner-creation"].get("verdict_effect") != "blocked"
+    assert entries["vanillasoft-history-bounded-sample"].get("verdict_effect") != "blocked"
+    assert "vanillasoft-seven-day-window" not in entries
 
 
 def test_blockers_record_pr_385_as_merged():

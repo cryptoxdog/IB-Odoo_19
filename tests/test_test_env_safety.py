@@ -21,6 +21,12 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "test_env.sh"
 MUTATING = (" up ", " run ", " exec ", " build", " rm ", " drop", "DROP DATABASE", "CREATE DATABASE")
+# The rehearsal's history-mode settings (2026-11-07): census, declared digest, ledger.
+HISTORY = [
+    "VANILLASOFT_HISTORY_CENSUS=.l9/runtime/census.csv",
+    "VANILLASOFT_HISTORY_CENSUS_SHA256=" + "a" * 64,
+    "VANILLASOFT_HISTORY_CHECKPOINT=tests/production-rehearsal/evidence/run/06-crm-history.jsonl",
+]
 
 
 def _run(tmp_path: Path, *args: str, **env: str) -> tuple[subprocess.CompletedProcess, str]:
@@ -166,7 +172,81 @@ def test_makefile_test_targets_run_inside_the_protected_wrapper():
         (["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a"], "requires VANILLASOFT_CALL_FLOOR"),
         (
             ["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", "VANILLASOFT_API_KEY=secret"],
-            "not a VanillaSoft import floor",
+            "not a VanillaSoft import setting",
+        ),
+        # History mode (2026-11-07): the census selects it; a floor beside it, a
+        # missing digest or ledger, an empty value, a permit, or a stage are refused.
+        (
+            [
+                "make",
+                "import-vanillasoft",
+                "ODOO_DB_NAME=odoo_test_a",
+                *HISTORY,
+                "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z",
+            ],
+            "history mode refuses VANILLASOFT_CALL_FLOOR / VANILLASOFT_CONTACT_FLOOR",
+        ),
+        (
+            [
+                "make",
+                "import-vanillasoft",
+                "ODOO_DB_NAME=odoo_test_a",
+                *HISTORY,
+                "VANILLASOFT_CONTACT_FLOOR=2020-01-01T00:00:00Z",
+            ],
+            "history mode refuses VANILLASOFT_CALL_FLOOR / VANILLASOFT_CONTACT_FLOOR",
+        ),
+        (
+            ["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", HISTORY[0], HISTORY[2]],
+            "history mode requires VANILLASOFT_HISTORY_CENSUS_SHA256",
+        ),
+        (
+            ["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", HISTORY[0], HISTORY[1]],
+            "history mode requires VANILLASOFT_HISTORY_CHECKPOINT",
+        ),
+        (
+            ["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", HISTORY[1], HISTORY[2]],
+            "history mode requires VANILLASOFT_HISTORY_CENSUS",
+        ),
+        (
+            [
+                "make",
+                "import-vanillasoft",
+                "ODOO_DB_NAME=odoo_test_a",
+                "VANILLASOFT_HISTORY_CENSUS=",
+                HISTORY[1],
+                HISTORY[2],
+            ],
+            "must name an explicit value",
+        ),
+        (
+            ["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", *HISTORY, "VANILLASOFT_HISTORY_MAX_IDS=all"],
+            "must be a positive integer",
+        ),
+        (
+            [
+                "make",
+                "import-vanillasoft",
+                "ODOO_DB_NAME=odoo_test_a",
+                *HISTORY,
+                "VANILLASOFT_PRODUCTION_PERMIT=/tmp/p.json",
+            ],
+            "verified clone is never a production target",
+        ),
+        (
+            ["make", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", *HISTORY, "ODOO_STAGE=production"],
+            "not a VanillaSoft import setting",
+        ),
+        (
+            [
+                "make",
+                "import-erp",
+                "ODOO_DB_NAME=odoo_test_a",
+                "ERP_SQL_SERVER=h",
+                "ERP_SQL_DATABASE=d",
+                "ERP_PRODUCTION_PERMIT=/tmp/p.json",
+            ],
+            "verified clone is never a production target",
         ),
     ],
 )
@@ -189,6 +269,16 @@ def test_run_refuses_recipe_forms_that_leave_the_verified_clone(tmp_path, args, 
             "ODOO_DB_NAME=odoo_test_a",
             "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z",
             "VANILLASOFT_CONTACT_FLOOR=2020-01-01T00:00:00Z",
+        ],
+        # History mode: the rehearsal's exact form (no floor), with the optional bounds.
+        [
+            "make",
+            "import-vanillasoft",
+            "ODOO_DB_NAME=odoo_test_a",
+            *HISTORY,
+            "VANILLASOFT_HISTORY_MAX_IDS=100",
+            "VANILLASOFT_HISTORY_FAILURE_BUDGET=25",
+            "VANILLASOFT_REPORT_PATH=/mnt/extra-addons/tests/production-rehearsal/evidence/run/06-crm-result.json",
         ],
         [
             "docker",

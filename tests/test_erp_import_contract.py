@@ -803,3 +803,56 @@ def test_company_values_already_set_are_never_overwritten():
     )
     assert company.email == "remit@example.test"
     assert company.phone == "215-555-0711", "only the missing phone is filled"
+
+
+# ---------------------------------------------------------------------------
+# Command dispatch (2026-11-07): one authoritative ERP execution path
+# ---------------------------------------------------------------------------
+SHELL_DRIVER = ROOT / "plasticos_partner_import" / "scripts" / "import_erp_shell.py"
+MAKEFILE = ROOT / "Makefile"
+RETIRED_ERP_PATHS = (
+    "run_import.py",
+    "run_transaction_import.py",
+    "partner_import_service",
+    "transaction_import_service",
+    "transaction_import_wizard",
+    "run_csv_import",
+    "action_import",
+)
+
+
+def _import_erp_recipe() -> str:
+    text = MAKEFILE.read_text(encoding="utf-8")
+    return text.split("\nimport-erp:\n", 1)[1].split("\n\n", 1)[0]
+
+
+def test_make_import_erp_pipes_only_the_canonical_shell_driver():
+    recipe = _import_erp_recipe()
+    assert recipe.count("< plasticos_partner_import/scripts/import_erp_shell.py") == 2, "both runtimes, one driver"
+    for retired in RETIRED_ERP_PATHS:
+        assert retired not in recipe, f"make import-erp must not reach {retired}"
+    # The direct SQL source is required and a fixture root refused on both runtimes, before any runtime starts.
+    assert recipe.count("$(erp_source_guard)") == 2
+    assert recipe.count('ERP_PRODUCTION_PERMIT="$(call runtime_path,$(ERP_PRODUCTION_PERMIT))"') == 1
+    assert recipe.count('ERP_PRODUCTION_PERMIT="$(ERP_PRODUCTION_PERMIT)"') == 1
+    guard = MAKEFILE.read_text(encoding="utf-8").split("\nerp_source_guard = ", 1)[1].split("\n\n", 1)[0]
+    assert "ERP_PAYLOAD_ROOT" in guard and "ERP_SQL_SERVER" in guard and "ERP_SQL_DATABASE" in guard
+
+
+def test_shell_driver_reaches_the_native_service_and_its_active_commercial_extension(deal_source):
+    source = SHELL_DRIVER.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported = {
+        f"{node.module}.{alias.name}"
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    assert "odoo.addons.plasticos_partner_import.scripts.run_erp_import.run" in imported
+    assert 'env["plasticos.erp.import"].run(' in RUNNER.read_text(encoding="utf-8")
+    for retired in RETIRED_ERP_PATHS:
+        assert retired not in source, f"the shell driver must not reach {retired}"
+    # The historical filename is an active native-document extension of the same model, not a CSV importer.
+    assert '_inherit = "plasticos.erp.import"' in deal_source
+    init = (ROOT / "plasticos_transaction" / "models" / "__init__.py").read_text(encoding="utf-8")
+    assert "from . import legacy_erp_import_service" in init
