@@ -1067,10 +1067,14 @@ SQL_ARGS = ("ERP_SQL_SERVER=erp-host.invalid", "ERP_SQL_DATABASE=erp_probe")
 
 
 def test_make_import_vanillasoft_history_mode_forwards_every_input_onto_the_mount(mk):
-    result = mk.run("import-vanillasoft", *HISTORY_ARGS, "VANILLASOFT_HISTORY_FAILURE_BUDGET=5")
+    result = mk.run(
+        "import-vanillasoft", *HISTORY_ARGS, "VANILLASOFT_HISTORY_FAILURE_BUDGET=5", env={"ODOO_STAGE": "stage-x"}
+    )
     assert result.returncode == 0, result.stderr
     assert "mode: history" in result.stdout
     (call,) = mk.compose_calls()
+    # The permit is verified against the stage the driver observes; compose passes only -e variables.
+    assert call["env"]["ODOO_STAGE"] == "stage-x"
     assert call["argv"][:3] == ["compose", "run", "--rm"]
     assert call["argv"][call["argv"].index("-w") + 1] == "/mnt/extra-addons"
     assert call["env"]["VANILLASOFT_HISTORY_CENSUS"] == f"/mnt/extra-addons/{CENSUS_REL}"
@@ -1085,11 +1089,12 @@ def test_make_import_vanillasoft_history_mode_forwards_every_input_onto_the_moun
 
 
 def test_make_import_vanillasoft_history_mode_on_the_local_runner_passes_host_paths(mk):
-    result = mk.run("import-vanillasoft", *HISTORY_ARGS, docker=False)
+    result = mk.run("import-vanillasoft", *HISTORY_ARGS, docker=False, env={"ODOO_STAGE": "stage-x"})
     assert result.returncode == 0, result.stderr
     assert mk.compose_calls() == []
     run = mk.odoo_run()
     assert run is not None
+    assert run["env"]["ODOO_STAGE"] == "stage-x"
     assert run["env"]["VANILLASOFT_HISTORY_CENSUS"] == CENSUS_REL
     assert run["env"]["VANILLASOFT_HISTORY_CHECKPOINT"] == ".l9/runtime/ledger/history.jsonl"
     assert run["env"]["VANILLASOFT_HISTORY_CENSUS_SHA256"] == SHA64
@@ -1155,10 +1160,18 @@ def test_make_import_vanillasoft_docker_refuses_a_file_outside_the_bind_mount(mk
 
 
 def test_make_import_erp_forwards_the_permit_and_pipes_only_the_erp_driver(mk):
-    result = mk.run("import-erp", *SQL_ARGS, "ERP_PRODUCTION_PERMIT=.l9/runtime/permit.json", "LIMIT=10%")
+    result = mk.run(
+        "import-erp",
+        *SQL_ARGS,
+        "ERP_PRODUCTION_PERMIT=.l9/runtime/permit.json",
+        "LIMIT=10%",
+        env={"ODOO_STAGE": "stage-x"},
+    )
     assert result.returncode == 0, result.stderr
     (call,) = mk.compose_calls()
     assert call["env"]["ERP_PRODUCTION_PERMIT"] == "/mnt/extra-addons/.l9/runtime/permit.json"
+    assert call["env"]["ODOO_STAGE"] == "stage-x"
+    assert "ODOO_STAGE" not in [a.split("=")[0] for a in SQL_ARGS]  # it came from the environment, not argv
     assert call["env"]["ERP_SQL_SERVER"] == "erp-host.invalid" and call["env"]["ERP_SQL_DATABASE"] == "erp_probe"
     assert call["env"]["ERP_LIMIT"] == "10%" and call["env"]["ERP_REQUIRE_EMPTY"] == "1"
     assert call["env"]["ERP_PAYLOAD_ROOT"] == "" and call["env"]["ERP_TARGET_DB"] == "probe_db"
@@ -1167,11 +1180,18 @@ def test_make_import_erp_forwards_the_permit_and_pipes_only_the_erp_driver(mk):
 
 
 def test_make_import_erp_on_the_local_runner_passes_the_permit_host_path(mk):
-    result = mk.run("import-erp", *SQL_ARGS, "ERP_PRODUCTION_PERMIT=.l9/runtime/permit.json", docker=False)
+    result = mk.run(
+        "import-erp",
+        *SQL_ARGS,
+        "ERP_PRODUCTION_PERMIT=.l9/runtime/permit.json",
+        docker=False,
+        env={"ODOO_STAGE": "stage-x"},
+    )
     assert result.returncode == 0, result.stderr
     run = mk.odoo_run()
     assert run is not None
     assert run["env"]["ERP_PRODUCTION_PERMIT"] == ".l9/runtime/permit.json"
+    assert run["env"]["ODOO_STAGE"] == "stage-x"
     assert run["env"]["ERP_SQL_DATABASE"] == "erp_probe"
     assert run["stdin"] == (ROOT / ERP_DRIVER).read_text(encoding="utf-8")
 
@@ -1219,6 +1239,7 @@ def assert_canonical_dispatch(makefile_text: str) -> None:
     assert erp.count("$(erp_source_guard)") == 2
     assert erp.count('ERP_PRODUCTION_PERMIT="$(call runtime_path,$(ERP_PRODUCTION_PERMIT))"') == 1
     assert erp.count('ERP_PRODUCTION_PERMIT="$(ERP_PRODUCTION_PERMIT)"') == 1
+    assert erp.count('ODOO_STAGE="$(ODOO_STAGE)"') == 2 and vs.count('ODOO_STAGE="$(ODOO_STAGE)"') == 2
     assert "$(vanillasoft_mode_guard)" in vs
     for var in (
         "VANILLASOFT_HISTORY_CENSUS",

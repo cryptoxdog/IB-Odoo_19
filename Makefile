@@ -1043,8 +1043,13 @@ unexport ERP_SQL_PASSWORD_INDIRECT ERP_SQL_PASSWORD_INHERITED
 # fixtures stay available to isolated tests only. The DRY=1 and PAYLOAD_ROOT
 # examples above are historical: a preview names the database too.
 # ERP_PRODUCTION_PERMIT (plasticos_partner_import/erp/production_permit.py) is
-# forwarded to both runtimes; the promotion rehearsal never sets it.
+# forwarded to both runtimes; the promotion rehearsal never sets it. A permit
+# is verified against the stage the driver observes, and `docker compose run`
+# passes only the variables named with -e, so ODOO_STAGE is forwarded the same
+# way on the Docker runtime (the local runtime inherits it); the rehearsal
+# refuses ODOO_STAGE=production before either target runs.
 ERP_PRODUCTION_PERMIT ?=
+ODOO_STAGE ?=
 # Inside the odoo container the repository checkout is the only bind mount
 # (docker-compose.yml: .:/mnt/extra-addons). A file the driver must open on the
 # Docker runtime (permit, census, ledger) is given as a host path, relative to
@@ -1116,6 +1121,7 @@ import-erp:
 		$(call mount_guard,ERP_PRODUCTION_PERMIT,import-erp); \
 		docker compose run --rm -w /mnt/extra-addons \
 			-e ERP_PRODUCTION_PERMIT="$(call runtime_path,$(ERP_PRODUCTION_PERMIT))" \
+			-e ODOO_STAGE="$(ODOO_STAGE)" \
 			-e ERP_DRY="$(ERP_DRY)" \
 			-e ERP_LIMIT="$(ERP_LIMIT)" \
 			-e ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" \
@@ -1138,6 +1144,7 @@ import-erp:
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
 		$(erp_source_guard); \
 		ERP_PRODUCTION_PERMIT="$(ERP_PRODUCTION_PERMIT)" \
+		ODOO_STAGE="$(ODOO_STAGE)" \
 		ERP_DRY="$(ERP_DRY)" ERP_LIMIT="$(ERP_LIMIT)" \
 		ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
 		ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
@@ -1196,6 +1203,7 @@ import-vanillasoft:
 			-e VANILLASOFT_HISTORY_MAX_IDS="$(VANILLASOFT_HISTORY_MAX_IDS)" \
 			-e VANILLASOFT_HISTORY_FAILURE_BUDGET="$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" \
 			-e VANILLASOFT_PRODUCTION_PERMIT="$(call runtime_path,$(VANILLASOFT_PRODUCTION_PERMIT))" \
+			-e ODOO_STAGE="$(ODOO_STAGE)" \
 			-e VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" \
 			-e VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
 			-e VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
@@ -1207,6 +1215,7 @@ import-vanillasoft:
 		VANILLASOFT_HISTORY_CENSUS="$(VANILLASOFT_HISTORY_CENSUS)" VANILLASOFT_HISTORY_CENSUS_SHA256="$(VANILLASOFT_HISTORY_CENSUS_SHA256)" \
 		VANILLASOFT_HISTORY_CHECKPOINT="$(VANILLASOFT_HISTORY_CHECKPOINT)" VANILLASOFT_HISTORY_MAX_IDS="$(VANILLASOFT_HISTORY_MAX_IDS)" \
 		VANILLASOFT_HISTORY_FAILURE_BUDGET="$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" VANILLASOFT_PRODUCTION_PERMIT="$(VANILLASOFT_PRODUCTION_PERMIT)" \
+		ODOO_STAGE="$(ODOO_STAGE)" \
 		VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
 		VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
 		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
