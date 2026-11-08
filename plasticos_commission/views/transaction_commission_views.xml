@@ -14,7 +14,7 @@
         <field name="priority">10</field>
         <field name="arch" type="xml">
             <!-- Insert Commission tab inside the notebook (at the end) -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook[@name='transaction_pages']" position="inside">
                 <page string="Commission" name="commission">
                     <group>
                         <field name="commission_rule_id"/>

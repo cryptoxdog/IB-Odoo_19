@@ -7,7 +7,7 @@
       <field name="name">Plastic Pallets - No Metal</field>
       <field name="code">PALLETS_NO_METAL</field>
       <field name="polymer_id" ref="polymer_plastic_pallets"/>
-      <field name="form_id" ref="form_pallets"/>
+      <field name="material_grade_id" ref="material_grade_pallets"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
       <field name="quality_tier">standard</field>
       <field name="no_metal">True</field>
@@ -110,7 +110,7 @@
       <field name="name">HDPE Crates</field>
       <field name="code">HDPE_CRATES</field>
       <field name="polymer_id" ref="polymer_hdpe"/>
-      <field name="form_id" ref="form_crates"/>
+      <field name="material_grade_id" ref="material_grade_crates"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
       <field name="quality_tier">standard</field>
       <field name="sequence">110</field>
@@ -130,10 +130,20 @@
       <field name="name">HDPE Drums</field>
       <field name="code">HDPE_DRUMS</field>
       <field name="polymer_id" ref="polymer_hdpe"/>
-      <field name="form_id" ref="form_drums"/>
+      <field name="material_grade_id" ref="material_grade_drums"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
       <field name="quality_tier">standard</field>
       <field name="sequence">130</field>
+    </record>
+
+    <record id="grade_hdpe_jerry_cans" model="plasticos.grade.template">
+      <field name="name">HDPE Jerry Cans</field>
+      <field name="code">HDPE_JERRY_CANS</field>
+      <field name="polymer_id" ref="polymer_hdpe"/>
+      <field name="material_grade_id" ref="material_grade_jerry_cans"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">135</field>
     </record>
 
     <record id="grade_pp_corrugated" model="plasticos.grade.template">
@@ -235,5 +245,16 @@
       <field name="sequence">230</field>
     </record>
 
+  </data>
+  <data noupdate="1">
+    <record id="grade_ibc_totes" model="plasticos.grade.template">
+      <field name="name">IBC Totes</field>
+      <field name="code">IBC_TOTES</field>
+      <field name="polymer_id" ref="polymer_hdpe_hmw"/>
+      <field name="material_grade_id" ref="material_grade_ibc_totes"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">135</field>
+    </record>
   </data>
 </odoo>

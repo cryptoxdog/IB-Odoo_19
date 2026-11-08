@@ -43,6 +43,7 @@
                decoration-warning="transaction_state in ('pending_supplier','supplier_not_ready')"
                decoration-info="transaction_state in ('dispatched','in_transit','in_progress')"
                optional="show"/>
+        <field name="load_count"              string="Loads" optional="show"/>
         <field name="load_state"              string="Load"
                widget="badge"
                decoration-danger="load_state == 'exception'"
@@ -139,6 +140,7 @@
                       invisible="weight_source == 'scale' and doc_scale_ticket == 'ok'"/>
             </group>
             <group string="Logistics">
+              <field name="load_count"        readonly="1"/>
               <field name="load_state"        readonly="1" widget="badge"
                      decoration-danger="load_state == 'exception'"
                      decoration-success="load_state == 'delivered'"/>

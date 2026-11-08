@@ -1,0 +1,740 @@
+{
+  "schema": "recycleos.working-pack.manifest/v2",
+  "pack": "PlasticOS_Export_Blast_Radius_Plan_v2.7.5",
+  "version": "2.7.5",
+  "generated": "2026-10-29T15:23:15.171994+00:00",
+  "status": "REPOSITORY_SOURCE_PLAN_RECONCILED; S1_TARGET_UNOBSERVED; NO_CODE_AUTHORITY",
+  "repository_mutations": "NONE",
+  "predecessor": {
+    "file": "PlasticOS_Export_Source_Owner_Boundary_Corrected_v2.7.4.zip",
+    "sha256": "6c3311cffae8a696b9bc5ed5a09b0bd86f5c84dccfd3fe238dfee29236d3005a",
+    "version": "2.7.4"
+  },
+  "stable_brs": {
+    "export_rules_exactly_preserved": 120,
+    "export_acceptance_cases_exactly_preserved": 120,
+    "runtime": "NOT_RUN"
+  },
+  "invariants": {
+    "constitution": "INVARIANTS.md v2.2.0 in target repository",
+    "previous_working_draft": "GOVERNANCE/ODOO_INVARIANTS_v3.4.0_DRAFT_r1.md",
+    "working_draft": "GOVERNANCE/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+    "refined_candidate_invariant": "POS-INV-26",
+    "prior_POS_INV_01_to_25_normative_unchanged": true,
+    "BAN001_unchanged": true,
+    "operator_pack_local_gate": "REPOSITORY_PLAN_RECONCILED; S1_TARGET_NOT_YET_PROVEN",
+    "constitutional_admission": "NOT_DONE"
+  },
+  "change_census": {
+    "effects": 203,
+    "original_effects_retained": 162,
+    "added_effects": 41,
+    "unique_paths_or_interfaces": 199,
+    "effect_dispositions": {
+      "EDIT": 72,
+      "NO_CHANGE": 74,
+      "CREATE": 41,
+      "NO_ADD": 10,
+      "INDEPENDENT": 2,
+      "REVIEW_ONLY": 2,
+      "BLOCKED": 2
+    },
+    "file_dispositions": {
+      "EDIT": 69,
+      "NO_CHANGE": 73,
+      "CREATE": 41,
+      "NO_ADD": 10,
+      "INDEPENDENT": 2,
+      "REVIEW_ONLY": 2,
+      "BLOCKED": 2
+    },
+    "frontiers": 7,
+    "audit_findings": 19,
+    "rebound_changed_source_files": 24,
+    "brs_rules": 120,
+    "acceptance_cases": 120,
+    "protected_models": 6,
+    "protected_public_commands": 12
+  },
+  "members": {
+    "00A_VERSION_1_1_EXPORT_ADDENDUM.md": {
+      "sha256": "d0aca497203484faf18cabe6b9483431fd9586b978d9b1a6d7cb72c0b0146c57",
+      "bytes": 3326
+    },
+    "00B_VERSION_1_2_PLASTICOS_EXPORT_SCOPE_LOCK.md": {
+      "sha256": "2044413183be97d4a602532e06326d86b0d0f66fa8ab957fcf5b7cfcaf3eb5bc",
+      "bytes": 4581
+    },
+    "00C_VERSION_1_3_DOCUMENT_BOUNDARY_LOCK.md": {
+      "sha256": "d68dc170df63fb1c5e369fb8b515a3ce9cda433d90a9fe2c4e7f2471e425fde2",
+      "bytes": 5422
+    },
+    "00D_VERSION_1_4_EXPORT_BRS_ADDENDUM.md": {
+      "sha256": "824d5849d49c4c30ba7fe0f8c46270bc5b7297d0ade9f70e3624d4040e9eaef2",
+      "bytes": 1156
+    },
+    "00E_VERSION_1_5_EQUIPMENT_ADDENDUM.md": {
+      "sha256": "cdfa414183d27e06c256232b2352f04d3e997c21a6495c85006c1769e1afab2d",
+      "bytes": 1582
+    },
+    "00F_VERSION_1_6_MULTILOAD_AI_BUYER_OPTIONAL_ADDENDUM.md": {
+      "sha256": "af8d39b89070153e899fb103ed90bf5ba75650720d4f9fa84cc1ad754c658a66",
+      "bytes": 2610
+    },
+    "00G_VERSION_1_7_REAL_BOOKING_CASE_AI_REVISION.md": {
+      "sha256": "d3a1658f5d4ea3fc7102637cc4468610066997f4463ce8198ceb55692e3f8cbf",
+      "bytes": 1206
+    },
+    "00H_VERSION_1_8_PHASE2_FINDTEU_AESDIRECT.md": {
+      "sha256": "66b432e57bed67839569296b4a28b651cf3173ba21bee05b994fbdd9a7f94fca",
+      "bytes": 1619
+    },
+    "00I_VERSION_1_9_CLAIMS_AND_REPORTING.md": {
+      "sha256": "e478833b41f6c4754fc86f6914ea5c7874888253c45aeded22dec01d27f09bb1",
+      "bytes": 1049
+    },
+    "00J_VERSION_2_0_INVARIANT_CONVERGENCE.md": {
+      "sha256": "dbe26ff50fdbc34912ee848f6e285f775a761261e0a474be6e0fb4a63c975f0a",
+      "bytes": 2433
+    },
+    "00K_VERSION_2_1_EXPORT_CONVERGENCE.md": {
+      "sha256": "8dd0203d0387e683c49f9cfbc3074f053306241b11cebb751ac4a7aded6a4e69",
+      "bytes": 1453
+    },
+    "00L_VERSION_2_2_EXPORT_FREEZE_AND_BOOKING_UX.md": {
+      "sha256": "ae3f30930043d4291f8839f6cf281e173939555e78b83ac54acd5b34ffec6515",
+      "bytes": 1163
+    },
+    "00M_VERSION_2_3_DASHBOARD_INVARIANT_AND_DRILLDOWN.md": {
+      "sha256": "5a72e2af33620af6360b043dafe6b7be4ae94c61b7a94ab3770da287feb4c8d6",
+      "bytes": 1573
+    },
+    "00N_VERSION_2_4_EXPORT_IMPLEMENTATION_EXPRESSION.md": {
+      "sha256": "4b2f97c55281169319fbc1044188e137f20678c6ad6f1b32a16e071c77b7b31a",
+      "bytes": 1160
+    },
+    "00O_VERSION_2_5_EXPORT_READINESS.md": {
+      "sha256": "ca9dfc0e628bdad1a63a3b118aba4d8c0eef7c8e55e00287dc6cd2109e1a4458",
+      "bytes": 1816
+    },
+    "00P_VERSION_2_6_CROSS_MODULE_CONTRACTS.md": {
+      "sha256": "7d7c205d951c9344bfa318ac578c1312995cd3209023cb2e5ea6463618153c4e",
+      "bytes": 2461
+    },
+    "00Q_VERSION_2_7_TECHNICAL_CLOSURE.md": {
+      "sha256": "ff3ed83a66a6c481ee1d8afd6f4b6ec4d2e8de1eced593e67b62f2c8f8dbd618",
+      "bytes": 2106
+    },
+    "00R_VERSION_2_7_1_PRE_CODE_RIPPLE_GATE.md": {
+      "sha256": "d741d361ad2e79e8468684d17f655aa1e9ed9c041277fa3c6e47b990270f32c3",
+      "bytes": 1777
+    },
+    "00S_VERSION_2_7_2_BLAST_RADIUS_PLAN_LOCK.md": {
+      "sha256": "7fbe321fdd6003ae41691987d01ac97e8734e6a58e1dd1fec2fc7772f336d131",
+      "bytes": 1386
+    },
+    "00T_VERSION_2_7_3_COMPLETE_CHANGE_PLAN.md": {
+      "sha256": "9d54960ecd15f668a7f131078e43ba98bd330a91222481dbfbc3616937b5085d",
+      "bytes": 555
+    },
+    "00U_VERSION_2_7_4_SOURCE_OWNER_BOUNDARY_CORRECTION.md": {
+      "sha256": "b09ec69fe7bf970efbf0f43bd318a7bb4a36a5698aa16bb39c1ede18d110abb1",
+      "bytes": 1326
+    },
+    "00V_VERSION_2_7_5_SOURCE_PLAN_COMPLETION.md": {
+      "sha256": "a4e65a85132e58cf355e17e4a4887ef4824270f8b39e47359c9d573c57b81cb9",
+      "bytes": 1589
+    },
+    "00_README.md": {
+      "sha256": "4e568d5cf5b40f9d38634aae74a3558722bbaa8ab3696de7d499f5ab305562df",
+      "bytes": 2689
+    },
+    "00_ROADMAP_INDEX.md": {
+      "sha256": "1761a78a8d4a93d0e38539a213296dce6aa839caafcfafe5ee04d03bba5f5dcc",
+      "bytes": 1229
+    },
+    "01_LOCKED_DECISIONS_AND_INVARIANTS.md": {
+      "sha256": "59a47215a2afd3c27b8b43260c552a6e81aa3199227e8932ecaaa5e918100433",
+      "bytes": 7043
+    },
+    "02_OPERATOR_WORKFLOWS.md": {
+      "sha256": "a591b6ffc01cb3540b2d9039c13e033130cb3e3922786c5894733b8043d1d983",
+      "bytes": 7507
+    },
+    "03_CAPABILITY_REUSE_AND_GAPS.md": {
+      "sha256": "dacb649e559d1a6db8f93961b840c159f9d967757e8229ea61c33b4455020527",
+      "bytes": 4724
+    },
+    "04_DEVICE_AND_DATA_BOUNDARIES.md": {
+      "sha256": "db00cfd96fb9e2ee55f5529935156e17d25463dbbe795e448f0332b482f38dbb",
+      "bytes": 5274
+    },
+    "05_ACCEPTANCE_PROBES.md": {
+      "sha256": "7f90144ea86ac28eaa48a320ce44fe644ac0248f13541a3d43310f58b32d3bea",
+      "bytes": 4122
+    },
+    "06_SOURCE_EVIDENCE_AND_OPEN_DECISIONS.md": {
+      "sha256": "29962dc4764c399649a34ae1e77a4587a4a06debc33309d062227277c3ed1295",
+      "bytes": 4972
+    },
+    "07_ADDITIVE_EXPANSION.json": {
+      "sha256": "bac2fc1695f0de3bf9df3785b3ecbd44ba3e2d1c66184c6a800df04fb4a2db83",
+      "bytes": 4979
+    },
+    "08_EXPORT_OPERATIONS_AND_FIELDS.md": {
+      "sha256": "a02a5968456c1fe345a70c9e886e85943e3fbe44a7a6074e0d41165d920dc1b5",
+      "bytes": 11173
+    },
+    "09_EXPORT_ACCEPTANCE_PROBES.md": {
+      "sha256": "3a4d669d1007e0092343452a9a0c653b4dc065923ba330e31b45f27f4ce2820e",
+      "bytes": 5206
+    },
+    "10_EXPORT_ADDITIVE_EXTENSION.json": {
+      "sha256": "ab87f16b96b27848c037e7247510ecdc0c56345fbb434f653bc41e0f73178565",
+      "bytes": 5317
+    },
+    "11_PLASTICOS_EXPORT_NATIVE_FIRST_TWO_PHASE_SPEC.md": {
+      "sha256": "08adeffadfc85148cb852dd48cf870f61d401c3d324cf84ce38435a07990d028",
+      "bytes": 10893
+    },
+    "12_PLASTICOS_EXPORT_ACCEPTANCE_AND_GAPS.md": {
+      "sha256": "892ddc77a660506e7d5a5ebe2e019ac2601ce477c980fe5f879f01e98af889c0",
+      "bytes": 6199
+    },
+    "13_PLASTICOS_EXPORT_ADDITIVE_SCOPE.json": {
+      "sha256": "90e442e5e9f5c5e393de4eb8d7263a0819fa6ecb379594fee8166ff4294dadd2",
+      "bytes": 3936
+    },
+    "14_EXPORT_DOCUMENT_OWNERSHIP_MATRIX.md": {
+      "sha256": "070130f54681cd9bc7a1ef7b742e152b7d12089acefb48de2b2d342467d8e58e",
+      "bytes": 5478
+    },
+    "15_EXPORT_DOCUMENT_BOUNDARY_PROBES.md": {
+      "sha256": "a86dff45c3f6a83ee9069ce97b65dba060dd2a692b590015a8ffa13ca1c980d5",
+      "bytes": 4467
+    },
+    "16_EXPORT_DOCUMENT_BOUNDARY_LOCK.json": {
+      "sha256": "df264b39f9ffe0b0fa7777d53a7f40d109d1575c7a707af79c7ce85f0c1c5d98",
+      "bytes": 2291
+    },
+    "17_EXPORT_TRANSPORT_EQUIPMENT_FIELDS.md": {
+      "sha256": "3ce9869fbf3b38d8c6e1c9162238ddd51a09c7c07884c38f564ac65e99b5988d",
+      "bytes": 1725
+    },
+    "18_EXPORT_TRANSPORT_EQUIPMENT_ACCEPTANCE.md": {
+      "sha256": "fb598e540286a9c1e761a6d33ad14957b0fa73154dc027e6c90512a3cbe3e8fa",
+      "bytes": 1535
+    },
+    "19_EXPORT_TRANSPORT_EQUIPMENT_EXTENSION.json": {
+      "sha256": "c4bb6813ec7de65a84606f897c09bce7b8b09ef6a785d95b780f899b5050c71a",
+      "bytes": 1305
+    },
+    "20_RECYCLEOS_EIGHT_CLAIMS_ROADMAP.md": {
+      "sha256": "67ba03bc83a38e429269a7f1e8a67ae618e59735d39349e3f192ccd7e68a4e76",
+      "bytes": 9101
+    },
+    "21_EXPORT_NATIVE_REPORTING_REQUIREMENTS.md": {
+      "sha256": "c8a2db16a5b376e409be17f6a4f2accf701dcf89982e6a96132d381a0e617107",
+      "bytes": 7109
+    },
+    "EXPORT_BRS/ACCEPTANCE/cases.csv": {
+      "sha256": "acb14910a11c5bef49be9535312b82228f87bd4ef523e5fd888c514c94c14463",
+      "bytes": 37126
+    },
+    "EXPORT_BRS/ACCEPTANCE/cases.json": {
+      "sha256": "81b7d07f20dbdffc94ee1ca7f1aea324c2d588fc627bc27795537b0b3a7008fc",
+      "bytes": 52100
+    },
+    "EXPORT_BRS/BOOKING_CONTROL_CENTER_UX.md": {
+      "sha256": "ceb391905a01ace09541f4d1b8ce343b909ca05dbdf13dfe54dd40632a62949e",
+      "bytes": 11569
+    },
+    "EXPORT_BRS/CONVERGENCE/ARCHITECTURE_DECISION_CANDIDATE.md": {
+      "sha256": "72595b657836764ddbe2fcd97ea2dbd564b3d18767151b4d02ca584d244eac8b",
+      "bytes": 11023
+    },
+    "EXPORT_BRS/CONVERGENCE/NEGATIVE_CONTROL_SCENARIOS.md": {
+      "sha256": "a4c73b444300832cc480926f5fc1d778ed82aedffafc10788281c8806c4c7f0d",
+      "bytes": 3457
+    },
+    "EXPORT_BRS/CONVERGENCE/OPERATOR_DESIGN_FREEZE.md": {
+      "sha256": "5f36b3ecabcf1d0cea5c5390978570907f3019ba3a20cab2fed913372f1c0827",
+      "bytes": 2968
+    },
+    "EXPORT_BRS/CONVERGENCE/TARGET_OWNER_HANDOFF.md": {
+      "sha256": "c8d380ea95b23a30c2288457d034cc519781685851bacd21bd3ec34a52dfc82c",
+      "bytes": 2931
+    },
+    "EXPORT_BRS/DECISION_FRONTIER.md": {
+      "sha256": "d1fa0a85f7ae3d480f695672c646da1bfe652051d48b477de5ee66f044b66096",
+      "bytes": 6722
+    },
+    "EXPORT_BRS/EQUIPMENT_OWNER_ADDENDUM.md": {
+      "sha256": "3914017ce95ac06a9b29afa0fde91d956df81d0d82a0638328adbce5dc4ab43c",
+      "bytes": 1697
+    },
+    "EXPORT_BRS/EXPORT_REPORTING_UX_AND_SCHEMA.md": {
+      "sha256": "04b5b2fa71b3c51ee33fbde94b3d9f29d743ac3f1c1db7596d72ea907d18398b",
+      "bytes": 6690
+    },
+    "EXPORT_BRS/GOVERNANCE/DASHBOARD_INVARIANT_ALIGNMENT.md": {
+      "sha256": "417c3fedbd4445feeb7d7a7adee308149511c6363c9e1a4173d4225bb54d74e8",
+      "bytes": 3484
+    },
+    "EXPORT_BRS/GOVERNANCE/INVARIANT_ALIGNMENT_AND_IRREDUCIBILITY.md": {
+      "sha256": "bb9daad1070c4eaeec3c0ef912873236e98a2e837e53a4668055f7f56c0a6231",
+      "bytes": 5915
+    },
+    "EXPORT_BRS/GOVERNANCE/ODOO_INVARIANTS_v3.0.0_DRAFT_r3.md": {
+      "sha256": "5df7eae3aed672d68311c9717697e3f3cfe5ac05d0e962e13a7c340513e55d0e",
+      "bytes": 21659
+    },
+    "EXPORT_BRS/GOVERNANCE/ODOO_INVARIANTS_v3.1.0_DRAFT_r1.md": {
+      "sha256": "7b764e9a08430f47e03469b3573c014332215d1d80c4a28c470825e222db45ba",
+      "bytes": 26245
+    },
+    "EXPORT_BRS/GOVERNANCE/ODOO_INVARIANTS_v3.2.0_DRAFT_r1.md": {
+      "sha256": "2d187afb1c395c3a258b5699abad5a2581dc1d9be8bbdfc3d0fe7bc83098df5e",
+      "bytes": 29039
+    },
+    "EXPORT_BRS/GOVERNANCE/REPO_AUTHORITY_AND_ADMISSION.md": {
+      "sha256": "aae39ea89371afe776eb9628704c5a3460025b5d487f3ad49fb32e87c27232a7",
+      "bytes": 3688
+    },
+    "EXPORT_BRS/GOVERNANCE/V2_2_TO_V3_1_PRELIMINARY_MAPPING.md": {
+      "sha256": "2c9a768e7b3e29e7eed111061b9396c2555e86456938acf3d543d0beca32e233",
+      "bytes": 3608
+    },
+    "EXPORT_BRS/INTEROP/CROSS_MODULE_INTEGRATION_CONTRACTS.md": {
+      "sha256": "61d26c3edce55e34490cb021075b453359dec00ce674345042c596c01fe335d6",
+      "bytes": 44239
+    },
+    "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md": {
+      "sha256": "6eaba490fc2982402b99005f39f8e051a40453ea7082c7de11cb1e91b25fc351",
+      "bytes": 4079
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.3.json": {
+      "sha256": "f22be37271ecd357d58ec206fe0c26901e9f629acaddf2163dadff2cb20f7ecf",
+      "bytes": 291999
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.4.json": {
+      "sha256": "252d89f62e0c6f9a341f9d71ba12cfdb6d624596227f220b40e98f87d89a1466",
+      "bytes": 294993
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json": {
+      "sha256": "e1c8dbb143834388776983eaf1a31a40cd7843f4ead6406eff3cd0d021c78dd6",
+      "bytes": 1048359
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_PLAN_v2.7.3.md": {
+      "sha256": "1bb6bb2edb7e4057d2b02f0a0798fb7809f9bea40588b590111dbefdce4b9b7c",
+      "bytes": 81558
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_PLAN_v2.7.4.md": {
+      "sha256": "83044441433aaec2983b962f6b81739db78117c1bcc230d3df1baf7a0e931c99",
+      "bytes": 81403
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_PLAN_v2.7.5.md": {
+      "sha256": "b2df5f7dd612a1e9b7203c64d30ef7ac68087a0d2cd7fbe4d00a04ba529fe736",
+      "bytes": 337542
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_OWNER_REVIEW_REGISTER_v2.7.3.md": {
+      "sha256": "04174bdb9b2d1e77e719bf3c0eca710cb31fa848ea65270b78d36f24b379628f",
+      "bytes": 466
+    },
+    "EXPORT_BRS/INTEROP/SOURCE_OWNER_TECHNICAL_BOUNDARY_MATRIX_v2.7.4.md": {
+      "sha256": "ffcf2fbfd7692a58efff0f6181fde29be1d8016c7623786a37e8499ab243447d",
+      "bytes": 4565
+    },
+    "EXPORT_BRS/INTEROP/TARGET_OWNER_BRS_AMENDMENTS.md": {
+      "sha256": "d08203279d5a5aa4778b1cc9e717998e3bd0447f99ae9df35cddfa6796eeeacd",
+      "bytes": 6529
+    },
+    "EXPORT_BRS/INTEROP/UPSTREAM_FILE_CHANGE_MAP_v2.7.md": {
+      "sha256": "fd7f6ba3ad25bb860a0b68307c9ca919db8bdaa00c3bad18b1ee21fac4fbfce6",
+      "bytes": 13002
+    },
+    "EXPORT_BRS/MODULE_DESIGN/IMPLEMENTATION_READINESS_CONTRACT.md": {
+      "sha256": "38e2344a5bc922022fba6b59f61a4b802b3bd4b63ebd47bc0a00226435f6af49",
+      "bytes": 29072
+    },
+    "EXPORT_BRS/MODULE_DESIGN/PHASE1_ACCEPTANCE_GATE.md": {
+      "sha256": "c2783aff78cd24fe3703d257414edcd5c14aa8f6ff70469a1aa4c0dbccaf9809",
+      "bytes": 3083
+    },
+    "EXPORT_BRS/MODULE_DESIGN/PROPOSED_FILETREE.md": {
+      "sha256": "cd9364250a46a9393a026d1c7c5bcd4209564d2863cccda792130c7dcebf7e44",
+      "bytes": 6208
+    },
+    "EXPORT_BRS/MODULE_DESIGN/RULE_REALIZATION_MATRIX.csv": {
+      "sha256": "847f419c64942a36d4ed4340b17852960686b6fe03ff28e7bdad287e4e23b2ed",
+      "bytes": 33778
+    },
+    "EXPORT_BRS/MODULE_DESIGN/TECHNICAL_CLOSURE_v2.7.md": {
+      "sha256": "a35d1084bc104e3d983e28b3cf41a021f51e85fbfa804935a6937e40097b6427",
+      "bytes": 62526
+    },
+    "EXPORT_BRS/MODULE_DESIGN/TECHNICAL_CONTRACT_v2.7.json": {
+      "sha256": "b72d490155d6347534d8a6e54f2db7731a42184c086e4f69e5ef3df65536dd70",
+      "bytes": 26455
+    },
+    "EXPORT_BRS/MODULE_DESIGN/plasticos_export/README.md": {
+      "sha256": "f14a00c387134a4dda1a19f849eda8691376d479f5873d6a8a34481274f3ac7b",
+      "bytes": 11103
+    },
+    "EXPORT_BRS/OWNERSHIP_MATRIX.md": {
+      "sha256": "9cf59b8a1fa19a65a30d495d97d466cfecd2dda74dcdb0dbfaadfa5e422ce5ec",
+      "bytes": 5238
+    },
+    "EXPORT_BRS/PHASE2_PROVIDER_SCOPE_AND_SOURCES.md": {
+      "sha256": "b7b1f05c9cbad1f59e6481185de340a76e7d287cc24e0d471a35bf3faed9038a",
+      "bytes": 2689
+    },
+    "EXPORT_BRS/PREDECESSOR_INTEGRITY_NOTE.md": {
+      "sha256": "addba3dbefbed77e14508e7db9efce302545c68d0be7699a7b7861d098480a82",
+      "bytes": 632
+    },
+    "EXPORT_BRS/PRODUCT_CLAIMS_ROADMAP.md": {
+      "sha256": "67ba03bc83a38e429269a7f1e8a67ae618e59735d39349e3f192ccd7e68a4e76",
+      "bytes": 9101
+    },
+    "EXPORT_BRS/PRODUCT_CLAIM_ACCEPTANCE.json": {
+      "sha256": "ae7868d92772092c6c3119cb862d5316fd9e77f964b380ffad69ff8143290b59",
+      "bytes": 4790
+    },
+    "EXPORT_BRS/README.md": {
+      "sha256": "11b798887ec369e67361b840c5052c8c46a1ee5f30479f837f6c2f01aa5a4628",
+      "bytes": 5356
+    },
+    "EXPORT_BRS/REFINED_BRS/EXACT_RULE_CROSSWALK.csv": {
+      "sha256": "1e96bf32ccdbd3971c62e3886e6e81d2443aad5ea8ffae7da11b3ee030728ecf",
+      "bytes": 21050
+    },
+    "EXPORT_BRS/REFINED_BRS/RB-01_COMMERCIAL_AND_AUTHORITY.md": {
+      "sha256": "e48db7aada28e3d12c4d33c9b7d1ea2fea60c877fe1e2ba79b6afa893d16ec71",
+      "bytes": 3774
+    },
+    "EXPORT_BRS/REFINED_BRS/RB-02_BOOKING_IDENTITY_AND_REVISIONS.md": {
+      "sha256": "5339d6d2bfc205500d12f8b2ac26175f8aaf878fd373ed1800517da3b80d588b",
+      "bytes": 3595
+    },
+    "EXPORT_BRS/REFINED_BRS/RB-03_EQUIPMENT_AND_ALLOCATION.md": {
+      "sha256": "062b775b5574eafe8bb7c986b11a094cd839b7a092876597c97ac36afeb3cf11",
+      "bytes": 3798
+    },
+    "EXPORT_BRS/REFINED_BRS/RB-04_DOCUMENTS_AND_AI.md": {
+      "sha256": "ede3f2bbbb975218497f8e43975233c0b8d11f6f55523403f4a30a897fa6265c",
+      "bytes": 5107
+    },
+    "EXPORT_BRS/REFINED_BRS/RB-05_LOGISTICS_AND_HANDOFF.md": {
+      "sha256": "7d0121efe344afed0a65ca12c89362f39dd48f3b00f620a68df50b3965fac750",
+      "bytes": 3372
+    },
+    "EXPORT_BRS/REFINED_BRS/RB-06_DASHBOARD_AND_REPORTS.md": {
+      "sha256": "4784329741d7493910993add92588f6bf02caa431167d6b045c42c47676c8b52",
+      "bytes": 3986
+    },
+    "EXPORT_BRS/REFINED_BRS/RB-07_PHASE2_EXTENSION.md": {
+      "sha256": "f3ae80191bd1cbbc01bda91dfdd88e70c90349aa3dcc79c1889f1e3809480b5c",
+      "bytes": 3804
+    },
+    "EXPORT_BRS/REFINED_BRS/README.md": {
+      "sha256": "619d3f717d11b2fe70e7b5bf5b4a0707a1320191732216e04923c16125e922ee",
+      "bytes": 2493
+    },
+    "EXPORT_BRS/REFINEMENT_v2_0.md": {
+      "sha256": "05f9caca391111d8fdb836090051a7d4c48c0192019853a9a43507270325a80c",
+      "bytes": 959
+    },
+    "EXPORT_BRS/REGISTRY/rules.json": {
+      "sha256": "ef0b0383f2e3a2b0ea1381730e4f287faa21fcbf3fe62fc5b3d4fdd68a3dbcab",
+      "bytes": 143115
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-01.md": {
+      "sha256": "bb19c930249be012a714b5dc753d1ca7b0727499a3cab0baec944d464c6d9424",
+      "bytes": 5418
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-02.md": {
+      "sha256": "7d84028dd05d4af30d7a4811ebcbd1145c9d3b0699f0e404b0aee005d05d66eb",
+      "bytes": 6253
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-03.md": {
+      "sha256": "c9e40391f06d6f169895e28050030145f983fbc66e2c449f2dfd5e59fbea194c",
+      "bytes": 6933
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-04.md": {
+      "sha256": "4d5c7fdf2e4a9586d0b20bb1bf7ecee0e580f28c77fcfdddcb86090736e89f2e",
+      "bytes": 4947
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-05.md": {
+      "sha256": "d7e966af0b23b5a4574a655e7f3919f189bb03f440be186a774715fe2b59997e",
+      "bytes": 5862
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-06.md": {
+      "sha256": "c45b4f8d6e2c7baea0460855d4a1071dacd350ade8070eda7a09b327988fcb3f",
+      "bytes": 4942
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-07.md": {
+      "sha256": "79ac5245bce5a41f07683e888e54b01dd826c02cd68bea8aba3cd7a6a2e0b085",
+      "bytes": 9550
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-08.md": {
+      "sha256": "295f92494b82bd466ad75eac951d7023d5479892a231631578f57428ce5e5059",
+      "bytes": 8198
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-09.md": {
+      "sha256": "005732dee8a2bd744f94cfdd5071a74b89e304b9d22d6cc5379c971688fd29b4",
+      "bytes": 9588
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-10.md": {
+      "sha256": "f3b9dd42d09628b4b2871c16c9cc5203e55c04422a9dc524994e0bebb2f4872e",
+      "bytes": 9486
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-11.md": {
+      "sha256": "55a945de36268ab6fbbf7adda52d40d97e3694715312acb3287c82f4e14b0ddd",
+      "bytes": 14177
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-12.md": {
+      "sha256": "8b880f76426fcb0c708734bcb27e89a6f8d4bee8d73e9abc268bd3847928357a",
+      "bytes": 11818
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-13.md": {
+      "sha256": "89721681f66fc5c54223e16364e161f73a0bf33d87d76f0e4345c4e14e7590a4",
+      "bytes": 8987
+    },
+    "EXPORT_BRS/RULES/BRS-EXP-14.md": {
+      "sha256": "16ffc3cbba5d5828221e3ab249e9ffa835bdcfa1170c7f078c6ea4ab60a0dc8b",
+      "bytes": 24681
+    },
+    "EXPORT_BRS/SHA256SUMS": {
+      "sha256": "24354a83383ff1e9c4c4527f34eee00e55cf35a8e50466222dfb1975ab0c0415",
+      "bytes": 9842
+    },
+    "EXPORT_BRS/SOURCES/LEGACY_REPORT_43_COLUMN_MAPPING.csv": {
+      "sha256": "474602074c83ed722b768ef5f541e430d1861bfa6b0a796a319d003b8104953a",
+      "bytes": 7575
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/1728952 LOAD 1.pdf": {
+      "sha256": "3af93cf4bf9c204b15cbc15edbe333fea95e963c9d651b673b74c1e3cd4a2ad1",
+      "bytes": 42291
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/64014-Email From Sherry With Booking.png": {
+      "sha256": "4be7386ae052f078260fa9a088b58eda42f63cf6b29699947b3a16399c495eb8",
+      "bytes": 294401
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/6509024800-LAS-SEA2-UCS.pdf": {
+      "sha256": "580d4e6114679203aabb9b8ca24f0b3796522cfb017c14571d73449d18d70563",
+      "bytes": 70256
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/6509024800-RR_1.pdf": {
+      "sha256": "6a97bd786869b3a6cf64496dd59810ffc972da8cee4fd35b9374657bb0ddc2d6",
+      "bytes": 70289
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/6509024800-R_1.pdf": {
+      "sha256": "cefb0b63362df4a6a72531e6840b0b0428e16d4dc60598fb9d70f5c70c12b756",
+      "bytes": 70253
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/BOOKING CONFIRMATION-64014-Email.pdf": {
+      "sha256": "dea89600c68dabf55bebc00d641f3e7b2a85535619764ae0b2a1b0dddd5dd191",
+      "bytes": 191353
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/BOOKING CONFIRMATION-64014.pdf": {
+      "sha256": "c0986fca13616a522e963f6ed270c8f6cbed2c962fb18418bb0e491364bbf901",
+      "bytes": 93429
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/Email Universal BKG 6509024800 - PO 64014.pdf": {
+      "sha256": "d16a7a4098a99b65a0382546a749667d50f5e80944be28efaf925e4ebddb8a42",
+      "bytes": 273127
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/PurchaseOrder_64014.pdf": {
+      "sha256": "d11d99dfcff4681569621beddfd1015bef8902d03492b58e0926074b11c5b0f3",
+      "bytes": 137645
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/PurchaseOrder_64014_Email.pdf": {
+      "sha256": "56cc0e35aa7c38079d2adb8958881762825eafe93c802025c7b377f8ab0059e8",
+      "bytes": 403114
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/README_PRIVATE_DO_NOT_COMMIT.md": {
+      "sha256": "2533eef7dc1867ff210ffb5b27da0c86a533b887fc404ed359d16561588cfdd3",
+      "bytes": 958
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/SOURCE_INVENTORY.json": {
+      "sha256": "ef335e72a1f234bb1651af177add6883647936e53038d6d2bcdba1c9137d1af1",
+      "bytes": 1980
+    },
+    "EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/Universal BKG 6509024800 - PO 64014.xlsx": {
+      "sha256": "3902ba83d40a7db0bed9b037610730577c1a954c8b0dca5420aeb5d611551519",
+      "bytes": 12434
+    },
+    "EXPORT_BRS/SOURCES/SOURCE_EVIDENCE_AND_PRIVACY.md": {
+      "sha256": "8a2840014c49aed75c8b5347f609880dfc885c7d72efcbd2ec392d6943c4ce9c",
+      "bytes": 2706
+    },
+    "EXPORT_BRS/SOURCES/Screenshot 2026-10-28 at 12.39.46 PM.png": {
+      "sha256": "5b9fbff45504872c8d36ac95276bab81a84c4e9c3fa48070fa1b254deaa49367",
+      "bytes": 546088
+    },
+    "EXPORT_BRS/SOURCES/booking report.xlsx": {
+      "sha256": "b5e47176e34d89a70210039da8336c76517b8dc9d301a65ba897f0aef7f2a92f",
+      "bytes": 103905
+    },
+    "EXPORT_BRS/SOURCES/legacy_container_report.png": {
+      "sha256": "322efa729218e3993bba7a9b3ea304fd46f3274c95de7800c9a9661625ed5f23",
+      "bytes": 1466188
+    },
+    "EXPORT_BRS/SOURCE_CASE_BOOKING_6509024800_REVISIONS.md": {
+      "sha256": "284b9b2cc8978aebef3ad6cfe788ffcc54150190f8011abed4b01dc920748595",
+      "bytes": 3414
+    },
+    "EXPORT_BRS/SOURCE_CASE_PO64014_BOOKING6509024800.md": {
+      "sha256": "ce1074884f2f6f78f0b5f402fbd719349fde530216d0226e783a263043881bad",
+      "bytes": 5810
+    },
+    "EXPORT_BRS/SOURCE_EVIDENCE_AND_CONFLICTS.md": {
+      "sha256": "3d25291cb7c32329e2d2e946be9a81f25e6cff59443c166a07d0c80357993d3f",
+      "bytes": 3346
+    },
+    "EXPORT_BRS/SUPERSESSION_v1_2.md": {
+      "sha256": "c9299905f0d7511f9a227babcda43986d52e6ebcfbaeb69b8382ac0958056dd1",
+      "bytes": 4504
+    },
+    "EXPORT_BRS/SUPERSESSION_v1_3.md": {
+      "sha256": "f790558e46ea719420f1416560b52d4d300f67e4d60500501f2bf72e822e0ad2",
+      "bytes": 2371
+    },
+    "EXPORT_BRS/SUPERSESSION_v1_4.md": {
+      "sha256": "1fe49d37d559ac4e612f4a2885979cf49563638ab3293728070e42d41c3684c7",
+      "bytes": 2216
+    },
+    "EXPORT_BRS/SUPERSESSION_v1_5.md": {
+      "sha256": "f6d722649e7dba62575c1da5d750084ce77a30379792e89b3f745599242d3574",
+      "bytes": 2542
+    },
+    "EXPORT_BRS/SUPERSESSION_v1_6.md": {
+      "sha256": "0e0c5d33cfca003ac6357853e87d11c73a26e11c8c2f3f1e2bd4041fc7ea2e94",
+      "bytes": 3037
+    },
+    "EXPORT_BRS/SUPERSESSION_v1_9.md": {
+      "sha256": "71458e3d5e2612ff0a3402c83241f331e13d2ff5f246500e445c2f8a39be6f01",
+      "bytes": 1656
+    },
+    "GOVERNANCE/CHAT_TO_PACK_COVERAGE.md": {
+      "sha256": "0c2565fc7677b1fe49234d31366151d2019204fa2a9a3a281bceffaa41a73a40",
+      "bytes": 5758
+    },
+    "GOVERNANCE/EVIDENCE/AUDIT_INTEGRITY_AND_STATUS.json": {
+      "sha256": "0aca301d979e201ea146f26c1508fdfddc099c4a0ae08a87eb519e08ee211a04",
+      "bytes": 804
+    },
+    "GOVERNANCE/EVIDENCE/EVIDENCE_ASSESSMENT_v1.json": {
+      "sha256": "ad99612ac46545f80a3bac7d404f19cb8672c28a7690a58ff0b8e76baa9f48ba",
+      "bytes": 28620
+    },
+    "GOVERNANCE/EVIDENCE/OPEN_BLAST_RADIUS_EFFECTS.json": {
+      "sha256": "a0bebe962e701f49d10fd84ac0933913e8f2779d4844d4d116876773f4ce21db",
+      "bytes": 21521
+    },
+    "GOVERNANCE/EVIDENCE/PLAN_COMPLETION_ASSESSMENT_v2.7.5.json": {
+      "sha256": "b1a66f6184ffdfa959fb36e55da837f9802097a8f4def7867cee8f79d5262e55",
+      "bytes": 4639
+    },
+    "GOVERNANCE/EVIDENCE/PLAN_COMPLETION_VALIDATION_v2.7.5.json": {
+      "sha256": "610176f4226237803d7a634c911a12685d4054ea1f3d639acb41a56f3a122faa",
+      "bytes": 28200
+    },
+    "GOVERNANCE/EVIDENCE/POS_INV_26_BLAST_RADIUS_AUDIT.md": {
+      "sha256": "a2f650c633fe16895f040978ef9ca2d1b56ba80e88de6854b3fe3784dfbe48f2",
+      "bytes": 28832
+    },
+    "GOVERNANCE/EXPORT_ARCHITECTURE_CONVERGENCE_CANDIDATE.md": {
+      "sha256": "72595b657836764ddbe2fcd97ea2dbd564b3d18767151b4d02ca584d244eac8b",
+      "bytes": 11023
+    },
+    "GOVERNANCE/INVARIANT_ALIGNMENT_AND_IRREDUCIBILITY.md": {
+      "sha256": "ee53153eed2ba3625bcb93b7c13f597f44414f9803bcf8e7ae508a7967fb66d6",
+      "bytes": 6595
+    },
+    "GOVERNANCE/INVARIANT_NEGATIVE_PROBES.md": {
+      "sha256": "2f215b82fcc7d79e01c629403362290a8877ebb1999de1e545386703dc0df083",
+      "bytes": 5373
+    },
+    "GOVERNANCE/ODOO_INVARIANTS_v3.1.0_DRAFT_r1.md": {
+      "sha256": "7b764e9a08430f47e03469b3573c014332215d1d80c4a28c470825e222db45ba",
+      "bytes": 26245
+    },
+    "GOVERNANCE/ODOO_INVARIANTS_v3.2.0_DRAFT_r1.md": {
+      "sha256": "2d187afb1c395c3a258b5699abad5a2581dc1d9be8bbdfc3d0fe7bc83098df5e",
+      "bytes": 29039
+    },
+    "GOVERNANCE/ODOO_INVARIANTS_v3.3.0_DRAFT_r1.md": {
+      "sha256": "771bae3682d2e3f49e800492bdf7be97c904c6e203884fc9f25053db87b7f781",
+      "bytes": 31474
+    },
+    "GOVERNANCE/ODOO_INVARIANTS_v3.4.0_DRAFT_r1.md": {
+      "sha256": "6a45d9a3d3615c5ee1ac7da54ebc9ca292d8eb3e9466ae2e831d66c64ce0c2e0",
+      "bytes": 34494
+    },
+    "GOVERNANCE/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md": {
+      "sha256": "5941fbd77c8d018c0f589e19cb5def111114d15d5907c30393b713cbc60f6e0a",
+      "bytes": 35774
+    },
+    "GOVERNANCE/REPO_AUTHORITY_AND_ADMISSION.md": {
+      "sha256": "5b612ecd57ce7aed5a78b664db30955a0e4da9a7f33904f0fe90ffb48db99e32",
+      "bytes": 4317
+    },
+    "GOVERNANCE/SOURCES/EXPORT_BRS_SHA256SUMS_v2.5.0_snapshot.txt": {
+      "sha256": "2f564101a23cabbd32c9ee501fe1de6b760d3d0b42073d7109c27a4dc09aa3df",
+      "bytes": 8175
+    },
+    "GOVERNANCE/SOURCES/EXPORT_BRS_SHA256SUMS_v2.6.0_snapshot.txt": {
+      "sha256": "fe58d696e06093a3431b421081ff343afcbaafb50497cf8e560e1326f9a5378a",
+      "bytes": 8512
+    },
+    "GOVERNANCE/SOURCES/EXPORT_BRS_SHA256SUMS_v2.7.0_snapshot.txt": {
+      "sha256": "270283b75827f78b0c566acd79ffbb155037088f2db0df256f44b8b5960ef2b5",
+      "bytes": 8727
+    },
+    "GOVERNANCE/SOURCES/EXPORT_BRS_SHA256SUMS_v2.7.2_snapshot.txt": {
+      "sha256": "4e5c639edd3dc5a208fb4fbee01c05ea4335e6cc46c073a99e3932f5a2734576",
+      "bytes": 8940
+    },
+    "GOVERNANCE/SOURCES/ODOO_INVARIANTS_v3.0.0_DRAFT_r3.md": {
+      "sha256": "5df7eae3aed672d68311c9717697e3f3cfe5ac05d0e962e13a7c340513e55d0e",
+      "bytes": 21659
+    },
+    "GOVERNANCE/V2_2_TO_V3_1_PRELIMINARY_MAPPING.md": {
+      "sha256": "2c9a768e7b3e29e7eed111061b9396c2555e86456938acf3d543d0beca32e233",
+      "bytes": 3608
+    }
+  },
+  "source_revision": {
+    "repository": "cryptoxdog/IB-Odoo_19",
+    "branch": "Staging",
+    "head_sha": "677d734fd88615d673501d91de88734b7150ff50",
+    "prior_plan_revision": "78476ddb74861d900992f7f5ec3ec2cc2a63e8bf",
+    "source_owner_meaning": "authoritative module/code surface, not human signoff",
+    "enterprise": "UNOBSERVED_INSTALLED_TARGET"
+  },
+  "effect_plan": {
+    "frontiers": 7,
+    "audit_findings": 19,
+    "tracked_effect_rows": 203,
+    "unique_paths_or_interfaces": 199,
+    "technical_owner_categories": 19,
+    "human_signoff_required": false,
+    "planned_only": true,
+    "code_blocked": true
+  },
+  "active_reading_path": [
+    "00_README.md",
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_PLAN_v2.7.5.md",
+    "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json",
+    "GOVERNANCE/EVIDENCE/PLAN_COMPLETION_VALIDATION_v2.7.5.json",
+    "GOVERNANCE/EVIDENCE/PLAN_COMPLETION_ASSESSMENT_v2.7.5.json"
+  ],
+  "proof_limits": [
+    "Installed Enterprise/native registry, actual MRO and database-configured consumers are unobserved (one consolidated S1-TARGET prerequisite).",
+    "No implementation, Enterprise tests, concurrency execution, upgrade/data census or restore rehearsal was performed.",
+    "Local rejection probes validate the accounting checks; they do not enforce a coding host or prove absence of every possible consumer.",
+    "Canonical GAR projection validation and independent specialist conformance are not claimed."
+  ]
+}

@@ -292,8 +292,15 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE supplier_confirmation_followup_count >= 3
                                      AND supplier_confirmation_received IS NULL
                                      AND state NOT IN ('closed','cancelled'))           AS stalled_fu,
-                    COUNT(*) FILTER (WHERE state='closed'
-                                     AND write_date >= %s)                             AS closed_mtd,
+                    COUNT(*) FILTER (WHERE state='closed' AND legacy_erp_history = FALSE
+                                     AND write_date >= %s
+                                     AND NOT EXISTS (
+                                         SELECT 1 FROM ir_model_data import_id
+                                         WHERE import_id.model = 'sale.order'
+                                           AND import_id.module = 'plasticos_transaction'
+                                           AND import_id.res_id = plasticos_transaction.sale_order_id
+                                           AND import_id.name LIKE 'legacy_erp_so_%%'
+                                     ))                                                AS closed_mtd,
                     SUM(revenue_total) FILTER (WHERE state NOT IN ('closed','cancelled')
                                               AND revenue_total > 0)                   AS pipeline_val
                 FROM plasticos_transaction
@@ -326,7 +333,14 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE state='closed'
                                      AND commission_locked=FALSE)         AS comm_unlocked
                 FROM plasticos_transaction
-                WHERE state='closed'
+                WHERE state='closed' AND legacy_erp_history = FALSE
+                  AND NOT EXISTS (
+                    SELECT 1 FROM ir_model_data import_id
+                    WHERE import_id.model = 'sale.order'
+                      AND import_id.module = 'plasticos_transaction'
+                      AND import_id.res_id = plasticos_transaction.sale_order_id
+                      AND import_id.name LIKE 'legacy_erp_so_%%'
+                  )
             """,
                 (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd),
             )
@@ -435,8 +449,6 @@ class PlasticosAdminKpi(models.Model):
             """)
             rec.ai_pending_review = cr.fetchone()[0] or 0
 
-            rec.last_refresh = fields.Datetime.now()
-
     @api.depends()
     def _compute_ai_config(self):
         for rec in self:
@@ -447,7 +459,7 @@ class PlasticosAdminKpi(models.Model):
                 rec.ai_openai_key_set = False
                 continue
             try:
-                config = self.env[config_model].sudo().get_config()
+                config = self.env[config_model].sudo().get_config()  # sudo: reports key presence; keys are system-only
                 rec.ai_normalized_enabled = bool(getattr(config, "ai_enabled", False))
                 rec.ai_vision_enabled = bool(getattr(config, "vision_enabled", False))
                 rec.ai_openai_key_set = bool(getattr(config, "openai_api_key", ""))
@@ -469,9 +481,10 @@ class PlasticosAdminKpi(models.Model):
     # ── Actions ───────────────────────────────────────────────────────────────
 
     def action_refresh(self):
-        """Force re-compute all KPIs."""
+        """Force re-compute all KPIs, then stamp the refresh time."""
         self._compute_kpis()
         self._compute_ai_config()
+        self.write({"last_refresh": fields.Datetime.now()})
         return True
 
     def action_open_sales_dashboard(self):

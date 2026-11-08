@@ -62,7 +62,7 @@ The primary intake record. ~42KB model.
 | `contact_id` | `Many2one(res.partner)` | Auto-populated from `facility.preferred_contact_id` |
 | `polymer_id` | `Many2one(plasticos.polymer)` | |
 | `form_id` | `Many2one(plasticos.material.form)` | Current form of material |
-| `origin_form_id` | `Many2one(plasticos.material.form)` | What the material was before processing |
+| `material_grade_id` | `Many2one(plasticos.material.grade)` | What the material was before processing (Drums, Totes, Pallets) |
 | `origin_process_type` | `Selection` | Imported from `PROCESS_SELECTION` in `plasticos_material_profile.process_codes` |
 | `quantity_per_load_lbs` | `Float` | Used in offer creation and CEG payload |
 | `mfi_value` | `Float` | Melt flow index |

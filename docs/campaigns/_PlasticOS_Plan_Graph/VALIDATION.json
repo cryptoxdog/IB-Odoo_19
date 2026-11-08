@@ -1,0 +1,21 @@
+{
+  "structural_checks": "LOCAL_PREPACK_PASSED",
+  "source_revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+  "all_23_invariant_ids_retained": true,
+  "ban_prohibition_byte_preserved": true,
+  "work_item_dag_acyclic": true,
+  "no_export_or_operations_dependency_for_mvp": true,
+  "not_run_tests": 34,
+  "actual_enterprise_tests": "NOT_RUN",
+  "owner_decisions": [
+    "DEC-GATE accepted ADR",
+    "DEC-SEED proposed awaiting admission",
+    "DEC-ACL proposed awaiting policy approval",
+    "FIX-DOC-WRITER owner design source present and implementation pending",
+    "FIX-DOC-RECENCY owner design source present and implementation pending",
+    "FIX-LOG-MULTILOAD schema repair required not implemented"
+  ],
+  "canonical_plan_successor": "NOT_PRODUCED_MISSING_LATEST_PREDECESSOR_AND_AUTHORITY",
+  "security_policy_approval": "NOT_RUN",
+  "code_execution": "NOT_PERFORMED"
+}

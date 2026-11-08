@@ -16,10 +16,10 @@ jobs:
     name: Generate Changelog
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Full history for commitizen
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install commitizen
-        run: pip install commitizen
+        run: pip install --only-binary ":all:" commitizen==4.10.0
 
       - name: Generate changelog
         run: |
@@ -44,9 +44,24 @@ jobs:
             echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md
             echo "" >> CHANGELOG.md
           fi
-          
-          # Generate changelog from conventional commits
-          cz changelog --unreleased-version "HEAD" --incremental || true
+
+          # Generate changelog from conventional commits.
+          # cz exits non-zero when there are no new conventional commits since
+          # the last release — that is an expected no-op, not a failure. Detect
+          # it explicitly instead of masking every error with `|| true`.
+          set +e
+          OUTPUT=$(cz changelog --unreleased-version "HEAD" --incremental 2>&1)
+          STATUS=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $STATUS -ne 0 ]; then
+            if echo "$OUTPUT" | grep -qi "no commits found\|nothing to generate\|no new commits"; then
+              echo "No new conventional commits — changelog unchanged (expected no-op)."
+            else
+              echo "::error::cz changelog failed unexpectedly (exit $STATUS)"
+              exit $STATUS
+            fi
+          fi
 
       - name: Check for changes
         id: check

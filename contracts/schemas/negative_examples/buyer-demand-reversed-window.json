@@ -1,0 +1,39 @@
+{
+  "contract_version": "1.0.0-draft",
+  "domain": "plasticos",
+  "demand_ref": "plasticos.buyer.demand:12",
+  "revision": 1,
+  "state": "open",
+  "buyer_ref": "res.partner:101",
+  "destination_facility_ref": "res.partner:102",
+  "material_requirement_ref": "plasticos.material.specification:33",
+  "quantity": {
+    "minimum": 20000,
+    "target": 40000,
+    "maximum": 80000,
+    "unit": "lb"
+  },
+  "need_window": {
+    "start_at": "2026-10-01T00:00:00Z",
+    "end_at": "2026-09-01T00:00:00Z"
+  },
+  "target_price": {
+    "amount": 0.31,
+    "currency": "USD",
+    "unit": "lb"
+  },
+  "required_certifications": [],
+  "evidence_refs": [
+    "plasticos.facility.material.rule:22"
+  ],
+  "unresolved_fields": [
+    "moisture_tolerance_pct"
+  ],
+  "source_record": {
+    "system": "odoo",
+    "record_ref": "plasticos.buyer.intake:5",
+    "revision": 1
+  },
+  "projection_version": "1.0.0",
+  "field_dictionary_version": "1.0.0"
+}

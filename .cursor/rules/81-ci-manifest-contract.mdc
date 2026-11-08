@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Manifest Contract — PlasticOS
 
-Enforced by `tests/test_repo_dependency_integrity.py::TestModuleManifest` and `TestDependencyIntegrity`.
+**Authority:** `AGENTS.md` § When you modify `__manifest__.py` · enforced by `tests/test_repo_dependency_integrity.py`.
 
 ## Version Format
 
@@ -18,7 +18,9 @@ Enforced by `tests/test_repo_dependency_integrity.py::TestModuleManifest` and `T
 "version": "1.0.0"
 ```
 
-When adding a new field or model: bump MINOR. When fixing a bug: bump PATCH. When adding a migration script: bump MINOR and add the migration.
+When adding a new field or model: bump MINOR. When fixing a bug: bump PATCH. When adding a migration script: bump PATCH/MINOR and add the migration folder matching the new version.
+
+**Mandatory:** do not ask whether to bump. Runtime-affecting changes require a version bump in the same change set. After bump, upgrade **only** that module (`make update m=<module>`). Skill: `plasticos-odoo-version-bump` / rule `89-plasticos-odoo-version-bump`.
 
 ## Depends Ordering (enforced by test_depends_order_respects_layers)
 
@@ -85,7 +87,7 @@ The `depends` list must only contain **known** modules — either Odoo core addo
 Manifests are Python dicts. Ruff enforces formatting — always run `ruff format` after editing a manifest:
 
 ```bash
-ruff format plasticos_*/manifest__.py
+ruff format plasticos_*/__manifest__.py
 ```
 
 Common issues:

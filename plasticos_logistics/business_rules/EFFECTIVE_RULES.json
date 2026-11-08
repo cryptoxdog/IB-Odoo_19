@@ -1,0 +1,1492 @@
+{
+  "schema": "plasticos.linda.brs-effective/v2",
+  "revision": "L9.LINDA.BRS.DOCUMENTS-ALIGNMENT.20261026.001",
+  "repo_snapshot": "cryptoxdog/IB-Odoo_19@cfffe4527948b9ba77c09bc18d1026252300b86b",
+  "scope": "logistics domain; cross-domain rules referenced, not copied as competing owner",
+  "status": "PROPOSED_UNTIL_OPERATOR_ADOPTED_PR_MERGE",
+  "count": 60,
+  "rules": [
+    {
+      "id": "BRS-01-R001",
+      "chapter": "BRS-01",
+      "title": "Machine release starts Linda with Odoo PO/SO issuance",
+      "source_rule_unchanged": "Exactly one eligible commercial transaction/movement, with its correct company and currently permitted counterparties, must reach a machine-observable Approved-like issue/release transition before Linda issues applicable PO and SO. Linda then resolves/creates those native Odoo orders, renders current Odoo PDF reports, sends the locked supplier and buyer templates from logistics2@scrapmanagement.com through Google Workspace Gmail, records truthful per-order sent results, and hands off to Pending Logistics. A preapproved counterparty is an eligibility condition, never an independent order-send trigger. No extra human review, salesperson Ready utterance, record creation, import, retry or unrelated load can initiate issuance. Supplier cargo READY remains a separate downstream verified fact.",
+      "source_git_blob_sha1": "",
+      "effective_text": "A PO release and an SO release are independent Odoo-native commercial events. Linda issues only the particular authorized, confirmed order, using native report and Mail; no counterpart PO/SO, PlasticOS transaction or load is required. Commercial source-authorized creation, when explicitly proved, is a separate act and never inferred from the other order. Off/shadow are not live sends. Physical READY remains separate.",
+      "alignment_reason": "corrects old all-in-one transaction issuance trigger",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R001",
+        "BRS-POS-10-R002",
+        "BRS-POS-06-R001",
+        "BRS-POS-06-R002",
+        "BRS-POS-06-R003"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V01",
+        "AC-V02",
+        "AC-V18",
+        "AC-UI01",
+        "AC-UI02",
+        "AC-UI03",
+        "AC-UI04",
+        "AC-BR01",
+        "AC-BR02"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-01-R002",
+      "chapter": "BRS-01",
+      "title": "Exact transaction/load/PO/SO association",
+      "source_rule_unchanged": "Every consequential request identifies company, load, transaction and actual facilities; shared order reference alone is ambiguous.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Every obligation binds the actual company and exact source object: a PO-only supplier request binds native PO, an SO-only buyer request binds native SO, a physical dispatch binds the real load, pickup and delivery facts, and a warehouse receipt binds the actual PO/picking. One native Documents original may support multiple exact typed evidence links without duplicate original files. No first-match, partner-recency, orphan or cross-company link.",
+      "alignment_reason": "corrects universal transaction/load requirement",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-11-R001",
+        "BRS-POS-03-R002",
+        "BRS-POS-10-R014",
+        "BRS-POS-05-R005"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V03",
+        "AC-V04",
+        "AC-V88"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-01-R003",
+      "chapter": "BRS-01",
+      "title": "Company ownership cannot be unknown for automation",
+      "source_rule_unchanged": "No automatic coordination on company-less or conflicting source records, even when user has access to both companies.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Fail closed when company identity or source ownership is unknown or conflicting. Preserve native company and Odoo record rules for original documents, evidence links, commercial orders, stock operations and Linda requests; never use elevated privileges to guess party ownership.",
+      "alignment_reason": "strengthens multi-company document isolation",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-11-R001",
+        "BRS-POS-11-R002",
+        "BRS-POS-03-R014"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V04",
+        "AC-V80"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R004",
+      "chapter": "BRS-02",
+      "title": "Direct shipper READY for every load",
+      "source_rule_unchanged": "Only attributed current shipper evidence authorizes readiness; record confirmer identity, event/received time and actual cargo availability.",
+      "source_git_blob_sha1": "",
+      "effective_text": "For a real outbound load, authenticated source/custodian readiness must evidence exact cargo, available quantity, site and interval. Native reservation (stock.picking assigned) establishes stock availability only, never physical shipper READY or carrier dispatch eligibility. PO-only inbound does not invent a load.",
+      "alignment_reason": "preserves READY independent of inventory reservation",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-05-R006"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V11",
+        "AC-V18",
+        "AC-V21",
+        "AC-UI05",
+        "AC-UI09"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R005",
+      "chapter": "BRS-02",
+      "title": "Ready date versus proposed date",
+      "source_rule_unchanged": "Ready interval, proposal, confirmation time and planned pickup remain different facts.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Ready interval, proposal, confirmation time and planned pickup remain different facts.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-01-R009"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V17",
+        "AC-V55"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R006",
+      "chapter": "BRS-02",
+      "title": "Explicit negative and corrected responses",
+      "source_rule_unchanged": "Not-ready/correction blocks affected commitments, retains previous proof and resumes only through a current accepted revision.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Not-ready/correction blocks affected commitments, retains previous proof and resumes only through a current accepted revision.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-09-R012"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V19",
+        "AC-V16",
+        "AC-V82"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R007",
+      "chapter": "BRS-02",
+      "title": "Source-defined Monday shipper status cadence",
+      "source_rule_unchanged": "For each current PO/load that is not yet physically READY, Linda sends one supplier status request every Monday morning in the supplier-local morning window, identifying the PO number and shipper company. Do not convert a projected ready date into verified READY, run a second weekly touch for the same open status obligation, or extend the request after verified READY, cancellation, or supersession. A specific hour within that source-defined morning window is runtime scheduler configuration, not a new business-policy approval.",
+      "source_git_blob_sha1": "",
+      "effective_text": "The distinct supplier readiness-status obligation remains one status request Monday morning in supplier-local time for the eligible not-READY PO/load, stopping on READY/cancel/supersession. It is NOT the missing-document SLA of +1/+5 pickup, carrier +2/+6 pickup or buyer +1/+5 delivery. One native cron/scheduler with exact obligation key; no duplicate external notice.",
+      "alignment_reason": "separates readiness chase from Documents SLA",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-09-R010",
+        "BRS-POS-09-R011",
+        "BRS-POS-09-R005"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V20",
+        "AC-V50"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R008",
+      "chapter": "BRS-02",
+      "title": "Required cargo/equipment facts",
+      "source_rule_unchanged": "Require material identity, authoritative quantity/weight when relevant, trailer/loading constraints and pickup contact; missing facts block.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Use authoritative physical quantity/weight for the specific commercial/stock movement only. Supplier settlement uses supplier_weight, buyer billing uses buyer_weight; certified CST/scale_weight is evidence/reference only. Do not infer a universal final_weight, use speculative AI extraction, or change supplier/buyer financial terms from a readiness message.",
+      "alignment_reason": "prevents logistics overwriting finance weight semantics",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-04-R001",
+        "BRS-POS-04-R002",
+        "BRS-POS-04-R003",
+        "BRS-POS-10-R007"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V36",
+        "AC-V28",
+        "AC-V68"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R009",
+      "chapter": "BRS-02",
+      "title": "Google Workspace Gmail through native Odoo Mail",
+      "source_rule_unchanged": "Linda sends and receives as logistics2@scrapmanagement.com through the existing Google Workspace Gmail provider connected to native Odoo Mail. Preserve original messages, recipient audiences, Gmail/native Message-ID and thread/request identifiers, attachments and Odoo audit trail. Mailbox OAuth, routing and delivery must be verified during later technical design; no second logistics email processor or orchestration platform.",
+      "source_git_blob_sha1": "",
+      "effective_text": "External supplier/buyer/carrier communication uses existing Google Workspace logistics2 sender through native Odoo Mail, with exact Message-ID, original MIME, replies and attachments. Internal native Documents Requests/Activities do not replace Linda external outreach; Documents folder alias is an inbound file channel and does not create an external Documents portal/share.",
+      "alignment_reason": "separates native Mail from native Documents Requests",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R005",
+        "BRS-POS-11-R006",
+        "BRS-POS-02-R003"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V09",
+        "AC-V10",
+        "AC-V78",
+        "AC-UI06",
+        "AC-UI14"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R010",
+      "chapter": "BRS-02",
+      "title": "Typed request evidence with minimal new persistence",
+      "source_rule_unchanged": "A fixed-purpose party-scoped request binds load/company/party/revision/payload and native messages. Response lifecycle is not another load state machine.",
+      "source_git_blob_sha1": "",
+      "effective_text": "A narrow Linda request/response is durable evidence for exact company + PO/SO/load + party + purpose + revision/touch, linked to native mail transport. Keep original document and evidence link owners in native Documents/plasticos_documents. No duplicate scheduling engine, document file store, state machine or fictional load.",
+      "alignment_reason": "clarifies evidence ownership and object scope",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R004",
+        "BRS-POS-10-R005",
+        "BRS-POS-03-R002"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V11",
+        "AC-V15",
+        "AC-V16",
+        "AC-V43",
+        "AC-UI06"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R011",
+      "chapter": "BRS-02",
+      "title": "Attributed confirmation through validated reply or secure action",
+      "source_rule_unchanged": "A current explicit confirmation from an authorized supplier/buyer/carrier may arrive as a scoped Gmail reply or a verified structured confirmation action. Linda binds sender and company/party authorization, exact current request, load, purpose, document/version and clear intent before a deterministic command accepts the fact. Email From, subject, forwarded copy, bearer link, or LLM interpretation alone never proves that commitment. The exact provider authentication mechanism remains a technical design question.",
+      "source_git_blob_sha1": "",
+      "effective_text": "A current reply is only candidate evidence until source/authenticated sender, exact original MIME ancestry, authorized company/party, request and revision have been independently validated. From address alone and an AI result are insufficient for READY, booking, receipt or billing. Retain ambiguous/stale replies for review.",
+      "alignment_reason": "strengthens sender and AI evidence boundary",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R005",
+        "BRS-POS-11-R007",
+        "BRS-POS-03-R005"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V11",
+        "AC-V12",
+        "AC-V13",
+        "AC-V14",
+        "AC-V84",
+        "AC-UI06",
+        "AC-UI08",
+        "AC-UI09",
+        "AC-UI12"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R012",
+      "chapter": "BRS-02",
+      "title": "Rules-first interpretation then deterministic fact acceptance",
+      "source_rule_unchanged": "Separate provider transport and inbound message from extracted candidate facts, validated accepted facts and canonical state transitions. Parse standardized replies deterministically; use a narrowly scoped LLM only for free-form/complex mail extraction into typed candidate evidence. Odoo-owned validators verify provenance, identity, currentness and allowed transitions before any action. Missing/contradictory facts trigger an automatic clarification or recorded exception, not guessed acceptance.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Use deterministic standardized reply parsing first. For free-form ambiguity, only verified installed Odoo 19 Enterprise native AI Server Action (Manager) may propose structured candidates to one guarded native code-tool (Worker). The Worker independently validates original message, exact request, party, revision and business rules; it does not automatically transition stock, loads, commercial orders or financial postings. If AI capability is absent, record ai_not_run/unresolved.",
+      "alignment_reason": "formalizes native Odoo AI Manager/Worker without unverified enablement",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R006",
+        "BRS-POS-03-R005",
+        "BRS-POS-02-R010"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V10",
+        "AC-V17",
+        "AC-V35",
+        "AC-V85",
+        "AC-UI07",
+        "AC-UI08",
+        "AC-UI09",
+        "AC-UI10",
+        "AC-UI11"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R013",
+      "chapter": "BRS-02",
+      "title": "Stable business identity independent of payload hash",
+      "source_rule_unchanged": "Unique company/load/purpose/party/revision/touch key controls operation; payload fingerprint detects drift but cannot mint a duplicate by itself.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Identity is company + exact owned PO/SO/load + party + purpose + revision + touch as applicable; payload hash is drift evidence, never an independent right to send. Document reminders additionally bind obligation/document category and event cycle. Concurrency and unknown SMTP outcome do not permit a duplicate message.",
+      "alignment_reason": "prevents document-reminder and mail races",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R013",
+        "BRS-POS-09-R010",
+        "BRS-POS-01-R002"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V15",
+        "AC-V48",
+        "AC-V49"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R014",
+      "chapter": "BRS-02",
+      "title": "Stale, forwarded and contradictory replies",
+      "source_rule_unchanged": "Validate exact request, current revision and party; duplicates are no-ops, conflicts retained, cancelled requests never revived.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Validate exact request, current revision and party; duplicates are no-ops, conflicts retained, cancelled requests never revived.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R005",
+        "BRS-POS-09-R012",
+        "BRS-POS-03-R006"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V13",
+        "AC-V15",
+        "AC-V16",
+        "AC-V19",
+        "AC-UI10",
+        "AC-UI12"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R015",
+      "chapter": "BRS-02",
+      "title": "Linda autonomous routine coordination within distinct commercial boundaries",
+      "source_rule_unchanged": "Linda autonomously performs eligible Odoo PO/SO generation and templated sends, supplier/buyer/carrier coordination, rule-based response handling, permitted logistical updates, reminders and clarifications without per-action human approval. Existing separately owned commercial rate/carrier award, confidentiality, security and financial controls remain distinct; notification of an exception is not a default approval gate.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Linda may coordinate approved existing PO/SO, appointments and carrier communication through native Odoo operations without per-action Linda signoff. It cannot approve carrier awards/rates, create speculative commercial documents, bypass financial review, use AI to assert facts, activate recurring live sends or issue external Documents shares.",
+      "alignment_reason": "keeps commercial and financial authority outside Linda",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R008",
+        "BRS-POS-10-R002",
+        "BRS-POS-06-R001",
+        "BRS-POS-09-R004"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V08",
+        "AC-V21",
+        "AC-V80",
+        "AC-UI05",
+        "AC-UI13"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-03-R016",
+      "chapter": "BRS-03",
+      "title": "Per-facility unknown-safe dock rules",
+      "source_rule_unchanged": "Determine pickup and delivery dock requirements independently; blank/default/unverified differs from confirmed FCFS.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Determine pickup and delivery dock requirements independently; blank/default/unverified differs from confirmed FCFS.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-01-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V22",
+        "AC-V23",
+        "AC-V25"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-03-R017",
+      "chapter": "BRS-03",
+      "title": "Delivery slot constrains pickup scheduling",
+      "source_rule_unchanged": "When destination requires appointment, obtain accepted available slot before final pickup commitment and coordinate feasible pickup around it.",
+      "source_git_blob_sha1": "",
+      "effective_text": "When destination requires appointment, obtain accepted available slot before final pickup commitment and coordinate feasible pickup around it.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-10-R009"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V24",
+        "AC-V26",
+        "AC-V28"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-03-R018",
+      "chapter": "BRS-03",
+      "title": "Proposal/request/acceptance/cancellation distinction",
+      "source_rule_unchanged": "Keep both-party proposals and explicit accepted slot/reference/source. appointment_requested remains a request indicator only.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Keep both-party proposals and explicit accepted slot/reference/source. appointment_requested remains a request indicator only.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R013",
+        "BRS-POS-09-R012"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V26",
+        "AC-V29",
+        "AC-V81"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-03-R019",
+      "chapter": "BRS-03",
+      "title": "FCFS removes only appointment gate",
+      "source_rule_unchanged": "Confirmed FCFS allows arrival within approved hours but does not prove material ready, immediate loading, truck acceptance or rate authority.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Confirmed FCFS allows arrival within approved hours but does not prove material ready, immediate loading, truck acceptance or rate authority.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-01-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V18",
+        "AC-V23",
+        "AC-V32"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-03-R020",
+      "chapter": "BRS-03",
+      "title": "Facility time zones, hours and lead time",
+      "source_rule_unchanged": "Persist UTC instants and explicit facility-local windows; unknown hours/time zone require a question to the facility or exception.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Persist UTC instants and explicit facility-local windows; unknown hours/time zone require a question to the facility or exception.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-09-R011",
+        "BRS-POS-10-R010"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V27",
+        "AC-V28",
+        "AC-V52"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-03-R021",
+      "chapter": "BRS-03",
+      "title": "No invented dock-capacity subsystem",
+      "source_rule_unchanged": "Validate exact exclusive slot/resource only where actually known; two loads at a facility need not be an overlap violation.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Validate exact exclusive slot/resource only where actually known; two loads at a facility need not be an overlap violation.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-01-R001",
+        "BRS-POS-01-R003"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V26",
+        "AC-V30"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-03-R022",
+      "chapter": "BRS-03",
+      "title": "Amendment invalidates dependencies",
+      "source_rule_unchanged": "Material accepted slot/readiness changes invalidate only dependent current requests and require renewed commitments; history remains.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Material accepted slot/readiness changes invalidate only dependent current requests and require renewed commitments; history remains.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R013",
+        "BRS-POS-09-R012"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V16",
+        "AC-V29",
+        "AC-V38",
+        "AC-V82"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-04-R023",
+      "chapter": "BRS-04",
+      "title": "SAL and canonical executed history",
+      "source_rule_unchanged": "Preserve exact elapsed-time and physical-context matching; reuse prior confirmed/booked rate, not actual invoice variance.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Preserve exact elapsed-time and physical-context matching; reuse prior confirmed/booked rate, not actual invoice variance.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R008",
+        "BRS-POS-01-R002"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V31",
+        "AC-V38",
+        "AC-V79",
+        "AC-UI13"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-04-R024",
+      "chapter": "BRS-04",
+      "title": "Estimate/recommendation/award/actual remain distinct",
+      "source_rule_unchanged": "Nonbinding estimate and ranked recommendation cannot commit rate/carrier; actuals remain executed outcome.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Nonbinding estimate and ranked recommendation cannot commit rate/carrier; actuals remain executed outcome.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R008",
+        "BRS-POS-01-R009"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V31",
+        "AC-V34",
+        "AC-V39",
+        "AC-V40",
+        "AC-V79",
+        "AC-UI13"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-04-R025",
+      "chapter": "BRS-04",
+      "title": "Manual-only RFQ after SAL miss",
+      "source_rule_unchanged": "After a genuine current SAL miss, Linda may record and surface the missing commercial rate and coordinate informational follow-up, but no freight rate/carrier award or new outbound carrier RFQ is inferred from autonomous routine logistics authority. The pre-existing freight RFQ episode and any solicitation are manual-only until a separately authorized commercial decision supplies exact current terms. Previously approved/booked valid rate/carrier records can be used for routine follow-through without a redundant Linda human send approval.",
+      "source_git_blob_sha1": "",
+      "effective_text": "After a genuine current SAL miss, Linda may record and surface the missing commercial rate and coordinate informational follow-up, but no freight rate/carrier award or new outbound carrier RFQ is inferred from autonomous routine logistics authority. The pre-existing freight RFQ episode and any solicitation are manual-only until a separately authorized commercial decision supplies exact current terms. Previously approved/booked valid rate/carrier records can be used for routine follow-through without a redundant Linda human send approval.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R008",
+        "BRS-POS-01-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V33",
+        "AC-V34",
+        "AC-BR03"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-04-R026",
+      "chapter": "BRS-04",
+      "title": "Immutable market response and recipient evidence",
+      "source_rule_unchanged": "Retain losing, late, declined and superseding quote facts without fabricated send evidence or zero-price declines.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Retain losing, late, declined and superseding quote facts without fabricated send evidence or zero-price declines.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-11-R006",
+        "BRS-POS-10-R008"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V39",
+        "AC-V15",
+        "AC-V79"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-04-R027",
+      "chapter": "BRS-04",
+      "title": "Carrier commitment beyond approved rate",
+      "source_rule_unchanged": "Linda may autonomously coordinate and dispatch against the exact already-authorized carrier, confirmed freight rate/currency, permitted equipment and validated facility windows. Booking acceptance must be attributable to that carrier and current request; a ranked quote, stale SAL context or estimate is not an award. No additional human prompt is required merely for Linda to execute routine booking or document sends once the commercial authorization exists.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Linda may autonomously coordinate and dispatch against the exact already-authorized carrier, confirmed freight rate/currency, permitted equipment and validated facility windows. Booking acceptance must be attributable to that carrier and current request; a ranked quote, stale SAL context or estimate is not an award. No additional human prompt is required merely for Linda to execute routine booking or document sends once the commercial authorization exists.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R008",
+        "BRS-POS-10-R009"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V32",
+        "AC-V35",
+        "AC-V36",
+        "AC-BR03"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-04-R028",
+      "chapter": "BRS-04",
+      "title": "Unavailable carrier routes commercial exception",
+      "source_rule_unchanged": "A carrier decline, failed capacity commitment or material freight-context change invalidates affected booking/dispatch commitments. Linda preserves the refusal and old rate evidence, seeks permitted factual clarification autonomously, and raises one commercial re-resolution exception for the existing decision owner. Linda does not select the next-best carrier, change the rate or reroute an unapproved substitute by itself; after the resulting commercial decision, routine coordination resumes automatically.",
+      "source_git_blob_sha1": "",
+      "effective_text": "A carrier decline, failed capacity commitment or material freight-context change invalidates affected booking/dispatch commitments. Linda preserves the refusal and old rate evidence, seeks permitted factual clarification autonomously, and raises one commercial re-resolution exception for the existing decision owner. Linda does not select the next-best carrier, change the rate or reroute an unapproved substitute by itself; after the resulting commercial decision, routine coordination resumes automatically.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R008",
+        "BRS-POS-10-R016"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V37",
+        "AC-V38",
+        "AC-V82",
+        "AC-BR03"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R029",
+      "chapter": "BRS-05",
+      "title": "One guarded dispatch authority",
+      "source_rule_unchanged": "All send/release paths call the canonical load checks; stock assigned is not a carrier instruction and no independent dispatch state can grant permission.",
+      "source_git_blob_sha1": "",
+      "effective_text": "One authorized dispatch owner protects every physical load send and transition. Confirm exact company, actual READY, accepted carrier/rate, appointments, packing/document audience and verified relevant quantities first. stock.picking assigned is reservation, not READY or dispatch permission. Independent PO/SO commercial messages require their own release guards, not a load.",
+      "alignment_reason": "removes assigned-state carrier side effect",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-10-R009",
+        "BRS-POS-12-R005"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V06",
+        "AC-V07",
+        "AC-V86"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R030",
+      "chapter": "BRS-05",
+      "title": "Three documents, current version, then acknowledgment",
+      "source_rule_unchanged": "The carrier packet contains exactly the three separately rendered current Odoo PDF documents: Pickup Bill of Lading (pickup BOL), Delivery Bill of Lading (delivery BOL) and Delivery Order (DO). Only the permitted carrier receives the complete current-revision packet, after valid READY, appointments when required and authorized booking. Sending or Gmail provider acceptance records transport status only. Attributable carrier acknowledgment of all three same-version attachments is a separate mandatory condition before the load may transition to Dispatched; stale, missing, partial or mismatched attachments fail closed.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Real load dispatch uses the existing three required, current, audience-safe carrier PDFs/packet, after independent physical eligibility. Carrier acknowledgement timer T+2h reminder/T+4h escalation begins at actual sent transport event, not picking reservation, queue time or order creation. Never re-send the packet as the acknowledgment reminder.",
+      "alignment_reason": "preserves dispatch and ACK split",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R009",
+        "BRS-POS-10-R010",
+        "BRS-POS-11-R004"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V41",
+        "AC-V42",
+        "AC-V53",
+        "AC-BR05",
+        "AC-BR06"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R031",
+      "chapter": "BRS-05",
+      "title": "Party-specific document and message audiences",
+      "source_rule_unchanged": "Supplier sees pickup-side allowed content, buyer delivery-side content, carrier execution itinerary. DO and combined packet only to carrier.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Enforce party-specific outbound report and attachment audiences: supplier never receives buyer address/economics or buyer Receiving proof; buyer never receives supplier price; carrier only receives its contractually necessary dispatch data. A dropship PO may need a native QWeb audience-safe variant before supplier issue; do not categorically prohibit the valid native dropship route.",
+      "alignment_reason": "adds native dropship report confidentiality",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-11-R004",
+        "BRS-POS-11-R005",
+        "BRS-POS-10-R003",
+        "BRS-POS-03-R014"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V43",
+        "AC-V45",
+        "AC-UI03"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R032",
+      "chapter": "BRS-05",
+      "title": "No Sales CC on buyer SO; no archival CC",
+      "source_rule_unchanged": "Apply literal no-Sales-CC on buyer/SO and no buyer/supplier CC on trucker mail; archive in Odoo.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Apply literal no-Sales-CC on buyer/SO and no buyer/supplier CC on trucker mail; archive in Odoo.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-11-R006",
+        "BRS-POS-10-R015"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V44",
+        "AC-V43",
+        "AC-UI03"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R033",
+      "chapter": "BRS-05",
+      "title": "No secret leakage through shared notes or chatter",
+      "source_rule_unchanged": "Exclude shared internal notes and other-side identity from party documents; native followers must not relay cross-party replies.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Never leak counterparties or free-text internal notes through native report templates, CC, followers, email context, attachments, chatter or carrier packet. Audience-aware QWeb and sanitized content are required; no blanket copying of linked Documents originals into emails.",
+      "alignment_reason": "tightens document and QWeb audience",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-11-R004",
+        "BRS-POS-11-R006",
+        "BRS-POS-10-R003"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V45",
+        "AC-V43",
+        "AC-V13",
+        "AC-UI11"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R034",
+      "chapter": "BRS-05",
+      "title": "Durable queue and truthful send status",
+      "source_rule_unchanged": "Persist one outbound obligation and enqueue atomically; queue/sent/ack are separate; failed mail does not produce sent/release success.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Native mail.mail exclusively owns delivery: queued is not sent, native throttle deferral is not an SMTP attempt, sent requires native transport evidence. Linda records one send intent keyed by company/order/party/purpose/revision, guards obsolete PDFs and suppresses duplicate native/legacy confirmations across live/off/shadow.",
+      "alignment_reason": "native queue and single mail owner",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R004",
+        "BRS-POS-11-R007",
+        "BRS-POS-10-R013"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V46",
+        "AC-V47",
+        "AC-V48",
+        "AC-UI04",
+        "AC-UI14"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R035",
+      "chapter": "BRS-05",
+      "title": "Uncertain SMTP outcome is not safely retryable by default",
+      "source_rule_unchanged": "After post-accept timeout/crash, reconcile provider/native message identity or raise an exception; no exactly-once external-delivery promise.",
+      "source_git_blob_sha1": "",
+      "effective_text": "An actual attempted send with ambiguous remote outcome remains unknown and is never auto-retried; native mail server throttling without SMTP is deferred and remains legitimately retryable. Cancellations notify only historical audiences that actually or potentially received the issue; newer reissues wait for prior notice.",
+      "alignment_reason": "distinguishes native throttle from delivery uncertainty",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R004",
+        "BRS-POS-11-R007",
+        "BRS-POS-10-R013"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V47",
+        "AC-V49",
+        "AC-V77",
+        "AC-UI14"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-05-R036",
+      "chapter": "BRS-05",
+      "title": "Currency, time zone and actual fields rendered correctly",
+      "source_rule_unchanged": "Show approved currency and explicit local window, and label planned versus actual checkpoint honestly.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Show approved currency and explicit local window, and label planned versus actual checkpoint honestly.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-11-R006",
+        "BRS-POS-10-R003"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V40",
+        "AC-V27",
+        "AC-V57"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R037",
+      "chapter": "BRS-06",
+      "title": "One state-dependent milestone clock",
+      "source_rule_unchanged": "One evaluation owner schedules due readiness/slot/ack/checkpoint/doc obligations; other models project it rather than independently chase.",
+      "source_git_blob_sha1": "",
+      "effective_text": "One evaluation owner schedules due readiness/slot/ack/checkpoint/doc obligations; other models project it rather than independently chase.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-09-R005",
+        "BRS-POS-09-R017",
+        "BRS-POS-10-R010"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V20",
+        "AC-V53",
+        "AC-V59",
+        "AC-V75"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R038",
+      "chapter": "BRS-06",
+      "title": "Race-safe due evaluation and catch-up",
+      "source_rule_unchanged": "Under transaction lock re-read current request/status; due<=now, bounded fair batches and durable touch keys.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Due evaluations are idempotent under overlapping Odoo ir.cron runs, per distinct business obligation/party/revision/local date. Do not invent one global scheduler; distinct Linda and Documents internal jobs may coexist, but never duplicate external notice writers.",
+      "alignment_reason": "one scheduler platform, distinct concern ownership",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-09-R010",
+        "BRS-POS-09-R012",
+        "BRS-POS-10-R004"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V49",
+        "AC-V50",
+        "AC-V51",
+        "AC-V87"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R039",
+      "chapter": "BRS-06",
+      "title": "Reconcile existing distinct cadence obligations, no invented schedule",
+      "source_rule_unchanged": "One Odoo-owned reminder schedule maintains distinct obligations and stops on current acknowledgment, cancellation or supersession: (1) not-yet-READY shipper status every Monday morning with PO and shipper; (2) separately due supplier confirmation follow-up after 24 hours, at most one per day, with escalation after three unanswered follow-ups, and buyer slot follow-up on the documented 24-hour/48-hour buyer thresholds; (3) carrier packet acknowledgment reminder at T+2 hours and carrier/ops escalation at T+4 hours; (4) for still-unacknowledged carrier dispatch, broker-facing pre-pickup touch D-1 09:00 and pickup-day touch D 08:00 origin-local, plus DISTINCT ops-only D-1 13:00 digest and D 07:00 alert origin-local. These different audiences/touch types must not be collapsed into an apparent time contradiction or duplicated by multiple crons. Broker-facing routine messages honor 22:00-06:00 broker-local quiet hours from the selected dispatch templates; internal urgent exceptions can remain actionable. Source-defined timing is binding intent; precise Monday clock hour and job wiring are technical configuration.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Preserve distinct source clocks: supplier readiness Monday supplier-local morning; supplier confirmation 24h, maximum three unanswered touches; buyer slot 24h/48h; carrier dispatch ACK T+2h/+4h from sent dispatch; broker-facing D-1 09:00/D 08:00 source-local; ops-only D-1 13:00/D 07:00; broker-local routine quiet 22:00-06:00. Additionally, separate missing-document reminders: supplier +1/+5 business days after actual pickup, carrier +2/+6 after actual pickup, buyer +1/+5 after actual delivery (Mon-Fri, holiday policy unresolved). No trigger uses transaction create_date.",
+      "alignment_reason": "separates all logistics and Documents timing obligations",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-09-R007",
+        "BRS-POS-09-R008",
+        "BRS-POS-09-R009",
+        "BRS-POS-10-R010",
+        "BRS-POS-09-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V20",
+        "AC-V50",
+        "AC-V52",
+        "AC-BR04",
+        "AC-BR05"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R040",
+      "chapter": "BRS-06",
+      "title": "Actionable, deduplicated human exceptions",
+      "source_rule_unchanged": "One unresolved activity per load/milestone/reason/revision names blocked step, owner, source, deadline and allowed resolution.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Keep one native mail.activity per unresolved exact company/source record/obligation/revision/reason; update and resolve on verified completion, cancellation or supersession. External document chases are Linda Mail actions, never outbound native Documents sharing or auto-generated external Documents Request reminders.",
+      "alignment_reason": "one internal activity owner",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-09-R003",
+        "BRS-POS-10-R016",
+        "BRS-POS-01-R011"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V59",
+        "AC-V71",
+        "AC-V46"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R041",
+      "chapter": "BRS-06",
+      "title": "Checkpoint vocabulary without new load states",
+      "source_rule_unchanged": "Driver assignment, en-route, arrival, pickup, departure, delay and destination arrival are attributed checkpoints; picked_up represents in-transit at load level.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Driver assignment, en-route, arrival, pickup, departure, delay and destination arrival are attributed checkpoints; picked_up represents in-transit at load level.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-01-R009",
+        "BRS-POS-10-R007"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V54",
+        "AC-V55",
+        "AC-V57"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R042",
+      "chapter": "BRS-06",
+      "title": "Pickup proof does not finish delivery picking",
+      "source_rule_unchanged": "Accept pickup only with exact current load/facility/actor evidence; update actual pickup and in-transit projection once.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Pickup proof and physical source event may advance truthful logistics state, but only actual native stock operation may complete stock.picking; buyer delivery proof does not automatically post a customer invoice. No document-compliance recompute side effect.",
+      "alignment_reason": "native stock and Accounting separation",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R007",
+        "BRS-POS-05-R004",
+        "BRS-POS-06-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V54",
+        "AC-V69"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R043",
+      "chapter": "BRS-06",
+      "title": "Out-of-order and stale event handling",
+      "source_rule_unchanged": "Retain late evidence, separate physical and receive times; hold missing predecessor; never overwrite delivered with an older delay.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Retain late evidence, separate physical and receive times; hold missing predecessor; never overwrite delivered with an older delay.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R013",
+        "BRS-POS-03-R006",
+        "BRS-POS-09-R012"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V55",
+        "AC-V56",
+        "AC-V58"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R044",
+      "chapter": "BRS-06",
+      "title": "No response after pickup is a monitored exception",
+      "source_rule_unchanged": "Every active load has next expected milestone and due evidence; lost contact/overdue arrival creates an owned exception.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Every active load has next expected milestone and due evidence; lost contact/overdue arrival creates an owned exception.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-10-R016",
+        "BRS-POS-09-R003"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V53",
+        "AC-V59",
+        "AC-V51"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R045",
+      "chapter": "BRS-07",
+      "title": "Receiver evidence and destination validation",
+      "source_rule_unchanged": "Carrier-reported delivered is an attributed claim; verified delivery requires correct receiver/destination evidence and unresolved dispute handling.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Carrier-reported delivered is only a claim; buyer Receiving Report or attributable receiver evidence is required for verified delivery/invoice eligibility at the exact delivery and quantity. Partial receiving must not certify whole load; BOL/POD and buyer receiving are different evidence classes.",
+      "alignment_reason": "separates carrier event, receiving and invoice gate",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-03-R009",
+        "BRS-POS-03-R010",
+        "BRS-POS-06-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V60",
+        "AC-V61",
+        "AC-V68"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R046",
+      "chapter": "BRS-07",
+      "title": "Store once, preserve original and role views",
+      "source_rule_unchanged": "Native Documents owns file UX, existing attachment and mirror stay linked; supplier/carrier/buyer views use tags, not duplicate physical files.",
+      "source_git_blob_sha1": "",
+      "effective_text": "One original file is held by native documents.document/ir.attachment, with native folder/alias/version history where applicable. Add exact typed links for each legitimately cited transaction, load, PO or picking without duplicating the original; cosmetic native tags/shortcuts do not create new verification truth. Native Documents is internal only; no external links/portal.",
+      "alignment_reason": "one original many typed evidence links",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-02-R001",
+        "BRS-POS-03-R003",
+        "BRS-POS-02-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V64",
+        "AC-V66",
+        "AC-V71"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R047",
+      "chapter": "BRS-07",
+      "title": "Deterministic association before classification",
+      "source_rule_unchanged": "Bind submitted attachment through authenticated request and exact company/load; ambiguous PO-only/domain matches go to review.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Intake is native Documents folder email alias or manual upload. Exact token/company/PO/SO/load/picking and sender-authorized association only; no partner recency, most-recent-open or fuzzy fallback. PO-only inbound may remain PO scoped until real picking/warehouse identity is proven. Ambiguous/uncertain files stay in Inbox with one internal Activity.",
+      "alignment_reason": "exact link and PO-only warehouse evidence",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-03-R002",
+        "BRS-POS-03-R014",
+        "BRS-POS-05-R005",
+        "BRS-POS-10-R014"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V88",
+        "AC-V83",
+        "AC-V63"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R048",
+      "chapter": "BRS-07",
+      "title": "Current verified BOL/POD, not checkboxes",
+      "source_rule_unchanged": "Operational delivery/closeout needs attributable evidence for this exact current load, destination, delivery event and document revision. A current signed or otherwise verified BOL/POD is sufficient when required; a distinctly authenticated receiver delivery acknowledgment may also establish the delivery fact where its format is permitted. A handwritten or unsigned document is not rejected solely for lacking a signature, but its contents must still be attributable, coherent and verified. A hash, OCR score, checkbox, file count, forwarded text or carrier assertion alone cannot impersonate receiver acceptance. All separately required load/facility compliance documents must be current and verified before unattended operational close; incomplete/uncertain evidence is archived with an exception. Financial transaction close remains governed by its own accounting/compliance actions.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Operation-scoped compliance checks actual current verified evidence, not a tag or checkbox. Buyer Receiving Report controls buyer invoice eligibility for the covered quantity; signed/verified BOL/POD controls applicable operational close. Carrier CST/SCALE is separately due but not a universal invoice/close blocker; no automatic $150 penalty for tag absence.",
+      "alignment_reason": "document obligation versus operation-specific gate",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-03-R007",
+        "BRS-POS-03-R009",
+        "BRS-POS-03-R010",
+        "BRS-POS-03-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V62",
+        "AC-V63",
+        "AC-V65",
+        "AC-V67",
+        "AC-BR07"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R049",
+      "chapter": "BRS-07",
+      "title": "Native-to-legacy proof synchronization",
+      "source_rule_unchanged": "The compliance mirror must track exact current attachment, tag, source link and verification/supersession; not only a stale verification flag.",
+      "source_git_blob_sha1": "",
+      "effective_text": "plasticos_documents is the only authoritative business-classification, verification, exception/override and compliance writer, with native Documents fields as read-only projections/delegations. Multiple exact legacy evidence links may reference one original; no duplicate-original or stale single pointer as source of truth. Synchronization never auto-posts accounting.",
+      "alignment_reason": "one verification writer and many links",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-03-R001",
+        "BRS-POS-03-R003",
+        "BRS-POS-03-R004",
+        "BRS-POS-03-R006"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V64",
+        "AC-V63",
+        "AC-V66"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R050",
+      "chapter": "BRS-07",
+      "title": "Hash and supersession as integrity, not authority",
+      "source_rule_unchanged": "Hash binds exact bytes/version; corrected evidence is a successor; acceptance of old bytes cannot seal a new file.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Document hash identifies bytes/revision and does not establish business authenticity. Supersession invalidates the affected verification; current evidence must be attributable, not stale, expired or canceled. Keep old bytes and history without restoring obsolete acceptance.",
+      "alignment_reason": "verified evidence freshness",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-02-R007",
+        "BRS-POS-03-R005",
+        "BRS-POS-03-R006"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V65",
+        "AC-V66",
+        "AC-V67"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R051",
+      "chapter": "BRS-07",
+      "title": "Party-specific missing-document SLA and escalation",
+      "source_rule_unchanged": "For each actually required outstanding document, Linda tracks the accountable party and milestone in business days (Monday-Friday): supplier document checks begin one business day after pickup and escalate after five business days after pickup; carrier checks begin two business days after pickup and escalate after six; buyer checks begin one business day after delivery and escalate after five after delivery. Once a party-specific check is due, send at most one missing-doc reminder per day through the configured approved Gmail channel, including exact transaction/reference and missing types. An escalation creates one native internal activity for the correct responsible role; it is not a request for new routine approval and not a blanket broadcast. Suppress cleared, inapplicable, canceled and superseded obligations. Preserve source-required proof gates without using receipt/file hashing alone to mark operational close. Historical alternate SMS and docs@ inbox are not additional configured transport obligations under the later chosen Google Workspace logistics2 mailbox.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Document reminders are party/obligation/event-specific: supplier +1/+5 business days from actual pickup; carrier +2/+6 from actual pickup; buyer +1/+5 from actual delivery, Monday-Friday until separate holiday ruling. Only Linda sends one external reminder per exact party/obligation/local day. Native Documents Requests and mail.activity are INTERNAL; one active escalation Activity. Stop on verified current evidence, override, cancellation or supersession.",
+      "alignment_reason": "the cross-domain Documents SLA/ownership contract",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-09-R006",
+        "BRS-POS-09-R007",
+        "BRS-POS-09-R008",
+        "BRS-POS-09-R009",
+        "BRS-POS-09-R012"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V71",
+        "AC-V62",
+        "AC-BR08",
+        "AC-BR09",
+        "AC-BR10"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R052",
+      "chapter": "BRS-07",
+      "title": "Quantities, discrepancies and original unit evidence",
+      "source_rule_unchanged": "Separate expected/actual/source weights, normalize through existing units and block disputes; logistics does not settle financial variance.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Retain original quantity/weight source and units for the exact leg. Supplier AP uses supplier_weight, buyer AR uses buyer_weight, certified scale_weight is reference only. Greater-than-5% direct difference prompts human review, with denominator/precision still OPEN. No universal final weight, silent substitution, AI weight extraction or automatic financial adjustment.",
+      "alignment_reason": "corrects generic universal selected weight",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-04-R001",
+        "BRS-POS-04-R002",
+        "BRS-POS-04-R003",
+        "BRS-POS-04-R004"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V68",
+        "AC-V61"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R053",
+      "chapter": "BRS-07",
+      "title": "Verified downstream synchronization",
+      "source_rule_unchanged": "Idempotently publish verified dispatch/pickup/delivery facts to exact linked records; stock completion uses native business actions and valid route quantities.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Verified physical checkpoints update only appropriate native and PlasticOS operational records via their owner business actions. Stock quants/pickings own inventory custody; only authorized native transitions complete warehouse moves. No inferred stock, load, invoice, credit, penalty or vendor bill from a document event.",
+      "alignment_reason": "native stock single writer",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-05-R004",
+        "BRS-POS-06-R009",
+        "BRS-POS-10-R007"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V69",
+        "AC-V03",
+        "AC-V56"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R054",
+      "chapter": "BRS-07",
+      "title": "Financial close is a separate gate",
+      "source_rule_unchanged": "Logistics close publishes evidence; posted financial docs, manager authority and current compliance/margin checks remain mandatory.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Operational close consumes verified evidence only; commercial settlement, posted accounting corrections, revenue/margin and payment stay with Accounting and authorized operators. Compliance recompute must be side-effect-free, never account.move.action_post. QuickBooks remains payment owner until a separately approved Odoo cutover; no automatic $150 CST chargeback.",
+      "alignment_reason": "finance isolation and QuickBooks exit boundary",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-03-R008",
+        "BRS-POS-06-R009",
+        "BRS-POS-07-R002",
+        "BRS-POS-08-R001"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V70",
+        "AC-V61"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R055",
+      "chapter": "BRS-07",
+      "title": "Truthful operational metrics",
+      "source_rule_unchanged": "Measure event time vs accepted baseline, acknowledgment latency, overdue milestones and human exceptions; no fabricated KPI percentages.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Measure event time vs accepted baseline, acknowledgment latency, overdue milestones and human exceptions; no fabricated KPI percentages.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-07-R011",
+        "BRS-POS-01-R011"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V72",
+        "AC-V57"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-07-R056",
+      "chapter": "BRS-07",
+      "title": "Legacy assertions are not confirmed events",
+      "source_rule_unchanged": "Classify existing fields as verified evidence, legacy assertion, contradictory or unassociated; automation activates only reviewed eligible cohort.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Legacy imported and historically unverified evidence cannot start external Linda follow-ups, trigger auto-posting, backfill verified state or invent stock. Enable only proven current eligible cohort after separate activation authorization.",
+      "alignment_reason": "historical data is not live evidence",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-05-R010",
+        "BRS-POS-08-R014",
+        "BRS-POS-09-R014"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V73",
+        "AC-V62",
+        "AC-V05"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-04-R067",
+      "chapter": "BRS-04",
+      "title": "Retain useful working freight; do not repeat predecessor campaign",
+      "source_rule_unchanged": "Current implementation outranks older donor baseline; retain already-satisfied interfaces and regressions.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Current implementation outranks older donor baseline; retain already-satisfied interfaces and regressions.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-01-R003",
+        "BRS-POS-10-R008"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V79",
+        "AC-V78",
+        "AC-V90"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-06-R068",
+      "chapter": "BRS-06",
+      "title": "Minimal operator-facing exception and next action",
+      "source_rule_unchanged": "Show last verified checkpoint, next required fact, owner and blocked reason; routine email threads are not the work queue.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Show last verified checkpoint, next required fact, owner and blocked reason; routine email threads are not the work queue.",
+      "alignment_reason": "unchanged business meaning; applicable cross-domain owner boundaries still govern",
+      "resolution_kind": "preserved_original",
+      "cross_domain_refs": [
+        "BRS-POS-09-R003",
+        "BRS-POS-10-R016"
+      ],
+      "current_repo_supersession_preserved": false,
+      "legacy_acceptance_ids": [
+        "AC-V57",
+        "AC-V59",
+        "AC-V72"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-01-R065",
+      "chapter": "BRS-01",
+      "title": "Mechanical transaction eligibility before automatic order issuance",
+      "source_rule_unchanged": "Linda issues orders only after an exact commercial transaction reaches its Approved-like machine issuance event and all source-authoritative eligibility gates are satisfied: current active supplier and buyer/approved contacts, correct company, required vendor onboarding form when applicable, and complete movement association. Preapproved-party status can satisfy its own eligibility check but never releases an order alone. No second Linda human approval is added. The implementation maps the existing or necessary Odoo field/event in technical design; no field literally named approved is asserted by this pack.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Source authorization for creating commercial orders is distinct from native PO button_approve/purchase and SO action_confirm/sale issuance. Linda must observe actual native commercial policy and approvals; no fake transaction, approval or load and no automatic issuance on draft/import/retry.",
+      "alignment_reason": "refines native order release authority",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R002",
+        "BRS-POS-06-R001",
+        "BRS-POS-01-R008"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V02",
+        "AC-V84",
+        "AC-V90",
+        "AC-UI01",
+        "AC-UI02",
+        "AC-BR01",
+        "AC-BR02"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    },
+    {
+      "id": "BRS-02-R062",
+      "chapter": "BRS-02",
+      "title": "Bounded LLM may interpret; deterministic rules alone govern action",
+      "source_rule_unchanged": "A scoped LLM may extract structured candidate meaning from free-form inbound email only when deterministic parsing is insufficient. Its candidate facts and confidence are never business authority and cannot directly send, change load state, select carrier/rate, satisfy document proof or invoke tools. Deterministic verification of identity, request version, explicit response and all business prerequisites alone governs the next permitted Odoo action. OCR confidence likewise never proves a physical event.",
+      "source_git_blob_sha1": "",
+      "effective_text": "Conditional future capability only: a tested installed Odoo 19 Enterprise AI Server Action Manager may interpret free-form inbound mail as candidate facts through a guarded native Worker. It is currently NOT RUN; free-form replies remain unresolved until separate proof/approval. No custom LLM client, probabilistic acceptance or direct order/load/picking/posting mutation.",
+      "alignment_reason": "supersedes older blanket deferral only as conditional implementation plan",
+      "resolution_kind": "clarified_new_boundary",
+      "cross_domain_refs": [
+        "BRS-POS-10-R006",
+        "BRS-POS-02-R010",
+        "BRS-POS-09-R016"
+      ],
+      "current_repo_supersession_preserved": true,
+      "legacy_acceptance_ids": [
+        "AC-V10",
+        "AC-V67",
+        "AC-V78",
+        "AC-UI07",
+        "AC-UI08",
+        "AC-UI10",
+        "AC-UI11"
+      ],
+      "business_status": "PROPOSED_ALIGNMENT_FOR_REPOSITORY_ADOPTION",
+      "implementation_status": "NOT_PROVEN_BY_SPEC",
+      "negative_controls_required": true
+    }
+  ]
+}

@@ -124,7 +124,11 @@ def main():
     parser.add_argument("--validation", action="append", default=[], help="Validation (gate|result)")
     parser.add_argument("--summary", default="", help="Summary text")
     parser.add_argument("--gmp-id", default=None, help="GMP ID (auto-generated if not provided)")
-    parser.add_argument("--update-workflow", action="store_true", help="Update workflow_state.md")
+    parser.add_argument(
+        "--update-workflow",
+        action="store_true",
+        help="Accepted for existing callers. This script does not write workflow_state.md.",
+    )
     parser.add_argument("--skip-verify", action="store_true", help="Skip verification")
 
     args = parser.parse_args()
@@ -140,15 +144,18 @@ def main():
     )
 
     # Determine output path
-    reports_dir = Path("reports")
-    reports_dir.mkdir(exist_ok=True)
+    reports_dir = Path("docs") / "reports" / "gmp-reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
     # Create filename from task
     task_slug = args.task[:50].replace(" ", "-").replace("/", "-")
     gmp_id = args.gmp_id or f"GMP-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     filename = f"GMP-Report-{gmp_id.replace('GMP-', '')}-{task_slug}.md"
 
-    output_path = reports_dir / filename
+    output_path = (reports_dir / filename).resolve()
+    # Containment guard: CLI-derived slug must not escape docs/reports/gmp-reports/ (SonarCloud S8707)
+    if not output_path.is_relative_to(reports_dir.resolve()):
+        raise ValueError(f"Refusing to write outside docs/reports/gmp-reports/: {output_path}")
     output_path.write_text(report)
 
     print(f"Report saved: {output_path}")

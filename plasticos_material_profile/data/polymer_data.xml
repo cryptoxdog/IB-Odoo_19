@@ -239,4 +239,116 @@
       <field name="sequence">999</field>
     </record>
   </data>
+  <data noupdate="1">
+    <record id="polymer_pc_abs" model="plasticos.polymer">
+      <field name="name">PC/ABS</field>
+      <field name="code">PC_ABS</field>
+      <field name="full_name">Polycarbonate / ABS</field>
+      <field name="resin_id_code">7</field>
+      <field name="category">engineering</field>
+      <field name="sequence">156</field>
+    </record>
+    <record id="polymer_3_7_commingled_bottles" model="plasticos.polymer">
+      <field name="name">3-7 Commingled Bottles</field>
+      <field name="code">3_7_COMMINGLED_BOTTLES</field>
+      <field name="full_name">3-7 Commingled Bottles</field>
+      <field name="category">commodity</field>
+      <field name="sequence">236</field>
+    </record>
+    <record id="polymer_1_7_commingled_bottles" model="plasticos.polymer">
+      <field name="name">1-7 Commingled Bottles</field>
+      <field name="code">1_7_COMMINGLED_BOTTLES</field>
+      <field name="full_name">1-7 Commingled Bottles</field>
+      <field name="category">commodity</field>
+      <field name="sequence">237</field>
+    </record>
+
+    <!-- ── Approved by the operator 2026-11-03 (material mapping matrix) ── -->
+    <record id="polymer_tpu" model="plasticos.polymer">
+      <field name="name">TPU</field>
+      <field name="code">TPU</field>
+      <field name="full_name">Thermoplastic Polyurethane</field>
+      <field name="category">engineering</field>
+      <field name="sequence">192</field>
+    </record>
+    <record id="polymer_tpv" model="plasticos.polymer">
+      <field name="name">TPV</field>
+      <field name="code">TPV</field>
+      <field name="full_name">Thermoplastic Vulcanizate</field>
+      <field name="category">engineering</field>
+      <field name="sequence">194</field>
+    </record>
+    <record id="polymer_pvb" model="plasticos.polymer">
+      <field name="name">PVB</field>
+      <field name="code">PVB</field>
+      <field name="full_name">Polyvinyl Butyral</field>
+      <field name="category">specialty</field>
+      <field name="sequence">225</field>
+    </record>
+    <record id="polymer_pu_foam" model="plasticos.polymer">
+      <field name="name">PU Foam</field>
+      <field name="code">PU_FOAM</field>
+      <field name="full_name">Polyurethane Foam</field>
+      <field name="category">specialty</field>
+      <field name="sequence">226</field>
+    </record>
+    <record id="polymer_textile" model="plasticos.polymer">
+      <field name="name">Textile</field>
+      <field name="code">TEXTILE</field>
+      <field name="full_name">Textile</field>
+      <field name="category">specialty</field>
+      <field name="sequence">320</field>
+    </record>
+    <record id="polymer_ubc" model="plasticos.polymer">
+      <field name="name">UBC</field>
+      <field name="code">UBC</field>
+      <field name="full_name">Used Beverage Containers</field>
+      <field name="category">specialty</field>
+      <field name="sequence">315</field>
+    </record>
+    <record id="polymer_fiberglass" model="plasticos.polymer">
+      <field name="name">Fiberglass</field>
+      <field name="code">FIBERGLASS</field>
+      <field name="full_name">Fiberglass</field>
+      <field name="category">specialty</field>
+      <field name="sequence">325</field>
+    </record>
+    <record id="polymer_wood_pallets" model="plasticos.polymer">
+      <field name="name">Wood Pallets</field>
+      <field name="code">WOOD_PALLETS</field>
+      <field name="full_name">Wood Pallets</field>
+      <field name="category">specialty</field>
+      <field name="sequence">330</field>
+    </record>
+    <record id="polymer_auto_parts" model="plasticos.polymer">
+      <field name="name">Auto Parts</field>
+      <field name="code">AUTO_PARTS</field>
+      <field name="full_name">Auto Parts</field>
+      <field name="category">specialty</field>
+      <field name="sequence">335</field>
+    </record>
+    <!-- ── Approved by the operator 2026-11-04 ── -->
+    <record id="polymer_ldpe_lldpe" model="plasticos.polymer">
+      <field name="name">LDPE/LLDPE</field>
+      <field name="code">LDPE_LLDPE</field>
+      <field name="full_name">LDPE / LLDPE Mix</field>
+      <field name="resin_id_code">4</field>
+      <field name="category">commodity</field>
+      <field name="sequence">45</field>
+    </record>
+    <record id="polymer_pet_hdpe" model="plasticos.polymer">
+      <field name="name">PET/HDPE</field>
+      <field name="code">PET_HDPE</field>
+      <field name="full_name">PET / HDPE Mix</field>
+      <field name="category">commodity</field>
+      <field name="sequence">72</field>
+    </record>
+    <record id="polymer_fiber" model="plasticos.polymer">
+      <field name="name">Fiber</field>
+      <field name="code">FIBER</field>
+      <field name="full_name">Fiber</field>
+      <field name="category">specialty</field>
+      <field name="sequence">322</field>
+    </record>
+  </data>
 </odoo>

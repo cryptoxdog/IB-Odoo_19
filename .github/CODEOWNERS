@@ -1,2 +1,7 @@
 # Default reviewer for all PRs
 * @cryptoxdog
+
+# Workflow changes alter what CI enforces (including the label-gated
+# auto-merge); they always require owner review.
+/.github/workflows/ @cryptoxdog
+/.github/CODEOWNERS @cryptoxdog

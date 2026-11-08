@@ -1,0 +1,9 @@
+# make test-module m=plasticos_crm_sync (standard run, fresh clone of the pinned fixture)
+✅ odoo_test_w2495f48767 is a fresh clone of odoo_test_tpl_ee_c9e8a81f52f23680 (owner w2495f48767, parity ee)
+✓ odoo_test_w2495f48767: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 169 modules)
+2026-10-18 02:46:59,324 1 INFO odoo_test_w2495f48767 odoo.tests.result: 0 failed, 0 error(s) of 50 tests when loading database 'odoo_test_w2495f48767'
+
+# -i plasticos_semantic_kernel -u plasticos_crm_sync --test-tags crm_sync_semantic_kernel (same clone)
+2026-10-18 02:47:22,434 1 INFO odoo_test_w2495f48767 odoo.addons.plasticos_crm_sync.tests.test_orchestrator_upsert: Starting TestCrmSyncSemanticKernelCollision.test_collision_keeps_cascade_dependents_and_image_attachments ...
+2026-10-18 02:47:22,555 1 INFO odoo_test_w2495f48767 odoo.addons.plasticos_crm_sync.tests.test_orchestrator_upsert: Starting TestCrmSyncSemanticKernelCollision.test_computed_material_reference_blocks_deletion ...
+2026-10-18 02:47:22,615 1 INFO odoo_test_w2495f48767 odoo.tests.result: 0 failed, 0 error(s) of 2 tests when loading database 'odoo_test_w2495f48767'

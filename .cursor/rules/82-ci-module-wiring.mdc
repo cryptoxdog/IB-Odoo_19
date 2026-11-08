@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Module Dependency Wiring — PlasticOS
 
-Enforced by `scripts/check_module_wiring.py` (runs on every push via pre-commit).
+**Authority:** `AGENTS.md` § CI Compliance Checklist · enforced by `scripts/check_module_wiring.py` (pre-commit + `make pr-check`).
 
 ## Every Model Reference Needs a Manifest Dep
 

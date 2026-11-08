@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "<string>", line 6, in <module>
+  File "src/pymssql/_pymssql.pyx", line 458, in pymssql._pymssql.Cursor.execute
+pymssql.exceptions.ColumnsWithoutNamesError: Specified as_dict=True and there are columns with no names: [0]
+13
+{'ws': '60545', 'd': '2026-05-29', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'LR', 'Commission2': Decimal('0.0000')}
+{'ws': '60546', 'd': '2026-06-01', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'AB', 'Commission2': Decimal('0.0000')}
+{'ws': '60547', 'd': '2026-06-01', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'AB', 'Commission2': Decimal('0.0000')}
+{'ws': '60548', 'd': '2026-06-01', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'TF', 'Commission2': Decimal('-0.0400')}
+{'ws': '60549', 'd': '2026-06-01', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'TF', 'Commission2': Decimal('46.5080')}
+{'ws': '60550', 'd': '2026-06-01', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'TF', 'Commission2': Decimal('48.6680')}
+{'ws': '60551', 'd': '2026-06-02', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'AB', 'Commission2': Decimal('0.0000')}
+{'ws': '60554', 'd': '2026-06-02', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'AB', 'Commission2': Decimal('0.0000')}
+{'ws': '60555', 'd': '2026-06-02', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'AA', 'Commission2': Decimal('1185.2800')}
+{'ws': '60556', 'd': '2026-06-03', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'AA', 'Commission2': Decimal('318.7200')}
+{'ws': '60557', 'd': '2026-06-04', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'AB', 'Commission2': Decimal('0.0000')}
+{'ws': '60558', 'd': '2026-06-04', 'r1': 'IB', 'Commission1': Decimal('0.0000'), 'r2': 'LR', 'Commission2': Decimal('48.9450')}
+{'ws': '60559', 'd': '2026-06-04', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'TF', 'Commission2': Decimal('397.2000')}

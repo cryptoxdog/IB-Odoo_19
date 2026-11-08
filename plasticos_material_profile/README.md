@@ -32,6 +32,7 @@ from odoo.addons.plasticos_material_profile.process_codes import PROCESS_SELECTI
 | Model | Description |
 |---|---|
 | `plasticos.polymer` | Polymer type master (HDPE, LDPE, PP, PET, etc.) |
+| `plasticos.material.grade` | Material grade: what the items were before processing (Drums, Totes, Pallets, etc.) |
 | `plasticos.material.form` | Material form (Pellets, Regrind, Flake, Film, etc.) |
 | `plasticos.material.color` | Color classification |
 | `plasticos.source.type` | Material origin/source type |
@@ -54,7 +55,7 @@ Structured material record attached to a `res.partner`. Identity is defined by `
 | `partner_id` | `Many2one(res.partner)` | Determines profile ownership |
 | `polymer_id` | `Many2one(plasticos.polymer)` | |
 | `form_id` | `Many2one(plasticos.material.form)` | |
-| `origin_form_id` | `Many2one(plasticos.material.form)` | What the material was before processing — distinct from `form_id` |
+| `material_grade_id` | `Many2one(plasticos.material.grade)` | What the material was before processing (Drums, Totes, Pallets) — distinct from `form_id` |
 | `origin_process_type` | `Selection(PROCESS_SELECTION)` | From `process_codes.py` |
 | `color_id` | `Many2one(plasticos.material.color)` | |
 | `source_type_id` | `Many2one(plasticos.source.type)` | |
@@ -130,15 +131,10 @@ Master tag model for material condition flags.
 
 ---
 
-## Constraint
+## Partner
 
-```python
-@api.constrains('partner_id')
-def _check_partner_is_facility(self):
-    # Profiles may only be created for partners where is_facility = True
-```
-
-After the boolean cleanup, this constraint was updated to use `is_facility` (from `plasticos_material_profile.res_partner`) instead of `parent_id`. Standalone companies can now have material profiles.
+A material profile belongs to a partner: a facility site or a company contact person (operator decision
+2026-10-30). No facility profile is required. The `partner_id` domain requires a partner with a parent.
 
 ---
 

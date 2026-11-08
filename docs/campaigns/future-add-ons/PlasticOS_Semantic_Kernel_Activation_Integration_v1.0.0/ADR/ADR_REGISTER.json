@@ -1,0 +1,178 @@
+{
+  "format": "package-local-adr-change-register/v1",
+  "new_proposals": [
+    "SK-A01",
+    "SK-A02",
+    "SK-A03"
+  ],
+  "amendments": [
+    {
+      "id": "A01",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "path": "docs/adr/ADR-120-plasticos-semantic-kernel-skeleton.md",
+      "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+      "section": "Decision / maturity note",
+      "preserve": "Forbid Gate/client/matching/inference execution in the passive kernel.",
+      "proposed_text": "The skeleton now evolves only as passive, attributed semantic persistence. Runtime source admission, transport orchestration and CRM handoff belong to the optional integration owner admitted under SK-A01. No mandatory addon may gain a dependency merely to install this capability; default business activation remains off.",
+      "effect": "O01",
+      "proof_ids": [
+        "P02",
+        "P03",
+        "P23"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A02",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "path": "docs/adr/ADR-121-spec-observation-models.md",
+      "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+      "section": "Decision / evidence lifecycle",
+      "preserve": "Specification is normative; observation is attributed; UUIDs remain immutable.",
+      "proposed_text": "Approved observation content is superseded by a new version rather than overwritten. Source, method, evidence state, validity and rule/model revision remain explicit. Inferred observations do not constitute verified current supply or demand. General profile changes cannot rewrite approved opportunity snapshots.",
+      "effect": "O01",
+      "proof_ids": [
+        "P07",
+        "P11",
+        "P32"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A03",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "path": "docs/adr/ADR-122-supply-demand-models.md",
+      "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+      "section": "Decision / commercial ownership",
+      "preserve": "Matching remains Gate/CEG authority; no ambiguous conversion helpers.",
+      "proposed_text": "Native CRM opportunity is the sole commercial attempt. SupplyOpportunity and BuyerDemand are derived/current-fact representations, not independent trading pipelines. Native-source binding and approved material evidence govern publication. Prospect-owned identities reuse the existing CRM facility/material mechanism; a partner must not be invented to satisfy persistence. Independent commercial menus/actions are retired or restricted while historical records/UUIDs are preserved.",
+      "effect": "O01",
+      "proof_ids": [
+        "P04",
+        "P05",
+        "P10",
+        "P19",
+        "P20"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A04",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "path": "docs/adr/ADR-124-semantic-kernel-backfill.md",
+      "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+      "section": "Append narrowly superseding amendment after TASK-031",
+      "preserve": "Explicit command, dry-run, batching, idempotence, no install-hook and ambiguous conversion denial.",
+      "proposed_text": "The TASK-031 specification-only slice remains the default. Supply/demand may be processed only under a separately admitted source contract, exact reviewed batch/mapping, real persistence adapter, verified recovery and operator execution grant. Profile/capability/historical-record-to-current-availability inference remains forbidden. Counts called created/updated mean committed ORM effects; planning intent is reported separately. The blanket guard is not removed without source-aware replacement and consumer tests.",
+      "effect": "O01",
+      "proof_ids": [
+        "P03",
+        "P04",
+        "P05",
+        "P08",
+        "P09"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A05",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "path": "docs/adr/ADR-125-split-opportunity-protocol.md",
+      "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+      "section": "Decision / versioning and state semantics",
+      "preserve": "Supply and demand remain separate peer protocols.",
+      "proposed_text": "Source refs, revision, material/quantity/time semantics, evidence classes and compatibility must match admitted active consumers. A field-name or enum change is a versioned contract revision, not a caller-side convenience. No combined supply/demand discriminator and no transport identity fields in domain payloads.",
+      "effect": "O01",
+      "proof_ids": [
+        "P02",
+        "P07",
+        "P12",
+        "P31"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A06",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "path": "docs/adr/ADR-126-odoo-semantic-gate-mappers.md",
+      "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+      "section": "Decision / live consumption and acknowledgement",
+      "preserve": "Only plasticos_gate owns SDK invocation and Gate mediation.",
+      "proposed_text": "Builders are not runtime integration by themselves. Their exact payload and result shapes must be bound to the deployed handler version and source contract. A source-aware optional publisher calls the admitted mapper after source commit; signed acknowledgements and node/edge readback close the operation. Match, sync, inference and gap assessment are distinct actions/permissions. Existing direction versus match_direction divergence must be resolved at the contract owner before connection.",
+      "effect": "O01",
+      "proof_ids": [
+        "P12",
+        "P13",
+        "P16",
+        "P26"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A07",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "path": "docs/adr/ADR-127-field-family-cutover.md",
+      "baseline": "677d734fd88615d673501d91de88734b7150ff50",
+      "section": "Decision / family operation admission",
+      "preserve": "Specification behavior, dual approval and no local intelligence restoration remain unchanged.",
+      "proposed_text": "Read-authority cutover is separate from backfill and publication. Supply/demand remain blocked until their exact family/operation contracts and proof gates are admitted. Controls must guard actual runtime read/write/dispatch consumers, not merely classify configuration. Operator grants are scoped to source/release/tenant/operation and rechecked for queued work. Disable preserves evidence and cannot leave stale marketable supply silently eligible.",
+      "effect": "O01",
+      "proof_ids": [
+        "P03",
+        "P27",
+        "P29"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A08",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "path": "docs/adr/ADR-104-first-match-direction.md",
+      "baseline": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "section": "Decision / semantic clarification, not unversioned identifier rename",
+      "preserve": "CEG owns matching; existing public identifier preserved until explicit compatibility decision.",
+      "proposed_text": "For the PlasticOS commercial path, the query represents supplier-offered material and candidates are facilities eligible to buy/accept that material. Capability is evidence for fit, not proof of purchasing intent. Tests must distinguish supplier-only, buyer-only, dual-role, unknown and excluded facilities. Historic buyer-RFQ/supplier-facility prose is not the authority for the corrected business path.",
+      "effect": "X04",
+      "proof_ids": [
+        "P14",
+        "P16",
+        "P30"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A09",
+      "repository": "Quantum-L9/Cognitive.Engine.Graphs",
+      "path": "docs/adr/ADR-105-second-match-direction.md",
+      "baseline": "0d84ec8531baf604383c5ddc012f40aa84fc4b76",
+      "section": "Decision / current availability and provenance",
+      "preserve": "Reverse candidates are active supply, never general facility capability.",
+      "proposed_text": "Current supply requires admitted native-source lineage, explicit remaining quantity/units/time/marketability and maintained required graph relations. Hypotheses, expired/withdrawn facts and allocated quantities cannot satisfy confirmed demand. Result identity resolves to the originating native opportunity without name guessing.",
+      "effect": "X04",
+      "proof_ids": [
+        "P13",
+        "P15",
+        "P18",
+        "P21"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    },
+    {
+      "id": "A10",
+      "repository": "Quantum-L9/Constellation.Gate",
+      "path": "constellation-gate/src/constellation_gate/routing/action_ownership.py",
+      "baseline": "cfeb81fa4d11eb8c106314fa27310f660a1dfad7",
+      "section": "Owner-controlled action registry and linked deployment policy",
+      "preserve": "One semantic action owner, signed re-entry through Gate and caller node/kind/tenant scope.",
+      "proposed_text": "The source-owner-approved gap operation, if newly required, is registered to CEG. Source projection grants are explicit and least-privilege; Odoo stays a consumer. A general match grant does not confer sync/gap permission. No role impersonation or new direct worker HTTP bypass. Update all declaration/admission/readiness tests against the same admitted registry revision.",
+      "effect": "X06",
+      "proof_ids": [
+        "P02",
+        "P12",
+        "P31"
+      ],
+      "status": "PROPOSED_NOT_APPLIED"
+    }
+  ],
+  "repository_changes_executed": false
+}

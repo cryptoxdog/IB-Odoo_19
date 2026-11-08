@@ -1,3 +1,4 @@
+# M4: local inference engine dependency removed from addon; models retained for audit/history.
 from . import enrichment_source
 from . import enrichment_extraction
 from . import enrichment_provenance

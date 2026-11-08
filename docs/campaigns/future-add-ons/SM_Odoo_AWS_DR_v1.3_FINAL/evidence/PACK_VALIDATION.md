@@ -1,0 +1,7 @@
+# v1.3 package verification | Local evidence only
+
+The release validator hashes every packaged payload file and reconciles the manifest, checksums, seven exact scoped contracts and first-position repository-access headers, all **49** project-local invariant IDs, one-to-one invariant/case/primary-contract/test mapping, known acceptance gates and bundled Markdown file references. It also checks the locked schedule, native/AWS/1Password boundaries, early-custody dependency order, and independent-release restoration requirement.
+
+The bundled negative tests deliberately corrupt an invariant, omit a traceability row or contract, change an access header, change a schedule slot, and introduce an unresolved reference while recalculating file hashes, and must be rejected. A separate local receipt validator rejects PASS without mandatory real-evidence reference fields, unresolved handoffs and two-hour contract claims backed only by daily data.
+
+**Execution status:** the expected tools and tests are included and verified in the container as part of release assembly. Exact test counts, hash results and final ZIP extraction check are emitted by the final pack build/verification run, not asserted here in advance. No live AWS, Odoo.sh, Infisical, 1Password, current L9 authority projection or independent production restore was executed by the pack author. A synthetic success is not a provider or operator PASS. See `evidence/COMPLETENESS_AND_ALIGNMENT_AUDIT.md` for findings and explicit remaining live proof requests.

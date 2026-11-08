@@ -1,0 +1,40 @@
+--- a/plasticos_web_leads/models/web_lead.py
++++ b/plasticos_web_leads/models/web_lead.py
+@@
++# TEST FIXTURE REFERENCE FOR AGENTS:
++# Before changing this file, inspect and run the existing Production tests under tests/test_web_lead*.py
++# and related intake/classification tests. Do not invent new fixtures before reading current ones.
+@@
+     def _process_hot_lead_triage(self, merged: dict[str, Any], config: Any):
+         self.ensure_one()
++        # AGENT: DO NOT REWIRE partner creation back into this method.
++        # Intake-first is intentional. Partner/material-profile creation is deferred to buyer-matching workflow.
+         intake = self._create_intake_triage(merged, config)
+         self.write(
+             {
+                 "intake_id": intake.id,
+                 "state": "intake_created",
+@@
+         Intake = self.env["plasticos.intake"]
+         intake = Intake.create(intake_vals)
+ 
+         # Link this lead to the intake for reference (Many2one on web_lead side)
++        # AGENT: DO NOT REWIRE this apparent double-write without regression coverage.
++        # This early link preserves intake association at creation boundary; caller also writes intake_id with state transition.
+         self.intake_id = intake.id
+@@
+     def _process_hot_lead_simple(self):
+@@
++            # AGENT: DO NOT REWIRE partner creation back into the simple path.
++            # This path intentionally mirrors intake-first behavior; partner creation is deferred downstream.
+             self.write(
+                 {
+                     "intake_id": intake.id,
+                     "state": "intake_created",
+@@
+         Intake = self.env["plasticos.intake"]
+         intake = Intake.create(intake_vals)
+ 
+         # Link this lead to the intake for reference (Many2one on web_lead side)
++        # AGENT: DO NOT REWIRE this apparent double-write without regression coverage.
+         self.intake_id = intake.id

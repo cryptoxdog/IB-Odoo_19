@@ -1,0 +1,349 @@
+{
+  "schema": "plasticos.planning.domain-phase-closure/v1",
+  "status": "NON_ADMITTED_PLANNING_ONLY",
+  "revision_date": "2026-10-28",
+  "source_repo": "cryptoxdog/IB-Odoo_19",
+  "source_revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+  "lanes": [
+    {
+      "id": "MVP",
+      "title": "MVP priority; no Export/operations prerequisites",
+      "priority": 0,
+      "activation": "Existing separately authorized change process only"
+    },
+    {
+      "id": "ARCH",
+      "title": "Invariant/architecture/source contract design now, zero runtime implementation",
+      "priority": 1,
+      "activation": "PLANNING_ONLY"
+    },
+    {
+      "id": "DEFERRED",
+      "title": "Export and physical operations implementation parked",
+      "priority": 9,
+      "activation": "REQUIRES_SEPARATE_OPERATOR_AUTHORIZATION"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "PL-MVP-01",
+      "lane": "MVP",
+      "title": "Exact current Staging-to-Production readiness and rollback evidence",
+      "owner": "PlasticOS core / release",
+      "status": "TO_PROVE",
+      "predecessors": [],
+      "not_blocked_by": [
+        "PL-ARCH-07",
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "conditional_safety_gate": "If the intended release exercises Documents verification, automatic linking, broadened ACL or multi-load movement, block that affected route until its test suite passes; production promotion remains separately authorized."
+    },
+    {
+      "id": "PL-ARCH-01",
+      "lane": "ARCH",
+      "title": "Constitutional v2.2 -> v3.2 clause-level no-loss mapping and conflict adjudication",
+      "owner": "PlasticOS architecture/invariants",
+      "status": "PROPOSED_ONLY",
+      "predecessors": []
+    },
+    {
+      "id": "PL-ARCH-02",
+      "lane": "ARCH",
+      "title": "Reconcile Documents original/verification BRS owner and native bridge single-writer contract",
+      "owner": "plasticos_documents + native bridge",
+      "status": "DESIGN_PROOF_PENDING",
+      "predecessors": []
+    },
+    {
+      "id": "PL-ARCH-03",
+      "lane": "ARCH",
+      "title": "Define typed source-document association and revision proposal contract, including PO-only path",
+      "owner": "plasticos_documents",
+      "status": "DESIGN_PROOF_PENDING",
+      "predecessors": [
+        "PL-ARCH-02"
+      ]
+    },
+    {
+      "id": "PL-ARCH-04",
+      "lane": "ARCH",
+      "title": "Define side-effect-free per-operation compliance and financial/stock non-effects",
+      "owner": "plasticos_documents",
+      "status": "DESIGN_PROOF_PENDING",
+      "predecessors": [
+        "PL-ARCH-02"
+      ]
+    },
+    {
+      "id": "PL-AI-01",
+      "lane": "ARCH",
+      "title": "Inspect installed native Enterprise Documents AI and Mail capabilities/ACL/entitlements, without activation",
+      "owner": "plasticos_documents_native",
+      "status": "UNKNOWN_NEEDS_SOURCE_PROOF",
+      "predecessors": []
+    },
+    {
+      "id": "PL-AI-02",
+      "lane": "ARCH",
+      "title": "Define source-cited extract/contradiction/next-action candidates and owner-owned action gate",
+      "owner": "Docs evidence owner + native AI consumer",
+      "status": "PROPOSED_ONLY",
+      "predecessors": [
+        "PL-ARCH-03"
+      ]
+    },
+    {
+      "id": "PL-AI-03",
+      "lane": "DEFERRED",
+      "title": "Activate/operate AI extraction and any native AI server actions",
+      "owner": "Documents native / approved operator",
+      "status": "PARKED",
+      "predecessors": [
+        "PL-AI-01",
+        "PL-AI-02"
+      ],
+      "wake_trigger": "separately approved feature entitlement, validation, deployment and action policy"
+    },
+    {
+      "id": "PL-ARCH-05",
+      "lane": "ARCH",
+      "title": "Update Linda/Documents BRS owner crosswalk for revision-aware candidate mail and single sender",
+      "owner": "plasticos_logistics BRS + Documents BRS",
+      "status": "PROPOSED_ONLY",
+      "predecessors": [
+        "PL-ARCH-03"
+      ]
+    },
+    {
+      "id": "PL-ARCH-06",
+      "lane": "ARCH",
+      "title": "Describe future many-load allocation, independent booking, buyer-optional and physical destination contracts",
+      "owner": "native Sales/Purchase/Stock + Logistics BRS",
+      "status": "ARCHITECTURE_DRAFT_ONLY",
+      "predecessors": [],
+      "mandatory_design_before_multi_load_activation": true
+    },
+    {
+      "id": "PL-ARCH-07",
+      "lane": "ARCH",
+      "title": "Preserve deferred Export BRS 111 and 111 NOT_RUN cases as reference with owner-placement matrix",
+      "owner": "export BRS future owner",
+      "status": "CAPTURED_SOURCE_NOT_ADMITTED",
+      "predecessors": [
+        "PL-ARCH-06"
+      ],
+      "activation": "NO_IMPLEMENTATION"
+    },
+    {
+      "id": "PL-FUT-01",
+      "lane": "DEFERRED",
+      "title": "Implement/export booking, drayage, reporting and optional filing integrations",
+      "owner": "future plasticos_export",
+      "status": "PARKED",
+      "predecessors": [
+        "PL-ARCH-07",
+        "PL-AI-02",
+        "PL-ARCH-05"
+      ],
+      "wake_trigger": "explicit new Export milestone, validated owned interfaces and funded capacity"
+    },
+    {
+      "id": "PL-FUT-02",
+      "lane": "DEFERRED",
+      "title": "Warehouse/shop-floor mobile scan, scale integrations, conversion genealogy and equipment workflows",
+      "owner": "future PlasticOS native Stock/MRP adapters",
+      "status": "PARKED",
+      "predecessors": [
+        "PL-ARCH-06"
+      ],
+      "wake_trigger": "explicit new operations milestone, native gap proof and hardware feasibility"
+    },
+    {
+      "id": "PL-MVP-02",
+      "lane": "MVP",
+      "title": "Existing Documents/manual verification/compliance operational proof before activation",
+      "owner": "Documents domain",
+      "status": "TO_PROVE",
+      "predecessors": [
+        "PL-ARCH-02",
+        "PL-ARCH-04",
+        "PL-READY-ACL",
+        "PL-READY-DOC"
+      ],
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "meaning": "Verified manual/Docs flow only after high-risk Documents and ACL remediation, with operator-approved delivery scope."
+    },
+    {
+      "id": "PL-FIX-DOC-WRITER",
+      "lane": "MVP",
+      "title": "Replace native Documents independent verify/override with approved delegation/projection to PlasticOS evidence decision owner",
+      "owner": "plasticos_documents",
+      "status": "SOURCE_OBSERVED_DEFECT",
+      "predecessors": [
+        "PL-ARCH-02"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-FIX-DOC-MATCH",
+      "lane": "MVP",
+      "title": "Eliminate partner-recency authoritative auto-link; require exact typed evidence association and Inbox/exception fallback",
+      "owner": "plasticos_documents",
+      "status": "SOURCE_OBSERVED_DEFECT",
+      "predecessors": [
+        "PL-ARCH-03"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-FIX-DOC-COMPLIANCE",
+      "lane": "MVP",
+      "title": "Ensure document compliance/proof is operation-scoped, side-effect free and safe across two surfaces",
+      "owner": "plasticos_documents",
+      "status": "REMEDIATION_REQUIRED_NOT_STARTED",
+      "predecessors": [
+        "PL-FIX-DOC-WRITER",
+        "PL-FIX-DOC-MATCH"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-FIX-LOG-CARDINALITY",
+      "lane": "MVP",
+      "title": "Remove universal singular transaction/load and buyer-required assumptions with compatibility-preserving multi-load contract",
+      "owner": "plasticos_logistics",
+      "status": "SOURCE_OBSERVED_DEFECT",
+      "predecessors": [
+        "PL-ARCH-06"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-DEC-SEED",
+      "lane": "ARCH",
+      "title": "Adjudicate seed families and safe noupdate=1/0/migration lifecycle; no global boolean",
+      "owner": "PlasticOS constitutional owner",
+      "status": "DESIGN_RESOLVED_AWAITING_ADMISSION",
+      "predecessors": [],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-DEC-GATE",
+      "lane": "ARCH",
+      "title": "Reconcile stale empty-return wording with accepted ADR-013 typed failure, audit status and operator-visible degraded behavior",
+      "owner": "PlasticOS constitutional owner",
+      "status": "DESIGN_RESOLVED_AWAITING_ADMISSION",
+      "predecessors": [],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-DEC-ACL",
+      "lane": "ARCH",
+      "title": "Approve least-privilege role-by-model CRUD+company policy and workflow-preserving permissions, then remediate in separate bounded campaign",
+      "owner": "PlasticOS security owner",
+      "status": "OPERATOR_POLICY_REQUIRED",
+      "predecessors": [],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-FIX-ACL",
+      "lane": "MVP",
+      "title": "Remediate effective broad access, especially claims, document verification and transaction-line mutation; prove real actor rights and workflows",
+      "owner": "PlasticOS security owner",
+      "status": "REMEDIATION_REQUIRED_NOT_STARTED",
+      "predecessors": [
+        "PL-DEC-ACL"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-ADMIT-INV",
+      "lane": "ARCH",
+      "title": "Operator review and no-loss constitutional v2.2 -> v3.3 admission, with preserved BAN001 and enforcement",
+      "owner": "PlasticOS invariant owner",
+      "status": "ARCHITECTURE_DRAFT_ONLY",
+      "predecessors": [
+        "PL-ARCH-01",
+        "PL-DEC-SEED",
+        "PL-DEC-GATE",
+        "PL-DEC-ACL"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-READY-DOC",
+      "lane": "MVP",
+      "title": "Independently run real Odoo 19 EE negative proof for the three Documents corrections and preserved MVP workflows",
+      "owner": "Documents owner + independent reviewer",
+      "status": "NOT_RUN",
+      "predecessors": [
+        "PL-FIX-DOC-WRITER",
+        "PL-FIX-DOC-MATCH",
+        "PL-FIX-DOC-COMPLIANCE"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-READY-LOG",
+      "lane": "MVP",
+      "title": "Independently prove multiple loads per transaction, partial quantities, historical compatibility, and PO-only native receipts",
+      "owner": "Logistics + Stock native owner",
+      "status": "NOT_RUN",
+      "predecessors": [
+        "PL-FIX-LOG-CARDINALITY"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-READY-ACL",
+      "lane": "MVP",
+      "title": "Independently measure effective ACLs with actual seeded group implication; preserve upload, claims and import commands",
+      "owner": "security owner + independent reviewer",
+      "status": "NOT_RUN",
+      "predecessors": [
+        "PL-FIX-ACL"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    }
+  ],
+  "invariants": {
+    "no_export_or_physical_operations_execution_now": true,
+    "ai_is_optional_for_manual_document_flow": true,
+    "current_mvp_not_depends_on_export": true,
+    "no_duplicate_document_or_mail_writer": true
+  },
+  "revision": "v3-expanded; source 04bd...; structure-only design status",
+  "status_taxonomy": [
+    "SOURCE_OBSERVED_DEFECT",
+    "REMEDIATION_REQUIRED_NOT_STARTED",
+    "DESIGN_RESOLVED_AWAITING_ADMISSION",
+    "OPERATOR_POLICY_REQUIRED",
+    "ARCHITECTURE_DRAFT_ONLY",
+    "NOT_RUN",
+    "PARKED"
+  ],
+  "mvp_separation": {
+    "release_rule": "Actual production scope must pass all affected safety gates; no blanket claim that defects are harmless just because Export is deferred",
+    "multi_load_gate": "PL-READY-LOG required before any multi-load / buyer-optional PlasticOS movement is used; native PO-only stock receipt remains independently valid",
+    "no_export_or_shopfloor_implementation": true,
+    "no_auto_merge_or_deploy": true
+  }
+}

@@ -1,35 +1,36 @@
-# PlasticOS IB-Odoo 19 — README Bundle Index
+# PlasticOS IB-Odoo 19 — README Index
 
-**Generated:** 2026-03-22
-**Branch:** staging
-**Scope:** Modules with significant development, debugging, and architectural work performed during the pre-launch optimization phase.
+**Updated:** 2026-08-14
+**Branch:** Staging
+**Scope:** Pointer index only — per-module READMEs live in each module folder (`plasticos_X/README.md`), not in `docs/`. This file exists so agents and humans can find them without grepping.
 
 ---
+
+## Repo Index — Check Before Grepping
+
+`docs/reports/repo-index/` holds pre-generated, grep-friendly indexes (classes, functions, methods, imports, Odoo models/views/crons/security groups/automations/email templates, routes, tests, READMEs). Search there first — `grep "plasticos.transaction" docs/reports/repo-index/odoo_model_registry.txt` — before a broad repo-wide `grep`/`rg`. Regenerate with `python3 scripts/repo_generators/export_repo_indexes.py` when stale. Do not recreate a root `reports/` directory.
 
 ## Architecture & Roadmap
 
 | File | Topic |
 |---|---|
-<!-- roadmap:index:architecture:start -->
-| [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md) | Why Gate is the hub, why Odoo local is fallback, what agents must not ship in Phase 1 |
-| [GATE_AUTONOMY_ROADMAP.md](GATE_AUTONOMY_ROADMAP.md) | Gate → CEG matching, human-in-loop phases, autonomy graduation, implementation scope |
-<!-- roadmap:index:architecture:end -->
+| [LOCAL_DEV_SETUP.md](LOCAL_DEV_SETUP.md) | Fresh clone: venv, Odoo source for Pylance, Cursor, two-machine parity |
+| [adr/ADR-002-gate-hub-phased-autonomy.md](adr/ADR-002-gate-hub-phased-autonomy.md) | Hub topology and phased human checkpoints |
 
-Managed by `make roadmap` — see [roadmap/README.md](roadmap/README.md).
+## Module README Locations
 
-## Bundle Contents
+Each module README now lives beside its module code — check there first, or regenerate via `python3 scripts/generate_subsystem_readmes.py` (config: `config/subsystems/readme_config.yaml`).
 
-| File | Module / Topic | Deploy Trigger |
+| Module / Topic | README Path | Deploy Trigger |
 |---|---|---|
-| `README_plasticos_intake.md` | `plasticos_intake` — Core pipeline entry point | `-u plasticos_intake` |
-| `README_plasticos_intake_normalizer.md` | `plasticos_intake_normalizer` — CEG packet assembly | `-u plasticos_intake_normalizer` |
-| `README_plasticos_offer.md` | `plasticos_offer` — Offer lifecycle | `-u plasticos_offer` |
-| `README_plasticos_transaction.md` | `plasticos_transaction` — Deal record, financials, compliance | `-u plasticos_transaction` |
-| `README_plasticos_facility_profile.md` | `plasticos_facility_profile` — Facility capability profiles | `-u plasticos_facility_profile` |
-| `README_plasticos_material_profile.md` | `plasticos_material_profile` — Material master + registries | `-u plasticos_material_profile` |
-| `README_plasticos_commission.md` | `plasticos_commission` — Broker commission + payout + dashboard | `-u plasticos_commission` |
-| `README_plasticos_partner_import.md` | `plasticos_partner_import` — Bulk CSV import tooling | `-u plasticos_partner_import` |
-| `README_backup_github_actions.md` | GitHub Actions S3 disaster recovery | N/A — infra |
+| `plasticos_intake` — Core pipeline entry point | [`../plasticos_intake/README.md`](../plasticos_intake/README.md) | `-u plasticos_intake` |
+| `plasticos_intake_normalizer` — CEG packet assembly | [`../plasticos_intake_normalizer/README.md`](../plasticos_intake_normalizer/README.md) | `-u plasticos_intake_normalizer` |
+| `plasticos_offer` — Offer lifecycle | [`../plasticos_offer/README.md`](../plasticos_offer/README.md) | `-u plasticos_offer` |
+| `plasticos_transaction` — Deal record, financials, compliance | [`../plasticos_transaction/README.md`](../plasticos_transaction/README.md) | `-u plasticos_transaction` |
+| `plasticos_facility_profile` — Facility capability profiles | [`../plasticos_facility_profile/README.md`](../plasticos_facility_profile/README.md) | `-u plasticos_facility_profile` |
+| `plasticos_material_profile` — Material master + registries | [`../plasticos_material_profile/README.md`](../plasticos_material_profile/README.md) | `-u plasticos_material_profile` |
+| `plasticos_commission` — Broker commission + payout + dashboard | [`../plasticos_commission/README.md`](../plasticos_commission/README.md) | `-u plasticos_commission` |
+| `plasticos_partner_import` — Deterministic SQL import | [`../plasticos_partner_import/README.md`](../plasticos_partner_import/README.md) | `-u plasticos_partner_import` |
 
 ---
 
@@ -95,7 +96,8 @@ These are **gitignored and cursorignored**. Do not reference, import from, or ad
 | `plasticos_enrichment_bridge` | Out of scope for launch |
 | `plasticos_website` | Out of scope for launch |
 | `plasticos_dev_tools` | Dev-only — never install in production |
-| `plasticos_documents_native` | Uninstallable — enterprise layer fallback |
+
+`plasticos_documents_native` is in this repo. It is `installable`, an application, and `auto_install: True`. Odoo installs it when Enterprise `documents`, `documents_account`, and its PlasticOS dependencies are installed. `plasticos_semantic_kernel` stays uninstalled, and no module depends on it.
 
 ---
 

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_capacity_observation_list" model="ir.ui.view">
+    <field name="name">plasticos.capacity.observation.list</field>
+    <field name="model">plasticos.capacity.observation</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="facility_profile_id"/>
+        <field name="capacity_kind"/>
+        <field name="value"/>
+        <field name="unit_code"/>
+        <field name="value_state"/>
+        <field name="observed_at"/>
+        <field name="source_system"/>
+        <field name="company_id"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_capacity_observation_form" model="ir.ui.view">
+    <field name="name">plasticos.capacity.observation.form</field>
+    <field name="model">plasticos.capacity.observation</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="facility_profile_id"/>
+              <field name="capacity_kind"/>
+              <field name="value"/>
+              <field name="unit_code"/>
+              <field name="value_state"/>
+              <field name="confidence"/>
+              <field name="active"/>
+            </group>
+            <group>
+              <field name="canonical_uuid" readonly="1"/>
+              <field name="company_id"/>
+              <field name="contract_version"/>
+              <field name="observed_at"/>
+              <field name="valid_until"/>
+              <field name="period_start"/>
+              <field name="period_end"/>
+            </group>
+          </group>
+          <group string="Provenance">
+            <field name="source_system"/>
+            <field name="source_record_ref"/>
+            <field name="method"/>
+            <field name="supersedes_id"/>
+            <field name="migration_batch_id"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="action_capacity_observation" model="ir.actions.act_window">
+    <field name="name">Capacity Observations</field>
+    <field name="res_model">plasticos.capacity.observation</field>
+    <field name="view_mode">list,form</field>
+  </record>
+</odoo>

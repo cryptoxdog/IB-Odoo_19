@@ -15,6 +15,22 @@ assert __name__ != "git_utils", (
 )
 
 
+def contained_path(candidate: Path, root_dir: Path | None = None) -> Path:
+    """Resolve *candidate* and require it to stay inside *root_dir* (default: cwd).
+
+    Guards filesystem reads/writes whose paths derive from external input
+    (CLI args, globs over attacker-influenced trees) against path traversal
+    (SonarCloud S8707/S2083). Returns the resolved path, or raises ValueError
+    if the path escapes the containment root.
+    """
+    base = (root_dir or Path.cwd()).resolve()
+    resolved = candidate if candidate.is_absolute() else base / candidate
+    resolved = resolved.resolve()
+    if not resolved.is_relative_to(base):
+        raise ValueError(f"Path escapes containment root: {candidate} (root: {base})")
+    return resolved
+
+
 def get_git_tracked_files(pattern: str = "", root_dir: Path | None = None) -> list[Path]:
     """
     Get git-tracked files matching pattern.

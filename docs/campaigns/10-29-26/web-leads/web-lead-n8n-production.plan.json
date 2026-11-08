@@ -1,0 +1,447 @@
+{
+  "schema_version": "1",
+  "mode": "plan",
+  "depth": "deep",
+  "title": "Land Cognito leads in Production through the active n8n workflow",
+  "owner": "igor_beylin",
+  "estimate": "one execution session after a read-only Production proof, then one stacked make pr",
+  "objective": "Keep the active n8n workflow Web Lead Triage - PRODUCTION - Attachments v5.5.2 (id 5NjFkIFOBDWsMLyk) as the Cognito ingress and make one real submission create exactly one Production plasticos.web.lead. The workflow was last saved 2026-08-29. Its webhook connects only to POST Raw Cognito to Staging Odoo at https://cryptoxdog-ib-odoo-19-staging-36099032.dev.odoo.com/api/v1/cognito-webhook, a dropped host that resolves to 0.0.0.0. POST Raw Cognito to Production Odoo is disabled, absent from connections, uses authentication none, carries a literal Authorization bearer, and attaches the credential named Odoo Staging Web Lead Bearer. Normalize Odoo Delivery and Final Production Gate judge only that staging response, so a dead staging hop fails the run before Production is called. Production git 3318fa646a9f33aed55b9ea8f8596316e30684da (2026-06-04, plasticos_web_leads 19.0.2.6.0) already accepts Bearer POST /api/v1/cognito-webhook through receive_cognito_webhook and create_from_cognito (origin/Production plasticos_web_leads/models/web_lead.py:372) and maps the live form fields. Staging 4a6af0b2d5bbf8f16e4fa67baafe9d71e3b4f384 (19.0.2.8.6) is not required for that contract. Open PR #365 (fix/material-ledger-normalizer into Staging) rewrites plasticos_material_profile/models/material_normalizer.py onto named _Spec slots. Open PR #366 (feat/web-lead-material-grade, head 46aece9f, base fix/material-ledger-normalizer) bumps plasticos_web_leads to 19.0.2.8.7 and splits one material code into form or material grade (material_identity.split_material_code against plasticos_material_profile.grade_codes.GRADE_CODES). Neither PR is on Production. This campaign publishes stacked on #366 with the full smoke gate from branch fix/web-lead-n8n-production, cut from #366 head 46aece9f. Its first commit 4fb22532 lets scripts/pr_stack_parent.sh prove follow a parent PR chain (#366 to #365 to Staging), so publication does not wait for #365 to merge. MEMORY_PREFETCH snapshot_digest f9e69f08f9a92e10ba5df37f8f63f47d30e1253bc3ddb67f9174c8c12c3bc5d2 conflicts 0. The n8n MCP server exposes node documentation only, so the live workflow was read with a GET and was not uploaded.",
+  "success_criteria": [
+    "V1: the active workflow webhook connects to an enabled Production POST, and the dropped staging host is not an input to Final Production Gate.",
+    "V2: one Cognito Submit on form ScrapManagementInc1/4 creates exactly one Production plasticos.web.lead whose company, contact, material, and CG entry identity match the entry under the Production 19.0.2.6.0 mapping, with n8n odooStatus success and web_lead_id set.",
+    "V3: workflow 5NjFkIFOBDWsMLyk stays active, the customer form still posts to n8n, and no new middleware is added.",
+    "V5: fix/web-lead-n8n-production is published by PR_CHECK_SCOPE=full make pr base=feat/web-lead-material-grade with install-smoke run, after every conflict against origin/feat/web-lead-material-grade and origin/Staging is resolved."
+  ],
+  "scope": {
+    "in": [
+      "Read-only proof of Production /api/v1/cognito-webhook, installed plasticos_web_leads 19.0.2.6.0 or newer, and that the presented bearer matches the Production web-lead config without printing the secret.",
+      "n8n workflow 5NjFkIFOBDWsMLyk: enable and connect the Production POST, set Bearer auth from a Production credential, and remove the dropped staging host from the gate path.",
+      "Conditional plasticos_web_leads change only if that Production proof shows rejection or empty mapping of the live Cognito body. The change is made on the PR #366 code (19.0.2.8.7) and bumps to 19.0.2.8.8.",
+      "A short ADR-020 correction that the live form still enters through this n8n workflow and that n8n retirement is not part of this campaign.",
+      "Publication of this plan, its receipt, the ADR correction, and any T3 change as one branch stacked on PR #366, full smoke, conflicts resolved first.",
+      "Commit 4fb22532 on fix/web-lead-n8n-production: scripts/pr_stack_parent.sh prove walks each parent's single open PR down to Staging (at most five), and tests/test_make_pr_publication.py covers the two-level stack, a chain into Production, a loop, a broken chain, and a chain deeper than five."
+    ],
+    "out": [
+      "Deleting, disabling, or replacing the n8n workflow.",
+      "Repointing the customer Cognito form off n8n.",
+      "Promoting all of Staging to Production. That promotion also ships PR #365 and PR #366 and is a separate operator decision.",
+      "Editing plasticos_material_profile normalizer or grade code, plasticos_crm_sync, plasticos_transaction, or plasticos_intake_normalizer, which PR #365 and PR #366 own.",
+      "PR #363 (chore/repo-index), which is unrelated.",
+      "Partner auto-creation, write/unlink guard edits, a new controller, or pipeline_v2.",
+      "Using the dead staging build 36099032 or the literal bearer already stored on the disabled node.",
+      "make pr-nosmoke, PR_CHECK_SKIP_SMOKE, PR_SMOKE_BYPASS, or PR_CHECK_FORCE_SMOKE (make pr refuses the last one)."
+    ]
+  },
+  "code_in_scope": true,
+  "execution_envelope": {
+    "network": {
+      "mode": "bounded_external_write",
+      "allowed_services": [
+        "ibeylin.app.n8n.cloud",
+        "cryptoxdog-ib-odoo-19.odoo.com",
+        "github.com/cryptoxdog/IB-Odoo_19"
+      ]
+    },
+    "secrets": {
+      "access": "read_only_named"
+    }
+  },
+  "complexity": {
+    "architectural_boundaries_crossed": [
+      "Cognito form to n8n webhook",
+      "n8n HTTP node to Odoo Production cognito-webhook",
+      "Stacked publication onto PR #366 above PR #365"
+    ],
+    "external_systems_touched": [
+      "n8n workflow 5NjFkIFOBDWsMLyk",
+      "Odoo.sh Production",
+      "Cognito form ScrapManagementInc1/4",
+      "GitHub pull requests #365 and #366"
+    ],
+    "migration_required": false
+  },
+  "pre_validation": [
+    {
+      "id": "PV1",
+      "command_or_action": "git rev-parse origin/Staging origin/Production and compare plasticos_web_leads",
+      "pass_criteria": "Staging is 4a6af0b2 and Production is 3318fa64; Production controller still exposes Bearer POST /api/v1/cognito-webhook and maps YourBusinessCompanyName, WhatIsIt, WeightPerLoad, and UploadPhotosOfYourScrapUpTo10.",
+      "status": "passed"
+    },
+    {
+      "id": "PV2",
+      "command_or_action": "GET https://ibeylin.app.n8n.cloud/api/v1/workflows/5NjFkIFOBDWsMLyk",
+      "pass_criteria": "Workflow is active. Webhook connects only to the staging node. Production node is disabled and absent from connections. Its credential name is Odoo Staging Web Lead Bearer and its Authorization header is a literal bearer.",
+      "status": "passed"
+    },
+    {
+      "id": "PV3",
+      "command_or_action": "python3 $HOME/.cursor-governance/skills/l9-plan/scripts/route_plan.py --risk high --evidence sufficient --json",
+      "pass_criteria": "depth deep and omit_gates empty. Hook catalog for any later code edit is .pre-commit-config.yaml.",
+      "status": "passed"
+    },
+    {
+      "id": "PV4",
+      "command_or_action": "gh pr list --state open and gh pr view 365 366 --json files,baseRefName,headRefOid,mergeStateStatus",
+      "pass_criteria": "#365 is fix/material-ledger-normalizer into Staging, CLEAN. #366 is feat/web-lead-material-grade at 46aece9f into fix/material-ledger-normalizer, CLEAN, CI Gate Result success. #366 changes plasticos_web_leads (web_lead.py, material_identity.py, manifest 19.0.2.8.7) and does not change the controller or the Bearer contract.",
+      "status": "passed"
+    },
+    {
+      "id": "PV5",
+      "command_or_action": "git merge-tree --write-tree HEAD <ref> for origin/feat/web-lead-material-grade, origin/fix/material-ledger-normalizer, and origin/Staging",
+      "pass_criteria": "All three report no conflict at 2026-11-04. Re-run in T6 against the live heads.",
+      "status": "passed"
+    },
+    {
+      "id": "PV6",
+      "command_or_action": "Read scripts/pr_stack_parent.sh, scripts/git_push_with_pr.sh, and scripts/pr_check_scope.py; run GH_REPO=cryptoxdog/IB-Odoo_19 bash scripts/pr_stack_parent.sh prove feat/web-lead-material-grade on 4fb22532",
+      "pass_criteria": "On Staging, prove required the parent branch to have one open PR into Staging and refused #366. On 4fb22532, prove follows #366 to fix/material-ledger-normalizer to Staging and exits 0; the Staging copy of the script exits 1 on the same input. PR_CHECK_SCOPE=full forces audit, smoke, and all tests. make pr refuses PR_CHECK_FORCE_SMOKE and PR_CHECK_SKIP_SMOKE.",
+      "status": "passed"
+    },
+    {
+      "id": "PV7",
+      "command_or_action": "python -m pytest tests/test_make_pr_publication.py; shellcheck scripts/pr_stack_parent.sh; pre-commit run --files scripts/pr_stack_parent.sh tests/test_make_pr_publication.py",
+      "pass_criteria": "70 passed, shellcheck clean, every pre-commit hook passed on 4fb22532.",
+      "status": "passed"
+    },
+    {
+      "id": "PV8",
+      "command_or_action": "T1 Production probes: GET /api/v1/web-lead/health; POST /api/v1/web-lead with a wrong bearer, the Infisical key, and the n8n literal, body without decision; POST /api/v1/web-lead/inbound/cognito",
+      "pass_criteria": "Observed 2026-11-04: health 200 ok; wrong bearer 401 Invalid API key on /api/v1/web-lead and /api/v1/cognito-webhook; Infisical ODOO_WEB_LEAD_API_KEY and the n8n literal both 422 Missing required field: decision (accepted, no write); literal equals the Infisical key; inbound route 404, so Production predates 19.0.2.8.x.",
+      "status": "passed"
+    }
+  ],
+  "todos": [
+    {
+      "id": "T1",
+      "task": "On Production only, prove the installed web-lead module, an active config, and that a bearer matching that config is accepted by POST /api/v1/cognito-webhook. Compare the Infisical ODOO_WEB_LEAD_API_KEY, the disabled n8n literal, and the credential named Odoo Staging Web Lead Bearer by equality to the Production key. Do not print secrets. Record HTTP status and whether a synthetic invalid token returns 401.",
+      "files": [
+        "plasticos_web_leads/controllers/web_lead_api.py"
+      ],
+      "effort": "small",
+      "risk": "medium",
+      "dependencies": [],
+      "operation": "Wrap",
+      "anchor": "origin/Production plasticos_web_leads/controllers/web_lead_api.py receive_cognito_webhook Bearer contract",
+      "layer": "runtime",
+      "leverage_rank": 1,
+      "shared_root_cause": "The only connected n8n hop targets a dropped staging host, so Production was never invoked."
+    },
+    {
+      "id": "T2",
+      "task": "Save a GET export of the workflow outside the repository first, because it contains the literal bearer. In the active workflow, enable POST Raw Cognito to Production Odoo, point the webhook edge at it, authenticate with a Production bearer credential rather than the embedded literal or the staging-named credential, and disconnect the dropped staging host from Normalize Odoo Delivery. Leave the workflow active and keep posting the raw Cognito body. If the n8n API key cannot create or attach credentials, stop and have the operator attach the credential in the n8n editor.",
+      "files": [
+        "n8n:workflow/5NjFkIFOBDWsMLyk"
+      ],
+      "effort": "small",
+      "risk": "high",
+      "dependencies": [
+        "T1"
+      ],
+      "operation": "Replace",
+      "anchor": "Webhook to POST Raw Cognito to Staging Odoo",
+      "layer": "external_system",
+      "leverage_rank": 2,
+      "shared_root_cause": "The only connected n8n hop targets a dropped staging host, so Production was never invoked."
+    },
+    {
+      "id": "T3",
+      "task": "Change plasticos_web_leads only if T1 shows Production rejects the live Cognito body or stores empty company, contact, material, or quantity for values the form sent. Read .cursor/rules/50-plasticos-web-lead-guard.mdc first. Edit fix/web-lead-n8n-production, which contains PR #366: create_from_cognito and _merge_ai_data at 19.0.2.8.7, keeping split_material_code and the form/grade split. Bump to 19.0.2.8.8. Run make test-module m=plasticos_web_leads before and after. This fix reaches Production only through a whole Staging promotion, which is an operator decision outside this campaign.",
+      "files": [
+        "plasticos_web_leads/models/web_lead.py",
+        "plasticos_web_leads/__manifest__.py"
+      ],
+      "effort": "medium",
+      "risk": "high",
+      "dependencies": [
+        "T1"
+      ],
+      "operation": "Replace",
+      "blocker": "Skipped 2026-11-04: T1 and T5 show Production accepts and stores the live body.",
+      "anchor": "create_from_cognito on origin/feat/web-lead-material-grade plasticos_web_leads/models/web_lead.py",
+      "layer": "runtime",
+      "leverage_rank": 5
+    },
+    {
+      "id": "T4",
+      "task": "Correct ADR-020 so it states the live quote form still posts to n8n workflow 5NjFkIFOBDWsMLyk, which then posts raw JSON to Production /api/v1/cognito-webhook. Replace the line that says n8n is no longer on the path, and mark the step that retires the workflow and the N8N_* Infisical names as not done in this campaign.",
+      "files": [
+        "docs/adr/ADR-020-web-lead-inbound-port.md"
+      ],
+      "effort": "small",
+      "risk": "low",
+      "dependencies": [
+        "T2"
+      ],
+      "operation": "Replace",
+      "anchor": "ADR-020 line 28 n8n is no longer on the path, and line 39 retire the n8n workflow",
+      "layer": "docs",
+      "leverage_rank": 6
+    },
+    {
+      "id": "T5",
+      "task": "Submit one synthetic Cognito entry through the existing form, correlate Entry.Number to the n8n execution and to exactly one Production web lead, and confirm the final gate reports odooStatus success with web_lead_id. Check fields against the Production 19.0.2.6.0 mapping, not the PR #366 form/grade split. Do not resubmit a customer entry.",
+      "files": [
+        "plasticos_web_leads/controllers/web_lead_api.py"
+      ],
+      "effort": "small",
+      "risk": "high",
+      "dependencies": [
+        "T2"
+      ],
+      "operation": "Insert",
+      "anchor": "Final Production Gate odooStatus success",
+      "layer": "assurance",
+      "leverage_rank": 3,
+      "shared_root_cause": "The only connected n8n hop targets a dropped staging host, so Production was never invoked."
+    },
+    {
+      "id": "T6",
+      "task": "Publish stacked on PR #366 from fix/web-lead-n8n-production, which already holds commit 4fb22532 (nested stacking in scripts/pr_stack_parent.sh). Commit the plan JSON, plan markdown, section receipt, the T4 ADR edit, and any T3 change onto that branch. Before publishing, git fetch origin and run git merge-tree --write-tree HEAD against origin/feat/web-lead-material-grade, origin/fix/material-ledger-normalizer, and origin/Staging. If #366 moved, merge origin/feat/web-lead-material-grade into the branch. If #365 merged and #366 now targets Staging, the same command still applies. Resolve every conflict, keeping #366 code and only this campaign's lines, then rerun ruff check, ruff format, python -m pytest tests/test_make_pr_publication.py, and make test-module m=plasticos_web_leads if T3 ran. Publish only with PR_CHECK_SCOPE=full make pr base=feat/web-lead-material-grade so install-smoke runs on the fixture clone.",
+      "files": [
+        "scripts/pr_stack_parent.sh",
+        "tests/test_make_pr_publication.py",
+        "docs/campaigns/10-29-26/web-leads/web-lead-n8n-production.plan.json",
+        "docs/campaigns/10-29-26/web-leads/web-lead-n8n-production.plan.md",
+        "docs/campaigns/10-29-26/web-leads/web-lead-n8n-production.plan.section-receipt.json",
+        "docs/adr/ADR-020-web-lead-inbound-port.md"
+      ],
+      "effort": "small",
+      "risk": "medium",
+      "dependencies": [
+        "T1",
+        "T4"
+      ],
+      "operation": "Insert",
+      "blocker": "Publish after T4 is committed. #366 must still be open; prove follows it to Staging whether its base is fix/material-ledger-normalizer or Staging.",
+      "anchor": "scripts/pr_stack_parent.sh prove on feat/web-lead-material-grade",
+      "layer": "ops",
+      "leverage_rank": 4
+    }
+  ],
+  "critical_path": [
+    "T1",
+    "T2",
+    "T5"
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "outcome": "Production bearer contract is proved or the June handler is shown to reject the live body.",
+      "unlocks": "T2 can retarget the workflow, or T3 is allowed to change code."
+    },
+    {
+      "id": "M2",
+      "outcome": "The active workflow posts the raw Cognito body to Production and the dropped staging host is off the gate path.",
+      "unlocks": "T5 can submit one real entry."
+    },
+    {
+      "id": "M3",
+      "outcome": "One Production web lead matches one Cognito entry and the workflow stays active.",
+      "unlocks": "T6 can publish the ADR correction with the observed path."
+    },
+    {
+      "id": "M4",
+      "outcome": "The campaign branch is published as a PR stacked on #366, full smoke passed, no unresolved conflict.",
+      "unlocks": "The campaign can stop. Merge and any Staging to Production promotion stay human decisions. A later cutover may remove n8n; this campaign does not."
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "C1",
+      "after": "T1",
+      "evidence_required": "Production module version, active config, 401 for a wrong bearer, and a match/mismatch result for ODOO_WEB_LEAD_API_KEY, the n8n literal, and the staging-named credential. No secret values.",
+      "no_go_action": "Do not enable the Production node while it still sends the staging-named credential or an unproven literal."
+    },
+    {
+      "id": "C2",
+      "after": "T2",
+      "evidence_required": "GET workflow shows active true, webhook outgoing node is the enabled Production POST, and the staging host URL is not an ancestor of Normalize Odoo Delivery. The pre-change export exists outside the repository.",
+      "no_go_action": "Do not submit a form entry. Revert the n8n connections to the previous GET export."
+    },
+    {
+      "id": "C3",
+      "after": "T5",
+      "evidence_required": "Cognito entry number, n8n execution id, HTTP outcome, Production web_lead_id, and field values for company, contact, material, and quantity.",
+      "no_go_action": "If the gate fails or the lead is missing or empty, stop. Do not point the customer form at Odoo directly and do not disable n8n."
+    },
+    {
+      "id": "C4",
+      "after": "T6",
+      "evidence_required": "bash scripts/pr_stack_parent.sh prove feat/web-lead-material-grade exits 0. git merge-tree reports no conflict against origin/feat/web-lead-material-grade, origin/fix/material-ledger-normalizer, and origin/Staging at the pushed SHA. .cache/pr-check/scope.json records forced by PR_CHECK_SCOPE=full with smoke 1. make pr printed the PR URL with base feat/web-lead-material-grade.",
+      "no_go_action": "If prove refuses, read its reason; do not retarget #365 or #366 and do not publish on Staging instead. If a conflict remains or smoke fails, do not publish."
+    }
+  ],
+  "doc_root_surface_impact": [
+    {
+      "surface": "docs/adr/ADR-020-web-lead-inbound-port.md",
+      "action": "update",
+      "todo_ids": [
+        "T4"
+      ],
+      "reason": "The live form still enters through n8n. The ADR currently says that path is gone and that the workflow is retired next."
+    },
+    {
+      "surface": "AGENTS.md",
+      "action": "n_a",
+      "reason": "No command, module count, or CI contract changes in the default path."
+    },
+    {
+      "surface": "INVARIANTS.md",
+      "action": "n_a",
+      "reason": "No invariant is added or waived. Partner deferral and the write guard stay."
+    }
+  ],
+  "stress_test": {
+    "disconfirming_questions": [
+      "Does enabling the existing Production node without changing its literal bearer authenticate as Production, or as the staging key named on its credential?",
+      "Does Production 19.0.2.6.0 persist the live form fields, or only return status ok around an empty lead?",
+      "If the staging node stays connected and continues on error, can the final gate still fail after Production succeeds?",
+      "Does prove still reach Staging if #365 merges and #366 is retargeted, or if a branch on the chain gains a second open PR?",
+      "Does a T3 fix on Staging change what Production stores before a Staging promotion?"
+    ],
+    "assumed_false_ifs": [
+      "The customer form posts somewhere other than n8n webhook path 631708ea-e339-4667-89b1-5b78fb388fca.",
+      "Production no longer has POST /api/v1/cognito-webhook.",
+      "A dropped Odoo.sh staging build can accept the current webhook.",
+      "PR #366 changes the cognito-webhook route or its Bearer check."
+    ],
+    "blast_radius": "A wrong bearer or a still-connected dead host fails every new quote in the active workflow. A bad Production write creates a web lead and may create a HOT intake. It must not create a partner. Airtable and Drive steps downstream of a successful Odoo response stay in the workflow. The stacked PR adds docs and at most one web-lead change on top of #366; it cannot reach Production on its own.",
+    "rollback": "Restore the workflow from the pre-change GET export ~/.cache/plasticos-web-lead/n8n-5NjFkIFOBDWsMLyk-pre-T2-20261104T160934.json (versionId 3e6bb9ef): disable the Production node, reconnect the webhook to the previous staging node, and do not change the Cognito form. If T3 shipped, revert that commit on the campaign branch; do not roll Production back to a build older than 3318fa64. Close the stacked PR if #366 is abandoned. Revert 4fb22532 to return prove to one-level stacking."
+  },
+  "leverage": {
+    "ranked_todo_ids": [
+      "T1",
+      "T2",
+      "T5",
+      "T6",
+      "T3",
+      "T4"
+    ],
+    "shared_causes": [
+      "One connected hop targets dropped staging build 36099032 while the Production hop is disabled, so staging checks and missing Production leads are the same fault."
+    ],
+    "deletions_or_consolidations": [
+      "Remove the dropped staging host from the gate path instead of adding a second webhook or a direct Cognito-to-Odoo cutover.",
+      "Publish the ADR correction and any web-lead fix in one stacked PR instead of a parallel PR against Staging that would conflict with #366."
+    ]
+  },
+  "risks": [
+    {
+      "risk": "The literal bearer on the disabled Production node is the staging key, so enabling it unchanged returns 401 and the gate still fails.",
+      "mitigation": "T1 compares it to the Production config. T2 replaces it with a Production credential before the node is enabled."
+    },
+    {
+      "risk": "Production triage on 19.0.2.6.0 creates a lead but marks state error, and the n8n success check ignores state.",
+      "mitigation": "T5 fails the campaign unless the lead fields are populated and the execution gate is success. Do not treat HTTP 200 alone as success."
+    },
+    {
+      "risk": "A broad Staging promotion is used to fix a wiring fault and ships #365, #366, and other unrelated modules to Production.",
+      "mitigation": "T3 is blocked unless the June handler fails the live body. The default path changes n8n only. Promotion stays an operator decision."
+    },
+    {
+      "risk": "#366 moves after the campaign branch is cut and a T3 hunk conflicts in web_lead.py _merge_ai_data or _create_intake_from_merged.",
+      "mitigation": "T6 merges the live #366 head and resolves conflicts before make pr, then reruns the module tests."
+    },
+    {
+      "risk": "A docs-only scope skips install-smoke.",
+      "mitigation": "T6 sets PR_CHECK_SCOPE=full, which forces smoke 1. No smoke bypass variable is set."
+    },
+    {
+      "risk": "Nested stacking accepts a chain whose lower parent is stale or not reviewed.",
+      "mitigation": "prove requires exactly one open PR per branch in this repository, refuses Production, main, lowercase staging, loops, and depth over five, and still requires HEAD to contain the named parent. Merge order stays human: #365, then #366, then this PR."
+    }
+  ],
+  "unknowns": [
+    {
+      "id": "U1",
+      "question": "Does the literal bearer on the disabled Production node equal the Production web-lead API key, or only the staging-named credential?",
+      "decision_effect": "If it mismatches, T2 must install the Production credential before enablement. If it matches, still move auth off the embedded literal. Resolved by T1: the literal equals the Production key. T2 still moved auth to credential Odoo Production Web Lead Bearer.",
+      "resolution": "accept_bounded"
+    },
+    {
+      "id": "U2",
+      "question": "Does a live Cognito body accepted by Production 19.0.2.6.0 persist company, contact, material, and quantity?",
+      "decision_effect": "If yes, T3 is skipped. If no, T3 is the only Odoo code change in this campaign, and Production needs an operator promotion to receive it. Resolved by T5: Production stored lead 88 from entry 9233 with every mapped key present; T3 skipped.",
+      "resolution": "accept_bounded"
+    },
+    {
+      "id": "U3",
+      "question": "Can the N8N_API_KEY create or attach an httpBearerAuth credential through the n8n public API?",
+      "decision_effect": "If yes, T2 runs through the API. If no, the operator attaches the Production credential in the n8n editor and T2 only rewires connections. Resolved by T2: POST /credentials created yqUODZ60YnNh1QNT; PUT /credentials/{id}/transfer moved it to project Important Workflows (VcaOv7RdSnVF7pYR) before the workflow PUT was accepted. GET /credentials is 403 for this key.",
+      "resolution": "accept_bounded"
+    }
+  ],
+  "final_validation": [
+    {
+      "id": "V1",
+      "command": "GET /api/v1/workflows/5NjFkIFOBDWsMLyk and trace Webhook to Normalize Odoo Delivery",
+      "pass_criteria": "Workflow active. Enabled Production POST is the webhook successor. Host staging-36099032 is not on that path. Observed: 2026-11-04T21:11Z GET: active true, versionId == activeVersionId 803a3552. Webhook -> POST Raw Cognito to Production Odoo (enabled, httpBearerAuth credential Odoo Production Web Lead Bearer yqUODZ60YnNh1QNT, no literal header) -> Normalize Odoo Delivery. Staging node disabled, no outgoing edge, not an ancestor of Normalize Odoo Delivery or Final Production Gate.",
+      "status": "passed"
+    },
+    {
+      "id": "V2",
+      "command": "Submit one synthetic Cognito entry and read the Production plasticos.web.lead plus the n8n execution",
+      "pass_criteria": "One lead, matching company, contact, material, quantity, and CG entry id under the 19.0.2.6.0 mapping. n8n odooStatus success and web_lead_id present. No second lead. Observed: Cognito entry 9233 (Id 4-9233, form 4) -> n8n execution 71414 success in 39 s -> Production web_lead_id 88, lead_id CG-4-9233, decision cold, state skipped, partner_id null, intake_id null. Final Production Gate status success, odooStatus success, odooWebLeadId 88. Airtable recWrmTRFcwwIgH8M. Field values are inferred from origin/Production create_from_cognito and the present body keys; Production SSH port 22 was unreachable, so no direct row read.",
+      "status": "passed"
+    },
+    {
+      "id": "V3",
+      "command": "GET workflow active flag and confirm the Cognito form submit URL host is still ibeylin.app.n8n.cloud",
+      "pass_criteria": "active true and the customer form was not repointed at Odoo. Observed: Workflow active true after the change; execution 71414 ran in webhook mode from the public form, so the form still posts to n8n. No middleware added.",
+      "status": "passed"
+    },
+    {
+      "id": "V4",
+      "command": "If T3 edits plasticos_web_leads, run pre-commit against .pre-commit-config.yaml and make test-module m=plasticos_web_leads. If T3 is skipped, do not run a repo-wide hook sweep.",
+      "pass_criteria": "No web-lead diff, or the changed module passes .pre-commit-config.yaml and its module tests on the fixture clone. Observed: T3 skipped: U2 resolved yes. No plasticos_web_leads diff.",
+      "status": "not_applicable"
+    },
+    {
+      "id": "V5",
+      "command": "git fetch origin; bash scripts/pr_stack_parent.sh prove feat/web-lead-material-grade; git merge-tree --write-tree HEAD origin/feat/web-lead-material-grade; git merge-tree --write-tree HEAD origin/Staging; PR_CHECK_SCOPE=full make pr base=feat/web-lead-material-grade",
+      "pass_criteria": "prove exits 0. Both merge-tree checks exit 0. scope.json reason is forced by PR_CHECK_SCOPE=full with smoke 1. install-smoke --resolve and --recheck pass. The PR base is feat/web-lead-material-grade.",
+      "status": "pending"
+    }
+  ],
+  "convergence": {
+    "status": "partial",
+    "remaining_unknown_ids": [],
+    "next_skill": "l9-plan-simple cursor-build",
+    "stop_reason": "T1, T2, T4, and T5 are done with observed evidence; T3 is skipped. Only V5 remains: T6 publishes stacked on #366 with PR_CHECK_SCOPE=full make pr."
+  },
+  "gmp_handoff": {
+    "may_modify": [
+      "n8n workflow 5NjFkIFOBDWsMLyk connections, disabled flag, and Production node auth",
+      "docs/adr/ADR-020-web-lead-inbound-port.md",
+      "docs/campaigns/10-29-26/web-leads/web-lead-n8n-production.plan.json, .plan.md, and .plan.section-receipt.json",
+      "scripts/pr_stack_parent.sh and tests/test_make_pr_publication.py (committed as 4fb22532)",
+      "plasticos_web_leads/models/web_lead.py and __manifest__.py only after T1 fails the live payload"
+    ],
+    "must_not_modify": [
+      "Cognito form ScrapManagementInc1/4 submit destination",
+      "n8n workflow active flag set to false",
+      "plasticos_web_leads write guard, unlink guard, and partner-deferral path",
+      "plasticos_web_leads material_identity.split_material_code and the PR #366 form/grade split",
+      "plasticos_material_profile, plasticos_crm_sync, plasticos_transaction, plasticos_intake_normalizer",
+      "PR #365 and PR #366 branches, bases, or merge state",
+      "pipeline_v2.py",
+      "unrelated Staging modules on the Production promotion"
+    ],
+    "preserved_contracts": [
+      "Workflow remains the Cognito ingress",
+      "POST body stays the raw Cognito JSON object",
+      "Production response contract is status ok and web_lead_id",
+      "Auth is Bearer against plasticos.web.lead.config",
+      "No automatic res.partner creation",
+      "make pr is the only publication command, stacked on feat/web-lead-material-grade, with PR_CHECK_SCOPE=full"
+    ],
+    "validation_commands": [
+      "GET /api/v1/workflows/5NjFkIFOBDWsMLyk",
+      "POST /api/v1/cognito-webhook with a wrong bearer expects 401",
+      "one synthetic Cognito submit correlated to one Production web lead",
+      "GH_REPO=cryptoxdog/IB-Odoo_19 bash scripts/pr_stack_parent.sh prove feat/web-lead-material-grade",
+      "git merge-tree --write-tree HEAD origin/feat/web-lead-material-grade",
+      "PR_CHECK_SCOPE=full make pr base=feat/web-lead-material-grade"
+    ]
+  }
+}

@@ -1,0 +1,234 @@
+kernel_id: reasoning_engine_extended_v1
+source_files:
+  - "reasoning.blocks.v1.md"
+  - "ULTIMATE_LLM_LOAD_PACK_v1.1.md"
+  - "ULTIMATE_PROMPT_FACTORY_LOADER.yaml.md"
+  - "L9_Framework.md"
+kernel_version: "1.0.0"
+owner: "Igor Beylin"
+created: "2026-04-26"
+bundle: "l9_load_packs_v4"
+format_version: "v3"
+load_order: 1
+load_order_note: "Load after K06. Extends K01v2 reasoning with 7-block protocol, ADI modes, confidence gates, ToTh, RAFA, and Prompt Factory governance."
+
+purpose: >
+  Extended reasoning engine kernel consolidating the modular 7-block + Sigma reasoning
+  protocol, multi-modal reasoning modes (Abductive/Deductive/Inductive), confidence
+  scoring framework, adaptive complexity routing, ToTh multi-path planning, RAFA
+  contingency planning, Prompt Factory governance hard rules, and activation sequence.
+  Single authoritative reasoning protocol for all sessions.
+
+activation_trigger:
+  - Load at session start for all complex analysis, architecture decisions, troubleshooting
+  - Auto-activates when reasoning depth is required
+  - Required for any output with confidence scoring
+
+source_traceability:
+  modular_blocks:         "reasoning.blocks.v1.md - BLOCK 0-7 + Sigma"
+  reasoning_modes:        "ULTIMATE_LLM_LOAD_PACK_v1.1.md - 01_l9_reasoning_core"
+  confidence_framework:   "ULTIMATE_LLM_LOAD_PACK_v1.1.md - CONFIDENCE SCORING"
+  complexity_routing:     "ULTIMATE_LLM_LOAD_PACK_v1.1.md - ADAPTIVE REASONING TRIGGERS"
+  block_5_gate:           "ULTIMATE_PROMPT_FACTORY_LOADER.yaml.md - reasoning_kernel.blocks[5]"
+  governance_hard_rules:  "ULTIMATE_PROMPT_FACTORY_LOADER.yaml.md - governance.hard_rules"
+  activation_sequence:    "ULTIMATE_PROMPT_FACTORY_LOADER.yaml.md - governance.activation_sequence"
+  toth_planner:           "L9_Framework.md - toth_planner.py"
+  rafa_contingency:       "L9_Framework.md - rafa_contingency.py"
+
+authority_order:
+  1: "Kernel invariants and stop conditions"
+  2: "Block 5 pre-action verification gate — MUST PASS before execution on moderate+ complexity"
+  3: "Governance hard rules"
+  4: "Block protocol (0-7 + Sigma)"
+  5: "Mode selection rules"
+
+operating_rules:
+
+  reasoning_protocol:
+    output_contract: "Objective → Analysis → Synthesis → Recommendation → Risks → Next Steps → Confidence"
+    flow: "Block0 → Block1 → Block2 → Block3 → Block4 → Block5_strategy → Block5_gate → Block6 → Block7 → Sigma"
+
+    block_0_complexity_assessment:
+      outputs: [scope, risks, unknowns, decision_level]
+      rule: "MUST execute on every task before Block 1"
+
+    block_1_objective:
+      outputs: [clear_goal, constraints, success_metrics]
+
+    block_2_context:
+      outputs: [known, unknown, dependencies, evidence_map]
+
+    block_3_decompose:
+      outputs: [components, uncertainty_map, dependency_graph]
+
+    block_4_leverage:
+      outputs: [reusable_assets, external_resources, prior_art]
+
+    block_5_strategy:
+      sub_blocks:
+        5A: "Reasoning type — logical, empirical, comparative, ethical, legal"
+        5B: "Strategic leverage — non-obvious advantages, 10x patterns"
+        5C: "Success conditions — power user optimization, unconventional path"
+
+    block_5_pre_action_verification:
+      outputs: [checks, gates, go_no_go]
+      gate: "complexity >= moderate → MUST PASS before execution"
+      rule: "MUST NOT skip on moderate or higher complexity"
+
+    block_6_execute:
+      rule: "MUST show reasoning visibly — no black boxes"
+
+    block_7_synthesize:
+      outputs: [strategic_position, next_move, leverage_derived]
+
+    sigma_deliver:
+      expert_tacit_knowledge: "Compress expert intuition into reusable primitives"
+      strategic_position: "What position or play emerges; what it unlocks"
+      proactive_insights: "Anticipate needs; surface unconventional paths; note second-order effects"
+
+  reasoning_modes:
+    abductive:
+      purpose: "Pattern discovery — identify most likely explanations"
+      use_when: "Diagnosis, root cause analysis, pattern detection"
+
+    deductive:
+      purpose: "Logical validation — validate solutions against known rules"
+      use_when: "Verification, compliance checking, solution validation"
+
+    inductive:
+      purpose: "Pattern generalization — generalize from instances to broader principles"
+      use_when: "Trend analysis, prediction, pattern extraction"
+
+    multi_modal_workflow:
+      step_1: "Abductive — what patterns exist, what is most likely happening"
+      step_2: "Deductive — does this follow logical rules, is it consistent"
+      step_3: "Inductive — what broader principles apply, how can this scale"
+      step_4: "Synthesis — combine insights, calculate confidence, generate recommendations"
+
+  confidence_framework:
+    scale: [0.0, 1.0]
+    thresholds:
+      very_high:    {range: "0.9-1.0", action: "Proceed immediately"}
+      high:         {range: "0.8-0.89", action: "Proceed with monitoring"}
+      moderate:     {range: "0.7-0.79", action: "Validate first"}
+      low_moderate: {range: "0.6-0.69", action: "Need more info"}
+      low:          {range: "<0.6", action: "Continue investigation"}
+    min_execute: 0.80
+    min_test_first: 0.70
+    rule: "MUST state confidence explicitly in every reasoning output"
+
+  adaptive_complexity_routing:
+    simple:         {approach: "Deductive only",                       max_iterations: 1}
+    moderate:       {approach: "Deductive + Abductive",                max_iterations: 2}
+    complex:        {approach: "All three modes",                      max_iterations: 3}
+    highly_complex: {approach: "Iterative multi-modal + meta-reasoning", max_iterations: 5}
+    auto_detect_triggers:
+      - "Unknowns > 3 → complex"
+      - "Interdependencies > 5 → complex"
+      - "Domain novelty → +1 complexity"
+      - "High stakes/risk → +1 complexity"
+
+  toth_planning:
+    purpose: "Tree-of-Thought multi-path reasoning for high-stakes decisions"
+    rule: "MUST generate minimum 2 paths; MUST score each path before selecting"
+    output: "Ranked path list with rationale and confidence per path"
+
+  rafa_contingency:
+    purpose: "Risk-aware fallback planning — every plan MUST have contingency"
+    rule: "High-stakes plans MUST include explicit fallback path"
+    output: "Primary plan + fallback plan + trigger condition for fallback activation"
+
+  governance_hard_rules:
+    - "Schema lock: MUST NEVER alter DB structure; use JSONB/vars for extensions"
+    - "Supabase: MUST NEVER use manual auth headers; use predefinedCredentialType:supabaseApi"
+    - "n8n expression syntax: {{$vars.KEY}} — no spaces"
+    - "Context7 queries MUST run before workflow creation"
+    - "Emojis MUST NEVER appear in node names or code"
+
+  activation_sequence:
+    1: "Read loader header + confirm activation"
+    2: "Run Context7 (node versions, auth patterns, endpoint forms)"
+    3: "Open rules and checklists; log doc-read"
+    4: "Post Pre-Action Verification block"
+    5: "Execute with logging; run validators; store results"
+
+  mistake_prevention:
+    - "Mandatory search for prior art before creating new solutions"
+    - "Intent verification: analysis vs execution — confirm before acting"
+    - "Credential verification from .env before any credential use"
+    - "Production standards: logging, retries, error captures on all outputs"
+    - "Failure analysis before retry — MUST NOT retry blindly"
+    - "Pattern compliance against known-good examples"
+
+  hallucination_mitigation:
+    prevention: [citations, confidence_scoring, stepwise_reasoning, admit_uncertainty]
+    detection: [cross_reference, internal_consistency_check]
+    correction: [regenerate_with_constraints, smaller_chunks, fact_check_pass]
+
+constraints:
+  - "Block 5 pre-action gate MUST NOT be skipped on moderate or higher complexity"
+  - "Confidence MUST be stated explicitly in all reasoning outputs"
+  - "MUST NOT produce black-box reasoning — show logic visibly"
+  - "RAFA fallback MUST be included in all high-stakes plans"
+  - "Context7 MUST be queried before any n8n workflow creation"
+
+dependency_graph:
+  upstream_inputs:
+    - "K06 (user identity) MUST be loaded first"
+  downstream_outputs:
+    - "Governs reasoning used by K08 (power commands), K09 (prompt factory)"
+    - "Informs K03v2 deployment risk assessment"
+  prerequisites:
+    - "K06 loaded"
+  blockers:
+    - "Confidence below min_execute (0.80) → MUST NOT proceed without human review"
+
+invariants:
+  - "INV-R1: Block 5 pre-action gate MUST PASS before execution on moderate+ complexity"
+  - "INV-R2: Confidence MUST be stated explicitly in all outputs"
+  - "INV-R3: MUST NOT produce reasoning without visible logic"
+  - "INV-R4: Credentials MUST be verified from .env — NEVER assumed"
+  - "INV-R5: Schema MUST NOT be altered without explicit approval"
+
+edge_cases:
+  confidence_below_threshold:
+    scenario: "Reasoning confidence < 0.80 on urgent task"
+    rule: "MUST flag low confidence explicitly; MUST present best available reasoning; MUST NOT present as certain"
+  block_5_gate_failure:
+    scenario: "Pre-action verification fails on moderate complexity"
+    rule: "MUST stop; MUST surface specific failed checks; MUST NOT proceed"
+  conflicting_mode_outputs:
+    scenario: "Abductive and deductive modes produce contradicting conclusions"
+    rule: "MUST surface contradiction explicitly; MUST present both with confidence per mode"
+
+validation_checks:
+  - "PASS: Block 0 executed before Block 1 on every task"
+  - "PASS: Confidence score stated in every reasoning output"
+  - "PASS: Block 5 pre-action gate run on moderate+ complexity"
+  - "FAIL: Reasoning output missing confidence score"
+  - "FAIL: Block 5 gate skipped on complex task"
+
+acceptance_criteria:
+  - "Complex problem uses all three ADI modes with explicit confidence"
+  - "Block 5 gate blocks execution when checks fail"
+  - "ToTh produces minimum 2 scored paths on high-stakes decisions"
+  - "Confidence calibration error < 10%"
+
+regression_guards:
+  - "Blocks 0-7 and Sigma MUST NOT be removed"
+  - "min_execute MUST NOT be lowered below 0.70"
+  - "Governance hard rules MUST NOT be softened"
+
+stop_conditions:
+  - "Block 5 gate FAIL with no override → HALT execution; surface failed checks"
+  - "Confidence < 0.60 with no additional data → HALT; escalate to human"
+
+output_requirements:
+  - "Reasoning outputs: Objective → Analysis → Synthesis → Recommendation → Risks → Next Steps → Confidence"
+  - "ToTh outputs: ranked path list with confidence per path"
+  - "RAFA outputs: primary plan + fallback plan + trigger condition"
+
+unknowns:
+  - "Agent Q reinforcement learning integration with live session data: Unknown — runtime-dependent"
+  - "Context7 availability per runtime environment: Unknown — environment-specific"
+  - "Session memory persistence across conversation resets: Unknown — platform-dependent"

@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
-"""
-Test Coverage & Quality Audit
-Ensures comprehensive, reliable test suite.
+"""Assertion-quality audit.
+
+Weak-test truth lives in ``ci/weak_test_fixer.py``. This module does not keep
+a second assertion doctrine and does not report static model-name search as
+Odoo runtime coverage.
 """
 
-import ast
-import re
+import importlib.util
 import subprocess
+import sys
 from pathlib import Path
+
+
+def _weak_test_fixer():
+    fixer_path = Path(__file__).resolve().parents[2] / "ci" / "weak_test_fixer.py"
+    spec = importlib.util.spec_from_file_location("weak_test_fixer", fixer_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load weak-test owner: {fixer_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module.WeakTestFixer
 
 
 class TestAudit:
@@ -15,75 +28,31 @@ class TestAudit:
         self.root_dir = Path(root_dir)
 
     def get_models_without_tests(self):
-        """Find models with no test coverage"""
-        errors = []
-
-        # Find all models
-        all_models = set()
-        for py_file in self.root_dir.rglob("models/*.py"):
-            with open(py_file, encoding="utf-8") as f:
-                content = f.read()
-                for match in re.finditer(r'_name\s*=\s*["\']([^"\']+)["\']', content):
-                    all_models.add(match.group(1))
-
-        # Find tested models
-        tested_models = set()
-        for test_file in self.root_dir.rglob("tests/*.py"):
-            with open(test_file, encoding="utf-8") as f:
-                content = f.read()
-                for match in re.finditer(r'self\.env\[["\']([^"\']+)["\']\]', content):
-                    tested_models.add(match.group(1))
-
-        # Find untested
-        untested = all_models - tested_models
-        for model in untested:
-            errors.append(
-                {
-                    "type": "NO_TEST_COVERAGE",
-                    "severity": "MODERATE",
-                    "model": model,
-                    "message": f"Model '{model}' has no test coverage",
-                    "fix": "Create test class in tests/test_*.py",
-                }
-            )
-
-        return errors
+        """Retired. Static ``_name`` / ``self.env`` search is not runtime coverage."""
+        return []
 
     def check_weak_tests(self):
-        """Find test methods with no assertions"""
+        """Report assertion-free tests from the sole owner, ``ci/weak_test_fixer.py``."""
+        fixer = _weak_test_fixer()(self.root_dir)
         errors = []
-
-        for test_file in self.root_dir.rglob("tests/test_*.py"):
-            with open(test_file, encoding="utf-8") as f:
-                try:
-                    tree = ast.parse(f.read())
-                except Exception:
-                    continue
-
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
-                        # Count assertions
-                        assertions = sum(
-                            1
-                            for n in ast.walk(node)
-                            if isinstance(n, ast.Call)
-                            and isinstance(n.func, ast.Attribute)
-                            and n.func.attr.startswith("assert")
-                        )
-
-                        if assertions == 0:
-                            errors.append(
-                                {
-                                    "type": "WEAK_TEST",
-                                    "severity": "MODERATE",
-                                    "file": str(test_file.relative_to(self.root_dir)),
-                                    "test": node.name,
-                                    "line": node.lineno,
-                                    "message": f"Test '{node.name}' has no assertions",
-                                    "fix": "Add self.assertEqual/assertTrue/etc",
-                                }
-                            )
-
+        for test_file in fixer.iter_test_files():
+            try:
+                found = fixer.analyze_test_file(test_file)
+            except SyntaxError:
+                continue
+            relative = str(test_file.relative_to(self.root_dir))
+            for test in found:
+                errors.append(
+                    {
+                        "type": "WEAK_TEST",
+                        "severity": "MODERATE",
+                        "file": relative,
+                        "test": test["name"],
+                        "line": test["line"],
+                        "message": f"Test '{test['name']}' has no assertions",
+                        "fix": "Add an assertion that encodes the contract",
+                    }
+                )
         return errors
 
     def run_pytest_coverage(self):

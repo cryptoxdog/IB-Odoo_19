@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "19.0.2.1.0",
+    "version": "19.0.2.3.53",
     "summary": "Core transaction lifecycle management with integrated commission engine",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -10,6 +10,7 @@
         "mail",
         "product",
         "account",
+        "account_debit_note",
         "sale_management",
         "purchase",
         "purchase_stock",
@@ -19,6 +20,7 @@
         "plasticos_intake",
         "plasticos_product",
         "plasticos_offer",
+        "plasticos_partner_import",
         # "plasticos_matching",  # Disabled - external microservice
     ],
     "data": [
@@ -28,9 +30,11 @@
         "data/res.groups.csv",
         "data/audit_cron.xml",
         "views/transaction_views.xml",
+        "views/sale_quotation_scope.xml",
         "views/transaction_bulk_update_wizard_views.xml",
         "views/transaction_bulk_assign_wizard_views.xml",
         "views/transaction_import_wizard_views.xml",
+        "views/transaction_reopen_wizard_views.xml",
         "views/transaction_ux.xml",
         "views/transaction_bridge_views.xml",
         "views/intake_bridge_views.xml",
@@ -38,6 +42,12 @@
         "views/offer_bridge_views.xml",
         # "views/match_result_bridge_views.xml",  # Disabled - plasticos_matching is external
     ],
+    "assets": {
+        "web.assets_backend": [
+            "plasticos_transaction/static/src/fields/many2many_tags_open.js",
+            "plasticos_transaction/static/src/fields/many2many_tags_open.scss",
+        ],
+    },
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": True,

@@ -1,16 +1,12 @@
-import hashlib
-import json
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import requests as http_requests
-
-from odoo import api, fields, models
+from odoo import api, models
 from odoo.exceptions import UserError
 
 if TYPE_CHECKING:
-    from odoo.addons.plasticos_inference_engine import InferenceEngine
+    InferenceEngine = None  # M4: local inference retired; optional import removed
 
 _logger = logging.getLogger(__name__)
 
@@ -19,10 +15,8 @@ _inference_engine: "InferenceEngine | None" = None
 
 
 def _get_inference_classes():
-    """Lazy load inference engine classes to avoid import error at module load time."""
-    from odoo.addons.plasticos_inference_engine import InferenceEngine, InferenceRequest
-
-    return InferenceEngine, InferenceRequest
+    """Retired in M4 — local inference engine is no longer a dependency."""
+    raise RuntimeError("plasticos_inference_engine removed from enrichment path (mothball M4)")
 
 
 # ── Normalization Maps ──────────────────────────────────────────
@@ -204,7 +198,7 @@ class EnrichmentService(models.AbstractModel):
     @api.model
     def _inference_stub_enabled(self):
         """Return True when inference must run in deterministic no-op mode."""
-        ICP = self.env["ir.config_parameter"].sudo()
+        ICP = self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
         enabled = (ICP.get_param("plasticos.inference_engine.enabled", "False") or "False").strip().lower()
         stubbed = (ICP.get_param("plasticos.inference_engine.stubbed", "True") or "True").strip().lower()
         return enabled not in {"1", "true", "yes", "on"} or stubbed in {"1", "true", "yes", "on"}
@@ -280,6 +274,7 @@ class EnrichmentService(models.AbstractModel):
         Returns:
             Dict with original + inferred fields (quality_tier, etc.)
         """
+        raise UserError("Local inference execution was removed (mothball M4). Enrichment is Gate-only.")
         engine = self._get_inference_engine()
         if engine is None:
             return dict(profile_vals)
@@ -357,6 +352,7 @@ class EnrichmentService(models.AbstractModel):
         Returns:
             Dict of fields that were updated.
         """
+        raise UserError("Local inference execution was removed (mothball M4). Enrichment is Gate-only.")
         profile.ensure_one()
 
         # Build profile_vals from existing record
@@ -384,8 +380,13 @@ class EnrichmentService(models.AbstractModel):
 
         # Merge-not-overwrite: only update fields that are empty
         update_vals = {}
+        # Identity codes are owned by plasticos.material.profile.
+        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+            LEGACY_PROFILE_CODE_FIELDS,
+        )
+
         for field_name, value in augmented.items():
-            if field_name in ("polymer", "form", "source_type"):
+            if field_name in LEGACY_PROFILE_CODE_FIELDS:
                 continue  # Skip identity fields
             if value is not None and not getattr(profile, field_name, None):
                 update_vals[field_name] = value
@@ -467,176 +468,15 @@ class EnrichmentService(models.AbstractModel):
 
     @api.model
     def crawl_source(self, source):
-        """Fetch content from a single enrichment.source record."""
-        headers = {"User-Agent": "PlastOS-Enrichment/1.0"}
-        try:
-            resp = http_requests.get(
-                source.url,
-                headers=headers,
-                timeout=30,
-            )
-            resp.raise_for_status()
-            content = resp.text
-            content_hash = hashlib.sha256(content.encode()).hexdigest()
-
-            if content_hash == source.last_hash:
-                _logger.info(
-                    "Source %s unchanged, skipping.",
-                    source.url,
-                )
-                return False
-
-            source.write(
-                {
-                    "raw_content": content[:50000],
-                    "last_hash": content_hash,
-                    "last_crawled_at": fields.Datetime.now(),
-                    "crawl_status": "success",
-                    "error_message": False,
-                }
-            )
-            return True
-        except Exception as e:
-            source.write(
-                {
-                    "crawl_status": "failed",
-                    "error_message": str(e)[:500],
-                }
-            )
-            _logger.error("Crawl failed for %s: %s", source.url, e)
-            return False
+        """Retired in M4 — enrichment is Gate-only; there is no local crawl."""
+        raise UserError("Local crawl execution was removed (mothball M4). Enrichment is Gate-only.")
 
     # ── AI Extraction ──────────────────────────────────────────
 
     @api.model
     def extract_from_source(self, source):
-        """Route crawled content through AI extraction API."""
-        if not source.raw_content:
-            raise UserError(
-                f"Source {source.url} has no crawled content.",
-            )
-        result = self._invoke_extraction_api(source)
-        parsed = self._parse_extraction(result, source)
-        source.write({"raw_content": False})
-        return parsed
-
-    def _invoke_extraction_api(self, source):
-        """Call OpenAI-compatible API for structured extraction."""
-        import os
-
-        # sudo: ir.config_parameter requires elevated access to read system params
-        ICP = self.env["ir.config_parameter"].sudo()
-        endpoint = ICP.get_param("plasticos.enrichment.api_endpoint") or os.environ.get(
-            "PLASTICOS_ENRICHMENT_API_ENDPOINT", "https://api.openai.com/v1/chat/completions"
-        )
-        api_key = ICP.get_param("plasticos.enrichment.api_key") or os.environ.get("OPENAI_API_KEY")
-        model_name = ICP.get_param(
-            "plasticos.enrichment.model",
-            os.environ.get("PLASTICOS_ENRICHMENT_MODEL", "gpt-4o"),
-        )
-
-        if not endpoint:
-            raise UserError(
-                "Extraction API endpoint not configured. Set system parameter: plasticos.enrichment.api_endpoint "
-                "or environment variable: PLASTICOS_ENRICHMENT_API_ENDPOINT"
-            )
-
-        if not api_key:
-            raise UserError(
-                "Extraction API key not configured. Set system parameter: plasticos.enrichment.api_key "
-                "or environment variable: OPENAI_API_KEY"
-            )
-
-        system_prompt = (
-            "You are a plastics recycling industry analyst. "
-            "Extract all factual material identity data from the "
-            "provided document for a buyer/supplier profile.\n\n"
-            "For EACH distinct material the company handles, "
-            "extract a separate object with these fields:\n"
-            "- polymer: resin type (HDPE, PP, LDPE, PET, ABS, etc.)\n"
-            "- subgrade: specific grade code if mentioned\n"
-            "- form: physical form (bales, regrind, pellet, flake, "
-            "film, roll, sheet, etc.)\n"
-            "- source_type: clean, post-consumer, post-industrial, "
-            "off-grade, mixed, contaminated\n"
-            "- origin_process_type: injection, extrusion, "
-            "blow_molding, thermoforming, film, compounding\n"
-            "- previously_washed: true/false/null\n"
-            "- previously_pelletized: true/false/null\n"
-            "- melt_flow_index: numeric or null\n"
-            "- density: numeric (g/cm3) or null\n"
-            "- moisture_percent: numeric or null\n"
-            "- contamination_percent: numeric or null\n"
-            "- contains_metal: true/false/null\n"
-            "- has_fr: true/false/null (flame retardant)\n"
-            "- avg_lot_size_lbs: numeric or null\n"
-            "- min_lot_size_lbs: numeric or null\n"
-            "- max_lot_size_lbs: numeric or null\n"
-            "- monthly_volume_lbs: numeric or null\n"
-            "- food_grade: true/false/null\n"
-            "- medical_grade: true/false/null\n\n"
-            "For each field extraction also provide:\n"
-            "- confidence: 0.0-1.0\n"
-            "- inference_type: explicit / implicit / speculative\n"
-            "- source_sentence: exact quote from the document\n\n"
-            'Return JSON: {"materials": [...], '
-            '"overall_confidence": float, '
-            '"governance_flags": [...]}\n'
-            "Use null for unknown fields. Never guess."
-        )
-
-        resp = http_requests.post(
-            endpoint,
-            json={
-                "model": model_name,
-                "response_format": {"type": "json_object"},
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Source URL: {source.url}\n"
-                            f"Source type: {source.source_type}\n\n"
-                            f"{source.raw_content[:12000]}"
-                        ),
-                    },
-                ],
-                "temperature": 0.1,
-            },
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            timeout=120,
-        )
-        resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
-        return json.loads(content)
-
-    def _parse_extraction(self, result, source):
-        """Validate and structure the AI response."""
-        materials = result.get("materials", [])
-        flags = result.get("governance_flags", [])
-        overall = result.get("overall_confidence", 0)
-
-        parsed_materials = []
-        for mat in materials:
-            if not mat.get("polymer"):
-                flags.append(
-                    "Material entry missing polymer — skipped.",
-                )
-                continue
-            parsed_materials.append(mat)
-
-        passed = overall >= 0.85 and len(flags) == 0 and len(parsed_materials) > 0
-
-        return {
-            "materials": parsed_materials,
-            "overall_confidence": overall,
-            "governance_passed": passed,
-            "governance_flags": flags,
-            "source_url": source.url,
-        }
+        """Retired in M4 — enrichment is Gate-only; there is no local extraction API."""
+        raise UserError("Local extract execution was removed (mothball M4). Enrichment is Gate-only.")
 
     # ── Normalization ──────────────────────────────────────────
 

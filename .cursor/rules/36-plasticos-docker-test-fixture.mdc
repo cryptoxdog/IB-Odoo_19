@@ -1,0 +1,29 @@
+---
+description: Enterprise Docker Odoo tests use only the pinned template fixture. Do not create or select another test database.
+alwaysApply: true
+---
+
+# Docker test fixture
+
+**SSOT:** `config/test_env_fixture.conf` — `TEMPLATE=odoo_test_tpl_ee_c9e8a81f52f23680`
+**Skill:** `skills/plasticos-odoo-docker-testing/SKILL.md`
+
+## Use this fixture
+
+`make test-module`, `make test-odoo`, `make test-db`, and `scripts/test_env.sh` clone that database. The clone name is the worktree's `odoo_test_<owner>`. The template is not a run target.
+
+A module change is applied with `-u` on the clone. It does not rebuild the template. A `--test-enable` run under `scripts/test_env.sh run` (both Make test targets) upgrades every declared PlasticOS module on the clone, never `-u all`. It runs only the roster's tests, or only `m=`'s. It fails on a missing Odoo test summary, a failure, an error, or zero tests. The receipt is `.l9/runtime/test-env/<db>.test-receipt.json`. Any other `run` (an import, `shell`) first upgrades the roster on the clone, once per addon source digest.
+
+The fixture is used only for the inputs it was admitted for: the Odoo image, the Postgres major, the module roster, the runtime configuration, and the Enterprise checkout. When one of those differs, or cannot be proved against its recorded inputs file, the fixture is refused and names what changed. `make test-env-rebuild` is the operator recovery: it drops only that template and its current build database, then admits it again. It refuses when the template is already admitted for the current inputs.
+
+## Do not use another environment
+
+- Do not run those tests on `odoo`, `odoo_install_smoke`, a fingerprint-named `odoo_test_tpl_*`, or any other Postgres database.
+- Do not set `TEST_ENV_PARITY=community`. That parity is refused unless `TEST_ENV_SAFETY_HARNESS=1`, and the harness is only for `tests/test_test_env_safety.py`.
+- Do not start a second compose project for tests.
+- Do not use `make test-odoo-local` when Docker is up. That target is the no-Docker backend.
+- `make install-smoke` is the load gate. It clones this fixture and upgrades the roster. It does not install into `odoo_install_smoke`.
+
+## Do not create a new template
+
+`scripts/test_env.sh` reuses the pinned database. It does not rename another template onto that name. `make test-env-rebuild` is the only recovery for image, Postgres, roster, config, or Enterprise drift. Do not set `TEST_ENV_ALLOW_NEW_TEMPLATE` by hand for a source edit or a failed module test. The value `1` is refused. A source edit upgrades the clone; it does not rebuild the template.

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_material_observation_list" model="ir.ui.view">
+    <field name="name">plasticos.material.observation.list</field>
+    <field name="model">plasticos.material.observation</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="feature_id"/>
+        <field name="value_state"/>
+        <field name="value_numeric"/>
+        <field name="unit_code"/>
+        <field name="method"/>
+        <field name="confidence"/>
+        <field name="observed_at"/>
+        <field name="material_profile_id"/>
+        <field name="source_system"/>
+        <field name="company_id"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_material_observation_form" model="ir.ui.view">
+    <field name="name">plasticos.material.observation.form</field>
+    <field name="model">plasticos.material.observation</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="feature_id"/>
+              <field name="value_state"/>
+              <field name="method"/>
+              <field name="confidence"/>
+              <field name="observed_at"/>
+              <field name="valid_until"/>
+              <field name="active"/>
+            </group>
+            <group>
+              <field name="canonical_uuid" readonly="1"/>
+              <field name="company_id"/>
+              <field name="material_profile_id"/>
+              <field name="specification_id"/>
+              <field name="contract_version"/>
+            </group>
+          </group>
+          <group string="Value">
+            <field name="value_numeric"/>
+            <field name="value_text"/>
+            <field name="value_boolean"/>
+            <field name="value_json"/>
+            <field name="unit_code"/>
+          </group>
+          <group string="Provenance">
+            <field name="source_system"/>
+            <field name="source_record_ref"/>
+            <field name="inference_rule_version"/>
+            <field name="model_version"/>
+            <field name="supersedes_id"/>
+            <field name="conflict_group"/>
+            <field name="evidence_attachment_ids" widget="many2many_binary"/>
+            <field name="migration_batch_id"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_material_observation_search" model="ir.ui.view">
+    <field name="name">plasticos.material.observation.search</field>
+    <field name="model">plasticos.material.observation</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="feature_id"/>
+        <field name="material_profile_id"/>
+        <field name="source_system"/>
+        <filter name="group_state" string="Value State" context="{'group_by': 'value_state'}"/>
+      </search>
+    </field>
+  </record>
+
+  <record id="action_material_observation" model="ir.actions.act_window">
+    <field name="name">Material Observations</field>
+    <field name="res_model">plasticos.material.observation</field>
+    <field name="view_mode">list,form</field>
+  </record>
+</odoo>

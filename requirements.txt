@@ -4,13 +4,67 @@
 
 # Required for plasticos_web_leads AI triage
 openai>=1.0.0
+# Native Claude Messages API transport for swappable text, vision, and advisory
+# economic-assessment roles. OpenAI SDK compatibility remains optional only.
+anthropic>=0.49.0
 
 # requests is typically pre-installed but declared for completeness
 # (matches external_dependencies in plasticos_web_leads/__manifest__.py)
 requests>=2.28.0
 
-# Required for plasticos_buyer_match_engine Neo4j graph traversal
-neo4j>=5.0.0
+# cryptography / pyOpenSSL compatibility pin — Odoo.sh registry-crash incident (2026-07-16 → 2026-07-24)
+#
+# constellation-node-sdk (below) declares "cryptography>=43.0.0" (no upper
+# bound as of the 1.1.0 release; earlier releases said "<45")
+# (Quantum-L9/Gate_SDK pyproject.toml). The Odoo.sh container ships an old
+# pyOpenSSL (23.2.0) whose compiled bindings only support
+# "cryptography<42.0.0" (pyOpenSSL changelog: 23.2.0 = "cryptography maximum
+# version increased to 41.0.x"). Capping cryptography at 42.0.8 cannot satisfy
+# the SDK floor. The only fix is to pin pyOpenSSL FORWARD to a version whose
+# supported range covers the SDK window.
+#
+# Without this pin, pip silently resolves the newest cryptography wheel (e.g.
+# 49.0.0) while the stale pyOpenSSL 23.2.0 binary stays on disk, and `base`
+# fails to import with:
+#   AttributeError: module 'lib' has no attribute 'GEN_EMAIL' / 'X509_...'
+# which crashes the ENTIRE Odoo registry on every restart (every module import
+# chains through `base`, not just plasticos_*).
+#
+# Chosen pair: cryptography 43.0.3 + pyOpenSSL 24.3.0 — both satisfy
+# constellation-node-sdk's floor, both have >1 year of production soak time
+# (avoids pairing with same-week bleeding-edge releases), and pyOpenSSL 24.3.0's
+# declared range (cryptography 41.0.5–44.x) comfortably contains 43.0.3.
+# Ref: https://www.pyopenssl.org/en/stable/changelog.html ; pyca/pyopenssl#1177
+#
+# This is a COMPATIBILITY SHIM, not a permanent fix: PyCA (pyOpenSSL's own
+# maintainers) has pending-deprecated OpenSSL.crypto in favor of calling
+# `cryptography` directly. No plasticos_* code imports OpenSSL.crypto (verified
+# via repo-wide grep) — pyOpenSSL is only present because it's baked into the
+# Odoo.sh base container / pulled transitively (paramiko, josepy). Once Odoo.sh
+# ships a base image with a pyOpenSSL-free (or cryptography>=42-compatible)
+# toolchain, or constellation-node-sdk's transitive deps drop pyOpenSSL, this
+# pin block can likely be removed. Revisit on next Odoo.sh base image bump.
+cryptography==43.0.3
+pyOpenSSL==24.3.0
+
+# Enterprise addons (l10n_nl_reports SBR) + local Docker install-smoke with full
+# odoo-enterprise mount. Requires libxmlsec1* (see Dockerfile apt layer).
+xmlsec>=1.3.13
+
+# Direct ERP SQL read (ADR-021): plasticos_partner_import/erp/reader.py imports
+# the SQL Server driver only when ERP_SQL_SERVER is set. It is a runtime
+# dependency because `make import-erp` runs inside the Odoo image. pyodbc
+# (ERP_SQL_DRIVER=pyodbc) stays an operator-side alternative. pymssql ships
+# CPython 3.12 manylinux wheels (pypi.org/project/pymssql, 2.4.x).
+pymssql>=2.3.0
+
+# Constellation Gate TransportPacket client (plasticos_gate).
+# Pinned to the proven Gate_SDK 1.2.0 revision
+# 7ec6cdf5e26c837057ca35b7324a88de4d499ea3 (ADR-011 exact SHA).
+# The previous pin (92279da) predates GateClient.execute(), which
+# plasticos_gate/services/gate_client.py requires; every converge failed closed
+# with "constellation_node_sdk is too old" against that install.
+constellation-node-sdk @ git+https://github.com/Quantum-L9/Gate_SDK.git@7ec6cdf5e26c837057ca35b7324a88de4d499ea3
 
 # PR Repair engine — pr_repair_adapter.py uses this for state-machine-governed
 # CI repair loop (Issue→Finding conversion, approval gates, repeated-failure guard).

@@ -1,22 +1,58 @@
 # plasticos_transaction
 
-**Version:** 19.0.6.1.0
-**Category:** PlasticOS / Core Pipeline
-**Depends:** `plasticos_base`, `plasticos_offer`, `plasticos_material_profile`, `plasticos_facility_profile`, `plasticos_logistics`, `plasticos_accounting`, `plasticos_commission`, `plasticos_security_base`
-
----
+PlasticOS transaction spine for Odoo 19.
 
 ## Purpose
 
-The transaction model is the **financial and operational record** of a closed deal. It bridges supplier intake, buyer offer, logistics, accounting, and commission into a single lifecycle record. This is the most complete model in the codebase (~54KB).
+`plasticos.transaction` is the operational deal record connecting supplier, buyer, Odoo sales/purchase documents, logistics, accounting, commissions, claims, and historical ERP line evidence.
 
-Every won deal has a transaction. Transactions drive gross margin reporting, commission calculation, freight bill linking, and document compliance tracking.
+The model already relates transactions to native Odoo commercial documents:
 
----
+- `sale_order_id` → `sale.order`
+- `purchase_order_ids` → `purchase.order`
 
-## Model: `plasticos.transaction`
+Those relations are the preferred ownership path for native Odoo business semantics. Do not duplicate a native document concept onto the transaction merely because a legacy source exposes a similarly named field.
 
-### States
+## Historical ERP import
+
+The historical ERP import does not create `plasticos.transaction` or `plasticos.transaction.line` records. Commercial documents are `sale.order`, `purchase.order`, and `account.move`. A full `make import-erp` run is refused before any write.
+
+The old `transaction_import_service.py`, `run_transaction_import.py`, and transaction CSV wizard remain legacy code. They are not the production historical import path and must not be extended.
+
+## Historical trade date
+
+`GPLedger.TradeDt` has now been semantically resolved:
+
+> It is the date the purchase order was issued and, under current PlasticOS rules, the date the transaction was approved.
+
+Odoo 19 already owns that concept on `purchase.order.date_approve` (`Confirmation Date`). Therefore:
+
+- do **not** add `plasticos.transaction.transaction_date`;
+- do **not** overload pickup/delivery dates;
+- do **not** use `purchase.order.date_order` as the chosen target, because Odoo uses it as the RFQ/order-deadline date;
+- persist `TradeDt` to `purchase.order.date_approve` when the historical PO realization slice creates or resolves the corresponding PO.
+
+Until historical PO realization is implemented, the reconstructed `TradeDt` remains source evidence and is not persisted on `plasticos.transaction`.
+
+## Native document integration
+
+`plasticos.transaction` already links to Odoo purchase orders through `purchase_order_ids`. `purchase_inherit.py` links confirmed/approved POs into the transaction spine and locates the transaction from either the SO origin or the existing M2M relation.
+
+This existing relation is why historical PO semantics should be realized on native `purchase.order` fields rather than copied onto a new transaction field.
+
+## Current production-readiness proof
+
+Static and pure-Python tests cover source mapping, deterministic partner identities, and replay contracts. The real-runtime ERP gate proves the partner import, replay, changed-record handling, and that a full import writes no transaction or line marker.
+
+Direct-SQL readiness additionally requires the restored SQL Server source to feed the same pipeline on a disposable Odoo database, followed by an identical replay with zero creates, zero update churn, and no duplicate identities.
+
+## Module reference
+
+Retained from the previous README; unrelated to the ERP source correction above. The former "Import Wizard" section is removed: the CSV transaction wizard is legacy and is not the historical import path (see above).
+
+### Model: `plasticos.transaction`
+
+#### States
 
 | Value | Label | Notes |
 |---|---|---|
@@ -31,9 +67,7 @@ Every won deal has a transaction. Transactions drive gross margin reporting, com
 
 **Statusbar visible:** `draft, active, closed` (current — see Pending section for full-state expansion).
 
----
-
-### Key Fields
+#### Key Fields
 
 | Field | Type | Notes |
 |---|---|---|
@@ -57,13 +91,11 @@ Every won deal has a transaction. Transactions drive gross margin reporting, com
 | `claim_ids` | `One2many(plasticos.claim)` | Via bridge in `plasticos_claims` |
 | `document_ids` | `One2many(plasticos.document)` | Compliance doc attachments |
 
-### `amount_total` — Important
+#### `amount_total` — Important
 
 `amount_total` uses accrual-basis logic. **`@api.depends` must include `state`** — without it, the gross margin KPI banners in `transaction_ux.xml` can display stale values when a deal is cancelled or reverted to draft.
 
----
-
-## Smart Buttons
+### Smart Buttons
 
 | Button | Method | Source |
 |---|---|---|
@@ -74,37 +106,21 @@ Every won deal has a transaction. Transactions drive gross margin reporting, com
 
 > **Critical:** `action_view_claims()` is injected by `plasticos_claims` via `_inherit = 'plasticos.transaction'`. Adding a duplicate in `transaction.py` would shadow the bridge method. Never redefine it here.
 
----
-
-## Views
+### Views
 
 | File | Description |
 |---|---|
 | `transaction_views.xml` | Primary form (tabs: General, Financials, Logistics, Documents, Commission), list, search |
 | `transaction_ux.xml` | KPI banner overlays, gross margin highlights |
 
----
-
-## Import Wizard
-
-`wizards/transaction_import_wizard.py` — imports historical transaction data from a CIETrade CSV export.
-
-**Default file:** `cieTrade.WksDetail.Test.csv` at the **repo root** (51-line test file). The production file (`cieTrade.WksDetail.csv`, 16,417+ rows) is excluded from the default path.
-
-Path resolution: `os.path.join(module_path, os.pardir, DEFAULT_CSV)` — looks one level up from the module directory (repo root).
-
----
-
-## Crons
+### Crons
 
 | Cron | Action | Schedule |
 |---|---|---|
 | PlasticOS Sale Approval Flag | Flags transactions needing approval | Daily |
 | PlasticOS Midnight Time-Based Field Recompute | Recomputes time-sensitive computed fields | Nightly 00:05 |
 
----
-
-## Deployment
+### Deployment
 
 ```bash
 docker compose -p odoo19 run --rm odoo \
@@ -114,9 +130,7 @@ docker compose -p odoo19 run --rm odoo \
 
 **No `--update` needed** for method additions (no new stored fields). Required for new fields, ACL changes.
 
----
-
-## Integration Points
+### Integration Points
 
 | Module | Direction | Notes |
 |---|---|---|
@@ -126,9 +140,7 @@ docker compose -p odoo19 run --rm odoo \
 | `plasticos_commission` | Outbound | Commission calculated on `state = closed` |
 | `plasticos_claims` | Bridge | Claims bridge injects `action_view_claims()` and `claim_ids` |
 
----
-
-## Known Gaps / Pending
+### Known Gaps / Pending
 
 | Item | Priority | Notes |
 |---|---|---|

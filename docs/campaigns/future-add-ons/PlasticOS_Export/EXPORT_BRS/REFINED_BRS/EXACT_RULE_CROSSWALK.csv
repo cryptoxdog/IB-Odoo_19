@@ -1,0 +1,121 @@
+rule_id,primary_refined_brief,source_rule,acceptance_id,phase,source_owner,status,runtime
+BRS-EXP-01-R001,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-01.md,AC-EXP-01-001,BOTH,plasticos_export,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-01-R002,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-01.md,AC-EXP-01-002,BOTH,existing native and domain owners,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-01-R003,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-01.md,AC-EXP-01-003,BOTH,Export binding; native commercial owners,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-01-R004,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-01.md,AC-EXP-01-004,BOTH,native state owner; authorized tool command,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-01-R005,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-01.md,AC-EXP-01-005,BOTH,Odoo deployment/license owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-02-R001,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-02.md,AC-EXP-02-001,BOTH,plasticos_export booking association; native commercial and Logistics identities,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-02-R002,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-02.md,AC-EXP-02-002,BOTH,plasticos_export for gaps only,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-02-R003,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-02.md,AC-EXP-02-003,BOTH,plasticos_export schedule context,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-02-R004,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-02.md,AC-EXP-02-004,BOTH,plasticos_export schedule context + native document provenance,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-02-R005,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-02.md,AC-EXP-02-005,BOTH,plasticos_export view/exception projection,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-02-R006,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-02.md,AC-EXP-02-006,BOTH,native Odoo order/contract + export display,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-03-R001,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-03.md,AC-EXP-03-001,BOTH,native Documents intake; plasticos_documents exact evidence link,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-03-R002,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-03.md,AC-EXP-03-002,BOTH,export applicability / `plasticos_documents` verification,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-03-R003,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-03.md,AC-EXP-03-003,BOTH,`plasticos_documents`,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-03-R004,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-03.md,AC-EXP-03-004,BOTH,plasticos_export QWeb layout / native source values,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-03-R005,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-03.md,AC-EXP-03-005,BOTH,`plasticos_logistics` / Linda using native Odoo Mail,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-03-R006,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-03.md,AC-EXP-03-006,BOTH,`plasticos_documents`/native Activity; Linda external reminders,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-03-R007,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-03.md,AC-EXP-03-007,BOTH,export applicability / document type owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-04-R001,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-04.md,AC-EXP-04-001,P1,commercial order + `plasticos_logistics`,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-04-R002,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-04.md,AC-EXP-04-002,P1,commercial order + `plasticos_logistics`,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-04-R003,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-04.md,AC-EXP-04-003,P1,Logistics and native Stock; Documents verification; Export projection,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-04-R004,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-04.md,AC-EXP-04-004,P1,export schedule view + Linda,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-04-R005,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-04.md,AC-EXP-04-005,P1,`plasticos_export` views/report layout,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-05-R001,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-05.md,AC-EXP-05-001,P2,native commercial sale and inventory owner; Export link/projection,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-05-R002,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-05.md,AC-EXP-05-002,P2,native commercial order + `plasticos_logistics`,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-05-R003,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-05.md,AC-EXP-05-003,P2,`plasticos_export` contextual projection / third-party evidence,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-05-R004,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-05.md,AC-EXP-05-004,P2,native Documents + document compliance + export applicability,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-05-R005,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-05.md,AC-EXP-05-005,P2,external filing authority + native Documents evidence,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-05-R006,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-05.md,AC-EXP-05-006,P2,native Odoo + Linda + Documents,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-06-R001,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-06.md,AC-EXP-06-001,BOTH,native Odoo ACLs + Documents/Linda owners,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-06-R002,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-06.md,AC-EXP-06-002,BOTH,export projections with source owner decisions,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-06-R003,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-06.md,AC-EXP-06-003,BOTH,native commercial/state owners; Export read-only projection,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-06-R004,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-06.md,AC-EXP-06-004,BOTH,product owner/repository implementation owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-06-R005,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-06.md,AC-EXP-06-005,BOTH,operator + live owner of each capability,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R001,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-001,BOTH,Logistics transport equipment classification; Export uses scoped choices,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R002,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-002,P1,Logistics transport equipment; Export references for terminal drayage if applicable,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R003,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-003,BOTH,Export booking presentation; shared logistics equipment semantics,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R004,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-004,BOTH,Export reservation; Logistics actual movements; native Stock cargo,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R005,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-005,BOTH,Logistics transport master/native shipping record; Export only booking-specific fields,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R006,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-006,BOTH,Physical weight: native Odoo Stock and verified scale evidence; Export displays source facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R007,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-007,BOTH,Export booking contextual exception; Documents evidence; Logistics physical movements,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-07-R008,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-07.md,AC-EXP-07-008,BOTH,Export views/QWeb; native Stock physical movement; Documents evidence/verification,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R001,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-08.md,AC-EXP-08-001,BOTH,native Purchase/Stock + permitted Logistics movement authority,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R002,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-08.md,AC-EXP-08-002,BOTH,native `sale.order`/`purchase.order` lines,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R003,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-08.md,AC-EXP-08-003,BOTH,native Odoo Purchase and Stock receipt/picking owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R004,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-08.md,AC-EXP-08-004,BOTH,native Odoo Sales and Stock delivery/move lines,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R005,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-08.md,AC-EXP-08-005,BOTH,Export booking and Logistics exact shipment links,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R006,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-08.md,AC-EXP-08-006,BOTH,native Stock/Purchase/Sales actual lines; Export typed linkage,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R007,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-08.md,AC-EXP-08-007,BOTH,native commercial owner; stock custody; Export historic association,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-08-R008,RB-01_COMMERCIAL_AND_AUTHORITY.md,RULES/BRS-EXP-08.md,AC-EXP-08-008,BOTH,"Logistics and native authorization owner, not Export",PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R001,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-001,BOTH,"native Odoo Documents AI, installed capability verified",PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R002,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-002,BOTH,native AI candidate intake; export booking field owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R003,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-003,BOTH,PlasticOS Documents exact link and Export booking lookup,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R004,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-004,BOTH,Documents verification owner; authorized export booking reviewer,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R005,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-005,BOTH,Export booking owner; native Documents original/version keeper,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R006,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-006,BOTH,Export booking/record owner; Documents extraction producer,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R007,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-007,BOTH,native state transition owner (Transaction/Logistics/Stock/Accounting),PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-09-R008,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-09.md,AC-EXP-09-008,BOTH,"native Documents, Export exception presentation, Odoo Activities",PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R001,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-001,P1,Export current booking view; Logistics decision/dispatch owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R002,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-002,P1,native Purchase report + Export booking QWeb + Linda sending owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R003,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-003,P1,Logistics QWeb and authorized Linda sender; Export booking PDF source,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R004,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-004,P1,"Logistics/Linda transition and Odoo Mail, Export provides booking version",PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R005,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-005,P1,Export time values; Logistics pickup feasibility/appointments,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R006,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-006,P1,Logistics freight context/booking owner,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R007,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-007,BOTH,Logistics delivery tracking + native Documents proof; Export display,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-10-R008,RB-05_LOGISTICS_AND_HANDOFF.md,RULES/BRS-EXP-10.md,AC-EXP-10-008,P1,Logistics/Linda audience and buyer-optional movement policy,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R001,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-001,BOTH,Native Mail/Documents intake; AI extraction,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R002,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-002,BOTH,Native Documents classification; plasticos_documents verification,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R003,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-003,BOTH,plasticos_documents exact association; Export booking context,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R004,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-004,P1,Native AI extraction; Export target schema,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R005,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-005,BOTH,Export booking history and supplier/carrier evidence,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R006,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-006,BOTH,Export booking context; Documents verification,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R007,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-007,P1,"Native Purchase, Documents evidence; Export/Logistics read",PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R008,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-008,P1,plasticos_documents evidence; native Stock/Logistics movement owners,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R009,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-009,P1,Native Documents original/linked assets; plasticos_documents requirement verdict,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R010,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-010,BOTH,Native Purchase/Sale/Stock and Logistics/Transaction guarded commands,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R011,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-011,BOTH,Export publishes revisions; Logistics/Linda owns schedule/mail,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-11-R012,RB-04_DOCUMENTS_AND_AI.md,RULES/BRS-EXP-11.md,AC-EXP-11-012,BOTH,Export sourced view + native Activity; Documents and Logistics originals,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R001,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-001,P2,plasticos_export integration boundary; provider is external evidence producer,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R002,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-002,P2,plasticos_export typed mapping; native Odoo shipping identity remains canonical,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R003,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-003,P2,plasticos_export evidence projection with Logistics/Stock/Docs retained,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R004,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-004,P2,plasticos_export booking reconciliation; Logistics authorizes affected actions,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R005,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-005,P2,platform integration/security owner; Export is a consumer,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R006,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-006,P2,authorized USPPI/agent/filer and applicable regulator; Export filing context only,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R007,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-007,P2,native Odoo Sale/Purchase/Stock and authorized compliance reviewer; Export orchestration,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R008,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-008,P2,authorized filer; connector only prepares supported handoff,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R009,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-009,P2,authorized filing authority + native Documents/PlasticOS verification,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-12-R010,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-12.md,AC-EXP-12-010,P2,authorized filer and platform security; Export only coordinates evidence,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R001,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-001,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R002,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-002,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R003,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-003,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R004,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-004,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R005,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-13.md,AC-EXP-13-005,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R006,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-006,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R007,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-007,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R008,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-008,BOTH,plasticos_documents + native Odoo AI/Document owners; Export consumes validated candidates,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R009,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-009,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-13-R010,RB-02_BOOKING_IDENTITY_AND_REVISIONS.md,RULES/BRS-EXP-13.md,AC-EXP-13-010,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R001,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-001,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R002,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-002,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R003,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-003,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R004,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-004,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R005,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-005,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R006,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-006,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R007,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-007,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R008,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-008,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R009,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-009,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R010,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-010,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R011,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-011,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R012,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-012,BOTH,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R013,RB-07_PHASE2_EXTENSION.md,RULES/BRS-EXP-14.md,AC-EXP-14-013,P2,plasticos_export; native Odoo owns shared commercial and logistics facts,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R014,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-14.md,AC-EXP-14-014,P1,plasticos_export (projection; source owners unchanged),PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R015,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-14.md,AC-EXP-14-015,P1,plasticos_export (projection; source owners unchanged),PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R016,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-14.md,AC-EXP-14-016,P1,plasticos_export (projection; source owners unchanged),PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R017,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-017,P1,plasticos_export,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R018,RB-03_EQUIPMENT_AND_ALLOCATION.md,RULES/BRS-EXP-14.md,AC-EXP-14-018,P1,plasticos_export (projection; source owners unchanged),PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R019,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-019,P1,plasticos_export (projection; source owners unchanged),PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R020,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-020,P1,plasticos_export (projection; source owners unchanged),PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R021,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-021,P1,plasticos_export,PRESERVED_STABLE_ID,NOT_RUN
+BRS-EXP-14-R022,RB-06_DASHBOARD_AND_REPORTS.md,RULES/BRS-EXP-14.md,AC-EXP-14-022,P1,plasticos_export,PRESERVED_STABLE_ID,NOT_RUN

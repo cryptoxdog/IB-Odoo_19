@@ -122,7 +122,7 @@ Thank you for the thorough audit!
 
 1. **Copy the debt registry** to `reports/debt-registry-YYYY-MM-DD.md`
 2. **Create GMPs** for each sprint in the remediation plan
-3. **Track progress** in `workflow_state.md`
+3. **Report code debt** with the audit result. The repository debt tracker `docs/campaigns/odoo_tech_debt` was retired on 2026-11-03 (PR #355) and has no replacement. Current campaigns stay in `workflow_state.md`.
 
 ---
 

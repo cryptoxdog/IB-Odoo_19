@@ -1,0 +1,138 @@
+{
+  "schema": "recycleos.idea-expansion/v1",
+  "id": "recycleos-operational-core-expansion-2026-10-27",
+  "version": "1.0.0",
+  "date": "2026-10-27",
+  "admission": "proposed-additive-not-admitted",
+  "execution_authority": "none",
+  "change_mode": "additive-only",
+  "no_carryover": true,
+  "existing_artifact_files_copied": 0,
+  "product": "RecycleOS",
+  "candidate_parent": "existing RecycleOS product and operations capability branch; exact host node unknown",
+  "intent": "Expand existing PlasticOS/Odoo-origin RecycleOS with simple physical receiving and traceability for recycling operations, including a platform-scale-only grinder.",
+  "operator_locked_priorities": {
+    "core": [
+      "mobile_receiving",
+      "qr_barcode_traceability",
+      "scale_integration"
+    ],
+    "optional": [
+      "detailed_cost_per_pound_accounting"
+    ]
+  },
+  "locked_workflow": "weigh_container -> scan_unique_code -> confirm_one_native_inventory_receipt -> scan_on_outgoing_load -> validate_native_delivery",
+  "native_owner_mapping": {
+    "inventory": "Odoo stock",
+    "production_transformation": "Odoo mrp (requires configuration/activation verification)",
+    "sales_and_purchase": "Odoo sale/purchase and existing PlasticOS transaction",
+    "financial_posting": "Odoo account under authorized human/business approval",
+    "material_semantics": "existing PlasticOS material profile registries",
+    "load_dispatch": "existing PlasticOS logistics and Odoo stock",
+    "documents": "existing Odoo/PlasticOS documents evidence authorities",
+    "qr_and_scale": "proposed RecycleOS Dock input/client/adapters; no second stock ledger"
+  },
+  "new_capability_nodes": [
+    {
+      "id": "ROS-MOBILE-DOCK",
+      "label": "Mobile-first receiving and loading UI",
+      "status": "proposed",
+      "priority": "core"
+    },
+    {
+      "id": "ROS-CONTAINER-TRACE",
+      "label": "Physical container QR identity and scan genealogy",
+      "status": "proposed",
+      "priority": "core"
+    },
+    {
+      "id": "ROS-SCALE-INTEGRATION",
+      "label": "Device-neutral physical scale reading integration",
+      "status": "proposed",
+      "priority": "core"
+    },
+    {
+      "id": "ROS-PLATFORM-SCALE",
+      "label": "Per-container floor scale support",
+      "status": "proposed",
+      "priority": "core-capability-site-applicable"
+    },
+    {
+      "id": "ROS-TRUCK-SCALE",
+      "label": "Truck weighbridge and ticket capture",
+      "status": "proposed",
+      "priority": "core-capability-site-applicable"
+    },
+    {
+      "id": "ROS-GRINDER-PROCESS",
+      "label": "Native manufacturing material-form conversion traceability",
+      "status": "proposed",
+      "priority": "processor-specific"
+    },
+    {
+      "id": "ROS-DETAILED-UNIT-COST",
+      "label": "Detailed cost-per-pound batch reporting",
+      "status": "proposed",
+      "priority": "optional"
+    }
+  ],
+  "candidate_relations": [
+    {
+      "from": "ROS-MOBILE-DOCK",
+      "relation": "orchestrates_native_authorized_operations_in",
+      "to": "Odoo stock"
+    },
+    {
+      "from": "ROS-CONTAINER-TRACE",
+      "relation": "identifies_physical_packages_for",
+      "to": "Odoo stock"
+    },
+    {
+      "from": "ROS-SCALE-INTEGRATION",
+      "relation": "produces_attributed_physical_evidence_for",
+      "to": "Odoo stock/PlasticOS transaction"
+    },
+    {
+      "from": "ROS-PLATFORM-SCALE",
+      "relation": "specializes",
+      "to": "ROS-SCALE-INTEGRATION"
+    },
+    {
+      "from": "ROS-TRUCK-SCALE",
+      "relation": "specializes",
+      "to": "ROS-SCALE-INTEGRATION"
+    },
+    {
+      "from": "ROS-GRINDER-PROCESS",
+      "relation": "reuses",
+      "to": "Odoo mrp"
+    },
+    {
+      "from": "ROS-GRINDER-PROCESS",
+      "relation": "preserves_input_output_container_genealogy_using",
+      "to": "ROS-CONTAINER-TRACE"
+    },
+    {
+      "from": "ROS-DETAILED-UNIT-COST",
+      "relation": "optional_consumes_approved_costing_from",
+      "to": "Odoo mrp/account"
+    }
+  ],
+  "blocked_assumptions": [
+    "scale data automatically settles AP/AR",
+    "generic Odoo IoT supports all truck scales",
+    "Odoo Enterprise Barcode available in Community",
+    "PWA works offline without special logic",
+    "source code implies deployed feature",
+    "scan by itself posts native movements",
+    "input and ground output material have same stock identity"
+  ],
+  "earliest_discriminating_proof": "On a target Odoo 19 installation, use an iPhone, a uniquely labeled Gaylord and a specific platform scale to complete exactly one attributable receiving picking and one outgoing scan without duplicate stock. Then prove grinder genealogy using one manufacturing order.",
+  "proof_status": "NOT_RUN",
+  "source_binding": {
+    "repository": "cryptoxdog/IB-Odoo_19",
+    "ref": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+    "scope": "manifests and domain files listed in 06_SOURCE_EVIDENCE_AND_OPEN_DECISIONS.md"
+  },
+  "host_plan_mapping": "not_attempted_no_known_destination_schema"
+}

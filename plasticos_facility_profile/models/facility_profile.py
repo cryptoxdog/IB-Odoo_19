@@ -248,6 +248,8 @@ class PlasticosFacilityProfile(models.Model):
     @api.constrains("partner_id")
     def _check_partner_is_facility(self):
         for rec in self:
+            if not rec.partner_id:
+                continue
             if not rec.partner_id.is_facility:
                 raise ValidationError(
                     "Capability profile can only be attached to facility-level partners (locations or standalone companies)."
@@ -314,29 +316,46 @@ class PlasticosFacilityProfile(models.Model):
     # CRUD
     # ═════════════════════════════════════════════════════════
 
+    def _reject_duplicate_facility_partners(self, partner_ids):
+        """Reject partner assignments that would violate one profile per facility.
+
+        ``partner_ids`` is the intended partner of every record in the operation.
+        The database unique constraint remains the concurrency authority.
+        """
+        requested = [partner_id for partner_id in partner_ids if partner_id]
+        if not requested:
+            return
+        seen = set()
+        conflict_ids = set()
+        for partner_id in requested:
+            if partner_id in seen:
+                conflict_ids.add(partner_id)
+            seen.add(partner_id)
+        domain = [("partner_id", "in", list(seen))]
+        if self.ids:
+            domain.append(("id", "not in", list(self.ids)))
+        persisted = self.search(domain)
+        conflict_ids.update(persisted.mapped("partner_id").ids)
+        if not conflict_ids:
+            return
+        partners = self.env["res.partner"].browse(sorted(conflict_ids))
+        partner = partners[:1]
+        raise ValidationError(f"A capability profile for facility '{partner.name}' already exists.")
+
     @api.model_create_multi
     def create(self, vals_list):
-        for vals in vals_list:
-            partner_id = vals.get("partner_id")
-            if partner_id and self.search([("partner_id", "=", partner_id)], limit=1):
-                partner = self.env["res.partner"].browse(partner_id)
-                raise ValidationError(f"A capability profile for facility '{partner.name}' already exists.")
-        records = super().create(vals_list)
-        return records
+        self._reject_duplicate_facility_partners([vals.get("partner_id") for vals in vals_list])
+        return super().create(vals_list)
 
     def write(self, vals):
-        partner_id = vals.get("partner_id")
-        if partner_id:
-            for record in self:
-                duplicate = self.search([("partner_id", "=", partner_id), ("id", "!=", record.id)], limit=1)
-                if duplicate:
-                    partner = self.env["res.partner"].browse(partner_id)
-                    raise ValidationError(f"A capability profile for facility '{partner.name}' already exists.")
-        res = super().write(vals)
-        return res
+        if vals.get("partner_id"):
+            self._reject_duplicate_facility_partners([vals["partner_id"]] * len(self))
+        return super().write(vals)
 
     def unlink(self):
         for rec in self:
+            if not rec.partner_id:
+                continue
             if (
                 rec.env["sale.order"].search_count(
                     [

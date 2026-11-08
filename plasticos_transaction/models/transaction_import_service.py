@@ -1,13 +1,13 @@
 """
-Transaction Import Service for seeding historical cieTrade data.
+Transaction Import Service for seeding historical ERP data.
 
-Imports transaction line details from cieTrade.WksDetail.csv into:
+Imports transaction line details from ERP.WksDetail.csv into:
 - plasticos.transaction (header records, grouped by BuySellNo)
 - plasticos.transaction.line (detail records)
 
 Usage (shell):
     env["plasticos.transaction.import.service"].run_csv_import(
-        "/path/to/cieTrade.WksDetail.csv"
+        "/path/to/ERP.WksDetail.csv"
     )
 
 REVIEWER NOTE: This service intentionally calls self.env.cr.commit() every
@@ -49,7 +49,7 @@ class PlasticosTransactionImportService(models.AbstractModel):
     @api.model
     def run_csv_import(self, csv_path: str, dry_run: bool = False) -> dict:
         """
-        Import historical transactions from cieTrade.WksDetail.csv.
+        Import historical transactions from ERP.WksDetail.csv.
 
         Args:
             csv_path: Absolute path to the CSV file

@@ -12,6 +12,17 @@
 4. **Partner Hierarchy** — native Odoo fields (`customer_rank`, `supplier_rank`) + facility capability profiles. No custom partner booleans.
 5. **Intake-First Flow** — supplier intake drives buyer matching. Material profile → intake → match → offer → transaction.
 6. **Odoo 19 Strict** — zero deprecated patterns. `models.Constraint` not `_sql_constraints`. No `@api.one`. No `category_id` on groups.
+7. **ERP Native-Semantics First** — the historical ERP is a source, not a schema template. Direct SQL feeds the existing deterministic import pipeline. Prefer native Odoo fields and existing PlasticOS relationships; do not create source-mirroring fields. Any proposed new field requires explicit operator approval.
+
+## ERP Historical Import Law
+
+- Canonical operator path: `make import-erp`.
+- Runtime authority: restored ERP SQL Server through `plasticos_partner_import/erp/reader.py::PROJECTION_SCRIPTS`.
+- Frozen `erp_extracted_data/bulk/` grids are regression fixtures only; never extend CSV as the runtime architecture.
+- `PARTNERS_ONLY=1` is Concern 1 only. A full run writes partners, then `plasticos_transaction` writes `sale.order`, `purchase.order`, and draft `account.move` records. The importer writes no `plasticos.transaction` or `plasticos.transaction.line` itself; it confirms the sale orders it realizes, and that confirmation compiles the transaction. It creates no payment and posts nothing itself. Vendor bills stay one per `PayableID` and take their `PayablesBatch` header's date, vendor invoice number, terms or due date (operator decision 2026-10-24). Source-accurate posting, settlement, and full direct-SQL replay are unproven (ADR-021 amendments 2026-10-24).
+- Import summaries are fail-closed evidence. A full run is not green unless `records_seen == records_created + records_updated + records_unchanged + records_rejected` and `duplicates == 0`.
+- Changes to the direct-SQL source seam require a real restored-SQL-Server → Odoo runtime import plus identical replay. Fixture-only runtime gates are insufficient for that claim.
+- `GPLedger.TradeDt` means PO issued / transaction approved under current PlasticOS rules. Native target: `purchase.order.date_approve` when the historical PO is realized. `purchase.order.date_order` remains RFQ/order deadline. Do not add `plasticos.transaction.transaction_date`.
 
 ## Code Style Examples
 
@@ -91,7 +102,7 @@ class PlasticosMaterialProfile(models.Model):
 - `_name` MUST be a string literal — NEVER `_name = SOME_CONSTANT`
 - Every `fields.Many2one` MUST have `ondelete=` parameter
 - Cross-addon imports MUST be inside functions (lazy loading), never at module top level
-- Run `pre-commit run --all-files` before committing (runs all 31 hooks)
+- Run `pre-commit run --all-files` before committing (runs every commit-stage hook; 39 hooks are configured, 10 of them at pre-push — see the AGENTS.md 2026-11-03 correction)
 - Run `ruff check --fix . && ruff format .` before committing (line length = **120**, not 100)
 - Run `python3 scripts/check_module_wiring.py` before committing
 - Follow the **CI Compliance Checklist** in `AGENTS.md` — CI will reject PRs that skip these steps
@@ -129,7 +140,7 @@ class PlasticosMaterialProfile(models.Model):
 @ARCHITECTURE.md
 @INVARIANTS.md
 @.claude/README.md
-@.claude/skills/structured-reasoning/SKILL.md
+@.cursor-commands/skills/l9-structured-reasoning/SKILL.md
 ```
 
 ## References
@@ -142,8 +153,31 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **XML Views** → `.claude/rules/xml-views.md`
 - **Neo4j Boundary** → `.claude/rules/neo4j.md`
 - **System State** → `.claude/rules/system-state.md`
-- **Agent Skills & Subagents** → `.claude/README.md` (skill registry + wiring)
-- **Structured Reasoning** → `.claude/skills/structured-reasoning/SKILL.md` (planning, architecture, debugging)
+- **Agent Skills & Subagents** → `.claude/README.md` + `skills/` (SSOT) + `skills/PLASTICOS_CANONICAL_LAW.md`
+- **Repo Index (check before grepping)** → `docs/reports/repo-index/` — classes, functions, methods, Odoo models/views/crons/security groups, tests; regenerate with `python3 scripts/repo_generators/export_repo_indexes.py`
+- **GMP reports** → `docs/reports/gmp-reports/`. When executing a GMP, write the report there as `GMP-Report-<id>-<slug>.md` and commit it. Do not write a root `reports/` directory, do not scatter the report elsewhere in the repo, and do not finish the GMP without saving the report.
+- **Skill invocation tiers** → `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` (which L9 skills auto-invoke vs explicit-only)
+- **Structured Reasoning** → `@.cursor-commands/skills/l9-structured-reasoning/SKILL.md`
 - **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)
 - **System Invariants** → `INVARIANTS.md` (18 invariants with CI enforcement map)
-- **Gate hub & phased autonomy** → `docs/adr/ADR-002-gate-hub-phased-autonomy.md`, `docs/GATE_AUTONOMY_ROADMAP.md`
+- **ADRs (canonical)** → `docs/adr/README.md` (index); Gate hub → `docs/adr/ADR-002-gate-hub-phased-autonomy.md` + `docs/adr/ADR-003-single-external-intelligence-authority.md`; convergence → ADR-009–019; phases → ADR-002 §3, ADR-016, ADR-018. `docs/roadmap/` is empty. `memory-bank/` is retired. Operational state is `workflow_state.md`. `docs/campaigns/odoo_tech_debt` was retired on 2026-11-03 (PR #355); no repository debt tracker replaces it.
+- **Intake vs material profile** → `docs/adr/ADR-004-intake-vs-material-profile-domain-split.md`, `docs/adr/ADR-005-intake-material-profile-delta-bridge.md`
+
+<!-- BEGIN L9 FORMATTER OWNERSHIP (generated — do not edit) -->
+
+## Formatter ownership
+
+Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, VS Code JSON language features owns JSONC (the Biome extension cannot format jsonc), Ruff owns Python, Prettier owns Markdown (format-on-save off so governance docs do not churn).
+
+Exactly one formatter owns each language. Do not reformat a file with a tool other than its owner, and do not add config for a competing formatter: the result is a diff that churns on every save.
+
+| Languages | Owner | Note |
+|---|---|---|
+| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json` | **biome** | bound by the governed IDE profile |
+| `jsonc` | **vscode-json** | bound by the governed IDE profile |
+| `python` | **ruff** | bound by the governed IDE profile |
+| `markdown` | **prettier** | bound by the governed IDE profile |
+
+Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
+
+<!-- END L9 FORMATTER OWNERSHIP -->

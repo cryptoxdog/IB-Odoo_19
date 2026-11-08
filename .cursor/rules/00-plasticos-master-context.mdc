@@ -8,9 +8,9 @@ alwaysApply: true
 **Project:** PlasticOS IB-Odoo_19 — recycled-plastics brokerage ERP, 29 custom modules.
 **Status:** DEPLOYED. Final optimization / go-live phase. No new features without explicit approval.
 **Repo:** `cryptoxdog/IB-Odoo_19` | **Staging** = dev branch | **Production** = prod/main
-**Live repo path:** `/Users/macm2/IB_Odoo-19 (MacMini)/IB-Odoo_19` — use this for ALL shell commands. Repo was moved out of Dropbox; the old Dropbox path is stale.
+**Shell cwd:** Use the Cursor workspace root (`$CURSOR_PROJECT_DIR` or repo clone path on the active machine). Repo was moved out of Dropbox — do not assume a machine-specific absolute path.
 
----
+**Cursor governance:** global `@.cursor/governance/CANONICAL_LAW.md` (symlink — do not edit from this repo). **PlasticOS law:** `@skills/PLASTICOS_CANONICAL_LAW.md` — `skills/` SSOT, skill registry, non-addon boundary. Global commands/skills/rules via `@.cursor-commands/` only; repo `.cursor/rules/` is PlasticOS overlay.
 
 ## TASK ROUTER — Read This First
 
@@ -33,6 +33,10 @@ Before writing any code or making any change, identify your task and consult the
 3. **Match id-column format** — if existing ids are `access_foo` (no prefix), use that. If they are `module.access_foo`, use that. **Never mix formats in the same file.**
 - See **`71-plasticos-security-model`** for the full format contract and forbidden patterns.
 
+
+### Changing module code that must reload on Staging/Docker
+- **`89-plasticos-odoo-version-bump`** + skill **`plasticos-odoo-version-bump`** — bump `__manifest__.py` version without asking; `make update m=<that_module>` only (never `update-all` / kitchen-sink `-u`).
+
 ### Editing `__manifest__.py`
 - **`81-ci-manifest-contract`** — Version format `19.0.X.Y.Z`, depends in layer order, `external_dependencies` for non-Odoo packages. Run `ruff format` after every edit.
 
@@ -47,27 +51,43 @@ Before writing any code or making any change, identify your task and consult the
 - **`50-plasticos-web-lead-guard`** — Read this ENTIRE rule first. Do not touch write/unlink guards, partner-deferral block, or `_find_or_create_partner()`. Run web lead tests before and after.
 
 ### Pushing code to remote
-- **`70-github-push-workflow`** — `make push` always. API only after `make pr-check` passes and `git push` fails (Dropbox mmap). Never skip pre-commit hooks.
+- **`70-github-api-commit`** — `make pr` is the only publication command. API publication is refused.
 
 ### Reviewing or creating a PR
-- **`20-plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
+- **`plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
 - **`81-ci-manifest-contract`** + **`82-ci-module-wiring`** — Check manifest deps and wiring for every changed model file.
 
 ### Gate / CEG / autonomy integration
-- **`docs/adr/ADR-002-gate-hub-phased-autonomy.md`** — Gate mandatory hub; Odoo local fallback; no direct Odoo→CEG.
-- **`docs/GATE_AUTONOMY_ROADMAP.md`** — Phase 1–3 scope, human checkpoints, deferred pack items.
+- **`docs/adr/ADR-002-gate-hub-phased-autonomy.md`** — Gate mandatory hub and phased human checkpoints. §2 local fallback is not authority.
+- **ADR-016 and ADR-018** — phase criteria. `docs/roadmap/` is empty; no script writes it.
 
 ### Editing `.github/workflows/ci.yml`
 - **`86-ci-github-actions`** — SHA-pin third-party actions. Verify test files exist on the branch. Never re-enable disabled workflows.
 
 ### Writing or running tests
+- **`plasticos-odoo-docker-testing`** — Docker `install-smoke` / `test-odoo` before Odoo.sh; Gate-shell module-order SSOT.
 - **`80-plasticos-testing-rules`** — `TransactionCase`, `setUpClass` fixtures (never `skipTest`), `type='consu'` for storable in Odoo 19.
+
+### Python editor tooling / pyproject / Pyright / autocomplete
+- **`88-plasticos-odoo-python-tooling`** — Pyright `basic` (editor-only), pyproject SSOT, `~/dev/odoo-19` extraPaths in `.vscode/settings.json`. Global `20-lang-python` does **not** apply here.
 
 ### Deploying to Docker / running `make update`
 - **`30-plasticos-deploy-validation`** — Pre-deploy snapshot, log validation, ICP params check, pipeline_v2 guard.
 
+### Running Docker Odoo tests (`make test-module`, `make test-odoo`, `scripts/test_env.sh`)
+- **`36-plasticos-docker-test-fixture`** — Clone only `config/test_env_fixture.conf`. Do not use another database. Do not create a new template unless that fixture is gone and the user said to rebuild it.
+
 ### Final pre-go-live pass
-- **`60-plasticos-final-touches`** — All 10 gates in sequence. `make pr-check` must pass last.
+- **`plasticos-final-touches`** — All 10 gates in sequence. `make pr-check` must pass last.
+
+### External libraries / platforms (FastAPI, Neo4j, pytest, GitHub Actions, new tools)
+- **`02-context7-auto-invoke`** — Context7 MCP before first edit; repo Odoo rules still win when both apply.
+
+### Code navigation / cross-module wiring / MCP code-graph
+- **`87-plasticos-code-graph-rag`** — grep first; graph for importers, impact, unknown cross-module location only.
+- Load **`l9-code-graph-rag-mcp`** (`@.cursor-commands/skills/l9-code-graph-rag-mcp/`) for tool gate and CLI indexing.
+- Repo index lives at `docs/reports/repo-index/`. Regenerate with `python3 scripts/repo_generators/export_repo_indexes.py`. Do not create a root `reports/` directory. The global `l9-repo-index` default path does not apply in this repo.
+- GMP execution reports go in `docs/reports/gmp-reports/` and are committed. Do not scatter them or leave them unsaved.
 
 ---
 
@@ -75,7 +95,7 @@ Before writing any code or making any change, identify your task and consult the
 
 1. **NEVER activate `pipeline_v2.py`** — `ci/check_pipeline_v2_guard.py` hard-rejects any touch
 2. **Read the current file before editing** — never write from memory
-3. **`make push` before any remote push** — runs `make pr-check` + `git push`; API push only if git fails AND pr-check already passed this session
+3. **`make pr` is the only publication command** — it runs the local gates, pushes the feature branch, and opens or reuses the pull request into Staging. Merge is a separate human decision.
 4. **`make update m=X`** for all module upgrades — never bare `odoo-bin` outside Docker
 5. **Staging → Production** — never merge features directly to Production
 6. **`sudo()` needs inline justification** — comment on the same line why
@@ -83,6 +103,8 @@ Before writing any code or making any change, identify your task and consult the
 8. **No credentials in code** — use `.env.local` or Odoo system params
 9. **Additive migrations only** — no column/table drops without explicit approval
 10. **`ruff check && ruff format` before every push** — no exceptions, even for "trivial" changes
+11. **Version bump mandatory for runtime module changes** — never ask; upgrade only bumped module (`make update m=X`), never `update-all` for a one-module fix
+12. **PlasticOS skills SSOT is `skills/`** — not Claude Code, not Cursor-Governance; never an Odoo addon (`__manifest__.py` forbidden)
 
 ---
 
@@ -90,8 +112,8 @@ Before writing any code or making any change, identify your task and consult the
 
 | Task | Command |
 |------|---------|
-| Safe push (enforces pr-check) | `make push` |
-| Required before any push | `make pr-check` |
+| Publish a committed feature branch into Staging | `make pr` |
+| Local gate without publishing | `make pr-check` |
 | Module upgrade | `make update m=<module>` |
 | Full audit | `make audit` |
 | Scan PR + fix CI issues | `python3 scripts/pr_autopilot.py --branch <branch> --fix` |
@@ -106,7 +128,7 @@ Before writing any code or making any change, identify your task and consult the
 |------|-----|
 | `pipeline_v2.py` | External API bridge not ready; CI gate blocks activation |
 | `plasticos_enrichment` full wiring | Gated on pipeline_v2.py (Gate `converge` path: see ADR-002 Phase 1 optional) |
-| Gate web-lead triage (`web_lead_gate_bridge`) | Phase 3 only — `docs/GATE_AUTONOMY_ROADMAP.md` |
+| Gate web-lead triage (`web_lead_gate_bridge`) | Phase 3 only — ADR-016 |
 | Product ↔ material_profile link | Deferred |
 
 ---
@@ -143,7 +165,7 @@ Before writing any code or making any change, identify your task and consult the
 
 | Phrase | Activates |
 |--------|-----------|
-| `PR_REVIEW_MODE` or `REVIEW PR #N` | `20-plasticos-pr-review-kernel` |
+| `PR_REVIEW_MODE` or `REVIEW PR #N` | `plasticos-pr-review-kernel` |
 | `DEPLOY_VALIDATION_MODE` | `30-plasticos-deploy-validation` |
-| `FINAL_TOUCHES_MODE` | `60-plasticos-final-touches` |
+| `FINAL_TOUCHES_MODE` | `plasticos-final-touches` |
 | `AUDIT_MODE = "FULL"` | `docs/.../01_code_review_audit_prompt.md` |

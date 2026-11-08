@@ -23,11 +23,11 @@ Zero Odoo runtime. Pure AST + XML parsing.
 import ast
 import os
 import re
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple
 
+import defusedxml.ElementTree as ET
 import pytest
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -73,6 +73,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "closed",
         "paid",
         "posted",
+        "to approve",
         # Odoo move types (account.move)
         "entry",
         "out_invoice",
@@ -87,6 +88,40 @@ GLOBAL_ALLOWLIST = frozenset(
         "cash",
         "bank",
         "general",
+        # Odoo account.account types (core selections, not declared in this repo)
+        "asset_receivable",
+        "liability_payable",
+        "equity_unaffected",
+        "expense_direct_cost",
+        # ERP worksheet document map keys (native_document_import), not Selection values
+        "sales",
+        "purchases",
+        "credits",
+        "bills",
+        "freight_bills",
+        # ERP source-exception census keys (native_document_import / run_erp_import), not Selection values
+        "census",
+        "anomalies",
+        "unresolved",
+        "rows",
+        "worksheets",
+        "number",
+        "detail_id",
+        "side",
+        "key",
+        "payable_id",
+        "worksheet",
+        "vendor",
+        "invoice_no",
+        "gl",
+        "disposition",
+        "rows_seen",
+        "billed_rows",
+        "billed_amount",
+        "quarantined_rows",
+        "quarantined_amount",
+        "by_disposition",
+        "closes",
         # Odoo partner types
         "contact",
         "invoice",
@@ -162,6 +197,9 @@ GLOBAL_ALLOWLIST = frozenset(
         "company",
         "person",
         # ─────────────────────────────────────────────────────────────────────
+        # SQL table names for the load row lock, not Selection values
+        "sale_order",
+        "plasticos_load",
         # ODOO MANIFEST KEYS — standard __manifest__.py dict keys
         # ─────────────────────────────────────────────────────────────────────
         "name",
@@ -410,6 +448,8 @@ GLOBAL_ALLOWLIST = frozenset(
         "type_name",
         "pct",
         "volume",
+        "polymer",
+        "material_grade",
         # ─────────────────────────────────────────────────────────────────────
         # NULL/EMPTY MARKERS
         # ─────────────────────────────────────────────────────────────────────
@@ -431,6 +471,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "Person",
         "Contact",
         "corporate",
+        "facility",
         # ─────────────────────────────────────────────────────────────────────
         # INFERENCE ENGINE / RULE ENGINE VALUES
         # ─────────────────────────────────────────────────────────────────────
@@ -684,18 +725,34 @@ GLOBAL_ALLOWLIST = frozenset(
         "mistral",
         "gemini",
         "perplexity",
+        # Gate SDK error code compared in gate_client.py — not an Odoo Selection.
+        "action_not_permitted",
         # ─────────────────────────────────────────────────────────────────────
         # WEB LEAD PARSER DISPATCH KEYS — triage_helpers.py container/unit maps
         # These are natural language parsing keys, not Odoo selection values
         # ─────────────────────────────────────────────────────────────────────
         "drum",
         "tote",
+        # Normalizer grade words. What the items were, not a form Selection.
+        "crate",
+        "bucket",
+        "pail",
+        "pails",
         "supersack",
         "super sack",
         "truckload",
         "truck",
         "container",
         "load",
+        # ─────────────────────────────────────────────────────────────────────
+        # IMPORT RUN CLASSIFICATION OUTCOMES — per-record outcome vocabulary
+        # persisted as counters on plasticos.crm.sync.run / the ERP import
+        # report, not Odoo Selection values (odoo-intent-1 ingestion milestone)
+        # ─────────────────────────────────────────────────────────────────────
+        "unchanged",
+        "duplicate_rejected",
+        "table_rows",
+        "error_rows",
         "one",
         "two",
         "three",
@@ -735,6 +792,73 @@ GLOBAL_ALLOWLIST = frozenset(
         "gif",
         "jpg",
         "jpeg",
+        # ─────────────────────────────────────────────────────────────────────
+        # HTML TAG NAMES — html.parser callbacks that split res.partner.comment
+        # into paragraphs (approved_identity.py, erp_import_service.py)
+        # ─────────────────────────────────────────────────────────────────────
+        "br",
+        # ─────────────────────────────────────────────────────────────────────
+        # ERP IMPORT SOURCE VOCABULARY — erp_import_service.py
+        # ISO country codes and ERP Address.Type words read from the bulk
+        # grids, not Odoo selection values
+        # ─────────────────────────────────────────────────────────────────────
+        "US",
+        "REMIT",
+        # ERP partner layer names (erp_import_service.PARTNER_LAYERS, the shell
+        # driver, the layer validator), the ERP RR role code, and the contact
+        # role tag name the role mapping writes
+        "counterparties",
+        "addresses",
+        "roles",
+        "salesreps",
+        "rr",
+        "Decision Maker",
+        # ─────────────────────────────────────────────────────────────────────
+        # CORE ODOO SELECTION VALUES — declared by Odoo, not by plasticos_*
+        # modules, so the scanner's Selection registry cannot see them
+        # ─────────────────────────────────────────────────────────────────────
+        "installed",  # ir.module.module.state
+        # Material normalizer source phrases (_SPECS) and CRM column labels.
+        # Exact importer text and field-kind names, not Selection values.
+        "99 clear ldpe film",
+        "ldpe grade a film",
+        "95 clear ldpe film",
+        "ldpe grade b film",
+        "90 clear ldpe film",
+        "ldpe grade c film",
+        "pp film (bopp)",
+        "pc-abs",
+        "3-7",
+        "1-7",
+        "pe",
+        "explicit hmw-hdpe drums",
+        "hdpe drums (hmw-hdpe)",
+        "ldpe film a",
+        "3-7 commingled",
+        "1-7 commingled",
+        "pp supersacs",
+        "materials",
+        "material",
+        "material form",
+        "material type",
+        "phrase",
+        "hint",
+        # CRM material section buckets. Source labels and slot names, not Selection values.
+        "mrfs",
+        "pps",
+        "weight",
+        "weights",
+        "loads",
+        "loads per month",
+        "notes",
+        "note",
+        "previous content",
+        "size",
+        "phrases",
+        "hints",
+        # Linda outgoing-claim decisions in mail.mail._send. Not Selection values.
+        "claimed",
+        "skip",
     }
 )
 
@@ -904,7 +1028,7 @@ def _extract_xml_enum_values(xml_path: str):
     sources: list[EnumSource] = []
 
     try:
-        tree = ET.parse(xml_path)  # nosec B314 - parsing trusted local Odoo XML
+        tree = ET.parse(xml_path)
     except ET.ParseError:
         return names, codes, ext_ids, sources
 
@@ -1098,11 +1222,21 @@ def _discover_plasticos_modules():
     )
 
 
+# Odoo-free packages inside a plasticos module that hold **external** source-
+# system vocabulary rather than Odoo Selection values. Their string literals
+# (foreign table names, legacy type labels, source boolean spellings) can never
+# resolve to an Odoo enum, so scanning them yields only false positives.
+# Each is asserted Odoo-import-free by its own contract test.
+NON_ODOO_VOCABULARY_DIRS = frozenset({"erp"})
+
+
 def _iter_python_files(module_dir: Path):
     """Yield (relative_path, contents) for all .py files in a module.
-    Skips docs/ and any directory named docs."""
+
+    Skips docs/ and any Odoo-free external-vocabulary package."""
     for dirpath, _, filenames in os.walk(module_dir):
-        if "docs" in Path(dirpath).parts:
+        parts = Path(dirpath).parts
+        if "docs" in parts or NON_ODOO_VOCABULARY_DIRS & set(parts):
             continue
         for fname in sorted(filenames):
             if fname.endswith(".py") and fname != "__pycache__":
@@ -1285,6 +1419,7 @@ class TestRegistrySanity:
             "thermoform",
             "rotomold",
             "compounding",
+            "compression_mold",
             "other",
         }
         try:
@@ -1633,7 +1768,7 @@ class TestEquipmentCodeAlignment:
         for mod in MODULES:
             for xml_path in _iter_xml_data_files(REPO_ROOT / mod):
                 try:
-                    tree = ET.parse(xml_path)  # nosec B314 - parsing trusted local Odoo XML
+                    tree = ET.parse(xml_path)
                 except ET.ParseError:
                     continue
                 for record in tree.getroot().iter("record"):

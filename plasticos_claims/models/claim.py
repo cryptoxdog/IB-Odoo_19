@@ -30,10 +30,9 @@ class PlasticosClaim(models.Model):
     load_id = fields.Many2one(
         "plasticos.load",
         string="Load",
-        related="transaction_id.load_id",
-        store=True,
         index=True,
-        ondelete="cascade",
+        ondelete="restrict",
+        help="Set only when this claim is about one load. Empty claims stay transaction-level.",
     )
     source_document_id = fields.Many2one(
         "plasticos.document",
@@ -347,6 +346,17 @@ class PlasticosClaim(models.Model):
                 rec.recovery_rate = 0.0
 
     # ── Navigation Actions (for smart buttons) ───────────────
+
+    @api.constrains("transaction_id", "load_id")
+    def _check_load_belongs_to_transaction(self):
+        for rec in self:
+            if rec.load_id and rec.load_id.transaction_id != rec.transaction_id:
+                raise ValidationError("The selected load does not belong to this claim's transaction.")
+
+    @api.onchange("transaction_id")
+    def _onchange_transaction_clear_foreign_load(self):
+        if self.load_id and self.load_id.transaction_id != self.transaction_id:
+            self.load_id = False
 
     def action_view_transaction(self):
         """Navigate to the linked transaction."""

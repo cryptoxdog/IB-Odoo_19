@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "files": 23,
+  "manifest_complete": true,
+  "original_draft_sha256": "5941fbd77c8d018c0f589e19cb5def111114d15d5907c30393b713cbc60f6e0a",
+  "repo_revision": "677d734fd88615d673501d91de88734b7150ff50",
+  "module_count": 30,
+  "errors": [],
+  "proof_limit": "Integrity and declared sources only; not current remote, installed Enterprise or business behavior."
+}

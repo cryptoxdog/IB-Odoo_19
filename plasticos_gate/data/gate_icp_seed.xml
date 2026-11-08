@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="param_gate_local_node" model="ir.config_parameter">
+        <field name="key">plasticos.gate.local_node</field>
+        <field name="value">odoo</field>
+    </record>
+    <record id="param_gate_matching_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.matching_enabled</field>
+        <field name="value">1</field>
+    </record>
+    <record id="param_gate_matching_action" model="ir.config_parameter">
+        <field name="key">plasticos.gate.matching_action</field>
+        <field name="value">match</field>
+    </record>
+    <record id="param_gate_timeout_seconds" model="ir.config_parameter">
+        <field name="key">plasticos.gate.timeout_seconds</field>
+        <field name="value">30</field>
+    </record>
+    <record id="param_gate_consensus_threshold" model="ir.config_parameter">
+        <field name="key">plasticos.gate.consensus_threshold</field>
+        <field name="value">0.80</field>
+    </record>
+    <record id="param_gate_org_id" model="ir.config_parameter">
+        <field name="key">plasticos.gate.org_id</field>
+        <field name="value"></field>
+    </record>
+    <record id="param_gate_enrichment_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.enrichment_enabled</field>
+        <field name="value">1</field>
+    </record>
+    <record id="param_gate_enrichment_action" model="ir.config_parameter">
+        <field name="key">plasticos.gate.enrichment_action</field>
+        <field name="value">converge</field>
+    </record>
+    <!-- Packet signing lives on GATE_URL + L9_* in the process environment
+         (L9_SIGNING_KEY, L9_SIGNING_KEY_ID, L9_VERIFYING_KEYS_JSON, L9_REQUIRE_SIGNATURE).
+         L9_VERIFYING_KEYS_JSON is Gate's key, not Odoo's. -->
+    <record id="param_gate_signing_algorithm" model="ir.config_parameter">
+        <field name="key">plasticos.gate.signing_algorithm</field>
+        <field name="value">hmac-sha256</field>
+    </record>
+    <record id="param_gate_verify_response_signatures" model="ir.config_parameter">
+        <field name="key">plasticos.gate.verify_response_signatures</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_auto_writeback" model="ir.config_parameter">
+        <field name="key">plasticos.gate.auto_writeback</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_auto_writeback_operator_approved" model="ir.config_parameter">
+        <field name="key">plasticos.gate.auto_writeback_operator_approved</field>
+        <field name="value">0</field>
+    </record>
+
+    <record id="param_gate_dual_write_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.dual_write_enabled</field>
+        <field name="value">0</field>
+    </record>
+
+    <record id="param_gate_field_family_cutover_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.field_family_cutover_enabled</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_field_family_cutover_family" model="ir.config_parameter">
+        <field name="key">plasticos.gate.field_family_cutover_family</field>
+        <field name="value">specification</field>
+    </record>
+    <record id="param_gate_field_family_cutover_operator_approved" model="ir.config_parameter">
+        <field name="key">plasticos.gate.field_family_cutover_operator_approved</field>
+        <field name="value">0</field>
+    </record>
+
+</odoo>

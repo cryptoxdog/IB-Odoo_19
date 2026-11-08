@@ -1,0 +1,69 @@
+---
+id: plasticos.rule.odoo-sh-staging
+version: 1.1.0
+description: PlasticOS Odoo.sh staging endpoint; .env.local is SSH SSOT (build IDs rotate).
+scope: repository
+domain: deployment
+activation: agent_requested
+authority: canonical_repository
+context_cost: minimal
+alwaysApply: false
+---
+# Odoo.sh Staging Environment
+
+**Effective:** 2026-08-07
+
+## SSH SSOT (mandatory)
+
+Live Connect credentials live in **repo-root `.env.local`** (gitignored):
+
+| Key | Format |
+|---|---|
+| `ODOO_SH_STAGING_SSH` | `BUILD_ID@cryptoxdog-ib-odoo-19-staging-BUILD_ID.dev.odoo.com` |
+| `ODOO_SH_STAGING_URL` | `https://cryptoxdog-ib-odoo-19-staging-BUILD_ID.dev.odoo.com/odoo` |
+| `ODOO_SH_STAGING_BRANCH` | `Staging` |
+
+**Canonical connect (agents + operators):**
+
+```bash
+set -a && source .env.local && set +a
+ssh "$ODOO_SH_STAGING_SSH"
+```
+
+Rules:
+
+1. **Never** put a literal `ssh ` prefix inside `ODOO_SH_STAGING_SSH` (breaks `ssh "$ODOO_SH_STAGING_SSH"`).
+2. Odoo.sh **rotates build IDs** on every Staging rebuild — update `.env.local` from the Connect dropdown first; this rule's snapshot below is secondary.
+3. Project SSH **key** is stable (Odoo.sh Profile); only the build number/host changes.
+4. After a rebuild: update `.env.local` → optionally sync the snapshot table in this file → diagnose via `plasticos-odoo-sh-deploy`.
+
+## Staging instance (snapshot — may lag `.env.local`)
+
+| Property | Value |
+|---|---|
+| URL | `https://cryptoxdog-ib-odoo-19-staging-36099032.dev.odoo.com` |
+| Build ID | `36099032` |
+| Branch | `Staging` |
+| Platform | Odoo.sh |
+
+## Shell commands
+
+```bash
+set -a && source .env.local && set +a
+BID="${ODOO_SH_STAGING_SSH%%@*}"
+ssh "$ODOO_SH_STAGING_SSH" "odoo-bin shell -d cryptoxdog-ib-odoo-19-staging-${BID}"
+```
+
+## Web lead staging endpoints
+
+| Method | Path | Auth |
+|---|---|---|
+| `POST` | `/api/v1/web-lead/inbound/<provider_key>` | `access_token` query, Bearer, or `X-API-Key` |
+| `POST` | `/api/v1/cognito-webhook` | Same auth; alias for provider `cognito` |
+| `GET` | `/api/v1/web-lead/health` | None |
+
+## Deployment boundary
+
+- A push to `Staging` triggers an Odoo.sh deployment.
+- Commit and push both require explicit operator authorization.
+- SSH sessions are ephemeral; changes outside persistent storage are lost on rebuild.

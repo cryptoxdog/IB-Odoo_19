@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_supply_opportunity_list" model="ir.ui.view">
+    <field name="name">plasticos.supply.opportunity.list</field>
+    <field name="model">plasticos.supply.opportunity</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="state"/>
+        <field name="supplier_partner_id"/>
+        <field name="material_profile_id"/>
+        <field name="quantity_lbs"/>
+        <field name="quantity_state"/>
+        <field name="asking_price_per_lb"/>
+        <field name="company_id"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_supply_opportunity_form" model="ir.ui.view">
+    <field name="name">plasticos.supply.opportunity.form</field>
+    <field name="model">plasticos.supply.opportunity</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="name"/>
+              <field name="state"/>
+              <field name="commercial_readiness"/>
+              <field name="active"/>
+            </group>
+            <group>
+              <field name="canonical_uuid" readonly="1"/>
+              <field name="company_id"/>
+              <field name="contract_version"/>
+              <field name="intake_id"/>
+            </group>
+          </group>
+          <group string="Supply">
+            <field name="supplier_partner_id"/>
+            <field name="origin_facility_id"/>
+            <field name="material_profile_id"/>
+            <field name="specification_id"/>
+            <field name="quantity_lbs"/>
+            <field name="quantity_state"/>
+            <field name="min_lot_size_lbs"/>
+            <field name="max_lot_size_lbs"/>
+            <field name="cadence"/>
+            <field name="available_from"/>
+            <field name="available_until"/>
+            <field name="currency_id"/>
+            <field name="asking_price_per_lb"/>
+          </group>
+          <group string="Lineage">
+            <field name="source_system"/>
+            <field name="source_record_ref"/>
+            <field name="migration_batch_id"/>
+          </group>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+  <record id="action_supply_opportunity" model="ir.actions.act_window">
+    <field name="name">Supply Opportunities</field>
+    <field name="res_model">plasticos.supply.opportunity</field>
+    <field name="view_mode">list,form</field>
+  </record>
+</odoo>

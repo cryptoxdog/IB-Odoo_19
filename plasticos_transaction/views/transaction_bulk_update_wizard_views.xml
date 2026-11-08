@@ -5,6 +5,10 @@
     <record id="view_plasticos_transaction_bulk_wizard_tree" model="ir.ui.view">
         <field name="name">plasticos.transaction.bulk.wizard.tree</field>
         <field name="model">plasticos.transaction</field>
+        <!-- ir.ui.view orders by priority, name, id. At the default priority (16)
+             this name sorts before plasticos.transaction.tree, so this embedded
+             wizard list became the model's default list. Keep it out of the race. -->
+        <field name="priority" eval="99"/>
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
@@ -31,7 +35,11 @@
                     <field name="reason" required="1" placeholder="Enter reason for status change..."/>
                 </group>
                 <group string="Transactions to Update">
-                    <field name="transaction_ids" nolabel="1" readonly="1" view_id="ref('view_plasticos_transaction_bulk_wizard_tree')"/>
+                    <!-- Odoo resolves an embedded x2many list from list_view_ref in the field
+                         context (ir.ui.view._get_x2many_missing_view_archs); a view_id attribute
+                         on the field is inert. -->
+                    <field name="transaction_ids" nolabel="1" readonly="1"
+                           context="{'list_view_ref': 'plasticos_transaction.view_plasticos_transaction_bulk_wizard_tree'}"/>
                 </group>
                 <footer>
                     <button name="action_update_status" string="Update Status" type="object" class="btn-primary"/>

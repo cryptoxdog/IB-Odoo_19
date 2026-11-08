@@ -29,7 +29,7 @@
     <field name="arch" type="xml">
       <form>
         <sheet>
-          <notebook>
+          <notebook name="facility_profile_pages">
             <!-- ── Capability Tab ──────────────────────── -->
             <page string="Capability">
               <group>
@@ -154,15 +154,75 @@
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
-      <!-- Add lead_source_id, delivery terms, salesperson to partner form (visible for companies) -->
-      <xpath expr="//field[@name='category_id']" position="after">
-        <field name="lead_source_id" invisible="not is_company"/>
-        <field name="default_delivery_term" invisible="not is_company"/>
-        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" invisible="not is_company"/>
-        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or not supplier_rank"/>
+      <xpath expr="//div[hasclass('flex-column')]/h1" position="after">
+        <field name="contact_header_name" nolabel="1" readonly="1" invisible="not is_company or not contact_header_name"/>
       </xpath>
 
-      <xpath expr="//sheet/notebook" position="inside">
+      <xpath expr="//div[hasclass('flex-column')]/field[@name='company_type']" position="after">
+        <div class="d-flex align-items-baseline gap-2">
+          <span class="o_form_label">Address Type</span>
+          <field name="type" nolabel="1" readonly="1"/>
+          <field name="address_type_meaning" nolabel="1" readonly="1"/>
+        </div>
+      </xpath>
+
+      <xpath expr="//div[hasclass('flex-column')]//field[@name='phone']/parent::div" position="after">
+        <div class="d-flex align-items-baseline w-md-50">
+          <i class="fa fa-fw me-1 fa-mobile text-primary" title="Mobile"/>
+          <field name="mobile" class="w-100" widget="phone" placeholder="Mobile"/>
+        </div>
+        <field name="phone_line_ids" invisible="1"/>
+      </xpath>
+
+      <xpath expr="//notebook[page[@name='internal_notes']]" position="before">
+        <group string="Locations" invisible="not is_company or parent_id">
+          <field name="location_child_ids" nolabel="1">
+            <list>
+              <field name="name"/>
+              <field name="type"/>
+              <field name="city"/>
+            </list>
+          </field>
+        </group>
+        <group string="Sites" invisible="is_company">
+          <field name="location_partner_ids" nolabel="1">
+            <list>
+              <field name="name"/>
+              <field name="city"/>
+            </list>
+          </field>
+        </group>
+        <group string="People" invisible="not is_company or not parent_id">
+          <field name="site_person_ids" nolabel="1">
+            <list>
+              <field name="name"/>
+              <field name="function"/>
+              <field name="phone"/>
+            </list>
+          </field>
+        </group>
+      </xpath>
+
+      <!-- Under the address block so the label is a normal form row, not inside the tax-id cell. -->
+      <xpath expr="//div[@class='o_address_format']" position="after">
+        <field name="default_delivery_term" string="Dock Rule" invisible="not is_company"/>
+      </xpath>
+
+      <!-- Company-itself card: lead source sits where Tax ID was, then payment terms, salesperson. -->
+      <xpath expr="//field[@name='vat']" position="before">
+        <field name="lead_source_id" widget="badge" invisible="not is_company or type != 'contact'"/>
+        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or type != 'contact' or not supplier_rank"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" invisible="not is_company or type != 'contact'"/>
+      </xpath>
+
+      <!-- Other companies keep these fields after tags. The company-itself card uses the block above. -->
+      <xpath expr="//field[@name='category_id']" position="after">
+        <field name="lead_source_id" widget="badge" invisible="not is_company or type == 'contact'"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" invisible="not is_company or type == 'contact'"/>
+        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or type == 'contact' or not supplier_rank"/>
+      </xpath>
+
+      <xpath expr="//notebook[page[@name='internal_notes']]" position="inside">
 
         <page string="Facility Profile" name="facility_profile"
               invisible="not is_facility"

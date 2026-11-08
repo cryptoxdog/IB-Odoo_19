@@ -30,30 +30,50 @@ Known False Positive Patterns (for code review agents)
    - Examples: plasticos.graph.service, plasticos.compliance.service
    - The audit now skips AbstractModel and TransientModel classes
 
-3. FIELD_NOT_FOUND for action window fields:
-   - Views for `ir.actions.act_window` use standard fields like `arch`,
-     `res_model`, `view_mode` that aren't defined on custom models
-   - These are Odoo framework fields, not bugs
+3. FIELD_NOT_FOUND attribution (view field check):
+   - Only `<field>` elements inside the `arch` of an `ir.ui.view` record are
+     view references. Fields of other records (`ir.actions.*`, `ir.cron`, ...)
+     are that record's own data, not fields of the model a view displays.
+   - A `<field>` that holds a subview (`<list>`, `<form>`, `<kanban>`, ...) or an
+     `<xpath>` that targets one switches the context to the field's comodel.
+     When the comodel cannot be resolved the subtree is reported as
+     UNRESOLVED_VIEW_CONTEXT (HIGH, so the baseline gate fails closed on the
+     coverage gap) instead of being charged to the parent. An unreadable view
+     file is VIEW_PARSE_ERROR (HIGH) for the same reason, and so is a view whose
+     model neither `<field name="model">` nor a known `inherit_id` chain gives
+     (UNRESOLVED_VIEW_MODEL).
+   - A model's fields are the fields of every class that defines or extends it
+     (`_name`, `_inherit` string or list) in the view's module and its manifest
+     `depends` closure, plus prototype parents resolved the same way. Only the
+     verified Odoo 19 `mail.thread` / `mail.activity.mixin` fields are known
+     outside the repository; any other unresolved parent leaves its fields
+     unknown, so references to them still fail.
 
 4. Magic fields (create_date, write_date, etc.):
    - These exist on all Odoo models automatically
    - The audit excludes them from INVALID_DEPENDS checks
 """
 
+import ast
 import json
 import re
 import sys
+import xml.parsers.expat
 from collections import defaultdict
 from pathlib import Path
+
+from path_filters import skip_path
 
 
 class OdooAudit:
     """Comprehensive Odoo codebase auditor.
 
     Limitations:
-    - Does not track inherited fields (_inherit). Fields added via inheritance
-      in other modules will show as "not found" false positives.
-    - Does not track fields from Odoo core models (res.partner, etc.)
+    - The view field check resolves ``_inherit`` extensions per class (see
+      ``scan_model_index``). The depends / constraint / onchange checks still
+      use the first ``_name`` per file and do not see extension fields.
+    - Does not track fields from Odoo core models (res.partner, etc.); views of
+      models no repo class defines are not checked.
     """
 
     MAGIC_FIELDS = frozenset(
@@ -69,6 +89,43 @@ class OdooAudit:
             "name",
         }
     )
+
+    # Verified against odoo/odoo@19.0 addons/mail/models/mail_thread.py and
+    # mail_activity_mixin.py. These are the only framework parents whose fields
+    # the view check knows; every other parent outside the repo stays unresolved.
+    FRAMEWORK_MIXIN_FIELDS = {
+        "mail.thread": frozenset(
+            {
+                "message_is_follower",
+                "message_follower_ids",
+                "message_partner_ids",
+                "message_ids",
+                "has_message",
+                "message_needaction",
+                "message_needaction_counter",
+                "message_has_error",
+                "message_has_error_counter",
+                "message_attachment_count",
+            }
+        ),
+        "mail.activity.mixin": frozenset(
+            {
+                "activity_ids",
+                "activity_state",
+                "activity_user_id",
+                "activity_type_id",
+                "activity_type_icon",
+                "activity_date_deadline",
+                "my_activity_date_deadline",
+                "activity_summary",
+                "activity_exception_decoration",
+                "activity_exception_icon",
+            }
+        ),
+    }
+
+    RELATIONAL_TYPES = frozenset({"Many2one", "One2many", "Many2many"})
+    SUBVIEW_TAGS = frozenset({"list", "tree", "form", "kanban", "graph", "pivot", "calendar", "activity"})
 
     ODOO_CORE_MODELS = frozenset(
         {
@@ -94,11 +151,18 @@ class OdooAudit:
         self.field_refs = defaultdict(list)  # (model, field) -> [(file, line)]
         self.all_models = set()  # (model_name, py_file, is_abstract)
         self.state_models = {}  # model_name -> {field, values}
+        self.model_classes = []  # one entry per model class: {model, module, parents, fields, defines}
+        self.defined_models = set()  # models created by a class in the repo (``_name`` not an extension)
+        self.unresolved_view_contexts = []  # subviews whose comodel could not be resolved
+        self.view_parse_errors = []  # view files the field check could not read
+        self.unresolved_view_models = []  # views whose model neither <field name="model"> nor inherit_id gives
+        self._depends_cache = {}
+        self._fields_cache = {}
 
     def scan_model_fields(self):
         """Extract all field definitions from Python models."""
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -113,7 +177,7 @@ class OdooAudit:
                 inherited_model = inherit_match.group(1)
                 for match in re.finditer(
                     r"(\w+)\s*=\s*fields\.(Char|Integer|Float|Boolean|Date|Datetime|"
-                    r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Monetary|Reference|Image)",
+                    r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Json|Monetary|Reference|Image)",
                     content,
                 ):
                     field_name = match.group(1)
@@ -131,7 +195,7 @@ class OdooAudit:
 
             for match in re.finditer(
                 r"(\w+)\s*=\s*fields\.(Char|Integer|Float|Boolean|Date|Datetime|"
-                r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Monetary|Reference|Image)",
+                r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Json|Monetary|Reference|Image)",
                 content,
             ):
                 field_name = match.group(1)
@@ -155,68 +219,367 @@ class OdooAudit:
                     "values": set(states[::2]) if states else set(),
                 }
 
-    def scan_view_field_refs(self):
-        """Find all <field name="..."> in XML views."""
-        for xml_file in self.root_dir.rglob("*/views/*.xml"):
-            if "__pycache__" in str(xml_file):
+    # ── Model index (view field check) ─────────────────────────────────────
+
+    @staticmethod
+    def _module_of(path):
+        """Addon directory of a ``<addon>/models/*.py`` or ``<addon>/views/*.xml`` file."""
+        return str(Path(path).parent.parent)
+
+    @staticmethod
+    def _string_value(node, constants):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.Name):
+            return constants.get(node.id)
+        return None
+
+    def _string_list(self, node, constants):
+        if isinstance(node, (ast.List, ast.Tuple)):
+            values = [self._string_value(item, constants) for item in node.elts]
+            return [value for value in values if value]
+        value = self._string_value(node, constants)
+        return [value] if value else []
+
+    def _field_comodel(self, call, field_type, constants):
+        if field_type not in self.RELATIONAL_TYPES:
+            return None
+        for keyword in call.keywords:
+            if keyword.arg == "comodel_name":
+                return self._string_value(keyword.value, constants)
+        if call.args:
+            return self._string_value(call.args[0], constants)
+        return None
+
+    def scan_model_index(self):
+        """Index every model class: resolved model name, module, parents and fields."""
+        for py_file in sorted(self.root_dir.rglob("*/models/*.py")):
+            if skip_path(py_file):
                 continue
             try:
-                with open(xml_file, encoding="utf-8") as f:
-                    content = f.read()
-            except Exception:
+                tree = ast.parse(py_file.read_text(encoding="utf-8"))
+            except (OSError, SyntaxError, UnicodeDecodeError):
                 continue
-
-            current_model = None
-            for line_num, line in enumerate(content.split("\n"), 1):
-                model_match = re.search(r'<field name="model">([^<]+)</field>', line)
-                if model_match:
-                    current_model = model_match.group(1)
+            constants = {}
+            for node in tree.body:
+                if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                    value = self._string_value(node.value, {})
+                    if value:
+                        constants[node.targets[0].id] = value
+            module = self._module_of(py_file)
+            for cls in (node for node in tree.body if isinstance(node, ast.ClassDef)):
+                name = None
+                parents = []
+                fields = {}
+                for stmt in cls.body:
+                    if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1):
+                        continue
+                    target = stmt.targets[0]
+                    if not isinstance(target, ast.Name):
+                        continue
+                    if target.id == "_name":
+                        name = self._string_value(stmt.value, constants)
+                    elif target.id == "_inherit":
+                        parents = self._string_list(stmt.value, constants)
+                    elif (
+                        isinstance(stmt.value, ast.Call)
+                        and isinstance(stmt.value.func, ast.Attribute)
+                        and isinstance(stmt.value.func.value, ast.Name)
+                        and stmt.value.func.value.id == "fields"
+                    ):
+                        field_type = stmt.value.func.attr
+                        fields[target.id] = self._field_comodel(stmt.value, field_type, constants)
+                model = name or (parents[0] if len(parents) == 1 else None)
+                if not model:
                     continue
+                defines = bool(name) and name not in parents
+                self.model_classes.append(
+                    {
+                        "model": model,
+                        "module": module,
+                        "parents": [parent for parent in parents if parent != model],
+                        "fields": fields,
+                        "defines": defines,
+                    }
+                )
+                if defines:
+                    self.defined_models.add(model)
 
-                for match in re.finditer(r'<field\s+name="([^"]+)"', line):
-                    field_name = match.group(1)
-                    if current_model:
-                        self.field_refs[(current_model, field_name)].append((str(xml_file), line_num))
+    def _depends_closure(self, module):
+        """The module plus every module reachable through manifest ``depends``.
+
+        ``module`` is an addon path as ``rglob`` under ``root_dir`` yields it, so it
+        already carries the root; it is never joined to ``root_dir`` again.
+        """
+        if module in self._depends_cache:
+            return self._depends_cache[module]
+        closure = set()
+        pending = [module]
+        while pending:
+            current = pending.pop()
+            if current in closure:
+                continue
+            closure.add(current)
+            try:
+                data = ast.literal_eval((Path(current) / "__manifest__.py").read_text(encoding="utf-8"))
+            except (OSError, SyntaxError, ValueError):
+                continue
+            depends = data.get("depends", []) if isinstance(data, dict) else []
+            parent_dir = Path(current).parent
+            pending.extend(str(parent_dir / dep) for dep in depends if isinstance(dep, str))
+        self._depends_cache[module] = closure
+        return closure
+
+    def _visible_fields(self, model, module, _seen=None):
+        """Fields of ``model`` visible from ``module``: ``{field: comodel_or_None}``."""
+        key = (model, module)
+        if _seen is None and key in self._fields_cache:
+            return self._fields_cache[key]
+        seen = set() if _seen is None else _seen
+        if model in seen:
+            return {}
+        seen.add(model)
+        closure = self._depends_closure(module)
+        fields = dict.fromkeys(self.FRAMEWORK_MIXIN_FIELDS.get(model, ()))
+        for cls in self.model_classes:
+            if cls["model"] != model or cls["module"] not in closure:
+                continue
+            for parent in cls["parents"]:
+                for field, comodel in self._visible_fields(parent, module, seen).items():
+                    fields.setdefault(field, comodel)
+            for field, comodel in cls["fields"].items():
+                if comodel or field not in fields:
+                    fields[field] = comodel
+        if _seen is None:
+            self._fields_cache[key] = fields
+        return fields
+
+    # ── View field references ──────────────────────────────────────────────
+
+    @staticmethod
+    def _parse_xml(xml_file):
+        """Parse to ``{"tag", "attrs", "line", "text", "children"}`` nodes, keeping line numbers."""
+        root = {"tag": None, "attrs": {}, "line": 0, "text": "", "children": []}
+        stack = [root]
+        parser = xml.parsers.expat.ParserCreate()
+
+        def start(tag, attrs):
+            node = {"tag": tag, "attrs": attrs, "line": parser.CurrentLineNumber, "text": "", "children": []}
+            stack[-1]["children"].append(node)
+            stack.append(node)
+
+        def end(_tag):
+            stack.pop()
+
+        def text(data):
+            stack[-1]["text"] += data
+
+        parser.StartElementHandler = start
+        parser.EndElementHandler = end
+        parser.CharacterDataHandler = text
+        parser.Parse(Path(xml_file).read_bytes(), True)
+        return root
+
+    @staticmethod
+    def _iter_records(node):
+        for child in node["children"]:
+            if child["tag"] == "record":
+                yield child
+            else:
+                yield from OdooAudit._iter_records(child)
+
+    def _xpath_context(self, expr, model, module):
+        """``(model, target_field)`` an ``<xpath>`` body is evaluated against.
+
+        A subview step (``/list``, ``/form``, ...) after a field step switches to
+        that field's comodel. A subview word that is not a location step (an axis
+        such as ``ancestor::form``, or text such as ``hasclass('form-group')``)
+        does not. ``target_field`` is set only when the expression ends on a field
+        step: a subview inserted directly into it is evaluated on that field's
+        comodel.
+        """
+        context = model
+        pending_field = None
+        field_end = None
+        steps = r"field\[@name=['\"]([\w.]+)['\"]\]|(?:(?<=/)|^)(" + "|".join(self.SUBVIEW_TAGS) + r")(?![\w:\-])"
+        for match in re.finditer(steps, expr):
+            if match.group(1):
+                pending_field = match.group(1)
+                field_end = match.end()
+            elif pending_field:
+                context = self._comodel(context, pending_field, module)
+                pending_field = None
+                if context is None:
+                    return None, None
+        if pending_field and expr[field_end:].strip() == "":
+            return context, pending_field
+        return context, None
+
+    def _comodel(self, model, field, module):
+        if model is None:
+            return None
+        return self._visible_fields(model, module).get(field)
+
+    def _walk_field_body(self, node, model, field, module, xml_file):
+        """Walk the children of ``field`` on ``model``: a subview child is evaluated on the field's comodel."""
+        for child in node["children"]:
+            if child["tag"] in self.SUBVIEW_TAGS:
+                comodel = self._comodel(model, field, module)
+                if comodel is None and model in self.defined_models:
+                    self.unresolved_view_contexts.append(
+                        {"model": model, "field": field, "file": str(xml_file), "line": child["line"]}
+                    )
+                self._walk_arch({"children": [child]}, comodel, module, xml_file)
+            else:
+                self._walk_arch({"children": [child]}, model, module, xml_file)
+
+    def _walk_arch(self, node, model, module, xml_file):
+        for child in node["children"]:
+            tag = child["tag"]
+            if tag == "field" and child["attrs"].get("name"):
+                field = child["attrs"]["name"]
+                if model is not None:
+                    self.field_refs[(model, field)].append(
+                        {"file": str(xml_file), "line": child["line"], "module": module}
+                    )
+                self._walk_field_body(child, model, field, module, xml_file)
+            elif tag == "xpath":
+                expr = child["attrs"].get("expr", "")
+                context, target_field = self._xpath_context(expr, model, module)
+                if context is None and model in self.defined_models:
+                    self.unresolved_view_contexts.append(
+                        {"model": model, "field": expr, "file": str(xml_file), "line": child["line"]}
+                    )
+                if target_field and context is not None:
+                    self._walk_field_body(child, context, target_field, module, xml_file)
+                else:
+                    self._walk_arch(child, context, module, xml_file)
+            else:
+                self._walk_arch(child, model, module, xml_file)
+
+    def scan_view_field_refs(self):
+        """Find every ``<field name="...">`` in ``ir.ui.view`` arch, attributed to the model it is evaluated on."""
+        views = {}
+        pending = []
+        for xml_file in sorted(self.root_dir.rglob("*/views/*.xml")):
+            if skip_path(xml_file):
+                continue
+            try:
+                root = self._parse_xml(xml_file)
+            except (OSError, xml.parsers.expat.ExpatError) as exc:
+                self.view_parse_errors.append({"file": str(xml_file), "error": str(exc)})
+                continue
+            module = self._module_of(xml_file)
+            module_name = Path(module).name
+            for record in self._iter_records(root):
+                if record["attrs"].get("model") != "ir.ui.view":
+                    continue
+                fields = {child["attrs"].get("name"): child for child in record["children"] if child["tag"] == "field"}
+                xmlid = record["attrs"].get("id", "")
+                if xmlid and "." not in xmlid:
+                    xmlid = f"{module_name}.{xmlid}"
+                model = fields["model"]["text"].strip() if "model" in fields else None
+                inherit = fields["inherit_id"]["attrs"].get("ref") if "inherit_id" in fields else None
+                if inherit and "." not in inherit:
+                    inherit = f"{module_name}.{inherit}"
+                views[xmlid] = {"model": model, "inherit": inherit}
+                if "arch" in fields:
+                    pending.append((xmlid, fields["arch"], module, xml_file))
+
+        def resolve(xmlid, seen=()):
+            view = views.get(xmlid)
+            if view is None or xmlid in seen:
+                return None
+            return view["model"] or resolve(view["inherit"], (*seen, xmlid))
+
+        for xmlid, arch, module, xml_file in pending:
+            model = resolve(xmlid)
+            if model is None and self._has_field(arch):
+                self.unresolved_view_models.append(
+                    {"view": xmlid, "inherit": views[xmlid]["inherit"], "file": str(xml_file), "line": arch["line"]}
+                )
+            self._walk_arch(arch, model, module, xml_file)
+
+    @staticmethod
+    def _has_field(node):
+        return any(child["tag"] == "field" or OdooAudit._has_field(child) for child in node["children"])
 
     def check_field_mismatches(self):
-        """Find field references that don't exist in model."""
+        """Find view field references that no visible class of the model defines."""
         errors = []
         for (model, field), refs in self.field_refs.items():
-            if model not in self.model_fields:
+            if model not in self.defined_models:
                 continue
-            if field in self.model_fields[model]:
+            if field in self.MAGIC_FIELDS:
                 continue
-            if field in ("id", "create_uid", "create_date", "write_uid", "write_date"):
-                continue
-
-            suggestions = []
-            if f"{field}_id" in self.model_fields[model]:
-                suggestions.append(f"{field}_id")
-            if field.endswith("_id"):
-                base = field[:-3]
-                if base in self.model_fields[model]:
-                    suggestions.append(base)
-
-            for file, line in refs:
+            for ref in refs:
+                fields = self._visible_fields(model, ref["module"])
+                if field in fields:
+                    continue
+                suggestions = []
+                if f"{field}_id" in fields:
+                    suggestions.append(f"{field}_id")
+                if field.endswith("_id") and field[:-3] in fields:
+                    suggestions.append(field[:-3])
                 errors.append(
                     {
                         "type": "FIELD_NOT_FOUND",
                         "severity": "CRITICAL",
                         "model": model,
                         "field": field,
-                        "file": file,
-                        "line": line,
+                        "file": ref["file"],
+                        "line": ref["line"],
                         "message": f"Field '{field}' not defined on model '{model}'",
                         "suggestions": suggestions or "No obvious match found",
                     }
                 )
         return errors
 
+    def check_unresolved_view_contexts(self):
+        """Subviews whose comodel could not be resolved, and unreadable view files: their fields are not checked."""
+        return (
+            [
+                {
+                    "type": "UNRESOLVED_VIEW_CONTEXT",
+                    "severity": "HIGH",
+                    "model": item["model"],
+                    "field": item["field"],
+                    "file": item["file"],
+                    "line": item["line"],
+                    "message": f"Subview of '{item['field']}' on '{item['model']}' has no resolvable comodel; "
+                    "its fields are not checked",
+                }
+                for item in self.unresolved_view_contexts
+            ]
+            + [
+                {
+                    "type": "VIEW_PARSE_ERROR",
+                    "severity": "HIGH",
+                    "file": item["file"],
+                    "message": f"View file not parsed; its fields are not checked: {item['error']}",
+                }
+                for item in self.view_parse_errors
+            ]
+            + [
+                {
+                    "type": "UNRESOLVED_VIEW_MODEL",
+                    "severity": "HIGH",
+                    "model": None,
+                    "field": item["view"],
+                    "file": item["file"],
+                    "line": item["line"],
+                    "message": f"View '{item['view']}' has no <field name=\"model\"> and its inherit_id "
+                    f"'{item['inherit']}' is not a view this scan knows; its fields are not checked",
+                }
+                for item in self.unresolved_view_models
+            ]
+        )
+
     def check_compute_depends(self):
         """Validate @api.depends() field references."""
         errors = []
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -264,6 +627,8 @@ class OdooAudit:
         secured_models = set()
 
         for csv_file in self.root_dir.rglob("*/security/*.csv"):
+            if skip_path(csv_file):
+                continue
             try:
                 with open(csv_file, encoding="utf-8") as f:
                     content = f.read()
@@ -296,7 +661,7 @@ class OdooAudit:
         """Validate constraint decorators and SQL constraints."""
         errors = []
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -331,7 +696,7 @@ class OdooAudit:
         """Validate @api.onchange decorators."""
         errors = []
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -369,7 +734,7 @@ class OdooAudit:
         """Validate state field and button visibility."""
         errors = []
         for xml_file in self.root_dir.rglob("*/views/*.xml"):
-            if "__pycache__" in str(xml_file):
+            if skip_path(xml_file):
                 continue
             try:
                 with open(xml_file, encoding="utf-8") as f:
@@ -411,6 +776,10 @@ class OdooAudit:
         self.scan_model_fields()
         print(f"   Found {len(self.model_fields)} models with {sum(len(f) for f in self.model_fields.values())} fields")
 
+        print("🔍 Indexing model classes...")
+        self.scan_model_index()
+        print(f"   Found {len(self.model_classes)} model classes for {len(self.defined_models)} defined models")
+
         print("🔍 Scanning view field references...")
         self.scan_view_field_refs()
         print(f"   Found {len(self.field_refs)} field references")
@@ -418,6 +787,7 @@ class OdooAudit:
         all_errors = []
         checks = [
             ("Field Mismatches", self.check_field_mismatches),
+            ("Unresolved View Contexts", self.check_unresolved_view_contexts),
             ("Compute Depends", self.check_compute_depends),
             ("Security Rules", self.check_security_rules),
             ("Constraints", self.check_constraints),

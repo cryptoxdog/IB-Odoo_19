@@ -1,0 +1,95 @@
+{
+  "schema": "recycleos.idea-expansion-addon/v1",
+  "id": "plasticos-export-minimal-native-two-phase-2026-10-27",
+  "version": "1.2.0",
+  "classification": "operator-intent-locked_additive_exploration_not-admitted",
+  "implementation_authority": "none",
+  "module_candidate": "plasticos_export",
+  "change_mode": "append_only_to_v1.1.0_all_nonmanifest_bytes_preserved",
+  "prior_export_extension": "recycleos-export-operations-extension-2026-10-27",
+  "intent": {
+    "primary_jobs": [
+      "native inbound/outbound documents",
+      "native QWeb reports",
+      "native Odoo views",
+      "minimal export-specific linkage/fields only when actual gaps proven"
+    ],
+    "complexity": "small thin native-first addon; no rebuild"
+  },
+  "phases": [
+    {
+      "id": "EX-P1",
+      "label": "Operator FOB pickup/FAS delivered to port or rail",
+      "target": "current recycling seller",
+      "core": [
+        "six booking fields",
+        "doc intake and exact association",
+        "port/rail release window ERD/Cut Off",
+        "inland delivery/handoff proof",
+        "related existing load/stock/sale documents",
+        "native reports and views"
+      ],
+      "exclusions": [
+        "ocean freight procurement as operator obligation",
+        "destination customs management",
+        "full vessel tracking"
+      ]
+    },
+    {
+      "id": "EX-P2",
+      "label": "International exporting seller",
+      "target": "overseas freight-inclusive sales",
+      "core": [
+        "same identities and Phase 1 workflows",
+        "CNF/CFR and CIF as actually contracted",
+        "ocean documents and shipping instructions",
+        "applicable VGM/compliance/filing evidence",
+        "international release and payment document coordination"
+      ],
+      "exclusions": [
+        "duplicate ERP",
+        "automatic carrier-issued documents",
+        "unproven customs/carrier APIs"
+      ]
+    }
+  ],
+  "industry_language": {
+    "FOB": "buyer pickup from facility/supplier (this operator usage)",
+    "FAS": "seller inland freight included to agreed port/rail (this operator usage)",
+    "CNF_CFR": "ocean freight-inclusive quotation, contract controls official rule",
+    "legal_separation": "industry shorthand is not official Incoterms; formal Incoterm/named place, freight obligations and title/risk/filing role explicitly sourced"
+  },
+  "six_first_class_fields": [
+    "Booking No.",
+    "Steamship Line",
+    "Port of Loading",
+    "Port of Discharge",
+    "Cut Off",
+    "Earliest Return Date"
+  ],
+  "system_ownership": {
+    "source_original": "native Odoo Documents/attachments when installed and authorized",
+    "typed_document_verification": "plasticos_documents",
+    "actual_orders": "native Odoo Purchase/Sales",
+    "material_packages_and_stock": "native Odoo Inventory",
+    "accounting": "native Odoo Accounting",
+    "outbound_dispatch_and_external_mail": "existing plasticos_logistics/Linda via native Odoo Mail",
+    "export_coordination": "minimal links to existing records only for uncovered gaps"
+  },
+  "nonnegotiables": [
+    "No second documents original, stock ledger, finance writer, external sender, scheduler, general-purpose workflow or PDF engine",
+    "Phase 1 must not depend on Phase 2",
+    "No silent conversion of FOB/FAS industry terms into ICC Incoterms",
+    "No fabricated gate-in, sea B/L, regulatory approval or financial effect",
+    "Original BRS is separately frozen/not-admitted; use as reference, not copy/supersession",
+    "Current v1.1.0 pack preserved unchanged aside from generated manifest"
+  ],
+  "phase1_acceptance": "12_PLASTICOS_EXPORT_ACCEPTANCE_AND_GAPS.md (NOT_RUN)",
+  "evidence_binding": {
+    "repo": "cryptoxdog/IB-Odoo_19",
+    "ref": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+    "source_class": "repo file presence only, not runtime"
+  },
+  "host_schema_mapping": "not_attempted",
+  "status": "NO_CODE_NO_PR_NO_MAIL_NO_BOOKING_NO_FINANCIAL_ACTION"
+}

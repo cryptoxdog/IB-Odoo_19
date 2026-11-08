@@ -1,0 +1,274 @@
+{
+  "schema": "plasticos.logistics.business-policy-resolution-local/v1",
+  "campaign_id": "PLASTICOS-LINDA-LOGISTICS-COMPILE-2026-10",
+  "campaign_version": "1.1.1",
+  "predecessor_version": "1.1.0",
+  "source_identity": "2026-10-22 bounded Dropbox connector reads plus 2026-10-21 accepted operator-intent evidence",
+  "source_completeness": "PARTIAL_SELECTED_LOGISTICS_DONORS_NOT_CERTIFIED_COMPLETE",
+  "normative_canonical_owner": "business_rules/rules.json and campaign.json requirements effective_contract; this ledger is provenance, not an independent rule authority",
+  "resolutions": [
+    {
+      "resolution_id": "PR-01",
+      "topic": "Mechanical issuance and eligibility",
+      "status": "BUSINESS_MEANING_SOURCE_RESOLVED_TECHNICAL_BINDING_PENDING",
+      "effective_rule_ids": [
+        "BRS-01-R001",
+        "BRS-01-R065"
+      ],
+      "operator_intent_ids": [
+        "OI-01",
+        "OI-02",
+        "OI-03",
+        "OI-07"
+      ],
+      "source_registry_ids": [
+        "E04",
+        "E05",
+        "E20",
+        "E25",
+        "T04"
+      ],
+      "source_excerpts": [
+        {
+          "title": "v5 PO/SO workflow",
+          "url": "https://www.dropbox.com/scl/fi/1qg8qd997u3mjg87wab0w",
+          "excerpt": "Trigger: human approval or preapproved list.",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        },
+        {
+          "title": "current operator correction",
+          "url": "operator_intent.json",
+          "excerpt": "a field like approved or something mechanical that triggered Linda to send the po and so",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        }
+      ],
+      "meaning": "Approved-like machine commercial release is necessary and sufficient for entry when actual eligibility gates are met; preapproved party does not independently issue an order.",
+      "discriminating_acceptance_ids": [
+        "AC-BR01",
+        "AC-BR02"
+      ],
+      "technical_followup_unknown_id": "U-ISSUANCE-TRIGGER",
+      "requires_new_business_policy_choice": false,
+      "donor_history_retained_in": "source_inputs/harvest_original.json and source_inputs/conflicts_original.json"
+    },
+    {
+      "resolution_id": "PR-02",
+      "topic": "Routine autonomy versus freight commercial authority",
+      "status": "BUSINESS_MEANING_SOURCE_RESOLVED_TECHNICAL_BINDING_PENDING",
+      "effective_rule_ids": [
+        "BRS-04-R025",
+        "BRS-04-R027",
+        "BRS-04-R028",
+        "BRS-02-R015"
+      ],
+      "operator_intent_ids": [
+        "OI-03",
+        "OI-08"
+      ],
+      "source_registry_ids": [
+        "E31",
+        "E46",
+        "E47",
+        "T01",
+        "T09"
+      ],
+      "source_excerpts": [
+        {
+          "title": "v7.9.8 commercial approval triggers",
+          "url": "https://www.dropbox.com/scl/fi/4kkrwgs94oajavomk9b7i",
+          "excerpt": "rate_override / new_carrier_assignment / double_blind_exception",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        }
+      ],
+      "meaning": "No routine Linda signoff. Existing manual-only SAL-miss RFQ, commercial award and no automatic next-best carrier are retained; valid approved carrier/rate can proceed autonomously.",
+      "discriminating_acceptance_ids": [
+        "AC-BR03"
+      ],
+      "technical_followup_unknown_id": "U03",
+      "requires_new_business_policy_choice": false,
+      "donor_history_retained_in": "source_inputs/harvest_original.json and source_inputs/conflicts_original.json"
+    },
+    {
+      "resolution_id": "PR-03",
+      "topic": "Supplier, buyer, broker and ops cadence",
+      "status": "BUSINESS_MEANING_SOURCE_RESOLVED_TECHNICAL_BINDING_PENDING",
+      "effective_rule_ids": [
+        "BRS-02-R007",
+        "BRS-06-R039"
+      ],
+      "operator_intent_ids": [
+        "OI-08",
+        "OI-09"
+      ],
+      "source_registry_ids": [
+        "E39",
+        "E40",
+        "E43",
+        "E44",
+        "T16",
+        "T17",
+        "T19"
+      ],
+      "source_excerpts": [
+        {
+          "title": "Dispatch Templates v1.1",
+          "url": "https://www.dropbox.com/scl/fi/1c3cou24ygkg9il29y0ag",
+          "excerpt": "pre_pickup_d_1_0900; pickup_day_0800",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        },
+        {
+          "title": "Escalation Ladder v1.1",
+          "url": "https://www.dropbox.com/scl/fi/vb3aysguotcdwhdf2vzzd",
+          "excerpt": "pre_pickup_d_1_1300 (ops only); pickup_day_0700_ops_ping (ops only)",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        },
+        {
+          "title": "Canonical v1.3.1 shipper status",
+          "url": "https://www.dropbox.com/scl/fi/bmk1rec2y0busgzaezoem",
+          "excerpt": "Every Monday morning, email shipper for an update",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        }
+      ],
+      "meaning": "Broker and ops timing is separate audience-specific obligations, not contradictory policy. Monday remains a local-morning window with exact cron minute technical.",
+      "discriminating_acceptance_ids": [
+        "AC-BR04",
+        "AC-BR05"
+      ],
+      "technical_followup_unknown_id": "U05",
+      "requires_new_business_policy_choice": false,
+      "donor_history_retained_in": "source_inputs/harvest_original.json and source_inputs/conflicts_original.json"
+    },
+    {
+      "resolution_id": "PR-04",
+      "topic": "Exactly three current carrier PDFs",
+      "status": "BUSINESS_MEANING_SOURCE_RESOLVED_TECHNICAL_BINDING_PENDING",
+      "effective_rule_ids": [
+        "BRS-05-R030"
+      ],
+      "operator_intent_ids": [
+        "OI-02",
+        "OI-04",
+        "OI-08"
+      ],
+      "source_registry_ids": [
+        "E28",
+        "E33",
+        "E44",
+        "T25",
+        "T26",
+        "T27",
+        "T28"
+      ],
+      "source_excerpts": [
+        {
+          "title": "Canonical v1.3.1 dispatch",
+          "url": "https://www.dropbox.com/scl/fi/4h93hmgm64u7v9hofv7rq",
+          "excerpt": "Please confirm receipt of all 3 attached documents by reply email before dispatch proceeds.",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        }
+      ],
+      "meaning": "Carrier-only Pickup BOL, Delivery BOL and DO PDFs required before any dispatch packet can be valid; sending and acknowledgment are distinct.",
+      "discriminating_acceptance_ids": [
+        "AC-BR06"
+      ],
+      "technical_followup_unknown_id": "U02",
+      "requires_new_business_policy_choice": false,
+      "donor_history_retained_in": "source_inputs/harvest_original.json and source_inputs/conflicts_original.json"
+    },
+    {
+      "resolution_id": "PR-05",
+      "topic": "Verified delivery proof without blanket signatures",
+      "status": "BUSINESS_MEANING_SOURCE_RESOLVED_TECHNICAL_BINDING_PENDING",
+      "effective_rule_ids": [
+        "BRS-07-R048"
+      ],
+      "operator_intent_ids": [
+        "OI-08"
+      ],
+      "source_registry_ids": [
+        "E28",
+        "E38",
+        "E41",
+        "T05",
+        "T06",
+        "T08"
+      ],
+      "source_excerpts": [
+        {
+          "title": "Close Out Pack v1.1",
+          "url": "https://www.dropbox.com/scl/fi/z4quo0w9zjhaonvpxrvfj",
+          "excerpt": "signature_required: no.",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        },
+        {
+          "title": "v7.9.9 Document Completion",
+          "url": "https://www.dropbox.com/scl/fi/dsajnyaaet1f7w9wk23k3",
+          "excerpt": "verified by BOL return or delivery confirmation",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED"
+        }
+      ],
+      "meaning": "Signed BOL/POD is not globally mandatory; attributable verified receiver/delivery evidence is. No hash/OCR/checkbox close; required compliance document and accounting gates are distinct.",
+      "discriminating_acceptance_ids": [
+        "AC-BR07"
+      ],
+      "technical_followup_unknown_id": "U05",
+      "requires_new_business_policy_choice": false,
+      "donor_history_retained_in": "source_inputs/harvest_original.json and source_inputs/conflicts_original.json"
+    },
+    {
+      "resolution_id": "PR-06",
+      "topic": "Recovered source-defined party document SLA",
+      "status": "BUSINESS_MEANING_SOURCE_RESOLVED_TECHNICAL_BINDING_PENDING",
+      "effective_rule_ids": [
+        "BRS-07-R051"
+      ],
+      "operator_intent_ids": [
+        "OI-04",
+        "OI-08"
+      ],
+      "source_registry_ids": [
+        "E08",
+        "E49",
+        "E41",
+        "T05",
+        "T16",
+        "T04"
+      ],
+      "source_excerpts": [
+        {
+          "title": "Linda Document Management Workflow",
+          "url": "https://www.dropbox.com/scl/fi/qwfjakg5qdphluj7g5kdm",
+          "excerpt": "- **Supplier Documents**: Check starts 1 business day after pickup, escalates after 5 business days\n- **Carrier Documents**: Check starts 2 business days after pickup, escalates after 6 business days  \n- **Buyer Documents**: Check starts 1 business day after delivery, escalates after 5 business days",
+          "verification": "CONNECTOR_TEXT_OR_OPERATOR_LOCAL_NOT_REMOTE_RAW_BYTE_ATTESTED",
+          "excerpt_type": "verbatim_selected_lines_from_connector_text"
+        }
+      ],
+      "meaning": "Business days M-F. Supplier after pickup check 1/escalate after 5; carrier after pickup check 2/escalate after 6; buyer after delivery check 1/escalate after 5. Daily per missing document/party; no duplicate send or blanket escalation.",
+      "discriminating_acceptance_ids": [
+        "AC-BR08",
+        "AC-BR09",
+        "AC-BR10"
+      ],
+      "technical_followup_unknown_id": "U05",
+      "requires_new_business_policy_choice": false,
+      "donor_history_retained_in": "source_inputs/harvest_original.json and source_inputs/conflicts_original.json"
+    }
+  ],
+  "remaining_business_policy_decisions": [],
+  "technical_realization_unknowns": [
+    "U-ISSUANCE-TRIGGER",
+    "U-GMAIL-CONNECT",
+    "U-LLM-INTERFACE",
+    "U01",
+    "U02",
+    "U03",
+    "U04",
+    "U05",
+    "U08",
+    "U-PROOF"
+  ],
+  "original_harvest_unchanged": true,
+  "runtime_tests": "NOT_RUN",
+  "repository_admission": "NOT_GRANTED",
+  "user_request_scope": "Repair stale projections, reconcile sourced business-policy ambiguity, leave only true owner decisions; no implementation."
+}
