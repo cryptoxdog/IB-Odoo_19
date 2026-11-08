@@ -155,10 +155,6 @@ def scan_consumer_patterns() -> tuple[list[str], list[str]]:
                 if "mothball" in line.lower() and "not" in line.lower():
                     residue.append(hit)
                     continue
-                # Stale log lines under enrichment_run (non-executable messaging)
-                if rel.endswith("enrichment_run.py") and "falling back to local" in line.lower():
-                    residue.append(hit)
-                    continue
                 blocking.append(hit)
     return blocking, residue
 
