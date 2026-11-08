@@ -95,7 +95,7 @@ trusting the exit code.
 | Source | Make target | Driver | Dispatcher | Production | Rehearsal |
 |--------|-------------|--------|------------|------------|-----------|
 | ERP | `make import-erp` | `plasticos_partner_import/scripts/import_erp_shell.py` | `plasticos.erp.import` (`erp_import_service.py`), extended by the active `plasticos_transaction/models/legacy_erp_import_service.py` for `sale.order` / `purchase.order` / `account.move` | two one-use permits (`erp_partners`, then `erp_commercial`), full volume, `ERP_REQUIRE_EMPTY` guard | no permit, `ERP_LIMIT=10%`, `odoo_test_cutover`, same guard |
-| VanillaSoft history | `make import-vanillasoft` with the checkout contact file | `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` → `history()` | `SyncOrchestrator.upsert_contact_external_id`, one ContactID at a time, durable `plasticos.crm.external.ref` rows decide | `crm_history` permit after a committed `erp_commercial` phase, the whole file, operator ledger | no permit, no cap unless `REHEARSAL_HISTORY_MAX_IDS` is already set, ledger in the evidence folder |
+| VanillaSoft rolling | `make import-vanillasoft` with call and contact floors | `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` → `run_full_import` | `SyncOrchestrator.run_full_import`; the packaged crosswalk binds an approved ContactID to the existing ERP person, and everyone else becomes `crm.lead` | rolling window named by the operator | no permit, contact floor 30 days, call floor 7 days, `odoo_test_cutover` |
 
 Neither target reaches the retired CSV partner importer
 (`partner_import_service.py`, `scripts/run_import.py`), the retired CSV
@@ -103,11 +103,9 @@ transaction importer (`transaction_import_service.py`,
 `scripts/run_transaction_import.py`, the wizard) or a second mapper; the kit
 tests hold that call graph at the candidate revision. `make import-erp`
 refuses to start without `ERP_SQL_SERVER` and `ERP_SQL_DATABASE` and refuses a
-payload root, so the frozen grid is never a silent source. `make
-import-vanillasoft` selects history mode from the census and refuses a call or
-contact floor beside it; the rolling window (`VANILLASOFT_CALL_FLOOR`, owned
-by `orchestrator.run_full_import` for range reconciliation) is a separately
-named mode, never a fallback for a missing census.
+payload root, so the frozen grid is never a silent source. `make import-vanillasoft` still selects history mode when a census, its digest
+and a ledger are all set, and it still refuses a floor beside that census. Gate
+7 does not use that mode. It passes the rolling floors and no census.
 
 ## Gate 6 — ERP import
 
@@ -134,24 +132,22 @@ named mode, never a fallback for a missing census.
 - The kit copies the importer's summary and does not modify it. It does not modify the isolated full census. A failure is the gate receipt
 - `python3 tests/production-rehearsal/check_compact_acceptance.py` reads the retained full snapshots under `evidence/2026-11-08_124519` and re-reads `odoo_test_cutover`. It does not start an import. It fails closed when either is absent. It checks that the five empty price-basis values stored as incoterm FOB remain detectable, that a completed publish and an interrupted publish leave the three full dumps out of the evidence directory, and that the compact counts agree with those snapshots
 
-## Gate 7 — VanillaSoft history
+## Gate 7 — VanillaSoft rolling import
 
 - Runs only when Gate 6 passed; otherwise `SKIPPED gate6-not-passed`
-- Refused before any read or write when `ODOO_STAGE=production`, `VANILLASOFT_PRODUCTION_PERMIT` is set, `VANILLASOFT_CALL_FLOOR` or `VANILLASOFT_CONTACT_FLOOR` is set (`FAIL rolling-floor-refused`: the gate is the historical cohort, never a window), or `VANILLASOFT_HISTORY_CHECKPOINT` is set (`FAIL history-checkpoint-refused`: an operator ledger is never bound to the disposable clone)
-- The contact file is `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` in the checkout. A missing file is `FAIL vanillasoft-history-census-unreadable`. The kit hashes that file at run time because the harness requires the argument, and it stores no digest. An operator census path or digest in the environment is ignored
-- `REHEARSAL_HISTORY_MAX_IDS` is passed only when it is already set, and then it must be a positive integer. There is no default cap
-- `scripts/test_env.sh run` validates the history form before make starts: the census, its digest and the ledger must be named, a floor beside them and a production permit are refused, and `_MAX_IDS` / `_FAILURE_BUDGET` must be positive integers when present. A harness refusal is exit 2 and lands as `FAIL vanillasoft-preflight-failed`; nothing runs outside the harness
+- Refused before any read or write when `ODOO_STAGE=production`, `VANILLASOFT_PRODUCTION_PERMIT` is set, `VANILLASOFT_CALL_FLOOR` or `VANILLASOFT_CONTACT_FLOOR` is already set (`FAIL rolling-floor-refused`: the gate chooses the window), or `VANILLASOFT_HISTORY_CHECKPOINT` is set
+- `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` is not opened and not hashed. A missing file does not stop the gate. An operator census path or digest in the environment is ignored
+- `REHEARSAL_HISTORY_MAX_IDS`, when set, must be a positive integer. The rolling command does not receive it
+- `scripts/test_env.sh run` requires both floors for this form and refuses a floor beside a census. A harness refusal is exit 2 and lands as `FAIL vanillasoft-preflight-failed`
 - `VANILLASOFT_API_KEY` is bound from Infisical and written into the clone ICP through psql stdin. The value is never on argv, never printed, never stored in the kit or the evidence. Unbound is `BLOCKED vanillasoft-key-unbound`; a failed write is `FAIL`
-- The clone's `plasticos_crm_sync.cron_crm_sync_all` row is deactivated (the driver refuses an active incremental cron; production takes the same step), and the durable VanillaSoft refs are counted before the run (`06-crm-refs-before.raw`)
-- `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover` with `VANILLASOFT_HISTORY_CENSUS` set to the checkout file, `VANILLASOFT_HISTORY_CENSUS_SHA256` set to that file's hash, `VANILLASOFT_HISTORY_CHECKPOINT=<evidence>/06-crm-history.jsonl`, and the container report path. `VANILLASOFT_HISTORY_MAX_IDS` is included only when `REHEARSAL_HISTORY_MAX_IDS` is set. No floor is passed. The Makefile places the census and ledger on the bind mount itself
-- Exit 0 alone proves nothing. The gate reads the history driver's report (`06-crm-result.json`), the ledger (`06-crm-history.jsonl`), the log (`06-crm-log.txt`) and the refs after the run (`06-crm-refs-after.raw`):
-  - the report has the `historical_cohort.report` shape: `cohort` is the length of the census the driver was given, `classes` over `imported / held / duplicate_skipped / genuine_failed`, `by_decision` over `YES / NO / PENDING`, `dispositioned + undispositioned == cohort`, `stopped` in `null / max_ids / auth / budget`, and `census_sha256` equal to the file hashed at run time. A rolling summary (`records_seen`, …) is `FAIL vanillasoft-history-report-shape`
-  - `stopped` is `auth` or `budget`, `dispositions_without_a_source_reason > 0`, `imported_with_error_signals > 0`, or `genuine_failed > 0` → `FAIL`
-  - the ledger header is a version 1 cohort ledger bound to the declared census, every row is a disposition, and the row count equals `dispositioned` (the ledger is fresh, so the session is exactly what it recorded)
-  - the log holds a `VANILLASOFT_HISTORY_AUDIT` `crm_history.admitted` event for `odoo_test_cutover`, the declared census and `permit: false`, and a `HISTORY VERDICT` line; the rolling banner `=== VANILLASOFT IMPORT SUMMARY ===` is `FAIL vanillasoft-rolling-mode-observed`
-  - refs landed = after − before; fewer than the report's `imported` count is `FAIL`
-  - no fetched id, `imported == 0`, or nothing landed → `BLOCKED vanillasoft-history-sample-no-import`; the cohort order is never changed to manufacture a pass
-- `PASS vanillasoft-history-sample-exercised` means the checkout file exercised the production pipeline. The receipt records `max_ids` when a cap was set, `fetched`, `attempted`, `imported`, `held`, `duplicate_skipped`, `genuine_failed`, `undispositioned`, and the durable ref counts. Completeness is the driver's own report for the length of the file it was given
+- The clone's `plasticos_crm_sync.cron_crm_sync_all` row is deactivated, and the durable VanillaSoft refs are counted before the run (`06-crm-refs-before.raw`)
+- `make import-vanillasoft` runs through `scripts/test_env.sh run` on `odoo_test_cutover` with `VANILLASOFT_CONTACT_FLOOR` 30 days back, `VANILLASOFT_CALL_FLOOR` 7 days back, and the container report path. No census and no digest are passed. The driver loads `plasticos_crm_sync/data/approved_contact_crosswalk.csv` unless the ICP key `plasticos_crm_sync.approved_contact_crosswalk` names another file
+- Exit 0 alone proves nothing. The gate reads the log (`06-crm-log.txt`) and the refs after the run (`06-crm-refs-after.raw`):
+  - a missing `=== VANILLASOFT IMPORT SUMMARY ===` line is `FAIL vanillasoft-summary-unobserved`
+  - `IMPORT FAILED` in the log is `FAIL vanillasoft-import-failed`
+  - refs that cannot be read are `FAIL vanillasoft-refs-unavailable`
+  - nothing landed → `BLOCKED vanillasoft-no-import`
+- `PASS vanillasoft-rolling-imported` means at least one durable ref landed in the window. The receipt records the floors, the crosswalk path, and the durable ref counts. It does not claim the historical cohort is complete
 
 ## Out of scope
 

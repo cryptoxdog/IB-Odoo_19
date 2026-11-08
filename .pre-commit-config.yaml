@@ -9,13 +9,16 @@ exclude: |
   )$
 
 # Stage ownership (2026-11-03). A hook with no `stages` runs at commit only.
-# The pre-push stage is deliberately small: file hygiene that nothing else
-# enforces (check-xml covers XML outside plasticos_*, which make audit does
+# The pre-push stage is deliberately small: read-only file hygiene that nothing
+# else enforces (check-xml covers XML outside plasticos_*, which make audit does
 # not), two contract tests, the full gitleaks scan, and pr-validate, which runs
-# make pr-check for a direct push. The 23 whole-tree Odoo scanners stay at
-# commit time and run again inside make pr-check (make audit) and in ci.yml;
-# they no longer run a third time at push. make pr owns an unconditional gate
-# of its own and binds this stage to it (scripts/pre_push_validate.sh).
+# make pr-check for a direct push. end-of-file-fixer and trailing-whitespace
+# stay commit-only: they rewrite files, and a rewrite during pre-push dirties
+# the tree that pre_push_validate.sh then refuses. The 23 whole-tree Odoo
+# scanners stay at commit time and run again inside make pr-check (make audit)
+# and in ci.yml; they no longer run a third time at push. make pr owns an
+# unconditional gate of its own and binds this stage to it
+# (scripts/pre_push_validate.sh).
 default_stages: [pre-commit]
 
 repos:
@@ -45,13 +48,15 @@ repos:
         exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$|^docs/'
         stages: [pre-commit, pre-push]
 
+      # Inactive on push. These rewrite checked files. A pre-push rewrite
+      # dirties the tree, and pre_push_validate.sh then refuses that dirt.
       - id: end-of-file-fixer
         exclude: ^docs/|^plasticos_partner_import/erp_extracted_data/bulk/
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: trailing-whitespace
         exclude: ^docs/|^plasticos_partner_import/erp_extracted_data/bulk/
-        stages: [pre-commit, pre-push]
+        stages: [pre-commit]
 
       - id: check-added-large-files
         args: ['--maxkb=1000']

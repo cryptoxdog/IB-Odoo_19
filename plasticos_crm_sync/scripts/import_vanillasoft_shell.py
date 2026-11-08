@@ -223,8 +223,11 @@ def _history_inputs(cohort) -> _HistoryInputs:
     if not census_path.is_file():
         raise cohort.CohortError("the census file named by VANILLASOFT_HISTORY_CENSUS is missing")
     sha256 = _env_flag("VANILLASOFT_HISTORY_CENSUS_SHA256").lower()
+    # read_text() translates CRLF to LF, so its digest cannot match the raw file SHA-256.
+    with census_path.open(encoding="utf-8", newline="") as handle:
+        text = handle.read()
     return _HistoryInputs(
-        census=cohort.load_census(census_path.read_text(encoding="utf-8"), expected_sha256=sha256),
+        census=cohort.load_census(text, expected_sha256=sha256),
         sha256=sha256,
         checkpoint=checkpoint,
         report=_env_flag("VANILLASOFT_REPORT_PATH") or f"{checkpoint}.report.json",

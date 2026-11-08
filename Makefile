@@ -698,7 +698,8 @@ pr:
 # REQUIRED before any push or PR creation (local + remote when PR/CI exists).
 # The local pre-push gate — not the full GitHub CI job graph (gate-sdk-tests runs
 # only in CI; secrets are scanned by the gitleaks-push hook and CI secret-scan). Scheduled in parallel waves via
-# scripts/pr_check_run.sh (audit + audit-baseline + test in parallel, then smoke, then remote).
+# scripts/pr_check_run.sh (audit + audit-baseline in parallel, then smoke, then remote).
+# The pure-Python suite is not part of this gate. ci.yml pure-python-tests runs it.
 # secret-scan is intentionally NOT listed here: pre-commit's gitleaks-push
 # hook already runs at `git push` time regardless of make, so listing it here
 # would just run gitleaks twice.
@@ -1057,8 +1058,12 @@ ODOO_STAGE ?=
 # outside the checkout cannot be reached there and is refused. The no-Docker
 # runtime opens the host path as given.
 MOUNT_ROOT := /mnt/extra-addons
-in_repo = $(if $(filter $(CURDIR)/%,$(abspath $(1))),1,)
-runtime_path = $(if $(1),$(if $(call in_repo,$(1)),$(MOUNT_ROOT)/$(patsubst $(CURDIR)/%,%,$(abspath $(1))),$(1)),)
+# filter and patsubst split on spaces, so a checkout path that contains one
+# was prefixed onto the mount instead of being stripped. subst keeps the path
+# whole. An absolute path is not passed through abspath, which splits the same way.
+_as_abs = $(if $(filter /%,$(1)),$(1),$(abspath $(1)))
+in_repo = $(if $(findstring x$(call _as_abs,$(1))x,x$(CURDIR)/$(subst $(CURDIR)/,,$(call _as_abs,$(1)))x),1,)
+runtime_path = $(if $(1),$(if $(call in_repo,$(1)),$(MOUNT_ROOT)/$(subst $(CURDIR)/,,$(call _as_abs,$(1))),$(1)),)
 # $(call mount_guard,<VAR ...>,<target>): every named path is inside the checkout.
 mount_guard = $(foreach name,$(1),[ -z "$($(name))" ] || [ -n "$(call in_repo,$($(name)))" ] || { echo "❌ $(2) refused: $(name) must be inside this checkout, the only bind mount the odoo container can read (an ignored path such as .l9/runtime/ works)" >&2; exit 2; };) true
 erp_source_guard = [ -z "$(ERP_PAYLOAD_ROOT)" ] || { echo "❌ import-erp refused: PAYLOAD_ROOT / ERP_PAYLOAD_ROOT selects a frozen fixture; the canonical import reads only the restored ERP database (ADR-021)" >&2; exit 2; }; \
@@ -1257,11 +1262,12 @@ pr-nosmoke:
 	@PR_SMOKE_BYPASS='$(reason)' $(MAKE) --no-print-directory pr $(if $(b),b=$(b),) $(if $(base),base=$(base),)
 
 # 2026-10-22 — make pr-check runs only what the branch changed can reach
-# (scripts/pr_check_scope.py): the pytest wave gets the selected test modules
-# in TEST_PATHS through this target, install-smoke runs only when an addon or
+# (scripts/pr_check_scope.py): install-smoke runs only when an addon or
 # installer input changed, and a documentation-only branch publishes with no
-# collector and no Docker. PR_CHECK_SCOPE=full runs the whole gate. make test
-# and GitHub ci.yml still run the whole suite.
+# collector and no Docker. PR_CHECK_SCOPE=full keeps the audit and Docker
+# gate. This target is a manual scoped pytest run. make pr, make pr-check,
+# and the pre-push gate do not call it. make test and GitHub ci.yml run the
+# whole suite; ci.yml is the merge verdict.
 .PHONY: test-scoped
 test-scoped:
 	@echo "→ Pure-Python tests reached by the changed files: $(TEST_PATHS)"

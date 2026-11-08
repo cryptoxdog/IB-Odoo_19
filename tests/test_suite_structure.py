@@ -59,6 +59,9 @@ NON_TEST_FILES = frozenset(
         # executes them against the clone; test_fidelity.py is the test module.
         "fidelity.py",
         "fidelity_run.py",
+        # One-shot compact-receipt proof. It reads a retained snapshot and the clone.
+        # test_rehearsal_kit_lib.py is the test module.
+        "check_compact_acceptance.py",
     }
 )
 

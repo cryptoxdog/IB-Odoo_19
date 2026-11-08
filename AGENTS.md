@@ -173,6 +173,7 @@ Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skil
 | `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
 | `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
 | `plasticos-final-touches` | `FINAL_TOUCHES_MODE` | `audit` + `pr-check` |
+| `plasticos-branch-promotion-rehearsal` | Staging → Production promotion: rehearse the post-cutover imports at 10% volume, five evidence files max | `import-erp`, `import-vanillasoft` |
 | `plasticos-prompt-pack` | Router for `docs/plasticos_prompt_pack/` — context primer, tiered audit (`AUDIT_MODE`), matching-pipeline gap handoff, pre-code kernel, 10-block architecture/deployment reasoning chain | `audit`, `pr-check` |
 
 | Subagent | Preloaded skills | Delegate for |
@@ -799,3 +800,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `plasticos_enrichment/models/enrichment_run.py` is superseded. `action_inject` creates new material profiles
 > once after the raw-material walk, and fingerprint `13881d09c66d6989` is pruned. The extended baseline
 > `entries` array is empty.
+
+> **2026-11-08 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the local pytest wave inside `make pr` / `make pr-check` / the pre-push gate is retired.
+> `scripts/pr_check_run.sh` full mode does not run `make test` or `make test-scoped`.
+> `ci.yml` `pure-python-tests` still runs `pytest tests/` and stays the merge verdict.
+> `make test` remains the manual suite. The two pre-push contract hooks
+> (`phantom-enum-values`, `manifest-contract`) are unchanged.

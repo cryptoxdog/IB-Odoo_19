@@ -340,15 +340,15 @@ def test_addon_change_reuses_smoke_evidence_without_a_fresh_upgrade(repo: Repo) 
     result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     calls = repo.calls()
-    assert calls[:3] == [
+    assert calls[:2] == [
         "make audit",
         "make audit-baseline",
-        "make test-scoped [tests/test_seed.py]",
     ]
+    assert "make test" not in calls and not any("test-scoped" in call for call in calls)
+    assert "pytest skipped" in result.stdout
     assert "smoke --recheck" in calls
     assert "make install-smoke" not in calls
     assert "full install-smoke is optional" not in result.stdout
-    assert "make test" not in calls
     assert calls[-1] == "make runtime-test [plasticos_base]"
     assert calls.index("smoke --recheck") < calls.index("make runtime-test [plasticos_base]")
     assert repo.receipt()["runtime"] == "plasticos_base"
@@ -390,22 +390,23 @@ def test_addon_change_upgrades_when_smoke_evidence_misses(repo: Repo) -> None:
     assert "smoke --recheck" in calls and "make install-smoke" in calls
 
 
-def test_test_only_change_runs_only_that_module_and_the_audits(repo: Repo) -> None:
+def test_test_only_change_runs_the_audits_and_skips_pytest(repo: Repo) -> None:
     repo.commit("tests", **{"tests/test_other.py": "def test_other():\n    assert 1\n"})
     result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert repo.calls() == [
         "make audit",
         "make audit-baseline",
-        "make test-scoped [tests/test_other.py tests/test_uses_other.py]",
     ]
+    assert "pytest skipped" in result.stdout
 
 
-def test_harness_change_runs_the_whole_suite(repo: Repo) -> None:
+def test_harness_change_keeps_the_audits_and_leaves_pytest_to_ci(repo: Repo) -> None:
     repo.commit("harness", **{"tests/conftest.py": "import pytest\n"})
     result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
-    assert repo.calls() == ["make audit", "make audit-baseline", "make test"]
+    assert repo.calls() == ["make audit", "make audit-baseline"]
+    assert "pytest skipped" in result.stdout
     assert "install-smoke not needed" in result.stdout
 
 
@@ -415,7 +416,9 @@ def test_a_failing_scope_owner_keeps_the_whole_gate(repo: Repo) -> None:
     result = repo.run("full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "whole gate" in result.stdout
-    assert repo.calls()[:3] == ["make audit", "make audit-baseline", "make test"]
+    assert repo.calls()[:2] == ["make audit", "make audit-baseline"]
+    assert "make test" not in repo.calls()
+    assert "pytest skipped" in result.stdout
     assert "smoke --recheck" in repo.calls()
     assert repo.calls()[-1] == "make runtime-test [all]"
     assert "full install-smoke is optional" not in result.stdout
@@ -425,10 +428,12 @@ def test_a_failing_scope_owner_keeps_the_whole_gate(repo: Repo) -> None:
     assert not (repo.root / ".cache/pr-check/scope.json").exists(), "a stale receipt must not outlive a failed scope"
 
 
-def test_a_failing_scoped_test_wave_fails_the_gate(repo: Repo) -> None:
+def test_the_gate_does_not_run_the_pytest_suite(repo: Repo) -> None:
     repo.commit("tests", **{"tests/test_other.py": "def test_other():\n    assert 1\n"})
-    result = repo.run("full", FAKE_MAKE_FAIL="test-scoped")
-    assert result.returncode != 0
+    result = repo.run("full", FAKE_MAKE_FAIL="test")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert not any(call == "make test" or "test-scoped" in call for call in repo.calls())
+    assert "pytest skipped" in result.stdout
 
 
 def test_fast_mode_is_unchanged(repo: Repo) -> None:

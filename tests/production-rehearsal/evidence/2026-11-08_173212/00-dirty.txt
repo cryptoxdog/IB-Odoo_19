@@ -1,0 +1,8 @@
+ M plasticos_crm_sync/scripts/import_vanillasoft_shell.py
+ M tests/production-rehearsal/README.md
+ M tests/production-rehearsal/SPEC.md
+ M tests/production-rehearsal/common.py
+ M tests/production-rehearsal/expected/blockers.yaml
+ M tests/production-rehearsal/run.sh
+ M tests/production-rehearsal/test_erp_census_source.py
+ M tests/production-rehearsal/test_rehearsal_scripts.py

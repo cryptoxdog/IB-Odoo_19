@@ -140,16 +140,16 @@ case "$sub" in
   upgrade) exit "${STUB_TE_UPGRADE_RC:-0}" ;;
   assert-clone) exit "${STUB_TE_ASSERT_RC:-0}" ;;
   run)
-    target=""; db=""; sha=""
+    target=""; db=""; sha=""; has_census=0; has_floor=0
     for arg in "$@"; do
       case "$arg" in
         import-erp|import-vanillasoft) target="$arg" ;;
         ODOO_DB_NAME=*) db="${arg#*=}" ;;
         VANILLASOFT_HISTORY_CENSUS_SHA256=*) sha="${arg#*=}" ;;
-        VANILLASOFT_HISTORY_CENSUS=*) [ -r "${STUB_REPO}/${arg#*=}" ] || { echo "census unreadable"; exit 2; } ;;
+        VANILLASOFT_HISTORY_CENSUS=*) has_census=1; [ -r "${STUB_REPO}/${arg#*=}" ] || { echo "census unreadable"; exit 2; } ;;
         VANILLASOFT_HISTORY_CHECKPOINT=*)
           if [ -f "$STUB_DIR/06-crm-history.jsonl" ]; then cp "$STUB_DIR/06-crm-history.jsonl" "${STUB_REPO}/${arg#*=}"; fi ;;
-        VANILLASOFT_CALL_FLOOR=*|VANILLASOFT_CONTACT_FLOOR=*) echo "floor given with the census"; exit 2 ;;
+        VANILLASOFT_CALL_FLOOR=*|VANILLASOFT_CONTACT_FLOOR=*) has_floor=1 ;;
         REPORT_PATH=*|VANILLASOFT_REPORT_PATH=*)
           path="${arg#*=}"
           case "$path" in
@@ -171,13 +171,23 @@ case "$sub" in
       echo "INFO stub odoo.addons.plasticos_partner_import.models.erp_import_service: ERP import finished${STUB_ERP_SCOPE:-}: $counts"
       echo "DATA VERDICT {}"
     fi
+    if [ "$has_census" = 1 ] && [ "$has_floor" = 1 ]; then
+      echo "floor given with the census"
+      exit 2
+    fi
     if [ "$target" = import-vanillasoft ]; then
-      case "${STUB_VS_TRACE:-history}" in
-        history)
-          printf 'VANILLASOFT_HISTORY_AUDIT {"event": "crm_history.admitted", "database": "%s", "permit": false, "census_sha256": "%s"}\n' "$db" "$sha"
-          echo "HISTORY VERDICT {}" ;;
-        rolling) echo "=== VANILLASOFT IMPORT SUMMARY ===" ;;
-      esac
+      if [ "$has_census" = 0 ]; then
+        if [ "${STUB_VS_TRACE:-rolling}" != none ]; then
+          echo "=== VANILLASOFT IMPORT SUMMARY ==="
+        fi
+      else
+        case "${STUB_VS_TRACE:-history}" in
+          history)
+            printf 'VANILLASOFT_HISTORY_AUDIT {"event": "crm_history.admitted", "database": "%s", "permit": false, "census_sha256": "%s"}\n' "$db" "$sha"
+            echo "HISTORY VERDICT {}" ;;
+          rolling) echo "=== VANILLASOFT IMPORT SUMMARY ===" ;;
+        esac
+      fi
     fi
     exit "${STUB_TE_RUN_RC:-0}" ;;
 esac
@@ -420,19 +430,21 @@ def test_clean_exact_staging_all_gates_pass(fx):
     text = (fx.latest() / "verdict.txt").read_text()
     assert "verdict=ready" in text
     gate7 = fx.gates()[7]
-    assert gate7["reason"] == "vanillasoft-history-sample-exercised"
+    assert gate7["reason"] == "vanillasoft-rolling-imported"
     assert gate7["facts"]["full_cohort_claimed"] is False
     assert gate7["facts"]["execution_path"]["database"] == CUTOVER
+    assert gate7["facts"]["execution_path"]["mode"] == "rolling"
+    assert gate7["facts"]["execution_path"]["crosswalk"] == "plasticos_crm_sync/data/approved_contact_crosswalk.csv"
     assert gate7["facts"]["execution_path"]["release_sha"] == fx.staging_sha
-    # Same target, history mode only: the census and its digest reach make, no floor does.
     call = _vs_make_call(fx)
-    assert f"VANILLASOFT_HISTORY_CENSUS={TRACKED_REL}" in call
-    assert f"VANILLASOFT_HISTORY_CENSUS_SHA256={CENSUS_SHA}" in call
-    assert "VANILLASOFT_HISTORY_CHECKPOINT=tests/production-rehearsal/evidence/" in call
+    assert "VANILLASOFT_CALL_FLOOR=" in call
+    assert "VANILLASOFT_CONTACT_FLOOR=" in call
+    assert "VANILLASOFT_HISTORY_CENSUS" not in call
+    assert "VANILLASOFT_HISTORY_CENSUS_SHA256" not in call
+    assert TRACKED_REL not in call
+    assert CENSUS_SHA not in call
     assert "VANILLASOFT_HISTORY_MAX_IDS" not in call
     assert f"ODOO_DB_NAME={CUTOVER}" in call
-    assert "FLOOR" not in call
-    assert (fx.latest() / "06-crm-history.jsonl").is_file()
     assert (fx.stub / "cron.log").read_text().strip() == "cron"
 
 
@@ -637,17 +649,18 @@ def test_gate7_refuses_before_touching_the_clone(fx, drop, extra, state, reason,
     assert "ir_config_parameter" not in (fx.stub / "sql.log").read_text() if (fx.stub / "sql.log").exists() else True
 
 
-def test_gate7_missing_checkout_file_fails_before_the_import(fx):
+def test_gate7_does_not_read_the_checkout_export(fx):
     env = fx.ready_for_gate7()
     (fx.repo / TRACKED_REL).unlink()
     result = fx.run("run.sh", env=env)
-    assert result.returncode != 0
-    gate7 = fx.gates()[7]
-    assert (gate7["state"], gate7["reason"]) == ("FAIL", "vanillasoft-history-census-unreadable")
-    assert "make import-vanillasoft" not in fx.calls_text()
+    assert result.returncode == 0, result.stdout + result.stderr
+    call = _vs_make_call(fx)
+    assert "make import-vanillasoft" in call
+    assert TRACKED_REL not in call
+    assert "VANILLASOFT_HISTORY_CENSUS" not in call
 
 
-def test_gate7_ignores_an_outside_census_and_hashes_the_checkout_file(fx, tmp_path):
+def test_gate7_ignores_an_outside_census(fx, tmp_path):
     env = fx.ready_for_gate7()
     outside = tmp_path / "elsewhere.csv"
     outside.write_text("other\n", encoding="utf-8")
@@ -656,52 +669,26 @@ def test_gate7_ignores_an_outside_census_and_hashes_the_checkout_file(fx, tmp_pa
     result = fx.run("run.sh", env=env)
     assert result.returncode == 0, result.stdout + result.stderr
     call = _vs_make_call(fx)
-    assert f"VANILLASOFT_HISTORY_CENSUS={TRACKED_REL}" in call
-    assert f"VANILLASOFT_HISTORY_CENSUS_SHA256={CENSUS_SHA}" in call
+    assert "VANILLASOFT_CALL_FLOOR=" in call
+    assert "VANILLASOFT_CONTACT_FLOOR=" in call
+    assert "VANILLASOFT_HISTORY_CENSUS=" not in call
+    assert TRACKED_REL not in call
     assert "elsewhere.csv" not in call
     assert "0" * 64 not in call
 
 
 @pytest.mark.parametrize(
-    "report, ledger, env, state, reason",
+    "env, state, reason",
     [
-        (False, None, {}, "FAIL", "vanillasoft-history-report-unreadable"),
-        (_summary("vanillasoft"), None, {}, "FAIL", "vanillasoft-history-report-shape"),
-        (_history_report(census_sha256="e" * 64), None, {}, "FAIL", "vanillasoft-history-census-mismatch"),
-        (_history_report(classes={cohort.GENUINE_FAILED: 2}), None, {}, "FAIL", "vanillasoft-history-genuine-failures"),
-        (_history_report(stopped="budget"), None, {}, "FAIL", "vanillasoft-history-failure-budget"),
-        (None, _history_ledger(rows=[]), {}, "FAIL", "vanillasoft-history-ledger-mismatch"),
-        (None, None, {"STUB_TE_RUN_RC": "1"}, "FAIL", "vanillasoft-history-import-exit"),
-        (None, None, {"STUB_TE_RUN_RC": "2"}, "FAIL", "vanillasoft-preflight-failed"),
-        (None, None, {"STUB_VS_TRACE": "rolling"}, "FAIL", "vanillasoft-rolling-mode-observed"),
-        (None, None, {"STUB_VS_TRACE": "none"}, "FAIL", "vanillasoft-history-not-admitted"),
-        (None, None, {"STUB_REFS_AFTER": "1"}, "FAIL", "vanillasoft-history-durable-mismatch"),
-        (
-            _history_report(classes={cohort.IMPORTED: 0, cohort.HELD: 4}),
-            _history_ledger(
-                [
-                    {"vanillasoft_contact_id": str(i), "class": cohort.HELD, "importer_outcome": "failed"}
-                    for i in range(1, 5)
-                ]
-                + [
-                    {
-                        "vanillasoft_contact_id": "5",
-                        "class": cohort.DUPLICATE_SKIPPED,
-                        "importer_outcome": "not_fetched",
-                    }
-                ]
-            ),
-            {"STUB_REFS_AFTER": "0"},
-            "BLOCKED",
-            "vanillasoft-history-sample-no-import",
-        ),
+        ({"STUB_TE_RUN_RC": "1"}, "FAIL", "vanillasoft-import-exit"),
+        ({"STUB_TE_RUN_RC": "2"}, "FAIL", "vanillasoft-preflight-failed"),
+        ({"STUB_VS_TRACE": "none"}, "FAIL", "vanillasoft-summary-unobserved"),
+        ({"STUB_REFS_AFTER": "0"}, "BLOCKED", "vanillasoft-no-import"),
     ],
 )
-def test_gate7_reads_the_history_report_ledger_and_trace_not_the_exit_code(fx, report, ledger, env, state, reason):
+def test_gate7_judges_the_rolling_summary_and_durable_refs(fx, env, state, reason):
     fx.with_capability_bind()
-    hist_env = fx.with_history(report=report if report is not False else None, ledger=ledger)
-    if report is False:
-        (fx.stub / "06-crm-result.json").unlink()
+    hist_env = fx.with_history()
     fx.run("run.sh", env={**hist_env, **env})
     gate7 = fx.gates()[7]
     assert (gate7["state"], gate7["reason"]) == (state, reason), gate7
@@ -1065,8 +1052,8 @@ pytestmark_make = pytest.mark.skipif(shutil.which("make") is None, reason="needs
 
 
 class MakeProbe:
-    def __init__(self, tmp: Path):
-        self.work = tmp / "work"
+    def __init__(self, tmp: Path, folder: str = "work"):
+        self.work = tmp / folder
         self.stub = tmp / "stub"
         self.bin = tmp / "bin"
         self.venv = tmp / "venv"
@@ -1155,6 +1142,15 @@ def test_make_import_vanillasoft_history_mode_forwards_every_input_onto_the_moun
     assert call["env"]["VANILLASOFT_CALL_FLOOR"] == "" and call["env"]["VANILLASOFT_CONTACT_FLOOR"] == ""
     assert call["argv"][-5:] == ["odoo", "odoo", "shell", "-d", "probe_db"] or "shell" in call["argv"]
     assert call["stdin"] == (ROOT / VS_DRIVER).read_text(encoding="utf-8")
+
+
+def test_make_import_vanillasoft_history_mounts_when_the_checkout_path_contains_spaces(tmp_path):
+    mk = MakeProbe(tmp_path, folder="IB-Odoo_19 (LOCAL)/checkout")
+    result = mk.run("import-vanillasoft", *HISTORY_ARGS)
+    assert result.returncode == 0, result.stderr
+    (call,) = mk.compose_calls()
+    assert call["env"]["VANILLASOFT_HISTORY_CENSUS"] == f"/mnt/extra-addons/{CENSUS_REL}"
+    assert call["env"]["VANILLASOFT_HISTORY_CHECKPOINT"] == "/mnt/extra-addons/.l9/runtime/ledger/history.jsonl"
 
 
 def test_make_import_vanillasoft_history_mode_on_the_local_runner_passes_host_paths(mk):

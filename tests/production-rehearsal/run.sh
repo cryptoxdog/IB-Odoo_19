@@ -330,17 +330,12 @@ if [ "$(gate_state 6)" = "MISSING" ]; then
   gate_record 6 FAIL "helper-no-receipt" "erp_slice.sh exited ${G6_RC} without a gate receipt" 1
 fi
 
-# ── Gate 7 — VanillaSoft history for the contact file in this checkout ───────
-# The file is plasticos_crm_sync/Vanillasoft-Scrap-Management.csv. Its SHA-256
-# is computed here only because the import harness requires the argument. The
-# kit stores no digest. No history cap is passed unless REHEARSAL_HISTORY_MAX_IDS
-# is already set. The ledger is this run's evidence file.
+# ── Gate 7 — VanillaSoft rolling import ──────────────────────────────────────
+# The checkout export is not a census. This gate does not open it and does not
+# hash it. The driver loads plasticos_crm_sync/data/approved_contact_crosswalk.csv.
 echo ""
-echo "── Gate 7: VanillaSoft history"
+echo "── Gate 7: VanillaSoft import"
 CURRENT_GATE=7
-VS_CENSUS_REL="plasticos_crm_sync/Vanillasoft-Scrap-Management.csv"
-VS_CENSUS="${ROOT}/${VS_CENSUS_REL}"
-VS_LEDGER="${EVIDENCE_DIR}/06-crm-history.jsonl"
 G7_STATE=""
 if [ "$(gate_state 6)" != "PASS" ]; then
   gate_record 7 SKIPPED "gate6-not-passed" "VanillaSoft contacts resolve against ERP partners"
@@ -349,20 +344,13 @@ elif [ "${ODOO_STAGE:-}" = "production" ]; then
 elif [ -n "${VANILLASOFT_PRODUCTION_PERMIT:-}" ]; then
   gate_record 7 FAIL "production-permit-refused" "VANILLASOFT_PRODUCTION_PERMIT is set; the rehearsal never passes a permit"
 elif [ -n "${VANILLASOFT_CALL_FLOOR:-}${VANILLASOFT_CONTACT_FLOOR:-}" ]; then
-  gate_record 7 FAIL "rolling-floor-refused" "a VanillaSoft call or contact floor is set; Gate 7 runs the historical cohort, not a window"
+  gate_record 7 FAIL "rolling-floor-refused" "a VanillaSoft floor is set in the environment; Gate 7 chooses its own window"
 elif [ -n "${VANILLASOFT_HISTORY_CHECKPOINT:-}" ]; then
-  gate_record 7 FAIL "history-checkpoint-refused" "VANILLASOFT_HISTORY_CHECKPOINT is set; the rehearsal writes its own ledger and never binds an operator ledger to the clone"
-elif [ ! -r "${VS_CENSUS}" ]; then
-  gate_record 7 FAIL "vanillasoft-history-census-unreadable" "${VS_CENSUS_REL} is not readable in this checkout"
+  gate_record 7 FAIL "history-checkpoint-refused" "VANILLASOFT_HISTORY_CHECKPOINT is set; the rehearsal does not bind an operator ledger"
 elif [ -n "${REHEARSAL_HISTORY_MAX_IDS:-}" ] && ! printf '%s\n' "${REHEARSAL_HISTORY_MAX_IDS}" | grep -Eq '^[1-9][0-9]*$'; then
   gate_record 7 FAIL "vanillasoft-history-bound-invalid" "REHEARSAL_HISTORY_MAX_IDS must be a positive integer"
 else
-  VS_CENSUS_SHA="$(rlib sha256 "${VS_CENSUS}" 2>/dev/null || true)"
-  if [ -z "${VS_CENSUS_SHA}" ]; then
-    gate_record 7 FAIL "vanillasoft-history-census-unreadable" "the contact file could not be hashed"
-  else
-    G7_STATE="run"
-  fi
+  G7_STATE="run"
 fi
 if [ "${G7_STATE}" = "run" ]; then
   # ── Bind VANILLASOFT_API_KEY from Infisical (value never printed) ──────────
@@ -410,9 +398,8 @@ PYEOF
     if [ "${VS_INJECT_RC}" -ne 0 ]; then
       gate_record 7 FAIL "vanillasoft-key-injection-failed" "exit ${VS_INJECT_RC}; see 06-crm-key.log" 1
     else
-      # The history driver refuses while the incremental cron is active. The
-      # clone inherits the template's cron row, so it is deactivated here, the
-      # same operator step production takes before its history run.
+      # The clone inherits the template's incremental cron. Deactivate it so
+      # that cron does not import beside this run.
       printf '%s\n' "UPDATE ir_cron SET active = false WHERE id IN (SELECT res_id FROM ir_model_data WHERE module = 'plasticos_crm_sync' AND name = 'cron_crm_sync_all' AND model = 'ir.cron');" \
         | db_query "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-cron.raw" \
         || echo "query-failed" >>"${EVIDENCE_DIR}/06-crm-cron.raw"
@@ -422,44 +409,30 @@ PYEOF
       echo "durable_refs_before=${VS_REFS_BEFORE:-unknown}" >"${EVIDENCE_DIR}/06-crm-refs.txt"
       EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
       VS_REPORT="/mnt/extra-addons/${EVIDENCE_REL}/06-crm-result.json"
-      # Host paths, relative to the checkout: the Makefile places them on the
-      # container's bind mount itself (runtime_path). The report path is the
-      # container path, as for Gate 6. No floor is passed: history mode only.
-      VS_MAX_ARG=""
-      if [ -n "${REHEARSAL_HISTORY_MAX_IDS:-}" ]; then
-        VS_MAX_ARG="VANILLASOFT_HISTORY_MAX_IDS=${REHEARSAL_HISTORY_MAX_IDS}"
-      fi
-      # shellcheck disable=SC2086
+      # Contacts list accepts modified_after inside 31 days. Calls use the
+      # shorter window. These are chosen here; an operator floor is refused above.
+      VS_CONTACT_FLOOR="$(python3 -c 'from datetime import UTC, datetime, timedelta; print((datetime.now(UTC)-timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
+      VS_CALL_FLOOR="$(python3 -c 'from datetime import UTC, datetime, timedelta; print((datetime.now(UTC)-timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
       bash "${ROOT}/scripts/test_env.sh" run "${CUTOVER_DB}" -- \
         make import-vanillasoft \
           ODOO_DB_NAME="${CUTOVER_DB}" \
-          VANILLASOFT_HISTORY_CENSUS="${VS_CENSUS_REL}" \
-          VANILLASOFT_HISTORY_CENSUS_SHA256="${VS_CENSUS_SHA}" \
-          VANILLASOFT_HISTORY_CHECKPOINT="${EVIDENCE_REL}/06-crm-history.jsonl" \
-          ${VS_MAX_ARG} \
+          VANILLASOFT_CALL_FLOOR="${VS_CALL_FLOOR}" \
+          VANILLASOFT_CONTACT_FLOOR="${VS_CONTACT_FLOOR}" \
           VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
           >"${EVIDENCE_DIR}/06-crm-log.txt" 2>&1
       VS_RC=$?
       VS_REFS_AFTER="$(vanillasoft_ref_census "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-refs-after.raw")" \
         || echo "query-failed" >"${EVIDENCE_DIR}/06-crm-refs-after.raw"
       echo "durable_refs_after=${VS_REFS_AFTER:-unknown}" >>"${EVIDENCE_DIR}/06-crm-refs.txt"
-      VS_MAX_FLAG=""
-      if [ -n "${REHEARSAL_HISTORY_MAX_IDS:-}" ]; then
-        VS_MAX_FLAG="--max-ids ${REHEARSAL_HISTORY_MAX_IDS}"
-      fi
-      # shellcheck disable=SC2086
-      rlib check-vanillasoft-history "${EVIDENCE_DIR}" \
-        --report "${EVIDENCE_DIR}/06-crm-result.json" \
+      rlib check-vanillasoft-rolling "${EVIDENCE_DIR}" \
         --import-exit "${VS_RC}" \
-        --ledger "${VS_LEDGER}" \
         --log "${EVIDENCE_DIR}/06-crm-log.txt" \
         --refs-before "${EVIDENCE_DIR}/06-crm-refs-before.raw" \
         --refs-after "${EVIDENCE_DIR}/06-crm-refs-after.raw" \
-        --census-sha256 "${VS_CENSUS_SHA}" \
         --database "${CUTOVER_DB}" \
-        ${VS_MAX_FLAG} \
-        --release-sha "${HEAD_SHA}" \
-        --run-started "${RUN_STARTED_UTC}"
+        --call-floor "${VS_CALL_FLOOR}" \
+        --contact-floor "${VS_CONTACT_FLOOR}" \
+        --release-sha "${HEAD_SHA}"
     fi
   fi
 fi
