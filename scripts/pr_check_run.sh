@@ -7,26 +7,25 @@
 # gitleaks-push hook at `git push` time, not here.
 #
 # Modes:
-#   fast  — audit-quick + pytest (local iteration only; not publication)
+#   fast  — audit-quick + pytest (opt-in local iteration; not make pr, not pre-push)
 #   full  — local blocking static audit (make audit) + audit baseline +
-#           pure-Python tests + remote PR feedback (when available) (make pr-check)
+#           remote PR feedback (when available) (make pr-check)
 #
 # full runs only what the branch changed can reach. scripts/pr_check_scope.py
 # compares the branch with origin/$PR_BASE (committed range, working tree,
 # untracked files) and decides: the static audits run when any non-documentation
-# path changed; pytest runs a changed test module and every test module whose
-# source contains that path, the path without its suffix, or, for Python, the
-# dotted module (the whole suite when the harness changed). Docker smoke runs
-# when an addon load input or an installer input changed. It clones the pinned
-# fixture and upgrades the roster; it does not install from an empty database.
-# The Odoo runtime tests (make runtime-test -> make test-module / test-odoo) run
-# in the same Docker stage, right after smoke, for the runtime= modules the
-# scope owner names. They follow the smoke switches: PR_SMOKE_BYPASS
+# path changed. The pure-Python suite (make test / make test-scoped) does not
+# run here. make pr and the pre-push gate both call this full mode, and
+# GitHub ci.yml pure-python-tests runs pytest tests/ on the PR. Docker smoke
+# runs when an addon load input or an installer input changed. It clones the
+# pinned fixture and upgrades the roster; it does not install from an empty
+# database. The Odoo runtime tests (make runtime-test -> make test-module /
+# test-odoo) run in the same Docker stage, right after smoke, for the runtime=
+# modules the scope owner names. They follow the smoke switches: PR_SMOKE_BYPASS
 # (make pr-nosmoke) and PR_CHECK_SKIP_SMOKE=1 skip both. A scope of smoke=0
 # does not skip them: a change to an addon's own tests needs no smoke but still
 # runs that addon's tests.
-# Every doubt keeps the audit and pytest gate. GitHub ci.yml still runs
-# pytest tests/ on the PR.
+# Every doubt keeps the audit. GitHub ci.yml still runs pytest tests/ on the PR.
 #
 # Env:
 #   PR_BASE=<branch>          publication base (default: Staging)
@@ -62,8 +61,8 @@ run_wave() {
   "${MAKE}" -j"${JOBS}" --no-print-directory "${targets[@]}"
 }
 
-# Remember the skip, then drop it before pytest. Publication tests copy the
-# environment and refuse a publish when either switch is still set.
+# Remember the skip, then drop it before the rest of the gate so a later step
+# does not inherit the operator bypass.
 SMOKE_SKIP=0
 RUNTIME_SKIP=0
 _bypass="${PR_SMOKE_BYPASS:-}"
@@ -152,14 +151,12 @@ case "$MODE" in
     scope_tests="$(printf '%s\n' "$scope" | sed -n 's/^tests=//p')"
     scope_runtime="$(printf '%s\n' "$scope" | sed -n 's/^runtime=//p')"
     log "scope: $(printf '%s\n' "$scope" | sed -n 's/^reason=//p')"
-    # Wave 1: local counterparts of ci.yml's static/baseline/pytest collectors.
+    # Wave 1: local counterparts of ci.yml's static and baseline collectors.
+    # The pure-Python suite stays in ci.yml. make pr and the pre-push gate
+    # (pr-validate -> make pr-check) do not run it.
     targets=()
     if [ "$scope_audit" != "0" ]; then targets+=(audit audit-baseline); else log "→ audits skipped: only documentation changed"; fi
-    case "$scope_tests" in
-      all) targets+=(test) ;;
-      "") log "→ pytest skipped: no changed test module and no test quotes a changed path" ;;
-      *) export TEST_PATHS="$scope_tests"; targets+=(test-scoped) ;;
-    esac
+    log "→ pytest skipped: ci.yml pure-python-tests runs the suite"
     # Bash 3.2 (macOS /bin/bash) treats "${targets[@]}" as unbound under
     # set -u when the array is empty. A documentation-only scope leaves it
     # empty: both collectors are skipped, and that is a successful gate.
