@@ -38,7 +38,6 @@ class TestSameAsLast(TransactionCase):
                 "sale_order_id": sale.id,
                 "purchase_order_ids": [(6, 0, [purchase.id])],
                 "delivery_term": "appointment",
-                "state": "delivered",
             }
         )
         load = self.env["plasticos.load"].create(
@@ -47,11 +46,11 @@ class TestSameAsLast(TransactionCase):
                 "carrier_id": self.carrier.id,
                 "rate_amount": 1800.0,
                 "rate_currency_id": self.env.company.currency_id.id,
-                "freight_context_fingerprint": False,
             }
         )
         self.assertFalse(load.freight_context_fingerprint)
         self.assertEqual(load.transaction_id, transaction)
+        transaction.with_context(bypass_state_guard=True).write({"state": "delivered"})
         return transaction
 
     def test_a_deal_without_a_booking_fingerprint_copies_as_drafts_dated_today(self):
