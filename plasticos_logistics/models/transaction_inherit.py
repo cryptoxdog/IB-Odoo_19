@@ -1,5 +1,7 @@
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import UserError, ValidationError
+
+_SAL_SOURCE_STATES = ("delivered", "invoiced", "closed")
 
 
 class PlasticosTransactionLoadBridge(models.Model):
@@ -88,57 +90,108 @@ class PlasticosTransactionLoadBridge(models.Model):
         rec.load_ids.invalidate_recordset(["state", "transaction_id"])
 
     def action_same_as_last(self):
-        """Copy the last completed deal and change only the dates.
+        """Copy the last completed deal as one new draft deal and change only the dates.
 
-        Buyer, supplier, materials, prices, carrier, and freight rate stay as they
-        were. Draft sale and purchase orders are not confirmed, and a missing
-        booking fingerprint does not exclude the source. A second click finds the
-        drafts already created and stops.
+        The copy is a complete deal: one new draft transaction owns the copied
+        draft sale order, every copied draft purchase order, and one draft load
+        per source load (carrier and freight rate kept). The copied sale order
+        points at that transaction, so confirming it later compiles no second
+        one; each copied purchase order names the copied sale order in
+        ``origin``, as the purchase confirm link expects. Buyer, supplier,
+        materials, prices, carrier, and freight rate stay as they were. Nothing
+        is confirmed, posted, or given a booking fingerprint.
+
+        A copy whose deal is still open refuses another copy of the same source.
+        The source row is locked and bumped first, so a concurrent second click
+        fails with a serialization error, is retried, and then finds that copy.
         """
         self.ensure_one()
         source = self._latest_completed_deal()
         if not source.sale_order_id or not source.purchase_order_ids:
             raise UserError("Same As Last needs a completed deal with a sale order and a purchase order.")
+        if not source.supplier_id or not source.buyer_id:
+            raise UserError("Same As Last needs a completed deal with both a supplier and a buyer.")
+        self._lock_same_as_last_source(source)
         marker = f"SAL:{source.sale_order_id.id}"
-        existing = self.env["sale.order"].search(
-            [("origin", "=", marker), ("state", "in", ("draft", "sent"))],
+        open_copy = self.env["sale.order"].search(
+            [
+                ("origin", "=", marker),
+                ("state", "!=", "cancel"),
+                "|",
+                ("transaction_id", "=", False),
+                ("transaction_id.state", "not in", (*_SAL_SOURCE_STATES, "cancelled")),
+            ],
             limit=1,
         )
-        if existing:
-            raise UserError("Same As Last drafts for this deal already exist.")
+        if open_copy:
+            raise UserError(f"Same As Last drafts for this deal already exist ({open_copy.name}).")
         now = fields.Datetime.now()
-        new_sale = source.sale_order_id.copy(default={"origin": marker, "date_order": now})
+        sale_default = {"origin": marker, "date_order": now, "transaction_id": False}
+        # plasticos_automation's approval must be earned again; a copied flag would skip the threshold.
+        if "approved" in source.sale_order_id._fields:
+            sale_default["approved"] = False
+        new_sale = source.sale_order_id.copy(default=sale_default)
         new_sale.write({"origin": marker, "date_order": now})
-        new_purchases = source.purchase_order_ids.copy(default={"origin": marker, "date_order": now})
-        new_purchases.write({"origin": marker, "date_order": now})
-        if len(source.load_ids) == 1:
-            load = source.load_ids
-            self.env["plasticos.load"].create(
-                {
-                    "sale_order_id": new_sale.id,
-                    "carrier_id": load.carrier_id.id,
-                    "rate_amount": load.rate_amount,
-                    "rate_currency_id": load.rate_currency_id.id,
-                }
-            )
+        new_purchases = source.purchase_order_ids.copy(default={"origin": new_sale.name, "date_order": now})
+        new_purchases.write({"origin": new_sale.name, "date_order": now})
+        vals = new_sale._transaction_vals(False, "")
+        vals.update(
+            {
+                "supplier_id": source.supplier_id.id,
+                "carrier_id": source.carrier_id.id,
+                "purchase_order_ids": [Command.set(new_purchases.ids)],
+                "product_id": source.product_id.id or vals.get("product_id"),
+                "quantity": source.quantity,
+                "uom_id": source.uom_id.id,
+                "unit_price": source.unit_price,
+                "freight_rate": source.freight_rate,
+                "delivery_term": source.delivery_term,
+            }
+        )
+        deal = self.env["plasticos.transaction"].create(vals)
+        new_sale.transaction_id = deal.id
+        load_vals = [
+            {
+                "sale_order_id": new_sale.id,
+                "transaction_id": deal.id,
+                "carrier_id": load.carrier_id.id,
+                "rate_amount": load.rate_amount,
+                "rate_currency_id": load.rate_currency_id.id,
+            }
+            for load in source.load_ids.sorted("id")
+        ]
+        if load_vals:
+            self.env["plasticos.load"].create(load_vals)
         return {
             "type": "ir.actions.act_window",
             "name": "Same As Last",
-            "res_model": "sale.order",
-            "res_id": new_sale.id,
+            "res_model": "plasticos.transaction",
+            "res_id": deal.id,
             "view_mode": "form",
             "target": "current",
         }
 
+    def _lock_same_as_last_source(self, source):
+        """Serialize Same As Last on one source deal.
+
+        ``FOR UPDATE`` alone does not show a copy committed after this cursor's
+        REPEATABLE READ snapshot. Bumping the locked row makes the later of two
+        concurrent copies fail with a serialization error, which Odoo retries.
+        The load model's membership epoch already locks and bumps a transaction row.
+        """
+        self.env["plasticos.load"]._touch_membership_epoch([source.id])
+
     def _latest_completed_deal(self):
         """Newest delivered, invoiced, or closed transaction in this company."""
         company = (self.sale_order_id.company_id if self.sale_order_id else False) or self.env.company
-        candidates = self.search([("state", "in", ("delivered", "invoiced", "closed"))], order="id desc")
-        for transaction in candidates:
-            transaction_company = transaction.sale_order_id.company_id or self.env.company
-            if transaction_company == company:
-                return transaction
-        raise UserError("No completed deal is available for Same As Last.")
+        source = self.search(
+            [("state", "in", _SAL_SOURCE_STATES), ("sale_order_id.company_id", "=", company.id)],
+            order="id desc",
+            limit=1,
+        )
+        if not source:
+            raise UserError("No completed deal is available for Same As Last.")
+        return source
 
     def _refuse_lagging_loads(self, rec, milestone, message):
         """A transaction milestone requires every linked load to have reached it.
