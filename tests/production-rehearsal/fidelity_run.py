@@ -156,13 +156,28 @@ def _cell(value) -> str:
     return str(value).strip()
 
 
+# The restored database is compatibility level 100, so OPENJSON and STRING_SPLIT
+# are not available. The list is one bound nvarchar and the statement text never changes.
+_LIST_SEPARATOR = "\x1f"
+
+
+def _identifier_list(keys: list[str]) -> str:
+    parts: list[str] = []
+    for key in keys:
+        text = str(key)
+        if _LIST_SEPARATOR in text:
+            raise ValueError("source identifier contains the list separator")
+        parts.append(text)
+    return _LIST_SEPARATOR.join(parts)
+
+
 def _rows(cursor, sql: str, keys: list[str]) -> list[dict]:
-    """Run one static statement. Identifiers are bound parameters, in batches of 400."""
+    """Run one static statement. The identifier list is a single bound parameter."""
     found: list[dict] = []
     unique = list(dict.fromkeys(key for key in keys if key))
     for start in range(0, len(unique), 400):
         chunk = unique[start : start + 400]
-        cursor.execute(sql.format(",".join(["%s"] * len(chunk))), tuple(chunk))  # noqa: S608
+        cursor.execute(sql, (_identifier_list(chunk),))
         found.extend(cursor.fetchall())
     return [{key: _cell(row[key]) for key in row} for row in found]
 
@@ -198,7 +213,7 @@ def _sale_headers(cursor, bundle: dict) -> None:
         cursor,
         """
         SELECT CONVERT(varchar(40), PO_ID) AS PO_ID, RTRIM(PONumber) AS PONumber
-        FROM dbo.PODetail WHERE CONVERT(varchar(40), PO_ID) IN ({})
+        FROM dbo.PODetail WHERE CONVERT(varchar(40), PO_ID) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
         """,
         line_keys,
     ):
@@ -207,7 +222,7 @@ def _sale_headers(cursor, bundle: dict) -> None:
         cursor,
         """
         SELECT RTRIM(PONumber) AS PONumber, CONVERT(varchar(20), COUNT(*)) AS HeaderCount
-        FROM dbo.PO WHERE RTRIM(Source) = 'SO' AND RTRIM(PONumber) IN ({})
+        FROM dbo.PO WHERE RTRIM(Source) = 'SO' AND RTRIM(PONumber) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
         GROUP BY RTRIM(PONumber)
         """,
         list(bundle["order_lines"].values()),
@@ -276,7 +291,7 @@ def read_source(odoo: dict) -> dict:
                 """
                 SELECT RTRIM(CpID) AS CpID, CompanyNm, Role, ActiveStatus, OurCustNo, APEMail, WebSite,
                        CONVERT(varchar(40), CreditLimit) AS CreditLimit
-                FROM dbo.CounterParty WHERE RTRIM(CpID) IN ({})
+                FROM dbo.CounterParty WHERE RTRIM(CpID) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 companies,
             ):
@@ -287,7 +302,7 @@ def read_source(odoo: dict) -> dict:
                 SELECT CONVERT(varchar(40), AddressID) AS AddressID, RTRIM(CpID) AS CpID, RTRIM(Type) AS Type,
                        Addr1, Addr2, Addr3, City, PostalCd, InvoiceAddr, RemitToAddress,
                        CONVERT(varchar(20), isBillingAddressOnly) AS isBillingAddressOnly
-                FROM dbo.Address WHERE RTRIM(CpID) IN ({})
+                FROM dbo.Address WHERE RTRIM(CpID) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 companies,
             ):
@@ -298,7 +313,7 @@ def read_source(odoo: dict) -> dict:
                 """
                 SELECT CONVERT(varchar(40), CT_ID) AS CT_ID, RTRIM(CpID) AS CpID, ContactNm, Email,
                        RTRIM(IsActive) AS IsActive
-                FROM dbo.Contact WHERE CONVERT(varchar(40), CT_ID) IN ({})
+                FROM dbo.Contact WHERE CONVERT(varchar(40), CT_ID) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 contacts,
             ):
@@ -309,7 +324,7 @@ def read_source(odoo: dict) -> dict:
                 """
                 SELECT RTRIM(PONumber) AS PONumber, CONVERT(varchar(19), PODate, 120) AS PODate,
                        RTRIM(Source) AS Source, RTRIM(PriceBasis) AS PriceBasis, RTRIM(POReference) AS POReference
-                FROM dbo.PO WHERE RTRIM(PONumber) IN ({})
+                FROM dbo.PO WHERE RTRIM(PONumber) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 orders,
             ):
@@ -324,7 +339,7 @@ def read_source(odoo: dict) -> dict:
                        CONVERT(varchar(40), SPrice) AS SPrice, CONVERT(varchar(40), SAmount) AS SAmount,
                        CONVERT(varchar(40), PWeight) AS PWeight, RTRIM(PWeightUOM) AS PWeightUOM,
                        CONVERT(varchar(40), PPrice) AS PPrice, CONVERT(varchar(40), PAmount) AS PAmount
-                FROM dbo.WKSDetail WHERE RTRIM(BuySellNo) IN ({})
+                FROM dbo.WKSDetail WHERE RTRIM(BuySellNo) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 worksheets,
             ):
@@ -335,7 +350,7 @@ def read_source(odoo: dict) -> dict:
                 """
                 SELECT RTRIM(BuySellNo) AS BuySellNo, CONVERT(varchar(19), InvoiceDt, 120) AS InvoiceDt,
                        CONVERT(varchar(19), OrderDt, 120) AS OrderDt, RTRIM(PriceBasis) AS PriceBasis
-                FROM dbo.BuySell WHERE RTRIM(BuySellNo) IN ({})
+                FROM dbo.BuySell WHERE RTRIM(BuySellNo) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 worksheets,
             ):
@@ -346,7 +361,7 @@ def read_source(odoo: dict) -> dict:
                 SELECT CONVERT(varchar(40), LedgerID) AS LedgerID, CONVERT(varchar(19), TradeDt, 120) AS TradeDt,
                        RTRIM(BuySellNo) AS BuySellNo, RTRIM(Source) AS Source, CONVERT(varchar(40), Sale) AS Sale,
                        RTRIM(AdjType) AS AdjType, RTRIM(AdjApproved) AS AdjApproved, RTRIM(AdjMemoNo) AS AdjMemoNo
-                FROM dbo.GPLedger WHERE RTRIM(BuySellNo) IN ({})
+                FROM dbo.GPLedger WHERE RTRIM(BuySellNo) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 worksheets,
             ):
@@ -359,7 +374,7 @@ def read_source(odoo: dict) -> dict:
                 SELECT RTRIM(PayableID) AS PayableID, RTRIM(BuySellNo) AS BuySellNo, RTRIM(GLAcct) AS GLAcct,
                        CONVERT(varchar(40), Amount) AS Amount, InvoiceNo,
                        CONVERT(varchar(19), InvoiceDt, 120) AS InvoiceDt, RTRIM(APBatchNo) AS APBatchNo
-                FROM dbo.Payables WHERE RTRIM(PayableID) IN ({})
+                FROM dbo.Payables WHERE RTRIM(PayableID) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 payables,
             ):
@@ -369,7 +384,7 @@ def read_source(odoo: dict) -> dict:
                 cursor,
                 """
                 SELECT RTRIM(APBatchNo) AS APBatchNo, InvoiceNo, CONVERT(varchar(19), InvoiceDt, 120) AS InvoiceDt
-                FROM dbo.PayablesBatch WHERE RTRIM(APBatchNo) IN ({})
+                FROM dbo.PayablesBatch WHERE RTRIM(APBatchNo) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 batches,
             ):
@@ -381,7 +396,7 @@ def read_source(odoo: dict) -> dict:
                 SELECT CONVERT(varchar(40), LedgerID) AS LedgerID, CONVERT(varchar(19), TradeDt, 120) AS TradeDt,
                        RTRIM(BuySellNo) AS BuySellNo, RTRIM(Source) AS Source, CONVERT(varchar(40), Sale) AS Sale,
                        RTRIM(AdjType) AS AdjType, RTRIM(AdjApproved) AS AdjApproved, RTRIM(AdjMemoNo) AS AdjMemoNo
-                FROM dbo.GPLedger WHERE CONVERT(varchar(40), LedgerID) IN ({})
+                FROM dbo.GPLedger WHERE CONVERT(varchar(40), LedgerID) IN (SELECT LTRIM(RTRIM(SUBSTRING(list.csv, nums.n, CHARINDEX(NCHAR(31), list.csv + NCHAR(31), nums.n) - nums.n))) FROM (SELECT CAST(%s AS nvarchar(max)) AS csv) AS list CROSS APPLY (SELECT TOP (LEN(list.csv) + 1) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b) AS nums WHERE nums.n <= LEN(list.csv) + 1 AND (nums.n = 1 OR SUBSTRING(list.csv, nums.n - 1, 1) = NCHAR(31)))
                 """,
                 ledgers,
             ):

@@ -445,8 +445,7 @@ def test_failure_only_retention_matches_full_detection_and_coverage():
     )
 
 
-def test_source_identifiers_stay_a_bound_json_parameter():
-    import json
+def test_source_identifiers_stay_one_bound_parameter():
     import sys
 
     sys.path.insert(0, str(KIT))
@@ -466,6 +465,7 @@ def test_source_identifiers_stay_a_bound_json_parameter():
             return []
 
     cursor = Cursor()
-    statement = "SELECT 1 WHERE id IN (SELECT value FROM OPENJSON(%s))"
+    statement = "SELECT 1 WHERE id IN (SELECT CAST(%s AS nvarchar(max)))"
     module._rows(cursor, statement, ["10", "10", "20"])
-    assert cursor.calls == [(statement, (json.dumps(["10", "20"]),))]
+    assert cursor.calls == [(statement, ("10\x1f20",))]
+    assert ".format(" not in module._rows.__code__.co_consts
