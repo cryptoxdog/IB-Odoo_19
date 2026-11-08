@@ -9,10 +9,10 @@ install-smoke evidence miss: snapshot changed; source changed
 ════════════════════════════════════════════════════════
 ✅ XML module refs match declared depends
 → Starting PostgreSQL...
- Container odoo19-db-1 Running 
+ Container odoo19-db-1 Running
 → Waiting for PostgreSQL...
 → Building Odoo image (xmlsec + requirements)...
- Image odoo19-odoo-test Building 
+ Image odoo19-odoo-test Building
 #1 [internal] load local bake definitions
 #1 reading from stdin 548B done
 #1 DONE 0.0s
@@ -57,303 +57,303 @@ install-smoke evidence miss: snapshot changed; source changed
 
 #11 resolving provenance for metadata file
 #11 DONE 0.0s
- Image odoo19-odoo-test Built 
+ Image odoo19-odoo-test Built
 → Admitting the pinned fixture and upgrading odoo_test_smoke_w2495f48767...
 ✅ odoo_test_tpl_ee_c9e8a81f52f23680 is the canonical enterprise fixture; reusing it
- Container odoo19-odoo-run-6abb3563c6bf Creating 
- Container odoo19-odoo-run-6abb3563c6bf Created 
+ Container odoo19-odoo-run-6abb3563c6bf Creating
+ Container odoo19-odoo-run-6abb3563c6bf Created
 ✅ odoo_test_smoke_w2495f48767 is a fresh clone of odoo_test_tpl_ee_c9e8a81f52f23680 (owner w2495f48767, parity ee)
 ✓ odoo_test_smoke_w2495f48767: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
 → Upgrading 25 PlasticOS modules on odoo_test_smoke_w2495f48767 to the source on disk
- Container odoo19-odoo-run-1e922b3d1490 Creating 
- Container odoo19-odoo-run-1e922b3d1490 Created 
-2026-11-08 17:32:29,855 1 INFO ? odoo: Odoo version 19.0-20261102 
-2026-11-08 17:32:29,855 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf 
-2026-11-08 17:32:29,855 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons']) 
-2026-11-08 17:32:29,855 1 INFO ? odoo: database: odoo@db:5432 
-2026-11-08 17:32:29,983 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading 1 modules... 
-2026-11-08 17:32:29,985 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
-2026-11-08 17:32:29,994 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: updating modules list 
-2026-11-08 17:32:29,995 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
-2026-11-08 17:32:31,067 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a 
-2026-11-08 17:32:31,067 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a 
-2026-11-08 17:32:31,853 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
-2026-11-08 17:32:31,897 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading 170 modules... 
-2026-11-08 17:32:32,210 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_accounting (87/170) 
-2026-11-08 17:32:32,290 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_accounting/data/payment_terms.xml 
-2026-11-08 17:32:32,293 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_accounting/data/accounts.xml 
-2026-11-08 17:32:32,507 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_accounting loaded in 0.30s, 807 queries (+807 other) 
-2026-11-08 17:32:32,718 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_base (146/170) 
-2026-11-08 17:32:32,773 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_base: creating or updating database tables 
-2026-11-08 17:32:32,797 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/security/ir.model.access.csv 
-2026-11-08 17:32:32,800 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/views/menu.xml 
-2026-11-08 17:32:32,802 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/company.xml 
-2026-11-08 17:32:32,804 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/service_user.xml 
-2026-11-08 17:32:32,805 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/admin_users.xml 
-2026-11-08 17:32:32,806 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/partner_tags.xml 
-2026-11-08 17:32:32,816 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/material_taxonomy.xml 
-2026-11-08 17:32:32,884 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/sales_reps.xml 
-2026-11-08 17:32:32,887 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/attachment_maintenance_cron.xml 
-2026-11-08 17:32:32,896 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/midnight_recompute_cron.xml 
-2026-11-08 17:32:32,901 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/uom_defaults.xml 
-2026-11-08 17:32:32,912 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_base loaded in 0.19s, 789 queries (+789 other) 
-2026-11-08 17:32:32,912 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_gate (147/170) 
-2026-11-08 17:32:32,941 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_gate/data/gate_icp_seed.xml 
-2026-11-08 17:32:32,947 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_gate loaded in 0.03s, 45 queries (+45 other) 
-2026-11-08 17:32:32,947 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_material_profile (148/170) 
-2026-11-08 17:32:32,965 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_material_profile: creating or updating database tables 
-2026-11-08 17:32:33,013 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/security/ir.model.access.csv 
-2026-11-08 17:32:33,022 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/filler_type_data.xml 
-2026-11-08 17:32:33,027 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_attribute_data.xml 
-2026-11-08 17:32:33,039 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/packaging_type_data.xml 
-2026-11-08 17:32:33,043 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/polymer_data.xml 
-2026-11-08 17:32:33,067 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_grade_data.xml 
-2026-11-08 17:32:33,072 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_form_data.xml 
-2026-11-08 17:32:33,084 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_color_data.xml 
-2026-11-08 17:32:33,092 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/source_type_data.xml 
-2026-11-08 17:32:33,098 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/process_type_data.xml 
-2026-11-08 17:32:33,103 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/grade_template_data.xml 
-2026-11-08 17:32:33,110 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/polymer_views.xml 
-2026-11-08 17:32:33,122 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/grade_template_views.xml 
-2026-11-08 17:32:33,129 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_grade_views.xml 
-2026-11-08 17:32:33,133 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_form_views.xml 
-2026-11-08 17:32:33,136 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_color_views.xml 
-2026-11-08 17:32:33,139 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/source_type_views.xml 
-2026-11-08 17:32:33,142 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/process_type_views.xml 
-2026-11-08 17:32:33,145 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_profile_views.xml 
-2026-11-08 17:32:33,168 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_profile_ux.xml 
-2026-11-08 17:32:33,175 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/partner_material_ux.xml 
-2026-11-08 17:32:33,201 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_material_profile loaded in 0.25s, 1233 queries (+1233 other) 
-2026-11-08 17:32:33,201 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_enrichment (149/170) 
-2026-11-08 17:32:33,219 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_enrichment: creating or updating database tables 
-2026-11-08 17:32:33,256 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/security/security.xml 
-2026-11-08 17:32:33,258 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/security/ir.model.access.csv 
-2026-11-08 17:32:33,262 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/data/sequence.xml 
-2026-11-08 17:32:33,263 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/data/cron.xml 
-2026-11-08 17:32:33,264 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/views/enrichment_run_views.xml 
-2026-11-08 17:32:33,275 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/views/enrichment_source_views.xml 
-2026-11-08 17:32:33,278 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/views/res_partner_enrichment.xml 
-2026-11-08 17:32:33,302 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_enrichment loaded in 0.10s, 270 queries (+270 other) 
-2026-11-08 17:32:33,302 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_facility_profile (150/170) 
-2026-11-08 17:32:33,320 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_facility_profile: creating or updating database tables 
-2026-11-08 17:32:33,329 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
-2026-11-08 17:32:33,329 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
-2026-11-08 17:32:33,362 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/security/ir.model.access.csv 
-2026-11-08 17:32:33,366 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/equipment_type_data.xml 
-2026-11-08 17:32:33,376 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/utm_source_data.xml 
-2026-11-08 17:32:33,376 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/partner_type_data.xml 
-2026-11-08 17:32:33,383 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/facility_template_data.xml 
-2026-11-08 17:32:33,387 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/partner_type_views.xml 
-2026-11-08 17:32:33,394 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/facility_template_views.xml 
-2026-11-08 17:32:33,400 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_views.xml 
-2026-11-08 17:32:33,408 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes 
-2026-11-08 17:32:33,420 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes 
-2026-11-08 17:32:33,428 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_ux.xml 
-2026-11-08 17:32:33,437 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/partner_ux.xml 
-2026-11-08 17:32:33,439 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes 
-2026-11-08 17:32:33,447 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes 
-2026-11-08 17:32:33,472 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_facility_profile loaded in 0.17s, 534 queries (+534 other) 
-2026-11-08 17:32:33,473 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_product (151/170) 
-2026-11-08 17:32:33,485 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_product: creating or updating database tables 
-2026-11-08 17:32:33,513 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/security/ir.model.access.csv 
-2026-11-08 17:32:33,515 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/data/product_category_data.xml 
-2026-11-08 17:32:33,526 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/data/product_data.xml 
-2026-11-08 17:32:33,527 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/views/polymer_views.xml 
-2026-11-08 17:32:33,547 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_product loaded in 0.07s, 216 queries (+216 other) 
-2026-11-08 17:32:33,547 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_intake (152/170) 
-2026-11-08 17:32:33,564 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_intake: creating or updating database tables 
-2026-11-08 17:32:33,593 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
-2026-11-08 17:32:33,593 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
-2026-11-08 17:32:33,626 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/security/ir.model.access.csv 
-2026-11-08 17:32:33,629 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/data/sequence.xml 
-2026-11-08 17:32:33,631 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/views/intake_views.xml 
-2026-11-08 17:32:33,651 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/views/material_profile_intake_views.xml 
-2026-11-08 17:32:33,678 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/views/intake_ux.xml 
-2026-11-08 17:32:33,694 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_intake loaded in 0.15s, 321 queries (+321 other) 
-2026-11-08 17:32:33,694 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_order_lines (153/170) 
-2026-11-08 17:32:33,704 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_order_lines: creating or updating database tables 
-2026-11-08 17:32:33,733 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_order_lines/security/ir.model.access.csv 
-2026-11-08 17:32:33,734 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_order_lines/views/purchase_order_views.xml 
-2026-11-08 17:32:33,756 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_order_lines/views/sale_order_views.xml 
-2026-11-08 17:32:33,783 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_order_lines loaded in 0.09s, 191 queries (+191 other) 
-2026-11-08 17:32:33,783 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_geolocalize (154/170) 
-2026-11-08 17:32:33,800 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_geolocalize: creating or updating database tables 
-2026-11-08 17:32:33,827 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
-2026-11-08 17:32:33,827 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
-2026-11-08 17:32:33,858 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/security/ir.model.access.csv 
-2026-11-08 17:32:33,858 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/data/geolocalize_config_params.xml 
-2026-11-08 17:32:33,860 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/data/cron_geo_backfill.xml 
-2026-11-08 17:32:33,860 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/views/intake_geo_views.xml 
-2026-11-08 17:32:33,890 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_geolocalize loaded in 0.11s, 169 queries (+169 other) 
-2026-11-08 17:32:33,890 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_intake_normalizer (155/170) 
-2026-11-08 17:32:33,899 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_intake_normalizer: creating or updating database tables 
-2026-11-08 17:32:33,921 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/security/ir.model.access.csv 
-2026-11-08 17:32:33,923 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/data/normalizer_config_data.xml 
-2026-11-08 17:32:33,924 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/data/cron_batch_normalize.xml 
-2026-11-08 17:32:33,932 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/views/normalizer_config_views.xml 
-2026-11-08 17:32:33,938 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/views/intake_normalizer_views.xml 
-2026-11-08 17:32:33,953 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_intake_normalizer loaded in 0.06s, 142 queries (+142 other) 
-2026-11-08 17:32:33,953 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_matching (156/170) 
-2026-11-08 17:32:33,964 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_matching: creating or updating database tables 
-2026-11-08 17:32:33,996 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/security/ir.model.access.csv 
-2026-11-08 17:32:33,999 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/views/match_result_views.xml 
-2026-11-08 17:32:34,013 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/views/match_run_views.xml 
-2026-11-08 17:32:34,019 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/views/match_exclusion_views.xml 
-2026-11-08 17:32:34,027 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.migration: module plasticos_matching: Running upgrade [19.0.3.1.5>] post-migrate 
-2026-11-08 17:32:34,027 1 INFO odoo_test_smoke_w2495f48767 odoo.upgrade.plasticos_matching.19.0.3.1.5.post-migrate: plasticos_matching 19.0.3.1.5: retired constraint plasticos_match_result_unique_match_per_run 
-2026-11-08 17:32:34,031 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_matching loaded in 0.08s, 254 queries (+254 other) 
-2026-11-08 17:32:34,031 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_offer (157/170) 
-2026-11-08 17:32:34,042 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_offer: creating or updating database tables 
-2026-11-08 17:32:34,068 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/security/ir.model.access.csv 
-2026-11-08 17:32:34,070 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/data/sequence.xml 
-2026-11-08 17:32:34,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/data/offer_cron.xml 
-2026-11-08 17:32:34,079 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/offer_views.xml 
-2026-11-08 17:32:34,100 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/intake_offers_bridge_views.xml 
-2026-11-08 17:32:34,108 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/offer_bulk_action_wizard_views.xml 
-2026-11-08 17:32:34,111 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/offer_ux.xml 
-2026-11-08 17:32:34,129 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_offer loaded in 0.10s, 288 queries (+288 other) 
-2026-11-08 17:32:34,129 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_partner_import (158/170) 
-2026-11-08 17:32:34,144 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_partner_import: creating or updating database tables 
-2026-11-08 17:32:34,165 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_partner_import/security/ir.model.access.csv 
-2026-11-08 17:32:34,169 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_partner_import/views/partner_bulk_update_wizard_views.xml 
-2026-11-08 17:32:34,180 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_partner_import loaded in 0.05s, 98 queries (+98 other) 
-2026-11-08 17:32:34,180 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_web_leads (159/170) 
-2026-11-08 17:32:34,198 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_web_leads: creating or updating database tables 
-2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (anthropic_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
-2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (anthropic_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
-2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (anthropic_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
-2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (mistral_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
-2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (mistral_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
-2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (mistral_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads] 
-2026-11-08 17:32:34,224 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/security/ir.model.access.csv 
-2026-11-08 17:32:34,228 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/data/web_lead_config_data.xml 
-2026-11-08 17:32:34,229 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/data/logistics_ir_rules.xml 
-2026-11-08 17:32:34,236 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_views.xml 
-2026-11-08 17:32:34,251 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_review_snapshot_views.xml 
-2026-11-08 17:32:34,255 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_config_views.xml 
-2026-11-08 17:32:34,260 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_api_key_wizard_views.xml 
-2026-11-08 17:32:34,263 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/lead_bulk_action_wizard_views.xml 
-2026-11-08 17:32:34,266 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_ux.xml 
-2026-11-08 17:32:34,274 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_bridge_views.xml 
-2026-11-08 17:32:34,280 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_web_leads loaded in 0.10s, 281 queries (+281 other) 
-2026-11-08 17:32:34,281 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_transaction (160/170) 
-2026-11-08 17:32:34,311 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_transaction: creating or updating database tables 
-2026-11-08 17:32:34,333 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
-2026-11-08 17:32:34,334 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
-2026-11-08 17:32:34,392 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/security/security_hardening.xml 
-2026-11-08 17:32:34,396 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/security/ir.model.access.csv 
-2026-11-08 17:32:34,401 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/data/sequence.xml 
-2026-11-08 17:32:34,402 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/data/res.groups.csv 
-2026-11-08 17:32:34,413 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/data/audit_cron.xml 
-2026-11-08 17:32:34,420 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_views.xml 
-2026-11-08 17:32:34,436 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/sale_quotation_scope.xml 
-2026-11-08 17:32:34,439 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_update_wizard_views.xml 
-2026-11-08 17:32:34,443 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml 
-2026-11-08 17:32:34,447 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_import_wizard_views.xml 
-2026-11-08 17:32:34,452 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_reopen_wizard_views.xml 
-2026-11-08 17:32:34,454 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_ux.xml 
-2026-11-08 17:32:34,466 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_bridge_views.xml 
-2026-11-08 17:32:34,471 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/intake_bridge_views.xml 
-2026-11-08 17:32:34,479 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/partner_bridge_views.xml 
-2026-11-08 17:32:34,502 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/offer_bridge_views.xml 
-2026-11-08 17:32:34,509 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.migration: module plasticos_transaction: Running upgrade [19.0.2.3.55>] post-migrate 
-2026-11-08 17:32:34,510 1 INFO odoo_test_smoke_w2495f48767 odoo.upgrade.plasticos_transaction.19.0.2.3.55.post-migrate: plasticos_transaction 19.0.2.3.55: sale.order.opportunity_id present (sale_crm installed) 
-2026-11-08 17:32:34,520 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_transaction loaded in 0.24s, 746 queries (+746 other) 
-2026-11-08 17:32:34,520 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_logistics (161/170) 
-2026-11-08 17:32:34,542 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 17:32:34,542 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 17:32:34,544 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_logistics: creating or updating database tables 
-2026-11-08 17:32:34,597 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/security/ir.model.access.csv 
-2026-11-08 17:32:34,605 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/security/record_rules.xml 
-2026-11-08 17:32:34,615 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/incoterms.xml 
-2026-11-08 17:32:34,617 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/sequence.xml 
-2026-11-08 17:32:34,618 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/cron.xml 
-2026-11-08 17:32:34,637 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_purchaseorder_supplier.xml 
-2026-11-08 17:32:34,645 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_po_mail_template.xml 
-2026-11-08 17:32:34,646 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_so_mail_template.xml 
-2026-11-08 17:32:34,647 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_order_cancel_mail_templates.xml 
-2026-11-08 17:32:34,648 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_inbound_ai.xml 
-2026-11-08 17:32:34,649 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_views.xml 
-2026-11-08 17:32:34,668 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/freight_views.xml 
-2026-11-08 17:32:34,681 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/freight_actual_correction_wizard_views.xml 
-2026-11-08 17:32:34,684 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_dashboard_views.xml 
-2026-11-08 17:32:34,706 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/sale_order_button.xml 
-2026-11-08 17:32:34,725 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_bulk_update_wizard_views.xml 
-2026-11-08 17:32:34,729 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_ux.xml 
-2026-11-08 17:32:34,740 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/transaction_load_views.xml 
-2026-11-08 17:32:34,759 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/linda_response_views.xml 
-2026-11-08 17:32:34,766 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/load_reports.xml 
-2026-11-08 17:32:34,768 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_bol_pickup.xml 
-2026-11-08 17:32:34,771 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_bol_delivery.xml 
-2026-11-08 17:32:34,774 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_delivery_order.xml 
-2026-11-08 17:32:34,791 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_logistics loaded in 0.27s, 898 queries (+898 other) 
-2026-11-08 17:32:34,791 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_documents (162/170) 
-2026-11-08 17:32:34,811 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_documents: creating or updating database tables 
-2026-11-08 17:32:34,824 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents] 
-2026-11-08 17:32:34,860 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/security/security.xml 
-2026-11-08 17:32:34,874 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/security/ir.model.access.csv 
-2026-11-08 17:32:34,878 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/cron.xml 
-2026-11-08 17:32:34,885 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/document_tags_data.xml 
-2026-11-08 17:32:34,890 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/cron_missing_docs.xml 
-2026-11-08 17:32:34,894 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/scale_ticket_rule.xml 
-2026-11-08 17:32:34,900 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_tag_views.xml 
-2026-11-08 17:32:34,907 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_rule_views.xml 
-2026-11-08 17:32:34,909 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_views.xml 
-2026-11-08 17:32:34,919 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_extension_views.xml 
-2026-11-08 17:32:34,922 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/validation_matrix_views.xml 
-2026-11-08 17:32:34,928 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/transaction_docs_views.xml 
-2026-11-08 17:32:34,936 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/transaction_docs_bridge_views.xml 
-2026-11-08 17:32:34,941 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/load_docs_bridge_views.xml 
-2026-11-08 17:32:34,958 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_documents loaded in 0.17s, 552 queries (+552 other) 
-2026-11-08 17:32:34,958 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_claims (163/170) 
-2026-11-08 17:32:34,969 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_claims: creating or updating database tables 
-2026-11-08 17:32:34,974 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents] 
-2026-11-08 17:32:34,999 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/security/claims_security.xml 
-2026-11-08 17:32:35,011 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/security/ir.model.access.csv 
-2026-11-08 17:32:35,014 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/data/claim_sequence.xml 
-2026-11-08 17:32:35,015 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/data/claim_cron.xml 
-2026-11-08 17:32:35,022 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/data/email_templates.xml 
-2026-11-08 17:32:35,026 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_views.xml 
-2026-11-08 17:32:35,038 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_menus.xml 
-2026-11-08 17:32:35,041 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_bulk_update_wizard_views.xml 
-2026-11-08 17:32:35,044 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_ux.xml 
-2026-11-08 17:32:35,054 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/transaction_claims_bridge_views.xml 
-2026-11-08 17:32:35,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_claims loaded in 0.11s, 324 queries (+324 other) 
-2026-11-08 17:32:35,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_automation (164/170) 
-2026-11-08 17:32:35,102 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_automation: creating or updating database tables 
-2026-11-08 17:32:35,120 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
-2026-11-08 17:32:35,120 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
-2026-11-08 17:32:35,170 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/security/security.xml 
-2026-11-08 17:32:35,172 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/security/ir.model.access.csv 
-2026-11-08 17:32:35,176 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/automation_config_data.xml 
-2026-11-08 17:32:35,177 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/config_parameters.xml 
-2026-11-08 17:32:35,180 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/email_templates.xml 
-2026-11-08 17:32:35,194 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/sale_approval_cron.xml 
-2026-11-08 17:32:35,202 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/invoice_reminder_cron.xml 
-2026-11-08 17:32:35,206 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/contract_renewal_cron.xml 
-2026-11-08 17:32:35,211 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/stock_alert_cron.xml 
-2026-11-08 17:32:35,215 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/cron_supplier_followup.xml 
-2026-11-08 17:32:35,220 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/cron_trucker_followup.xml 
-2026-11-08 17:32:35,224 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/cron_load_sla.xml 
-2026-11-08 17:32:35,229 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/workflow_automations.xml 
-2026-11-08 17:32:35,268 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/automation_config_views.xml 
-2026-11-08 17:32:35,276 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/automation_log_views.xml 
-2026-11-08 17:32:35,281 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/purchase_order_views.xml 
-2026-11-08 17:32:35,299 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/sale_order_views.xml 
-2026-11-08 17:32:35,318 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/stock_picking_views.xml 
-2026-11-08 17:32:35,332 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/penalty_rule_views.xml 
-2026-11-08 17:32:35,386 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_automation loaded in 0.31s, 969 queries (+969 other) 
-2026-11-08 17:32:35,386 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_security_base (165/170) 
-2026-11-08 17:32:35,404 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_security_base: creating or updating database tables 
-2026-11-08 17:32:35,410 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
-2026-11-08 17:32:35,410 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
-2026-11-08 17:32:35,441 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/security/security_groups.xml 
-2026-11-08 17:32:35,491 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/security/record_rules.xml 
-2026-11-08 17:32:35,509 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/security/ir.model.access.csv 
-2026-11-08 17:32:35,524 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/views/res_partner_views.xml 
-2026-11-08 17:32:35,663 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_security_base loaded in 0.28s, 594 queries (+594 other) 
-2026-11-08 17:32:35,663 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_commission (166/170) 
-2026-11-08 17:32:35,675 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_commission: creating or updating database tables 
+ Container odoo19-odoo-run-1e922b3d1490 Creating
+ Container odoo19-odoo-run-1e922b3d1490 Created
+2026-11-08 17:32:29,855 1 INFO ? odoo: Odoo version 19.0-20261102
+2026-11-08 17:32:29,855 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf
+2026-11-08 17:32:29,855 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons'])
+2026-11-08 17:32:29,855 1 INFO ? odoo: database: odoo@db:5432
+2026-11-08 17:32:29,983 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading 1 modules...
+2026-11-08 17:32:29,985 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra)
+2026-11-08 17:32:29,994 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: updating modules list
+2026-11-08 17:32:29,995 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a
+2026-11-08 17:32:31,067 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a
+2026-11-08 17:32:31,067 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a
+2026-11-08 17:32:31,853 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a
+2026-11-08 17:32:31,897 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading 170 modules...
+2026-11-08 17:32:32,210 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_accounting (87/170)
+2026-11-08 17:32:32,290 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_accounting/data/payment_terms.xml
+2026-11-08 17:32:32,293 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_accounting/data/accounts.xml
+2026-11-08 17:32:32,507 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_accounting loaded in 0.30s, 807 queries (+807 other)
+2026-11-08 17:32:32,718 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_base (146/170)
+2026-11-08 17:32:32,773 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_base: creating or updating database tables
+2026-11-08 17:32:32,797 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/security/ir.model.access.csv
+2026-11-08 17:32:32,800 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/views/menu.xml
+2026-11-08 17:32:32,802 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/company.xml
+2026-11-08 17:32:32,804 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/service_user.xml
+2026-11-08 17:32:32,805 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/admin_users.xml
+2026-11-08 17:32:32,806 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/partner_tags.xml
+2026-11-08 17:32:32,816 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/material_taxonomy.xml
+2026-11-08 17:32:32,884 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/sales_reps.xml
+2026-11-08 17:32:32,887 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/attachment_maintenance_cron.xml
+2026-11-08 17:32:32,896 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/midnight_recompute_cron.xml
+2026-11-08 17:32:32,901 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_base/data/uom_defaults.xml
+2026-11-08 17:32:32,912 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_base loaded in 0.19s, 789 queries (+789 other)
+2026-11-08 17:32:32,912 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_gate (147/170)
+2026-11-08 17:32:32,941 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_gate/data/gate_icp_seed.xml
+2026-11-08 17:32:32,947 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_gate loaded in 0.03s, 45 queries (+45 other)
+2026-11-08 17:32:32,947 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_material_profile (148/170)
+2026-11-08 17:32:32,965 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_material_profile: creating or updating database tables
+2026-11-08 17:32:33,013 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/security/ir.model.access.csv
+2026-11-08 17:32:33,022 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/filler_type_data.xml
+2026-11-08 17:32:33,027 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_attribute_data.xml
+2026-11-08 17:32:33,039 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/packaging_type_data.xml
+2026-11-08 17:32:33,043 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/polymer_data.xml
+2026-11-08 17:32:33,067 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_grade_data.xml
+2026-11-08 17:32:33,072 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_form_data.xml
+2026-11-08 17:32:33,084 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/material_color_data.xml
+2026-11-08 17:32:33,092 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/source_type_data.xml
+2026-11-08 17:32:33,098 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/process_type_data.xml
+2026-11-08 17:32:33,103 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/data/grade_template_data.xml
+2026-11-08 17:32:33,110 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/polymer_views.xml
+2026-11-08 17:32:33,122 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/grade_template_views.xml
+2026-11-08 17:32:33,129 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_grade_views.xml
+2026-11-08 17:32:33,133 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_form_views.xml
+2026-11-08 17:32:33,136 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_color_views.xml
+2026-11-08 17:32:33,139 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/source_type_views.xml
+2026-11-08 17:32:33,142 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/process_type_views.xml
+2026-11-08 17:32:33,145 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_profile_views.xml
+2026-11-08 17:32:33,168 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/material_profile_ux.xml
+2026-11-08 17:32:33,175 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_material_profile/views/partner_material_ux.xml
+2026-11-08 17:32:33,201 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_material_profile loaded in 0.25s, 1233 queries (+1233 other)
+2026-11-08 17:32:33,201 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_enrichment (149/170)
+2026-11-08 17:32:33,219 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_enrichment: creating or updating database tables
+2026-11-08 17:32:33,256 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/security/security.xml
+2026-11-08 17:32:33,258 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/security/ir.model.access.csv
+2026-11-08 17:32:33,262 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/data/sequence.xml
+2026-11-08 17:32:33,263 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/data/cron.xml
+2026-11-08 17:32:33,264 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/views/enrichment_run_views.xml
+2026-11-08 17:32:33,275 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/views/enrichment_source_views.xml
+2026-11-08 17:32:33,278 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_enrichment/views/res_partner_enrichment.xml
+2026-11-08 17:32:33,302 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_enrichment loaded in 0.10s, 270 queries (+270 other)
+2026-11-08 17:32:33,302 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_facility_profile (150/170)
+2026-11-08 17:32:33,320 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_facility_profile: creating or updating database tables
+2026-11-08 17:32:33,329 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 17:32:33,329 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 17:32:33,362 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/security/ir.model.access.csv
+2026-11-08 17:32:33,366 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/equipment_type_data.xml
+2026-11-08 17:32:33,376 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/utm_source_data.xml
+2026-11-08 17:32:33,376 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/partner_type_data.xml
+2026-11-08 17:32:33,383 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/data/facility_template_data.xml
+2026-11-08 17:32:33,387 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/partner_type_views.xml
+2026-11-08 17:32:33,394 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/facility_template_views.xml
+2026-11-08 17:32:33,400 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_views.xml
+2026-11-08 17:32:33,408 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 17:32:33,420 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 17:32:33,428 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_ux.xml
+2026-11-08 17:32:33,437 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_facility_profile/views/partner_ux.xml
+2026-11-08 17:32:33,439 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 17:32:33,447 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 17:32:33,472 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_facility_profile loaded in 0.17s, 534 queries (+534 other)
+2026-11-08 17:32:33,473 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_product (151/170)
+2026-11-08 17:32:33,485 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_product: creating or updating database tables
+2026-11-08 17:32:33,513 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/security/ir.model.access.csv
+2026-11-08 17:32:33,515 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/data/product_category_data.xml
+2026-11-08 17:32:33,526 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/data/product_data.xml
+2026-11-08 17:32:33,527 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_product/views/polymer_views.xml
+2026-11-08 17:32:33,547 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_product loaded in 0.07s, 216 queries (+216 other)
+2026-11-08 17:32:33,547 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_intake (152/170)
+2026-11-08 17:32:33,564 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_intake: creating or updating database tables
+2026-11-08 17:32:33,593 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 17:32:33,593 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 17:32:33,626 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/security/ir.model.access.csv
+2026-11-08 17:32:33,629 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/data/sequence.xml
+2026-11-08 17:32:33,631 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/views/intake_views.xml
+2026-11-08 17:32:33,651 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/views/material_profile_intake_views.xml
+2026-11-08 17:32:33,678 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake/views/intake_ux.xml
+2026-11-08 17:32:33,694 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_intake loaded in 0.15s, 321 queries (+321 other)
+2026-11-08 17:32:33,694 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_order_lines (153/170)
+2026-11-08 17:32:33,704 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_order_lines: creating or updating database tables
+2026-11-08 17:32:33,733 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_order_lines/security/ir.model.access.csv
+2026-11-08 17:32:33,734 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_order_lines/views/purchase_order_views.xml
+2026-11-08 17:32:33,756 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_order_lines/views/sale_order_views.xml
+2026-11-08 17:32:33,783 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_order_lines loaded in 0.09s, 191 queries (+191 other)
+2026-11-08 17:32:33,783 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_geolocalize (154/170)
+2026-11-08 17:32:33,800 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_geolocalize: creating or updating database tables
+2026-11-08 17:32:33,827 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 17:32:33,827 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 17:32:33,858 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/security/ir.model.access.csv
+2026-11-08 17:32:33,858 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/data/geolocalize_config_params.xml
+2026-11-08 17:32:33,860 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/data/cron_geo_backfill.xml
+2026-11-08 17:32:33,860 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_geolocalize/views/intake_geo_views.xml
+2026-11-08 17:32:33,890 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_geolocalize loaded in 0.11s, 169 queries (+169 other)
+2026-11-08 17:32:33,890 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_intake_normalizer (155/170)
+2026-11-08 17:32:33,899 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_intake_normalizer: creating or updating database tables
+2026-11-08 17:32:33,921 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/security/ir.model.access.csv
+2026-11-08 17:32:33,923 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/data/normalizer_config_data.xml
+2026-11-08 17:32:33,924 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/data/cron_batch_normalize.xml
+2026-11-08 17:32:33,932 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/views/normalizer_config_views.xml
+2026-11-08 17:32:33,938 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_intake_normalizer/views/intake_normalizer_views.xml
+2026-11-08 17:32:33,953 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_intake_normalizer loaded in 0.06s, 142 queries (+142 other)
+2026-11-08 17:32:33,953 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_matching (156/170)
+2026-11-08 17:32:33,964 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_matching: creating or updating database tables
+2026-11-08 17:32:33,996 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/security/ir.model.access.csv
+2026-11-08 17:32:33,999 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/views/match_result_views.xml
+2026-11-08 17:32:34,013 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/views/match_run_views.xml
+2026-11-08 17:32:34,019 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_matching/views/match_exclusion_views.xml
+2026-11-08 17:32:34,027 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.migration: module plasticos_matching: Running upgrade [19.0.3.1.5>] post-migrate
+2026-11-08 17:32:34,027 1 INFO odoo_test_smoke_w2495f48767 odoo.upgrade.plasticos_matching.19.0.3.1.5.post-migrate: plasticos_matching 19.0.3.1.5: retired constraint plasticos_match_result_unique_match_per_run
+2026-11-08 17:32:34,031 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_matching loaded in 0.08s, 254 queries (+254 other)
+2026-11-08 17:32:34,031 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_offer (157/170)
+2026-11-08 17:32:34,042 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_offer: creating or updating database tables
+2026-11-08 17:32:34,068 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/security/ir.model.access.csv
+2026-11-08 17:32:34,070 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/data/sequence.xml
+2026-11-08 17:32:34,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/data/offer_cron.xml
+2026-11-08 17:32:34,079 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/offer_views.xml
+2026-11-08 17:32:34,100 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/intake_offers_bridge_views.xml
+2026-11-08 17:32:34,108 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/offer_bulk_action_wizard_views.xml
+2026-11-08 17:32:34,111 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_offer/views/offer_ux.xml
+2026-11-08 17:32:34,129 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_offer loaded in 0.10s, 288 queries (+288 other)
+2026-11-08 17:32:34,129 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_partner_import (158/170)
+2026-11-08 17:32:34,144 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_partner_import: creating or updating database tables
+2026-11-08 17:32:34,165 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_partner_import/security/ir.model.access.csv
+2026-11-08 17:32:34,169 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_partner_import/views/partner_bulk_update_wizard_views.xml
+2026-11-08 17:32:34,180 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_partner_import loaded in 0.05s, 98 queries (+98 other)
+2026-11-08 17:32:34,180 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_web_leads (159/170)
+2026-11-08 17:32:34,198 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_web_leads: creating or updating database tables
+2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (anthropic_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (anthropic_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (anthropic_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (mistral_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (mistral_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 17:32:34,202 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (mistral_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 17:32:34,224 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/security/ir.model.access.csv
+2026-11-08 17:32:34,228 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/data/web_lead_config_data.xml
+2026-11-08 17:32:34,229 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/data/logistics_ir_rules.xml
+2026-11-08 17:32:34,236 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_views.xml
+2026-11-08 17:32:34,251 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_review_snapshot_views.xml
+2026-11-08 17:32:34,255 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_config_views.xml
+2026-11-08 17:32:34,260 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_api_key_wizard_views.xml
+2026-11-08 17:32:34,263 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/lead_bulk_action_wizard_views.xml
+2026-11-08 17:32:34,266 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_ux.xml
+2026-11-08 17:32:34,274 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_web_leads/views/web_lead_bridge_views.xml
+2026-11-08 17:32:34,280 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_web_leads loaded in 0.10s, 281 queries (+281 other)
+2026-11-08 17:32:34,281 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_transaction (160/170)
+2026-11-08 17:32:34,311 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_transaction: creating or updating database tables
+2026-11-08 17:32:34,333 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 17:32:34,334 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 17:32:34,392 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/security/security_hardening.xml
+2026-11-08 17:32:34,396 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/security/ir.model.access.csv
+2026-11-08 17:32:34,401 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/data/sequence.xml
+2026-11-08 17:32:34,402 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/data/res.groups.csv
+2026-11-08 17:32:34,413 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/data/audit_cron.xml
+2026-11-08 17:32:34,420 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_views.xml
+2026-11-08 17:32:34,436 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/sale_quotation_scope.xml
+2026-11-08 17:32:34,439 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_update_wizard_views.xml
+2026-11-08 17:32:34,443 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml
+2026-11-08 17:32:34,447 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_import_wizard_views.xml
+2026-11-08 17:32:34,452 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_reopen_wizard_views.xml
+2026-11-08 17:32:34,454 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_ux.xml
+2026-11-08 17:32:34,466 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/transaction_bridge_views.xml
+2026-11-08 17:32:34,471 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/intake_bridge_views.xml
+2026-11-08 17:32:34,479 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/partner_bridge_views.xml
+2026-11-08 17:32:34,502 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_transaction/views/offer_bridge_views.xml
+2026-11-08 17:32:34,509 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.migration: module plasticos_transaction: Running upgrade [19.0.2.3.55>] post-migrate
+2026-11-08 17:32:34,510 1 INFO odoo_test_smoke_w2495f48767 odoo.upgrade.plasticos_transaction.19.0.2.3.55.post-migrate: plasticos_transaction 19.0.2.3.55: sale.order.opportunity_id present (sale_crm installed)
+2026-11-08 17:32:34,520 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_transaction loaded in 0.24s, 746 queries (+746 other)
+2026-11-08 17:32:34,520 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_logistics (161/170)
+2026-11-08 17:32:34,542 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 17:32:34,542 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 17:32:34,544 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_logistics: creating or updating database tables
+2026-11-08 17:32:34,597 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/security/ir.model.access.csv
+2026-11-08 17:32:34,605 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/security/record_rules.xml
+2026-11-08 17:32:34,615 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/incoterms.xml
+2026-11-08 17:32:34,617 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/sequence.xml
+2026-11-08 17:32:34,618 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/cron.xml
+2026-11-08 17:32:34,637 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_purchaseorder_supplier.xml
+2026-11-08 17:32:34,645 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_po_mail_template.xml
+2026-11-08 17:32:34,646 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_so_mail_template.xml
+2026-11-08 17:32:34,647 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_order_cancel_mail_templates.xml
+2026-11-08 17:32:34,648 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/data/linda_inbound_ai.xml
+2026-11-08 17:32:34,649 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_views.xml
+2026-11-08 17:32:34,668 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/freight_views.xml
+2026-11-08 17:32:34,681 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/freight_actual_correction_wizard_views.xml
+2026-11-08 17:32:34,684 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_dashboard_views.xml
+2026-11-08 17:32:34,706 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/sale_order_button.xml
+2026-11-08 17:32:34,725 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_bulk_update_wizard_views.xml
+2026-11-08 17:32:34,729 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/load_ux.xml
+2026-11-08 17:32:34,740 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/transaction_load_views.xml
+2026-11-08 17:32:34,759 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/views/linda_response_views.xml
+2026-11-08 17:32:34,766 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/load_reports.xml
+2026-11-08 17:32:34,768 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_bol_pickup.xml
+2026-11-08 17:32:34,771 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_bol_delivery.xml
+2026-11-08 17:32:34,774 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_logistics/report/report_delivery_order.xml
+2026-11-08 17:32:34,791 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_logistics loaded in 0.27s, 898 queries (+898 other)
+2026-11-08 17:32:34,791 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_documents (162/170)
+2026-11-08 17:32:34,811 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_documents: creating or updating database tables
+2026-11-08 17:32:34,824 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents]
+2026-11-08 17:32:34,860 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/security/security.xml
+2026-11-08 17:32:34,874 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/security/ir.model.access.csv
+2026-11-08 17:32:34,878 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/cron.xml
+2026-11-08 17:32:34,885 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/document_tags_data.xml
+2026-11-08 17:32:34,890 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/cron_missing_docs.xml
+2026-11-08 17:32:34,894 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/data/scale_ticket_rule.xml
+2026-11-08 17:32:34,900 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_tag_views.xml
+2026-11-08 17:32:34,907 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_rule_views.xml
+2026-11-08 17:32:34,909 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_views.xml
+2026-11-08 17:32:34,919 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/document_extension_views.xml
+2026-11-08 17:32:34,922 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/validation_matrix_views.xml
+2026-11-08 17:32:34,928 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/transaction_docs_views.xml
+2026-11-08 17:32:34,936 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/transaction_docs_bridge_views.xml
+2026-11-08 17:32:34,941 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents/views/load_docs_bridge_views.xml
+2026-11-08 17:32:34,958 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_documents loaded in 0.17s, 552 queries (+552 other)
+2026-11-08 17:32:34,958 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_claims (163/170)
+2026-11-08 17:32:34,969 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_claims: creating or updating database tables
+2026-11-08 17:32:34,974 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents]
+2026-11-08 17:32:34,999 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/security/claims_security.xml
+2026-11-08 17:32:35,011 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/security/ir.model.access.csv
+2026-11-08 17:32:35,014 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/data/claim_sequence.xml
+2026-11-08 17:32:35,015 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/data/claim_cron.xml
+2026-11-08 17:32:35,022 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/data/email_templates.xml
+2026-11-08 17:32:35,026 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_views.xml
+2026-11-08 17:32:35,038 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_menus.xml
+2026-11-08 17:32:35,041 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_bulk_update_wizard_views.xml
+2026-11-08 17:32:35,044 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/claim_ux.xml
+2026-11-08 17:32:35,054 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_claims/views/transaction_claims_bridge_views.xml
+2026-11-08 17:32:35,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_claims loaded in 0.11s, 324 queries (+324 other)
+2026-11-08 17:32:35,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_automation (164/170)
+2026-11-08 17:32:35,102 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_automation: creating or updating database tables
+2026-11-08 17:32:35,120 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 17:32:35,120 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 17:32:35,170 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/security/security.xml
+2026-11-08 17:32:35,172 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/security/ir.model.access.csv
+2026-11-08 17:32:35,176 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/automation_config_data.xml
+2026-11-08 17:32:35,177 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/config_parameters.xml
+2026-11-08 17:32:35,180 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/email_templates.xml
+2026-11-08 17:32:35,194 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/sale_approval_cron.xml
+2026-11-08 17:32:35,202 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/invoice_reminder_cron.xml
+2026-11-08 17:32:35,206 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/contract_renewal_cron.xml
+2026-11-08 17:32:35,211 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/stock_alert_cron.xml
+2026-11-08 17:32:35,215 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/cron_supplier_followup.xml
+2026-11-08 17:32:35,220 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/cron_trucker_followup.xml
+2026-11-08 17:32:35,224 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/cron_load_sla.xml
+2026-11-08 17:32:35,229 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/data/workflow_automations.xml
+2026-11-08 17:32:35,268 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/automation_config_views.xml
+2026-11-08 17:32:35,276 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/automation_log_views.xml
+2026-11-08 17:32:35,281 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/purchase_order_views.xml
+2026-11-08 17:32:35,299 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/sale_order_views.xml
+2026-11-08 17:32:35,318 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/stock_picking_views.xml
+2026-11-08 17:32:35,332 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_automation/views/penalty_rule_views.xml
+2026-11-08 17:32:35,386 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_automation loaded in 0.31s, 969 queries (+969 other)
+2026-11-08 17:32:35,386 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_security_base (165/170)
+2026-11-08 17:32:35,404 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_security_base: creating or updating database tables
+2026-11-08 17:32:35,410 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 17:32:35,410 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 17:32:35,441 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/security/security_groups.xml
+2026-11-08 17:32:35,491 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/security/record_rules.xml
+2026-11-08 17:32:35,509 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/security/ir.model.access.csv
+2026-11-08 17:32:35,524 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_security_base/views/res_partner_views.xml
+2026-11-08 17:32:35,663 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_security_base loaded in 0.28s, 594 queries (+594 other)
+2026-11-08 17:32:35,663 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_commission (166/170)
+2026-11-08 17:32:35,675 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_commission: creating or updating database tables
 <string>:22: (WARNING/2) Line block ends without a blank line.
 <string>:38: (WARNING/2) Line block ends without a blank line.
 <string>:53: (WARNING/2) Line block ends without a blank line.
@@ -374,69 +374,69 @@ install-smoke evidence miss: snapshot changed; source changed
 <string>:128: (ERROR/3) Undefined substitution referenced: "---".
 <string>:128: (ERROR/3) Undefined substitution referenced: "---".
 <string>:137: (ERROR/3) Undefined substitution referenced: "---".
-2026-11-08 17:32:35,714 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/security/commission_group.xml 
-2026-11-08 17:32:35,716 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/security/ir.model.access.csv 
-2026-11-08 17:32:35,721 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/security/record_rules.xml 
-2026-11-08 17:32:35,727 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/data/commission_payout_sequence.xml 
-2026-11-08 17:32:35,728 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/commission_rule_views.xml 
-2026-11-08 17:32:35,739 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/commission_payout_views.xml 
-2026-11-08 17:32:35,747 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/sales_dashboard_views.xml 
-2026-11-08 17:32:35,828 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/transaction_commission_views.xml 
-2026-11-08 17:32:35,842 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_commission loaded in 0.18s, 313 queries (+313 other) 
-2026-11-08 17:32:35,842 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_crm_bridge (167/170) 
-2026-11-08 17:32:35,856 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_crm_bridge: creating or updating database tables 
-2026-11-08 17:32:35,925 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/security/crm_group_imply.xml 
-2026-11-08 17:32:35,963 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/security/ir.model.access.csv 
-2026-11-08 17:32:35,973 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/crm_stage_data.xml 
-2026-11-08 17:32:35,977 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/crm_tag_data.xml 
-2026-11-08 17:32:35,980 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/partner_category_data.xml 
-2026-11-08 17:32:35,985 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/lead_source_data.xml 
-2026-11-08 17:32:35,989 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/views/crm_lead_views.xml 
-2026-11-08 17:32:36,058 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/views/crm_facility_ownership_views.xml 
-2026-11-08 17:32:36,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.migration: module plasticos_crm_bridge: Running upgrade [19.0.3.4.20>] post-migrate 
-2026-11-08 17:32:36,071 1 INFO odoo_test_smoke_w2495f48767 odoo.upgrade.plasticos_crm_bridge.19.0.3.4.20.post-migrate: plasticos_crm_bridge 19.0.3.4.20: 0 historical match runs and 0 historical offers keep null lineage 
-2026-11-08 17:32:36,077 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_crm_bridge loaded in 0.23s, 660 queries (+660 other) 
-2026-11-08 17:32:36,077 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_documents_native (168/170) 
-2026-11-08 17:32:36,088 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_documents_native: creating or updating database tables 
-2026-11-08 17:32:36,093 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of documents.document() have the same label: Override Reason. [Modules: plasticos_documents_native and plasticos_documents_native] 
-2026-11-08 17:32:36,093 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents] 
-2026-11-08 17:32:36,120 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/security/ir.model.access.csv 
-2026-11-08 17:32:36,123 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/data/document_folders.xml 
-2026-11-08 17:32:36,133 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/data/document_tags.xml 
-2026-11-08 17:32:36,140 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/views/document_native_views.xml 
-2026-11-08 17:32:36,169 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_documents_native loaded in 0.09s, 254 queries (+254 other) 
-2026-11-08 17:32:36,169 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_admin_dashboard (169/170) 
-2026-11-08 17:32:36,178 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_admin_dashboard: creating or updating database tables 
-2026-11-08 17:32:36,202 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_admin_dashboard/security/ir.model.access.csv 
-2026-11-08 17:32:36,205 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_admin_dashboard/views/admin_dashboard_views.xml 
-2026-11-08 17:32:36,220 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_admin_dashboard/data/cron_refresh_dashboard.xml 
-2026-11-08 17:32:36,226 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_admin_dashboard loaded in 0.06s, 129 queries (+129 other) 
-2026-11-08 17:32:36,226 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_crm_sync (170/170) 
-2026-11-08 17:32:36,248 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_crm_sync: creating or updating database tables 
-2026-11-08 17:32:36,261 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base] 
-2026-11-08 17:32:36,261 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None] 
-2026-11-08 17:32:36,300 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/security/ir.model.access.csv 
-2026-11-08 17:32:36,305 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/data/ir_cron_data.xml 
-2026-11-08 17:32:36,306 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_connection_views.xml 
-2026-11-08 17:32:36,314 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_sync_run_views.xml 
-2026-11-08 17:32:36,317 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_call_event_views.xml 
-2026-11-08 17:32:36,320 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/res_partner_sync_views.xml 
-2026-11-08 17:32:36,352 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_lead_sync_views.xml 
-2026-11-08 17:32:36,365 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/res_config_settings_views.xml 
-2026-11-08 17:32:36,397 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/menu.xml 
-2026-11-08 17:32:36,410 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_crm_sync loaded in 0.18s, 475 queries (+475 other) 
-2026-11-08 17:32:36,410 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: 170 modules loaded in 4.51s, 11552 queries (+11552 extra) 
-2026-11-08 17:32:36,466 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 17:32:36,467 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 17:32:36,572 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Deleting 2609@ir.model.constraint (plasticos_matching.constraint_plasticos_match_result_unique_match_per_run) 
-2026-11-08 17:32:36,587 1 INFO odoo_test_smoke_w2495f48767 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [72700] 
-2026-11-08 17:32:36,587 1 INFO odoo_test_smoke_w2495f48767 odoo.models.unlink: User #1 deleted ir.model.constraint records with IDs: [2609] 
-2026-11-08 17:32:36,818 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Modules loaded. 
-2026-11-08 17:32:36,829 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: Registry changed, signaling through the database 
-2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: Registry loaded in 6.855s 
-2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.service.server: Initiating shutdown 
-2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
-2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  
+2026-11-08 17:32:35,714 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/security/commission_group.xml
+2026-11-08 17:32:35,716 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/security/ir.model.access.csv
+2026-11-08 17:32:35,721 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/security/record_rules.xml
+2026-11-08 17:32:35,727 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/data/commission_payout_sequence.xml
+2026-11-08 17:32:35,728 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/commission_rule_views.xml
+2026-11-08 17:32:35,739 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/commission_payout_views.xml
+2026-11-08 17:32:35,747 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/sales_dashboard_views.xml
+2026-11-08 17:32:35,828 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_commission/views/transaction_commission_views.xml
+2026-11-08 17:32:35,842 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_commission loaded in 0.18s, 313 queries (+313 other)
+2026-11-08 17:32:35,842 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_crm_bridge (167/170)
+2026-11-08 17:32:35,856 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_crm_bridge: creating or updating database tables
+2026-11-08 17:32:35,925 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/security/crm_group_imply.xml
+2026-11-08 17:32:35,963 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/security/ir.model.access.csv
+2026-11-08 17:32:35,973 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/crm_stage_data.xml
+2026-11-08 17:32:35,977 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/crm_tag_data.xml
+2026-11-08 17:32:35,980 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/partner_category_data.xml
+2026-11-08 17:32:35,985 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/data/lead_source_data.xml
+2026-11-08 17:32:35,989 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/views/crm_lead_views.xml
+2026-11-08 17:32:36,058 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_bridge/views/crm_facility_ownership_views.xml
+2026-11-08 17:32:36,071 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.migration: module plasticos_crm_bridge: Running upgrade [19.0.3.4.20>] post-migrate
+2026-11-08 17:32:36,071 1 INFO odoo_test_smoke_w2495f48767 odoo.upgrade.plasticos_crm_bridge.19.0.3.4.20.post-migrate: plasticos_crm_bridge 19.0.3.4.20: 0 historical match runs and 0 historical offers keep null lineage
+2026-11-08 17:32:36,077 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_crm_bridge loaded in 0.23s, 660 queries (+660 other)
+2026-11-08 17:32:36,077 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_documents_native (168/170)
+2026-11-08 17:32:36,088 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_documents_native: creating or updating database tables
+2026-11-08 17:32:36,093 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of documents.document() have the same label: Override Reason. [Modules: plasticos_documents_native and plasticos_documents_native]
+2026-11-08 17:32:36,093 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents]
+2026-11-08 17:32:36,120 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/security/ir.model.access.csv
+2026-11-08 17:32:36,123 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/data/document_folders.xml
+2026-11-08 17:32:36,133 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/data/document_tags.xml
+2026-11-08 17:32:36,140 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_documents_native/views/document_native_views.xml
+2026-11-08 17:32:36,169 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_documents_native loaded in 0.09s, 254 queries (+254 other)
+2026-11-08 17:32:36,169 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_admin_dashboard (169/170)
+2026-11-08 17:32:36,178 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_admin_dashboard: creating or updating database tables
+2026-11-08 17:32:36,202 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_admin_dashboard/security/ir.model.access.csv
+2026-11-08 17:32:36,205 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_admin_dashboard/views/admin_dashboard_views.xml
+2026-11-08 17:32:36,220 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_admin_dashboard/data/cron_refresh_dashboard.xml
+2026-11-08 17:32:36,226 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_admin_dashboard loaded in 0.06s, 129 queries (+129 other)
+2026-11-08 17:32:36,226 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Loading module plasticos_crm_sync (170/170)
+2026-11-08 17:32:36,248 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: module plasticos_crm_sync: creating or updating database tables
+2026-11-08 17:32:36,261 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 17:32:36,261 1 WARNING odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 17:32:36,300 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/security/ir.model.access.csv
+2026-11-08 17:32:36,305 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/data/ir_cron_data.xml
+2026-11-08 17:32:36,306 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_connection_views.xml
+2026-11-08 17:32:36,314 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_sync_run_views.xml
+2026-11-08 17:32:36,317 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_call_event_views.xml
+2026-11-08 17:32:36,320 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/res_partner_sync_views.xml
+2026-11-08 17:32:36,352 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/crm_lead_sync_views.xml
+2026-11-08 17:32:36,365 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/res_config_settings_views.xml
+2026-11-08 17:32:36,397 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: loading plasticos_crm_sync/views/menu.xml
+2026-11-08 17:32:36,410 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Module plasticos_crm_sync loaded in 0.18s, 475 queries (+475 other)
+2026-11-08 17:32:36,410 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: 170 modules loaded in 4.51s, 11552 queries (+11552 extra)
+2026-11-08 17:32:36,466 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 17:32:36,467 1 WARNING odoo_test_smoke_w2495f48767 odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 17:32:36,572 1 INFO odoo_test_smoke_w2495f48767 odoo.addons.base.models.ir_model: Deleting 2609@ir.model.constraint (plasticos_matching.constraint_plasticos_match_result_unique_match_per_run)
+2026-11-08 17:32:36,587 1 INFO odoo_test_smoke_w2495f48767 odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [72700]
+2026-11-08 17:32:36,587 1 INFO odoo_test_smoke_w2495f48767 odoo.models.unlink: User #1 deleted ir.model.constraint records with IDs: [2609]
+2026-11-08 17:32:36,818 1 INFO odoo_test_smoke_w2495f48767 odoo.modules.loading: Modules loaded.
+2026-11-08 17:32:36,829 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: Registry changed, signaling through the database
+2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.registry: Registry loaded in 6.855s
+2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.service.server: Initiating shutdown
+2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown.
+2026-11-08 17:32:36,830 1 INFO odoo_test_smoke_w2495f48767 odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections
 fingerprint=9d47997766e6922eddb73af3b354b8567e185ec709cdd54378b9ecf03734483b
 source=fce2f2447b4a6047dc87d40ec95f50f2918c770509eafc96f5b81d5f32ce754d
 → Verifying module states...
@@ -509,11 +509,11 @@ source=fce2f2447b4a6047dc87d40ec95f50f2918c770509eafc96f5b81d5f32ce754d
   ✅ plasticos_crm_sync
   ✅ plasticos_admin_dashboard
 → Proving xmlsec import in image...
- Container odoo19-db-1 Running 
- Container odoo19-db-1 Waiting 
- Container odoo19-db-1 Healthy 
- Container odoo19-odoo-test-run-645de7cb07fb Creating 
- Container odoo19-odoo-test-run-645de7cb07fb Created 
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo19-odoo-test-run-645de7cb07fb Creating
+ Container odoo19-odoo-test-run-645de7cb07fb Created
 xmlsec 1.3.16
 publication evidence written
 
