@@ -776,6 +776,29 @@ def test_historic_unlabelled_note_is_not_copied_with_a_contact_id(lead_harness):
     assert "VanillaSoft ContactID vs-9001 Notes:" not in (again.description or "")
 
 
+def test_website_is_stored_on_the_lead_and_the_title_is_shown_in_the_description(lead_harness):
+    orch, connection, leads, _refs = lead_harness
+    leads._fields = {"website": object()}
+    lead = orch._upsert_lead(
+        connection,
+        _contact(Website="https://example.test", title="Buyer", phone_numbers=[], custom_fields=[]),
+    )
+    assert lead.website == "https://example.test"
+    assert "VanillaSoft title: Buyer" in (lead.description or "")
+    assert "VanillaSoft Website:" not in (lead.description or "")
+
+
+def test_website_stays_in_the_description_when_the_lead_has_no_website_field(lead_harness):
+    orch, connection, leads, _refs = lead_harness
+    leads._fields = {}
+    lead = orch._upsert_lead(
+        connection,
+        _contact(website="https://example.test", Title="Buyer", phone_numbers=[], custom_fields=[]),
+    )
+    assert "VanillaSoft title: Buyer" in (lead.description or "")
+    assert "VanillaSoft Website: https://example.test" in (lead.description or "")
+
+
 def test_contact_section_notes_are_labelled_and_pps_notes_stay_off_the_contact(lead_harness):
     orch, connection, _leads, _refs = lead_harness
     custom = [

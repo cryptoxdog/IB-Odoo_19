@@ -641,6 +641,74 @@ def test_the_top_level_number_is_still_a_fallback_when_the_list_has_none():
     assert (contact.phone, contact.mobile) == ("215-555-0101", "215-555-0102")
 
 
+def test_address2_fills_street2_only_when_the_earlier_aliases_are_blank():
+    filled = contact_to_canonical({"contact_id": 1, "address_2": "Suite A", "address2": "Suite B"})
+    assert filled.street2 == "Suite A"
+    alias = contact_to_canonical({"contact_id": 1, "Address 2": "Suite C", "address2": "Suite D"})
+    assert alias.street2 == "Suite C"
+    only = contact_to_canonical({"contact_id": 1, "address2": "Dock 4"})
+    assert only.street2 == "Dock 4"
+
+
+def test_a_separate_extension_and_country_code_fold_into_the_existing_number():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "phone_numbers": [
+                {"name": "Direct", "number": "215-555-0100", "extension": "101", "country_code": "1"},
+                {"name": "Office", "number": "215-555-0100", "Extension": "102", "CountryCode": "1"},
+            ],
+        }
+    )
+    assert _entries(contact) == [
+        ("Direct", "+1 215-555-0100 x101", "other"),
+        ("Office", "+1 215-555-0100 x102", "other"),
+    ]
+
+
+def test_a_contradictory_extension_is_dropped_and_a_prefixed_number_is_left_alone():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "phone_numbers": [
+                {"name": "Direct", "number": "215-555-0100 x101", "extension": "102"},
+                {"name": "Office", "number": "+1 215-555-0101", "country_code": "1"},
+                {"name": "Home", "number": "12155550102", "country_code": "1"},
+            ],
+        }
+    )
+    assert _entries(contact) == [
+        ("Office", "+1 215-555-0101", "other"),
+        ("Home", "12155550102", "other"),
+    ]
+
+
+def test_a_disabled_number_with_a_separate_extension_does_not_return():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "phone": "215-555-0100",
+            "phone_numbers": [{"name": "Direct", "number": "215-555-0100", "extension": "101", "disabled": True}],
+        }
+    )
+    assert contact.phone == ""
+    assert contact.phone_entries == ()
+
+
+def test_website_and_title_are_canonical_and_leave_the_address_country_alone():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "Website": "https://example.test",
+            "title": "Buyer",
+            "country": "USA",
+            "phone_numbers": [{"name": "Direct", "number": "215-555-0100", "country_code": "44"}],
+        }
+    )
+    assert (contact.website, contact.job_title, contact.country_code) == ("https://example.test", "Buyer", "USA")
+    assert contact.phone_entries[0].number == "+44 215-555-0100"
+
+
 def test_the_list_wins_over_the_top_level_number():
     contact = contact_to_canonical(
         {

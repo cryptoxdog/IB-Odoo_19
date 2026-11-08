@@ -263,6 +263,36 @@ def phone_kind(name: str) -> str:
     return "other"
 
 
+def compose_phone_number(item: dict) -> str | None:
+    """Fold a separate extension and country code into the number text.
+
+    A separate extension is appended when the number has none inline. An
+    extension that contradicts an inline one drops the entry. A country code
+    is prefixed only when the number does not already start with ``+`` or that
+    code. ``None`` means the entry is dropped.
+    """
+    number = str(item.get("number") or "").strip()
+    extension_raw = item.get("extension", item.get("Extension"))
+    extension = "" if extension_raw is None else str(extension_raw).strip()
+    if extension:
+        inline = _PHONE_EXTENSION.search(number)
+        extension_digits = digits_only(extension)
+        if inline:
+            inline_digits = digits_only(inline.group(0))
+            if extension_digits and inline_digits and extension_digits != inline_digits:
+                return None
+        elif extension_digits and number:
+            number = f"{number} x{extension_digits}"
+    country_raw = item.get("country_code", item.get("CountryCode"))
+    country = "" if country_raw is None else str(country_raw).strip()
+    code_digits = digits_only(country)
+    if code_digits and number and not number.startswith("+"):
+        national = digits_only(_PHONE_EXTENSION.sub("", number))
+        if national and not national.startswith(code_digits):
+            number = f"+{code_digits} {number}"
+    return number
+
+
 def read_phones(phones: object, *, contact_ref: str = "") -> tuple[tuple[tuple[str, str], ...], frozenset[str]]:
     """``((source label, number), ...)`` for every enabled entry, and the keys of the disabled ones.
 
@@ -282,11 +312,19 @@ def read_phones(phones: object, *, contact_ref: str = "") -> tuple[tuple[tuple[s
         if not isinstance(item, dict):
             continue
         field_name = f"contact {contact_ref} phone_numbers[{position}].disabled"
-        number = str(item.get("number") or "").strip()
+        is_disabled = vs_bool(_first_present(item, "disabled", "Disabled"), field=field_name)
+        number = compose_phone_number(item)
+        bare = phone_identity_key(str(item.get("number") or "").strip())
+        if number is None:
+            if is_disabled and bare:
+                disabled.add(bare)
+            continue
         key = phone_identity_key(number)
-        if vs_bool(_first_present(item, "disabled", "Disabled"), field=field_name):
+        if is_disabled:
             if key:
                 disabled.add(key)
+            if bare and bare != key:
+                disabled.add(bare)
             continue
         if key:
             kept.append((str(item.get("name") or "").strip(), number))

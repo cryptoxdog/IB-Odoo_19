@@ -460,6 +460,32 @@ def _lead_mobile(dto: CanonicalLead) -> str | bool:
     return next((number for number in candidates if number and _us_mobile(number)), False)
 
 
+def empty_partner_profile_vals(
+    website: str, job_title: str, current_website: str, current_function: str
+) -> dict[str, str]:
+    """Native partner fields filled only while they are empty."""
+    vals: dict[str, str] = {}
+    site = (website or "").strip()
+    title = (job_title or "").strip()
+    if site and not (current_website or "").strip():
+        vals["website"] = site
+    if title and not (current_function or "").strip():
+        vals["function"] = title
+    return vals
+
+
+def lead_identity_lines(dto: CanonicalLead, *, lead_stores_website: bool) -> list[str]:
+    """Title always, and website when the lead has no native field for it."""
+    lines: list[str] = []
+    title = (dto.job_title or "").strip()
+    if title:
+        lines.append(f"VanillaSoft title: {title}")
+    site = (dto.website or "").strip()
+    if site and not lead_stores_website:
+        lines.append(f"VanillaSoft Website: {site}")
+    return lines
+
+
 def provenance_line(external_id: str, field_name: str, value: str) -> str:
     """One source paragraph naming the ContactID and the exact source field."""
     return f"VanillaSoft ContactID {external_id} {field_name}: {value}"
@@ -1586,6 +1612,8 @@ class SyncOrchestrator:
                     wrote = True
                 if not dto.deleted and self._add_approved_phones(partner, dto):
                     wrote = True
+                if not dto.deleted and self._fill_empty_partner_identity(partner, dto):
+                    wrote = True
         except Exception as exc:  # noqa: BLE001 - per-record failure is recorded, never silent loss
             self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
             self.last_lead_outcome = "failed"
@@ -1816,11 +1844,29 @@ class SyncOrchestrator:
             outcomes[outcome] += 1
         self.last_lead_outcome = outcome
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
+            partner = getattr(lead, "partner_id", False)
+            if partner:
+                self._fill_empty_partner_identity(partner, dto)
             self._apply_contact_materials(lead, dto.custom_fields)
             self._bind_opportunity_material(lead)
             if self._env_has_model("crm.tag"):
                 self._apply_crm_classification(lead, dto)
         return lead
+
+    def _fill_empty_partner_identity(self, partner, dto: CanonicalLead) -> bool:
+        """Write website and job title only while the partner value is empty."""
+        if not partner:
+            return False
+        vals = empty_partner_profile_vals(
+            dto.website,
+            dto.job_title,
+            getattr(partner, "website", "") or "",
+            getattr(partner, "function", "") or "",
+        )
+        if not vals:
+            return False
+        partner.write(vals)
+        return True
 
     def _bind_opportunity_material(self, lead) -> None:
         """VanillaSoft ingress converges on the native Opportunity root.
@@ -1952,7 +1998,7 @@ class SyncOrchestrator:
 
         user_id = resolve_salesperson(self.env, dto.owner_name).id
 
-        return {
+        vals = {
             "name": name,
             "type": "lead",
             "partner_name": company or False,
@@ -1974,6 +2020,9 @@ class SyncOrchestrator:
             "user_id": user_id,
             "vanillasoft_id": dto.external_id,
         }
+        if dto.website and "website" in self.env["crm.lead"]._fields:
+            vals["website"] = dto.website
+        return vals
 
     def _lead_evidence(self, dto: CanonicalLead, vals: dict[str, Any], current=None) -> list[str]:
         """Source-labelled paragraphs for data the lead has no native field for.
@@ -2030,6 +2079,7 @@ class SyncOrchestrator:
         status = _collapse_ws(dto.lead_status_raw)
         if status:
             _queue_provenance(lines, current, ref, "Lead Status", status)
+        lines.extend(lead_identity_lines(dto, lead_stores_website="website" in vals))
         return lines
 
     def _lead_source_is_fallback(self, raw_source: str) -> bool:

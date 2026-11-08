@@ -39,6 +39,10 @@
         <field name="priority">35</field>
         <field name="arch" type="xml">
 
+            <xpath expr="//header/button[@name='action_activate']" position="before">
+                <button name="action_same_as_last" type="object" string="Same As Last"/>
+            </xpath>
+
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_loads"
                         type="object"

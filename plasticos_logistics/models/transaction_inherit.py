@@ -87,6 +87,59 @@ class PlasticosTransactionLoadBridge(models.Model):
         load_model._lock_rows("plasticos_load", rec.load_ids.ids)
         rec.load_ids.invalidate_recordset(["state", "transaction_id"])
 
+    def action_same_as_last(self):
+        """Copy the last completed deal and change only the dates.
+
+        Buyer, supplier, materials, prices, carrier, and freight rate stay as they
+        were. Draft sale and purchase orders are not confirmed, and a missing
+        booking fingerprint does not exclude the source. A second click finds the
+        drafts already created and stops.
+        """
+        self.ensure_one()
+        source = self._latest_completed_deal()
+        if not source.sale_order_id or not source.purchase_order_ids:
+            raise UserError("Same As Last needs a completed deal with a sale order and a purchase order.")
+        marker = f"SAL:{source.sale_order_id.id}"
+        existing = self.env["sale.order"].search(
+            [("origin", "=", marker), ("state", "in", ("draft", "sent"))],
+            limit=1,
+        )
+        if existing:
+            raise UserError("Same As Last drafts for this deal already exist.")
+        now = fields.Datetime.now()
+        new_sale = source.sale_order_id.copy(default={"origin": marker, "date_order": now})
+        new_sale.write({"origin": marker, "date_order": now})
+        new_purchases = source.purchase_order_ids.copy(default={"origin": marker, "date_order": now})
+        new_purchases.write({"origin": marker, "date_order": now})
+        if len(source.load_ids) == 1:
+            load = source.load_ids
+            self.env["plasticos.load"].create(
+                {
+                    "sale_order_id": new_sale.id,
+                    "carrier_id": load.carrier_id.id,
+                    "rate_amount": load.rate_amount,
+                    "rate_currency_id": load.rate_currency_id.id,
+                }
+            )
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Same As Last",
+            "res_model": "sale.order",
+            "res_id": new_sale.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
+    def _latest_completed_deal(self):
+        """Newest delivered, invoiced, or closed transaction in this company."""
+        company = (self.sale_order_id.company_id if self.sale_order_id else False) or self.env.company
+        candidates = self.search([("state", "in", ("delivered", "invoiced", "closed"))], order="id desc")
+        for transaction in candidates:
+            transaction_company = transaction.sale_order_id.company_id or self.env.company
+            if transaction_company == company:
+                return transaction
+        raise UserError("No completed deal is available for Same As Last.")
+
     def _refuse_lagging_loads(self, rec, milestone, message):
         """A transaction milestone requires every linked load to have reached it.
 

@@ -713,6 +713,24 @@ def test_the_durable_create_closes_interrupted_runs_before_inserting_the_new_row
 # ── repeated execution keeps replay and dedup behaviour ─────────────────────
 
 
+def test_empty_partner_website_and_function_are_filled_and_an_erp_value_is_left_alone():
+    from plasticos_crm_sync.services.orchestrator import empty_partner_profile_vals
+
+    assert empty_partner_profile_vals("https://example.test", "Buyer", "", "") == {
+        "website": "https://example.test",
+        "function": "Buyer",
+    }
+    assert empty_partner_profile_vals("https://new.test", "Seller", "https://erp.test", "Buyer") == {}
+
+
+def test_approved_contact_bind_does_not_write_street2():
+    tree = ast.parse(ORCHESTRATOR.read_text(encoding="utf-8"))
+    fn = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "_bind_approved_contact"
+    )
+    assert "street2" not in ast.unparse(fn)
+
+
 def test_repeating_an_incremental_run_over_the_same_page_creates_nothing_twice():
     page = _one_page([_lead("r1"), _lead("r2")], RECENT_Z)
     orch, connection, env = _harness(_Adapter(contact_passes=[page], call_passes=[[]]))

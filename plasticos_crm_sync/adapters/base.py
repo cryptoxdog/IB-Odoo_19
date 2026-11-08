@@ -107,6 +107,8 @@ class CanonicalLead:
     mobile_numbers: tuple[str, ...] = ()
     contact_note: str = ""
     phone_entries: tuple[CanonicalPhone, ...] = ()
+    website: str = ""
+    job_title: str = ""
 
 
 @dataclass(frozen=True)

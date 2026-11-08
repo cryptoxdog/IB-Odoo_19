@@ -93,6 +93,14 @@ This dated admission does not edit the 2026-10-26 overlay above. It admits exact
 
 The seven clauses keep their source text in `plasticos_documents`. Their clocks restate, and do not replace, `BRS-02-R007` (supplier Monday status request), `BRS-06-R039` (confirmation, slot, ACK and quiet hours) and `BRS-07-R051` (supplier +1/+5 after pickup, carrier +2/+6 after pickup, buyer +1/+5 after delivery, one reminder per party per day, stop when cleared). No live mail or cron is authorized by this admission.
 
+## Operator decision 2026-11-08: Same As Last copies the last deal
+
+**Source:** explicit operator decision of November 8, 2026. Same As Last creates the next deal from the latest delivered, invoiced, or closed transaction in the company. Buyer, supplier, materials, buy price, sell price, freight carrier, and freight rate stay the same. Only the dates become today. The copies stay drafts. A missing `freight_context_fingerprint` does not exclude that source.
+
+| Rule ID | Amended interpretation (2026-11-08) |
+| --- | --- |
+| `BRS-04-R023` | The freight resolver still reuses a prior booked rate only when the booking fingerprint matches, and it still refuses to rebuild a missing fingerprint from today's address. `action_same_as_last` is the date-only deal copy. It does not confirm an order, post an invoice, or invent a booking fingerprint. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.
