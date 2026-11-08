@@ -1,49 +1,49 @@
- Container odoo19-db-1 Running 
- Container odoo19-db-1 Waiting 
- Container odoo19-db-1 Healthy 
- Container odoo19-odoo-test-run-ea272735c665 Creating 
- Container odoo19-odoo-test-run-ea272735c665 Created 
-2026-11-08 12:46:03,503 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0 
-2026-11-08 12:46:03,525 1 INFO ? odoo.modules.loading: loading 1 modules... 
-2026-11-08 12:46:03,623 1 INFO ? odoo.modules.loading: 1 modules loaded in 0.10s, 0 queries (+0 extra) 
-2026-11-08 12:46:03,650 1 INFO ? odoo.modules.loading: loading 170 modules... 
-2026-11-08 12:46:04,235 1 INFO ? odoo.modules.loading: 170 modules loaded in 0.58s, 0 queries (+0 extra) 
-2026-11-08 12:46:04,306 1 WARNING ? odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 12:46:04,306 1 WARNING ? odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 12:46:04,325 1 INFO ? odoo.modules.loading: Modules loaded. 
-2026-11-08 12:46:04,363 1 INFO ? odoo.registry: Registry loaded in 0.860s 
- Container odoo19-db-1 Running 
- Container odoo19-db-1 Waiting 
- Container odoo19-db-1 Healthy 
- Container odoo19-odoo-test-run-ca7111ef3de2 Creating 
- Container odoo19-odoo-test-run-ca7111ef3de2 Created 
-2026-11-08 12:46:05,404 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0 
-2026-11-08 12:46:05,427 1 INFO ? odoo.modules.loading: loading 1 modules... 
-2026-11-08 12:46:05,524 1 INFO ? odoo.modules.loading: 1 modules loaded in 0.10s, 0 queries (+0 extra) 
-2026-11-08 12:46:05,592 1 INFO ? odoo.modules.loading: loading 466 modules... 
-2026-11-08 12:46:06,483 1 ERROR ? odoo.addons.l10n_be_intervat.models.res_company: The PyJWT module is not installed, Intervat might not work as expected. 
-2026-11-08 12:46:06,497 1 ERROR ? odoo.addons.l10n_cl_edi.models.account_move: Could not import library pdf417gen 
-2026-11-08 12:46:06,627 1 ERROR ? odoo.addons.l10n_cl_edi_stock.models.stock_picking: Could not import library pdf417gen 
-2026-11-08 12:46:06,701 1 INFO ? odoo.modules.loading: 466 modules loaded in 1.11s, 0 queries (+0 extra) 
-2026-11-08 12:46:06,838 1 INFO ? odoo.modules.loading: Modules loaded. 
-2026-11-08 12:46:06,889 1 INFO ? odoo.registry: Registry loaded in 1.485s 
- Container odoo19-db-1 Running 
- Container odoo19-db-1 Waiting 
- Container odoo19-db-1 Healthy 
- Container odoo19-odoo-test-run-ba94efb9c7c6 Creating 
- Container odoo19-odoo-test-run-ba94efb9c7c6 Created 
-2026-11-08 12:46:08,020 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0 
-2026-11-08 12:46:08,043 1 INFO ? odoo.modules.loading: loading 1 modules... 
-2026-11-08 12:46:08,140 1 INFO ? odoo.modules.loading: 1 modules loaded in 0.10s, 0 queries (+0 extra) 
-2026-11-08 12:46:08,167 1 INFO ? odoo.modules.loading: loading 170 modules... 
-2026-11-08 12:46:08,754 1 INFO ? odoo.modules.loading: 170 modules loaded in 0.59s, 0 queries (+0 extra) 
-2026-11-08 12:46:08,823 1 WARNING ? odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 12:46:08,823 1 WARNING ? odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
-2026-11-08 12:46:08,840 1 INFO ? odoo.modules.loading: Modules loaded. 
-2026-11-08 12:46:08,876 1 INFO ? odoo.registry: Registry loaded in 0.856s 
- Container odoo19-db-1 Running 
- Container odoo19-db-1 Waiting 
- Container odoo19-db-1 Healthy 
- Container odoo_rehearsal_18069 Creating 
- Container odoo_rehearsal_18069 Created 
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo19-odoo-test-run-ea272735c665 Creating
+ Container odoo19-odoo-test-run-ea272735c665 Created
+2026-11-08 12:46:03,503 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0
+2026-11-08 12:46:03,525 1 INFO ? odoo.modules.loading: loading 1 modules...
+2026-11-08 12:46:03,623 1 INFO ? odoo.modules.loading: 1 modules loaded in 0.10s, 0 queries (+0 extra)
+2026-11-08 12:46:03,650 1 INFO ? odoo.modules.loading: loading 170 modules...
+2026-11-08 12:46:04,235 1 INFO ? odoo.modules.loading: 170 modules loaded in 0.58s, 0 queries (+0 extra)
+2026-11-08 12:46:04,306 1 WARNING ? odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 12:46:04,306 1 WARNING ? odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 12:46:04,325 1 INFO ? odoo.modules.loading: Modules loaded.
+2026-11-08 12:46:04,363 1 INFO ? odoo.registry: Registry loaded in 0.860s
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo19-odoo-test-run-ca7111ef3de2 Creating
+ Container odoo19-odoo-test-run-ca7111ef3de2 Created
+2026-11-08 12:46:05,404 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0
+2026-11-08 12:46:05,427 1 INFO ? odoo.modules.loading: loading 1 modules...
+2026-11-08 12:46:05,524 1 INFO ? odoo.modules.loading: 1 modules loaded in 0.10s, 0 queries (+0 extra)
+2026-11-08 12:46:05,592 1 INFO ? odoo.modules.loading: loading 466 modules...
+2026-11-08 12:46:06,483 1 ERROR ? odoo.addons.l10n_be_intervat.models.res_company: The PyJWT module is not installed, Intervat might not work as expected.
+2026-11-08 12:46:06,497 1 ERROR ? odoo.addons.l10n_cl_edi.models.account_move: Could not import library pdf417gen
+2026-11-08 12:46:06,627 1 ERROR ? odoo.addons.l10n_cl_edi_stock.models.stock_picking: Could not import library pdf417gen
+2026-11-08 12:46:06,701 1 INFO ? odoo.modules.loading: 466 modules loaded in 1.11s, 0 queries (+0 extra)
+2026-11-08 12:46:06,838 1 INFO ? odoo.modules.loading: Modules loaded.
+2026-11-08 12:46:06,889 1 INFO ? odoo.registry: Registry loaded in 1.485s
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo19-odoo-test-run-ba94efb9c7c6 Creating
+ Container odoo19-odoo-test-run-ba94efb9c7c6 Created
+2026-11-08 12:46:08,020 1 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0
+2026-11-08 12:46:08,043 1 INFO ? odoo.modules.loading: loading 1 modules...
+2026-11-08 12:46:08,140 1 INFO ? odoo.modules.loading: 1 modules loaded in 0.10s, 0 queries (+0 extra)
+2026-11-08 12:46:08,167 1 INFO ? odoo.modules.loading: loading 170 modules...
+2026-11-08 12:46:08,754 1 INFO ? odoo.modules.loading: 170 modules loaded in 0.59s, 0 queries (+0 extra)
+2026-11-08 12:46:08,823 1 WARNING ? odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 12:46:08,823 1 WARNING ? odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 12:46:08,840 1 INFO ? odoo.modules.loading: Modules loaded.
+2026-11-08 12:46:08,876 1 INFO ? odoo.registry: Registry loaded in 0.856s
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo_rehearsal_18069 Creating
+ Container odoo_rehearsal_18069 Created
 df16a4a512daebdd328d3f7acf403932d1b46628c455c2afb55bbb37075d715e
