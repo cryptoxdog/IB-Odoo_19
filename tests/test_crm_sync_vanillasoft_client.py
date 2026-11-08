@@ -666,21 +666,51 @@ def test_a_separate_extension_and_country_code_fold_into_the_existing_number():
     ]
 
 
-def test_a_contradictory_extension_is_dropped_and_a_prefixed_number_is_left_alone():
+def test_a_contradictory_extension_fails_the_contact_and_names_both_values():
+    payload = {
+        "contact_id": 9,
+        "phone_numbers": [
+            {"name": "Office", "number": "+1 215-555-0101", "country_code": "1"},
+            {"name": "Direct", "number": "215-555-0100 x101", "extension": "102"},
+        ],
+    }
+    with pytest.raises(
+        CrmAdapterError,
+        match=r"contact 9 phone_numbers\[1\]\.extension: contradictory phone extension \(inline extension 101 != extension 102\)",
+    ):
+        contact_to_canonical(payload)
+
+
+def test_a_matching_inline_extension_and_a_prefixed_number_are_left_alone():
     contact = contact_to_canonical(
         {
             "contact_id": 1,
             "phone_numbers": [
-                {"name": "Direct", "number": "215-555-0100 x101", "extension": "102"},
+                {"name": "Direct", "number": "215-555-0100 x101", "extension": "101"},
                 {"name": "Office", "number": "+1 215-555-0101", "country_code": "1"},
                 {"name": "Home", "number": "12155550102", "country_code": "1"},
             ],
         }
     )
     assert _entries(contact) == [
+        ("Direct", "215-555-0100 x101", "other"),
         ("Office", "+1 215-555-0101", "other"),
         ("Home", "12155550102", "other"),
     ]
+
+
+def test_a_disabled_number_with_a_contradictory_extension_stays_excluded():
+    contact = contact_to_canonical(
+        {
+            "contact_id": 1,
+            "phone": "215-555-0100 x101",
+            "phone_numbers": [
+                {"name": "Direct", "number": "215-555-0100 x101", "extension": "102", "disabled": True},
+            ],
+        }
+    )
+    assert contact.phone == ""
+    assert contact.phone_entries == ()
 
 
 def test_a_disabled_number_with_a_separate_extension_does_not_return():
