@@ -1,0 +1,13 @@
+{
+  "detail": "make install-smoke exited 0",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 3,
+  "name": "install-smoke",
+  "reason": "install-smoke-ran",
+  "recorded_at": "2026-11-08T12:45:48Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "PASS"
+}

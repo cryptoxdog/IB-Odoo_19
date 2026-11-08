@@ -1057,8 +1057,12 @@ ODOO_STAGE ?=
 # outside the checkout cannot be reached there and is refused. The no-Docker
 # runtime opens the host path as given.
 MOUNT_ROOT := /mnt/extra-addons
-in_repo = $(if $(filter $(CURDIR)/%,$(abspath $(1))),1,)
-runtime_path = $(if $(1),$(if $(call in_repo,$(1)),$(MOUNT_ROOT)/$(patsubst $(CURDIR)/%,%,$(abspath $(1))),$(1)),)
+# filter and patsubst split on spaces, so a checkout path that contains one
+# was prefixed onto the mount instead of being stripped. subst keeps the path
+# whole. An absolute path is not passed through abspath, which splits the same way.
+_as_abs = $(if $(filter /%,$(1)),$(1),$(abspath $(1)))
+in_repo = $(if $(findstring x$(call _as_abs,$(1))x,x$(CURDIR)/$(subst $(CURDIR)/,,$(call _as_abs,$(1)))x),1,)
+runtime_path = $(if $(1),$(if $(call in_repo,$(1)),$(MOUNT_ROOT)/$(subst $(CURDIR)/,,$(call _as_abs,$(1))),$(1)),)
 # $(call mount_guard,<VAR ...>,<target>): every named path is inside the checkout.
 mount_guard = $(foreach name,$(1),[ -z "$($(name))" ] || [ -n "$(call in_repo,$($(name)))" ] || { echo "❌ $(2) refused: $(name) must be inside this checkout, the only bind mount the odoo container can read (an ignored path such as .l9/runtime/ works)" >&2; exit 2; };) true
 erp_source_guard = [ -z "$(ERP_PAYLOAD_ROOT)" ] || { echo "❌ import-erp refused: PAYLOAD_ROOT / ERP_PAYLOAD_ROOT selects a frozen fixture; the canonical import reads only the restored ERP database (ADR-021)" >&2; exit 2; }; \
@@ -1119,7 +1123,7 @@ import-erp:
 	@if docker info >/dev/null 2>&1; then \
 		$(erp_source_guard); \
 		$(call mount_guard,ERP_PRODUCTION_PERMIT,import-erp); \
-		docker compose run --rm -w /mnt/extra-addons \
+		docker compose run --rm $(if $(ERP_ISOLATED_REPORT_DIR),-v "$(ERP_ISOLATED_REPORT_DIR):/erp-isolated",) -w /mnt/extra-addons \
 			-e ERP_PRODUCTION_PERMIT="$(call runtime_path,$(ERP_PRODUCTION_PERMIT))" \
 			-e ODOO_STAGE="$(ODOO_STAGE)" \
 			-e ERP_DRY="$(ERP_DRY)" \

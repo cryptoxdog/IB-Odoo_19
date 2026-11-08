@@ -1,0 +1,31 @@
+{
+  "detail": "",
+  "evidence": [
+    "06-crm-log.txt"
+  ],
+  "exit_code": 0,
+  "facts": {
+    "durable_refs_after": 250,
+    "durable_refs_before": 0,
+    "durable_refs_landed": 250,
+    "execution_path": {
+      "call_floor": "2026-11-01T17:36:41Z",
+      "contact_floor": "2026-10-09T17:36:41Z",
+      "crosswalk": "plasticos_crm_sync/data/approved_contact_crosswalk.csv",
+      "database": "odoo_test_cutover",
+      "dispatcher": "run_full_import",
+      "driver": "plasticos_crm_sync/scripts/import_vanillasoft_shell.py",
+      "make_target": "import-vanillasoft",
+      "mode": "rolling",
+      "release_sha": "f8733d213fc96419698b1fd374de5fea54c4d362"
+    },
+    "full_cohort_claimed": false
+  },
+  "gate": 7,
+  "name": "vanillasoft",
+  "reason": "vanillasoft-rolling-imported",
+  "recorded_at": "2026-11-08T17:37:26Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "PASS"
+}

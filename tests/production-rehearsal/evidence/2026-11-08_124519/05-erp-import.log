@@ -1,0 +1,202 @@
+✓ odoo_test_cutover: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
+→ ERP import on database odoo_test_cutover  [direct SQL read]…
+   path: make import-erp → plasticos_partner_import/scripts/import_erp_shell.py → plasticos.erp.import (direct SQL source required)
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo19-odoo-run-ae5d1fc2cb56 Creating
+ Container odoo19-odoo-run-ae5d1fc2cb56 Created
+2026-11-08 12:46:15,451 1 INFO ? odoo: Odoo version 19.0-20261102
+2026-11-08 12:46:15,451 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf
+2026-11-08 12:46:15,451 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons'])
+2026-11-08 12:46:15,451 1 INFO ? odoo: database: odoo@db:5432
+2026-11-08 12:46:15,565 1 INFO ? odoo.service.server: Initiating shutdown
+2026-11-08 12:46:15,565 1 INFO ? odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown.
+2026-11-08 12:46:15,572 1 INFO odoo_test_cutover odoo.modules.loading: loading 1 modules...
+2026-11-08 12:46:15,573 1 INFO odoo_test_cutover odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra)
+2026-11-08 12:46:15,603 1 INFO odoo_test_cutover odoo.modules.loading: loading 170 modules...
+2026-11-08 12:46:16,191 1 INFO odoo_test_cutover odoo.modules.loading: 170 modules loaded in 0.59s, 0 queries (+0 extra)
+2026-11-08 12:46:16,260 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 12:46:16,260 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 12:46:16,277 1 INFO odoo_test_cutover odoo.modules.loading: Modules loaded.
+2026-11-08 12:46:16,306 1 INFO odoo_test_cutover odoo.registry: Registry loaded in 0.741s
+2026-11-08 12:46:17,642 1 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/source-db_SM): {'Address': 2968, 'BuySell': 8961, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'GPLedger': 8353, 'PO': 14724, 'PODetail': 19630, 'Payables': 14649, 'PayablesBatch': 12049, 'Receipt': 7538, 'ReceiptBatch': 4615, 'SalesReps': 1058, 'WKSDetail': 11441, 'WksDelivery': 8451}
+2026-11-08 12:46:39,742 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51655 was not written: sale.order 11546 has no partner
+2026-11-08 12:46:47,587 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51694 was not written: sale.order 11582 has no partner
+2026-11-08 12:46:50,457 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51711 was not written: purchase.order 4725 has no partner
+2026-11-08 12:46:50,458 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51712 was not written: sale.order 11593 has no partner
+2026-11-08 12:46:50,945 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51715 was not written: sale.order 11596 has no partner
+2026-11-08 12:46:54,129 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51730 was not written: sale.order 11605 has no partner
+2026-11-08 12:46:58,818 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51752 was not written: purchase.order 4760 has no partner
+2026-11-08 12:47:03,423 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51774 was not written: sale.order 11677 has no partner
+2026-11-08 12:47:03,876 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51778 was not written: sale.order 11648 has no partner
+2026-11-08 12:47:09,144 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51815 was not written: sale.order 11677 has no partner
+2026-11-08 12:47:10,479 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51822 was not written: purchase.order 4821 has no partner
+2026-11-08 12:47:10,480 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51823 was not written: sale.order 11684 has no partner
+2026-11-08 12:47:15,933 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51861 was not written: purchase.order 4847 has no partner
+2026-11-08 12:47:15,952 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 51862 was not written: purchase.order 4847 has no partner
+2026-11-08 12:47:19,911 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 200
+2026-11-08 12:47:50,198 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52034 was not written: sale.order 11858 has no partner
+2026-11-08 12:47:56,176 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52066 was not written: purchase.order 5010 has no partner
+2026-11-08 12:47:56,192 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52067 was not written: purchase.order 5010 has no partner
+2026-11-08 12:47:56,208 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52068 was not written: purchase.order 5010 has no partner
+2026-11-08 12:47:56,224 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52069 was not written: purchase.order 5010 has no partner
+2026-11-08 12:47:56,240 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52070 was not written: purchase.order 5010 has no partner
+2026-11-08 12:48:01,509 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 400
+2026-11-08 12:48:05,691 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52109 was not written: sale.order 11915 has no partner
+2026-11-08 12:48:06,564 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52114 was not written: sale.order 11918 has no partner
+2026-11-08 12:48:13,329 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52147 was not written: sale.order 11943 has no partner
+2026-11-08 12:48:13,351 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52148 was not written: purchase.order 5073 has no partner
+2026-11-08 12:48:23,677 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52206 was not written: purchase.order 5119 has no partner
+2026-11-08 12:48:27,246 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52222 was not written: sale.order 11996 has no partner
+2026-11-08 12:48:27,975 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52226 was not written: purchase.order 5132 has no partner
+2026-11-08 12:48:36,333 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52267 was not written: purchase.order 5164 has no partner
+2026-11-08 12:48:41,525 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52294 was not written: purchase.order 5188 has no partner
+2026-11-08 12:48:45,198 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 600
+2026-11-08 12:48:53,056 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52343 was not written: purchase.order 5223 has no partner
+2026-11-08 12:49:00,318 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52384 was not written: purchase.order 5188 has no partner
+2026-11-08 12:49:02,846 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52393 was not written: purchase.order 5259 has no partner
+2026-11-08 12:49:14,487 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52442 was not written: purchase.order 5301 has no partner
+2026-11-08 12:49:14,508 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52443 was not written: purchase.order 5302 has no partner
+2026-11-08 12:49:22,402 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52486 was not written: purchase.order 5331 has no partner
+2026-11-08 12:49:22,423 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52487 was not written: purchase.order 5332 has no partner
+2026-11-08 12:49:30,810 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 800
+2026-11-08 12:49:34,583 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52531 was not written: purchase.order 5372 has no partner
+2026-11-08 12:49:34,608 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52532 was not written: purchase.order 5373 has no partner
+2026-11-08 12:49:41,900 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52571 was not written: purchase.order 5402 has no partner
+2026-11-08 12:49:42,263 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52574 was not written: purchase.order 5405 has no partner
+2026-11-08 12:49:44,199 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52585 was not written: purchase.order 5415 has no partner
+2026-11-08 12:49:49,953 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52616 was not written: purchase.order 5440 has no partner
+2026-11-08 12:49:54,600 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52641 was not written: purchase.order 5453 has no partner
+2026-11-08 12:49:59,672 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52666 was not written: purchase.order 5485 has no partner
+2026-11-08 12:50:14,356 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 1000
+2026-11-08 12:50:15,166 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52732 was not written: purchase.order 5537 has no partner
+2026-11-08 12:50:18,963 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52753 was not written: purchase.order 5557 has no partner
+2026-11-08 12:50:18,982 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52754 was not written: purchase.order 5558 has no partner
+2026-11-08 12:50:45,935 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52885 was not written: purchase.order 5653 has no partner
+2026-11-08 12:50:50,018 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 52903 was not written: purchase.order 5684 has no partner
+2026-11-08 12:51:02,443 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 1200
+2026-11-08 12:51:19,480 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53021 was not written: purchase.order 5763 has no partner
+2026-11-08 12:51:19,498 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53022 was not written: purchase.order 5763 has no partner
+2026-11-08 12:51:28,249 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53067 was not written: purchase.order 5803 has no partner
+2026-11-08 12:51:33,195 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53096 was not written: purchase.order 5823 has no partner
+2026-11-08 12:51:44,005 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53163 was not written: purchase.order 5868 has no partner
+2026-11-08 12:51:44,024 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53164 was not written: purchase.order 5868 has no partner
+2026-11-08 12:51:46,745 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 1400
+2026-11-08 12:52:19,666 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53346 was not written: purchase.order 5993 has no partner
+2026-11-08 12:52:19,692 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53347 was not written: purchase.order 5994 has no partner
+2026-11-08 12:52:21,122 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53354 was not written: purchase.order 6000 has no partner
+2026-11-08 12:52:25,061 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53375 was not written: purchase.order 6018 has no partner
+2026-11-08 12:52:25,086 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53376 was not written: purchase.order 6018 has no partner
+2026-11-08 12:52:29,407 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53398 was not written: purchase.order 6033 has no partner
+2026-11-08 12:52:31,973 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 1600
+2026-11-08 12:52:31,974 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53403 was not written: sale.order 12951 has no partner
+2026-11-08 12:53:05,969 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53569 was not written: purchase.order 6154 has no partner
+2026-11-08 12:53:16,136 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 1800
+2026-11-08 12:53:25,037 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53665 was not written: purchase.order 6219 has no partner
+2026-11-08 12:53:25,057 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 53666 was not written: purchase.order 6220 has no partner
+2026-11-08 12:53:55,483 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 2000
+2026-11-08 12:54:37,701 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 2200
+2026-11-08 12:55:20,221 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 2400
+2026-11-08 12:55:50,354 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54384 was not written: purchase.order 6869 has no partner
+2026-11-08 12:56:01,824 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54432 was not written: purchase.order 6916 has no partner
+2026-11-08 12:56:01,844 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54433 was not written: purchase.order 6916 has no partner
+2026-11-08 12:56:02,805 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54437 was not written: purchase.order 6920 has no partner
+2026-11-08 12:56:05,059 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 2600
+2026-11-08 12:56:26,518 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54541 was not written: purchase.order 7008 has no partner
+2026-11-08 12:56:51,357 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 2800
+2026-11-08 12:57:02,622 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54698 was not written: purchase.order 7155 has no partner
+2026-11-08 12:57:26,607 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54813 was not written: purchase.order 7247 has no partner
+2026-11-08 12:57:38,911 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 3000
+2026-11-08 12:57:43,619 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 54877 was not written: sale.order 14314 has no partner
+2026-11-08 12:58:26,530 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 3200
+2026-11-08 12:59:11,283 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 3400
+2026-11-08 12:59:55,180 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 3600
+2026-11-08 13:00:40,818 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 3800
+2026-11-08 13:00:54,616 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 55731 was not written: purchase.order 8059 has no partner
+2026-11-08 13:01:00,766 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 55761 was not written: purchase.order 8085 has no partner
+2026-11-08 13:01:28,517 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 4000
+2026-11-08 13:01:40,437 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 55949 was not written: purchase.order 8225 has no partner
+2026-11-08 13:01:40,459 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 55950 was not written: purchase.order 8226 has no partner
+2026-11-08 13:02:12,004 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 4200
+2026-11-08 13:02:12,020 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 56129 was not written: purchase.order 8367 has no partner
+2026-11-08 13:02:29,601 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 56218 was not written: purchase.order 8445 has no partner
+2026-11-08 13:02:55,494 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 4400
+2026-11-08 13:03:38,863 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 4600
+2026-11-08 13:04:20,250 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 4800
+2026-11-08 13:05:02,010 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 5000
+2026-11-08 13:05:12,134 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 57086 was not written: purchase.order 9129 has no partner
+2026-11-08 13:05:45,177 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 5200
+2026-11-08 13:05:57,286 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 57325 was not written: purchase.order 9313 has no partner
+2026-11-08 13:06:19,483 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 57440 was not written: purchase.order 9390 has no partner
+2026-11-08 13:06:29,816 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 5400
+2026-11-08 13:06:45,601 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 57576 was not written: purchase.order 9492 has no partner
+2026-11-08 13:07:12,592 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 5600
+2026-11-08 13:07:52,877 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 57952 was not written: purchase.order 9784 has no partner
+2026-11-08 13:07:55,604 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 5800
+2026-11-08 13:08:04,150 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 58005 was not written: sale.order 16868 has no partner
+2026-11-08 13:08:37,280 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 6000
+2026-11-08 13:09:05,594 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 58363 was not written: purchase.order 10092 has no partner
+2026-11-08 13:09:05,615 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 58364 was not written: purchase.order 10093 has no partner
+2026-11-08 13:09:17,242 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 6200
+2026-11-08 13:09:59,041 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 6400
+2026-11-08 13:10:27,100 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP worksheet 58829 was not written: purchase.order 10414 has no partner
+2026-11-08 13:10:42,753 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 6600
+2026-11-08 13:11:24,487 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 6800
+2026-11-08 13:12:06,116 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 7000
+2026-11-08 13:12:43,385 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 7200
+2026-11-08 13:13:28,189 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 7400
+2026-11-08 13:14:16,329 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 7600
+2026-11-08 13:15:09,841 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 7800
+2026-11-08 13:16:02,696 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 8000
+2026-11-08 13:16:53,182 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 8200
+2026-11-08 13:17:34,487 1 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: ERP import finished: {'counterparties': {'created': 1300, 'updated': 0, 'skipped': 0, 'rejected': 0}, 'locations': {'created': 1266, 'updated': 1297, 'skipped': 80, 'rejected': 0}, 'contacts': {'created': 2615, 'updated': 0, 'skipped': 1116, 'rejected': 0}, 'contact_roles': {'created': 2498, 'updated': 0, 'skipped': 180, 'rejected': 0}, 'salespersons': {'created': 0, 'updated': 914, 'skipped': 2, 'rejected': 0}, 'transactions': {'created': 7727, 'updated': 0, 'skipped': 318, 'rejected': 328}, 'transaction_lines': {'created': 10461, 'updated': 0, 'skipped': 53, 'rejected': 927}}
+ERP source: direct database read (host.docker.internal/source-db_SM)
+VALIDATOR PASSED (database)
+res.partner before import: 13 (pre-existing business partners: 0)
+VALIDATOR PASSED (counterparties)
+VALIDATOR PASSED (addresses)
+VALIDATOR PASSED (contacts)
+Eddie Dyess partner id 3653
+http://localhost:8069/odoo/contacts/3653
+TUCKAHOE NURSERIES INC has no partner named 16098610383
+VALIDATOR PASSED (roles)
+VALIDATOR PASSED (salesreps)
+
+=== ERP IMPORT SUMMARY ===
+status      : partial
+seen/valid  : 32332 / 29827 (rejected 2505)
+created     : 25867  updated: 2211  unchanged: 1749  duplicates: 0
+errors      : 1000 (first 10 below)
+  - 400094: Address unresolved_counterparty: CpID=(OTHER) not in exported (active) counterparties
+  - 400096: Address unresolved_counterparty: CpID={C} not in exported (active) counterparties
+  - 400097: Address unresolved_counterparty: CpID={C} not in exported (active) counterparties
+  - 401838: Address unresolved_counterparty: CpID=134 not in exported (active) counterparties
+  - 402007: Address unresolved_counterparty: CpID=303 not in exported (active) counterparties
+  - 402015: Address unresolved_counterparty: CpID=312 not in exported (active) counterparties
+  - 402163: Address unresolved_counterparty: CpID=134 not in exported (active) counterparties
+  - 402526: Address unresolved_counterparty: CpID=303 not in exported (active) counterparties
+  - 402549: Address unresolved_counterparty: CpID=1102 not in exported (active) counterparties
+  - 402550: Address unresolved_counterparty: CpID=1103 not in exported (active) counterparties
+
+=== SOURCE EXCEPTION CENSUS ===
+purchase  blank_key                    lines   1251  worksheets   731  keys     0  sale   1,734,427.44  purchase   1,102,117.23
+purchase  key_without_order_line       lines     13  worksheets     6  keys    12  sale      12,600.02  purchase       8,260.78
+purchase  number_under_other_source    lines      2  worksheets     1  keys     1  sale         635.10  purchase           0.00
+sale      blank_key                    lines   1141  worksheets   584  keys     0  sale     366,764.23  purchase     164,671.99
+sale      key_without_order_line       lines     29  worksheets    19  keys    23  sale      45,497.43  purchase      23,500.70
+without_sale_link: 192 worksheets, 372 lines, sale 242,354.76, purchase 143,732.42, partner active 190, inactive/absent 2
+without_purchase_link: 376 worksheets, 605 lines, sale 1,608,104.03, purchase 1,072,297.28, partner active 112, inactive/absent 264
+price precision (None decimals): 0 lines drift, net 0.00, abs 0.00, max 0.00
+payables gl_50100_billed                    rows   6647  worksheets  6137   20,079,087.67
+payables gl_50100_unbilled                  rows      3  worksheets     3          378.60
+payables gl_50200_billed                    rows   6609  worksheets  4804    4,910,520.16
+payables gl_50300_as_other_expenses         rows    216  worksheets   210      127,755.99
+payables gl_50300_not_realized              rows    252  worksheets    95      175,172.36
+payables gl_50600_as_other_expenses         rows     33  worksheets    29       58,969.73
+payables gl_50600_not_realized              rows      9  worksheets     6       93,972.13
+payables no_order_link_not_realized         rows     83  worksheets    43       65,263.66
+payables outside_worksheet_universe_not_realized rows    628  worksheets   525      295,716.30
+payables worksheet_rolled_back_not_realized rows    169  worksheets    76      149,335.40
+payables reconciliation: source 14649 = billed 13256 + quarantined 1393 + excluded 0 -> CLOSES
+DATA VERDICT {"accounting_acceptance": "BLOCKED_ARCHITECTURE", "accounting_state": "draft_unposted", "data_complete": false, "exceptions_digest": "771c3b2667d651cb4a912cc4c2ffd32f87a3d8d29c451e89cf2a58ce6448ed81", "final_status": "partial", "open_exceptions": 2505, "run_failures": []}

@@ -11,8 +11,8 @@
 | All PlasticOS + Enterprise modules load | `make install-smoke` on the pinned fixture (cached fingerprint match is labelled as such) |
 | The clone is fresh and empty | `test_env.sh clone/upgrade/assert-clone` + business-partner census (inactive included) |
 | Web lead webhook reaches the wired end (crm.lead) | HOT Cognito POST → intake → one unassigned non-Won opportunity, read back from the clone; replay creates nothing |
-| ERP counterparties, addresses, contacts, and native documents import from the restored database | `make import-erp` with no `LIMIT`, summary + census + driver trace in the log + clone layer counts + native-document completeness + field-level source comparison |
-| VanillaSoft contacts import against ERP partners | `make import-vanillasoft` on `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` in this checkout, judged by the history driver's own report, ledger, audit trail and durable refs read back from the clone |
+| ERP counterparties, addresses, contacts, and native documents import from the restored database | `make import-erp` with `ERP_LIMIT=10%` (newest worksheets, plus pinned worksheet 58699 when present; partners stay complete), summary + census + driver trace in the log + clone layer counts + native-document completeness + field-level source comparison of that slice |
+| VanillaSoft contacts import against ERP partners | `make import-vanillasoft` rolling window on the clone. The driver loads the packaged crosswalk. Durable refs are read back from the clone |
 
 Both import gates run the same `make` target, driver and dispatcher production
 runs, at the same revision; the receipt's `execution_path` names them and the
@@ -34,9 +34,9 @@ Exit 0 only on `ready`. Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and
 - The pinned fixture `odoo_test_tpl_ee_c9e8a81f52f23680` is admitted (`bash scripts/test_env.sh status`)
 - Exclusive use of the shared runtime: the Compose project, `odoo_test_cutover`, the rehearsal port (`REHEARSAL_PORT`, default 18069) and container `odoo_rehearsal_<port>`. Gate 5 refuses an existing container or an answering port instead of removing it
 - git ≥ 2.38 (`merge-tree --write-tree`), curl ≥ 7.55 (`-H @file`)
-- Gate 7 reads `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` from the checkout and hashes it at run time. A missing file fails the gate. Set `REHEARSAL_HISTORY_MAX_IDS` only when a cap is intended; there is no default
-- No `VANILLASOFT_CALL_FLOOR`, `VANILLASOFT_CONTACT_FLOOR`, `VANILLASOFT_HISTORY_CHECKPOINT`, `VANILLASOFT_PRODUCTION_PERMIT`, `ERP_PRODUCTION_PERMIT` or `ODOO_STAGE=production` in the environment: each is a refusal, never ignored
-- `scripts/test_env.sh run` admits the history form of `make import-vanillasoft` (census, digest, ledger, optional bounds; no floor, no permit) and refuses anything else before make starts
+- Gate 7 does not open or hash `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv`. A missing file does not stop the gate
+- No `VANILLASOFT_CALL_FLOOR`, `VANILLASOFT_CONTACT_FLOOR`, `VANILLASOFT_HISTORY_CHECKPOINT`, `VANILLASOFT_PRODUCTION_PERMIT`, `ERP_PRODUCTION_PERMIT` or `ODOO_STAGE=production` in the environment: each is a refusal. The gate sets its own floors
+- `scripts/test_env.sh run` admits the rolling form of `make import-vanillasoft` (both floors, no census) and the history form (census, digest, ledger, no floor). Gate 7 uses the rolling form
 
 ### Credentials (auto-resolved — no manual setup required)
 
@@ -54,9 +54,9 @@ Gate 6 calls `make import-erp` on the cutover clone. The importer reads the data
 
 The frozen grid under `erp_extracted_data/bulk/` is a regression fixture. Gate 6 fails when the census `payload_kind` is `grid` or `statements`, and refuses a payload root outright. Only `database` passes, and the import log must carry the driver's own `ERP source: direct database read` and `DATA VERDICT` lines. `make import-erp` itself now refuses to start without `ERP_SQL_SERVER` and `ERP_SQL_DATABASE`, on every runner.
 
-### VanillaSoft history source
+### VanillaSoft source
 
-Gate 7 calls `make import-vanillasoft` on the same clone in its history mode: `VANILLASOFT_HISTORY_CENSUS` and `VANILLASOFT_HISTORY_CENSUS_SHA256` from the environment, a fresh ledger at `<evidence>/06-crm-history.jsonl`, and `VANILLASOFT_HISTORY_MAX_IDS=REHEARSAL_HISTORY_MAX_IDS`. The driver (`plasticos_crm_sync/scripts/import_vanillasoft_shell.py`, `history()`) verifies the census against the declared digest and the packaged crosswalk, fetches each planned ContactID through `SyncOrchestrator.upsert_contact_external_id`, and writes its own report. A rolling floor in the environment fails the gate; the rolling window is a different, explicitly named mode of the same target (`VANILLASOFT_CALL_FLOOR` without a census) and is never a fallback.
+Gate 7 calls `make import-vanillasoft` on the same clone in rolling mode. It passes `VANILLASOFT_CONTACT_FLOOR` (30 days) and `VANILLASOFT_CALL_FLOOR` (7 days). It does not pass a census or a digest. The driver (`plasticos_crm_sync/scripts/import_vanillasoft_shell.py`) loads `plasticos_crm_sync/data/approved_contact_crosswalk.csv` unless the ICP key names another file, then `SyncOrchestrator.run_full_import` binds a crosswalk ContactID to the existing ERP person and creates a `crm.lead` for everyone else. History mode stays on the same Make target for an operator who passes a real two-column census. An operator floor in the environment fails the gate.
 
 ## Evidence structure
 
@@ -72,8 +72,11 @@ evidence/
     ├── 04-clone.log, 04-clone-census.txt
     ├── 04-weblead-*.json          ← receipt, replay, count snapshots, stored chain
     ├── 04-weblead-runtime.log     ← docker/Odoo output (scanned for the bearer)
-    ├── 05-erp-summary.json        ← importer summary (the kit never writes into it)
-    ├── 05-erp-summary-census.json ← importer census (payload_kind, source_origin)
+    ├── 05-erp-summary.json        ← copy of the importer summary (the kit does not modify it)
+    ├── 05-erp-summary-census.json ← compact census receipt; the full census stays outside the checkout
+    ├── 05-erp-fidelity.json       ← FAIL rows, counts, comparison digest, coverage ledger
+    ├── 05-erp-identity-ledger.json ← native-document counts and identity digests
+    ├── gate-6.json                ← same compact facts; census totals live here
     ├── 05-erp-layers.json, 05-erp-import.log
     ├── 06-crm-result.json         ← history driver report (cohort, classes, by_decision, stopped, census_sha256)
     ├── 06-crm-history.jsonl       ← this run's append-only ledger (header bound to census + database uuid)

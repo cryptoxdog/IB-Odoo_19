@@ -11,6 +11,7 @@ quantity, or a missing source or target value is a mapping defect.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from datetime import datetime
@@ -207,7 +208,7 @@ COVERAGE: list[dict] = [
         "target_field": "incoterm",
         "kind": "direct",
         "scope": "all_imported",
-        "note": "FOB, FAS, and declined bases only",
+        "note": "PO.PriceBasis when set; otherwise the last mapped or declined BuySell.PriceBasis in importer worksheet order",
     },
     {
         "source_table": "GPLedger",
@@ -653,11 +654,46 @@ def _missing(rows: list, **kwargs) -> None:
     rows.append(_row(result="FAIL", classification="defect", **kwargs))
 
 
+class _Rows:
+    """Field comparisons. A rehearsal retains failures only; the counters stay complete."""
+
+    def __init__(self, retain_passes: bool = True):
+        self.retain_passes = retain_passes
+        self.rows: list[dict] = []
+        self.compared = 0
+        self.failed = 0
+        self.rejected = 0
+        self.unmapped = 0
+        self.precision = 0
+
+    def append(self, row: dict) -> None:
+        result = row.get("result")
+        classification = row.get("classification")
+        if result == "FAIL":
+            self.failed += 1
+            self.rows.append(row)
+            return
+        if result == "PASS" and classification == "rejected":
+            self.rejected += 1
+        elif result == "PASS" and classification == "unmapped":
+            self.unmapped += 1
+        elif result == "PASS" and classification == "precision":
+            self.precision += 1
+            self.compared += 1
+        elif result == "PASS" and classification == "mapped":
+            self.compared += 1
+        else:
+            self.rows.append(row)
+            return
+        if self.retain_passes:
+            self.rows.append(row)
+
+
 class _Check:
-    def __init__(self, odoo: dict, source: dict):
+    def __init__(self, odoo: dict, source: dict, *, retain_passes: bool = True):
         self.odoo = odoo
         self.source = source
-        self.rows: list[dict] = []
+        self.rows = _Rows(retain_passes)
         self.partners = {
             row["xmlid"]: row for row in odoo.get("partners") or [] if isinstance(row, dict) and row.get("xmlid")
         }
@@ -1131,16 +1167,63 @@ def _approve(check: _Check, order: dict, name: str) -> None:
     )
 
 
+def _basis_effect(basis: str) -> str:
+    """How one price basis changes an Incoterm already written on the order.
+
+    This is the importer's write, copied here so the verifier does not call it.
+    A blank basis and a basis with no Incoterm leave the stored value. ``delivered``
+    clears it. A mapped basis replaces it.
+    """
+    folded = text(basis).lower()
+    if not folded or "do not use" in folded:
+        return "keep"
+    if folded == "delivered":
+        return "clear"
+    if folded in _INCOTERM:
+        return "map"
+    return "keep"
+
+
+def effective_price_basis(header: dict, origin, buysells) -> tuple[str, str, str]:
+    """``(basis, source_table, worksheet)`` after the importer's precedence.
+
+    A non-empty ``PO.PriceBasis`` is the only basis applied. Otherwise each
+    worksheet named on ``origin`` is applied in lexicographic worksheet-number
+    order, the order ``SourceIndex.buysell_numbers`` imports them. A mapped or
+    declined worksheet basis replaces the previous one. A blank worksheet does not.
+    """
+    header_basis = text((header or {}).get("PriceBasis"))
+    if header_basis:
+        if _basis_effect(header_basis) == "keep":
+            return "", "PO", ""
+        return header_basis, "PO", ""
+    chosen = ""
+    table = "PO"
+    winner = ""
+    numbers = sorted(part.strip() for part in text(origin).split(",") if part.strip())
+    indexed = buysells if isinstance(buysells, dict) else {}
+    for number in numbers:
+        row = indexed.get(number)
+        basis = text((row or {}).get("PriceBasis")) if isinstance(row, dict) else ""
+        if _basis_effect(basis) == "keep":
+            continue
+        chosen = basis
+        table = "BuySell"
+        winner = number
+    return chosen, table, winner
+
+
 def _basis(check: _Check, order: dict, header: dict, model: str, name: str) -> None:
-    basis = text(header.get("PriceBasis"))
+    basis, table, winner = effective_price_basis(header, order.get("origin"), check.source.get("buysell") or {})
     expected = incoterm_of(basis)
     actual = text(order.get("incoterm_code"))
+    where = f"worksheet {winner} price basis" if winner else ""
     if expected is None and not actual:
         if basis:
             check.rows.append(
                 _row(
                     source_id=name,
-                    source_table="PO",
+                    source_table=table,
                     source_field="PriceBasis",
                     source_value=basis,
                     target_model=model,
@@ -1150,13 +1233,13 @@ def _basis(check: _Check, order: dict, header: dict, model: str, name: str) -> N
                     tolerance=None,
                     result="PASS",
                     classification="unmapped",
-                    detail="price basis has no supported Incoterm",
+                    detail=where or "price basis has no supported Incoterm",
                 )
             )
         return
     kwargs = {
         "source_id": name,
-        "source_table": "PO",
+        "source_table": table,
         "source_field": "PriceBasis",
         "source_value": basis,
         "target_model": model,
@@ -1166,9 +1249,12 @@ def _basis(check: _Check, order: dict, header: dict, model: str, name: str) -> N
         "tolerance": None,
     }
     if expected and actual == expected:
-        check.rows.append(_row(result="PASS", classification="mapped", detail="", **kwargs))
+        check.rows.append(_row(result="PASS", classification="mapped", detail=where, **kwargs))
     else:
-        check.miss(detail="Incoterm does not match the source price basis", **kwargs)
+        detail = "Incoterm does not match the source price basis"
+        if where:
+            detail = f"{detail} ({where})"
+        check.miss(detail=detail, **kwargs)
 
 
 def _line_terms(line: dict, side: str) -> tuple[float, str, float, float | None]:
@@ -1767,7 +1853,13 @@ def _rejected(rows: list, unresolved) -> None:
         )
 
 
-def evaluate(odoo: dict, source: dict, unresolved=None) -> dict:
+def _source_fingerprint(source: dict) -> str:
+    """Identity of the source rows compared, without their success-row dump."""
+    blob = json.dumps(source, sort_keys=True, default=str, separators=(",", ":"))
+    return hashlib.sha256(blob.encode()).hexdigest()
+
+
+def evaluate(odoo: dict, source: dict, unresolved=None, *, retain_passes: bool = True) -> dict:
     """Compare one persisted clone snapshot with the source rows it came from."""
     if odoo.get("evidence") != "complete" or source.get("evidence") != "complete":
         reason = (
@@ -1775,8 +1867,10 @@ def evaluate(odoo: dict, source: dict, unresolved=None) -> dict:
             or text(source.get("missing_reason"))
             or "source or target evidence is incomplete"
         )
-        return finish([], "missing", reason)
-    check = _Check(odoo, source)
+        report = finish([], "missing", reason)
+        report["source_fingerprint"] = None
+        return report
+    check = _Check(odoo, source, retain_passes=retain_passes)
     companies = {row.get("partner_id"): row for row in check.companies()}
     for row in check.companies():
         source_id = text(row.get("xmlid")).removeprefix("legacy_erp_cp_")
@@ -1852,18 +1946,38 @@ def evaluate(odoo: dict, source: dict, unresolved=None) -> dict:
     _bills(check)
     _ledger_moves(check)
     _rejected(check.rows, unresolved)
-    return finish(check.rows, "complete", "")
+    report = finish(check.rows, "complete", "")
+    report["source_fingerprint"] = _source_fingerprint(source)
+    if not retain_passes:
+        report["rows_retained"] = "failures"
+    return report
 
 
-def finish(rows: list, evidence: str, missing_reason: str) -> dict:
-    failed = [row for row in rows if row.get("result") == "FAIL"]
-    compared = [
-        row for row in rows if row.get("result") == "PASS" and row.get("classification") in {"mapped", "precision"}
-    ]
+def finish(rows, evidence: str, missing_reason: str) -> dict:
+    if isinstance(rows, _Rows):
+        stored = rows.rows
+        compared_n = rows.compared
+        failed_n = rows.failed
+        rejected_n = rows.rejected
+        unmapped_n = rows.unmapped
+        precision_n = rows.precision
+    else:
+        stored = list(rows)
+        failed_rows = [row for row in stored if row.get("result") == "FAIL"]
+        compared_rows = [
+            row
+            for row in stored
+            if row.get("result") == "PASS" and row.get("classification") in {"mapped", "precision"}
+        ]
+        compared_n = len(compared_rows)
+        failed_n = len(failed_rows)
+        rejected_n = sum(1 for row in stored if row.get("classification") == "rejected")
+        unmapped_n = sum(1 for row in stored if row.get("classification") == "unmapped")
+        precision_n = sum(1 for row in stored if row.get("classification") == "precision")
     if evidence != "complete":
         status = "FAIL"
-        if not failed:
-            failed = [
+        if failed_n == 0:
+            stored = [
                 _row(
                     source_id="",
                     source_table="",
@@ -1879,11 +1993,11 @@ def finish(rows: list, evidence: str, missing_reason: str) -> dict:
                     detail=missing_reason or "source or target evidence is incomplete",
                 )
             ]
-            rows = failed
-    elif failed or not compared:
+            failed_n = 1
+    elif failed_n or not compared_n:
         status = "FAIL"
-        evidence = "complete" if compared or failed else "missing"
-        if not compared and not failed:
+        evidence = "complete" if compared_n or failed_n else "missing"
+        if not compared_n and not failed_n:
             missing_reason = missing_reason or "no mapped field was compared"
             evidence = "missing"
     else:
@@ -1893,12 +2007,12 @@ def finish(rows: list, evidence: str, missing_reason: str) -> dict:
         "evidence": evidence,
         "status": status,
         "missing_reason": missing_reason,
-        "compared": len(compared),
-        "failed": len(failed),
-        "rejected": sum(1 for row in rows if row.get("classification") == "rejected"),
-        "unmapped": sum(1 for row in rows if row.get("classification") == "unmapped"),
-        "precision": sum(1 for row in rows if row.get("classification") == "precision"),
-        "rows": rows,
+        "compared": compared_n,
+        "failed": failed_n,
+        "rejected": rejected_n,
+        "unmapped": unmapped_n,
+        "precision": precision_n,
+        "rows": stored,
         "coverage": COVERAGE,
     }
 

@@ -1,0 +1,9 @@
+{
+  "accounting_acceptance": "BLOCKED_ARCHITECTURE",
+  "accounting_state": "draft_unposted",
+  "data_complete": false,
+  "exceptions_digest": "771c3b2667d651cb4a912cc4c2ffd32f87a3d8d29c451e89cf2a58ce6448ed81",
+  "final_status": "partial",
+  "open_exceptions": 2505,
+  "run_failures": []
+}

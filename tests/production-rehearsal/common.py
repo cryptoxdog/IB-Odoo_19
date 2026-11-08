@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import ast
 import contextlib
+import errno
 import hashlib
 import importlib.util
 import json
@@ -535,7 +536,326 @@ ERP_LAYERS = ("counterparties", "addresses", "contacts")
 
 
 FIDELITY_SCHEMA = "l9.plasticos.rehearsal.fidelity.v1"
+IDENTITY_SCHEMA = "l9.plasticos.rehearsal.identity-ledger.v1"
+CENSUS_SCHEMA = "l9.plasticos.rehearsal.census.v1"
 _FIDELITY_PASS = frozenset({"mapped", "precision", "rejected", "unmapped"})
+_RECEIPT_BYTE_CAP = 1000 * 1024
+_SAMPLE_CAP = 5
+_SOURCE_GROUPS = (
+    "counterparties",
+    "addresses",
+    "contacts",
+    "orders",
+    "details",
+    "order_lines",
+    "buysell",
+    "payables_by_token",
+)
+_XMLID_PREFIXES = (
+    "legacy_erp_cp_",
+    "legacy_erp_address_",
+    "legacy_erp_contact_",
+    "legacy_erp_so_",
+    "legacy_erp_po_",
+    "legacy_erp_sol_",
+    "legacy_erp_pol_",
+    "legacy_erp_outinv_",
+    "legacy_erp_ininv_",
+    "legacy_erp_ledger_",
+)
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def _digest(items: list[str]) -> str:
+    return hashlib.sha256("\n".join(sorted(items)).encode()).hexdigest()
+
+
+def _count(value) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def _anomaly_class(row: dict) -> str:
+    kind = str(row.get("kind") or "").strip()
+    if kind:
+        return kind[:80]
+    detail = str(row.get("detail") or "").strip()
+    if not detail:
+        return str(row.get("table") or "unclassified")[:80]
+    return detail.split(":", 1)[0].strip()[:80] or str(row.get("table") or "unclassified")[:80]
+
+
+def _sample_row(row: dict) -> dict:
+    detail = str(row.get("detail") or "")
+    return {"detail": detail[:180], "key": row.get("key"), "table": row.get("table")}
+
+
+def compact_census(full: dict, *, sample_cap: int = _SAMPLE_CAP) -> dict:
+    """Counts and a bounded sample. The raw origin and the full arrays stay out of the receipt."""
+    origin = str(full.get("source_origin") or "").strip()
+    anomalies = full.get("anomalies") if isinstance(full.get("anomalies"), list) else []
+    unresolved = full.get("unresolved") if isinstance(full.get("unresolved"), list) else []
+    classes: dict[str, int] = {}
+    grouped: dict[str, list[dict]] = {}
+    for row in anomalies:
+        if not isinstance(row, dict):
+            continue
+        name = _anomaly_class(row)
+        classes[name] = classes.get(name, 0) + 1
+        grouped.setdefault(name, []).append(_sample_row(row))
+    attributed: list[str] = []
+    unattributed = 0
+    for row in unresolved:
+        if isinstance(row, dict) and row.get("table") and row.get("kind") and row.get("key"):
+            attributed.append(f"{row['table']}:{row['kind']}:{row['key']}")
+        else:
+            unattributed += 1
+    cap = sample_cap
+
+    def receipt(limit: int) -> dict:
+        sample = {name: rows[:limit] for name, rows in grouped.items()} if limit else {}
+        return {
+            "schema": CENSUS_SCHEMA,
+            "payload_kind": full.get("payload_kind"),
+            "origin_sha256": _sha256_text(origin) if origin else "",
+            "census": full.get("census") if isinstance(full.get("census"), dict) else {},
+            "anomaly_counts": classes,
+            "anomaly_sample": sample,
+            "anomaly_sample_cap": limit,
+            "unresolved_count": len(unresolved),
+            "attributed_count": len(attributed),
+            "unattributed_count": unattributed,
+            "attributed_digest": _digest(attributed),
+        }
+
+    payload = receipt(cap)
+    while cap and len(json.dumps(payload, sort_keys=True, default=str).encode()) > _RECEIPT_BYTE_CAP:
+        cap -= 1
+        payload = receipt(cap)
+    return payload
+
+
+def _observed_keys(odoo: dict) -> set[str]:
+    keys: set[str] = set()
+    for kind in ("partners", *NATIVE_DOCUMENT_KINDS):
+        for row in odoo.get(kind) or []:
+            if not isinstance(row, dict):
+                continue
+            ident = str(row.get("xmlid") or "")
+            if not ident:
+                continue
+            keys.add(ident)
+            for prefix in _XMLID_PREFIXES:
+                if ident.startswith(prefix):
+                    keys.add(ident.removeprefix(prefix))
+    return keys
+
+
+def coverage_ledger(odoo: dict, source: dict, unresolved, report: dict) -> dict:
+    """Identity partition independent of the comparison digest."""
+    expected: list[str] = []
+    for group in _SOURCE_GROUPS:
+        rows = source.get(group)
+        if isinstance(rows, dict):
+            expected.extend(f"{group}:{key}" for key in rows if str(key))
+    observed: list[str] = []
+    duplicates: list[str] = []
+    for kind in ("partners", *NATIVE_DOCUMENT_KINDS):
+        seen: dict[str, int] = {}
+        for row in odoo.get(kind) or []:
+            if not isinstance(row, dict):
+                continue
+            ident = str(row.get("xmlid") or "")
+            if not ident:
+                continue
+            observed.append(f"{kind}:{ident}")
+            seen[ident] = seen.get(ident, 0) + 1
+        duplicates.extend(f"{kind}:{ident}" for ident, count in seen.items() if count > 1)
+    rejected: list[str] = []
+    for item in unresolved or []:
+        if isinstance(item, dict) and item.get("table") and item.get("key"):
+            rejected.append(f"{item.get('table')}:{item.get('key')}")
+    rejected_keys = {item.split(":", 1)[-1] for item in rejected}
+    partitioned_rejected = [item for item in expected if item.split(":", 1)[-1] in rejected_keys]
+    rejected_ids = set(partitioned_rejected)
+    partitioned_compared = [item for item in expected if item not in rejected_ids]
+    known = _observed_keys(odoo)
+    missing = [item for item in expected if item.split(":", 1)[-1] not in known]
+    excluded_fields: dict[str, int] = {}
+    for row in report.get("coverage") or []:
+        if isinstance(row, dict) and row.get("kind") == "excluded":
+            name = str(row.get("source_field") or "excluded")
+            excluded_fields[name] = excluded_fields.get(name, 0) + 1
+    return {
+        "expected_count": len(expected),
+        "expected_digest": _digest(expected),
+        "observed_count": len(observed),
+        "observed_digest": _digest(observed),
+        "missing_count": len(missing),
+        "missing_digest": _digest(missing),
+        "missing_sample": missing[:_SAMPLE_CAP],
+        "duplicate_count": len(duplicates),
+        "duplicate_digest": _digest(duplicates),
+        "duplicate_sample": duplicates[:_SAMPLE_CAP],
+        "excluded_fields": excluded_fields,
+        "rejected_count": len(rejected),
+        "rejected_digest": _digest(rejected),
+        "partition": {
+            "compared": len(partitioned_compared),
+            "rejected": len(partitioned_rejected),
+            "excluded": 0,
+        },
+    }
+
+
+def attach_coverage(report: dict, odoo: dict, source: dict, unresolved) -> dict:
+    """Record the coverage ledger beside the comparison digest. The digest is not the ledger."""
+    report["coverage_ledger"] = coverage_ledger(odoo, source, unresolved, report)
+    fingerprint = str(report.get("source_fingerprint") or "")
+    report["comparison_digest"] = _sha256_text(f"{fingerprint}:{report.get('compared')}:{report.get('failed')}")
+    return report
+
+
+def identity_ledger(snapshot: dict) -> dict:
+    """Counts and identity digests. The document lists are not part of the receipt."""
+    if not isinstance(snapshot, dict) or snapshot.get("evidence") != "complete":
+        return {"schema": IDENTITY_SCHEMA, "evidence": "missing"}
+    counts = native_document_census(snapshot)
+    missing: list[str] = []
+    duplicates: list[str] = []
+    observed: list[str] = []
+    for kind in NATIVE_DOCUMENT_KINDS:
+        seen: dict[str, int] = {}
+        for row in snapshot.get(kind) or []:
+            if not isinstance(row, dict):
+                continue
+            ident = str(row.get("xmlid") or "")
+            if not ident:
+                missing.append(f"{kind}:")
+                continue
+            observed.append(f"{kind}:{ident}")
+            seen[ident] = seen.get(ident, 0) + 1
+        duplicates.extend(f"{kind}:{ident}" for ident, count in seen.items() if count > 1)
+    return {
+        "schema": IDENTITY_SCHEMA,
+        "evidence": "complete",
+        "counts": counts,
+        "missing_count": len(missing),
+        "missing_digest": _digest(missing),
+        "missing_sample": missing[:_SAMPLE_CAP],
+        "duplicate_count": len(duplicates),
+        "duplicate_digest": _digest(duplicates),
+        "duplicate_sample": duplicates[:_SAMPLE_CAP],
+        "observed_count": len(observed),
+        "observed_digest": _digest(observed),
+    }
+
+
+def publish_json(dest: Path | str, payload: dict, *, staging_dir: Path | str) -> None:
+    """Write the receipt outside the evidence directory, then rename it into place.
+
+    The staging file is the only temporary. A failure before the rename leaves
+    the destination absent, including the three full-dump names.
+    """
+    dest = Path(dest)
+    staging = Path(staging_dir)
+    text = json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n"
+    if len(text.encode()) > _RECEIPT_BYTE_CAP:
+        raise ProofError(f"{dest.name} exceeds 1000KB")
+    for forbidden in ("anomalies", "unresolved"):
+        if isinstance(payload.get(forbidden), list):
+            raise ProofError(f"{dest.name} still carries the {forbidden} array")
+    staging.mkdir(parents=True, exist_ok=True)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    partial = staging / f".{dest.name}.partial"
+    partial.write_text(text, encoding="utf-8")
+    partial.chmod(0o600)
+    try:
+        os.replace(partial, dest)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        fd, tmp_name = tempfile.mkstemp(prefix=f".{dest.name}.", dir=dest.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(text)
+            os.chmod(tmp_name, 0o600)
+            os.replace(tmp_name, dest)
+        finally:
+            if os.path.exists(tmp_name):
+                os.unlink(tmp_name)
+        partial.unlink(missing_ok=True)
+    dest.chmod(0o600)
+
+
+def _write_diagnostics(evidence_dir: str, fidelity: dict | None, census: dict | None) -> None:
+    """Bounded mismatch sample. The full anomaly and unresolved arrays stay outside the evidence directory."""
+    failures = [
+        row for row in (fidelity or {}).get("rows") or [] if isinstance(row, dict) and row.get("result") == "FAIL"
+    ]
+    sample: list[dict] = []
+    unresolved_sample: list[dict] = []
+    if isinstance(census, dict):
+        grouped = census.get("anomaly_sample")
+        if isinstance(grouped, dict):
+            for rows in grouped.values():
+                if isinstance(rows, list):
+                    sample.extend(row for row in rows if isinstance(row, dict))
+        elif isinstance(census.get("anomalies"), list):
+            sample.extend(_sample_row(row) for row in census["anomalies"][:_SAMPLE_CAP] if isinstance(row, dict))
+        if isinstance(census.get("unresolved"), list):
+            unresolved_sample.extend(
+                _sample_row(row) for row in census["unresolved"][:_SAMPLE_CAP] if isinstance(row, dict)
+            )
+    if not failures and not sample and not unresolved_sample:
+        return
+    path = Path(evidence_dir) / "05-erp-diagnostics.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "l9.plasticos.rehearsal.diagnostics.v1",
+                "fidelity_failures": failures[:_SAMPLE_CAP],
+                "fidelity_failure_count": len(failures),
+                "unresolved_sample": unresolved_sample[:_SAMPLE_CAP],
+                "anomaly_sample": sample[:_SAMPLE_CAP],
+            },
+            indent=2,
+            sort_keys=True,
+            default=str,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o600)
+
+
+def _compact_fidelity_failures(report: dict) -> list[tuple[str, str]]:
+    """Failure-only report. Counters are the denominator; retained rows are the mismatches."""
+    rows = report.get("rows")
+    if not isinstance(rows, list) or any(not isinstance(row, dict) or row.get("result") != "FAIL" for row in rows):
+        return [("erp-fidelity-unproven", "a failure-only report retained something other than a mismatch")]
+    failed = report.get("failed")
+    compared = report.get("compared")
+    rejected = report.get("rejected")
+    unmapped = report.get("unmapped")
+    if not all(
+        isinstance(value, int) and not isinstance(value, bool) and value >= 0
+        for value in (failed, compared, rejected, unmapped)
+    ):
+        return [("erp-fidelity-unproven", "fidelity counters are incomplete")]
+    if failed != len(rows):
+        return [("erp-fidelity-unproven", "retained mismatches do not equal the failed count")]
+    if not isinstance(report.get("coverage"), list) or not report.get("source_fingerprint"):
+        return [("erp-fidelity-unproven", "coverage or the source fingerprint is missing")]
+    if failed:
+        return [("erp-fidelity-discrepancy", f"{failed} mapped field value(s) differ from the source")]
+    if report.get("status") != "PASS" or compared < 1:
+        return [("erp-fidelity-unproven", "no mapped field was compared against persisted Odoo")]
+    return []
 
 
 def fidelity_failures(report: dict | None) -> list[tuple[str, str]]:
@@ -546,6 +866,8 @@ def fidelity_failures(report: dict | None) -> list[tuple[str, str]]:
         return [
             ("erp-fidelity-unproven", str(report.get("missing_reason") or "source or target evidence is incomplete"))
         ]
+    if report.get("rows_retained") == "failures":
+        return _compact_fidelity_failures(report)
     rows = report.get("rows")
     if not isinstance(rows, list):
         return [("erp-fidelity-unproven", "fidelity rows are missing")]
@@ -570,6 +892,37 @@ def fidelity_failures(report: dict | None) -> list[tuple[str, str]]:
         return [("erp-fidelity-discrepancy", f"{count} mapped field value(s) differ from the source")]
     if report.get("status") != "PASS" or compared < 1:
         return [("erp-fidelity-unproven", "no mapped field was compared against persisted Odoo")]
+    return []
+
+
+def source_coverage_failures(report: dict | None) -> list[tuple[str, str]]:
+    """A comparison digest does not prove an identity the partition left out."""
+    if not isinstance(report, dict):
+        return []
+    ledger = report.get("coverage_ledger")
+    compact = report.get("rows_retained") == "failures"
+    if not isinstance(ledger, dict):
+        if compact:
+            return [("erp-source-coverage", "compact report has no coverage ledger")]
+        return []
+    partition = ledger.get("partition")
+    if not isinstance(partition, dict):
+        return [("erp-source-coverage", "coverage partition is missing")]
+    expected = _count(ledger.get("expected_count"))
+    compared = _count(partition.get("compared"))
+    rejected = _count(partition.get("rejected"))
+    excluded = _count(partition.get("excluded"))
+    if None in (expected, compared, rejected, excluded):
+        return [("erp-source-coverage", "coverage partition is incomplete")]
+    if compared + rejected + excluded != expected:
+        return [
+            (
+                "erp-source-coverage",
+                "an expected identity is outside the compared, rejected, and excluded partition",
+            )
+        ]
+    if report.get("comparison_digest") and not str(ledger.get("expected_digest") or "").strip():
+        return [("erp-source-coverage", "comparison digest is present and the expected-identity digest is empty")]
     return []
 
 
@@ -663,7 +1016,20 @@ def native_document_failures(log_text: str | None, snapshot: dict | None) -> tup
     if not isinstance(snapshot, dict) or snapshot.get("evidence") != "complete":
         failures.append(("erp-native-snapshot-unreadable", "the clone's native-document snapshot was not read"))
         return failures, facts
-    clone = native_document_census(snapshot)
+    if snapshot.get("schema") == IDENTITY_SCHEMA:
+        raw_counts = snapshot.get("counts")
+        clone = {}
+        if not isinstance(raw_counts, dict):
+            failures.append(("erp-native-snapshot-unreadable", "the compact identity ledger has no counts"))
+            return failures, facts
+        for kind in (*NATIVE_DOCUMENT_KINDS, "worksheets"):
+            count = _int(raw_counts.get(kind))
+            if count is None:
+                failures.append(("erp-native-snapshot-unreadable", f"the compact identity ledger has no {kind} count"))
+                return failures, facts
+            clone[kind] = count
+    else:
+        clone = native_document_census(snapshot)
     facts["clone"] = clone
     if realized_lines == 0:
         failures.append(
@@ -695,6 +1061,26 @@ def native_document_failures(log_text: str | None, snapshot: dict | None) -> tup
                 f"{realized_transactions} transactions realized but {clone['worksheets']} worksheets carry a native document",
             )
         )
+    if snapshot.get("schema") == IDENTITY_SCHEMA:
+        missing = _count(snapshot.get("missing_count"))
+        duplicate = _count(snapshot.get("duplicate_count"))
+        if missing is None or duplicate is None:
+            failures.append(("erp-native-snapshot-unreadable", "the compact identity ledger has no identity counts"))
+        else:
+            if missing:
+                failures.append(("erp-native-identity-missing", f"{missing} required document identity is missing"))
+            if duplicate:
+                failures.append(("erp-native-identity-duplicate", f"{duplicate} document identity is duplicated"))
+    else:
+        ledger = identity_ledger(snapshot)
+        if ledger.get("missing_count"):
+            failures.append(
+                ("erp-native-identity-missing", f"{ledger['missing_count']} required document identity is missing")
+            )
+        if ledger.get("duplicate_count"):
+            failures.append(
+                ("erp-native-identity-duplicate", f"{ledger['duplicate_count']} document identity is duplicated")
+            )
     return failures, facts
 
 
@@ -705,6 +1091,63 @@ def _read_text(path: Path | str | None) -> str | None:
         return Path(path).read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
+
+
+def _unresolved_attributed(census: dict, unresolved) -> bool:
+    """Compact receipts prove attribution with counts. The legacy list form still proves it row by row."""
+    if all(name in census for name in ("unresolved_count", "attributed_count", "unattributed_count")):
+        unresolved_count = _count(census.get("unresolved_count"))
+        attributed_count = _count(census.get("attributed_count"))
+        unattributed_count = _count(census.get("unattributed_count"))
+        if None in (unresolved_count, attributed_count, unattributed_count):
+            return False
+        return attributed_count == unresolved_count and unattributed_count == 0
+    return (
+        isinstance(unresolved, list)
+        and bool(unresolved)
+        and all(isinstance(row, dict) and row.get("table") and row.get("kind") and row.get("key") for row in unresolved)
+    )
+
+
+def _anomaly_total(census: dict) -> int | None:
+    counts = census.get("anomaly_counts")
+    if isinstance(counts, dict):
+        total = 0
+        for value in counts.values():
+            count = _count(value)
+            if count is None:
+                return None
+            total += count
+        return total
+    anomalies = census.get("anomalies")
+    return len(anomalies) if isinstance(anomalies, list) else None
+
+
+_FULL_SCOPE = "full import-erp of the checkout; every partner layer and every worksheet"
+_SLICE_SCOPE = (
+    "rehearsal import-erp of the checkout; every partner layer and the newest 10% of worksheets, "
+    "plus pinned worksheet 58699 when the source contains it"
+)
+
+
+def _rehearsal_limit(limit: str, census: dict) -> tuple[list[tuple[str, str]], str]:
+    """A 10% rehearsal is a pass only when the importer recorded the exclusion.
+
+    ``payables_unselected`` lives in the nested census dict ``compact_census`` copies.
+    Limit ``full`` stays the full-book receipt. Any other limit is refused.
+    """
+    if limit == "full":
+        return [], _FULL_SCOPE
+    if limit != "10%":
+        return [("erp-rehearsal-limit", f"rehearsal limit {limit!r} is not 10% or full")], (
+            "rehearsal import-erp refused because the limit was not 10% or full"
+        )
+    nested = census.get("census")
+    unselected = nested.get("payables_unselected") if isinstance(nested, dict) else None
+    rows = _count(unselected.get("rows")) if isinstance(unselected, dict) else None
+    if rows is None or rows < 1:
+        return [("erp-rehearsal-limit-unproven", "a 10% rehearsal has no diagnostic_limit exclusion")], _SLICE_SCOPE
+    return [], _SLICE_SCOPE
 
 
 def check_erp(
@@ -751,8 +1194,10 @@ def check_erp(
     kind = census.get("payload_kind")
     if kind != "database":
         failures.append(("erp-source-not-database", f"payload_kind={kind!r}; Gate 6 accepts only database"))
-    if not str(census.get("source_origin") or "").strip():
-        failures.append(("erp-source-unattributed", "census source_origin is empty"))
+    origin_digest = str(census.get("origin_sha256") or "").strip()
+    raw_origin = str(census.get("source_origin") or "").strip()
+    if not origin_digest and not raw_origin:
+        failures.append(("erp-source-unattributed", "census origin digest is empty"))
     if log_text is None:
         failures.append(("erp-log-unreadable", "the import log was not read; the driver trace is unproven"))
     else:
@@ -768,11 +1213,7 @@ def check_erp(
         failures.append(("erp-final-status-failed", "summary final_status=failed"))
     elif status == "partial":
         run_level = [row for row in summary.get("errors") or [] if row.get("record_ref") in ERP_RUN_LEVEL_REFS]
-        attributed = (
-            isinstance(unresolved, list)
-            and unresolved
-            and all(isinstance(r, dict) and r.get("table") and r.get("kind") and r.get("key") for r in unresolved)
-        )
+        attributed = _unresolved_attributed(census, unresolved)
         if run_level or not attributed:
             failures.append(
                 ("erp-unexpected-partial", "partial without source-attributed unresolved references in the census")
@@ -798,24 +1239,43 @@ def check_erp(
             else:
                 layer_counts[layer] = count
 
+    limit_failures, rehearsal_scope = _rehearsal_limit(limit, census)
+    failures.extend(limit_failures)
     failures.extend(fidelity_failures(fidelity))
+    failures.extend(source_coverage_failures(fidelity))
     native_failures, native_facts = native_document_failures(log_text, snapshot)
     failures.extend(native_failures)
     facts = {
         "final_status": status,
         "disposition": disposition,
         "payload_kind": kind,
-        "source_origin": census.get("source_origin"),
+        "source_origin": origin_digest or raw_origin,
         "records_seen": summary.get("records_seen"),
         "records_created": summary.get("records_created"),
         "records_rejected": summary.get("records_rejected"),
-        "unresolved": len(unresolved) if isinstance(unresolved, list) else None,
+        "unresolved": census.get("unresolved_count")
+        if "unresolved_count" in census
+        else (len(unresolved) if isinstance(unresolved, list) else None),
+        "attributed_count": census.get("attributed_count"),
+        "unattributed_count": census.get("unattributed_count"),
         "layers": layer_counts,
         "fidelity_compared": fidelity.get("compared") if isinstance(fidelity, dict) else None,
         "fidelity_failed": fidelity.get("failed") if isinstance(fidelity, dict) else None,
+        "fidelity_failures": [
+            row for row in (fidelity or {}).get("rows") or [] if isinstance(row, dict) and row.get("result") == "FAIL"
+        ]
+        if isinstance(fidelity, dict)
+        else [],
+        "verification_spec": fidelity.get("schema") if isinstance(fidelity, dict) else None,
+        "source_fingerprint": fidelity.get("source_fingerprint") if isinstance(fidelity, dict) else None,
+        "tested_sha": execution_path.get("release_sha"),
+        "coverage": fidelity.get("coverage") if isinstance(fidelity, dict) else None,
+        "coverage_ledger": fidelity.get("coverage_ledger") if isinstance(fidelity, dict) else None,
+        "comparison_digest": fidelity.get("comparison_digest") if isinstance(fidelity, dict) else None,
+        "anomalies": _anomaly_total(census),
         "native_documents": native_facts,
         "execution_path": execution_path,
-        "scope": "full import-erp of the checkout; every partner layer and every worksheet",
+        "scope": rehearsal_scope,
     }
     if failures:
         facts["failure_codes"] = [code for code, _text in failures]
@@ -1063,6 +1523,55 @@ def check_vanillasoft_history(
     return _result("PASS", "vanillasoft-history-sample-exercised", "", **facts)
 
 
+def check_vanillasoft_rolling(
+    *,
+    import_exit: int,
+    log_text: str | None,
+    refs_before: int | None,
+    refs_after: int | None,
+    database: str,
+    call_floor: str,
+    contact_floor: str,
+    release_sha: str = "",
+) -> dict:
+    """Judge the rolling ``make import-vanillasoft`` window on the clone.
+
+    The checkout export is not an input. The driver loads the packaged crosswalk.
+    """
+    execution_path = {
+        "database": database,
+        "dispatcher": "run_full_import",
+        "driver": "plasticos_crm_sync/scripts/import_vanillasoft_shell.py",
+        "make_target": "import-vanillasoft",
+        "mode": "rolling",
+        "call_floor": call_floor,
+        "contact_floor": contact_floor,
+        "crosswalk": "plasticos_crm_sync/data/approved_contact_crosswalk.csv",
+        "release_sha": release_sha,
+    }
+    base = {"execution_path": execution_path, "full_cohort_claimed": False}
+    if import_exit == 2:
+        return _result("FAIL", "vanillasoft-preflight-failed", "import-vanillasoft refused (exit 2)", **base)
+    if import_exit != 0:
+        return _result("FAIL", "vanillasoft-import-exit", f"import-vanillasoft exited {import_exit}", **base)
+    if not log_text or "=== VANILLASOFT IMPORT SUMMARY ===" not in log_text:
+        return _result("FAIL", "vanillasoft-summary-unobserved", "the rolling summary was not printed", **base)
+    if "IMPORT FAILED" in log_text:
+        return _result("FAIL", "vanillasoft-import-failed", "the driver reported IMPORT FAILED", **base)
+    if refs_before is None or refs_after is None:
+        return _result("FAIL", "vanillasoft-refs-unavailable", "durable external refs were not read back", **base)
+    landed = refs_after - refs_before
+    facts = {
+        **base,
+        "durable_refs_before": refs_before,
+        "durable_refs_after": refs_after,
+        "durable_refs_landed": landed,
+    }
+    if landed < 1:
+        return _result("BLOCKED", "vanillasoft-no-import", "no durable VanillaSoft ref landed", **facts)
+    return _result("PASS", "vanillasoft-rolling-imported", "", **facts)
+
+
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 
@@ -1098,6 +1607,61 @@ def _read_layers(path: str | None) -> dict | None:
         return load_json_file(path, "layer census")
     except ProofError:
         return None
+
+
+def _publish_command(args) -> int:
+    try:
+        loaded = load_json_file(args.source, args.command)
+        if args.command == "publish-census":
+            payload = compact_census(loaded)
+        elif args.command == "publish-identity":
+            payload = identity_ledger(loaded)
+        else:
+            payload = loaded
+        publish_json(args.dest, payload, staging_dir=args.staging)
+    except ProofError as exc:
+        print(f"publish refused: {exc}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def _count_file(path: str | None) -> int | None:
+    if not path:
+        return None
+    with contextlib.suppress(OSError, ProofError):
+        return parse_count(Path(path).read_text(encoding="utf-8"))
+    return None
+
+
+def _vanillasoft_gate(args) -> int:
+    if args.command == "check-vanillasoft-rolling":
+        result = check_vanillasoft_rolling(
+            import_exit=args.import_exit,
+            log_text=_read_text(args.log),
+            refs_before=_count_file(args.refs_before),
+            refs_after=_count_file(args.refs_after),
+            database=args.database,
+            call_floor=args.call_floor,
+            contact_floor=args.contact_floor,
+            release_sha=args.release_sha,
+        )
+        evidence = [Path(args.log).name] if args.log else []
+        return _emit_result(args, result, evidence, True)
+    result = check_vanillasoft_history(
+        args.report,
+        import_exit=args.import_exit,
+        ledger_path=args.ledger,
+        log_text=_read_text(args.log),
+        refs_before=_count_file(args.refs_before),
+        refs_after=_count_file(args.refs_after),
+        census_sha256=args.census_sha256.strip().lower(),
+        database=args.database,
+        max_ids=args.max_ids,
+        run_started=args.run_started,
+        release_sha=args.release_sha,
+    )
+    evidence = [Path(p).name for p in (args.report, args.ledger, args.log) if p]
+    return _emit_result(args, result, evidence, True)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1152,10 +1716,28 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--layers")
     p.add_argument("--run-started")
     p.add_argument("--fidelity")
-    p.add_argument("--snapshot", help="the clone's native-document snapshot (05-erp-fidelity-odoo.json)")
+    p.add_argument("--snapshot", help="compact identity ledger, or a legacy native-document snapshot")
     p.add_argument("--log", help="the importer's stdout; the driver's own source and verdict lines are the trace")
     p.add_argument("--database", default="")
     p.add_argument("--limit", default="")
+    p.add_argument("--release-sha", default="")
+
+    for name in ("publish-census", "publish-identity", "publish-file"):
+        p = sub.add_parser(name)
+        p.add_argument("source")
+        p.add_argument("dest")
+        p.add_argument("--staging", required=True)
+
+    p = sub.add_parser("check-vanillasoft-rolling")
+    p.add_argument("evidence_dir")
+    p.add_argument("--gate", type=int, default=7)
+    p.add_argument("--import-exit", type=int, required=True)
+    p.add_argument("--log")
+    p.add_argument("--refs-before")
+    p.add_argument("--refs-after")
+    p.add_argument("--database", required=True)
+    p.add_argument("--call-floor", required=True)
+    p.add_argument("--contact-floor", required=True)
     p.add_argument("--release-sha", default="")
 
     p = sub.add_parser("check-vanillasoft-history")
@@ -1276,33 +1858,16 @@ def main(argv: list[str] | None = None) -> int:
             limit=args.limit,
             release_sha=args.release_sha,
         )
-        evidence = [summary.name, census.name] + ([Path(args.log).name] if args.log else [])
-        evidence += ["05-erp-fidelity.json", "05-erp-fidelity-coverage.json"]
+        evidence = [summary.name] + ([Path(args.log).name] if args.log else [])
+        census_payload = None
+        with contextlib.suppress(ProofError):
+            census_payload = load_json_file(census, "ERP census")
+        _write_diagnostics(args.evidence_dir, fidelity, census_payload if isinstance(census_payload, dict) else None)
         return _emit_result(args, result, evidence, True)
-    if args.command == "check-vanillasoft-history":
-
-        def _count(path: str | None) -> int | None:
-            if not path:
-                return None
-            with contextlib.suppress(OSError, ProofError):
-                return parse_count(Path(path).read_text(encoding="utf-8"))
-            return None
-
-        result = check_vanillasoft_history(
-            args.report,
-            import_exit=args.import_exit,
-            ledger_path=args.ledger,
-            log_text=_read_text(args.log),
-            refs_before=_count(args.refs_before),
-            refs_after=_count(args.refs_after),
-            census_sha256=args.census_sha256.strip().lower(),
-            database=args.database,
-            max_ids=args.max_ids,
-            run_started=args.run_started,
-            release_sha=args.release_sha,
-        )
-        evidence = [Path(p).name for p in (args.report, args.ledger, args.log) if p]
-        return _emit_result(args, result, evidence, True)
+    if args.command in {"publish-census", "publish-identity", "publish-file"}:
+        return _publish_command(args)
+    if args.command in {"check-vanillasoft-rolling", "check-vanillasoft-history"}:
+        return _vanillasoft_gate(args)
     return 2
 
 

@@ -1,0 +1,13 @@
+{
+  "detail": "branch=fix/rehearsal-evidence-20261108 HEAD=f8733d213fc96419698b1fd374de5fea54c4d362 dirty=8 fetch_ok=1",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 1,
+  "name": "branch-identity",
+  "reason": "checkout-bound",
+  "recorded_at": "2026-11-08T17:32:13Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": false,
+  "state": "PASS"
+}

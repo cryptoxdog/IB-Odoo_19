@@ -297,3 +297,175 @@ def test_unseeded_unit_code_keeps_the_product_default_unit():
     odoo["sale_lines"][0]["uom_xml"] = "uom.product_uom_lb"
     written = fid.evaluate(odoo, source)
     assert _failed(written, "product_uom_id")[0]["actual"] == "uom.product_uom_lb"
+
+
+def _order(name, kind, origin, incoterm):
+    prefix = "legacy_erp_so_" if kind == "sale_orders" else "legacy_erp_po_"
+    row = {
+        "xmlid": f"{prefix}{name}",
+        "name": name,
+        "origin": origin,
+        "date_order": "2020-02-05 00:00:00",
+        "incoterm_code": incoterm,
+        "state": "draft",
+    }
+    if kind == "sale_orders":
+        row["client_order_ref"] = ""
+    else:
+        row["date_approve"] = ""
+    return row
+
+
+def _incoterm(report, name):
+    return next(row for row in report["rows"] if row["target_field"] == "incoterm" and row["source_id"] == name)
+
+
+# The five orders from the 2026-11-08 rehearsal. Each PO header basis is empty.
+# Worksheet bases are the restored source. 5429 applies Delivered and then two
+# later FOB worksheets, so FOB is the value the importer writes.
+_FIVE = (
+    ("11998", "sale_orders", "SO", "52225", {"52225": "FOB Supplier Dock"}),
+    ("4998", "purchase_orders", "PO", "52046", {"52046": "FOB Supplier Dock"}),
+    ("5281", "purchase_orders", "PO", "52416, 52417", {"52416": "FOB Supplier Dock", "52417": "FOB Supplier Dock"}),
+    ("5289", "purchase_orders", "PO", "52426", {"52426": "FOB Supplier Dock"}),
+    (
+        "5429",
+        "purchase_orders",
+        "PO",
+        "52597, 52598, 52599, 52600",
+        {
+            "52597": "FOB Supplier Dock",
+            "52598": "Delivered",
+            "52599": "FOB Supplier Dock",
+            "52600": "FOB Supplier Dock",
+        },
+    ),
+)
+
+
+def test_empty_header_uses_the_last_worksheet_basis_for_the_five_rehearsal_orders():
+    odoo, source = _bundles()
+    for name, kind, side, origin, bases in _FIVE:
+        odoo[kind].append(_order(name, kind, origin, "FOB"))
+        source["orders"][f"{name}|{side}"] = {
+            "PONumber": name,
+            "Source": side,
+            "PODate": "2020-02-05 00:00:00",
+            "PriceBasis": "",
+        }
+        for number, basis in bases.items():
+            source["buysell"][number] = {"BuySellNo": number, "PriceBasis": basis, "OrderDt": "", "InvoiceDt": ""}
+    report = fid.evaluate(odoo, source)
+    assert report["status"] == "PASS"
+    for name, _kind, _side, _origin, _bases in _FIVE:
+        row = _incoterm(report, name)
+        assert row["result"] == "PASS"
+        assert row["expected"] == "FOB"
+        assert row["actual"] == "FOB"
+        assert row["source_value"] == "FOB Supplier Dock"
+        assert row["source_table"] == "BuySell"
+    delivered_last = _incoterm(
+        fid.evaluate(
+            *_with_basis(
+                odoo,
+                source,
+                "9001",
+                "purchase_orders",
+                "PO",
+                "1, 2",
+                {"1": "FOB Supplier Dock", "2": "Delivered"},
+                "FOB",
+            )
+        ),
+        "9001",
+    )
+    assert delivered_last["result"] == "FAIL"
+    assert delivered_last["expected"] == ""
+    assert delivered_last["source_value"] == "Delivered"
+
+
+def _with_basis(odoo, source, name, kind, side, origin, bases, actual):
+    left, right = copy.deepcopy(odoo), copy.deepcopy(source)
+    left[kind].append(_order(name, kind, origin, actual))
+    right["orders"][f"{name}|{side}"] = {
+        "PONumber": name,
+        "Source": side,
+        "PODate": "2020-02-05 00:00:00",
+        "PriceBasis": "",
+    }
+    for number, basis in bases.items():
+        right["buysell"][number] = {"BuySellNo": number, "PriceBasis": basis, "OrderDt": "", "InvoiceDt": ""}
+    return left, right
+
+
+def test_header_basis_blocks_a_later_worksheet_and_string_order_is_the_importer_order():
+    assert fid.effective_price_basis({"PriceBasis": "FOB"}, "10", {"10": {"PriceBasis": "Delivered"}}) == (
+        "FOB",
+        "PO",
+        "",
+    )
+    # "10" sorts before "9", so worksheet 9 is the last write. Numeric order would let Delivered win.
+    basis, table, winner = fid.effective_price_basis(
+        {"PriceBasis": ""},
+        "9, 10",
+        {"10": {"PriceBasis": "Delivered"}, "9": {"PriceBasis": "FOB Supplier Dock"}},
+    )
+    assert (basis, table, winner) == ("FOB Supplier Dock", "BuySell", "9")
+
+
+def test_failure_only_retention_matches_full_detection_and_coverage():
+    odoo, source = _bundles()
+    odoo["partners"][0]["name"] = "Wrong"
+    for name, kind, side, origin, bases in _FIVE:
+        odoo[kind].append(_order(name, kind, origin, "FOB"))
+        source["orders"][f"{name}|{side}"] = {
+            "PONumber": name,
+            "Source": side,
+            "PODate": "2020-02-05 00:00:00",
+            "PriceBasis": "",
+        }
+        for number, basis in bases.items():
+            source["buysell"][number] = {"BuySellNo": number, "PriceBasis": basis, "OrderDt": "", "InvoiceDt": ""}
+    full = fid.evaluate(odoo, source)
+    compact = fid.evaluate(odoo, source, retain_passes=False)
+    assert full["failed"] >= 1
+    assert compact["rows_retained"] == "failures"
+    assert compact["compared"] == full["compared"]
+    assert compact["failed"] == full["failed"]
+    assert compact["rejected"] == full["rejected"]
+    assert compact["unmapped"] == full["unmapped"]
+    assert compact["precision"] == full["precision"]
+    assert compact["coverage"] == full["coverage"]
+    assert compact["source_fingerprint"] == full["source_fingerprint"]
+    assert compact["rows"] == [row for row in full["rows"] if row["result"] == "FAIL"]
+    assert all(
+        row["result"] == "PASS"
+        for row in full["rows"]
+        if row["target_field"] == "incoterm" and row["source_id"] in {item[0] for item in _FIVE}
+    )
+
+
+def test_source_identifiers_stay_one_bound_parameter():
+    import sys
+
+    sys.path.insert(0, str(KIT))
+    spec = importlib.util.spec_from_file_location("rehearsal_fidelity_run", KIT / "fidelity_run.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+
+        def execute(self, statement, params):
+            self.calls.append((statement, params))
+
+        def fetchall(self):
+            return []
+
+    cursor = Cursor()
+    statement = "SELECT 1 WHERE id IN (SELECT CAST(%s AS nvarchar(max)))"
+    module._rows(cursor, statement, ["10", "10", "20"])
+    assert cursor.calls == [(statement, ("10\x1f20",))]
+    assert ".format(" not in module._rows.__code__.co_consts

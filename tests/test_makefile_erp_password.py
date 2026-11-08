@@ -34,7 +34,7 @@ exit 0
 """
 
 _NESTED = f"""nested:
-\t@$(MAKE) -s --no-print-directory -f {MAKEFILE} import-erp ODOO_DB_NAME=probe_db
+\t@$(MAKE) -s --no-print-directory -f '{MAKEFILE}' import-erp ODOO_DB_NAME=probe_db
 """
 
 PASSWORDS = [

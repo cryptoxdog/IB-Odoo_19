@@ -2,3 +2,4 @@
 # evidence (evidence/2026-11-05_192900/, evidence/latest) is unaffected.
 evidence/20*/
 evidence/.latest.*
+**/05-erp-diagnostics.json

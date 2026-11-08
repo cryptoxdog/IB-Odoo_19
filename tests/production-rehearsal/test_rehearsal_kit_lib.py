@@ -121,7 +121,15 @@ def _fidelity_pass() -> dict:
 
 
 def _erp(
-    tmp_path, summary=None, census=None, layers=LAYERS, import_exit=0, fidelity="pass", log=ERP_LOG, snapshot=SNAPSHOT
+    tmp_path,
+    summary=None,
+    census=None,
+    layers=LAYERS,
+    import_exit=0,
+    fidelity="pass",
+    log=ERP_LOG,
+    snapshot=SNAPSHOT,
+    limit="full",
 ):
     s = tmp_path / "05-erp-summary.json"
     c = tmp_path / "05-erp-summary-census.json"
@@ -138,7 +146,7 @@ def _erp(
         run_started=RUN_STARTED,
         log_text=log,
         database="odoo_test_cutover",
-        limit="full",
+        limit=limit,
         release_sha="a" * 40,
         fidelity=report,
         snapshot=snapshot,
@@ -155,6 +163,46 @@ def test_erp_complete_database_run_passes(tmp_path):
     assert "plasticos.erp.import" in path["dispatcher"]
     assert "legacy_erp_import_service.py" in path["commercial_extension"]
     assert (path["database"], path["limit"], path["release_sha"]) == ("odoo_test_cutover", "full", "a" * 40)
+    assert result["facts"]["scope"] == "full import-erp of the checkout; every partner layer and every worksheet"
+
+
+def _slice_census(rows: int) -> dict:
+    return {**CENSUS, "census": {"payables_unselected": {"rows": rows, "amount": 0.0}}}
+
+
+def test_erp_ten_percent_slice_passes_when_the_importer_excluded_the_rest(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), _slice_census(12), limit="10%")
+    assert result["state"] == "PASS", result
+    assert result["facts"]["execution_path"]["limit"] == "10%"
+    assert "every worksheet" not in result["facts"]["scope"]
+    assert "58699" in result["facts"]["scope"]
+
+
+def test_erp_ten_percent_without_an_exclusion_is_unproven(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), _slice_census(0), limit="10%")
+    assert (result["state"], result["reason"]) == ("FAIL", "erp-rehearsal-limit-unproven")
+
+
+@pytest.mark.parametrize("limit", ["", "25%"])
+def test_erp_refuses_a_limit_other_than_ten_percent_or_full(tmp_path, limit):
+    result = _erp(tmp_path, _summary("erp"), _slice_census(12), limit=limit)
+    assert (result["state"], result["reason"]) == ("FAIL", "erp-rehearsal-limit")
+    assert "every worksheet" not in result["facts"]["scope"]
+
+
+def test_erp_ten_percent_slice_still_fails_a_mapped_field(tmp_path):
+    fidelity = _fidelity_pass()
+    fidelity["failed"] = 1
+    fidelity["status"] = "FAIL"
+    fidelity["rows"][0]["result"] = "FAIL"
+    fidelity["rows"][0]["actual"] = "Other"
+    result = _erp(tmp_path, _summary("erp"), _slice_census(12), fidelity=fidelity, limit="10%")
+    assert (result["state"], result["reason"]) == ("FAIL", "erp-fidelity-discrepancy")
+
+
+def test_erp_ten_percent_partners_only_is_still_not_full(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), _slice_census(12), log=_erp_log(scope=" (partners only)"), limit="10%")
+    assert (result["state"], result["reason"]) == ("FAIL", "erp-run-not-full")
 
 
 @pytest.mark.parametrize(
@@ -170,6 +218,24 @@ def test_erp_requires_the_drivers_own_trace_in_the_log(tmp_path, log, reason):
     result = _erp(tmp_path, _summary("erp"), CENSUS, log=log)
     assert result["state"] == "FAIL"
     assert reason in result["facts"]["failure_codes"]
+
+
+def _compact_census(**overrides) -> dict:
+    census = {
+        "schema": "l9.plasticos.rehearsal.census.v1",
+        "payload_kind": "database",
+        "origin_sha256": "ab" * 32,
+        "census": {},
+        "anomaly_counts": {},
+        "anomaly_sample": {},
+        "anomaly_sample_cap": 5,
+        "unresolved_count": 0,
+        "attributed_count": 0,
+        "unattributed_count": 0,
+        "attributed_digest": "cd" * 32,
+    }
+    census.update(overrides)
+    return census
 
 
 def test_erp_partial_with_attributed_unresolved_rows_passes_with_disposition(tmp_path):
@@ -277,6 +343,110 @@ def test_erp_silently_omitted_native_documents_fail_the_gate(tmp_path, kwargs, r
     result = _erp(tmp_path, _summary("erp"), CENSUS, **kwargs)
     assert result["state"] == "FAIL"
     assert reason in result["facts"]["failure_codes"], result["facts"]["failure_codes"]
+
+
+def test_compact_census_counts_replace_the_unresolved_list(tmp_path):
+    census = _compact_census(unresolved_count=2, attributed_count=1, unattributed_count=1)
+    summary = _summary("erp", final_status="partial", records_rejected=2, records_unchanged=0)
+    result = _erp(tmp_path, summary, census)
+    assert result["state"] == "FAIL"
+    assert "erp-unexpected-partial" in result["facts"]["failure_codes"]
+
+
+def test_compact_census_without_an_origin_digest_is_unattributed(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), _compact_census(origin_sha256=""))
+    assert result["reason"] == "erp-source-unattributed"
+
+
+def test_compact_grid_census_is_not_a_database_source(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), _compact_census(payload_kind="grid"))
+    assert result["reason"] == "erp-source-not-database"
+
+
+def test_comparison_digest_does_not_cover_a_missing_identity(tmp_path):
+    report = _fidelity_pass()
+    report["rows_retained"] = "failures"
+    report["rows"] = []
+    report["failed"] = 0
+    report["rejected"] = 0
+    report["unmapped"] = 0
+    report["coverage"] = [{"source_field": "CompanyNm"}]
+    report["source_fingerprint"] = "fp"
+    report["comparison_digest"] = "digest"
+    report["coverage_ledger"] = {
+        "expected_count": 2,
+        "expected_digest": "",
+        "partition": {"compared": 1, "rejected": 0, "excluded": 0},
+    }
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=report)
+    assert result["reason"] == "erp-source-coverage"
+
+
+def test_compact_failed_count_must_match_the_stored_rows(tmp_path):
+    report = _fidelity_pass()
+    report["rows_retained"] = "failures"
+    report["rows"] = []
+    report["failed"] = 1
+    report["coverage"] = [{"source_field": "CompanyNm"}]
+    report["source_fingerprint"] = "fp"
+    result = _erp(tmp_path, _summary("erp"), CENSUS, fidelity=report)
+    assert result["reason"] == "erp-fidelity-unproven"
+
+
+def test_compact_identity_ledger_accounts_for_the_realized_documents(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), CENSUS, snapshot=lib.identity_ledger(SNAPSHOT))
+    assert result["state"] == "PASS", result
+
+
+def test_missing_identity_ledger_is_unreadable(tmp_path):
+    result = _erp(tmp_path, _summary("erp"), CENSUS, snapshot=None)
+    assert result["reason"] == "erp-native-snapshot-unreadable"
+
+
+def test_duplicate_document_identity_fails(tmp_path):
+    ledger = lib.identity_ledger(SNAPSHOT)
+    ledger["duplicate_count"] = 1
+    result = _erp(tmp_path, _summary("erp"), CENSUS, snapshot=ledger)
+    assert "erp-native-identity-duplicate" in result["facts"]["failure_codes"]
+
+
+def test_interrupted_publish_leaves_the_evidence_directory_without_the_full_dumps(tmp_path, monkeypatch):
+    evidence = tmp_path / "evidence"
+    staging = tmp_path / "isolated"
+    evidence.mkdir()
+    staging.mkdir()
+
+    def interrupted(*_args, **_kwargs):
+        raise OSError("interrupted before rename")
+
+    monkeypatch.setattr(lib.os, "replace", interrupted)
+    with pytest.raises(OSError, match="interrupted"):
+        lib.publish_json(evidence / "05-erp-fidelity.json", {"rows": [{"result": "FAIL"}]}, staging_dir=staging)
+    assert not (evidence / "05-erp-fidelity.json").exists()
+    assert not (evidence / "05-erp-fidelity-odoo.json").exists()
+    assert not (evidence / "05-erp-summary-census.json").exists()
+    assert not any(path.name.endswith("census.json") and "anomaly" in path.read_text() for path in evidence.iterdir())
+
+
+def test_published_census_omits_the_full_arrays(tmp_path):
+    full = {
+        "payload_kind": "database",
+        "source_origin": "erp-host/erp_db",
+        "census": {"payables": 1},
+        "anomalies": [{"table": "BuySell", "key": "1", "detail": "purchase link: blank line key"}],
+        "unresolved": [{"table": "Address", "kind": "parent_not_imported", "key": "7", "detail": "x"}],
+    }
+    receipt = lib.compact_census(full)
+    assert receipt["origin_sha256"]
+    assert "source_origin" not in receipt
+    assert "anomalies" not in receipt and "unresolved" not in receipt
+    assert receipt["unresolved_count"] == 1
+    assert receipt["attributed_count"] == 1
+    assert receipt["unattributed_count"] == 0
+    assert receipt["anomaly_counts"]["purchase link"] == 1
+    lib.publish_json(tmp_path / "evidence" / "05-erp-summary-census.json", receipt, staging_dir=tmp_path / "staging")
+    published = json.loads((tmp_path / "evidence" / "05-erp-summary-census.json").read_text(encoding="utf-8"))
+    assert published == receipt
 
 
 def test_erp_without_a_fidelity_report_is_unproven(tmp_path):
