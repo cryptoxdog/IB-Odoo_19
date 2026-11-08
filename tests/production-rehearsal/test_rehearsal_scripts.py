@@ -1065,8 +1065,8 @@ pytestmark_make = pytest.mark.skipif(shutil.which("make") is None, reason="needs
 
 
 class MakeProbe:
-    def __init__(self, tmp: Path):
-        self.work = tmp / "work"
+    def __init__(self, tmp: Path, folder: str = "work"):
+        self.work = tmp / folder
         self.stub = tmp / "stub"
         self.bin = tmp / "bin"
         self.venv = tmp / "venv"
@@ -1155,6 +1155,15 @@ def test_make_import_vanillasoft_history_mode_forwards_every_input_onto_the_moun
     assert call["env"]["VANILLASOFT_CALL_FLOOR"] == "" and call["env"]["VANILLASOFT_CONTACT_FLOOR"] == ""
     assert call["argv"][-5:] == ["odoo", "odoo", "shell", "-d", "probe_db"] or "shell" in call["argv"]
     assert call["stdin"] == (ROOT / VS_DRIVER).read_text(encoding="utf-8")
+
+
+def test_make_import_vanillasoft_history_mounts_when_the_checkout_path_contains_spaces(tmp_path):
+    mk = MakeProbe(tmp_path, folder="IB-Odoo_19 (LOCAL)/checkout")
+    result = mk.run("import-vanillasoft", *HISTORY_ARGS)
+    assert result.returncode == 0, result.stderr
+    (call,) = mk.compose_calls()
+    assert call["env"]["VANILLASOFT_HISTORY_CENSUS"] == f"/mnt/extra-addons/{CENSUS_REL}"
+    assert call["env"]["VANILLASOFT_HISTORY_CHECKPOINT"] == "/mnt/extra-addons/.l9/runtime/ledger/history.jsonl"
 
 
 def test_make_import_vanillasoft_history_mode_on_the_local_runner_passes_host_paths(mk):
