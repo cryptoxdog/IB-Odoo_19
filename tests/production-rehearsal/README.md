@@ -72,8 +72,8 @@ evidence/
     ├── 04-clone.log, 04-clone-census.txt
     ├── 04-weblead-*.json          ← receipt, replay, count snapshots, stored chain
     ├── 04-weblead-runtime.log     ← docker/Odoo output (scanned for the bearer)
-    ├── 05-erp-summary.json        ← importer summary (the kit never writes into it)
-    ├── 05-erp-summary-census.json ← importer census (payload_kind, source_origin)
+    ├── 05-erp-summary.json        ← importer summary (the kit does not write this)
+    ├── gate-6.json                ← compact comparison receipt; census totals live here
     ├── 05-erp-layers.json, 05-erp-import.log
     ├── 06-crm-result.json         ← history driver report (cohort, classes, by_decision, stopped, census_sha256)
     ├── 06-crm-history.jsonl       ← this run's append-only ledger (header bound to census + database uuid)

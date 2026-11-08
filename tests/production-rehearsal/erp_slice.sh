@@ -2,11 +2,10 @@
 # Gate 6 — full ERP import from the restored SQL Server database.
 #
 # The importer writes its own summary (05-erp-summary.json) and census
-# (05-erp-summary-census.json); this script never writes into either. The gate
-# verdict is $EVIDENCE_DIR/gate-6.json, written by common.py check-erp
-# from the summary, the census, the import exit code, a read-only count of
-# the imported counterparty, address and contact identities on the clone, and
-# an independent field comparison of those persisted rows with the SQL source.
+# (05-erp-summary-census.json); this script never writes into either. After
+# the gate has copied their counts, the census and the two fidelity working
+# files are removed. The persisted comparison is gate-6.json. Mismatch and
+# rejection rows, when there are any, stay in the gitignored diagnostics file.
 # Exit 0 only on PASS.
 # Usage: bash erp_slice.sh <plasticos_root> <db> <evidence_dir>
 set -uo pipefail
@@ -20,6 +19,7 @@ KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${KIT_DIR}/rehearsal_common.sh"
 
 SUMMARY_FILE="${EVIDENCE_DIR}/05-erp-summary.json"
+CENSUS_FILE="${EVIDENCE_DIR}/05-erp-summary-census.json"
 IMPORT_LOG="${EVIDENCE_DIR}/05-erp-import.log"
 LAYERS_FILE="${EVIDENCE_DIR}/05-erp-layers.json"
 ODOO_FIDELITY="${EVIDENCE_DIR}/05-erp-fidelity-odoo.json"
@@ -38,6 +38,7 @@ echo "→ [Gate 6] ERP import on ${DB}"
 # gate6 <STATE> <reason> [detail] — scan, write the receipt, exit nonzero.
 gate6() {
   local state="$1" reason="$2" detail="${3:-}"
+  rm -f "${ODOO_FIDELITY:-}" "${FIDELITY_FILE:-}" "${COVERAGE_FILE:-}" "${CENSUS_FILE:-}"
   if ! rlib scan-secrets "${EVIDENCE_DIR}" --env ERP_SQL_PASSWORD; then
     state="FAIL"
     reason="evidence-secret-redacted"
@@ -177,3 +178,8 @@ rlib check-erp "${EVIDENCE_DIR}" \
   --run-started "${RUN_STARTED_UTC:-}" \
   --fidelity "${FIDELITY_FILE}" \
   --snapshot "${ODOO_FIDELITY}"
+status=$?
+# The receipt now holds the counters, the coverage matrix, and any mismatches.
+# The working extracts are not evidence.
+rm -f "${ODOO_FIDELITY}" "${FIDELITY_FILE}" "${COVERAGE_FILE}" "${CENSUS_FILE}"
+exit "${status}"

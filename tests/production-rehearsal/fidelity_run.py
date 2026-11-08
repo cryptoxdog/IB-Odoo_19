@@ -157,6 +157,7 @@ def _cell(value) -> str:
 
 
 def _rows(cursor, sql: str, keys: list[str]) -> list[dict]:
+    """Run one static statement. Identifiers are bound parameters, in batches of 400."""
     found: list[dict] = []
     unique = list(dict.fromkeys(key for key in keys if key))
     for start in range(0, len(unique), 400):
@@ -447,10 +448,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.print_odoo_sql:
         sys.stdout.write(ODOO_EXTRACT_SQL)
         return 0
-    if not args.odoo or not args.out or not args.coverage:
-        parser.error("--odoo, --out and --coverage are required")
+    if not args.odoo or not args.out:
+        parser.error("--odoo and --out are required")
     out = Path(args.out)
-    coverage = Path(args.coverage)
     odoo_path = Path(args.odoo)
     if not odoo_path.is_file():
         report = finish([], "missing", "the clone snapshot was not read")
@@ -464,9 +464,8 @@ def main(argv: list[str] | None = None) -> int:
         source = _stub_source() if os.environ.get("STUB_DIR") else None
         if source is None:
             source = read_source(odoo if odoo.get("evidence") == "complete" else {})
-        report = evaluate(odoo, source, _unresolved(args.census))
-    _write(out, {key: value for key, value in report.items() if key != "coverage"})
-    _write(coverage, {"schema": report["schema"], "fields": report.get("coverage") or []})
+        report = evaluate(odoo, source, _unresolved(args.census), retain_passes=False)
+    _write(out, report)
     return 0
 
 

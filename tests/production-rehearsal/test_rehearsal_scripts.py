@@ -887,12 +887,18 @@ def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     assert gate["state"] == "PASS"
     assert FAKE_ERP_PASSWORD not in erp.calls_text()
     assert "LIMIT=" not in erp.calls_text()
-    fidelity = json.loads((erp.evidence / "05-erp-fidelity.json").read_text(encoding="utf-8"))
-    assert fidelity["status"] == "PASS"
-    assert fidelity["failed"] == 0
-    assert fidelity["compared"] > 0
-    coverage = json.loads((erp.evidence / "05-erp-fidelity-coverage.json").read_text(encoding="utf-8"))
-    assert any(row["source_field"] == "CompanyNm" for row in coverage["fields"])
+    assert gate["facts"]["fidelity_failed"] == 0
+    assert gate["facts"]["fidelity_compared"] > 0
+    assert gate["facts"]["verification_spec"] == "l9.plasticos.rehearsal.fidelity.v1"
+    assert gate["facts"]["source_fingerprint"]
+    assert any(row["source_field"] == "CompanyNm" for row in gate["facts"]["coverage"])
+    for name in (
+        "05-erp-fidelity.json",
+        "05-erp-fidelity-coverage.json",
+        "05-erp-fidelity-odoo.json",
+        "05-erp-summary-census.json",
+    ):
+        assert not (erp.evidence / name).exists()
     summary = json.loads((erp.evidence / "05-erp-summary.json").read_text())
     assert "gate" not in summary
     path = gate["facts"]["execution_path"]
@@ -935,8 +941,7 @@ def test_erp_slice_fidelity_discrepancy_fails_the_gate(erp):
     gate = _gate(erp.evidence, 6)
     assert gate["state"] == "FAIL"
     assert gate["reason"] == "erp-fidelity-discrepancy"
-    report = json.loads((erp.evidence / "05-erp-fidelity.json").read_text(encoding="utf-8"))
-    failed = [row for row in report["rows"] if row["result"] == "FAIL" and row["source_field"] == "CompanyNm"]
+    failed = [row for row in gate["facts"]["fidelity_failures"] if row["source_field"] == "CompanyNm"]
     assert failed
     assert failed[0]["expected"] == "Other Name"
     assert failed[0]["actual"] == "Acme"

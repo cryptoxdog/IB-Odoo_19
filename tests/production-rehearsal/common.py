@@ -538,6 +538,59 @@ FIDELITY_SCHEMA = "l9.plasticos.rehearsal.fidelity.v1"
 _FIDELITY_PASS = frozenset({"mapped", "precision", "rejected", "unmapped"})
 
 
+def _write_diagnostics(evidence_dir: str, fidelity: dict | None, census: dict | None) -> None:
+    """Keep mismatch, rejection, and anomaly rows out of the published receipt."""
+    failures = [
+        row for row in (fidelity or {}).get("rows") or [] if isinstance(row, dict) and row.get("result") == "FAIL"
+    ]
+    unresolved = (census or {}).get("unresolved") if isinstance((census or {}).get("unresolved"), list) else []
+    anomalies = (census or {}).get("anomalies") if isinstance((census or {}).get("anomalies"), list) else []
+    if not failures and not unresolved and not anomalies:
+        return
+    path = Path(evidence_dir) / "05-erp-diagnostics.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "l9.plasticos.rehearsal.diagnostics.v1",
+                "fidelity_failures": failures,
+                "unresolved": unresolved,
+                "anomalies": anomalies,
+            },
+            indent=2,
+            sort_keys=True,
+            default=str,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o600)
+
+
+def _compact_fidelity_failures(report: dict) -> list[tuple[str, str]]:
+    """Failure-only report. Counters are the denominator; retained rows are the mismatches."""
+    rows = report.get("rows")
+    if not isinstance(rows, list) or any(not isinstance(row, dict) or row.get("result") != "FAIL" for row in rows):
+        return [("erp-fidelity-unproven", "a failure-only report retained something other than a mismatch")]
+    failed = report.get("failed")
+    compared = report.get("compared")
+    rejected = report.get("rejected")
+    unmapped = report.get("unmapped")
+    if not all(
+        isinstance(value, int) and not isinstance(value, bool) and value >= 0
+        for value in (failed, compared, rejected, unmapped)
+    ):
+        return [("erp-fidelity-unproven", "fidelity counters are incomplete")]
+    if failed != len(rows):
+        return [("erp-fidelity-unproven", "retained mismatches do not equal the failed count")]
+    if not isinstance(report.get("coverage"), list) or not report.get("source_fingerprint"):
+        return [("erp-fidelity-unproven", "coverage or the source fingerprint is missing")]
+    if failed:
+        return [("erp-fidelity-discrepancy", f"{failed} mapped field value(s) differ from the source")]
+    if report.get("status") != "PASS" or compared < 1:
+        return [("erp-fidelity-unproven", "no mapped field was compared against persisted Odoo")]
+    return []
+
+
 def fidelity_failures(report: dict | None) -> list[tuple[str, str]]:
     """A missing extract or a proven field discrepancy fails. Skips are not passes of a value."""
     if not isinstance(report, dict) or report.get("schema") != FIDELITY_SCHEMA:
@@ -546,6 +599,8 @@ def fidelity_failures(report: dict | None) -> list[tuple[str, str]]:
         return [
             ("erp-fidelity-unproven", str(report.get("missing_reason") or "source or target evidence is incomplete"))
         ]
+    if report.get("rows_retained") == "failures":
+        return _compact_fidelity_failures(report)
     rows = report.get("rows")
     if not isinstance(rows, list):
         return [("erp-fidelity-unproven", "fidelity rows are missing")]
@@ -813,6 +868,16 @@ def check_erp(
         "layers": layer_counts,
         "fidelity_compared": fidelity.get("compared") if isinstance(fidelity, dict) else None,
         "fidelity_failed": fidelity.get("failed") if isinstance(fidelity, dict) else None,
+        "fidelity_failures": [
+            row for row in (fidelity or {}).get("rows") or [] if isinstance(row, dict) and row.get("result") == "FAIL"
+        ]
+        if isinstance(fidelity, dict)
+        else [],
+        "verification_spec": fidelity.get("schema") if isinstance(fidelity, dict) else None,
+        "source_fingerprint": fidelity.get("source_fingerprint") if isinstance(fidelity, dict) else None,
+        "tested_sha": execution_path.get("release_sha"),
+        "coverage": fidelity.get("coverage") if isinstance(fidelity, dict) else None,
+        "anomalies": len(census.get("anomalies")) if isinstance(census.get("anomalies"), list) else None,
         "native_documents": native_facts,
         "execution_path": execution_path,
         "scope": "full import-erp of the checkout; every partner layer and every worksheet",
@@ -1276,8 +1341,11 @@ def main(argv: list[str] | None = None) -> int:
             limit=args.limit,
             release_sha=args.release_sha,
         )
-        evidence = [summary.name, census.name] + ([Path(args.log).name] if args.log else [])
-        evidence += ["05-erp-fidelity.json", "05-erp-fidelity-coverage.json"]
+        evidence = [summary.name] + ([Path(args.log).name] if args.log else [])
+        census_payload = None
+        with contextlib.suppress(ProofError):
+            census_payload = load_json_file(census, "ERP census")
+        _write_diagnostics(args.evidence_dir, fidelity, census_payload if isinstance(census_payload, dict) else None)
         return _emit_result(args, result, evidence, True)
     if args.command == "check-vanillasoft-history":
 
