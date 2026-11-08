@@ -1523,6 +1523,55 @@ def check_vanillasoft_history(
     return _result("PASS", "vanillasoft-history-sample-exercised", "", **facts)
 
 
+def check_vanillasoft_rolling(
+    *,
+    import_exit: int,
+    log_text: str | None,
+    refs_before: int | None,
+    refs_after: int | None,
+    database: str,
+    call_floor: str,
+    contact_floor: str,
+    release_sha: str = "",
+) -> dict:
+    """Judge the rolling ``make import-vanillasoft`` window on the clone.
+
+    The checkout export is not an input. The driver loads the packaged crosswalk.
+    """
+    execution_path = {
+        "database": database,
+        "dispatcher": "run_full_import",
+        "driver": "plasticos_crm_sync/scripts/import_vanillasoft_shell.py",
+        "make_target": "import-vanillasoft",
+        "mode": "rolling",
+        "call_floor": call_floor,
+        "contact_floor": contact_floor,
+        "crosswalk": "plasticos_crm_sync/data/approved_contact_crosswalk.csv",
+        "release_sha": release_sha,
+    }
+    base = {"execution_path": execution_path, "full_cohort_claimed": False}
+    if import_exit == 2:
+        return _result("FAIL", "vanillasoft-preflight-failed", "import-vanillasoft refused (exit 2)", **base)
+    if import_exit != 0:
+        return _result("FAIL", "vanillasoft-import-exit", f"import-vanillasoft exited {import_exit}", **base)
+    if not log_text or "=== VANILLASOFT IMPORT SUMMARY ===" not in log_text:
+        return _result("FAIL", "vanillasoft-summary-unobserved", "the rolling summary was not printed", **base)
+    if "IMPORT FAILED" in log_text:
+        return _result("FAIL", "vanillasoft-import-failed", "the driver reported IMPORT FAILED", **base)
+    if refs_before is None or refs_after is None:
+        return _result("FAIL", "vanillasoft-refs-unavailable", "durable external refs were not read back", **base)
+    landed = refs_after - refs_before
+    facts = {
+        **base,
+        "durable_refs_before": refs_before,
+        "durable_refs_after": refs_after,
+        "durable_refs_landed": landed,
+    }
+    if landed < 1:
+        return _result("BLOCKED", "vanillasoft-no-import", "no durable VanillaSoft ref landed", **facts)
+    return _result("PASS", "vanillasoft-rolling-imported", "", **facts)
+
+
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 
@@ -1574,6 +1623,45 @@ def _publish_command(args) -> int:
         print(f"publish refused: {exc}", file=sys.stderr)
         return 2
     return 0
+
+
+def _count_file(path: str | None) -> int | None:
+    if not path:
+        return None
+    with contextlib.suppress(OSError, ProofError):
+        return parse_count(Path(path).read_text(encoding="utf-8"))
+    return None
+
+
+def _vanillasoft_gate(args) -> int:
+    if args.command == "check-vanillasoft-rolling":
+        result = check_vanillasoft_rolling(
+            import_exit=args.import_exit,
+            log_text=_read_text(args.log),
+            refs_before=_count_file(args.refs_before),
+            refs_after=_count_file(args.refs_after),
+            database=args.database,
+            call_floor=args.call_floor,
+            contact_floor=args.contact_floor,
+            release_sha=args.release_sha,
+        )
+        evidence = [Path(args.log).name] if args.log else []
+        return _emit_result(args, result, evidence, True)
+    result = check_vanillasoft_history(
+        args.report,
+        import_exit=args.import_exit,
+        ledger_path=args.ledger,
+        log_text=_read_text(args.log),
+        refs_before=_count_file(args.refs_before),
+        refs_after=_count_file(args.refs_after),
+        census_sha256=args.census_sha256.strip().lower(),
+        database=args.database,
+        max_ids=args.max_ids,
+        run_started=args.run_started,
+        release_sha=args.release_sha,
+    )
+    evidence = [Path(p).name for p in (args.report, args.ledger, args.log) if p]
+    return _emit_result(args, result, evidence, True)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1639,6 +1727,18 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("source")
         p.add_argument("dest")
         p.add_argument("--staging", required=True)
+
+    p = sub.add_parser("check-vanillasoft-rolling")
+    p.add_argument("evidence_dir")
+    p.add_argument("--gate", type=int, default=7)
+    p.add_argument("--import-exit", type=int, required=True)
+    p.add_argument("--log")
+    p.add_argument("--refs-before")
+    p.add_argument("--refs-after")
+    p.add_argument("--database", required=True)
+    p.add_argument("--call-floor", required=True)
+    p.add_argument("--contact-floor", required=True)
+    p.add_argument("--release-sha", default="")
 
     p = sub.add_parser("check-vanillasoft-history")
     p.add_argument("evidence_dir")
@@ -1766,30 +1866,8 @@ def main(argv: list[str] | None = None) -> int:
         return _emit_result(args, result, evidence, True)
     if args.command in {"publish-census", "publish-identity", "publish-file"}:
         return _publish_command(args)
-    if args.command == "check-vanillasoft-history":
-
-        def _count(path: str | None) -> int | None:
-            if not path:
-                return None
-            with contextlib.suppress(OSError, ProofError):
-                return parse_count(Path(path).read_text(encoding="utf-8"))
-            return None
-
-        result = check_vanillasoft_history(
-            args.report,
-            import_exit=args.import_exit,
-            ledger_path=args.ledger,
-            log_text=_read_text(args.log),
-            refs_before=_count(args.refs_before),
-            refs_after=_count(args.refs_after),
-            census_sha256=args.census_sha256.strip().lower(),
-            database=args.database,
-            max_ids=args.max_ids,
-            run_started=args.run_started,
-            release_sha=args.release_sha,
-        )
-        evidence = [Path(p).name for p in (args.report, args.ledger, args.log) if p]
-        return _emit_result(args, result, evidence, True)
+    if args.command in {"check-vanillasoft-rolling", "check-vanillasoft-history"}:
+        return _vanillasoft_gate(args)
     return 2
 
 

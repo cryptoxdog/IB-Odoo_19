@@ -108,15 +108,12 @@ def test_rehearsal_refuses_the_frozen_grid():
     assert "ERP_SQL_PASSWORD" not in make_args
     assert "make import-vanillasoft" in run
     assert "test_env.sh" in run
-    # Gate 7 is the historical cohort: the census and its digest reach make,
-    # a rolling floor never does (the gate refuses one in the environment).
+    # Gate 7 is the rolling window. The checkout export is not hashed.
     vs_args = run.rsplit("make import-vanillasoft", 1)[1].split("2>&1", 1)[0]
-    assert "VANILLASOFT_HISTORY_CENSUS=" in vs_args
-    assert "VANILLASOFT_HISTORY_CENSUS_SHA256=" in vs_args
-    assert "VANILLASOFT_HISTORY_CHECKPOINT=" in vs_args
-    assert "${VS_MAX_ARG}" in vs_args
-    assert "VANILLASOFT_HISTORY_MAX_IDS=" not in vs_args
-    assert "VANILLASOFT_CALL_FLOOR=" not in vs_args
-    assert "VANILLASOFT_CONTACT_FLOOR=" not in vs_args
+    assert "VANILLASOFT_HISTORY_CENSUS=" not in vs_args
+    assert "VANILLASOFT_HISTORY_CENSUS_SHA256=" not in vs_args
+    assert "Vanillasoft-Scrap-Management.csv" not in vs_args
+    assert "VANILLASOFT_CALL_FLOOR=" in vs_args
+    assert "VANILLASOFT_CONTACT_FLOOR=" in vs_args
     assert "rolling-floor-refused" in run
-    assert "run_full_import" not in run
+    assert "approved_contact_crosswalk.csv" in run

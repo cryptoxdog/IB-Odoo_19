@@ -1,0 +1,22 @@
+{
+  "counts": {
+    "bills": 1358,
+    "invoices": 716,
+    "ledger_moves": 6,
+    "purchase_lines": 876,
+    "purchase_orders": 633,
+    "sale_lines": 884,
+    "sale_orders": 637,
+    "worksheets": 797
+  },
+  "duplicate_count": 0,
+  "duplicate_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "duplicate_sample": [],
+  "evidence": "complete",
+  "missing_count": 0,
+  "missing_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "missing_sample": [],
+  "observed_count": 5110,
+  "observed_digest": "0dd9615f47d6e0982f371349e12b95063e1517dec94afec20f52b4bfab81678e",
+  "schema": "l9.plasticos.rehearsal.identity-ledger.v1"
+}

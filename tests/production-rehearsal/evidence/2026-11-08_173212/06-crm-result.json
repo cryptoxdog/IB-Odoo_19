@@ -1,0 +1,2840 @@
+{
+  "completion_time": "2026-11-08T17:37:26Z",
+  "duplicates": 0,
+  "errors": [
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 4=Unqualified",
+      "record_ref": "683418945"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: E-Waste",
+      "record_ref": "683418945"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: general spec is not profile-unique",
+      "record_ref": "572648341"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Commercial Recycler",
+      "record_ref": "572648341"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 5=Dead Lead",
+      "record_ref": "608343836"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 1= Currently Working With",
+      "record_ref": "1085161977"
+    },
+    {
+      "category": "optional_context",
+      "message": "state did not resolve in the country; kept in the description",
+      "record_ref": "1085161977"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1193982426"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "1193982426"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "645756493"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: unsupported type hint for Mixed Pallets",
+      "record_ref": "645756493"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: Mixed Pallets",
+      "record_ref": "645756493"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: pallets spec is not profile-unique",
+      "record_ref": "645756493"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Pallet Recycler",
+      "record_ref": "645756493"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 1= Currently Working With",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: Compression Molded",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: loads_per_month",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: pallets spec is not profile-unique",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Pallet Recycler",
+      "record_ref": "576070211"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 1= Currently Working With",
+      "record_ref": "1244280474"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1244280474"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 1= Currently Working With",
+      "record_ref": "1244447750"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1244447750"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1244447750"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "required_mapping",
+      "message": "grade B conflicts with stored grade A on profile 12; attributes unchanged",
+      "record_ref": "12"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: PET Clamshells",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: general spec is not profile-unique",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: ldpe spec is not profile-unique",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: pet spec is not profile-unique",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "666355128"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 4=Unqualified",
+      "record_ref": "986286436"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "986286436"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Thrift Store",
+      "record_ref": "986286436"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271231"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271232"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271234"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271235"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271236"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271237"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271238"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271239"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271240"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271241"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271242"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271243"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271244"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271245"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271246"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271247"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271248"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271249"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271250"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271251"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271252"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271253"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271254"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271255"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271256"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271257"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271258"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271259"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271260"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271261"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271262"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271263"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271264"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271265"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271266"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271268"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271269"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271270"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271271"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271272"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271273"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271274"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271275"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271276"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271277"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271278"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271279"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271281"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271282"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271283"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271284"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271285"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271286"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271287"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271288"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271289"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271290"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271291"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271293"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271294"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271295"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271296"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271297"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271298"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271299"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271300"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271301"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271302"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271303"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271304"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271305"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271306"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271307"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271308"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271309"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271310"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271311"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271312"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271313"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271314"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271315"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271316"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271317"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271318"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271319"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271320"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271321"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271322"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271323"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271324"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271325"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271326"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271327"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271328"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271329"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271330"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271331"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271332"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271333"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271335"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271336"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271337"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271338"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271339"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271341"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271342"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271343"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271344"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271345"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271346"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245271347"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273575"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273575"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273575"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273576"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273576"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273576"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273577"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273577"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273577"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273578"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273578"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273578"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273579"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273579"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273579"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273580"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273580"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273580"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273581"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273581"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273581"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273582"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273582"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273582"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273583"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273583"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273583"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273584"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273584"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273584"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273585"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273585"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273585"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273586"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273586"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273586"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273587"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273587"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273587"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273588"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273588"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273588"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273589"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273589"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273589"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273590"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273590"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273590"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273591"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273591"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273591"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273592"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273592"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273592"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273593"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273593"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273593"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273594"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273594"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273594"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273595"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273595"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273595"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273596"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273596"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273596"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273597"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273597"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273597"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273598"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273598"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273598"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273599"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273599"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273599"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273601"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273601"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273601"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273602"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273602"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273602"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273603"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273603"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273603"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273604"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273604"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273604"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273606"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273606"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273606"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273607"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273607"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273607"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273608"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273608"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273608"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273609"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273609"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273609"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273610"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273610"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273610"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273611"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273611"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273611"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273612"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273612"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273612"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273613"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273613"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273613"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273614"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273614"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273614"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273615"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273615"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273615"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273616"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273616"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273616"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273617"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273617"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273617"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273618"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273618"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273618"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273620"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273620"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273620"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273621"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273621"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273621"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273622"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273622"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273622"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273623"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273623"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273623"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273624"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273624"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273624"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273625"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273625"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273625"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273626"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273626"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273626"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273627"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273627"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273627"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273628"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273628"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273628"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273629"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273629"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273629"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273630"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273630"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273630"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273632"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273632"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273632"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273633"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273633"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273633"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273634"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273634"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273634"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273635"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273635"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273635"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273636"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273636"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273636"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273637"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273637"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273637"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273638"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273638"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273638"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273639"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273639"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273639"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273640"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273640"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273640"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273641"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273641"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273641"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273642"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273642"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273642"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273643"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273643"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273643"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273644"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273644"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273644"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273645"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273645"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273645"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273646"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273646"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273646"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273647"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273647"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273647"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273651"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273651"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273651"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273652"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273652"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273652"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273653"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273653"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273653"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273654"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273654"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273654"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273655"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273655"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273655"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273656"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273656"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273656"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273658"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273658"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273658"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273659"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273659"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273659"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273655"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273655"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273656"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273656"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273658"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273658"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273659"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273659"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273660"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273660"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273660"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273661"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273661"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273661"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273663"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273663"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273663"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273664"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273664"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273664"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273665"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273665"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273665"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273667"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273667"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273667"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273669"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273669"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273669"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273670"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273670"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273670"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273671"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273671"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273671"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273672"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273672"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273672"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273673"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273673"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273673"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273675"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273675"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273675"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273676"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273676"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273676"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273677"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273677"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273677"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273678"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273678"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273678"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273679"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273679"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273679"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273680"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273680"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273680"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273681"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273681"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273681"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273682"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273682"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273682"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273683"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273683"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273683"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273684"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273684"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273684"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273685"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273685"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273685"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273686"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273686"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273686"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273687"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273687"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273687"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273688"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273688"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273688"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273689"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273689"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273689"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273690"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273690"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273690"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273691"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273691"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273691"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273692"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273692"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273692"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "579155984"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "579155984"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "579155984"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2c=Qualified/COLD",
+      "record_ref": "954915127"
+    },
+    {
+      "category": "optional_context",
+      "message": "state did not resolve in the country; kept in the description",
+      "record_ref": "954915127"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "954915127"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Commercial Recycler",
+      "record_ref": "954915127"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 1= Currently Working With",
+      "record_ref": "586998227"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "586998227"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Pallet Recycler",
+      "record_ref": "586998227"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "626434888"
+    },
+    {
+      "category": "required_mapping",
+      "message": "grade B conflicts with stored grade A on profile 125; attributes unchanged",
+      "record_ref": "125"
+    },
+    {
+      "category": "required_mapping",
+      "message": "grade C conflicts with stored grade A on profile 125; attributes unchanged",
+      "record_ref": "125"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: general spec is not profile-unique",
+      "record_ref": "626434888"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "626434888"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: color_id",
+      "record_ref": "626434888"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "626434888"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "606953398"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 5=Dead Lead",
+      "record_ref": "619711282"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: C&D",
+      "record_ref": "619711282"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: unsupported type hint for HDPE",
+      "record_ref": "595783717"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "595783717"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "595783717"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "595783717"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "595783717"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: general spec is not profile-unique",
+      "record_ref": "595783717"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "595783717"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 1= Currently Working With",
+      "record_ref": "1233719674"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1233719674"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Commercial Recycler",
+      "record_ref": "1233719674"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: Polycarbonate",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: loads_per_month",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: color_id",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: general spec is not profile-unique",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: engineering spec is not profile-unique",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "589585986"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273569"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273569"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273569"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273570"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273570"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273570"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273571"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273571"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273571"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273573"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273573"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273573"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 2=Qualified/Open",
+      "record_ref": "1245273574"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "1245273574"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Manufacturer",
+      "record_ref": "1245273574"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "643986376"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Distribution Center",
+      "record_ref": "643986376"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "650451535"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: general spec is not profile-unique",
+      "record_ref": "650451535"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "650451535"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "572647746"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_NO_CRM_LEAD",
+      "record_ref": "572647746"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Farm",
+      "record_ref": "572647746"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 4=Unqualified",
+      "record_ref": "963392066"
+    },
+    {
+      "category": "optional_context",
+      "message": "state did not resolve in the country; kept in the description",
+      "record_ref": "963392066"
+    },
+    {
+      "category": "required_mapping",
+      "message": "BLOCKED_UNRESOLVED: Bales, Post Consumer",
+      "record_ref": "963392066"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Commercial Recycler",
+      "record_ref": "963392066"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Molder",
+      "record_ref": "608763642"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_STAGE_APPROVAL: 1= Currently Working With",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: EPS Densified Blocks",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: EPS Densified Purge",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: loads_per_month",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Commercial Recycler",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_UNRESOLVED: type hint is not contact-unique",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: EPS Densified Blocks",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "required_mapping",
+      "message": "unresolved material: EPS Densified Purge",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: quantity_per_load_lbs",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "APPROVED_SKIP: loads_per_month",
+      "record_ref": "575088831"
+    },
+    {
+      "category": "optional_context",
+      "message": "BLOCKED_COMPANY_TYPE_VALUE: Commercial Recycler",
+      "record_ref": "575088831"
+    }
+  ],
+  "final_status": "partial",
+  "records_created": 251,
+  "records_rejected": 0,
+  "records_seen": 265,
+  "records_unchanged": 5,
+  "records_updated": 9,
+  "records_valid": 265,
+  "source": "vanillasoft",
+  "start_time": "2026-11-08T17:36:45Z"
+}

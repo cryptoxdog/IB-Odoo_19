@@ -1,0 +1,412 @@
+{
+  "detail": "",
+  "evidence": [
+    "05-erp-summary.json",
+    "05-erp-import.log"
+  ],
+  "exit_code": 0,
+  "facts": {
+    "anomalies": 2326,
+    "attributed_count": 1250,
+    "comparison_digest": "2892254361ad48a04851bafb062a916224b051eec7036d8ed6013fabb68f4220",
+    "coverage": [
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "CpID",
+        "source_table": "CounterParty",
+        "target_field": "name",
+        "target_model": "ir.model.data"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "CompanyNm",
+        "source_table": "CounterParty",
+        "target_field": "name",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "ActiveStatus",
+        "source_table": "CounterParty",
+        "target_field": "active",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "Role",
+        "source_table": "CounterParty",
+        "target_field": "company_role,supplier_rank,customer_rank",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "OurCustNo",
+        "source_table": "CounterParty",
+        "target_field": "ref",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported_when_source_present",
+        "source_field": "APEMail",
+        "source_table": "CounterParty",
+        "target_field": "email",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported_when_source_present",
+        "source_field": "WebSite",
+        "source_table": "CounterParty",
+        "target_field": "website",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported_when_source_present",
+        "source_field": "CreditLimit",
+        "source_table": "CounterParty",
+        "target_field": "credit_limit",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "Addr2",
+        "source_table": "Address",
+        "target_field": "street",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "Addr3",
+        "source_table": "Address",
+        "target_field": "street2",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "City",
+        "source_table": "Address",
+        "target_field": "city",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "PostalCd",
+        "source_table": "Address",
+        "target_field": "zip",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "ContactNm",
+        "source_table": "Contact",
+        "target_field": "name",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported_when_source_present",
+        "source_field": "Email",
+        "source_table": "Contact",
+        "target_field": "email",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "note": "only an explicit active flag is imported; an inactive marker is a defect",
+        "scope": "all_imported",
+        "source_field": "IsActive",
+        "source_table": "Contact",
+        "target_field": "active",
+        "target_model": "res.partner"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "PONumber",
+        "source_table": "PO",
+        "target_field": "name",
+        "target_model": "sale.order,purchase.order"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "PODate",
+        "source_table": "PO",
+        "target_field": "date_order",
+        "target_model": "sale.order,purchase.order"
+      },
+      {
+        "formula": "sale is the transaction compiler confirming the order; draft and sent remain when confirmation did not run",
+        "kind": "derived",
+        "scope": "all_imported",
+        "source_field": "PONumber",
+        "source_table": "PO",
+        "target_field": "state",
+        "target_model": "sale.order"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "POReference",
+        "source_table": "PO",
+        "target_field": "client_order_ref",
+        "target_model": "sale.order"
+      },
+      {
+        "kind": "direct",
+        "note": "PO.PriceBasis when set; otherwise the last mapped or declined BuySell.PriceBasis in importer worksheet order",
+        "scope": "all_imported",
+        "source_field": "PriceBasis",
+        "source_table": "PO",
+        "target_field": "incoterm",
+        "target_model": "sale.order,purchase.order"
+      },
+      {
+        "formula": "earliest TradeDt of the worksheets listed on origin; no trade date leaves it empty",
+        "kind": "derived",
+        "scope": "all_imported",
+        "source_field": "TradeDt",
+        "source_table": "GPLedger",
+        "target_field": "date_approve",
+        "target_model": "purchase.order"
+      },
+      {
+        "formula": "code S (short ton) becomes pounds at 2000 lb; L stays pounds; E stays each; any other code leaves the product default unit",
+        "kind": "derived",
+        "scope": "all_imported",
+        "source_field": "SWeight,SWeightUOM",
+        "source_table": "WKSDetail",
+        "target_field": "product_uom_qty,product_uom_id",
+        "target_model": "sale.order.line"
+      },
+      {
+        "formula": "SAmount / converted quantity, else SPrice",
+        "kind": "derived",
+        "scope": "all_imported",
+        "source_field": "SAmount,SWeight,SPrice",
+        "source_table": "WKSDetail",
+        "target_field": "price_unit",
+        "target_model": "sale.order.line"
+      },
+      {
+        "formula": "same quantity conversion and amount/quantity price as the sale side",
+        "kind": "derived",
+        "scope": "all_imported",
+        "source_field": "PWeight,PWeightUOM,PAmount,PPrice",
+        "source_table": "WKSDetail",
+        "target_field": "product_qty,price_unit",
+        "target_model": "purchase.order.line"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported_when_source_present",
+        "source_field": "InvoiceDesc",
+        "source_table": "WKSDetail",
+        "target_field": "name",
+        "target_model": "sale.order.line,purchase.order.line"
+      },
+      {
+        "kind": "direct",
+        "note": "customer invoice; a blank source date stays blank",
+        "scope": "all_imported",
+        "source_field": "InvoiceDt",
+        "source_table": "BuySell",
+        "target_field": "invoice_date",
+        "target_model": "account.move"
+      },
+      {
+        "kind": "direct",
+        "scope": "all_imported",
+        "source_field": "BuySellNo",
+        "source_table": "BuySell",
+        "target_field": "invoice_origin,ref",
+        "target_model": "account.move"
+      },
+      {
+        "formula": "sum of converted quantity x unit price for details with one sale-order header; a line with no sale key is omitted; a negative signed total is an out_refund",
+        "kind": "derived",
+        "scope": "all_imported",
+        "source_field": "SAmount",
+        "source_table": "WKSDetail",
+        "target_field": "amount_total",
+        "target_model": "account.move"
+      },
+      {
+        "formula": "a material bill whose payable matches the signed purchase total stores each purchase line as an absolute amount; every other bill stores the absolute payable; a negative payable is an in_refund",
+        "kind": "derived",
+        "scope": "all_imported",
+        "source_field": "Amount",
+        "source_table": "Payables",
+        "target_field": "amount_total,move_type",
+        "target_model": "account.move"
+      },
+      {
+        "kind": "direct",
+        "note": "batch header wins, then the payable row; PayableID is the ref fallback",
+        "scope": "all_imported",
+        "source_field": "InvoiceDt,InvoiceNo",
+        "source_table": "PayablesBatch",
+        "target_field": "invoice_date,ref",
+        "target_model": "account.move"
+      },
+      {
+        "kind": "derived",
+        "note": "customer credit and debit memos only",
+        "scope": "all_imported",
+        "source_field": "Sale,TradeDt,AdjMemoNo",
+        "source_table": "GPLedger",
+        "target_field": "amount_total,invoice_date,ref,move_type",
+        "target_model": "account.move"
+      },
+      {
+        "kind": "unmapped",
+        "reason": "the partner writer does not store a currency",
+        "source_field": "CurrCode",
+        "source_table": "CounterParty",
+        "target_field": null,
+        "target_model": null
+      },
+      {
+        "kind": "unmapped",
+        "reason": "the partner writer does not store the hold flag",
+        "source_field": "OnHold",
+        "source_table": "CounterParty",
+        "target_field": null,
+        "target_model": null
+      },
+      {
+        "kind": "unmapped",
+        "reason": "source audit metadata; Odoo keeps its own write date",
+        "source_field": "CpLastEdit",
+        "source_table": "CounterParty",
+        "target_field": null,
+        "target_model": null
+      },
+      {
+        "kind": "unmapped",
+        "reason": "the partner writer does not store payment days",
+        "source_field": "PaymentDays",
+        "source_table": "CounterParty",
+        "target_field": null,
+        "target_model": null
+      },
+      {
+        "kind": "unmapped",
+        "reason": "the native line writer does not assign Color",
+        "source_field": "Color",
+        "source_table": "WKSDetail",
+        "target_field": null,
+        "target_model": null
+      },
+      {
+        "kind": "unmapped",
+        "reason": "the native line writer does not assign a currency",
+        "source_field": "SCurrencyCd",
+        "source_table": "WKSDetail",
+        "target_field": null,
+        "target_model": null
+      },
+      {
+        "kind": "excluded",
+        "reason": "outside this fidelity check; not a mapping pass",
+        "source_field": "QuickBooks, opening balances, AR/AP aging, ledger reconciliation, posted history",
+        "source_table": "excluded",
+        "target_field": null,
+        "target_model": null
+      }
+    ],
+    "coverage_ledger": {
+      "duplicate_count": 0,
+      "duplicate_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "duplicate_sample": [],
+      "excluded_fields": {
+        "QuickBooks, opening balances, AR/AP aging, ledger reconciliation, posted history": 1
+      },
+      "expected_count": 12755,
+      "expected_digest": "1efcd6fe8df8fc141a81407c5a7c2f4a8bc4c582305282695380369fd021f5c2",
+      "missing_count": 1897,
+      "missing_digest": "2bf5d2b9f5e87660c47af875ee59ea6ee07d546f36e49aecff9ca825477d2e04",
+      "missing_sample": [
+        "orders:18762|SO",
+        "orders:18763|SO",
+        "orders:18764|SO",
+        "orders:18782|SO",
+        "orders:18783|SO"
+      ],
+      "observed_count": 12738,
+      "observed_digest": "026336719b095d9442639369c34cdaa957746c8dff1193a374684d8c8d83dbbc",
+      "partition": {
+        "compared": 12529,
+        "excluded": 0,
+        "rejected": 226
+      },
+      "rejected_count": 1250,
+      "rejected_digest": "cccfe042c172a8ac198093033b91ecb11df15f0bc7f8ebaba357e865cae68088"
+    },
+    "disposition": "partial-source-explained",
+    "execution_path": {
+      "commercial_extension": "plasticos_transaction/models/legacy_erp_import_service.py (_inherit plasticos.erp.import)",
+      "database": "odoo_test_cutover",
+      "dispatcher": "plasticos.erp.import (plasticos_partner_import/models/erp_import_service.py)",
+      "driver": "plasticos_partner_import/scripts/import_erp_shell.py",
+      "limit": "10%",
+      "make_target": "import-erp",
+      "release_sha": "f8733d213fc96419698b1fd374de5fea54c4d362",
+      "source": "restored ERP SQL Server database (reader.PayloadKind.DATABASE)"
+    },
+    "fidelity_compared": 46886,
+    "fidelity_failed": 0,
+    "fidelity_failures": [],
+    "final_status": "partial",
+    "layers": {
+      "addresses": 2602,
+      "contacts": 3726,
+      "counterparties": 1300
+    },
+    "native_documents": {
+      "clone": {
+        "bills": 1358,
+        "invoices": 716,
+        "ledger_moves": 6,
+        "purchase_lines": 876,
+        "purchase_orders": 633,
+        "sale_lines": 884,
+        "sale_orders": 637,
+        "worksheets": 797
+      },
+      "realized_lines": 995,
+      "realized_transactions": 759,
+      "scope": ""
+    },
+    "payload_kind": "database",
+    "records_created": 9433,
+    "records_rejected": 1388,
+    "records_seen": 32332,
+    "scope": "rehearsal import-erp of the checkout; every partner layer and the newest 10% of worksheets, plus pinned worksheet 58699 when the source contains it",
+    "source_fingerprint": "a18d682731d13adac20c774b705115bcb7bf5f11ba3f2d05b6c0cb0d9cc33472",
+    "source_origin": "9f81967bbe4f2cd1e7bfbcd4b712e2c396498d66cea2210b6316b611034081d9",
+    "tested_sha": "f8733d213fc96419698b1fd374de5fea54c4d362",
+    "unattributed_count": 0,
+    "unresolved": 1250,
+    "verification_spec": "l9.plasticos.rehearsal.fidelity.v1"
+  },
+  "gate": 6,
+  "name": "erp-slice",
+  "reason": "erp-partial-source-explained",
+  "recorded_at": "2026-11-08T17:36:40Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "PASS"
+}
