@@ -51,7 +51,7 @@
     "records_rejected": 2505,
     "records_seen": 32332,
     "scope": "full import-erp of the checkout; every partner layer and every worksheet",
-    "source_origin": "host.docker.internal/cieTrade_SM",
+    "source_origin": "host.docker.internal/source-db_SM",
     "unresolved": 1250
   },
   "gate": 6,
