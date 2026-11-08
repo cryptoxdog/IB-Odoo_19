@@ -21,6 +21,13 @@ registries:
   - .claude/README.md
   - skills/PLASTICOS_SKILLS_MANIFEST.yaml
 skills:
+  - name: plasticos-branch-promotion-rehearsal
+    path: skills/plasticos-branch-promotion-rehearsal/
+    version: "1.0.0"
+    updated: "2026-11-08"
+    status: active
+    invocation: auto
+    description: "rehearse a Staging-to-Production promotion: make import-erp LIMIT=10% and make import-vanillasoft at 10 percent of the history census on a non-production database; at most five evidence files of failures and misalignments."
   - name: plasticos-final-touches
     path: skills/plasticos-final-touches/
     version: "1.1.0"
