@@ -64,25 +64,29 @@ class PlasticosRateMemory(models.Model):
                     disposition = "multiple_candidate_matches"
                 else:
                     disposition = "no_candidate_match"
-            canonical_load = candidates if disposition == "exact_single_match" else empty_loads
-            company = getattr(canonical_load, "company_id", False) or (
-                canonical_load.sale_order_id.company_id if canonical_load and canonical_load.sale_order_id else False
-            )
-            if not company:
-                # Legacy rows have no durable company ownership.  Retain an
-                # ambiguous/no-match classification without creating an
-                # incorrectly company-scoped immutable record.
-                continue
+            if disposition == "exact_single_match":
+                company = getattr(candidates, "company_id", False) or (
+                    candidates.sale_order_id.company_id if candidates.sale_order_id else False
+                )
+                if not company:
+                    raise UserError("An exact rate-memory match requires the canonical load's company.")
+                company_id = company.id
+                canonical_load_id = candidates.id
+            else:
+                # ADR-129: a non-exact disposition has no source company. Store
+                # False so env.company cannot attribute the row to the operator.
+                company_id = False
+                canonical_load_id = False
             reconciliation_vals.append(
                 {
-                    "company_id": company.id,
+                    "company_id": company_id,
                     "legacy_rate_memory_id": record.id,
                     "carrier_id": record.carrier_id.id,
                     "lane_key": record.lane_key,
                     "legacy_rate_amount": record.rate_amount,
                     "legacy_rate_date": record.rate_date,
                     "disposition": disposition,
-                    "canonical_load_id": canonical_load.id,
+                    "canonical_load_id": canonical_load_id,
                     "candidate_count": len(candidates),
                 }
             )

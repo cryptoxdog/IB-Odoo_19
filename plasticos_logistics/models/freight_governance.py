@@ -172,7 +172,13 @@ class PlasticosRateMemoryReconciliation(models.Model):
     _order = "legacy_rate_date desc, id desc"
 
     company_id = fields.Many2one(
-        "res.company", required=True, default=lambda self: self.env.company, ondelete="restrict"
+        "res.company",
+        required=False,
+        ondelete="restrict",
+        help=(
+            "Company of the matched canonical load. Empty for a non-exact disposition "
+            "so the operator's company is not stored as ownership. See ADR-129."
+        ),
     )
     legacy_rate_memory_id = fields.Many2one("plasticos.rate.memory", required=True, index=True, ondelete="restrict")
     carrier_id = fields.Many2one("res.partner", required=True, ondelete="restrict")
