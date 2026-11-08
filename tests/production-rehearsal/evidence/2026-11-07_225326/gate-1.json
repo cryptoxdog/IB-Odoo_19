@@ -1,0 +1,13 @@
+{
+  "detail": "branch=fix/rehearsal-kit-checkout-sync HEAD=be363b7f5394b36c11918951d98b5b79a1897aed dirty=10 fetch_ok=1",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 1,
+  "name": "branch-identity",
+  "reason": "checkout-bound",
+  "recorded_at": "2026-11-07T22:53:27Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": false,
+  "state": "PASS"
+}

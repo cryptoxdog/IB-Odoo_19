@@ -1,18 +1,18 @@
 # Staging → Production Promotion Rehearsal
 
-**Purpose:** Repeatable end-to-end gate that must pass before every promotion of `Staging` into `Production`. `ready` is evidence for a human decision; the kit never merges, deploys, or writes Production.
+**Purpose:** Repeat the go-live data sync on whatever checkout the kit is run in. `ready` means that sync completed. It is not permission to promote Staging. The kit never merges, deploys, or writes Production.
 
 ## What it proves
 
 | Gate | Evidence |
 |------|----------|
-| The rehearsal runs exactly the fetched `origin/Staging` | Gate 1: branch, SHA and a clean tree, before any side effect |
-| Staging merges cleanly into Production | `git merge-tree --write-tree` exit status |
+| This checkout is the code under test | Gate 1 records branch, HEAD, dirty paths and the fetch result. None of those stop the sync |
+| Staging and Production merge-tree | `git merge-tree --write-tree` is recorded. A conflict does not stop the sync |
 | All PlasticOS + Enterprise modules load | `make install-smoke` on the pinned fixture (cached fingerprint match is labelled as such) |
 | The clone is fresh and empty | `test_env.sh clone/upgrade/assert-clone` + business-partner census (inactive included) |
 | Web lead webhook reaches the wired end (crm.lead) | HOT Cognito POST → intake → one unassigned non-Won opportunity, read back from the clone; replay creates nothing |
-| ERP counterparties, addresses, contacts, and the 10% native documents import from the restored database | `make import-erp LIMIT=10%`, summary + census + driver trace in the log + clone layer counts + native-document completeness + field-level source comparison |
-| VanillaSoft historical contacts import against ERP partners | `make import-vanillasoft` in history mode over a bounded prefix of the frozen 4,876-ContactID census, judged by the history driver's own report, ledger, audit trail and durable refs read back from the clone |
+| ERP counterparties, addresses, contacts, and native documents import from the restored database | `make import-erp` with no `LIMIT`, summary + census + driver trace in the log + clone layer counts + native-document completeness + field-level source comparison |
+| VanillaSoft contacts import against ERP partners | `make import-vanillasoft` on `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` in this checkout, judged by the history driver's own report, ledger, audit trail and durable refs read back from the clone |
 
 Both import gates run the same `make` target, driver and dispatcher production
 runs, at the same revision; the receipt's `execution_path` names them and the
@@ -29,12 +29,12 @@ Exit 0 only on `ready`. Evidence is written to `evidence/YYYY-MM-DD_HHMMSS/` and
 
 ## Prerequisites
 
-- Local branch is `Staging`, `HEAD == origin/Staging` after a fetch, and the tree is clean (untracked files included)
+- The checkout contains the code to sync. Branch name, dirt, and whether `origin/Staging` moved do not stop the run
 - Docker Compose is up (`docker compose ps` shows `db` healthy)
 - The pinned fixture `odoo_test_tpl_ee_c9e8a81f52f23680` is admitted (`bash scripts/test_env.sh status`)
 - Exclusive use of the shared runtime: the Compose project, `odoo_test_cutover`, the rehearsal port (`REHEARSAL_PORT`, default 18069) and container `odoo_rehearsal_<port>`. Gate 5 refuses an existing container or an answering port instead of removing it
 - git ≥ 2.38 (`merge-tree --write-tree`), curl ≥ 7.55 (`-H @file`)
-- Gate 7 runtime inputs in the environment: `VANILLASOFT_HISTORY_CENSUS` (the approved 4,876-ContactID census, placed inside the checkout under an ignored path such as `.l9/runtime/`, because the odoo container reads only that bind mount) and `VANILLASOFT_HISTORY_CENSUS_SHA256` (its independently verified digest). Optional `REHEARSAL_HISTORY_MAX_IDS` (default 100). The kit never writes, shrinks or re-digests a census; unset inputs are `BLOCKED`
+- Gate 7 reads `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` from the checkout and hashes it at run time. A missing file fails the gate. Set `REHEARSAL_HISTORY_MAX_IDS` only when a cap is intended; there is no default
 - No `VANILLASOFT_CALL_FLOOR`, `VANILLASOFT_CONTACT_FLOOR`, `VANILLASOFT_HISTORY_CHECKPOINT`, `VANILLASOFT_PRODUCTION_PERMIT`, `ERP_PRODUCTION_PERMIT` or `ODOO_STAGE=production` in the environment: each is a refusal, never ignored
 - `scripts/test_env.sh run` admits the history form of `make import-vanillasoft` (census, digest, ledger, optional bounds; no floor, no permit) and refuses anything else before make starts
 

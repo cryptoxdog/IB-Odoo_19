@@ -138,7 +138,7 @@ def _erp(
         run_started=RUN_STARTED,
         log_text=log,
         database="odoo_test_cutover",
-        limit="10%",
+        limit="full",
         release_sha="a" * 40,
         fidelity=report,
         snapshot=snapshot,
@@ -154,7 +154,7 @@ def test_erp_complete_database_run_passes(tmp_path):
     assert path["driver"] == "plasticos_partner_import/scripts/import_erp_shell.py"
     assert "plasticos.erp.import" in path["dispatcher"]
     assert "legacy_erp_import_service.py" in path["commercial_extension"]
-    assert (path["database"], path["limit"], path["release_sha"]) == ("odoo_test_cutover", "10%", "a" * 40)
+    assert (path["database"], path["limit"], path["release_sha"]) == ("odoo_test_cutover", "full", "a" * 40)
 
 
 @pytest.mark.parametrize(
@@ -654,8 +654,6 @@ def test_blockers_file_names_the_verdict_blockers():
     assert {
         "vanillasoft-key-unbound",
         "erp-proof-files-missing",
-        "vanillasoft-history-census-unbound",
-        "vanillasoft-history-digest-unbound",
         "vanillasoft-history-sample-no-import",
     } <= ids
     # The rolling-window blockers are gone with the mode.

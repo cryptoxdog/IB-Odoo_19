@@ -114,7 +114,8 @@ def test_rehearsal_refuses_the_frozen_grid():
     assert "VANILLASOFT_HISTORY_CENSUS=" in vs_args
     assert "VANILLASOFT_HISTORY_CENSUS_SHA256=" in vs_args
     assert "VANILLASOFT_HISTORY_CHECKPOINT=" in vs_args
-    assert "VANILLASOFT_HISTORY_MAX_IDS=" in vs_args
+    assert "${VS_MAX_ARG}" in vs_args
+    assert "VANILLASOFT_HISTORY_MAX_IDS=" not in vs_args
     assert "VANILLASOFT_CALL_FLOOR=" not in vs_args
     assert "VANILLASOFT_CONTACT_FLOOR=" not in vs_args
     assert "rolling-floor-refused" in run

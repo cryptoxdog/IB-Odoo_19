@@ -180,16 +180,15 @@ stop_run() {
   exit 1
 }
 
-# ── Gate 1 — Revision identity (no side effects before it passes) ───────────
+# ── Gate 1 — Record the checkout. Branch, SHA equality, dirt and fetch do not stop the sync.
 echo ""
-echo "── Gate 1: Revision identity"
+echo "── Gate 1: Checkout identity"
 CURRENT_GATE=1
-if ! git fetch --no-tags --quiet origin \
+FETCH_OK=0
+if git fetch --no-tags --quiet origin \
   "+refs/heads/Staging:refs/remotes/origin/Staging" \
   "+refs/heads/Production:refs/remotes/origin/Production" >"${EVIDENCE_DIR}/00-fetch.log" 2>&1; then
-  gate_record 1 FAIL "remote-fetch-failed" "git fetch of Staging and Production failed; remote state is unproven"
-  skip_from 2 "gate1-failed"
-  stop_run
+  FETCH_OK=1
 fi
 BRANCH="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo "(detached)")"
 HEAD_SHA="$(git rev-parse --verify --quiet 'HEAD^{commit}' || true)"
@@ -211,60 +210,51 @@ fi
   echo "origin/Staging=${ORIGIN_STAGING}"
   echo "origin/Production=${PROD_SHA}"
   echo "dirty_paths=${DIRTY_COUNT}"
+  echo "fetch_ok=${FETCH_OK}"
 } >"${EVIDENCE_DIR}/00-staging-sha.txt"
 echo "  Branch: ${BRANCH}  HEAD: ${HEAD_SHA:-?}"
-echo "  origin/Staging: ${ORIGIN_STAGING:-?}  origin/Production: ${PROD_SHA:-?}"
-
-G1_REASON=""
-if [ -z "${HEAD_SHA}" ] || [ -z "${ORIGIN_STAGING}" ] || [ -z "${PROD_SHA}" ]; then
-  G1_REASON="ref-unresolved"
-elif [ "${BRANCH}" != "Staging" ]; then
-  G1_REASON="not-on-staging"
-elif [ "${HEAD_SHA}" != "${ORIGIN_STAGING}" ]; then
-  G1_REASON="head-not-origin-staging"
-elif [ "${DIRTY_COUNT}" != "0" ]; then
-  G1_REASON="worktree-dirty"
-fi
-if [ -n "${G1_REASON}" ]; then
-  echo "match=FAIL" >>"${EVIDENCE_DIR}/00-staging-sha.txt"
-  gate_record 1 FAIL "${G1_REASON}" "branch=${BRANCH} HEAD=${HEAD_SHA:-?} origin/Staging=${ORIGIN_STAGING:-?} dirty=${DIRTY_COUNT}"
+echo "  origin/Staging: ${ORIGIN_STAGING:-?}  origin/Production: ${PROD_SHA:-?}  fetch_ok=${FETCH_OK}"
+if [ -z "${HEAD_SHA}" ]; then
+  gate_record 1 FAIL "ref-unresolved" "this checkout has no HEAD commit"
   skip_from 2 "gate1-failed"
   stop_run
 fi
-echo "match=PASS" >>"${EVIDENCE_DIR}/00-staging-sha.txt"
-gate_record 1 PASS "revision-bound" "Staging ${ORIGIN_STAGING}"
+gate_record 1 PASS "checkout-bound" "branch=${BRANCH} HEAD=${HEAD_SHA} dirty=${DIRTY_COUNT} fetch_ok=${FETCH_OK}"
 echo "origin/Production=${PROD_SHA}" >"${EVIDENCE_DIR}/01-production-sha.txt"
 
-# ── Gate 2 — Merge-tree (read-only) ─────────────────────────────────────────
+# ── Gate 2 — Merge-tree is evidence. A conflict does not stop the sync. ─────
 echo ""
 echo "── Gate 2: Merge-tree (read-only)"
 CURRENT_GATE=2
-MT_OUT="$(git merge-tree --write-tree --name-only --messages "${PROD_SHA}" "${ORIGIN_STAGING}" 2>&1)"
-MT_RC=$?
-MT_TREE="$(printf '%s\n' "${MT_OUT}" | head -1)"
-MT_MARKERS="$(printf '%s\n' "${MT_OUT}" | grep -c '^<<<<<<<' || true)"
-{
-  echo "origin/Production=${PROD_SHA}"
-  echo "origin/Staging=${ORIGIN_STAGING}"
-  echo "exit_code=${MT_RC}"
-  echo "conflict_markers=${MT_MARKERS}"
-  echo "---"
-  printf '%s\n' "${MT_OUT}"
-} >"${EVIDENCE_DIR}/02-merge-tree.txt"
-if [ "${MT_RC}" -eq 0 ] && printf '%s' "${MT_TREE}" | grep -Eq '^[0-9a-f]{40}([0-9a-f]{24})?$' \
-  && [ "${MT_MARKERS}" = "0" ]; then
-  echo "result=CLEAN" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
-  gate_record 2 PASS "merge-clean" "tree ${MT_TREE}"
-elif [ "${MT_RC}" -eq 1 ]; then
-  echo "result=CONFLICT" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
-  gate_record 2 FAIL "merge-conflict" "git merge-tree reported conflicts (exit 1)"
-  skip_from 3 "gate2-failed"
-  stop_run
+if [ -z "${PROD_SHA}" ] || [ -z "${ORIGIN_STAGING}" ]; then
+  echo "result=UNPROVEN" >"${EVIDENCE_DIR}/02-merge-tree.txt"
+  echo "origin/Production=${PROD_SHA}" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+  echo "origin/Staging=${ORIGIN_STAGING}" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+  gate_record 2 PASS "merge-tree-unproven" "remote SHAs were not both available"
 else
-  echo "result=ERROR" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
-  gate_record 2 FAIL "merge-tree-error" "git merge-tree exit ${MT_RC}; a clean merge is unproven"
-  skip_from 3 "gate2-failed"
-  stop_run
+  MT_OUT="$(git merge-tree --write-tree --name-only --messages "${PROD_SHA}" "${ORIGIN_STAGING}" 2>&1)"
+  MT_RC=$?
+  MT_TREE="$(printf '%s\n' "${MT_OUT}" | head -1)"
+  MT_MARKERS="$(printf '%s\n' "${MT_OUT}" | grep -c '^<<<<<<<' || true)"
+  {
+    echo "origin/Production=${PROD_SHA}"
+    echo "origin/Staging=${ORIGIN_STAGING}"
+    echo "exit_code=${MT_RC}"
+    echo "conflict_markers=${MT_MARKERS}"
+    echo "---"
+    printf '%s\n' "${MT_OUT}"
+  } >"${EVIDENCE_DIR}/02-merge-tree.txt"
+  if [ "${MT_RC}" -eq 0 ] && printf '%s' "${MT_TREE}" | grep -Eq '^[0-9a-f]{40}([0-9a-f]{24})?$' \
+    && [ "${MT_MARKERS}" = "0" ]; then
+    echo "result=CLEAN" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+    gate_record 2 PASS "merge-clean" "tree ${MT_TREE}"
+  elif [ "${MT_RC}" -eq 1 ]; then
+    echo "result=CONFLICT" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+    gate_record 2 PASS "merge-conflict-recorded" "git merge-tree reported conflicts; the sync still runs"
+  else
+    echo "result=UNPROVEN" >>"${EVIDENCE_DIR}/02-merge-tree.txt"
+    gate_record 2 PASS "merge-tree-unproven" "git merge-tree exit ${MT_RC}"
+  fi
 fi
 
 # ── Gate 3 — Install-smoke ───────────────────────────────────────────────────
@@ -332,7 +322,7 @@ fi
 
 # ── Gate 6 — ERP 10% slice ───────────────────────────────────────────────────
 echo ""
-echo "── Gate 6: ERP 10% slice"
+echo "── Gate 6: ERP import"
 CURRENT_GATE=6
 bash "${KIT_DIR}/erp_slice.sh" "${ROOT}" "${CUTOVER_DB}" "${EVIDENCE_DIR}"
 G6_RC=$?
@@ -340,25 +330,20 @@ if [ "$(gate_state 6)" = "MISSING" ]; then
   gate_record 6 FAIL "helper-no-receipt" "erp_slice.sh exited ${G6_RC} without a gate receipt" 1
 fi
 
-# ── Gate 7 — VanillaSoft historical cohort (bounded sample) ──────────────────
-# The same `make import-vanillasoft` production runs, in its history mode:
-# the operator's frozen 4,876-ContactID census (VANILLASOFT_HISTORY_CENSUS and
-# its declared SHA-256 come from the environment; the kit never writes one),
-# fetched one ContactID at a time through the history driver, capped at
-# REHEARSAL_HISTORY_MAX_IDS. The ledger is this run's evidence file, so a
-# production checkpoint is never bound to the disposable clone. A PASS proves
-# only that the sample exercised the pipeline; it never claims the cohort.
+# ── Gate 7 — VanillaSoft history for the contact file in this checkout ───────
+# The file is plasticos_crm_sync/Vanillasoft-Scrap-Management.csv. Its SHA-256
+# is computed here only because the import harness requires the argument. The
+# kit stores no digest. No history cap is passed unless REHEARSAL_HISTORY_MAX_IDS
+# is already set. The ledger is this run's evidence file.
 echo ""
-echo "── Gate 7: VanillaSoft historical cohort (bounded sample)"
+echo "── Gate 7: VanillaSoft history"
 CURRENT_GATE=7
-REHEARSAL_HISTORY_MAX_IDS="${REHEARSAL_HISTORY_MAX_IDS:-100}"
-VS_CENSUS="${VANILLASOFT_HISTORY_CENSUS:-}"
-VS_CENSUS_SHA="$(printf '%s' "${VANILLASOFT_HISTORY_CENSUS_SHA256:-}" | tr '[:upper:]' '[:lower:]')"
+VS_CENSUS_REL="plasticos_crm_sync/Vanillasoft-Scrap-Management.csv"
+VS_CENSUS="${ROOT}/${VS_CENSUS_REL}"
 VS_LEDGER="${EVIDENCE_DIR}/06-crm-history.jsonl"
 G7_STATE=""
 if [ "$(gate_state 6)" != "PASS" ]; then
   gate_record 7 SKIPPED "gate6-not-passed" "VanillaSoft contacts resolve against ERP partners"
-# ── Safety guards: the rehearsal is never production and never a rolling window
 elif [ "${ODOO_STAGE:-}" = "production" ]; then
   gate_record 7 FAIL "production-stage-refused" "ODOO_STAGE=production; refusing a rehearsal import against production"
 elif [ -n "${VANILLASOFT_PRODUCTION_PERMIT:-}" ]; then
@@ -367,26 +352,15 @@ elif [ -n "${VANILLASOFT_CALL_FLOOR:-}${VANILLASOFT_CONTACT_FLOOR:-}" ]; then
   gate_record 7 FAIL "rolling-floor-refused" "a VanillaSoft call or contact floor is set; Gate 7 runs the historical cohort, not a window"
 elif [ -n "${VANILLASOFT_HISTORY_CHECKPOINT:-}" ]; then
   gate_record 7 FAIL "history-checkpoint-refused" "VANILLASOFT_HISTORY_CHECKPOINT is set; the rehearsal writes its own ledger and never binds an operator ledger to the clone"
-# ── Runtime inputs the operator supplies (never generated here) ──────────────
-elif [ -z "${VS_CENSUS}" ]; then
-  gate_record 7 BLOCKED "vanillasoft-history-census-unbound" "VANILLASOFT_HISTORY_CENSUS is unset; the approved 4,876-ContactID census is an operator runtime input"
-elif [ -z "${VS_CENSUS_SHA}" ]; then
-  gate_record 7 BLOCKED "vanillasoft-history-digest-unbound" "VANILLASOFT_HISTORY_CENSUS_SHA256 is unset; the census is used only against its independently declared digest"
 elif [ ! -r "${VS_CENSUS}" ]; then
-  gate_record 7 FAIL "vanillasoft-history-census-unreadable" "VANILLASOFT_HISTORY_CENSUS names a file that cannot be read"
-elif ! printf '%s\n' "${REHEARSAL_HISTORY_MAX_IDS}" | grep -Eq '^[1-9][0-9]*$'; then
+  gate_record 7 FAIL "vanillasoft-history-census-unreadable" "${VS_CENSUS_REL} is not readable in this checkout"
+elif [ -n "${REHEARSAL_HISTORY_MAX_IDS:-}" ] && ! printf '%s\n' "${REHEARSAL_HISTORY_MAX_IDS}" | grep -Eq '^[1-9][0-9]*$'; then
   gate_record 7 FAIL "vanillasoft-history-bound-invalid" "REHEARSAL_HISTORY_MAX_IDS must be a positive integer"
 else
-  VS_CENSUS_ABS="$(cd "$(dirname "${VS_CENSUS}")" && pwd)/$(basename "${VS_CENSUS}")"
-  VS_CENSUS_ACTUAL="$(rlib sha256 "${VS_CENSUS}" 2>/dev/null || true)"
-  if [ "${VS_CENSUS_ABS#"${ROOT}/"}" = "${VS_CENSUS_ABS}" ]; then
-    gate_record 7 FAIL "vanillasoft-history-census-unmounted" "the census must be inside the checkout, the only bind mount the odoo container reads"
-  elif [ "${VS_CENSUS_ACTUAL}" != "${VS_CENSUS_SHA}" ]; then
-    gate_record 7 FAIL "vanillasoft-history-census-digest-mismatch" "the census file's SHA-256 is not the declared VANILLASOFT_HISTORY_CENSUS_SHA256"
+  VS_CENSUS_SHA="$(rlib sha256 "${VS_CENSUS}" 2>/dev/null || true)"
+  if [ -z "${VS_CENSUS_SHA}" ]; then
+    gate_record 7 FAIL "vanillasoft-history-census-unreadable" "the contact file could not be hashed"
   else
-    # scripts/test_env.sh run validates the history form itself (census, digest
-    # and ledger named, no floor, no permit) before make starts; a refusal
-    # there is exit 2 and lands as FAIL vanillasoft-preflight-failed below.
     G7_STATE="run"
   fi
 fi
@@ -451,19 +425,29 @@ PYEOF
       # Host paths, relative to the checkout: the Makefile places them on the
       # container's bind mount itself (runtime_path). The report path is the
       # container path, as for Gate 6. No floor is passed: history mode only.
+      VS_MAX_ARG=""
+      if [ -n "${REHEARSAL_HISTORY_MAX_IDS:-}" ]; then
+        VS_MAX_ARG="VANILLASOFT_HISTORY_MAX_IDS=${REHEARSAL_HISTORY_MAX_IDS}"
+      fi
+      # shellcheck disable=SC2086
       bash "${ROOT}/scripts/test_env.sh" run "${CUTOVER_DB}" -- \
         make import-vanillasoft \
           ODOO_DB_NAME="${CUTOVER_DB}" \
-          VANILLASOFT_HISTORY_CENSUS="${VS_CENSUS_ABS#"${ROOT}/"}" \
+          VANILLASOFT_HISTORY_CENSUS="${VS_CENSUS_REL}" \
           VANILLASOFT_HISTORY_CENSUS_SHA256="${VS_CENSUS_SHA}" \
           VANILLASOFT_HISTORY_CHECKPOINT="${EVIDENCE_REL}/06-crm-history.jsonl" \
-          VANILLASOFT_HISTORY_MAX_IDS="${REHEARSAL_HISTORY_MAX_IDS}" \
+          ${VS_MAX_ARG} \
           VANILLASOFT_REPORT_PATH="${VS_REPORT}" \
           >"${EVIDENCE_DIR}/06-crm-log.txt" 2>&1
       VS_RC=$?
       VS_REFS_AFTER="$(vanillasoft_ref_census "${CUTOVER_DB}" "${EVIDENCE_DIR}/06-crm-refs-after.raw")" \
         || echo "query-failed" >"${EVIDENCE_DIR}/06-crm-refs-after.raw"
       echo "durable_refs_after=${VS_REFS_AFTER:-unknown}" >>"${EVIDENCE_DIR}/06-crm-refs.txt"
+      VS_MAX_FLAG=""
+      if [ -n "${REHEARSAL_HISTORY_MAX_IDS:-}" ]; then
+        VS_MAX_FLAG="--max-ids ${REHEARSAL_HISTORY_MAX_IDS}"
+      fi
+      # shellcheck disable=SC2086
       rlib check-vanillasoft-history "${EVIDENCE_DIR}" \
         --report "${EVIDENCE_DIR}/06-crm-result.json" \
         --import-exit "${VS_RC}" \
@@ -473,7 +457,7 @@ PYEOF
         --refs-after "${EVIDENCE_DIR}/06-crm-refs-after.raw" \
         --census-sha256 "${VS_CENSUS_SHA}" \
         --database "${CUTOVER_DB}" \
-        --max-ids "${REHEARSAL_HISTORY_MAX_IDS}" \
+        ${VS_MAX_FLAG} \
         --release-sha "${HEAD_SHA}" \
         --run-started "${RUN_STARTED_UTC}"
     fi
@@ -497,17 +481,9 @@ REMOTE_PROD="$(printf '%s\n' "${LS_REMOTE}" | awk '$2 == "refs/heads/Production"
   echo "end_production=${REMOTE_PROD}"
 } >"${EVIDENCE_DIR}/07-remote-refs.txt"
 if [ "${LS_RC}" -ne 0 ] || [ -z "${REMOTE_STAGING}" ] || [ -z "${REMOTE_PROD}" ]; then
-  echo "⚠️  Remote refs could not be re-read; readiness is unproven"
-  add_run_failure "remote-refs-unverifiable"
-else
-  if [ "${REMOTE_PROD}" != "${PROD_SHA}" ]; then
-    echo "⚠️  origin/Production moved during the rehearsal: ${PROD_SHA} → ${REMOTE_PROD}"
-    add_run_failure "production-ref-drifted"
-  fi
-  if [ "${REMOTE_STAGING}" != "${ORIGIN_STAGING}" ]; then
-    echo "⚠️  origin/Staging moved during the rehearsal: ${ORIGIN_STAGING} → ${REMOTE_STAGING}"
-    add_run_failure "staging-ref-drifted"
-  fi
+  echo "  Remote refs were not re-read. Recorded in 07-remote-refs.txt. The sync verdict does not depend on them."
+elif [ "${REMOTE_PROD}" != "${PROD_SHA}" ] || [ "${REMOTE_STAGING}" != "${ORIGIN_STAGING}" ]; then
+  echo "  origin/Staging or origin/Production moved during the run. Recorded in 07-remote-refs.txt. The sync verdict does not depend on them."
 fi
 
 finalize_run

@@ -1,0 +1,3 @@
+branch=Staging
+HEAD=246f021cf4f4dac2cb1311814ee299a0b4de65f9
+origin/Staging=246f021cf4f4dac2cb1311814ee299a0b4de65f9

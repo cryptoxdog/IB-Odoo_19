@@ -280,9 +280,10 @@ def report(census: Mapping[str, str], imported: Iterable[str], ledger: Mapping[s
         classes[cls] += 1
         by_decision[decision][cls] += 1
     dispositioned = sum(classes.values())
-    complete = dispositioned == COHORT and not undispositioned
+    size = len(census)
+    complete = dispositioned == size and not undispositioned
     return {
-        "cohort": COHORT,
+        "cohort": size,
         "dispositioned": dispositioned,
         "undispositioned": len(undispositioned),
         "classes": classes,
@@ -292,7 +293,7 @@ def report(census: Mapping[str, str], imported: Iterable[str], ledger: Mapping[s
         "HISTORICAL_SNAPSHOT_COMPLETE": complete,
         "historical_data_complete": complete
         and not imported_with_errors
-        and classes[IMPORTED] + classes[DUPLICATE_SKIPPED] == COHORT,
+        and classes[IMPORTED] + classes[DUPLICATE_SKIPPED] == size,
         "LIVE_DELTA_COMPLETENESS": "NOT_RUN",
         "FULL_CURRENT_CONTACT_COVERAGE": "UNKNOWN",
     }

@@ -1,0 +1,142 @@
+════════════════════════════════════════════════════════
+ Staging → Production Promotion Rehearsal
+ Run:      2026-11-06_205618
+ Evidence: /Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/tests/production-rehearsal/evidence/2026-11-06_205618
+════════════════════════════════════════════════════════
+
+── Gate 1: Branch identity
+  Branch: Staging  HEAD: 9ef95a4b09f5612d0886077d9e1974b65901fb32
+  origin/Staging: 4f571cbd1b8fda3482d6fd9e63aead72476245b0
+  ❌ Gate 1 FAILED: not on Staging or ahead of origin
+
+── Gate 2: Merge-tree (read-only)
+  origin/Production: 3318fa646a9f33aed55b9ea8f8596316e30684da
+  ✅ Gate 2 PASSED: clean merge (3318fa646a9f33aed55b9ea8f8596316e30684da ← 9ef95a4b09f5612d0886077d9e1974b65901fb32)
+
+── Gate 3: Install-smoke
+  ✅ Gate 3 PASSED
+
+── Gate 4: Cutover clone
+ Container odoo19-odoo-run-70478d53103a Creating
+ Container odoo19-odoo-run-70478d53103a Created
+✅ odoo_test_cutover is a fresh clone of odoo_test_tpl_ee_c9e8a81f52f23680 (owner w2495f48767, parity ee)
+2026-11-06 20:56:39,617 1 INFO odoo_test_cutover odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections
+fingerprint=9d47997766e6922eddb73af3b354b8567e185ec709cdd54378b9ecf03734483b
+source=1b6737bd7e2fccef422c794d9529b4348ee193d9903cd54ce8d640367198bce0
+✓ odoo_test_cutover: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
+  Business partners before data: 0
+  ✅ Gate 4 PASSED
+
+── Gate 5: Web lead e2e
+→ [Gate 5] Web lead e2e on odoo_test_cutover:18069
+  → Reading plasticos.web.lead.config.api_key on odoo_test_cutover (not printed)...
+  → Cutover config has no key; reading the same field on database odoo...
+  → Using ODOO_WEB_LEAD_API_KEY; it will be written onto the cutover config row.
+  → Writing that key onto odoo_test_cutover plasticos.web.lead.config so the webhook can read it...
+  → Starting Odoo HTTP on 127.0.0.1:18069 with database odoo_test_cutover...
+  → Waiting for /api/v1/web-lead/health...
+  → POSTing cognito_hot.json...
+  HTTP 200
+  status=ok decision=hot state=error intake_id=1 web_lead_id=1 lead_id=CG-rehearsal-hot-001
+  ❌ Gate 5 FAILED: state=error error=Expected singleton: res.users()
+odoo_rehearsal_18069
+  ❌ Gate 5 FAILED
+
+── Gate 6: ERP 10% slice
+→ [Gate 6] ERP 10% slice import on odoo_test_cutover
+  ✅ ERP source host.docker.internal:14330 (database and credential not printed)
+  ✅ Projection scripts: plasticos_partner_import/erp_extracted_data
+  → Partner census before import...
+  Business partners before import: 0
+  → Running import-erp LIMIT=10% on odoo_test_cutover...
+✓ odoo_test_cutover: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
+→ ERP import on database odoo_test_cutover  [direct SQL read]…
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo19-odoo-run-65a90557c1ce Creating
+ Container odoo19-odoo-run-65a90557c1ce Created
+2026-11-06 20:56:54,038 1 INFO ? odoo: Odoo version 19.0-20261102
+2026-11-06 20:56:54,038 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf
+2026-11-06 20:56:54,038 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons'])
+2026-11-06 20:56:54,038 1 INFO ? odoo: database: odoo@db:5432
+2026-11-06 20:56:54,148 1 INFO ? odoo.service.server: Initiating shutdown
+2026-11-06 20:56:54,148 1 INFO ? odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown.
+2026-11-06 20:56:54,156 1 INFO odoo_test_cutover odoo.modules.loading: loading 1 modules...
+2026-11-06 20:56:54,157 1 INFO odoo_test_cutover odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra)
+2026-11-06 20:56:54,185 1 INFO odoo_test_cutover odoo.modules.loading: loading 170 modules...
+2026-11-06 20:56:54,770 1 INFO odoo_test_cutover odoo.modules.loading: 170 modules loaded in 0.59s, 0 queries (+0 extra)
+2026-11-06 20:56:54,838 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-06 20:56:54,838 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-06 20:56:54,854 1 INFO odoo_test_cutover odoo.modules.loading: Modules loaded.
+2026-11-06 20:56:54,882 1 INFO odoo_test_cutover odoo.registry: Registry loaded in 0.734s
+Traceback (most recent call last):
+  File "src/pymssql/_pymssql.pyx", line 689, in pymssql._pymssql.connect
+ERP source: direct database read (host.docker.internal/[database])
+VALIDATOR PASSED (database)
+res.partner before import: 13 (pre-existing business partners: 0)
+  File "src/pymssql/_mssql.pyx", line 2305, in pymssql._mssql.connect
+  File "src/pymssql/_mssql.pyx", line 747, in pymssql._mssql.MSSQLConnection.__init__
+  File "src/pymssql/_mssql.pyx", line 2005, in pymssql._mssql.maybe_raise_MSSQLDatabaseException
+  File "src/pymssql/_mssql.pyx", line 2022, in pymssql._mssql.raise_MSSQLDatabaseException
+pymssql._mssql.MSSQLDatabaseException: (18456, b"Login failed for user 'erp_reader'.DB-Lib error message 20018, severity 14:\nGeneral SQL Server error: Check messages from the SQL Server\nDB-Lib error message 20002, severity 9:\nTDS server connection failed (host.docker.internal)\nDB-Lib error message 20002, severity 9:\nTDS server connection failed (host.docker.internal)\n")
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/mnt/extra-addons/plasticos_partner_import/erp/reader.py", line 350, in _read_database_payload
+    connection = source.connect()
+                 ^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/plasticos_partner_import/erp/reader.py", line 253, in connect
+    return pymssql.connect(
+           ^^^^^^^^^^^^^^^^
+  File "src/pymssql/_pymssql.pyx", line 698, in pymssql._pymssql.connect
+pymssql.exceptions.OperationalError: (18456, b"Login failed for user 'erp_reader'.DB-Lib error message 20018, severity 14:\nGeneral SQL Server error: Check messages from the SQL Server\nDB-Lib error message 20002, severity 9:\nTDS server connection failed (host.docker.internal)\nDB-Lib error message 20002, severity 9:\nTDS server connection failed (host.docker.internal)\n")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/shell.py", line 162, in run
+    self.shell(dbnames[0])
+  File "/usr/lib/python3/dist-packages/odoo/cli/shell.py", line 148, in shell
+    self.console(local_vars)
+  File "/usr/lib/python3/dist-packages/odoo/cli/shell.py", line 82, in console
+    exec(sys.stdin.read(), local_vars)
+  File "<string>", line 476, in <module>
+  File "<string>", line 435, in main
+  File "/mnt/extra-addons/plasticos_partner_import/scripts/run_erp_import.py", line 73, in run
+    result = env["plasticos.erp.import"].run(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/plasticos_partner_import/models/erp_import_service.py", line 152, in run
+    payload = reader.load_payload(payload_root, only=only, database=database)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/plasticos_partner_import/erp/reader.py", line 306, in load_payload
+    tables = _read_database_payload(database, required, sql_payload_root())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/plasticos_partner_import/erp/reader.py", line 354, in _read_database_payload
+    raise SourcePayloadError(f"cannot connect to ERP database {source.label}: {type(exc).__name__}") from exc
+odoo.addons.plasticos_partner_import.erp.reader.SourcePayloadError: cannot connect to ERP database host.docker.internal/[database]: OperationalError
+
+make: *** [import-erp] Error 1
+  ❌ Gate 6 FAILED
+
+── Gate 7: VanillaSoft 100 contacts
+  ⏭  Gate 7 SKIPPED: Gate 6 did not pass. VanillaSoft contacts resolve against ERP partners.
+
+✅ origin/Production unchanged at 3318fa646a9f33aed55b9ea8f8596316e30684da
+
+════════════════════════════════════════════════════════
+run_ts=2026-11-06_205618
+staging_sha=9ef95a4b09f5612d0886077d9e1974b65901fb32
+production_sha=3318fa646a9f33aed55b9ea8f8596316e30684da
+verdict=failed
+failures=Gate1-branch-identity Gate5-weblead-e2e Gate6-erp-import Gate7-skipped-erp-not-passed
+ ❌ VERDICT: failed — Failed gates: Gate1-branch-identity Gate5-weblead-e2e Gate6-erp-import Gate7-skipped-erp-not-passed
+════════════════════════════════════════════════════════
+ Evidence: /Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/tests/production-rehearsal/evidence/2026-11-06_205618
+ Latest:   /Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/tests/production-rehearsal/evidence/latest
+ Log:      /Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/tests/production-rehearsal/evidence/2026-11-06_205618/rehearsal.log
