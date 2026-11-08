@@ -1,0 +1,65 @@
+{
+  "branch": "fix/rehearsal-kit-checkout-sync",
+  "failures": [
+    "Gate6-FAIL:erp-fidelity-discrepancy",
+    "Gate7-SKIPPED:gate6-not-passed"
+  ],
+  "finalized_at": "2026-11-08T13:18:55Z",
+  "gates": [
+    {
+      "gate": 1,
+      "name": "branch-identity",
+      "reason": "checkout-bound",
+      "side_effects": false,
+      "state": "PASS"
+    },
+    {
+      "gate": 2,
+      "name": "merge-tree",
+      "reason": "merge-clean",
+      "side_effects": false,
+      "state": "PASS"
+    },
+    {
+      "gate": 3,
+      "name": "install-smoke",
+      "reason": "install-smoke-ran",
+      "side_effects": true,
+      "state": "PASS"
+    },
+    {
+      "gate": 4,
+      "name": "cutover-clone",
+      "reason": "clone-empty",
+      "side_effects": true,
+      "state": "PASS"
+    },
+    {
+      "gate": 5,
+      "name": "weblead-e2e",
+      "reason": "weblead-crm-opportunity-proven",
+      "side_effects": true,
+      "state": "PASS"
+    },
+    {
+      "gate": 6,
+      "name": "erp-slice",
+      "reason": "erp-fidelity-discrepancy",
+      "side_effects": true,
+      "state": "FAIL"
+    },
+    {
+      "gate": 7,
+      "name": "vanillasoft",
+      "reason": "gate6-not-passed",
+      "side_effects": false,
+      "state": "SKIPPED"
+    }
+  ],
+  "head_sha": "0a7720bd8fcd0f7cb7cf506f05c5085c224680f3",
+  "production_sha": "3318fa646a9f33aed55b9ea8f8596316e30684da",
+  "run_ts": "2026-11-08_124519",
+  "schema": "l9.plasticos.rehearsal.verdict.v1",
+  "staging_sha": "29bc7ca080b5d90f5bd11658e575a5c27c54887c",
+  "verdict": "failed"
+}

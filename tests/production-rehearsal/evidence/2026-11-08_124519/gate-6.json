@@ -1,0 +1,64 @@
+{
+  "detail": "5 mapped field value(s) differ from the source",
+  "evidence": [
+    "05-erp-summary.json",
+    "05-erp-summary-census.json",
+    "05-erp-import.log",
+    "05-erp-fidelity.json",
+    "05-erp-fidelity-coverage.json"
+  ],
+  "exit_code": 0,
+  "facts": {
+    "disposition": "partial-source-explained",
+    "execution_path": {
+      "commercial_extension": "plasticos_transaction/models/legacy_erp_import_service.py (_inherit plasticos.erp.import)",
+      "database": "odoo_test_cutover",
+      "dispatcher": "plasticos.erp.import (plasticos_partner_import/models/erp_import_service.py)",
+      "driver": "plasticos_partner_import/scripts/import_erp_shell.py",
+      "limit": "full",
+      "make_target": "import-erp",
+      "release_sha": "0a7720bd8fcd0f7cb7cf506f05c5085c224680f3",
+      "source": "restored ERP SQL Server database (reader.PayloadKind.DATABASE)"
+    },
+    "failure_codes": [
+      "erp-fidelity-discrepancy"
+    ],
+    "fidelity_compared": 282223,
+    "fidelity_failed": 5,
+    "final_status": "partial",
+    "layers": {
+      "addresses": 2602,
+      "contacts": 3726,
+      "counterparties": 1300
+    },
+    "native_documents": {
+      "clone": {
+        "bills": 13256,
+        "invoices": 6877,
+        "ledger_moves": 176,
+        "purchase_lines": 9986,
+        "purchase_orders": 7037,
+        "sale_lines": 9519,
+        "sale_orders": 6950,
+        "worksheets": 8162
+      },
+      "realized_lines": 10461,
+      "realized_transactions": 7727,
+      "scope": ""
+    },
+    "payload_kind": "database",
+    "records_created": 25867,
+    "records_rejected": 2505,
+    "records_seen": 32332,
+    "scope": "full import-erp of the checkout; every partner layer and every worksheet",
+    "source_origin": "host.docker.internal/cieTrade_SM",
+    "unresolved": 1250
+  },
+  "gate": 6,
+  "name": "erp-slice",
+  "reason": "erp-fidelity-discrepancy",
+  "recorded_at": "2026-11-08T13:18:55Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "FAIL"
+}

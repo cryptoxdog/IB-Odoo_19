@@ -1,0 +1,20 @@
+{
+  "detail": "",
+  "evidence": [
+    "04-weblead-result.json",
+    "04-weblead-db.json"
+  ],
+  "exit_code": null,
+  "facts": {
+    "crm_lead_id": 1,
+    "intake_id": 1,
+    "web_lead_id": 1
+  },
+  "gate": 5,
+  "name": "weblead-e2e",
+  "reason": "weblead-crm-opportunity-proven",
+  "recorded_at": "2026-11-08T12:46:12Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "PASS"
+}
