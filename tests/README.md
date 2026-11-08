@@ -9,10 +9,12 @@
 
 The test suite is organized into two categories:
 
-1. **Odoo Tests** — Require Odoo runtime, use `TransactionCase`
-2. **Pure Python Tests** — Run without Odoo, use AST/XML parsing for static analysis
+1. **Odoo Tests** — Require Odoo runtime, use `PlasticosTestCase` (`TransactionCase` under `--test-enable`).
+   They live in the owning addon's `tests/` package (`plasticos_<addon>/tests/test_*.py`), **not** here.
+2. **Pure Python Tests** — Run without Odoo, use AST/XML parsing for static analysis. They live in this
+   `tests/` tree and run under pytest (CI `pure-python-tests`, `make test`).
 
-All tests use a shared factory mixin (`common.py`) for consistent test data creation.
+Odoo-backed tests use the shared factory mixin in `plasticos_base/test_common.py`.
 
 ---
 
@@ -20,31 +22,39 @@ All tests use a shared factory mixin (`common.py`) for consistent test data crea
 
 ### Odoo Tests (require Odoo runtime)
 
-| File | Category | Tags | Models Covered |
-|------|----------|------|----------------|
-| `test_action_methods.py` | Action/Button Methods | `action` | 9 models, 67+ actions |
-| `test_bridge_models.py` | Bridge Model Coverage | `bridge` | 7 bridge patterns |
-| `test_constraints_material_profile.py` | Constraints | `constraint` | `plasticos.material.profile` |
-| `test_constraints_onchanges.py` | Constraints & Onchanges | `constraint`, `onchange` | Transaction, Intake, Claim |
-| `test_cron_batch_normalize.py` | Cron Jobs | `cron` | Intake normalizer |
-| `test_cron_plasticos_base.py` | Cron Jobs | `cron` | Midnight recompute, attachments |
-| `test_cron_runtime.py` | Cron Jobs | `cron` | Cron method validation |
-| `test_depends_transaction_claims_bridge.py` | Dependencies | `depends` | Transaction ↔ Claim |
-| `test_error_handling.py` | Error Handling | `error_handling` | API failures, validation, ACL |
-| `test_golden_flows.py` | Golden Paths | `golden`, `critical` | Full business cycles |
-| `test_integration_flows.py` | Integration Flows | `integration` | Cross-module flows |
-| `test_onchange_purchase_order_line_plasticos.py` | Onchanges | `onchange` | Purchase order lines |
-| `test_onchange_sale_order_line_plasticos.py` | Onchanges | `onchange` | Sale order lines |
-| `test_performance.py` | Performance | `performance` | Bulk ops, search, cron |
-| `test_security_acl.py` | Security/ACL | `security` | Permission enforcement |
-| `test_state_machines.py` | State Machines | `state_machine` | Load, Transaction, Claim, Offer |
+Odoo 19 collects tests only from `odoo.addons.<addon>.tests`, and only the `test_*` submodules that
+package's `__init__.py` imports (`odoo/tests/loader.py`). `--test-file` / `--test-tags` filter that set;
+they cannot add a file outside it. An Odoo test placed under this root `tests/` tree therefore runs
+nowhere: `conftest.py` collect-ignores it under pytest, and Odoo never loads it.
+`tests/test_odoo_test_discovery.py` enforces the placement.
+
+Owner rule: the smallest addon whose dependency closure covers every PlasticOS model the file
+exercises. Where no single closure covers it (the leaf addons `plasticos_matching` /
+`plasticos_enrichment` have no dependants), the addon with the fewest uncovered models; those files are
+`post_install` and run against a full install (Odoo.sh, or the pinned Docker fixture through `make runtime-test` in the `make pr-check` smoke stage).
+
+| File | Owner addon | Tags |
+|------|-------------|------|
+| `test_crm_lead_contracts.py`, `test_partner_contracts.py`, `test_xpath_field_refs.py` | `plasticos_base` | `contract`, `xpath_field_refs` |
+| `test_bridge_models.py`, `test_constraints_onchanges.py`, `test_cron_idempotency.py`, `test_cron_plasticos_base.py`, `test_cron_runtime.py`, `test_depends_transaction_claims_bridge.py`, `test_integration_flows.py`, `test_selection_contracts.py`, `test_state_machines.py` | `plasticos_claims` | `bridge`, `constraint`, `cron`, `integration`, `state_machine` |
+| `test_api_signature_contracts.py`, `test_constraint_validation.py`, `test_golden_flows.py`, `test_security_acl.py` | `plasticos_commission` | `contract`, `golden`, `security` |
+| `test_account_move_transaction_link.py`, `test_compliance_service.py` | `plasticos_documents` | `accounting`, `documents` |
+| `test_computed_field_deps.py`, `test_intake_contracts.py`, `test_intake_onchange_cascade.py` | `plasticos_intake` | `contract`, `onchange` |
+| `test_cron_batch_normalize.py` | `plasticos_intake_normalizer` | — |
+| `test_linda_freight_models.py` | `plasticos_logistics` | `linda` |
+| `test_match_result_guards.py`, `test_performance.py` | `plasticos_matching` | `matching`, `performance` |
+| `test_constraints_material_profile.py`, `test_material_profile_intake_delta_contract.py`, `test_polymer_product_sync.py` | `plasticos_material_profile` | `contract`, `product` |
+| `test_offer_state_machine.py`, `test_write_unlink_guards.py` | `plasticos_offer` | `offer`, `guards` |
+| `test_onchange_purchase_order_line_plasticos.py`, `test_onchange_sale_order_line_plasticos.py` | `plasticos_order_lines` | — |
+| `test_partner_import_csv_paths.py` | `plasticos_partner_import` | `partner_import` |
+| `test_action_methods.py`, `test_bridge_contracts.py`, `test_error_handling.py` | `plasticos_security_base` | `action`, `contract`, `error_handling` |
+| `test_bridge_wiring_contracts.py`, `test_sale_order_transaction_autocreate.py`, `test_transaction_contracts.py` | `plasticos_transaction` | `contract`, `transaction` |
 
 ### Pure Python Tests (no Odoo required)
 
 | File | Category | Purpose |
 |------|----------|---------|
 | `test_cron_invariants.py` | Static Analysis | Cron configuration validation |
-| `test_cypher_schema_alignment.py` | Schema Validation | Cypher ↔ Neo4j alignment |
 | `test_odoo19_compat.py` | Compatibility | Odoo 19 API patterns |
 | `test_odoo_test_setup_validity.py` | Meta Testing | Test setup validation |
 | `test_phantom_enum_values.py` | Registry Validation | Selection fields vs XML data |
@@ -55,7 +65,7 @@ All tests use a shared factory mixin (`common.py`) for consistent test data crea
 
 ## Shared Test Utilities
 
-### `common.py` — Factory Mixin
+### `plasticos_base/test_common.py` — Factory Mixin
 
 All test classes inherit from `PlastOSTestFactoryMixin` which provides:
 
@@ -80,6 +90,8 @@ cls._skip_if_model_missing(*models)
 
 ### Assertion Helpers
 
+`tests/common.py` (pure Python, importable without Odoo):
+
 ```python
 assert_action_result(test_case, result, expected_model, expected_type)
 assert_state_transition(test_case, record, action_name, expected_state)
@@ -91,6 +103,9 @@ assert_message_posted(test_case, record, keyword)
 ## Running Tests
 
 ```bash
+# One addon's tests (Docker fixture DB; runs at_install + post_install of that addon)
+make runtime-test m=plasticos_claims   # only under l9-pr-integration-testing; the smoke stage passes modules itself
+
 # All PlastOS tests
 odoo-bin -d testdb --test-tags plasticos --stop-after-init
 
@@ -104,12 +119,11 @@ odoo-bin -d testdb --test-tags performance --stop-after-init # Benchmarks
 odoo-bin -d testdb --test-tags error_handling --stop-after-init
 
 # Pure Python tests (no Odoo required)
-pytest tests/test_cypher_schema_alignment.py -v
 pytest tests/test_phantom_enum_values.py -v
 pytest tests/test_repo_dependency_integrity.py -v
 
 # Meta tests (validate test suite structure)
-pytest tests/tests_init.py -v
+pytest tests/test_suite_structure.py -v
 ```
 
 ---

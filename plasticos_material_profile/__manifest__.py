@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Material Profile",
-    "version": "19.0.5.8.0",
+    "version": "19.0.5.11.12",
     "summary": "Canonical material master registries: polymer, form, color, source, process, grade templates",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -20,6 +20,7 @@
         "data/material_attribute_data.xml",
         "data/packaging_type_data.xml",
         "data/polymer_data.xml",
+        "data/material_grade_data.xml",
         "data/material_form_data.xml",
         "data/material_color_data.xml",
         "data/source_type_data.xml",
@@ -27,6 +28,7 @@
         "data/grade_template_data.xml",
         "views/polymer_views.xml",
         "views/grade_template_views.xml",
+        "views/material_grade_views.xml",
         "views/material_form_views.xml",
         "views/material_color_views.xml",
         "views/source_type_views.xml",

@@ -1,0 +1,22 @@
+{
+  "gate": "A",
+  "database": "odoo_test_erpvs1021",
+  "template": "odoo_test_tpl_ee_c9e8a81f52f23680",
+  "owner": "w2495f48767",
+  "parity": "ee",
+  "captured_before_import": true,
+  "counts": {
+    "crm_lead": 0,
+    "plasticos_crm_external_ref": 0,
+    "plasticos_crm_sync_run": 0,
+    "plasticos_crm_call_event": 0,
+    "plasticos_crm_external_table_row": 0,
+    "sale_order": 0,
+    "purchase_order": 0,
+    "account_move": 0,
+    "plasticos_transaction": 0,
+    "res_partner": 13,
+    "legacy_erp_xmlid": 0
+  },
+  "note": "The 13 partners are the Enterprise fixture seed. No CRM rows and no legacy ERP xmlids were present before the partners-only import."
+}

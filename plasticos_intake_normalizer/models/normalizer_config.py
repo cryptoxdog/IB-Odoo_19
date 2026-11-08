@@ -1,6 +1,7 @@
 import logging
 
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -93,6 +94,17 @@ class PlasticosNormalizerConfig(models.Model):
         default=200,
         help="Maximum intakes to normalize per cron run.",
     )
+
+    @api.constrains("batch_limit")
+    def _check_batch_limit(self):
+        """A negative batch limit would reach the cron's search as LIMIT -n,
+        which PostgreSQL rejects. 0 keeps its meaning: use the default."""
+        for config in self:
+            if config.batch_limit < 0:
+                raise ValidationError(
+                    f"Normalizer configuration '{config.name}' has batch limit {config.batch_limit}; "
+                    "it must be a positive number of intakes, or 0 for the default of 200."
+                )
 
     # ── Singleton pattern ────────────────────────────────
     @api.model

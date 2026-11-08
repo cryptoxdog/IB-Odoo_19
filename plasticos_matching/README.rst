@@ -1,11 +1,6 @@
-PlasticOS matching
+PlasticOS Matching
 ##################
 
-Core matching engine for connecting intakes with potential buyers.
+Gate-mediated match runs with explicit degraded/retry mode (mothball M5)
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

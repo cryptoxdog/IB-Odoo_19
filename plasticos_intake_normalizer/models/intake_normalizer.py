@@ -1,4 +1,3 @@
-import json
 import logging
 import uuid
 
@@ -69,8 +68,7 @@ class PlasticosIntakeNormalizer(models.Model):
     def action_normalize(self):
         """Validate and normalize a single intake (button action)."""
         self.ensure_one()
-        # sudo: config may not be readable by all users
-        config = self.env["plasticos.normalizer.config"].sudo().get_config()
+        config = self.env["plasticos.normalizer.config"].get_config()
         errors, warnings = self._validate_for_normalization(config)
 
         if errors:
@@ -135,7 +133,7 @@ class PlasticosIntakeNormalizer(models.Model):
             return
 
         # Skip if already geocoded
-        if target.partner_latitude and target.partner_latitude != 0.0:
+        if target.partner_latitude:
             _logger.debug("Facility %s already geocoded (lat=%s)", target.name, target.partner_latitude)
             return
 
@@ -146,7 +144,7 @@ class PlasticosIntakeNormalizer(models.Model):
 
         try:
             target.geo_localize()
-            if target.partner_latitude and target.partner_latitude != 0.0:
+            if target.partner_latitude:
                 _logger.info(
                     "Geocoded facility %s during normalization: lat=%s, lon=%s",
                     target.name,
@@ -181,6 +179,9 @@ class PlasticosIntakeNormalizer(models.Model):
 
         try:
             config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: config read
+            # A value stored before the constraint existed is refused here,
+            # inside the lock's try/finally, before it can reach the search.
+            config._check_batch_limit()
             limit = config.batch_limit or 200
 
             pending = self.search(
@@ -430,6 +431,9 @@ class PlasticosIntakeNormalizer(models.Model):
             "odoo_record_id": self.id,
             # ── Identity ─────────────────────────────────
             "partner": self._assemble_partner_block(),
+            "polymer": self.polymer_id.code if self.polymer_id else None,
+            "form": self.form_id.code if self.form_id else None,
+            "material_grade": self.material_grade_id.code if self.material_grade_id else None,
             # ── Quality Specs ────────────────────────────
             "quality": {
                 "mfi_value": self.mfi_value or None,
@@ -523,9 +527,10 @@ class PlasticosIntakeNormalizer(models.Model):
             block["polymer_name"] = mp.polymer_id.name
 
         # Standard fields that exist on the base material_profile
-        for fld in ("form", "color", "source_type", "grade"):
+        for fld in ("form", "color", "source_type"):
             if hasattr(mp, fld):
                 block[fld] = getattr(mp, fld) or None
+        block["material_grade"] = mp.material_grade_id.code if mp.material_grade_id else None
 
         return block
 
@@ -603,29 +608,10 @@ class PlasticosIntakeNormalizer(models.Model):
     # ═════════════════════════════════════════════════════
 
     def _log_normalization(self, action, errors):
-        """Write to plasticos.automation.log if the model exists."""
-        self.ensure_one()
-        if "plasticos.automation.log" not in self.env:
-            return
-        AutoLog = self.env["plasticos.automation.log"]
+        """The intake write that precedes this call is the audit.
 
-        detail = ""
-        if errors:
-            detail = json.dumps(errors, indent=2)
-
-        try:
-            # sudo: create audit log regardless of user permissions
-            AutoLog.sudo().create(
-                {
-                    "model_name": "plasticos.intake",
-                    "record_id": self.id,
-                    "action_type": f"normalize_{action}",
-                    "detail": detail or f"Packet {self.last_packet_id or 'N/A'}",
-                }
-            )
-        except Exception:
-            _logger.debug(
-                "Could not write automation log for intake %s",
-                self.name,
-                exc_info=True,
-            )
+        A second automation-log row is not created. Manual UserError rolls the
+        intake write back with the button transaction. Cron does not raise, so
+        those field writes stay.
+        """
+        return

@@ -8,8 +8,10 @@ Covers:
 """
 
 import glob
+import io
 import os
 import re
+import tokenize
 import unittest
 
 # =============================================================================
@@ -30,12 +32,16 @@ _SQL_JUSTIFIED_FILES = {
     "plasticos_transaction/models/transaction.py": "Advisory lock for concurrency",
     # Load model uses SQL for batch operations
     "plasticos_logistics/models/load.py": "Batch load operations",
+    # _auto=False dashboard VIEWs: CREATE VIEW DDL has no ORM equivalent
+    "plasticos_logistics/models/load_dashboard.py": "CREATE VIEW DDL for _auto=False dashboard",
+    "plasticos_commission/models/sales_dashboard.py": "CREATE VIEW DDL for _auto=False dashboard",
+    # Uninstall hook bulk-deletes records being discarded with the module —
+    # no unlink() business logic (state transitions, notifications) applies
+    "plasticos_intake/__init__.py": "Bulk delete on module uninstall",
     # Automation models use SQL for batch operations and performance
     "plasticos_automation/models/": "Automation batch operations",
     # Documents models use SQL for batch document operations
     "plasticos_documents/models/": "Document batch operations",
-    # Buyer match engine models use SQL for graph sync and exclusion operations
-    "plasticos_buyer_match_engine/models/": "Graph sync and exclusion operations",
     # Enrichment models use SQL for batch enrichment operations
     "plasticos_enrichment/models/": "Batch enrichment operations",
     # Geolocalize uses SQL for spatial queries
@@ -44,7 +50,67 @@ _SQL_JUSTIFIED_FILES = {
     "plasticos_intake_normalizer/models/": "Batch normalization operations",
     # Test files use SQL to force states/data for edge case testing
     "/tests/": "Test fixture setup",
+    # Linda mail send: one read of flushed Linda rows, and a FOR UPDATE row lock so
+    # two mail workers cannot both reach SMTP for the same message
+    "plasticos_logistics/models/mail_mail_inherit.py": "Flushed Linda read and FOR UPDATE send lock",
+    # PostgreSQL advisory lock, the same accepted pattern as transaction.py
+    "plasticos_matching/models/match_exclusion.py": "Advisory lock for concurrency",
+    # Public route: compares the bearer token with every active api_key, a field
+    # restricted to groups="base.group_system"
+    "plasticos_web_leads/controllers/web_lead_api.py": "Bearer token check against group_system api_key",
 }
+
+_SQL_JUSTIFICATION_KEYWORDS = ("justification", "advisory", "performance", "atomic", "bulk")
+
+
+def _code_only_lines(lines: list[str]) -> list[str]:
+    """``lines`` with comments and string literals blanked; raw lines if tokenizing fails."""
+    code = [""] * len(lines)
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO("".join(lines)).readline):
+            if tok.type in (tokenize.COMMENT, tokenize.STRING) or tok.start[0] != tok.end[0]:
+                continue
+            row = tok.start[0] - 1
+            if row < len(code):
+                code[row] += " " + tok.string
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return list(lines)
+    return code
+
+
+def _unjustified_sql_lines(py_file: str, lines: list[str]) -> list[str]:
+    """``path:line: source`` for each ``env.cr.execute`` call that is neither allowlisted nor justified.
+
+    A path is allowlisted when it ends with, or contains, a ``_SQL_JUSTIFIED_FILES``
+    key. Otherwise a call needs a justification keyword on its own line or the line above.
+    Mentions inside comments or string literals are not calls.
+    """
+    if any(py_file.endswith(approved) or approved in py_file for approved in _SQL_JUSTIFIED_FILES):
+        return []
+    code = _code_only_lines(lines)
+    violations = []
+    for i, line in enumerate(lines, 1):
+        if "env.cr.execute" not in line or "env . cr . execute" not in code[i - 1]:
+            continue
+        context_text = " ".join(lines[max(0, i - 2) : i]).lower()
+        if not any(kw in context_text for kw in _SQL_JUSTIFICATION_KEYWORDS):
+            violations.append(f"{py_file}:{i}: {line.strip()}")
+    return violations
+
+
+_XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def _tree_tag_lines(text: str) -> list[tuple[int, str]]:
+    """``(line, source)`` for each ``<tree>`` tag outside an XML comment, line numbers preserved."""
+    stripped = _XML_COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+    source = text.splitlines()
+    return [
+        (i, source[i - 1].strip())
+        for i, line in enumerate(stripped.splitlines(), 1)
+        if "<tree " in line or "<tree>" in line
+    ]
+
 
 # Files/patterns where groups_id usage is valid (res.users manipulation, not ir.model.access)
 _GROUPS_ID_VALID_PATTERNS = [
@@ -71,7 +137,6 @@ _PLASTICOS_MODULES = [
     "plasticos_facility_profile",
     "plasticos_partner_import",
     "plasticos_security_base",
-    "plasticos_buyer_match_engine",
     "plasticos_claims",
     "plasticos_commission",
     "plasticos_enrichment",
@@ -182,31 +247,43 @@ class TestOdoo19APICompat(unittest.TestCase):
         self.assertEqual(violations, [], "Found old-style _constraints:\n" + "\n".join(violations))
 
     def test_no_direct_sql_without_justification(self):
-        """Direct SQL (env.cr.execute) should have a comment justification.
+        """Direct SQL (env.cr.execute) is allowlisted or carries a justification keyword.
 
         Files in _SQL_JUSTIFIED_FILES are pre-approved with documented reasons.
-        Other files need inline justification comments.
+        Other files need a justification keyword on the call line or the line above.
+        Scope is _PLASTICOS_MODULES only.
         """
         violations = []
         for py_file in _find_py_files():
-            # Skip pre-approved files (documented in _SQL_JUSTIFIED_FILES)
-            if any(py_file.endswith(approved) or approved in py_file for approved in _SQL_JUSTIFIED_FILES):
-                continue
             with open(py_file) as f:
-                lines = f.readlines()
-            for i, line in enumerate(lines, 1):
-                if "env.cr.execute" in line or "self.env.cr.execute" in line:
-                    # Check for justification comment on same or previous line
-                    context = lines[max(0, i - 2) : i]
-                    context_text = " ".join(context)
-                    justification_keywords = ["justification", "advisory", "performance", "atomic", "bulk"]
-                    if not any(kw in context_text.lower() for kw in justification_keywords):
-                        violations.append(f"{py_file}:{i}: {line.strip()}")
-        # Soft check — warning only for new violations
-        if violations:
-            import warnings
+                violations.extend(_unjustified_sql_lines(py_file, f.readlines()))
+        self.assertEqual(violations, [], "SQL without justification:\n" + "\n".join(violations))
 
-            warnings.warn("SQL without justification:\n" + "\n".join(violations[:5]), stacklevel=2)
+    def test_sql_classifier_rejects_an_unjustified_call(self):
+        """Negative case: an unlisted path with a bare env.cr.execute is a violation."""
+        lines = ["def _run(self):\n", "    self.env.cr.execute(\n", '        "SELECT 1"\n', "    )\n"]
+        self.assertEqual(
+            _unjustified_sql_lines("plasticos_example/models/example.py", lines),
+            ["plasticos_example/models/example.py:2: self.env.cr.execute("],
+        )
+
+    def test_sql_classifier_ignores_comments_and_strings(self):
+        lines = [
+            "# do not call self.env.cr.execute( here\n",
+            "def _run(self):\n",
+            '    """Avoid self.env.cr.execute(...) in this method."""\n',
+            '    msg = "self.env.cr.execute("\n',
+        ]
+        self.assertEqual(_unjustified_sql_lines("plasticos_example/models/example.py", lines), [])
+
+    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
+        lines = ["def _run(self):\n", "    self.env.cr.execute(\n"]
+        for path in (
+            "plasticos_logistics/models/mail_mail_inherit.py",
+            "plasticos_matching/models/match_exclusion.py",
+            "plasticos_web_leads/controllers/web_lead_api.py",
+        ):
+            self.assertEqual(_unjustified_sql_lines(path, lines), [], path)
 
 
 class TestOdoo19XMLCompat(unittest.TestCase):
@@ -253,17 +330,12 @@ class TestOdoo19XMLCompat(unittest.TestCase):
         violations = []
         for xml_file in _find_xml_files():
             with open(xml_file) as f:
-                for i, line in enumerate(f, 1):
-                    if "<tree " in line or "<tree>" in line:
-                        # Allow if it's in a comment
-                        if "<!--" in line:
-                            continue
-                        violations.append(f"{xml_file}:{i}: {line.strip()}")
-        # Soft check — Odoo still supports <tree> but <list> is preferred
-        if violations:
-            import warnings
+                violations.extend(f"{xml_file}:{i}: {line}" for i, line in _tree_tag_lines(f.read()))
+        self.assertEqual(violations, [], "Found <tree> (use <list>):\n" + "\n".join(violations))
 
-            warnings.warn("Found <tree> (prefer <list>):\n" + "\n".join(violations[:5]), stacklevel=2)
+    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
+        text = '<odoo>\n<!-- example:\n  <tree>\n-->\n<!-- <tree> -->\n<tree string="x">\n</odoo>\n'
+        self.assertEqual(_tree_tag_lines(text), [(6, '<tree string="x">')])
 
     def test_xml_well_formed(self):
         """All XML files should be well-formed."""
@@ -272,6 +344,7 @@ class TestOdoo19XMLCompat(unittest.TestCase):
         violations = []
         for xml_file in _find_xml_files():
             try:
+                # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
                 ET.parse(xml_file)  # nosec B314 - parsing trusted local Odoo XML
             except ET.ParseError as e:
                 violations.append(f"{xml_file}: {e}")
@@ -292,3 +365,59 @@ class TestOdoo19XMLCompat(unittest.TestCase):
                             violations.append(msg)
                         ids_seen[xml_id] = i
         self.assertEqual(violations, [], "Duplicate XML IDs:\n" + "\n".join(violations))
+
+
+class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
+    """Phone rows use the same privacy domain as their parent partner."""
+
+    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
+        import csv
+        import xml.etree.ElementTree as ET
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        rules_path = root / "plasticos_security_base" / "security" / "record_rules.xml"
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+        rules = ET.parse(rules_path).getroot()  # nosec B314 - trusted local Odoo XML
+        by_id = {node.get("id"): node for node in rules.findall("record") if node.get("model") == "ir.rule"}
+        partner = by_id["rule_partner_private"]
+        phone = by_id["rule_partner_phone_private"]
+
+        def field_node(record, name):
+            for child in record:
+                if child.get("name") == name:
+                    return child
+            raise AssertionError(name)
+
+        def field_text(record, name):
+            return "".join(field_node(record, name).itertext())
+
+        partner_domain = field_text(partner, "domain_force")
+        phone_domain = field_text(phone, "domain_force")
+        self.assertIn("('is_private', '=', False)", partner_domain)
+        self.assertIn("('create_uid', '=', user.id)", partner_domain)
+        self.assertIn("('partner_id.is_private', '=', False)", phone_domain)
+        self.assertIn("('partner_id.create_uid', '=', user.id)", phone_domain)
+        partner_groups = field_node(partner, "groups").get("eval") or ""
+        phone_groups = field_node(phone, "groups").get("eval") or ""
+        self.assertEqual(phone_groups, partner_groups)
+        self.assertIn("plasticos_security_base.group_sales_rep", phone_groups)
+        self.assertIn("plasticos_security_base.group_logistics", phone_groups)
+        self.assertIn("plasticos_security_base.group_accounting", phone_groups)
+        self.assertNotIn("base.group_system", phone_groups)
+        self.assertEqual(
+            field_node(phone, "model_id").get("ref"),
+            "plasticos_facility_profile.model_plasticos_partner_phone",
+        )
+
+        acl_path = root / "plasticos_facility_profile" / "security" / "ir.model.access.csv"
+        with acl_path.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        user = next(row for row in rows if row["id"] == "access_plasticos_partner_phone_user")
+        admin = next(row for row in rows if row["id"] == "access_plasticos_partner_phone_admin")
+        self.assertEqual(user["perm_read"], "1")
+        self.assertEqual(user["perm_write"], "1")
+        self.assertEqual(user["perm_create"], "1")
+        self.assertEqual(user["perm_unlink"], "0")
+        self.assertEqual(admin["perm_unlink"], "1")
+        self.assertEqual(admin["group_id:id"], "base.group_system")

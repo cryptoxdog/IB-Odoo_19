@@ -40,9 +40,12 @@ ERRORS=0
 echo "🔍 Checking Odoo 19 patterns (git-tracked files only)..."
 echo ""
 
-# Get git-tracked Python files
-PY_FILES=$(git ls-files '*.py' 2>/dev/null || find . -name "*.py" -type f)
-XML_FILES=$(git ls-files '*.xml' 2>/dev/null || find . -name "*.xml" -type f)
+# Get git-tracked Python files.
+# .semgrep/tests/ holds INTENTIONAL rule-test positives (fixtures that verify
+# the semgrep rules fire); they are not product code and are excluded here so
+# this checker can run fail-closed (blocking) in CI.
+PY_FILES=$(git ls-files '*.py' 2>/dev/null | grep -v '^\.semgrep/tests/' || find . -name "*.py" -type f -not -path "./.semgrep/tests/*")
+XML_FILES=$(git ls-files '*.xml' 2>/dev/null | grep -v '^\.semgrep/tests/' || find . -name "*.xml" -type f -not -path "./.semgrep/tests/*")
 
 # 1. [REMOVED] models.Constraint() check
 # models.Constraint IS VALID in Odoo 19 - it's the new recommended syntax
@@ -116,6 +119,11 @@ fi
 echo -n "Checking empty __init__.py in modules... "
 EMPTY_INITS=""
 for init_file in $(git ls-files '*/__init__.py' 2>/dev/null); do
+    # Skip migrations/ packages: Odoo migration dirs legitimately carry an
+    # empty __init__.py (scripts are discovered by filename, not imports).
+    if [[ "$init_file" == */migrations/* ]]; then
+        continue
+    fi
     # Check if it's in a plasticos_* module directory
     if [[ "$init_file" == plasticos_*/__init__.py ]] || [[ "$init_file" == plasticos_*/models/__init__.py ]]; then
         if [ ! -s "$init_file" ]; then
@@ -335,9 +343,10 @@ fi
 # Catches: "polymer": value, "form": value, "source_type": value when target model has _id fields
 # Excludes: graph_service (builds query params), matcher.py (builds result dicts),
 #           enrichment_service (builds API payloads), material_profile.py (builds export packets),
-#           transaction_import (legacy CSV import uses Char fields for historical data)
+#           transaction_import (legacy CSV import uses Char fields for historical data),
+#           build_material_mapping (writes material_mapping.csv rows, no ORM)
 echo -n "Checking string writes to Many2one fields... "
-MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' | grep -v 'ai_normalizer' || true)
+MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' | grep -v 'ai_normalizer' | grep -v '^scripts/build_material_mapping\.py:' || true)
 if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
@@ -375,6 +384,17 @@ if [ -n "$MATCHES" ]; then
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"
+fi
+
+# 25. Local-intelligence authority drift (M8 / TASK-052) — blocking;
+# retired module trees must stay absent (M7); consumer-path drift fails here.
+echo -n "Checking no local-intelligence authority drift... "
+if python3 ci/check_no_local_intelligence.py >/tmp/plasticos-no-local-intel.out 2>&1; then
+    echo -e "${GREEN}OK${NC}"
+else
+    echo -e "${RED}FOUND${NC}"
+    cat /tmp/plasticos-no-local-intel.out
+    ERRORS=$((ERRORS + 1))
 fi
 
 echo ""

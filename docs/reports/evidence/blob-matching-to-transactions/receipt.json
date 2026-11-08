@@ -1,0 +1,79 @@
+{
+  "schema": "plasticos.evidence_receipt/v1",
+  "subject": "blob-matching-to-transactions",
+  "recorded_at": "2026-11-04",
+  "verdict": "exact_name_match_recorded_nothing_imported",
+  "brief": "docs/reports/evidence/blob-matching-to-transactions/BRIEF.md",
+  "writes": false,
+  "database_rechecked_2026_11_04": {
+    "name": "odoo_test_night1021",
+    "transactions": 7728,
+    "distinct_names": 7728,
+    "state": {"closed": 6869, "cancelled": 771, "active": 88},
+    "hyphenated_names": [
+      "51687-JCH",
+      "57328-INV",
+      "57430-INV",
+      "58075-INV",
+      "58239-INV",
+      "58425-INV",
+      "58427-INV"
+    ]
+  },
+  "superseded_database": {
+    "name": "odoo_test_erpvs1021",
+    "transactions": 3396,
+    "matched_images": 44895,
+    "unmatched_images": 52450,
+    "unmatched_worksheets": 5467
+  },
+  "eligible": {"W": 97328, "#": 18, "total": 97346},
+  "outside": {"P": 13077, "E": 586, "B": 1},
+  "match": {
+    "images": 91442,
+    "worksheets": 7641,
+    "by_state_worksheets": {"closed": 6864, "cancelled": 694, "active": 83},
+    "by_state_images": {"closed": 88541, "cancelled": 2386, "active": 515},
+    "W": 91425,
+    "#": 17
+  },
+  "unmatched": {
+    "images": 5903,
+    "worksheets": 1195,
+    "W": 5902,
+    "#": 1,
+    "of_previous_5467_now_matched_worksheets": 4272,
+    "of_previous_5467_now_matched_images": 46547,
+    "causes": [
+      {"cause": "purchase_realized_no_sale", "worksheets": 450, "images": 2980},
+      {"cause": "valueerror_rollback", "worksheets": 86, "images": 1108},
+      {"cause": "no_sale_and_no_purchase", "worksheets": 62, "images": 270},
+      {"cause": "outside_indexed_worksheets", "worksheets": 597, "images": 1545}
+    ]
+  },
+  "ambiguous": 0,
+  "integrity_failure": {
+    "image_id": 633316,
+    "doc_id": 166136,
+    "ref_id": "56993",
+    "ref_type": "W",
+    "status": "not_gzip"
+  },
+  "import_census": {
+    "file": ".l9/pr/erp-commercial-summary-census.json",
+    "summary": ".l9/pr/erp-commercial-summary.json",
+    "completion_time": "2026-10-22T06:23:14Z",
+    "final_status": "partial",
+    "records_seen": 32332,
+    "duplicates": 0,
+    "indexed_worksheets": 8373,
+    "realized": 7728,
+    "rejected": 645,
+    "skipped": 0,
+    "rejected_valueerror": 88,
+    "purchase_only_net_of_rollback": 465,
+    "no_sale_and_no_purchase": 92
+  },
+  "image_counts_recomputed_on": null,
+  "image_journal": "absent from docs/campaigns/_Document Blob Imports/SQL 10-28-26/extract/"
+}

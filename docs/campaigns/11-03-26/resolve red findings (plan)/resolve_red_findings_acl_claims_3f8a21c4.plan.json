@@ -1,0 +1,532 @@
+{
+  "schema_version": "1.0",
+  "mode": "plan",
+  "depth": "deep",
+  "estimate": "6-8h including Docker-fixture test runs",
+  "title": "Resolve preserved-red findings — claims/transaction-line ACL exposures (F-C1..C3) and recovery-field semantics (F-A1/A2)",
+  "objective": "Close the five preserved-red findings from the PR #303 enterprise validation without violating the standing operator decisions of 2026-10-25. Track C (F-C1..C3): adopt an explicit claims/transaction-line role matrix as ADR-129, then make the minimal ACL corrections — delete the two blanket `_all` CRUD rows (`access_claim_all` on plasticos.claim, `access_transaction_line_all` on plasticos.transaction.line), wire QC/operations managers into the claims groups via the established group-imply pattern, give the claim-photo auto-create a justified scoped sudo, and restrict the CSV transaction-import menu to managers — so TestClaimACL.test_claim_user_cannot_unlink, TestClaimACL.test_no_group_cannot_read and TestTransactionACL.test_base_user_cannot_write_tx_line pass for the right reason. Track A (F-A1/A2): encode the operator-decided manual recovery semantics (BUSINESS_SEMANTICS_UNRESOLVED — no auto-flow from resolved claims) by deleting the dead `_compute_chargebacks_penalties` code in both modules, correcting the misleading docstrings/help text, and rewriting the two claims-bridge tests to assert manual-entry semantics instead of the never-implemented auto-compute contract. No blanket sudo, no multi-addon ACL refactor, no computed conversion or backfill of recovery fields.",
+  "success_criteria": [
+    "TestClaimACL.test_claim_user_cannot_unlink and test_no_group_cannot_read raise AccessError and pass on the Docker fixture — proof V1",
+    "TestTransactionACL.test_base_user_cannot_write_tx_line raises AccessError and passes; the previously-unexpected pass of test_base_user_cannot_unlink has an identified, ADR-documented mechanism — proof V2",
+    "test_freight_chargeback_recovery_flows_to_transaction and test_lightweight_penalty_recovery_flows_to_transaction are rewritten to the manual-semantics contract and pass; no `_compute_chargebacks_penalties` remains in the codebase — proof V1",
+    "Claim photo upload by a non-claims user still creates the claim (scoped sudo), and the full claims/transaction/commission module test rosters pass — proof V3",
+    "ruff check and format are clean and the full local gate passes — proof V4 and V5"
+  ],
+  "scope": {
+    "in": [
+      "plasticos_claims: security CSV, group-imply data XML, document_inherit.py sudo, claim_menus.xml groups, transaction_claims.py dead-code removal, claim.py docstring, rewritten bridge tests, new ACL test file, manifest version bump",
+      "plasticos_transaction: security CSV row deletion, transaction.py dead fallback removal + field help, import wizard menu groups, README formula correction, manifest version bump",
+      "plasticos_commission: move TestClaimACL out of test_security_acl.py, manifest version bump",
+      "docs/adr/ADR-129-claims-roles-and-recovery-semantics.md (new)"
+    ],
+    "out": [
+      "The 30+ other blanket `_all` ACL rows across 13 addons (brief §9 inventory) — separate campaign",
+      "ir.model.data and product.template exposures — separate high-priority findings",
+      "access_transaction_all (transaction header row) removal — only investigated here (T2); removal deferred unless the probe proves it safe within this PR's test evidence",
+      "Any computed conversion, backfill, or automation of freight_chargebacks / lightweight_penalties — operator-refused",
+      "Record-rule redesign, company_id addition to plasticos.claim, savepoint rework of the import wizard exception handling"
+    ]
+  },
+  "pre_validation": [
+    {
+      "id": "P1",
+      "command_or_action": "git rev-parse --abbrev-ref HEAD && git status --porcelain",
+      "pass_criteria": "Feature branch (not Staging/Production), clean tree before edits",
+      "status": "passed"
+    },
+    {
+      "id": "P2",
+      "command_or_action": "Read plasticos_claims/security/ir.model.access.csv and plasticos_transaction/security/ir.model.access.csv in full",
+      "pass_criteria": "access_claim_all (line 5) and access_transaction_line_all (line 11 area) present as described in the evidence brief",
+      "status": "passed"
+    },
+    {
+      "id": "P3",
+      "command_or_action": "grep -n _compute_chargebacks_penalties plasticos_claims/models/transaction_claims.py plasticos_transaction/models/transaction.py",
+      "pass_criteria": "Dead compute present in both files (transaction_claims.py:51, transaction.py:843)",
+      "status": "passed"
+    },
+    {
+      "id": "P4",
+      "command_or_action": "Confirm Docker test fixture available: config/test_env_fixture.conf names odoo_test_tpl_ee_c9e8a81f52f23680",
+      "pass_criteria": "Fixture file present; make test-module usable per rule 36",
+      "status": "pending"
+    },
+    {
+      "id": "P5",
+      "command_or_action": "pre-commit hook catalog is .pre-commit-config.yaml (36 hooks)",
+      "pass_criteria": "File present; hooks run before commit",
+      "status": "passed"
+    }
+  ],
+  "todos": [
+    {
+      "id": "T1",
+      "task": "Write ADR-129 recording (a) the approved claims role matrix: claims_user = read/write/create no-unlink, claims_manager = full CRUD, qc_manager implies claims_user, operations_manager implies claims_manager, plain internal users = no claim access; (b) transaction lines: internal users read-only, logistics RWC, plasticos manager CRUD, no blanket row; (c) recovery semantics per operator decision 2026-10-25: freight_chargebacks and lightweight_penalties are manual fields, resolving a claim never auto-writes them, archiving never erases them; (d) the T2 probe finding for the unexpected unlink pass. Build approval of this plan constitutes operator sign-off of this matrix.",
+      "files": [
+        "docs/adr/ADR-129-claims-roles-and-recovery-semantics.md"
+      ],
+      "effort": "45m",
+      "risk": "low",
+      "dependencies": [],
+      "operation": "Create",
+      "leverage_rank": 1,
+      "shared_root_cause": "no written role policy — the root cause the 2026-10-25 operator decision demanded be fixed first"
+    },
+    {
+      "id": "T2",
+      "task": "Probe (read-only) why TestTransactionACL.test_base_user_cannot_unlink unexpectedly passes while access_transaction_all grants delete: inspect plasticos_transaction/security/security_hardening.xml and plasticos_security_base/security/record_rules.xml for the denying mechanism; record the identified mechanism in ADR-129. Do not remove access_transaction_all in this PR.",
+      "files": [
+        "plasticos_transaction/security/security_hardening.xml",
+        "plasticos_security_base/security/record_rules.xml"
+      ],
+      "effort": "30m",
+      "risk": "low",
+      "dependencies": [],
+      "leverage_rank": 6
+    },
+    {
+      "id": "T3",
+      "task": "Delete the blanket row `access_claim_all` (base.group_system row `access_claim_all` named at CSV line 5 grants base.group_system — verify exact row: the blanket row grants base.group_system per current CSV read; the brief pins the blanket as the row granting full CRUD beyond group rows. Read the CSV first per rule 71, remove only the row granting full CRUD to base.group_user/All-users on plasticos.claim, keep group_claims_user 1,1,1,0 and group_claims_manager 1,1,1,1 and the base.group_system row).",
+      "files": [
+        "plasticos_claims/security/ir.model.access.csv"
+      ],
+      "effort": "20m",
+      "risk": "medium",
+      "dependencies": [
+        "T1"
+      ],
+      "operation": "Delete",
+      "anchor": "access_claim_all",
+      "leverage_rank": 2,
+      "shared_root_cause": "additive blanket _all rows override narrow group rows"
+    },
+    {
+      "id": "T4",
+      "task": "Add security/claims_group_imply.xml in plasticos_claims (crm_group_imply.xml pattern): group_qc_manager gains implied group_claims_user; group_operations_manager gains implied group_claims_manager. Register in manifest data list. This preserves real claim workflows for the roles that legitimately need them after the blanket row is gone.",
+      "files": [
+        "plasticos_claims/security/claims_group_imply.xml",
+        "plasticos_claims/__manifest__.py"
+      ],
+      "effort": "30m",
+      "risk": "medium",
+      "dependencies": [
+        "T1",
+        "T3"
+      ],
+      "operation": "Create",
+      "leverage_rank": 3
+    },
+    {
+      "id": "T5",
+      "task": "In plasticos_claims/models/document_inherit.py, run the claim search/create for tagged photo uploads via a scoped sudo() with inline justification (uploader may lack claims groups; claim auto-create is a system behavior; uploader attribution preserved in the record body/notes). Keep the rest of the method as-user.",
+      "files": [
+        "plasticos_claims/models/document_inherit.py"
+      ],
+      "effort": "30m",
+      "risk": "medium",
+      "dependencies": [
+        "T3"
+      ],
+      "operation": "Replace",
+      "anchor": "claim_model.search / claim_model.create",
+      "leverage_rank": 4
+    },
+    {
+      "id": "T6",
+      "task": "Scope claims UI to claims groups: add groups= to the Claims menus (claim_menus.xml) and to the transaction Claims smart button / action so non-claims internal users do not hit AccessError from navigation.",
+      "files": [
+        "plasticos_claims/views/claim_menus.xml",
+        "plasticos_claims/models/transaction_claims_bridge.py"
+      ],
+      "effort": "30m",
+      "risk": "low",
+      "dependencies": [
+        "T3",
+        "T4"
+      ],
+      "leverage_rank": 8
+    },
+    {
+      "id": "T7",
+      "task": "Delete `access_transaction_line_all` (the base.group_user full-CRUD duplicate on plasticos.transaction.line) from plasticos_transaction/security/ir.model.access.csv, leaving base.group_user read-only, logistics RWC (security_base), and group_plasticos_manager CRUD. Read the full CSV first per rule 71.",
+      "files": [
+        "plasticos_transaction/security/ir.model.access.csv"
+      ],
+      "effort": "15m",
+      "risk": "medium",
+      "dependencies": [
+        "T1"
+      ],
+      "operation": "Delete",
+      "anchor": "access_transaction_line_all",
+      "leverage_rank": 5,
+      "shared_root_cause": "additive blanket _all rows override narrow group rows"
+    },
+    {
+      "id": "T8",
+      "task": "Restrict the CSV transaction-import wizard menu to plasticos_transaction.group_plasticos_manager (menu currently ungrouped; wizard creates lines as the current user and would partial-save for users stripped of create rights by T7).",
+      "files": [
+        "plasticos_transaction/views/transaction_import_wizard_views.xml"
+      ],
+      "effort": "15m",
+      "risk": "low",
+      "dependencies": [
+        "T7"
+      ],
+      "operation": "Replace",
+      "anchor": "menuitem for import wizard",
+      "leverage_rank": 9
+    },
+    {
+      "id": "T9",
+      "task": "Move TestClaimACL from plasticos_commission/tests/test_security_acl.py (line 194) into a new plasticos_claims/tests/test_claim_acl.py (plasticos_commission does not depend on plasticos_claims, so its setup silently drops the claims group — fragile). Keep TestTransactionACL in place. Wire the new file into plasticos_claims/tests/__init__.py.",
+      "files": [
+        "plasticos_commission/tests/test_security_acl.py",
+        "plasticos_claims/tests/test_claim_acl.py",
+        "plasticos_claims/tests/__init__.py"
+      ],
+      "effort": "45m",
+      "risk": "low",
+      "dependencies": [
+        "T3",
+        "T4"
+      ],
+      "leverage_rank": 7
+    },
+    {
+      "id": "T10",
+      "task": "Remove dead recovery-compute code: delete _compute_chargebacks_penalties override in plasticos_claims/models/transaction_claims.py (lines ~45-70) and the dead fallback in plasticos_transaction/models/transaction.py (~line 843); fix action_resolve docstring in claim.py (references nonexistent _update_transaction_recoveries); correct freight_chargebacks/lightweight_penalties help text and the plasticos_transaction README gross_margin formula to state manual entry per ADR-129.",
+      "files": [
+        "plasticos_claims/models/transaction_claims.py",
+        "plasticos_transaction/models/transaction.py",
+        "plasticos_claims/models/claim.py",
+        "plasticos_transaction/README.md"
+      ],
+      "effort": "1h",
+      "risk": "medium",
+      "dependencies": [
+        "T1"
+      ],
+      "operation": "Delete",
+      "anchor": "_compute_chargebacks_penalties",
+      "leverage_rank": 10,
+      "shared_root_cause": "docstrings promise an auto-compute that was never wired to the fields"
+    },
+    {
+      "id": "T11",
+      "task": "Rewrite test_freight_chargeback_recovery_flows_to_transaction and test_lightweight_penalty_recovery_flows_to_transaction in plasticos_claims/tests/test_depends_transaction_claims_bridge.py to encode manual semantics: resolving a claim leaves transaction recoveries at 0.0; a manual write of freight_chargebacks/lightweight_penalties flows into gross_margin via _compute_financials; archiving a resolved claim does not erase manual values.",
+      "files": [
+        "plasticos_claims/tests/test_depends_transaction_claims_bridge.py"
+      ],
+      "effort": "1h",
+      "risk": "low",
+      "dependencies": [
+        "T10"
+      ],
+      "operation": "Replace",
+      "anchor": "TestTransactionClaimsBridgeDepends",
+      "leverage_rank": 11
+    },
+    {
+      "id": "T12",
+      "task": "Bump __manifest__.py versions of every runtime-changed module (plasticos_claims, plasticos_transaction, plasticos_commission) to the next 19.0.X.Y.Z; ruff format manifests after edit. Scoped upgrades only: make update m=plasticos_claims,plasticos_transaction,plasticos_commission equivalents — never update-all.",
+      "files": [
+        "plasticos_claims/__manifest__.py",
+        "plasticos_transaction/__manifest__.py",
+        "plasticos_commission/__manifest__.py"
+      ],
+      "effort": "15m",
+      "risk": "low",
+      "dependencies": [
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11"
+      ],
+      "leverage_rank": 12
+    },
+    {
+      "id": "T13",
+      "task": "Run the Docker-fixture module tests for the three affected modules, then ruff and the full local gate; attach the test receipt.",
+      "files": [
+        "config/test_env_fixture.conf"
+      ],
+      "effort": "1h",
+      "risk": "low",
+      "dependencies": [
+        "T12"
+      ],
+      "leverage_rank": 13
+    }
+  ],
+  "critical_path": [
+    "T1",
+    "T3",
+    "T4",
+    "T5",
+    "T7",
+    "T9",
+    "T10",
+    "T11",
+    "T12",
+    "T13"
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "outcome": "ADR-129 written: role matrix and recovery semantics are operator-approved law in-repo",
+      "unlocks": "All ACL and semantics mutations (T3-T11)"
+    },
+    {
+      "id": "M2",
+      "outcome": "Blanket rows deleted with role implication and sudo guard in place; claims workflows preserved",
+      "unlocks": "ACL tests pass for the right reason (T9, T13)"
+    },
+    {
+      "id": "M3",
+      "outcome": "Dead compute removed and bridge tests encode manual semantics",
+      "unlocks": "F-A1/F-A2 closed without violating Decision A"
+    },
+    {
+      "id": "M4",
+      "outcome": "All module rosters green on the Docker fixture, gate passes, PR published",
+      "unlocks": "Findings F-C1..C3 and F-A1/A2 formally closed"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "C1",
+      "after": "T1",
+      "evidence_required": "ADR-129 committed; role matrix table present; T2 probe finding recorded",
+      "no_go_action": "Stop: do not touch any ACL file without the ADR"
+    },
+    {
+      "id": "C2",
+      "after": "T5",
+      "evidence_required": "Manual probe or unit evidence that a non-claims internal user's tagged document upload still creates the claim",
+      "no_go_action": "Revert T3/T5, reassess sudo scope before proceeding"
+    },
+    {
+      "id": "C3",
+      "after": "T11",
+      "evidence_required": "make test-module m=plasticos_claims summary: 0 failed, 0 error, >0 tests",
+      "no_go_action": "Fix within scope or mark convergence partial; never skipTest"
+    },
+    {
+      "id": "C4",
+      "after": "T13",
+      "evidence_required": "Test receipts for all three modules + make pr-check pass",
+      "no_go_action": "Do not publish; report failures verbatim"
+    }
+  ],
+  "doc_root_surface_impact": [
+    {
+      "surface": "docs/adr/README.md",
+      "action": "update",
+      "todo_ids": [
+        "T1"
+      ],
+      "reason": "Index the new ADR-129"
+    },
+    {
+      "surface": "AGENTS.md",
+      "action": "n_a",
+      "reason": "Append-only file; no contract named in it changes — ACL baseline findings live in the audit baseline, checked in T13"
+    },
+    {
+      "surface": "INVARIANTS.md",
+      "action": "n_a",
+      "reason": "Change restores compliance with the existing group-based ACL invariant; no new invariant introduced"
+    },
+    {
+      "surface": "plasticos_transaction/README.md",
+      "action": "update",
+      "todo_ids": [
+        "T10"
+      ],
+      "reason": "gross_margin formula is outdated; correct to manual-recovery semantics"
+    }
+  ],
+  "stress_test": {
+    "disconfirming_questions": [
+      "Does any seed user, cron, or automation rely on blanket claim access rather than a claims group? (brief §5: SLA cron user is claims manager; workflow automations run sudo — verified safe; document upload is the one real dependency, handled by T5)",
+      "Does deleting access_transaction_line_all break the CSV import wizard for legitimate users? (yes for non-managers — mitigated by T8 menu restriction per ADR-129 decision 3)",
+      "Could the audit-baseline job flag the ACL CSV changes as regressions? (baseline tracks scanner findings, not ACL rows; T13 runs the gate to confirm)",
+      "Do the rewritten bridge tests contradict any passing test elsewhere? (test_bridge_contracts.py:589-602 treats the fields as compute inputs — must be checked and aligned in T11)",
+      "Does removing the dead compute change runtime behavior anywhere? (no field names the method; grep proves no caller — verified in P3 evidence)"
+    ],
+    "assumed_false_ifs": [
+      "ASSUMED FALSE: that some uninspected module grants claims access to ordinary users through a group not in the brief's inventory — if true, T9's no-group test fails and the extra grant must be inventoried before proceeding",
+      "ASSUMED FALSE: that Odoo does not delete CSV-sourced ir.model.access records on module upgrade when the row is removed — if true, a migration must explicitly unlink the stale ACL records and T12 gains a migrations/ folder",
+      "ASSUMED FALSE: that the unexpected unlink pass (T2) is caused by test-ordering flakiness rather than a real record rule — if true, ADR-129 must record the exposure as open and test_base_user_cannot_unlink may start failing after T7"
+    ],
+    "blast_radius": "Runtime access control on two business models (plasticos.claim, plasticos.transaction.line) for every internal user; claim auto-create on document upload; CSV import wizard availability; two test files and one test move across three modules. No schema changes, no data migrations expected, no partner/transaction data touched.",
+    "rollback": "Every change is additive-or-restorable in git: revert the PR branch. ACL rows restore on module upgrade from the reverted CSVs. No destructive SQL, no data backfill, no column drops anywhere in scope."
+  },
+  "leverage": {
+    "ranked_todo_ids": [
+      "T1",
+      "T3",
+      "T4",
+      "T5",
+      "T7",
+      "T2",
+      "T9",
+      "T6",
+      "T8",
+      "T10",
+      "T11",
+      "T12",
+      "T13"
+    ],
+    "shared_causes": [
+      "Additive blanket `_all` ACL rows overriding narrow group rows (T3, T7) — the single cause of all three ACL test failures",
+      "No written role policy (T1) — the gap the operator decision demanded closed before any remediation",
+      "Docstring-promised compute never wired to fields (T10, T11) — the single cause of both claims-semantics failures"
+    ],
+    "deletions_or_consolidations": [
+      "Delete 2 blanket ACL rows instead of adding record rules or guards — net-negative security surface",
+      "Delete ~50 lines of dead compute code in two modules",
+      "Consolidate claim ACL testing into plasticos_claims where the dependency actually exists"
+    ]
+  },
+  "risks": [
+    {
+      "risk": "Deleting access_claim_all locks claim access away from a workflow the brief missed",
+      "mitigation": "T4 group implication covers QC/operations roles; T5 sudo covers uploads; C2 checkpoint verifies before proceeding; full module rosters run in T13"
+    },
+    {
+      "risk": "Group implication XML on security_base groups from plasticos_claims creates an unexpected module-load-order issue",
+      "mitigation": "plasticos_claims already depends on plasticos_security_base; the crm_group_imply.xml precedent in plasticos_crm_bridge proves the pattern"
+    },
+    {
+      "risk": "test_bridge_contracts.py in plasticos_security_base still encodes the compute contract and goes red after T10",
+      "mitigation": "T11 explicitly audits and aligns that file's lines 589-602 in the same change"
+    },
+    {
+      "risk": "Stale ir.model.access records persist in the Staging DB after CSV row removal",
+      "mitigation": "Verify on the Docker fixture clone after scoped upgrade in T13; add explicit migration only if proven needed"
+    },
+    {
+      "risk": "Commission earners lose a workflow that legitimately edited recovery_amount",
+      "mitigation": "ADR-129 records the decision that commission earners must not edit inputs to their own pay; claims groups are assigned deliberately, not by default"
+    }
+  ],
+  "unknowns": [
+    {
+      "id": "U1",
+      "question": "Exact mechanism behind the unexpected test_base_user_cannot_unlink pass on plasticos.transaction",
+      "decision_effect": "Determines whether access_transaction_all can ever be safely removed in a follow-up; does not block this PR's scope",
+      "resolution": "probe"
+    },
+    {
+      "id": "U2",
+      "question": "Whether any production/Staging users outside admin hold data that depends on blanket claim access",
+      "decision_effect": "Could require assigning claims groups to specific real users at deploy time",
+      "resolution": "accept_bounded"
+    },
+    {
+      "id": "U3",
+      "question": "Whether Odoo deletes CSV-sourced ACL records on upgrade when rows are removed",
+      "decision_effect": "If not, T12 adds a migration to unlink stale rows",
+      "resolution": "probe"
+    }
+  ],
+  "final_validation": [
+    {
+      "id": "V1",
+      "command": "make test-module m=plasticos_claims",
+      "pass_criteria": "Odoo test summary present: 0 failed, 0 error, tests > 0; receipt written under .l9/runtime/test-env/",
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "command": "make test-module m=plasticos_commission",
+      "pass_criteria": "Odoo test summary present: 0 failed, 0 error; TestTransactionACL fully green including test_base_user_cannot_write_tx_line",
+      "status": "pending"
+    },
+    {
+      "id": "V3",
+      "command": "make test-module m=plasticos_transaction",
+      "pass_criteria": "Odoo test summary present: 0 failed, 0 error",
+      "status": "pending"
+    },
+    {
+      "id": "V4",
+      "command": ".venv/bin/ruff check . && .venv/bin/ruff format --check .",
+      "pass_criteria": "No violations; no reformat needed",
+      "status": "pending"
+    },
+    {
+      "id": "V5",
+      "command": "pre-commit run --all-files --config .pre-commit-config.yaml",
+      "pass_criteria": "All 36 hooks pass (Odoo patterns, ACL checks, gitleaks, wiring)",
+      "status": "pending"
+    },
+    {
+      "id": "V6",
+      "command": "make pr-check",
+      "pass_criteria": "All local gates pass including ACL completeness, audit-baseline, semgrep, wiring",
+      "status": "pending"
+    }
+  ],
+  "convergence": {
+    "status": "partial",
+    "remaining_unknown_ids": [
+      "U1",
+      "U3"
+    ],
+    "next_skill": "cursor-build",
+    "stop_reason": "Plan validated and ready for Build; U1/U3 are in-plan probes (T2, T13), not blockers. Build approval constitutes operator sign-off of the ADR-129 role matrix stated in T1."
+  },
+  "gmp_handoff": {
+    "may_modify": [
+      "plasticos_claims/security/ir.model.access.csv",
+      "plasticos_claims/security/claims_group_imply.xml",
+      "plasticos_claims/models/document_inherit.py",
+      "plasticos_claims/models/transaction_claims.py",
+      "plasticos_claims/models/claim.py",
+      "plasticos_claims/views/claim_menus.xml",
+      "plasticos_claims/tests/",
+      "plasticos_claims/__manifest__.py",
+      "plasticos_transaction/security/ir.model.access.csv",
+      "plasticos_transaction/models/transaction.py",
+      "plasticos_transaction/views/transaction_import_wizard_views.xml",
+      "plasticos_transaction/README.md",
+      "plasticos_transaction/__manifest__.py",
+      "plasticos_commission/tests/test_security_acl.py",
+      "plasticos_commission/__manifest__.py",
+      "docs/adr/ADR-129-claims-roles-and-recovery-semantics.md",
+      "docs/adr/README.md"
+    ],
+    "must_not_modify": [
+      "pipeline_v2.py (hard CI guard)",
+      "plasticos_web_leads/** (rule 50 guard; out of scope)",
+      "plasticos_transaction/security/ir.model.access.csv row access_transaction_all (U1 unresolved)",
+      "freight_chargebacks/lightweight_penalties field definitions (stay plain Float — operator decision)",
+      "plasticos_security_base/security/security_groups.xml group definitions (implication lives in plasticos_claims)",
+      "Any other module's ACL CSV (brief §9 inventory is a separate campaign)"
+    ],
+    "preserved_contracts": [
+      "Operator decision 2026-10-25 Decision A: recoveries are manual; no computed conversion, no backfill, no claim-to-margin automation",
+      "Operator decision 2026-10-25 Decision C: no blanket sudo, no casual ACL removal beyond the two named rows, no 13-addon refactor",
+      "Rule 71 ACL contract: read full CSV before editing, no redundant rows, consistent id format",
+      "Rule 89: version bump + scoped module upgrade only",
+      "Claims archiving never erases a recognized recovery"
+    ],
+    "validation_commands": [
+      "make test-module m=plasticos_claims",
+      "make test-module m=plasticos_commission",
+      "make test-module m=plasticos_transaction",
+      ".venv/bin/ruff check . && .venv/bin/ruff format --check .",
+      "make pr-check"
+    ]
+  },
+  "code_in_scope": true
+}

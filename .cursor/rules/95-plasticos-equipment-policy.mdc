@@ -1,0 +1,64 @@
+---
+id: plasticos.rule.equipment-policy
+version: 1.0.0
+description: Require complete downstream wiring when PlasticOS equipment types change.
+scope: repository
+domain: plasticos
+activation: auto_attached
+authority: canonical_repository
+context_cost: minimal
+alwaysApply: false
+globs:
+  - "plasticos_facility_profile/**/*"
+  - "**/equipment_type*.xml"
+---
+# PlasticOS Equipment Type Policy
+
+**Scope:** `plasticos_facility_profile` and downstream matching/graph integrations.
+
+## Rule: equipment changes require full downstream wiring
+
+Adding equipment types to `equipment_type_data.xml` without corresponding implementation changes is prohibited.
+
+### Required steps for a new equipment type
+
+1. Add seed data in `data/equipment_type_data.xml`.
+2. Add the computed capability flag in `facility_profile.py`.
+3. Add the capability to the emitted facility packet.
+4. Wire the capability into the buyer matcher when it changes eligibility or scoring.
+5. Wire the capability into graph synchronization.
+6. Update Cypher gates or projections when applicable.
+7. Add tests proving the new type participates in the intended downstream flow.
+
+### Anti-pattern
+
+```xml
+<!-- WRONG: data-only addition creates an orphaned capability -->
+<record id="equip_new_machine" model="plasticos.equipment.type">
+  <field name="name">New Machine</field>
+  <field name="code">new_machine</field>
+</record>
+```
+
+### Correct wiring pattern
+
+```python
+# facility_profile.py - computed flag
+rec.has_new_machine = "new_machine" in codes
+
+# facility_profile.py - capability packet
+"new_machine": rec.has_new_machine,
+
+# matcher.py - eligibility/scoring gate when required
+if getattr(facility, "has_new_machine", False):
+    ...
+
+# graph synchronization - persist the capability on the facility node
+```
+
+## Rationale
+
+- Equipment types drive the buyer-matching capability matrix.
+- Orphaned equipment creates false or invisible capabilities.
+- Data-only additions bypass integration behavior.
+- Domain review is required before equipment semantics become production matching inputs.

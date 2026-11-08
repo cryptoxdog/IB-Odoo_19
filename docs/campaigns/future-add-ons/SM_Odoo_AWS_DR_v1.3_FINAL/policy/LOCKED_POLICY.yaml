@@ -1,0 +1,167 @@
+policy_id: SM-ODOO-INDEPENDENT-DR-001
+version: 1.3.0
+status: OPERATOR_LOCKED_NOT_IMPLEMENTED
+accepted_on: 2026-10-28 through 2026-10-29; additive operator decisions
+policy_owner: Scrap Management Inc.
+source_system:
+  provider: Odoo.sh
+  product: Odoo 19 Enterprise
+  environment: production_only
+  native_backups: keep_enabled_verify_configure_only_supported_native_controls
+  native_execution_contract: contracts/01_ODOO_NATIVE_BACKUP.md
+  manual_backup: one_real_supported_on_demand_native_checkpoint_when_authorized
+  native_restore_test: disposable_isolated_nonproduction_only
+independent_recovery:
+  provider: AWS
+  ownership: company_controlled_isolated_account
+  canonical_workload_repository: https://github.com/cryptoxdog/IB-Odoo_19
+  staging_sha_observed: 78476ddb74861d900992f7f5ec3ec2cc2a63e8bf
+  destination: private_S3_recovery_vault
+  independent_restore: required_without_odoo_sh
+  aws_execution_contract: contracts/02_AWS_VAULT_AND_IDENTITY.md; contracts/03_FULL_COPY_AND_INDEPENDENT_RESTORE.md;
+    contracts/04_INCREMENTAL_AND_WEEKDAY_SCHEDULE.md
+  depends_on_native_source_receipt: true
+  source_portability: Odoo.sh + Infisical + Cursor independence under AWS and operator
+    break-glass access
+schedule:
+  timezone: America/New_York
+  days:
+  - MON
+  - TUE
+  - WED
+  - THU
+  - FRI
+  local_hours:
+  - '11:00'
+  - '13:00'
+  - '15:00'
+  - '17:00'
+  max_concurrent_jobs: 1
+  no_new_jobs_on_weekends_or_outside_scheduled_times: true
+  late_completion_of_1700_job: allowed
+  native_odoo_backups_remain_unrestricted: true
+objectives:
+  business_hours_rpo_target_minutes: 120
+  rpo_proven: false
+  rto_hours_target: 4
+  rto_proven: false
+  unit_of_restore: consistent_database_filestore_plus_revision_and_secrets
+  verified_independent_restore_required: true
+backup_efficiency:
+  initial_full_baseline: true
+  changed_content_only_after_baseline: desired_must_prove
+  new_and_changed_rows_only_is_not_a_valid_db_restore: true
+  cross_checkpoint_deduplication: desired_must_prove
+  database_consistency: point_in_time_mandatory
+  deletion_tracking: mandatory
+  unchanged_filestore_content: reuse_by_verified_hash
+  manifest_dependency_closure: mandatory
+security:
+  s3_block_public_access: true
+  independent_iam_and_keys: true
+  encryption_at_rest_and_in_transit: true
+  object_lock_compliance_target: true
+  immutable_retention_min_days: 90
+  writer_can_delete_or_shorten_retention: false
+  root_mfa_and_no_long_lived_static_aws_keys: true
+  audit_and_failure_alerts: true
+retention_and_tiering:
+  active_hot_recovery_days: 30
+  warm_recovery_days: 365
+  eligible_cold_archive_age_days: 365
+  cold_only_for_self_contained_recoverable_sets: true
+  recent_checkpoint_dependencies_never_cold: true
+  live_business_records_untouched: true
+  operational_pruning_requires_dependency_proof: true
+boundaries:
+  odoo_production_writes: operational_business_data_writes_forbidden; supported_native_backup_artifact_actions_authorized_in_contract_01
+  odoo_backup_source_reads: permitted_when_authorized
+  ERP_sql_backups: out_of_scope
+  enterprise_license_failover_proof: required
+  aws_new_resource_creation: permitted_in_verified_company_controlled_scope
+  aws_existing_unrelated_resources_mutation: forbidden
+  aws_account_id: UNKNOWN_RESOLVE_AT_P0
+  aws_region: UNKNOWN_RESOLVE_AT_P0
+  aws_monthly_budget_usd: UNKNOWN_RESOLVE_AT_P0
+  source_capture_method: UNKNOWN_PROVE_AT_P0
+  source_fresh_backup_frequency: UNKNOWN_PROVE_AT_P0
+  remote_code_publication: via_verified_governance_make_pr_only
+  merge_or_production_cutover: forbidden
+  native_backup_actions: official_provider_UI_manual_backup_and_nonproduction_restore_only
+  native_backup_frequency_override: forbidden_if_platform_managed
+readiness:
+  native_odoo_protection: platform_claim_not_project_verified
+  source_capabilities: UNKNOWN
+  aws_vault: NOT_CREATED_BY_THIS_PACK
+  independent_full_restore: NOT_RUN
+  two_hour_fresh_snapshot: NOT_PROVEN
+  incremental_mechanism: NOT_PROVEN
+  native_odoo_configured: NOT_VERIFIED_ON_ACTUAL_PRODUCTION
+  infisical_secret_integrations: NOT_CONFIGURED_BY_THIS_PACK
+  1password_emergency_pack: NOT_CREATED_BY_THIS_PACK
+  external_full_recovery_rehearsal: NOT_RUN
+  campaign_DONE: NOT_PROVEN
+secrets_and_configuration:
+  persistent_new_secrets_ssot: Infisical
+  authorized_project_environment_path: UNKNOWN_RESOLVE_FROM_EXISTING_OWNER
+  secret_scoping: dedicated_dr_project_or_folders_and_least_privilege_identities
+  static_aws_keys: avoid_use_iam_roles_sts
+  non_secret_config_owner: version_controlled_ops/independent_dr
+  sensitive_inventory_and_iac_state: private_encrypted_outside_git
+  secret_values_in_repo_or_logs: false
+  off_infisical_emergency_escrow: required_and_tested_after_owner_approved_escrow_location
+  infisical_host_or_project: UNKNOWN_VERIFY
+  backup_secret_ref_secret: do_not_store_secret_values_in_source
+  emergency_escrow_location: restricted_1Password_vault_with_independent_bootstrap
+  1password_secret_class: only_off_Infisical_emergency_credentials; primary_runtime_secrets_remain_Infisical
+  repo_config: safe_declarative_IaC_schedules_pointers_and_runbooks_only
+  mac_local_recovery_pack: not_required_if_1Password_custody_proven
+campaign:
+  id: SM-ODOO-DR-CAMPAIGN-001
+  workstreams:
+  - SM-DR-00-FEASIBILITY
+  - SM-ODOO-NATIVE-DR-001
+  - SM-DR-02-AWS-VAULT
+  - SM-DR-03-FULL-RESTORE
+  - SM-DR-04-INCREMENTAL
+  - SM-DR-05-1PASSWORD
+  - SM-DR-06-CLOSEOUT
+  execution_order: 00->01->02->03->05_baseline->04->05_refresh->06_with_closed_dependency_receipts
+  shared_invariants: policy/INVARIANTS.md
+  done_contract: coordination/DEFINITION_OF_DONE.md
+  all_mandatory_slices_pass: false
+emergency_custody:
+  primary: restricted_company_controlled_1Password_vault
+  cli: op_document_create_and_verify_retrieval_on_authorized_operator_Mac
+  emergency_document: fully_populated_versioned_recovery_package
+  credential_escrow: minimum_break_glass_secret_material_in_restricted_1Password_items
+  no_persistent_mac_pack: preferred_and_required_if_1Password_verified
+  temporary_mac_fallback: only_if_1Password_unavailable_and_explicit_operator_acceptance;
+    encrypted_private_nonsynced_location
+  dropbox_or_icloud_storage: forbidden
+  outside_1Password_bootstrap: operator_held_Emergency_Kit_or_supported_verified_account_recovery;
+    never_in_1Password_itself
+  operator_unlock: actual_human_auth_required_no_assumed_permission
+  operator_retrieval_and_restore_rehearsal: required
+  1Password_outage: separate_residual_risk_if_no_offline_escrow; do_not_claim_survived
+
+# The following fields clarify the already-locked independence and complete handoff requirements.
+recovery_release_custody:
+  pinned_deployable_code_and_dependencies_independent_of_git_host: mandatory
+  pr_not_merged_does_not_prevent_recovery: mandatory
+  complete_restore_iac_state_and_runtime_artifacts_independently_escrowed: mandatory
+  only_verified_secret_references_in_git: true
+  operator_pack_as_soon_as_full_recovery_is_proven: true
+  refresh_1password_document_after_every_material_incremental_change: mandatory
+  daily_independent_recovery_when_2h_source_unavailable: protected_partial_milestone_not_campaign_done
+account_provisioning:
+  existing_independent_company_controlled_account: preferred
+  new_separate_account_if_none_exists: only_after_specific_verified_account_owner_and_spend_approval
+  application_account_as_substitute: forbidden
+  provider_account_id_region_budget: discover_before_mutation
+
+checkpoint_promotion:
+  writer_can_self_admit: false
+  verifier_is_separately_authorized: true
+  only_verified_manifest_advances_last_good: true
+  writer_cannot_write_admitted_or_last_good_prefix: true

@@ -1,95 +1,61 @@
-# plasticos_intake_normalizer
-
-**Version:** 19.0.2.0.0
-**Category:** PlasticOS / Data Processing
-**Depends:** `plasticos_base`, `plasticos_intake`, `plasticos_material_profile`, `plasticos_facility_profile`
-
+---
+auto_generated: false
+authority: derived-index
+component_id: plasticos_intake_normalizer
+component_name: Plasticos Intake Normalizer
+module_version: 19.0.1.0.5
+layer: 2
+installable: true
+auto_install: true
+application: false
+depends:
+  - plasticos_intake
+  - plasticos_material_profile
+  - plasticos_base
+models_owned:
+  - plasticos.normalizer.config
+models_extended:
+  - plasticos.intake
+crons:
+  - cron_batch_normalize_intakes
 ---
 
-## Purpose
+# Plasticos Intake Normalizer
 
-Normalizes raw intake form data into a structured, typed packet suitable for the Cognitive Engine Graph (CEG) and downstream matching logic. This module adds the **Normalization tab** to the intake form and owns the `assemble_packet()` method.
+The front matter above is a derived index. `__manifest__.py` and the `_name` / `_inherit` lines in `models/` win on any conflict. The manifest does not set `application`; Odoo's default is false.
 
-Think of this module as the intake data adapter — it translates human-entered form values (text, selections, floats) into a clean, schema-validated dict that the CEG can consume.
+## What it does
 
----
+Checks an intake against a fixed schema, assembles a JSON packet from it, and stores that packet on the intake.
 
-## Model: `plasticos.intake.normalizer`
+## How it works
 
-Extends `plasticos.intake` via `_inherit`.
+- **Rules.** `plasticos.normalizer.config` is a singleton (`get_config()` creates it when missing). It switches checks on or off: canonical polymer, partner present, positive quantity, density range, positive MFI. `batch_limit` caps the cron; a negative value is refused.
+- **Button.** `plasticos.intake.action_normalize()` validates the intake. On errors it stores them, sets `match_status` to `error`, and raises. Otherwise it builds the packet with `_assemble_packet()` (schema version, intake ids, partner, polymer, form, grade, quality, origin, geo, material profile, and facility blocks) and writes `normalized`, `match_status = normalized`, `last_packet_id`, `last_packet_version`, `last_packet_payload`, and `last_packet_ts`. It then tries to geocode the facility, or the partner, with `geo_localize()` when it has an address and no latitude. A geocoding failure is logged, not raised.
+- **Cron.** `cron_batch_normalize_intakes` calls `cron_batch_normalize()`. It takes the advisory lock `plasticos_intake_normalizer.cron_batch_normalize_intakes`, picks up to `batch_limit` intakes with `normalized` false and `match_status` `pending`, and stores errors per record instead of raising. The cron path does not geocode.
+- **Install hook.** `post_init_hook` in `hooks.py` grants this module's security groups to the users of the crons it owns.
 
-### Key Method: `assemble_packet()`
+## Models
 
-Builds the CEG query payload from the current intake record. Called by `action_match_to_buyers()` before the HTTP POST.
+| Model                         | Kind     | File                          |
+| ----------------------------- | -------- | ----------------------------- |
+| `plasticos.normalizer.config` | owned    | `models/normalizer_config.py` |
+| `plasticos.intake`            | extended | `models/intake_normalizer.py` |
 
-**Packet structure:**
+## Runtime
 
-```python
-{
-    "polymer": self.polymer_id.code,
-    "form": self.form_id.code,
-    "origin_form": self.origin_form_id.code if self.origin_form_id else None,
-    "origin_process": self.origin_process_type,
-    "source_type": self.source_type_id.name if self.source_type_id else None,
-    "volume": {
-        "qty_per_load_lbs": self.quantity_per_load_lbs,
-        "loads_per_month": self.loads_per_month,
-    },
-    "quality": {
-        "mfi_value": self.mfi_value or None,
-        "density_value": self.density_value or None,
-        "moisture_pct": self.moisture_pct or None,      # ← correct field name (was moisture_ppm — fixed)
-        "contamination_total_pct": self.contamination_total_pct or None,
-    },
-    "condition": {
-        "material_attributes": self.material_attribute_ids.mapped('code'),
-    },
-    "geo": {
-        "lat": self.lat,
-        "lon": self.lon,
-    },
-    "target_price": self.target_price,
-}
-```
+- Cron: `cron_batch_normalize_intakes`, hourly, `active` true in `data/cron_batch_normalize.xml`.
+- Default rules load from `data/normalizer_config_data.xml`.
+- `auto_install` is true.
 
-**Critical fix history:** Line 395 previously referenced `self.moisture_ppm` — field does not exist on `plasticos.intake`. Corrected to `self.moisture_pct`. Dict key also corrected from `moisture_ppm` → `moisture_pct`. When the L9/CEG adapter is wired, any PPM conversion (`moisture_pct * 10000`) belongs at the adapter boundary, not here.
+## Boundaries
 
----
+- It stores the packet. It sends nothing to Gate, CEG, or any other service.
+- It does not match buyers or change any model other than the intake and, when geocoding succeeds, the partner's coordinates.
+- Pure `_inherit` of `plasticos.intake`; no `write()` override.
 
-## Views
+## Read next
 
-| File | Description |
-|---|---|
-| `intake_normalizer_views.xml` | Adds the **Normalization** tab to `plasticos.intake` form via XPath |
-
-The Normalization tab displays the assembled packet fields and provides a "Re-Normalize" action for manual refresh.
-
----
-
-## Process Codes
-
-`origin_process_type` is a `Selection` field. Imported from:
-```python
-from odoo.addons.plasticos_material_profile.process_codes import PROCESS_SELECTION
-```
-
----
-
-## Deployment
-
-```bash
-docker compose -p odoo19 run --rm odoo \
-  -d odoo --db-host db --db-port 5432 --db-user odoo --db-password odoo \
-  -u plasticos_intake_normalizer --stop-after-init
-```
-
-No DB migration needed for packet logic changes (all computed, no stored fields modified).
-
----
-
-## Integration Points
-
-| Consumer | How Used |
-|---|---|
-| `plasticos_intake.action_match_to_buyers()` | Calls `assemble_packet()` to build CEG POST body |
-| CEG (external) | Consumes the packet dict via the HTTP POST body |
+- [`models/intake_normalizer.py`](models/intake_normalizer.py)
+- [`models/normalizer_config.py`](models/normalizer_config.py)
+- [`../plasticos_intake/README.md`](../plasticos_intake/README.md)

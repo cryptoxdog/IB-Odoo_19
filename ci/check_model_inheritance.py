@@ -80,6 +80,22 @@ def get_module_from_path(file_path: Path, root: Path) -> str | None:
     return None
 
 
+def _extends_named_model(model: dict) -> bool:
+    """True when this class extends an existing model instead of defining one.
+
+    A string ``_inherit`` is an in-place extension only when ``_name`` is
+    absent or equal to that string. A different ``_name`` creates a new model
+    from the parent, so it remains a definition. A list that includes this
+    class's ``_name`` is an extension plus a mixin. Odoo requires the explicit
+    ``_name`` in that second form.
+    """
+    name = model.get("_name")
+    inherit = model.get("_inherit")
+    if inherit:
+        return not name or name == inherit
+    return bool(name and name in (model.get("_inherit_list") or []))
+
+
 def check_duplicate_models(root: Path) -> list[dict]:
     """Find models with duplicate _name definitions."""
     issues = []
@@ -103,15 +119,16 @@ def check_duplicate_models(root: Path) -> list[dict]:
                         "file": model["file"],
                         "line": model["line"],
                         "class_name": model["class_name"],
+                        "_name": model["_name"],
                         "_inherit": model["_inherit"],
+                        "_inherit_list": model["_inherit_list"] or [],
                     }
                 )
 
     # Find duplicates
     for model_name, definitions in model_definitions.items():
         if len(definitions) > 1:
-            # Check if any definition lacks _inherit (true duplicate)
-            base_defs = [d for d in definitions if not d["_inherit"]]
+            base_defs = [d for d in definitions if not _extends_named_model(d)]
             if len(base_defs) > 1:
                 issues.append(
                     {
@@ -148,8 +165,7 @@ def check_inheritance_patterns(root: Path) -> list[dict]:
             continue
 
         for model in extract_model_definitions(py_file):
-            if model["_name"] and not model["_inherit"]:
-                # This is a base definition
+            if model["_name"] and not _extends_named_model(model):
                 if model["_name"] not in model_to_module:
                     model_to_module[model["_name"]] = module_name
 
@@ -165,7 +181,7 @@ def check_inheritance_patterns(root: Path) -> list[dict]:
         depends = module_depends.get(module_name, [])
 
         for model in extract_model_definitions(py_file):
-            if model["_name"] and not model["_inherit"]:
+            if model["_name"] and not _extends_named_model(model):
                 model_name = model["_name"]
                 base_module = model_to_module.get(model_name)
 
@@ -200,7 +216,7 @@ def check_test_required_fields(root: Path) -> list[dict]:
         "plasticos.offer": ["intake_id", "supplier_id", "buyer_id"],
         "plasticos.document": ["attachment_id", "tag_id"],
         "plasticos.match.result": ["intake_id", "buyer_partner_id"],
-        "plasticos.material.profile": ["partner_id", "polymer_id", "form_id"],
+        "plasticos.material.profile": ["partner_id", "polymer_id"],
     }
 
     for test_file in root.rglob("test_*.py"):

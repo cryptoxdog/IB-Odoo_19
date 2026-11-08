@@ -1,7 +1,7 @@
 import logging
+import os
 
 from odoo import api, fields, models
-from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -186,6 +186,13 @@ class PlasticosIntake(models.Model):
         ondelete="restrict",
         help="Polymer type from master registry.",
     )
+    material_grade_id = fields.Many2one(
+        "plasticos.material.grade",
+        string="Material Grade",
+        index=True,
+        ondelete="restrict",
+        help="What the material was before processing (Drums, Totes, Pallets). Optional.",
+    )
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
@@ -209,13 +216,6 @@ class PlasticosIntake(models.Model):
         help="Canonical source type from the master registry.",
     )
     grade_hint = fields.Char()
-
-    origin_form_id = fields.Many2one(
-        "plasticos.material.form",
-        string="Origin Form",
-        help="What the material was before processing (Drums, Bottles, Film). Optional.",
-        ondelete="restrict",
-    )
 
     packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
@@ -401,15 +401,21 @@ class PlasticosIntake(models.Model):
     )
 
     def _compute_image_count(self):
-        Attachment = self.env["ir.attachment"]
-        for rec in self:
-            rec.image_count = Attachment.search_count(
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = self.env["ir.attachment"]._read_group(
                 [
                     ("res_model", "=", "plasticos.intake"),
-                    ("res_id", "=", rec.id),
+                    ("res_id", "in", stored_ids),
                     ("mimetype", "like", "image/"),
-                ]
+                ],
+                ["res_id"],
+                ["__count"],
             )
+            counts = {res_id: count for res_id, count in rows if isinstance(res_id, int)}
+        for rec in self:
+            rec.image_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     match_line_ids = fields.One2many(
         "plasticos.intake.match",
@@ -433,11 +439,6 @@ class PlasticosIntake(models.Model):
         store=True,
         help="Highest match score among all buyer matches for this intake.",
     )
-    offer_count = fields.Integer(
-        string="Offers",
-        compute="_compute_offer_count",
-        help="Number of offers created from this intake.",
-    )
 
     @api.depends("match_line_ids", "match_line_ids.selected")
     def _compute_match_count(self):
@@ -450,14 +451,6 @@ class PlasticosIntake(models.Model):
         for rec in self:
             scores = rec.match_line_ids.mapped("match_score")
             rec.best_match_score = max(scores) if scores else 0.0
-
-    def _compute_offer_count(self):
-        if "plasticos.offer" not in self.env:
-            for rec in self:
-                rec.offer_count = 0
-            return
-        for rec in self:
-            rec.offer_count = self.env["plasticos.offer"].search_count([("intake_id", "=", rec.id)])
 
     @api.depends("name")
     def _compute_display_name(self):
@@ -568,11 +561,23 @@ class PlasticosIntake(models.Model):
         self.form_id = mp.form_id.id if mp.form_id else self.form_id
         self.color_id = mp.color_id.id if mp.color_id else self.color_id
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
-        self.origin_form_id = mp.origin_form_id.id if mp.origin_form_id else self.origin_form_id
+        self.material_grade_id = mp.material_grade_id.id if mp.material_grade_id else self.material_grade_id
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
+        self.moisture_pct = mp.moisture_percent or self.moisture_pct
         self.contamination_pct = mp.contamination_percent or self.contamination_pct
+        if mp.quantity_per_load_lbs:
+            self.quantity_per_load_lbs = int(mp.quantity_per_load_lbs)
+        if mp.loads_per_month:
+            self.loads_per_month = mp.loads_per_month
+        if mp.lat:
+            self.lat = mp.lat
+        if mp.lon:
+            self.lon = mp.lon
+        self.origin_process_type = mp.origin_process_type or self.origin_process_type
+        self.filler_type_id = mp.filler_type_id.id if mp.filler_type_id else self.filler_type_id
+        self.filler_pct = mp.filler_pct or self.filler_pct
         if mp.material_attribute_ids:
             self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
 
@@ -596,8 +601,10 @@ class PlasticosIntake(models.Model):
     def _sync_preferred_contact(self):
         """Batch-write preferred_contact_id on facilities when contact changes.
 
-        Collects unique (facility → contact) pairs first to minimise
-        the number of sudo().write() SQL UPDATE statements.
+        Collects unique (facility → contact) pairs first to minimise the
+        number of write() SQL UPDATE statements. The write runs with the
+        caller's rights: editing an intake does not grant partner write
+        access or bypass partner record rules.
         """
         facility_updates = {}
         for record in self:
@@ -606,13 +613,14 @@ class PlasticosIntake(models.Model):
 
         for facility, contact_id in facility_updates.items():
             if facility.preferred_contact_id.id != contact_id:
-                facility.sudo().write({"preferred_contact_id": contact_id})
+                facility.write({"preferred_contact_id": contact_id})
 
     def _sync_lead_source(self):
         """Batch-write lead_source_id on partners when first set from intake.
 
-        Collects unique (partner → source) pairs first to minimise
-        the number of sudo().write() SQL UPDATE statements.
+        Collects unique (partner → source) pairs first to minimise the
+        number of write() SQL UPDATE statements. The write runs with the
+        caller's rights, as in _sync_preferred_contact.
         """
         partner_updates = {}
         for record in self:
@@ -620,7 +628,7 @@ class PlasticosIntake(models.Model):
                 partner_updates[record.partner_id] = record.lead_source_id.id
 
         for partner, source_id in partner_updates.items():
-            partner.sudo().write({"lead_source_id": source_id})
+            partner.write({"lead_source_id": source_id})
 
     # ═════════════════════════════════════════════════════════
     # Validation
@@ -676,19 +684,6 @@ class PlasticosIntake(models.Model):
             "res_model": "res.partner",
             "view_mode": "form",
             "res_id": self.facility_id.id,
-        }
-
-    def action_view_offers(self):
-        self.ensure_one()
-        if "plasticos.offer" not in self.env:
-            return
-        return {
-            "type": "ir.actions.act_window",
-            "name": f"Offers — {self.name}",
-            "res_model": "plasticos.offer",
-            "view_mode": "list,form",
-            "domain": [("intake_id", "=", self.id)],
-            "context": {"default_intake_id": self.id},
         }
 
     def action_view_matches(self):
@@ -751,10 +746,11 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     def action_match_to_buyers(self):
-        """Run buyer matching via external microservice."""
+        """Run buyer matching via Gate (overridden by plasticos_matching when installed)."""
         self.ensure_one()
 
-        matching_engine_require_enabled_for_ui(self.env)
+        if not (os.environ.get("GATE_URL") or "").strip():
+            raise UserError("Gate is not configured (GATE_URL is unset).")
 
         if not self.partner_id and self.pending_company_name:
             self._create_partner_from_pending()
@@ -767,14 +763,10 @@ class PlasticosIntake(models.Model):
         if not self.material_profile_id:
             self._create_material_profile_from_intake()
 
-        icp = self.env["ir.config_parameter"].sudo()
-        base_url = icp.get_param("plasticos.matching_engine.url", "http://localhost:8001")
-
         _logger.info(
-            "Matching microservice call: intake=%s partner=%s url=%s",
+            "Matching request queued: intake=%s partner=%s",
             self.id,
             self.partner_id.id,
-            base_url,
         )
 
         return {
@@ -790,27 +782,20 @@ class PlasticosIntake(models.Model):
 
     def _create_material_profile_from_intake(self):
         self.ensure_one()
+        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+            build_material_profile_vals_from_intake,
+        )
+
         MaterialProfile = self.env["plasticos.material.profile"]
 
         profile_partner = self.facility_id or self.partner_id
         if not profile_partner:
             return
 
-        profile_vals = {
-            "partner_id": profile_partner.id,
-            "polymer_id": self.polymer_id.id if self.polymer_id else False,
-            "form_id": self.form_id.id if self.form_id else False,
-            "color_id": self.color_id.id if self.color_id else False,
-            "source_type_id": self.source_type_id.id if self.source_type_id else False,
-            "origin_form_id": self.origin_form_id.id if self.origin_form_id else False,
-            "melt_flow_index": self.mfi_value or 0,
-            "density": self.density_value or 0,
-            "moisture_percent": self.moisture_pct or 0,
-            "contamination_percent": self.contamination_pct or 0,
-        }
-
-        if self.material_attribute_ids:
-            profile_vals["material_attribute_ids"] = [(6, 0, self.material_attribute_ids.ids)]
+        profile_vals = build_material_profile_vals_from_intake(self)
+        profile_vals["partner_id"] = profile_partner.id
+        if self.packaging_type_id:
+            profile_vals["packaging_type_id"] = self.packaging_type_id.id
 
         profile = MaterialProfile.create(profile_vals)
         self.write({"material_profile_id": profile.id})
@@ -888,110 +873,3 @@ class PlasticosIntake(models.Model):
             rec.match_line_ids.unlink()
             rec.status = "draft"
             rec.message_post(body="Reset to draft for editing.")
-
-    def action_send_offers(self):
-        """Create plasticos.offer records for each selected match line."""
-        self.ensure_one()
-        self._assert_status("matched")
-        selected = self.match_line_ids.filtered("selected")
-        if not selected:
-            raise UserError("Please select at least one buyer to send offers to.")
-
-        if not self.partner_id:
-            raise UserError("Cannot send offers without a supplier. Set the Company on this intake first.")
-
-        offer_model = "plasticos.offer"
-        if offer_model not in self.env:
-            raise UserError("Offer module not installed.\n\nInstall 'PlasticOS Offers' to enable offer creation.")
-
-        Offer = self.env[offer_model]
-        offers_created = Offer
-        for match in selected:
-            if not match.buyer_id:
-                _logger.warning(
-                    "Skipping match line %s — no buyer_id set (buyer_name=%s)",
-                    match.id,
-                    match.buyer_name,
-                )
-                continue
-            offer = Offer.create(
-                {
-                    "intake_id": self.id,
-                    "supplier_id": self.partner_id.id,
-                    "buyer_id": match.buyer_id.id,
-                    "price_per_lb": match.typical_price or 0.0,
-                    "quantity_lbs": float(self.quantity_per_load_lbs or 0),
-                }
-            )
-            offers_created |= offer
-
-        if not offers_created:
-            raise UserError(
-                "No offers were created. Ensure selected buyer match lines have a Buyer set.\n\n"
-                "Use the bulk assign wizard to assign buyers to unresolved match lines."
-            )
-
-        self.status = "offer_sent"
-        self.message_post(
-            body=(
-                f"Offers sent to {len(offers_created)} buyer(s): {', '.join(offers_created.mapped('buyer_id.name'))}"
-            ),
-            message_type="notification",
-            subtype_xmlid="mail.mt_note",
-        )
-
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Offers Created",
-            "res_model": offer_model,
-            "view_mode": "list,form",
-            "domain": [("intake_id", "=", self.id)],
-            "target": "current",
-        }
-
-    def action_make_po(self):
-        """Create transaction from intake and close as Won."""
-        self.ensure_one()
-        self._assert_status("offer_sent", "processing", "matched")
-
-        if not self.partner_id:
-            raise UserError("Cannot create PO without a supplier partner.")
-
-        if "plasticos.transaction" not in self.env:
-            raise UserError(
-                "Transaction module not installed.\n\nInstall 'PlasticOS Transactions' to enable PO creation."
-            )
-        Transaction = self.env["plasticos.transaction"]
-
-        tx_vals = {
-            "intake_id": self.id,
-            "supplier_id": self.partner_id.id,
-            "quantity": self.quantity_per_load_lbs,
-        }
-
-        if self.material_profile_id:
-            tx_vals["supplier_profile_id"] = self.material_profile_id.id
-
-        selected_match = self.match_line_ids.filtered("selected").sorted("match_score", reverse=True)[:1]
-        if selected_match:
-            buyer = self.env["res.partner"].search([("name", "=", selected_match.buyer_name)], limit=1)
-            if buyer:
-                tx_vals["buyer_id"] = buyer.id
-
-        tx = Transaction.create(tx_vals)
-
-        self.status = "won"
-        self.message_post(
-            body=f"PO created → Transaction "
-            f'<a href="#" data-oe-model="plasticos.transaction" '
-            f'data-oe-id="{tx.id}">{tx.name or tx.id}</a>'
-        )
-
-        return {
-            "type": "ir.actions.act_window",
-            "name": f"Transaction — {self.name}",
-            "res_model": "plasticos.transaction",
-            "res_id": tx.id,
-            "view_mode": "form",
-            "target": "current",
-        }

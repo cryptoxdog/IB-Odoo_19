@@ -15,6 +15,17 @@ class PlasticosOfferTxBridge(models.Model):
         help="Transaction created when this offer was accepted.",
     )
 
+    def _plasticos_link_transaction(self, transaction):
+        """Server-side back-link after the compiler ran; the only write an accepted offer admits.
+
+        ``plasticos.offer.write`` freezes closed offers unless ``state`` is in
+        the values, so the unchanged state travels with the link.
+        """
+        for rec in self:
+            if rec.transaction_id:
+                continue
+            rec.write({"transaction_id": transaction.id, "state": rec.state})
+
     def action_view_transaction(self):
         """Navigate to the transaction created from this offer."""
         self.ensure_one()

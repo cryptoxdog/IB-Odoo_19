@@ -1,0 +1,8 @@
+{
+  "gate": 7,
+  "result": "blocked",
+  "blocker_id": "vanillasoft-100-contacts",
+  "reason": "VanillaSoft API key not set in Odoo ICP param 'plasticos_crm_sync.vanillasoft_api_key'. The import_vanillasoft_shell.py preflight fails closed on missing credentials. Gate 6 (ERP) PASSED — this gate was attempted.",
+  "prerequisite": "Set ICP param 'plasticos_crm_sync.vanillasoft_api_key' in odoo_test_cutover. Set VANILLASOFT_CALL_FLOOR before running make import-vanillasoft.",
+  "gate_6_dependency": "PASSED"
+}

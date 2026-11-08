@@ -90,10 +90,11 @@ class OfferBulkActionWizard(models.TransientModel):
         return self._return_notification(_("%d offer(s) sent") % len(valid_offers))
 
     def _action_accept(self):
-        """Accept all sent/responded offers."""
+        """Accept all sent/responded offers; one commercial winner per opportunity."""
         valid_offers = self.offer_ids.filtered(lambda o: o.state in ("sent", "responded"))
         if not valid_offers:
             raise UserError(_("No offers in sent/responded state to accept."))
+        self._refuse_several_winners(valid_offers)
 
         for offer in valid_offers:
             offer.action_accept()
@@ -139,6 +140,26 @@ class OfferBulkActionWizard(models.TransientModel):
                 )
 
         return self._return_notification(_("%d offer(s) cancelled") % len(valid_offers))
+
+    @staticmethod
+    def _refuse_several_winners(offers):
+        """A bulk accept may not name two winners for one opportunity; refuse before accepting any."""
+        seen = {}
+        for offer in offers:
+            resolver = getattr(offer, "_plasticos_opportunity", None)
+            opportunity = resolver() if callable(resolver) else None
+            if not opportunity:
+                continue
+            if opportunity.id in seen:
+                raise UserError(
+                    _(
+                        "Offers %(first)s and %(second)s both belong to opportunity %(opp)s; accept exactly one winner.",
+                        first=seen[opportunity.id].name,
+                        second=offer.name,
+                        opp=opportunity.name,
+                    )
+                )
+            seen[opportunity.id] = offer
 
     def _return_notification(self, message):
         return {

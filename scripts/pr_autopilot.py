@@ -30,7 +30,6 @@ Fix strategy (--fix mode):
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import os
 import re
@@ -54,12 +53,16 @@ try:
 except ImportError:
     _PR_REPAIR_WIRED = False
 
-try:
-    import certifi  # type: ignore[import-untyped]
+# An explicit SSL_CERT_FILE wins over certifi: behind a TLS-intercepting egress
+# proxy (cloud agent sessions) certifi's bundle lacks the proxy CA.
+_SSL_CAFILE: str | None = os.environ.get("SSL_CERT_FILE") or None
+if _SSL_CAFILE is None:
+    try:
+        import certifi  # type: ignore[import-untyped]
 
-    _SSL_CAFILE: str | None = certifi.where()
-except ImportError:
-    _SSL_CAFILE = None
+        _SSL_CAFILE = certifi.where()
+    except ImportError:
+        pass
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -245,6 +248,46 @@ def current_branch() -> str:
         cwd=REPO_ROOT,
     )
     return r.stdout.strip()
+
+
+_PR_URL_RE = re.compile(
+    r"github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)/pull/(?P<num>\d+)",
+    re.IGNORECASE,
+)
+
+
+def fetch_pr_by_number(pr_number: int) -> dict | None:
+    """Fetch a pull request by number (open or closed)."""
+    pr = gh(f"/repos/{REPO}/pulls/{pr_number}")
+    if isinstance(pr, dict) and pr.get("number"):
+        return pr
+    return None
+
+
+def resolve_pr_ref(ref: str | int) -> tuple[dict | None, str | None, int | None]:
+    """Resolve PR URL or number → (pr_dict, head_branch, pr_number)."""
+    pr_number: int | None = None
+    if isinstance(ref, int):
+        pr_number = ref
+    elif str(ref).strip().isdigit():
+        pr_number = int(str(ref).strip())
+    else:
+        text = str(ref).strip()
+        match = _PR_URL_RE.search(text)
+        if match:
+            owner, repo, num = match.group("owner"), match.group("repo"), match.group("num")
+            expected = REPO.split("/")
+            if owner != expected[0] or repo != expected[1]:
+                print(f"  ⚠️  PR URL repo {owner}/{repo} != {REPO} — using number from URL anyway")
+            pr_number = int(num)
+        else:
+            raise ValueError(f"Unrecognized PR reference: {ref!r} (use URL or number)")
+
+    pr = fetch_pr_by_number(pr_number) if pr_number else None
+    if not pr:
+        return None, None, pr_number
+    branch = pr.get("head", {}).get("ref")
+    return pr, branch, pr.get("number")
 
 
 def find_pr(branch: str) -> dict | None:
@@ -449,30 +492,34 @@ def _extract_issues_from_log(log: str, job_name: str) -> list[Issue]:
     return issues
 
 
-def get_ci_issues(branch: str) -> list[Issue]:
+def latest_ci_gate_run(branch: str) -> dict | None:
+    """Return the latest 'CI Gate' workflow run for a branch, if any."""
+    runs = gh(f"/repos/{REPO}/actions/runs?branch={_safe_ref(branch)}&per_page=10")
+    if not isinstance(runs, dict):
+        return None
+    for run in runs.get("workflow_runs", []):
+        if run.get("name") == "CI Gate":
+            return run
+    return None
+
+
+def get_ci_issues(branch: str, *, verbose: bool = True) -> list[Issue]:
     """Get issues from the latest CI run — reads ALL job logs completely."""
     issues: list[Issue] = []
 
-    runs = gh(f"/repos/{REPO}/actions/runs?branch={branch}&per_page=10")
-    if not isinstance(runs, dict):
-        return issues
-
-    ci_run = None
-    for run in runs.get("workflow_runs", []):
-        if run.get("name") == "CI Gate":
-            ci_run = run
-            break
-
+    ci_run = latest_ci_gate_run(branch)
     if not ci_run:
         return issues
 
-    conclusion = ci_run.get("conclusion", "in_progress")
+    conclusion = ci_run.get("conclusion") or "in_progress"
     if conclusion == "success":
-        print("  ✅ CI Gate: all checks passed — no issues to fix")
+        if verbose:
+            print("  ✅ CI Gate: all checks passed — no issues to fix")
         return issues
 
     run_id = ci_run["id"]
-    print(f"  → Reading CI run #{run_id} (conclusion: {conclusion})")
+    if verbose:
+        print(f"  → Reading CI run #{run_id} (conclusion: {conclusion})")
 
     jobs_resp = gh(f"/repos/{REPO}/actions/runs/{run_id}/jobs")
     if not isinstance(jobs_resp, dict):
@@ -487,11 +534,13 @@ def get_ci_issues(branch: str) -> list[Issue]:
         if job_conclusion == "success":
             continue
 
-        print(f"  → Reading log: {job_name} ({job_conclusion})")
+        if verbose:
+            print(f"  → Reading log: {job_name} ({job_conclusion})")
         log = _fetch_job_log(job_id)
 
         job_issues = _extract_issues_from_log(log, job_name)
-        print(f"    Found {len(job_issues)} issue(s)")
+        if verbose:
+            print(f"    Found {len(job_issues)} issue(s)")
         issues.extend(job_issues)
 
     # Deduplicate by (rule, file, line, message[:60])
@@ -706,8 +755,7 @@ def get_gemini_issues(pr_number: int | None, branch: str) -> list[Issue]:
                 kind = "ADVISORY"
             msg_prefix = ""
 
-        summary = body.split("\n\n")[0].replace("![high]", "").replace("![medium]", "").strip()
-        summary = re.sub(r"!\[.*?\]\(.*?\)", "", summary).strip()
+        summary = _summarize_review_body(body)
 
         issues.append(
             Issue(
@@ -715,7 +763,7 @@ def get_gemini_issues(pr_number: int | None, branch: str) -> list[Issue]:
                 kind=kind,
                 file=fpath,
                 line=start_line,
-                message=f"{msg_prefix}{summary[:200]}",
+                message=f"{msg_prefix}{summary}",
                 rule=f"gemini:{severity}",
                 raw={
                     "comment_id": c.get("id"),
@@ -804,6 +852,127 @@ def apply_gemini_fixes(issues: list[Issue], branch: str) -> list[str]:
 # ── GitHub reviews ────────────────────────────────────────────────────────────
 
 
+def _summarize_review_body(body: str, *, max_len: int = 220) -> str:
+    """First substantive line from a bot/human review comment."""
+    for raw in body.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("!["):
+            continue
+        if line.startswith("(") and "http" in line:
+            continue
+        line = re.sub(r"!\[.*?\]\(.*?\)", "", line).strip()
+        if line:
+            return line[:max_len]
+    return body[:max_len].replace("\n", " ")
+
+
+def _resolved_review_comment_ids(pr_number: int) -> set[int]:
+    """Database ids of review comments whose thread a reviewer has resolved.
+
+    REST review comments carry no resolution state; only the GraphQL review
+    thread does. A GraphQL failure returns an empty set so no comment is
+    silently dropped.
+    """
+    owner, name = REPO.split("/", 1)
+    query = """
+    query($owner: String!, $name: String!, $number: Int!, $after: String) {
+      repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+          reviewThreads(first: 100, after: $after) {
+            pageInfo { hasNextPage endCursor }
+            nodes { isResolved comments(first: 50) { nodes { databaseId } } }
+          }
+        }
+      }
+    }
+    """
+    resolved: set[int] = set()
+    after = None
+    for _page in range(20):
+        payload = {"query": query, "variables": {"owner": owner, "name": name, "number": pr_number, "after": after}}
+        try:
+            result = _http("POST", "https://api.github.com/graphql", token=GH_TOKEN, data=payload)
+        except Exception:  # noqa: BLE001 - resolution state is an optimisation, never a hidden gate
+            return set()
+        threads = (((result or {}).get("data") or {}).get("repository") or {}).get("pullRequest") or {}
+        threads = threads.get("reviewThreads") or {}
+        for thread in threads.get("nodes") or []:
+            if thread.get("isResolved"):
+                for comment in (thread.get("comments") or {}).get("nodes") or []:
+                    if comment.get("databaseId") is not None:
+                        resolved.add(comment["databaseId"])
+        page = threads.get("pageInfo") or {}
+        if not page.get("hasNextPage"):
+            break
+        after = page.get("endCursor")
+    return resolved
+
+
+def get_inline_bot_issues(
+    pr_number: int | None,
+    *,
+    login_substrings: tuple[str, ...],
+    source: str,
+) -> list[Issue]:
+    """Inline PR review comments from bots (Codex, etc.) — not CodeRabbit/Gemini paths."""
+    if not pr_number:
+        return []
+
+    comments = gh(f"/repos/{REPO}/pulls/{pr_number}/comments?per_page=100")
+    if not isinstance(comments, list):
+        return []
+
+    resolved_ids = _resolved_review_comment_ids(pr_number)
+    issues: list[Issue] = []
+    matched = 0
+    outdated = 0
+    for c in comments:
+        login = c.get("user", {}).get("login", "").lower()
+        if not any(sub in login for sub in login_substrings):
+            continue
+        if "coderabbit" in login or "gemini" in login:
+            continue
+        # GitHub clears ``line`` once the commented line is no longer in the
+        # PR diff (the comment is "outdated"), and a reviewer resolves the
+        # thread once the finding is answered. Neither may fail the gate.
+        if c.get("line") is None or c.get("id") in resolved_ids:
+            outdated += 1
+            continue
+        matched += 1
+        body = c.get("body", "")
+        low = body.lower()
+        if any(tok in low for tok in ("p1 badge", "p2 badge", "p0 badge", "must fix", "security")):
+            kind = "REAL_BUG"
+        elif any(tok in low for tok in ("bug", "incorrect", "broken", "wrong location", "flaw")):
+            kind = "REAL_BUG"
+        else:
+            kind = "ADVISORY"
+        issues.append(
+            Issue(
+                source=source,
+                kind=kind,
+                file=c.get("path", ""),
+                line=c.get("line") or c.get("original_line") or 0,
+                message=_summarize_review_body(body),
+                rule=f"{source}:inline",
+                raw=c,
+            )
+        )
+    if matched or outdated:
+        print(f"  → {source}: {matched} inline comment(s), {outdated} outdated")
+    return issues
+
+
+def get_codex_issues(pr_number: int | None) -> list[Issue]:
+    return get_inline_bot_issues(
+        pr_number,
+        login_substrings=("codex", "chatgpt-codex"),
+        source="codex",
+    )
+
+
 def get_review_issues(pr_number: int | None) -> list[Issue]:
     if not pr_number:
         return []
@@ -863,92 +1032,92 @@ def apply_all_auto_fixes(issues: list[Issue]) -> list[str]:
 
 
 def atomic_push(branch: str, commit_msg: str) -> bool:
+    """Refuse to publish.
+
+    Upstream L4 distinguishes a later update of an already-open PR from first
+    publication. This repository's operator lock is stricter: ``make pr`` is
+    the only publication ceremony, and it consumes L4 itself. Autofix still
+    edits the worktree; this function does not move a remote ref.
     """
-    Commit ALL locally-changed files in one atomic push via GitHub git-tree API.
-    This creates a single commit regardless of how many files changed.
-    Returns True if something was pushed.
+    summary = commit_msg.splitlines()[0] if commit_msg else "no message"
+    print(f"refusing to publish {branch} from pr-autopilot ({summary}): the only publication ceremony is make pr")
+    return False
+
+
+# ── Signal gathering (shared by pr-check gate and pr-autopilot) ───────────────
+
+
+def gather_all_signals(
+    branch: str | None = None,
+    *,
+    pr_ref: str | int | None = None,
+    verbose: bool = True,
+) -> tuple[list[Issue], int | None, dict | None, str | None]:
+    """Poll GitHub Actions logs, SonarCloud, CodeRabbit, Gemini, Codex, and human reviews.
+
+    pr_ref: optional PR URL (https://github.com/org/repo/pull/N) or number — overrides branch lookup.
+
+    Returns (issues, pr_number, pr_dict, ci_gate_conclusion).
+    ci_gate_conclusion is None when no CI Gate run exists for the branch.
     """
-    token = GH_TOKEN
-    if not token:
-        print("  ❌ No GitHub token — cannot push")
-        return False
+    pr: dict | None = None
+    pr_number: int | None = None
 
-    # Find changed files vs git HEAD
-    r = subprocess.run(["git", "diff", "--name-only"], capture_output=True, text=True, cwd=REPO_ROOT)
-    changed = [f.strip() for f in r.stdout.splitlines() if f.strip()]
-    if not changed:
-        print("  No local changes to commit.")
-        return False
+    if pr_ref is not None:
+        pr, branch_from_pr, pr_number = resolve_pr_ref(pr_ref)
+        branch = branch_from_pr or branch
+        if verbose and pr_number:
+            url = pr.get("html_url", f"https://github.com/{REPO}/pull/{pr_number}") if pr else ""
+            print(f"\n📡 Remote PR signals — PR #{pr_number} {url}")
+    else:
+        branch = branch or current_branch()
 
-    print(f"  → Files to commit ({len(changed)}): {', '.join(changed)}")
+    if not branch:
+        return [], pr_number, pr, None
 
-    ssl_ctx = _make_ssl()
+    if verbose and pr_ref is None:
+        print(f"\n📡 Remote PR signals — branch: {branch}")
 
-    def api(method: str, path: str, data: dict | None = None) -> Any:
-        req = urllib.request.Request(f"https://api.github.com{path}", method=method)
-        req.add_header("Authorization", f"token {token}")
-        req.add_header("Content-Type", "application/json")
-        if data:
-            req.data = json.dumps(data).encode()
-        with urllib.request.urlopen(req, context=ssl_ctx) as resp:
-            return json.load(resp)
+    if not pr:
+        pr = find_pr(branch)
+        pr_number = pr["number"] if pr else pr_number
 
-    # 1. Get current branch HEAD commit
-    ref = api("GET", f"/repos/{REPO}/git/ref/heads/{_safe_ref(branch)}")
-    head_sha = ref["object"]["sha"]
+    if verbose:
+        if pr_number:
+            title = (pr or {}).get("title", "")[:70]
+            print(f"  → PR #{pr_number}: {title}")
+        else:
+            print("  → No open PR (CI + SonarCloud branch scope still polled)")
 
-    # 2. Get the tree SHA of HEAD
-    head_commit = api("GET", f"/repos/{REPO}/git/commits/{head_sha}")
-    base_tree_sha = head_commit["tree"]["sha"]
+    ci_run = latest_ci_gate_run(branch)
+    ci_conclusion = (ci_run.get("conclusion") or "in_progress") if ci_run else None
 
-    # 3. Create blobs for each changed file
-    tree_items = []
-    for fpath in changed:
-        full = REPO_ROOT / fpath
-        if not full.exists():
-            print(f"    ⚠  {fpath} not found locally — skipping")
-            continue
-        content = full.read_bytes()
-        blob = api(
-            "POST",
-            f"/repos/{REPO}/git/blobs",
-            {"content": base64.b64encode(content).decode(), "encoding": "base64"},
-        )
-        tree_items.append({"path": fpath, "mode": "100644", "type": "blob", "sha": blob["sha"]})
-        print(f"    blob {fpath}: {blob['sha'][:8]}")
+    if verbose:
+        print("  [1/6] GitHub Actions — ALL failed-job logs ...")
+    ci_issues = get_ci_issues(branch, verbose=verbose)
 
-    if not tree_items:
-        print("  No blobs created.")
-        return False
+    if verbose:
+        print("  [2/6] SonarCloud ...")
+    sonar_issues = get_sonar_issues(pr_number)
 
-    # 4. Create new tree based on current HEAD tree
-    new_tree = api(
-        "POST",
-        f"/repos/{REPO}/git/trees",
-        {"base_tree": base_tree_sha, "tree": tree_items},
-    )
+    if verbose:
+        print("  [3/6] CodeRabbit review comments ...")
+    cr_issues = get_coderabbit_issues(pr_number)
 
-    # 5. Create commit
-    new_commit = api(
-        "POST",
-        f"/repos/{REPO}/git/commits",
-        {
-            "message": commit_msg,
-            "tree": new_tree["sha"],
-            "parents": [head_sha],
-        },
-    )
+    if verbose:
+        print("  [4/6] Human PR reviews ...")
+    review_issues = get_review_issues(pr_number)
 
-    # 6. Update branch reference
-    api(
-        "PATCH",
-        f"/repos/{REPO}/git/refs/heads/{_safe_ref(branch)}",
-        {"sha": new_commit["sha"], "force": False},
-    )
+    if verbose:
+        print("  [5/6] Gemini Code Assist ...")
+    gemini_issues = get_gemini_issues(pr_number, branch)
 
-    print(f"  ✅ Atomic commit: {new_commit['sha'][:8]} → {branch}")
-    print("     CI re-triggered by single push")
-    return True
+    if verbose:
+        print("  [6/6] Codex (chatgpt-codex-connector) ...")
+    codex_issues = get_codex_issues(pr_number)
+
+    all_issues = ci_issues + sonar_issues + cr_issues + review_issues + gemini_issues + codex_issues
+    return all_issues, pr_number, pr, ci_conclusion
 
 
 # ── Report ────────────────────────────────────────────────────────────────────
@@ -1015,32 +1184,7 @@ def main() -> int:
 
     print(f"\n🔍 PR Autopilot — scanning branch: {branch}")
 
-    print("  → Looking up PR ...")
-    pr = find_pr(branch)
-    pr_number = pr["number"] if pr else None
-    if pr_number:
-        print(f"  → PR #{pr_number}: {pr.get('title', '')[:70]}")
-    else:
-        print("  → No open PR found (CI + SonarCloud still available)")
-
-    print("\n📡 Fetching all signals ...")
-
-    print("  [1/4] GitHub Actions — reading ALL CI job logs ...")
-    ci_issues = get_ci_issues(branch)
-
-    print("  [2/4] SonarCloud issues ...")
-    sonar_issues = get_sonar_issues(pr_number)
-
-    print("  [3/4] CodeRabbit review comments ...")
-    cr_issues = get_coderabbit_issues(pr_number)
-
-    print("  [4/4] GitHub PR reviews ...")
-    review_issues = get_review_issues(pr_number)
-
-    print("  [5/5] Gemini Code Assist reviews ...")
-    gemini_issues = get_gemini_issues(pr_number, branch)
-
-    all_issues = ci_issues + sonar_issues + cr_issues + review_issues + gemini_issues
+    all_issues, pr_number, pr, _ci_conclusion = gather_all_signals(branch, verbose=True)
 
     print_report(all_issues, pr_number, branch)
 

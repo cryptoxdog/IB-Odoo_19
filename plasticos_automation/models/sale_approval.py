@@ -45,9 +45,10 @@ class SaleOrder(models.Model):
             )
 
             log_model = self.env["plasticos.automation.log"]
+            log_vals = []
             for order in orders:
                 order.requires_approval = True
-                log_model.create(
+                log_vals.append(
                     {
                         "name": f"Approval flag for {order.name}",
                         "model_name": "sale.order",
@@ -55,6 +56,8 @@ class SaleOrder(models.Model):
                         "action_type": "approval_flag",
                     }
                 )
+            if log_vals:
+                log_model.create(log_vals)
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_sale_approval_flag"]

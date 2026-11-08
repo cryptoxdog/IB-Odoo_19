@@ -3,12 +3,18 @@
 
 import ast
 import sys
+from pathlib import Path
 
 if len(sys.argv) < 2:
     print("Usage: validate_manifest.py <path-to-__manifest__.py>")
     sys.exit(1)
 
-manifest_path = sys.argv[1]
+# Containment guard: the CLI path must resolve inside the working tree
+# (SonarCloud S8707 — no path traversal via argv).
+manifest_path = Path(sys.argv[1]).resolve()
+if not manifest_path.is_relative_to(Path.cwd().resolve()):
+    print(f"  ERROR: manifest path escapes the working tree: {manifest_path}")
+    sys.exit(1)
 
 try:
     with open(manifest_path) as f:

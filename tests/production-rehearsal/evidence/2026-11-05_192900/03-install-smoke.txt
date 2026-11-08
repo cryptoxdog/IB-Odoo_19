@@ -1,0 +1,6 @@
+result=PASSED
+db=odoo_test_smoke_w2495f48767
+modules_verified=53
+all_green=true
+publication_evidence=written
+log=/tmp/odoo-install-smoke-20261105_144248.log

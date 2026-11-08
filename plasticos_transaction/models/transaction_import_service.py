@@ -1,13 +1,13 @@
 """
-Transaction Import Service for seeding historical cieTrade data.
+Transaction Import Service for seeding historical ERP data.
 
-Imports transaction line details from cieTrade.WksDetail.csv into:
+Imports transaction line details from ERP.WksDetail.csv into:
 - plasticos.transaction (header records, grouped by BuySellNo)
 - plasticos.transaction.line (detail records)
 
 Usage (shell):
     env["plasticos.transaction.import.service"].run_csv_import(
-        "/path/to/cieTrade.WksDetail.csv"
+        "/path/to/ERP.WksDetail.csv"
     )
 
 REVIEWER NOTE: This service intentionally calls self.env.cr.commit() every
@@ -49,7 +49,7 @@ class PlasticosTransactionImportService(models.AbstractModel):
     @api.model
     def run_csv_import(self, csv_path: str, dry_run: bool = False) -> dict:
         """
-        Import historical transactions from cieTrade.WksDetail.csv.
+        Import historical transactions from ERP.WksDetail.csv.
 
         Args:
             csv_path: Absolute path to the CSV file
@@ -175,17 +175,12 @@ class PlasticosTransactionImportService(models.AbstractModel):
         return (tx, line_count)
 
     def _create_transaction_lines(self, tx, line_rows: list) -> int:
-        """Create transaction line records."""
+        """Create transaction line records in one batch."""
         Line = self.env["plasticos.transaction.line"]
-        count = 0
-
-        for row in line_rows:
-            line_vals = self._parse_line_row(tx, row)
-            if line_vals:
-                Line.create(line_vals)
-                count += 1
-
-        return count
+        vals_list = [line_vals for line_vals in (self._parse_line_row(tx, row) for row in line_rows) if line_vals]
+        if vals_list:
+            Line.create(vals_list)
+        return len(vals_list)
 
     def _parse_line_row(self, tx, row: dict) -> dict:
         """Parse a CSV row into transaction line values."""

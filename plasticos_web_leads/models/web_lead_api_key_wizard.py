@@ -11,5 +11,5 @@ class PlasticosWebLeadApiKeyWizard(models.TransientModel):
     api_key = fields.Char(
         string="New API Key",
         readonly=True,
-        help="Copy this value now. It will not be shown in full again on the settings form.",
+        help="Copy this value now. Admins can also reveal the stored key later on Web Lead Config.",
     )

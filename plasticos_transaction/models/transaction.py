@@ -11,12 +11,25 @@ ACCOUNT_MOVE = "account.move"
 RES_PARTNER = "res.partner"
 PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
+_REFUND_TYPES = frozenset({"out_refund", "in_refund"})
+_HISTORICAL_REOPEN_ID = "plasticos_historical_reopen_id"
+_HISTORICAL_REOPEN_REASON = "plasticos_historical_reopen_reason"
+_MANAGER_GROUP = "plasticos_transaction.group_plasticos_manager"
+
+
+def _signed_move_total(moves) -> float:
+    """Invoice totals minus credit notes."""
+    total = 0.0
+    for move in moves:
+        sign = -1.0 if move.move_type in _REFUND_TYPES else 1.0
+        total += sign * (move.amount_total or 0.0)
+    return total
 
 
 class PlasticosTransaction(models.Model):
     _name = "plasticos.transaction"
     _description = "Plasticos Transaction"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "mail.activity.mixin"]
 
     name = fields.Char(required=True, copy=False, default="New")
 
@@ -32,6 +45,11 @@ class PlasticosTransaction(models.Model):
 
     sale_order_id = fields.Many2one("sale.order", ondelete="restrict")
     purchase_order_ids = fields.Many2many("purchase.order")
+    # Commercial archive provenance, not a payment/collection state.
+    legacy_erp_history = fields.Boolean(
+        string="Historical ERP Import", readonly=True, copy=False, index=True, default=False
+    )
+    legacy_erp_status = fields.Char(string="Source Worksheet Status", readonly=True, copy=False)
 
     # ── Partner References (harvested from linda_logistics_v6) ──
     supplier_id = fields.Many2one(
@@ -336,7 +354,7 @@ class PlasticosTransaction(models.Model):
     #     help="QC cases, chargebacks, and penalty claims linked to this transaction.",
     # )
 
-    # Historical line items from cieTrade import
+    # Historical line items from legacy ERP import
     line_ids = fields.One2many(
         "plasticos.transaction.line",
         "transaction_id",
@@ -494,9 +512,11 @@ class PlasticosTransaction(models.Model):
         "Transaction reference must be unique.",
     )
 
-    @api.constrains("commission_override_pct")
     def _check_override_pct_range(self):
-        """Stub — overridden by plasticos_commission.transaction_commission."""
+        """Stub — overridden by plasticos_commission.transaction_commission.
+
+        The range check lives on that inherit, which owns commission_override_pct.
+        """
 
     # ── Default Delivery Term Helper ─────────────────────────
     def _get_default_delivery_term(self):
@@ -534,67 +554,96 @@ class PlasticosTransaction(models.Model):
     # ── Computed Methods (harvested) ──────────────────────────
     @api.depends(
         "supplier_id",
+        "supplier_id.material_profile_ids",
+        "supplier_id.material_profile_ids.form_id",
         "buyer_id",
+        "buyer_id.material_profile_ids",
+        "buyer_id.material_profile_ids.form_id",
         "product_id",
+        "product_id.product_tmpl_id.polymer_id",
     )
     def _compute_profile_refs(self):
         """Denormalize material profile links for fast lookup.
 
         Matches supplier/buyer to their material profile based on the
-        transaction's product polymer. Avoids slow 3-hop traversals.
+        transaction's product polymer. One search covers the recordset.
+        When several profiles share a partner and polymer and at least one
+        has a form, the first form-specified row in model order is kept and
+        form-unspecified rows are ignored. When every match has an empty
+        form, that unspecified profile is selected.
 
         Note: product.template has polymer_id (via plasticos_product) but not
         form_id. We match on polymer only; form matching requires order line fields.
         """
         Profile = self.env[PLASTICOS_MATERIAL_PROFILE]
+        polymer_by_tx = {}
+        partner_ids = set()
+        polymer_ids = set()
         for rec in self:
-            supplier_profile = False
-            buyer_profile = False
             tmpl = rec.product_id.product_tmpl_id if rec.product_id else False
-            # Check if polymer_id exists on template (added by plasticos_product)
-            polymer_id = tmpl.polymer_id.id if tmpl and hasattr(tmpl, "polymer_id") and tmpl.polymer_id else False
-            if polymer_id:
-                if rec.supplier_id:
-                    supplier_profile = Profile.search(
-                        [
-                            ("partner_id", "=", rec.supplier_id.id),
-                            ("polymer_id", "=", polymer_id),
-                        ],
-                        limit=1,
-                    )
-                if rec.buyer_id:
-                    buyer_profile = Profile.search(
-                        [
-                            ("partner_id", "=", rec.buyer_id.id),
-                            ("polymer_id", "=", polymer_id),
-                        ],
-                        limit=1,
-                    )
-            rec.supplier_profile_id = supplier_profile
-            rec.buyer_profile_id = buyer_profile
-
-    @api.depends("sale_order_id", "sale_order_id.partner_id", "purchase_order_ids", "purchase_order_ids.partner_id")
-    def _compute_profiles(self):
+            polymer = tmpl.polymer_id if tmpl and getattr(tmpl, "polymer_id", False) else False
+            polymer_by_tx[rec.id] = polymer.id if polymer else False
+            if not polymer:
+                continue
+            polymer_ids.add(polymer.id)
+            if rec.supplier_id:
+                partner_ids.add(rec.supplier_id.id)
+            if rec.buyer_id:
+                partner_ids.add(rec.buyer_id.id)
+        first_match = {}
+        if partner_ids and polymer_ids:
+            profiles = Profile.search(
+                [
+                    ("partner_id", "in", list(partner_ids)),
+                    ("polymer_id", "in", list(polymer_ids)),
+                ]
+            )
+            grouped = {}
+            for profile in profiles:
+                grouped.setdefault((profile.partner_id.id, profile.polymer_id.id), []).append(profile)
+            for key, rows in grouped.items():
+                specified = [row for row in rows if row.form_id]
+                first_match[key] = specified[0] if specified else rows[0]
         for rec in self:
-            # Buyer facility from sale order partner
-            if rec.sale_order_id and rec.sale_order_id.partner_id:
-                facility = self.env["plasticos.facility.profile"].search(
-                    [("partner_id", "=", rec.sale_order_id.partner_id.id)], limit=1
-                )
-                rec.buyer_facility_id = facility
-            else:
-                rec.buyer_facility_id = False
+            polymer_id = polymer_by_tx[rec.id]
+            supplier_key = (rec.supplier_id.id, polymer_id) if polymer_id and rec.supplier_id else None
+            buyer_key = (rec.buyer_id.id, polymer_id) if polymer_id and rec.buyer_id else None
+            rec.supplier_profile_id = first_match.get(supplier_key, False) if supplier_key else False
+            rec.buyer_profile_id = first_match.get(buyer_key, False) if buyer_key else False
 
-            # Supplier material from first purchase order partner
-            if rec.purchase_order_ids:
-                first_po = rec.purchase_order_ids[0]
-                if first_po.partner_id:
-                    material = self.env[PLASTICOS_MATERIAL_PROFILE].search(
-                        [("partner_id", "=", first_po.partner_id.id)], limit=1
-                    )
-                    rec.supplier_material_id = material
-                else:
-                    rec.supplier_material_id = False
+    @api.depends(
+        "sale_order_id",
+        "sale_order_id.partner_id",
+        "sale_order_id.partner_id.facility_profile_ids",
+        "purchase_order_ids",
+        "purchase_order_ids.partner_id",
+        "purchase_order_ids.partner_id.material_profile_ids",
+    )
+    def _compute_profiles(self):
+        """Buyer facility is the sale-order partner's facility profile.
+
+        Supplier material stays the first material profile of the first
+        purchase-order partner, in material-profile order. Facility uniqueness
+        is already ``unique(partner_id)``, so the partner's existing one2many
+        is the authoritative row.
+        """
+        Profile = self.env[PLASTICOS_MATERIAL_PROFILE]
+        partner_ids = set()
+        for rec in self:
+            first_po = rec.purchase_order_ids[:1]
+            if first_po.partner_id:
+                partner_ids.add(first_po.partner_id.id)
+        first_material = {}
+        if partner_ids:
+            for profile in Profile.search([("partner_id", "in", list(partner_ids))]):
+                first_material.setdefault(profile.partner_id.id, profile)
+        empty_partner = self.env[RES_PARTNER]
+        for rec in self:
+            buyer = rec.sale_order_id.partner_id if rec.sale_order_id else empty_partner
+            rec.buyer_facility_id = buyer.facility_profile_ids[:1]
+            first_po = rec.purchase_order_ids[:1]
+            if first_po.partner_id:
+                rec.supplier_material_id = first_material.get(first_po.partner_id.id, False)
             else:
                 rec.supplier_material_id = False
 
@@ -736,20 +785,39 @@ class PlasticosTransaction(models.Model):
     @api.depends(
         "customer_invoice_id",
         "customer_invoice_id.amount_total",
+        "customer_invoice_id.reversal_move_ids",
+        "customer_invoice_id.reversal_move_ids.amount_total",
+        "customer_invoice_id.reversal_move_ids.state",
+        "customer_invoice_id.debit_note_ids",
+        "customer_invoice_id.debit_note_ids.amount_total",
+        "customer_invoice_id.debit_note_ids.state",
         "vendor_bill_ids",
         "vendor_bill_ids.amount_total",
         "freight_bill_ids",
         "freight_bill_ids.amount_total",
+        "freight_actual",
         "other_expenses",
         "freight_chargebacks",
         "lightweight_penalties",
     )
     def _compute_financials(self):
-        """RevOps formula: gross_margin = revenue - costs + recoveries."""
+        """RevOps formula: gross_margin = revenue - costs + recoveries.
+
+        Revenue is the customer document set of the transaction, each document
+        once: the customer invoice, plus the debit notes raised on it
+        (``debit_origin_id``), minus the credit notes that reverse it
+        (``reversed_entry_id``). Each document carries exactly one of those
+        links, so nothing is counted or netted twice.
+        """
         for rec in self:
-            revenue = rec.customer_invoice_id.amount_total if rec.customer_invoice_id else 0.0
-            purchase_cost = sum(rec.vendor_bill_ids.mapped("amount_total"))
-            freight_cost = sum(rec.freight_bill_ids.mapped("amount_total"))
+            invoice = rec.customer_invoice_id
+            live = lambda move: move.state != "cancel"  # noqa: E731 - one predicate for both document sets
+            credit_notes = invoice.reversal_move_ids.filtered(live)
+            debit_notes = invoice.debit_note_ids.filtered(live)
+            revenue = _signed_move_total(invoice) + _signed_move_total(credit_notes) + _signed_move_total(debit_notes)
+            purchase_cost = _signed_move_total(rec.vendor_bill_ids)
+            billed_freight = _signed_move_total(rec.freight_bill_ids)
+            freight_cost = billed_freight or (rec.freight_actual or 0.0)
             other = rec.other_expenses or 0.0
 
             # Recoveries reduce effective cost
@@ -793,36 +861,44 @@ class PlasticosTransaction(models.Model):
 
     @api.depends("create_date")
     def _compute_compliance(self):
-        """Compute compliance status based on required documents.
+        """Default when Documents is absent. The documents bridge owns the service.
 
-        NOTE: document_ids dependencies moved to plasticos_documents bridge
-        (transaction_docs_bridge.py) to avoid circular dependency. The bridge
-        module extends this compute with document-aware triggers.
-
-        When compliance changes from 'missing' to 'compliant', auto-posts any
-        draft invoices/bills linked to this transaction.
+        Observational only. Document transitions must not post invoices, bills,
+        or freight bills. Explicit Accounting ``action_post`` remains the posting
+        command.
         """
-        if "plasticos.compliance.service" not in self.env:
-            for rec in self:
-                rec.compliance_status = "compliant"
-            return
-        service = self.env["plasticos.compliance.service"]
-
         for rec in self:
-            old_status = rec.compliance_status
-            if service.is_compliant(PLASTICOS_TRANSACTION, rec.id):
-                rec.compliance_status = "compliant"
-                # Auto-post draft invoices when compliance achieved
-                if old_status == "missing":
-                    rec._auto_post_pending_invoices()
-            else:
-                rec.compliance_status = "missing"
+            rec.compliance_status = "compliant"
+
+    def _missing_close_documents(self, rec):
+        """Documents addon blocks close when required files are missing."""
+        return False
+
+    def _reconcile_new_transaction_loads(self, records):
+        return
+
+    def _lock_loads_for_party_write(self, vals):
+        return
+
+    def _refuse_loaded_sale_reassignment(self, vals):
+        return
+
+    def _reconcile_loads_after_party_write(self, vals):
+        return
+
+    def _refuse_unlink_with_loads(self, rec):
+        return
 
     def _auto_post_pending_invoices(self):
-        """Auto-post draft invoices/bills when transaction becomes compliant.
+        """Post draft invoices/bills when an explicit caller asks.
+
+        Compliance recompute does not call this. Historical ERP drafts,
+        identified by their ir.model.data marker, stay draft.
 
         Posts: customer_invoice_id, vendor_bill_ids, freight_bill_ids.
         Only posts moves in 'draft' state to avoid double-posting.
+        Historical ERP drafts, identified by their ir.model.data marker, stay
+        draft for an explicit accounting post.
         """
         self.ensure_one()
         moves_to_post = self.env[ACCOUNT_MOVE]
@@ -836,32 +912,70 @@ class PlasticosTransaction(models.Model):
         for bill in self.freight_bill_ids.filtered(lambda m: m.state == "draft"):
             moves_to_post |= bill
 
+        moves_to_post -= self._historical_erp_moves(moves_to_post)
         if moves_to_post:
             moves_to_post.action_post()
+
+    @api.model
+    def _historical_erp_moves(self, moves):
+        """Candidate moves whose identity row is an imported historical account.move.
+
+        One search. A row counts only when the module, the model, and one of
+        the three historical name prefixes all match. Other xmlids, other
+        modules, and other models stay eligible for automatic posting.
+        """
+        if not moves:
+            return moves
+        rows = self.env["ir.model.data"].search(
+            [
+                ("module", "=", "plasticos_transaction"),
+                ("model", "=", ACCOUNT_MOVE),
+                ("res_id", "in", moves.ids),
+                "|",
+                "|",
+                ("name", "=like", "legacy_erp_outinv_%"),
+                ("name", "=like", "legacy_erp_ininv_%"),
+                ("name", "=like", "legacy_erp_ledger_%"),
+            ]
+        )
+        if not rows:
+            return moves.browse()
+        return moves.browse(rows.mapped("res_id"))
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code(PLASTICOS_TRANSACTION) or "New"
-            name = vals.get("name")
-            if name and name != "New" and self.search([("name", "=", name)], limit=1):
+        names = [vals.get("name") for vals in vals_list if vals.get("name") and vals.get("name") != "New"]
+        existing_names = set(self.search([("name", "in", names)]).mapped("name")) if names else set()
+        for name in names:
+            if name in existing_names:
                 raise ValidationError(f"Transaction reference '{name}' already exists.")
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        self._reconcile_new_transaction_loads(records)
+        return records
 
     def write(self, vals):
         name = vals.get("name")
-        if name:
+        if name and self:
+            holders = self.search([("name", "=", name)])
             for record in self:
-                duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
-                if duplicate:
+                if holders - record:
                     raise ValidationError(f"Transaction reference '{name}' already exists.")
+        self._lock_loads_for_party_write(vals)
+        bill_owners = self._bill_owners_for_write(vals)
         for rec in self:
             self._validate_state_transition(rec, vals)
             self._validate_write_immutability(rec, vals)
-            self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
-            self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
-        return super().write(vals)
+            self._validate_bill_uniqueness(rec, bill_owners)
+        self._refuse_loaded_sale_reassignment(vals)
+        reopened = self.filtered(lambda rec: self._authorized_historical_reopen(rec, vals))
+        res = super().write(vals)
+        if reopened:
+            self._post_historical_reopen(reopened)
+        self._reconcile_loads_after_party_write(vals)
+        return res
 
     def _validate_state_transition(self, rec, vals):
         """Enforce that state changes only happen via dedicated action methods.
@@ -892,6 +1006,11 @@ class PlasticosTransaction(models.Model):
         Commission-specific guards (commission_rule_id, commission_locked) are
         enforced by plasticos_commission.transaction_commission.
         """
+        if rec.legacy_erp_history and ({"legacy_erp_history", "legacy_erp_status"} & vals.keys()):
+            raise UserError("Historical source identity and status are immutable.")
+        if rec.legacy_erp_history and "state" in vals and vals["state"] != rec.state:
+            if not self._authorized_historical_reopen(rec, vals):
+                raise UserError("Historical trade changes require a separately approved operations migration.")
         if "name" in vals:
             raise UserError("Transaction reference cannot be modified.")
         if rec.state == "closed":
@@ -908,26 +1027,53 @@ class PlasticosTransaction(models.Model):
             if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
                 raise UserError("Customer invoice cannot be reassigned once set.")
 
-    def _validate_bill_uniqueness(self, rec, vals, field, label):
-        """Ensure each bill in M2M commands is not already linked to another transaction."""
+    def _linked_bill_ids(self, vals, field):
         if field not in vals:
-            return
+            return []
+        bill_ids = []
         for cmd in vals[field]:
             if cmd[0] == 4:
-                other = self.search(
-                    [(field, "in", [cmd[1]]), ("id", "!=", rec.id)],
-                    limit=1,
-                )
-                if other:
-                    raise UserError(f"{label} already linked to another transaction.")
+                bill_ids.append(cmd[1])
             elif cmd[0] == 6:
-                for bid in cmd[2]:
-                    other = self.search(
-                        [(field, "in", [bid]), ("id", "!=", rec.id)],
-                        limit=1,
-                    )
-                    if other:
-                        raise UserError(f"{label} already linked to another transaction.")
+                bill_ids.extend(cmd[2])
+        return bill_ids
+
+    def _bill_owner_links(self, field, bill_ids):
+        if not bill_ids:
+            return {}
+        taken = self.search([(field, "in", bill_ids)])
+        taken[field]
+        return {owner.id: set(owner[field].ids) for owner in taken}
+
+    def _bill_owners_for_write(self, vals):
+        """One search per bill field for the whole recordset, before the write loop."""
+        owners = {}
+        vendor_ids = self._linked_bill_ids(vals, "vendor_bill_ids")
+        if vendor_ids:
+            owners["vendor_bill_ids"] = (
+                "Vendor bill",
+                vendor_ids,
+                self._bill_owner_links("vendor_bill_ids", vendor_ids),
+            )
+        freight_ids = self._linked_bill_ids(vals, "freight_bill_ids")
+        if freight_ids:
+            owners["freight_bill_ids"] = (
+                "Freight bill",
+                freight_ids,
+                self._bill_owner_links("freight_bill_ids", freight_ids),
+            )
+        return owners
+
+    def _validate_bill_uniqueness(self, rec, bill_owners):
+        """Ensure each bill in M2M commands is not already linked to another transaction."""
+        for label, bill_ids, links in bill_owners.values():
+            linked = set()
+            for owner_id, owner_bills in links.items():
+                if owner_id != rec.id:
+                    linked.update(owner_bills)
+            for bill_id in bill_ids:
+                if bill_id in linked:
+                    raise UserError(f"{label} already linked to another transaction.")
 
     def unlink(self):
         for rec in self:
@@ -935,7 +1081,84 @@ class PlasticosTransaction(models.Model):
                 raise UserError("Cannot delete transaction linked to accounting records.")
             if rec.state == "closed":
                 raise UserError("Closed transactions cannot be deleted.")
+            self._refuse_unlink_with_loads(rec)
         return super().unlink()
+
+    def _authorized_historical_reopen(self, rec, vals):
+        """Closed historical -> Active, one record, manager, reason, state only.
+
+        The context keys are not sufficient on their own. A caller who forges
+        them still fails unless the record, group, transition, and field set match.
+        ``bypass_state_guard`` does not authorize this transition.
+        """
+        if set(vals) != {"state"} or vals.get("state") != "active":
+            return False
+        if rec.state != "closed" or not rec.legacy_erp_history:
+            return False
+        if self.env.context.get(_HISTORICAL_REOPEN_ID) != rec.id:
+            return False
+        if not (self.env.context.get(_HISTORICAL_REOPEN_REASON) or "").strip():
+            return False
+        return self.env.user.has_group(_MANAGER_GROUP)
+
+    def _post_historical_reopen(self, records):
+        reason = (self.env.context.get(_HISTORICAL_REOPEN_REASON) or "").strip()
+        when = fields.Datetime.now()
+        actor = self.env.user
+        body = (
+            f"Historical reopen by {actor.name} (user {actor.id}) at {when} UTC. "
+            "State changed from Closed to Active. "
+            f"Reason: {reason}"
+        )
+        for rec in records:
+            rec.message_post(
+                body=f"{body} Transaction {rec.name} (id {rec.id}).",
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
+
+    def action_reopen_historical(self, reason):
+        """Reopen one Closed imported transaction to Active. Replay will not close it again."""
+        if len(self) != 1:
+            raise UserError("Reopen one historical transaction at a time.")
+        reason = (reason or "").strip()
+        if not reason:
+            raise UserError("A reopen reason is required.")
+        rec = self
+        if not rec.legacy_erp_history:
+            raise UserError("Only an imported historical transaction can be reopened.")
+        if rec.state != "closed":
+            raise UserError("Only a Closed historical transaction can be reopened.")
+        if not self.env.user.has_group(_MANAGER_GROUP):
+            raise UserError("Only Plasticos Managers can reopen a historical transaction.")
+        status = rec.legacy_erp_status
+        invoice = rec.customer_invoice_id
+        rec.with_context(
+            **{
+                _HISTORICAL_REOPEN_ID: rec.id,
+                _HISTORICAL_REOPEN_REASON: reason,
+            }
+        ).write({"state": "active"})
+        if rec.legacy_erp_status != status or rec.customer_invoice_id != invoice or not rec.legacy_erp_history:
+            raise UserError("Historical reopen changed source identity.")
+        return True
+
+    def action_open_historical_reopen(self):
+        """Open the reason wizard for the one selected historical transaction."""
+        if len(self) != 1:
+            raise UserError("Reopen one historical transaction at a time.")
+        if not self.legacy_erp_history or self.state != "closed":
+            raise UserError("Only a Closed historical transaction can be reopened.")
+        if not self.env.user.has_group(_MANAGER_GROUP):
+            raise UserError("Only Plasticos Managers can reopen a historical transaction.")
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Reopen Historical Transaction",
+            "res_model": "plasticos.transaction.reopen.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_transaction_id": self.id},
+        }
 
     def action_activate(self):
         """Activate a draft transaction."""
@@ -945,10 +1168,8 @@ class PlasticosTransaction(models.Model):
             rec.state = "active"
 
     def action_close(self):
-        service_docs = self.env["plasticos.compliance.service"] if "plasticos.compliance.service" in self.env else None
-
         for rec in self:
-            self._validate_close_preconditions(rec, service_docs)
+            self._validate_close_preconditions(rec)
 
             self.env.cr.execute(
                 "SELECT pg_try_advisory_lock(hashtext(%s))",
@@ -965,25 +1186,32 @@ class PlasticosTransaction(models.Model):
                     [f"plasticos_transaction.close_{rec.id}"],
                 )
 
-    def _validate_close_preconditions(self, rec, service_docs):
+    def _lock_load_membership_for_milestone(self, rec):
+        """Logistics overrides this. Base transactions have no loads."""
+        return
+
+    def _refuse_lagging_loads(self, rec, milestone, message):
+        """Logistics overrides this. A transaction with no loads keeps its workflow."""
+        return
+
+    def _validate_close_preconditions(self, rec):
         """Guard all business rules that must pass before a transaction can be closed.
 
-        This method is called BEFORE acquiring any locks, so unauthorized users
-        are rejected immediately without holding database resources.
+        Permission is checked before the membership lock so an unauthorized user
+        does not hold the transaction row.
         """
         # Permission check first
         if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
             raise UserError("Only Plasticos Managers can close transactions.")
+        self._lock_load_membership_for_milestone(rec)
         if rec.state == "closed":
             raise UserError("Transaction is already closed.")
         if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
             raise UserError("Customer invoice must be posted.")
         if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
             raise UserError("Vendor bills must be posted.")
-        load = getattr(rec, "load_id", False)
-        if load and load.state != "closed":
-            raise UserError("Logistics must be closed.")
-        if service_docs and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id):
+        self._refuse_lagging_loads(rec, "closed", "Logistics must be closed.")
+        if self._missing_close_documents(rec):
             raise UserError("Required documents missing.")
         if rec.gross_margin < 0:
             raise UserError("Cannot close transaction with negative gross margin.")
@@ -1018,14 +1246,17 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state not in ("do_created", "supplier_ready"):
                 raise UserError(
                     f"Cannot mark dispatched: transaction must be in 'DO Created' or "
                     f"'Supplier Ready' state (current: {rec.state})."
                 )
-            load = getattr(rec, "load_id", False)
-            if load and load.state not in ("dispatched", "picked_up", "delivered", "closed"):
-                raise UserError("Cannot mark dispatched: load has not been dispatched yet.")
+            self._refuse_lagging_loads(
+                rec,
+                "dispatched",
+                "Cannot mark dispatched: a load has not been dispatched yet.",
+            )
             rec.with_context(bypass_state_guard=True).write({"state": "dispatched"})
 
     def action_mark_in_transit(self):
@@ -1035,8 +1266,14 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state not in ("dispatched", "do_created", "in_progress"):
                 raise UserError(f"Cannot mark in transit: invalid current state (current: {rec.state}).")
+            self._refuse_lagging_loads(
+                rec,
+                "in_transit",
+                "Cannot mark in transit: a load has not been picked up yet.",
+            )
             rec.with_context(bypass_state_guard=True).write({"state": "in_transit"})
 
     def action_mark_delivered(self):
@@ -1046,10 +1283,16 @@ class PlasticosTransaction(models.Model):
         Uses bypass_state_guard context to allow state transition.
         """
         for rec in self:
+            self._lock_load_membership_for_milestone(rec)
             if rec.state != "in_transit":
                 raise UserError(
                     f"Cannot mark delivered: transaction must be in 'In Transit' state (current: {rec.state})."
                 )
+            self._refuse_lagging_loads(
+                rec,
+                "delivered",
+                "Cannot mark delivered: a load has not been delivered yet.",
+            )
             rec.with_context(bypass_state_guard=True).write({"state": "delivered"})
 
     def action_mark_supplier_not_ready(self, reason=None):

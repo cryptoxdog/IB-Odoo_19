@@ -1,4 +1,7 @@
 from odoo import api, fields, models
+from odoo.tools import get_lang
+
+from .material_label import projected_material
 
 
 class PurchaseOrderLine(models.Model):
@@ -9,8 +12,7 @@ class PurchaseOrderLine(models.Model):
     All other fields describe the specific material variation for this line.
     Pre-filled from material_profile_id but editable by user.
 
-    Full description format: "HDPE Blue Regrind - Gaylords - Post-Industrial - Clean"
-    Order: Polymer + Color + Form + Packaging + Source + Attributes
+    Full description format: "PET Trays - Clear - Bales - Post-Industrial - Clean"
     """
 
     _inherit = "purchase.order.line"
@@ -25,6 +27,12 @@ class PurchaseOrderLine(models.Model):
     )
 
     # ── Material Specification Fields ─────────────────────────────
+    material_grade_id = fields.Many2one(
+        "plasticos.material.grade",
+        string="Material Grade",
+        index=True,
+        ondelete="restrict",
+    )
     color_id = fields.Many2one(
         "plasticos.material.color",
         string="Color",
@@ -68,36 +76,14 @@ class PurchaseOrderLine(models.Model):
         string="Material Description",
         compute="_compute_material_description",
         store=True,
-        help="Full material description: Polymer Color Form - Packaging - Source - Attributes",
+        help="Product, then material grade, color, filler, form, packaging, source, and attributes.",
     )
-
-    def _build_main_description_part(self, line):
-        """Build space-separated main part: Polymer Color Filler Form."""
-        parts = []
-        if line.product_id and line.product_id.polymer_id:
-            parts.append(line.product_id.polymer_id.name)
-        if line.color_id:
-            parts.append(line.color_id.name)
-        if line.filler_type_id:
-            parts.append(line.filler_type_id.name)
-        if line.form_id:
-            parts.append(line.form_id.name)
-        return " ".join(parts)
-
-    def _build_extras_parts(self, line):
-        """Build dash-separated extras list: Packaging, Source, Attributes."""
-        extras = []
-        if line.packaging_type_id:
-            extras.append(line.packaging_type_id.name)
-        if line.source_type_id:
-            extras.append(line.source_type_id.name)
-        if line.material_attribute_ids:
-            extras.append(", ".join(line.material_attribute_ids.mapped("name")))
-        return extras
 
     @api.depends(
         "product_id",
+        "product_id.name",
         "product_id.polymer_id",
+        "material_grade_id",
         "color_id",
         "form_id",
         "packaging_type_id",
@@ -106,24 +92,14 @@ class PurchaseOrderLine(models.Model):
         "material_attribute_ids",
     )
     def _compute_material_description(self):
-        """
-        Build full description: HDPE Blue Glass Filled Regrind - Gaylords - Post-Industrial - Clean
-
-        Order: Polymer + Color + Filler + Form - Packaging - Source - Attributes
-        Main part (space-separated): Polymer Color Filler Form
-        Extras (dash-separated): Packaging - Source - Attributes
-        """
+        """Project the product name in front of the line specs."""
         for line in self:
-            main_part = self._build_main_description_part(line)
-            extras = self._build_extras_parts(line)
-            if extras:
-                line.material_description = f"{main_part} - {' - '.join(extras)}"
-            else:
-                line.material_description = main_part
+            line.material_description = projected_material(line)
 
     @api.onchange("material_profile_id")
     def _onchange_material_profile_id(self):
         """Pre-fill fields from material profile (editable by user)."""
+        self.ensure_one()
         if not self.material_profile_id:
             return
 
@@ -134,6 +110,7 @@ class PurchaseOrderLine(models.Model):
             self.product_id = profile.polymer_id.product_id.id
 
         # Pre-fill material fields
+        self.material_grade_id = profile.material_grade_id.id if profile.material_grade_id else False
         self.color_id = profile.color_id.id if profile.color_id else False
         self.form_id = profile.form_id.id if profile.form_id else False
         self.packaging_type_id = profile.packaging_type_id.id if profile.packaging_type_id else False
@@ -142,6 +119,20 @@ class PurchaseOrderLine(models.Model):
         self.material_attribute_ids = (
             [(6, 0, profile.material_attribute_ids.ids)] if profile.material_attribute_ids else [(5,)]
         )
+        if self.product_id:
+            product_lang = self.product_id.with_context(
+                lang=get_lang(self.env, self.partner_id.lang).code,
+                partner_id=None,
+                company_id=self.company_id.id,
+            )
+            self.name = self._get_product_purchase_description(product_lang)
+
+    def _get_product_purchase_description(self, product_lang):
+        """Print the material description above Odoo's product description."""
+        description = super()._get_product_purchase_description(product_lang)
+        if self.material_description:
+            return f"{self.material_description}\n{description}"
+        return description
 
     # ── Navigation Actions (Jump To) ────────────────────────────
     def action_view_material_profile(self):

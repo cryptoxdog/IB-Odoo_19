@@ -1,0 +1,171 @@
+rule_id,chapter,scope,source_semantic_owner,rule_title,status,planned_workstream,source_acceptance_ids
+BRS-POS-01-R001,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,Native capability precedence,LOCKED,ALL,AC-POS-01-001
+BRS-POS-01-R002,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,One owner per authoritative business fact,LOCKED,ALL,AC-POS-01-002
+BRS-POS-01-R003,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,No parallel source of truth,LOCKED,ALL,AC-POS-01-003
+BRS-POS-01-R004,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,Operator versus implementation authority,LOCKED,ALL,AC-POS-01-004
+BRS-POS-01-R005,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,Working BRS adoption boundary,LOCKED,ALL,AC-POS-01-005
+BRS-POS-01-R006,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,Proven capability not advertised capability,LOCKED,ALL,AC-POS-01-006
+BRS-POS-01-R007,BRS-POS-01,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS product/business owners,No business semantics from illustrative examples,DESIGN,ALL,AC-POS-01-007
+BRS-POS-01-R008,BRS-POS-01,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS product/business owners,Preserve legitimate order independence,LOCKED,ALL,AC-POS-01-008
+BRS-POS-01-R009,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,"Physical, commercial and cash events stay distinct",LOCKED,ALL,AC-POS-01-009
+BRS-POS-01-R010,BRS-POS-01,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS product/business owners,Corrective action on existing seam,DESIGN,ALL,AC-POS-01-010
+BRS-POS-01-R011,BRS-POS-01,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS product/business owners,Missing evidence stays unknown,LOCKED,ALL,AC-POS-01-011
+BRS-POS-01-R012,BRS-POS-01,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS product/business owners,Noninterfering independent workstreams,DESIGN,ALL,AC-POS-01-012
+BRS-POS-02-R001,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Native original custody,LOCKED,NAT-02,AC-POS-02-001
+BRS-POS-02-R002,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Native internal folder structure,DESIGN,NAT-02,AC-POS-02-002
+BRS-POS-02-R003,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,External inbound by alias,LOCKED,NAT-02,AC-POS-02-003
+BRS-POS-02-R004,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Internal request placeholders,LOCKED,NAT-02,AC-POS-02-004
+BRS-POS-02-R005,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Native request fulfillment requires verification,LOCKED,NAT-02,AC-POS-02-005
+BRS-POS-02-R006,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Native email alias triage,LOCKED,NAT-02,AC-POS-02-006
+BRS-POS-02-R007,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Versions and supersession,DESIGN,NAT-02,AC-POS-02-007
+BRS-POS-02-R008,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Native shortcuts before duplicating,DESIGN,NAT-02,AC-POS-02-008
+BRS-POS-02-R009,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Native file actions only when fit,CONDITIONAL,NAT-02,AC-POS-02-009
+BRS-POS-02-R010,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,AI classification without authority,LOCKED,NAT-02,AC-POS-02-010
+BRS-POS-02-R011,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,No external Documents sharing,LOCKED,NAT-02,AC-POS-02-011
+BRS-POS-02-R012,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,Document journal intake,DESIGN,NAT-02,AC-POS-02-012
+BRS-POS-02-R013,BRS-POS-02,DOCUMENTS_BRS_LOCAL,Odoo Documents / plasticos_documents_native,No mandatory digitization charges,LOCKED,NAT-02,AC-POS-02-013
+BRS-POS-03-R001,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,One canonical business classification,DESIGN,NAT-02 / SAFETY,AC-POS-03-001
+BRS-POS-03-R002,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Typed exact association,LOCKED,NAT-02 / SAFETY,AC-POS-03-002
+BRS-POS-03-R003,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Multi-record original reuse,DESIGN,NAT-02 / SAFETY,AC-POS-03-003
+BRS-POS-03-R004,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Authoritative verification writer,DESIGN,NAT-02 / SAFETY,AC-POS-03-004
+BRS-POS-03-R005,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Verification is attributable,LOCKED,NAT-02 / SAFETY,AC-POS-03-005
+BRS-POS-03-R006,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,"Expired, inactive or superseded evidence",DESIGN,NAT-02 / SAFETY,AC-POS-03-006
+BRS-POS-03-R007,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Operation-scoped compliance,LOCKED,NAT-02 / SAFETY,AC-POS-03-007
+BRS-POS-03-R008,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,No financial side effect from recompute,LOCKED,NAT-02 / SAFETY,AC-POS-03-008
+BRS-POS-03-R009,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Buyer receiving authority,LOCKED,NAT-02 / SAFETY,AC-POS-03-009
+BRS-POS-03-R010,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Partial receiving attribution,DESIGN,NAT-02 / SAFETY,AC-POS-03-010
+BRS-POS-03-R011,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,CST is a distinct carrier obligation,LOCKED,NAT-02 / SAFETY,AC-POS-03-011
+BRS-POS-03-R012,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Receipt versus certified proof,DESIGN,NAT-02 / SAFETY,AC-POS-03-012
+BRS-POS-03-R013,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Human weight capture until extraction admission,LOCKED,NAT-02 / SAFETY,AC-POS-03-013
+BRS-POS-03-R014,BRS-POS-03,DOCUMENTS_BRS_LOCAL,plasticos_documents compliance owner,Company-aware evidence controls,LOCKED,NAT-02 / SAFETY,AC-POS-03-014
+BRS-POS-04-R001,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Supplier settlement weight,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-001
+BRS-POS-04-R002,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Buyer billing weight,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-002
+BRS-POS-04-R003,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Certified scale is reference,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-003
+BRS-POS-04-R004,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Greater-than-five-percent review,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-004
+BRS-POS-04-R005,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Denominator unresolved,CONDITIONAL,WP-FIN-01 / WP-FIN-02,AC-POS-04-005
+BRS-POS-04-R006,BRS-POS-04,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS transaction/commercial owners,No universal final weight field,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-006
+BRS-POS-04-R007,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Supplier RWN is documentary notice,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-007
+BRS-POS-04-R008,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Missing supplier weight,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-008
+BRS-POS-04-R009,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Packaging evidence and accepted tare,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-009
+BRS-POS-04-R010,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,CST material-net arithmetic,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-010
+BRS-POS-04-R011,BRS-POS-04,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS transaction/commercial owners,No invented source fields,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-011
+BRS-POS-04-R012,BRS-POS-04,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS transaction/commercial owners,Underweight pure formula,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-012
+BRS-POS-04-R013,BRS-POS-04,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS transaction/commercial owners,Underweight liability is separate,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-04-013
+BRS-POS-04-R014,BRS-POS-04,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS transaction/commercial owners,Receipt timing does not automatically order RWN,CONDITIONAL,WP-FIN-01 / WP-FIN-02,AC-POS-04-014
+BRS-POS-05-R001,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,Direct dropship route,LOCKED,WP-STOCK-01,AC-POS-05-001
+BRS-POS-05-R002,BRS-POS-05,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Inventory / Purchase / Sales owners,Native 3PL receipt and issue,LOCKED,WP-STOCK-01,AC-POS-05-002
+BRS-POS-05-R003,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,Do not misuse consignment,LOCKED,WP-STOCK-01,AC-POS-05-003
+BRS-POS-05-R004,BRS-POS-05,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Inventory / Purchase / Sales owners,Physical inventory single writer,LOCKED,WP-STOCK-01,AC-POS-05-004
+BRS-POS-05-R005,BRS-POS-05,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Inventory / Purchase / Sales owners,PO-only inbound,LOCKED,WP-STOCK-01,AC-POS-05-005
+BRS-POS-05-R006,BRS-POS-05,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Inventory / Purchase / Sales owners,SO-from-inventory,LOCKED,WP-STOCK-01,AC-POS-05-006
+BRS-POS-05-R007,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,Lot and material-grade identity,DESIGN,WP-STOCK-01,AC-POS-05-007
+BRS-POS-05-R008,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,Tracked and measured goods,CONDITIONAL,WP-STOCK-01,AC-POS-05-008
+BRS-POS-05-R009,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,Example 3PL inventory invariant,LOCKED,WP-STOCK-01,AC-POS-05-009
+BRS-POS-05-R010,BRS-POS-05,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Inventory / Purchase / Sales owners,No inventory fiction from historic imports,LOCKED,WP-STOCK-01,AC-POS-05-010
+BRS-POS-05-R011,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,In-transit and staging distinction,DESIGN,WP-STOCK-01,AC-POS-05-011
+BRS-POS-05-R012,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,Native inventory reporting,LOCKED,WP-STOCK-01,AC-POS-05-012
+BRS-POS-05-R013,BRS-POS-05,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Inventory / Purchase / Sales owners,Physical and financial valuation distinct,LOCKED,WP-STOCK-01,AC-POS-05-013
+BRS-POS-05-R014,BRS-POS-05,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Inventory / Purchase / Sales owners,Never auto-award transport from stock,LOCKED,WP-STOCK-01,AC-POS-05-014
+BRS-POS-06-R001,BRS-POS-06,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Purchase/Sales/Accounting commercial owners,Native confirmed orders remain source,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-001
+BRS-POS-06-R002,BRS-POS-06,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Purchase/Sales/Accounting commercial owners,Customer order issue on standalone release,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-002
+BRS-POS-06-R003,BRS-POS-06,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Purchase/Sales/Accounting commercial owners,Supplier PO issue on standalone release,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-003
+BRS-POS-06-R004,BRS-POS-06,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Purchase/Sales/Accounting commercial owners,Purchase vendor invoice route,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-004
+BRS-POS-06-R005,BRS-POS-06,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Purchase/Sales/Accounting commercial owners,Self-billing out of scope,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-005
+BRS-POS-06-R006,BRS-POS-06,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Purchase/Sales/Accounting commercial owners,Three-way matching as native aid,CONDITIONAL,WP-FIN-01 / WP-FIN-02,AC-POS-06-006
+BRS-POS-06-R007,BRS-POS-06,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Purchase/Sales/Accounting commercial owners,No fictional stock or purchase quantity,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-007
+BRS-POS-06-R008,BRS-POS-06,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Purchase/Sales/Accounting commercial owners,Native buyer invoice quantity,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-008
+BRS-POS-06-R009,BRS-POS-06,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Purchase/Sales/Accounting commercial owners,No invoice auto-post on document events,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-009
+BRS-POS-06-R010,BRS-POS-06,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Purchase/Sales/Accounting commercial owners,Native commercial amendment and refund,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-010
+BRS-POS-06-R011,BRS-POS-06,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Purchase/Sales/Accounting commercial owners,Close source is buyer delivery proof,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-011
+BRS-POS-06-R012,BRS-POS-06,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Purchase/Sales/Accounting commercial owners,Partial invoices and close are quantity scoped,DESIGN,WP-FIN-01 / WP-FIN-02,AC-POS-06-012
+BRS-POS-06-R013,BRS-POS-06,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Purchase/Sales/Accounting commercial owners,Invoice exceptions do not halt other legs,LOCKED,WP-FIN-01 / WP-FIN-02,AC-POS-06-013
+BRS-POS-07-R001,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Claim is business evidence,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-001
+BRS-POS-07-R002,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Financial book once,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-002
+BRS-POS-07-R003,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Draft correction not double note,DESIGN,WP-FIN-02 / NAT-04,AC-POS-07-003
+BRS-POS-07-R004,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Posted supplier recovery note,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-004
+BRS-POS-07-R005,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Vendor owed more direction,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-005
+BRS-POS-07-R006,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Buyer credit and debit direction,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-006
+BRS-POS-07-R007,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Carrier CST penalty conditional,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-007
+BRS-POS-07-R008,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Carrier vendor credit preferred,DESIGN,WP-FIN-02 / NAT-04,AC-POS-07-008
+BRS-POS-07-R009,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Separate damages receivable only with proof,CONDITIONAL,WP-FIN-02 / NAT-04,AC-POS-07-009
+BRS-POS-07-R010,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Distinct buyer and supplier adjustment legs,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-010
+BRS-POS-07-R011,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Posted-only booked contribution,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-011
+BRS-POS-07-R012,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Expected/booked/settled separation,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-012
+BRS-POS-07-R013,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Closed physical load accounting correction,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-013
+BRS-POS-07-R014,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Shared-bill transaction allocation,DESIGN,WP-FIN-02 / NAT-04,AC-POS-07-014
+BRS-POS-07-R015,BRS-POS-07,EXTERNAL_OWNER_OUT_OF_SCOPE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Native inventory cost recognition,DESIGN,WP-FIN-02 / NAT-04,AC-POS-07-015
+BRS-POS-07-R016,BRS-POS-07,CROSS_DOMAIN_CONSUMER_REFERENCE,PlasticOS Claims + native Odoo Accounting + Inventory valuation,Unproven book margin stays unknown,LOCKED,WP-FIN-02 / NAT-04,AC-POS-07-016
+BRS-POS-08-R001,BRS-POS-08,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Accounting finance owner / authorized accountant,QuickBooks currently owns payment settlement,LOCKED,WP-ACCT-EXIT,AC-POS-08-001
+BRS-POS-08-R002,BRS-POS-08,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Accounting finance owner / authorized accountant,Odoo Accounting targeted replacement,LOCKED,WP-ACCT-EXIT,AC-POS-08-002
+BRS-POS-08-R003,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Native posted invoice and vendor bill basis,LOCKED,WP-ACCT-EXIT,AC-POS-08-003
+BRS-POS-08-R004,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Partial and grouped payments,DESIGN,WP-ACCT-EXIT,AC-POS-08-004
+BRS-POS-08-R005,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Native bank statement imports,LOCKED,WP-ACCT-EXIT,AC-POS-08-005
+BRS-POS-08-R006,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Bank sync conditional,CONDITIONAL,WP-ACCT-EXIT,AC-POS-08-006
+BRS-POS-08-R007,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Native reconciliation and models,LOCKED,WP-ACCT-EXIT,AC-POS-08-007
+BRS-POS-08-R008,BRS-POS-08,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Accounting finance owner / authorized accountant,Single writer at cutover,LOCKED,WP-ACCT-EXIT,AC-POS-08-008
+BRS-POS-08-R009,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Accountant-authorized opening balances,LOCKED,WP-ACCT-EXIT,AC-POS-08-009
+BRS-POS-08-R010,BRS-POS-08,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo Accounting finance owner / authorized accountant,Native customer follow-up after QB exit,LOCKED,WP-ACCT-EXIT,AC-POS-08-010
+BRS-POS-08-R011,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Financial reporting native first,LOCKED,WP-ACCT-EXIT,AC-POS-08-011
+BRS-POS-08-R012,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Native analytic accounting conditional,CONDITIONAL,WP-ACCT-EXIT,AC-POS-08-012
+BRS-POS-08-R013,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Payment authority stays manual,LOCKED,WP-ACCT-EXIT,AC-POS-08-013
+BRS-POS-08-R014,BRS-POS-08,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo Accounting finance owner / authorized accountant,Historic migration no silent rebooking,LOCKED,WP-ACCT-EXIT,AC-POS-08-014
+BRS-POS-09-R001,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Use all applicable native primitives,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-001
+BRS-POS-09-R002,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Internal Documents Request purpose,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-002
+BRS-POS-09-R003,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",One internal Activity per unresolved obligation,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-003
+BRS-POS-09-R004,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Simple event trigger on native automation,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-004
+BRS-POS-09-R005,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Native scheduler is the only job platform,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-005
+BRS-POS-09-R006,BRS-POS-09,CROSS_DOMAIN_CONSUMER_REFERENCE,"plasticos_logistics (Linda external send); Documents and Activities supply status only",Only one external reminder writer,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-006
+BRS-POS-09-R007,BRS-POS-09,CROSS_DOMAIN_CONSUMER_REFERENCE,"plasticos_logistics (Linda external send); Documents and Activities supply status only",Supplier document business clock,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-007
+BRS-POS-09-R008,BRS-POS-09,CROSS_DOMAIN_CONSUMER_REFERENCE,"plasticos_logistics (Linda external send); Documents and Activities supply status only",Carrier document business clock,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-008
+BRS-POS-09-R009,BRS-POS-09,CROSS_DOMAIN_CONSUMER_REFERENCE,"plasticos_logistics (Linda external send); Documents and Activities supply status only",Buyer document business clock,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-009
+BRS-POS-09-R010,BRS-POS-09,CROSS_DOMAIN_CONSUMER_REFERENCE,"plasticos_logistics (Linda external send); Documents and Activities supply status only",No duplicate daily touch,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-010
+BRS-POS-09-R011,BRS-POS-09,CROSS_DOMAIN_CONSUMER_REFERENCE,"plasticos_logistics (Linda external send); Documents and Activities supply status only",Quiet hours and locale aware deadlines,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-011
+BRS-POS-09-R012,BRS-POS-09,CROSS_DOMAIN_CONSUMER_REFERENCE,"plasticos_logistics (Linda external send); Documents and Activities supply status only",Stop on verified or inapplicable,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-012
+BRS-POS-09-R013,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",No hidden financial triggers,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-013
+BRS-POS-09-R014,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Automation last live stage,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-014
+BRS-POS-09-R015,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Accounting follow-ups later than operational automation,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-015
+BRS-POS-09-R016,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Optional Studio or AI costs,LOCKED,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-016
+BRS-POS-09-R017,BRS-POS-09,DOCUMENTS_BRS_LOCAL,"Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",Time-based native engine limitations,CONDITIONAL,SAFETY / NAT-02 / NAT-03 / NAT-04,AC-POS-09-017
+BRS-POS-10-R001,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,Independent PO and SO issue,LOCKED,NAT-01 / NAT-03,AC-POS-10-001
+BRS-POS-10-R002,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,Native commercial approvals remain intact,LOCKED,NAT-01 / NAT-03,AC-POS-10-002
+BRS-POS-10-R003,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,Native reports with party-safe redaction,LOCKED,NAT-01 / NAT-03,AC-POS-10-003
+BRS-POS-10-R004,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,Native queue and exact delivery-state semantics,LOCKED,NAT-01 / NAT-03,AC-POS-10-004
+BRS-POS-10-R005,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,Reply evidence by original headers,LOCKED,NAT-01 / NAT-03,AC-POS-10-005
+BRS-POS-10-R006,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,Free-form response authority,CONDITIONAL,NAT-01 / NAT-03,AC-POS-10-006
+BRS-POS-10-R007,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,Real physical READY,LOCKED,NAT-01 / NAT-03,AC-POS-10-007
+BRS-POS-10-R008,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,Existing carrier rate authority,LOCKED,NAT-01 / NAT-03,AC-POS-10-008
+BRS-POS-10-R009,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,Dispatch packet and source guard,LOCKED,NAT-01 / NAT-03,AC-POS-10-009
+BRS-POS-10-R010,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,Carrier acknowledgment milestones,LOCKED,NAT-01 / NAT-03,AC-POS-10-010
+BRS-POS-10-R011,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,Native order cancellation lifecycle,LOCKED,NAT-01 / NAT-03,AC-POS-10-011
+BRS-POS-10-R012,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,Native reopening is new release cycle,LOCKED,NAT-01 / NAT-03,AC-POS-10-012
+BRS-POS-10-R013,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,Transport revision and sequencing,LOCKED,NAT-01 / NAT-03,AC-POS-10-013
+BRS-POS-10-R014,BRS-POS-10,EXTERNAL_OWNER_OUT_OF_SCOPE,plasticos_logistics (Linda) + Odoo Mail,No fake load for warehouse inbound,LOCKED,NAT-01 / NAT-03,AC-POS-10-014
+BRS-POS-10-R015,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,External channel owner handoff,LOCKED,NAT-01 / NAT-03,AC-POS-10-015
+BRS-POS-10-R016,BRS-POS-10,CROSS_DOMAIN_CONSUMER_REFERENCE,plasticos_logistics (Linda) + Odoo Mail,Deterministic exception inbox,DESIGN,NAT-01 / NAT-03,AC-POS-10-016
+BRS-POS-11-R001,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Company-consistent business identity,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-001
+BRS-POS-11-R002,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Stored company and record-rule protections,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-002
+BRS-POS-11-R003,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Least-privilege document access,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-003
+BRS-POS-11-R004,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,No supplier-buyer document leakage,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-004
+BRS-POS-11-R005,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Native Documents stays internal,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-005
+BRS-POS-11-R006,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Explicit email recipient evidence,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-006
+BRS-POS-11-R007,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Unknown transport outcome preservation,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-007
+BRS-POS-11-R008,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Evidence and change audit,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-008
+BRS-POS-11-R009,BRS-POS-11,EXTERNAL_OWNER_OUT_OF_SCOPE,Odoo company ACL/security owners; Documents and Linda domain owners,Credential access separate from plan,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-009
+BRS-POS-11-R010,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,No first-match ambiguous assignment,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-010
+BRS-POS-11-R011,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Draft/posting role segregation,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-011
+BRS-POS-11-R012,BRS-POS-11,CROSS_DOMAIN_CONSUMER_REFERENCE,Odoo company ACL/security owners; Documents and Linda domain owners,Security rule precedence,LOCKED,SAFETY / NAT-01 / NAT-02,AC-POS-11-012
+BRS-POS-12-R001,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Plan-only boundary,LOCKED,PLAN / PR-STACK,AC-POS-12-001
+BRS-POS-12-R002,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Immutable existing Linda PR heads,LOCKED,PLAN / PR-STACK,AC-POS-12-002
+BRS-POS-12-R003,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Descendant branch and review range,LOCKED,PLAN / PR-STACK,AC-POS-12-003
+BRS-POS-12-R004,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Safety before document automation,LOCKED,PLAN / PR-STACK,AC-POS-12-004
+BRS-POS-12-R005,BRS-POS-12,EXTERNAL_OWNER_OUT_OF_SCOPE,Operator plan / verified target repository owners,Physical dispatch guard before carrier sends,LOCKED,PLAN / PR-STACK,AC-POS-12-005
+BRS-POS-12-R006,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Planned new safety slice,DESIGN,PLAN / PR-STACK,AC-POS-12-006
+BRS-POS-12-R007,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Native Enterprise proof separately authorized,LOCKED,PLAN / PR-STACK,AC-POS-12-007
+BRS-POS-12-R008,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,"Manual finance, Documents and Inventory first",LOCKED,PLAN / PR-STACK,AC-POS-12-008
+BRS-POS-12-R009,BRS-POS-12,EXTERNAL_OWNER_OUT_OF_SCOPE,Operator plan / verified target repository owners,QB exit independent approval,LOCKED,PLAN / PR-STACK,AC-POS-12-009
+BRS-POS-12-R010,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Real tests cite exact rule IDs,LOCKED,PLAN / PR-STACK,AC-POS-12-010
+BRS-POS-12-R011,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Changes by explicit supersession,LOCKED,PLAN / PR-STACK,AC-POS-12-011
+BRS-POS-12-R012,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Avoid inherited old BRS IDs,LOCKED,PLAN / PR-STACK,AC-POS-12-012
+BRS-POS-12-R013,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Source currentness at delegation,LOCKED,PLAN / PR-STACK,AC-POS-12-013
+BRS-POS-12-R014,BRS-POS-12,EXTERNAL_OWNER_OUT_OF_SCOPE,Operator plan / verified target repository owners,Do not overcorrect correct native Odoo behavior,LOCKED,PLAN / PR-STACK,AC-POS-12-014
+BRS-POS-12-R015,BRS-POS-12,CROSS_DOMAIN_CONSUMER_REFERENCE,Operator plan / verified target repository owners,Operator-admitted later activation,LOCKED,PLAN / PR-STACK,AC-POS-12-015

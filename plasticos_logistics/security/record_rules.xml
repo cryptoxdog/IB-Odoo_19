@@ -1,46 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+  <!-- Load-dashboard record rules that bind security groups are owned by
+       plasticos_security_base (security/record_rules.xml). Logistics cannot
+       declare a depends on security_base without a circular dependency, so
+       those rules must not live in this module's data files.
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-       Logistics Dashboard Record Rules
-       Sales reps see ONLY loads linked to their transactions.
-       Logistics, ops managers, and admins see all.
-  ══════════════════════════════════════════════════════════════════════ -->
-
-  <!-- Sales Rep: filter to own user_id (from transaction) -->
-  <record id="rule_load_dashboard_rep_own" model="ir.rule">
-    <field name="name">Load Dashboard: Sales Reps see own loads only</field>
-    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
-    <field name="domain_force">[("user_id", "=", user.id)]</field>
-    <field name="groups" eval="[(4, ref('plasticos_security_base.group_sales_rep'))]"/>
-    <field name="perm_read"   eval="True"/>
-    <field name="perm_write"  eval="False"/>
-    <field name="perm_create" eval="False"/>
-    <field name="perm_unlink" eval="False"/>
-  </record>
-
-  <!-- Logistics: global read -->
-  <record id="rule_load_dashboard_logistics_all" model="ir.rule">
-    <field name="name">Load Dashboard: Logistics sees all loads</field>
-    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
-    <field name="domain_force">[(1, "=", 1)]</field>
-    <field name="groups" eval="[(4, ref('plasticos_security_base.group_logistics'))]"/>
-    <field name="perm_read"   eval="True"/>
-    <field name="perm_write"  eval="False"/>
-    <field name="perm_create" eval="False"/>
-    <field name="perm_unlink" eval="False"/>
-  </record>
-
-  <!-- Operations Manager: global read -->
-  <record id="rule_load_dashboard_ops_manager_all" model="ir.rule">
-    <field name="name">Load Dashboard: Ops Managers see all loads</field>
-    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
-    <field name="domain_force">[(1, "=", 1)]</field>
-    <field name="groups" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
-    <field name="perm_read"   eval="True"/>
-    <field name="perm_write"  eval="False"/>
-    <field name="perm_create" eval="False"/>
-    <field name="perm_unlink" eval="False"/>
-  </record>
-
+       Upgrade note: xml ids keep the same local name
+       (rule_load_dashboard_*), but ir_model_data.module is reassigned to
+       plasticos_security_base in migrations/19.0.1.2.9/post-migrate.py. -->
+    <record id="rule_freight_quote_request_company" model="ir.rule">
+        <field name="name">Freight quote request company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_quote_request"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_quote_recipient_company" model="ir.rule">
+        <field name="name">Freight quote recipient company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_quote_recipient"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_quote_company" model="ir.rule">
+        <field name="name">Freight quote company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_quote"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_estimate_company" model="ir.rule">
+        <field name="name">Freight estimate company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_estimate"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_event_company" model="ir.rule">
+        <field name="name">Freight event company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_event"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_calibration_company" model="ir.rule">
+        <field name="name">Freight calibration company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_calibration_observation"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_rate_memory_reconciliation_company" model="ir.rule">
+        <field name="name">Rate-memory reconciliation company isolation</field>
+        <field name="model_id" ref="model_plasticos_rate_memory_reconciliation"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_logistics_request_company" model="ir.rule">
+        <field name="name">Linda logistics request company isolation</field>
+        <field name="model_id" ref="model_plasticos_logistics_request"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_logistics_response_company" model="ir.rule">
+        <field name="name">Linda logistics response company isolation</field>
+        <field name="model_id" ref="model_plasticos_logistics_response"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

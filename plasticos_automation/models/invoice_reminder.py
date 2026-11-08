@@ -22,19 +22,24 @@ class AccountMove(models.Model):
             config = self.env["plasticos.automation.config"].get_config()
             today = fields.Date.today()
             cutoff = today - timedelta(days=config.invoice_overdue_days)
-            overdue = self.search(
-                [
-                    ("move_type", "=", "out_invoice"),
-                    ("state", "=", "posted"),
-                    ("payment_state", "!=", "paid"),
-                    ("invoice_date_due", "<=", cutoff),
-                    "|",
-                    ("last_reminder_date", "=", False),
-                    ("last_reminder_date", "<", today),
-                ],
-                order="invoice_date_due ASC, id ASC",
-                limit=200,
-            )
+            domain = [
+                ("move_type", "=", "out_invoice"),
+                ("state", "=", "posted"),
+                ("payment_state", "!=", "paid"),
+                ("invoice_date_due", "<=", cutoff),
+                "|",
+                ("last_reminder_date", "=", False),
+                ("last_reminder_date", "<", today),
+            ]
+            # An opening residual is not collectible by Odoo during parallel/shadow mode.
+            # Explicit finance handover is a separate runtime authorization.
+            if "plasticos_cutover_opening" in self._fields:
+                icp = self.env["ir.config_parameter"]
+                params = icp.sudo()  # cron-sudo-justification: read system cutover handover flag
+                handover = params.get_param("plasticos_accounting.cutover_handover_enabled", default="0") == "1"
+                if not handover:
+                    domain.append(("plasticos_cutover_opening", "=", False))
+            overdue = self.search(domain, order="invoice_date_due ASC, id ASC", limit=200)
 
             # Collect log entries for batch create
             log_vals_list = []

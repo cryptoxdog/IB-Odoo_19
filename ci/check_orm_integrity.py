@@ -65,6 +65,10 @@ class OrmIntegrityChecker(ast.NodeVisitor):
 
     def _check_env_ref(self, node: ast.Call) -> None:
         """Check for unprotected env.ref() calls."""
+        # Tests intentionally fail fast for missing required XMLIDs.
+        if self.is_test_file:
+            return
+
         # Match: self.env.ref(...) or env.ref(...)
         if not isinstance(node.func, ast.Attribute):
             return

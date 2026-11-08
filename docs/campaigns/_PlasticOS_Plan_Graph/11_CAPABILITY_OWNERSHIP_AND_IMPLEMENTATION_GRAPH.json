@@ -1,0 +1,540 @@
+{
+  "schema": "plasticos.planning.capability-ownership-state-graph/v1",
+  "status": "WORKING_DERIVED_NON_CANONICAL_NOT_RUNTIME_PROOF",
+  "as_of": "2026-10-28",
+  "source_repo": "cryptoxdog/IB-Odoo_19",
+  "source_sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+  "relation_owner": "PlasticOS domain architecture; consumers are not legal/canonical semantic owners by reference",
+  "authority_boundary": "EXTERNAL_TO_L9_STRATEGIC_PLAN; NO_PLAN_PRIMITIVES_OR_STRATEGIC_RELATIONS_ADMITTED_HERE",
+  "nodes": [
+    {
+      "id": "cap:original",
+      "label": "Native Documents original/version/attachment",
+      "type": "capability",
+      "semantic_owner": "Odoo Enterprise Documents",
+      "authoritative_writer": "documents.document + ir.attachment",
+      "execution_owner": "plasticos_documents_native",
+      "implementation_status": "SOURCE_PRESENT_INSTALLED_UNVERIFIED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-DOC-ORIGINAL"
+      ],
+      "governing_refs": [
+        "POS-INV-01",
+        "POS-INV-06",
+        "BRS-POS-02-R001"
+      ],
+      "code_not_mutated": true,
+      "native_enterprise_registry": "UNKNOWN"
+    },
+    {
+      "id": "cap:verification",
+      "label": "Verified business evidence",
+      "type": "capability",
+      "semantic_owner": "plasticos_documents",
+      "authoritative_writer": "plasticos.document verification policy",
+      "execution_owner": "plasticos_documents",
+      "implementation_status": "CONFLICTING_DUAL_RUNTIME_WRITERS_IN_SOURCE",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "OWNER_DESIGN_PROPOSED_NOT_ADMITTED",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-DOC-VERIFY",
+        "E-DOC-NATIVE-VERIFY"
+      ],
+      "governing_refs": [
+        "POS-INV-02",
+        "POS-INV-07",
+        "BRS-POS-03-R004"
+      ],
+      "code_not_mutated": true,
+      "required_fix": "FIX-DOC-WRITER"
+    },
+    {
+      "id": "cap:assoc",
+      "label": "Exact typed document association",
+      "type": "capability",
+      "semantic_owner": "plasticos_documents",
+      "authoritative_writer": "plasticos_documents evidence association owner",
+      "execution_owner": "plasticos_documents",
+      "implementation_status": "UNSAFE_PARTNER_RECENCY_WRITER_IN_SOURCE",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "OWNER_DESIGN_PROPOSED_NOT_ADMITTED",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-DOC-AUTOLINK",
+        "E-DOC-ASSOC-BRS"
+      ],
+      "governing_refs": [
+        "POS-INV-06",
+        "BRS-POS-02-R006"
+      ],
+      "code_not_mutated": true,
+      "required_fix": "FIX-DOC-RECENCY"
+    },
+    {
+      "id": "cap:typed-link",
+      "label": "Multiple scoped evidence links to one original",
+      "type": "capability",
+      "semantic_owner": "plasticos_documents",
+      "authoritative_writer": "plasticos_documents verified link policy",
+      "execution_owner": "plasticos_documents",
+      "implementation_status": "PARTIAL_MODEL_SOURCE_PRESENT_CARDINALITY_GAP",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-DOC-POLYLINK",
+        "E-DOC-NATIVE-SINGLE"
+      ],
+      "governing_refs": [
+        "POS-INV-06",
+        "BRS-POS-03-R003"
+      ],
+      "code_not_mutated": true,
+      "must_not_duplicate_original": true,
+      "required_fix": "FIX-DOC-RECENCY"
+    },
+    {
+      "id": "cap:compliance",
+      "label": "Operation-scoped document compliance",
+      "type": "capability",
+      "semantic_owner": "plasticos_documents",
+      "authoritative_writer": "plasticos_documents read-only compliance assessor",
+      "execution_owner": "plasticos_documents",
+      "implementation_status": "CODE_PRESENT_FULL_SAFETY_UNVERIFIED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-DOC-COMPLIANCE",
+        "E-DOC-SOURCE-BRS"
+      ],
+      "governing_refs": [
+        "POS-INV-08",
+        "POS-INV-09",
+        "BRS-POS-03-R007",
+        "BRS-POS-03-R008"
+      ],
+      "code_not_mutated": true
+    },
+    {
+      "id": "cap:commercial",
+      "label": "Native PO/SO independent issuance and lifecycle",
+      "type": "capability",
+      "semantic_owner": "Odoo Purchase and Sales",
+      "authoritative_writer": "purchase.order and sale.order",
+      "execution_owner": "native commercial + Linda commands",
+      "implementation_status": "SOURCE_PRESENT_INTEGRATION_UNVERIFIED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-LOG-BRS"
+      ],
+      "governing_refs": [
+        "POS-INV-10",
+        "BRS-01-R001"
+      ],
+      "code_not_mutated": true
+    },
+    {
+      "id": "cap:stock",
+      "label": "Native stock receipt, fulfillment and physical state",
+      "type": "capability",
+      "semantic_owner": "Odoo Inventory",
+      "authoritative_writer": "stock.picking / stock.move / stock.quant",
+      "execution_owner": "native Stock",
+      "implementation_status": "SOURCE_PRESENT_INTEGRATION_UNVERIFIED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-LOG-LOAD",
+        "E-LOG-BRS"
+      ],
+      "governing_refs": [
+        "POS-INV-11",
+        "POS-INV-21"
+      ],
+      "code_not_mutated": true
+    },
+    {
+      "id": "cap:load-many",
+      "label": "Transaction to many physical loads and quantity allocations",
+      "type": "capability",
+      "semantic_owner": "plasticos_logistics with native commercial/Stock constraints",
+      "authoritative_writer": "plasticos_logistics relationship/allocation owner",
+      "execution_owner": "plasticos_logistics",
+      "implementation_status": "ONE_TO_ONE_LEGACY_LINK_CONSTRAINT_IN_SOURCE",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "SCHEMA_AND_MIGRATION_APPROVAL_REQUIRED",
+      "phase": "MVP_BOUNDARY",
+      "source_evidence_refs": [
+        "E-LOG-TX-LINK",
+        "E-LOG-LOAD",
+        "E-CLAIM-LOAD"
+      ],
+      "governing_refs": [
+        "POS-INV-21",
+        "BRS-01-R001"
+      ],
+      "code_not_mutated": true,
+      "required_fix": "FIX-LOG-MULTILOAD"
+    },
+    {
+      "id": "cap:po-only",
+      "label": "Buyer-optional native PO receipt",
+      "type": "capability",
+      "semantic_owner": "Odoo Purchase + Stock",
+      "authoritative_writer": "purchase.order / stock.picking",
+      "execution_owner": "native Stock",
+      "implementation_status": "EXISTING_NATIVE_LIFECYCLE_TO_VERIFY",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP_BOUNDARY",
+      "source_evidence_refs": [
+        "E-LOG-TX-LINK",
+        "E-LOG-BRS"
+      ],
+      "governing_refs": [
+        "POS-INV-10",
+        "POS-INV-21"
+      ],
+      "code_not_mutated": true,
+      "no_plasticos_load_fabrication": true
+    },
+    {
+      "id": "cap:log-mail",
+      "label": "Linda external operational correspondence",
+      "type": "capability",
+      "semantic_owner": "plasticos_logistics",
+      "authoritative_writer": "authorized Linda Odoo Mail intent",
+      "execution_owner": "plasticos_logistics",
+      "implementation_status": "SOURCE_PRESENT_RUNTIME_SCOPE_UNVERIFIED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-LOG-BRS"
+      ],
+      "governing_refs": [
+        "POS-INV-15",
+        "BRS-05-R034"
+      ],
+      "code_not_mutated": true
+    },
+    {
+      "id": "cap:seed",
+      "label": "Deterministic Odoo seed/update lifecycle",
+      "type": "capability",
+      "semantic_owner": "PlasticOS invariants + native Odoo lifecycle",
+      "authoritative_writer": "module data XML + migration owners",
+      "execution_owner": "PlasticOS module owners",
+      "implementation_status": "CONSTITUTIONAL_CONFLICT_UNADMITTED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "PROPOSED_PER_FAMILY_RULE_REQUIRES_APPROVAL",
+      "phase": "ARCH",
+      "source_evidence_refs": [
+        "E-SEED-INV",
+        "E-SEED-REAL"
+      ],
+      "governing_refs": [
+        "POS-INV-19",
+        "INVARIANTS-v2.2.0-04"
+      ],
+      "code_not_mutated": true,
+      "required_resolution": "DEC-SEED"
+    },
+    {
+      "id": "cap:gate",
+      "label": "External matching/enrichment failure classification",
+      "type": "capability",
+      "semantic_owner": "Gate Odoo consumer + accepted ADR-013",
+      "authoritative_writer": "plasticos_gate run-state consumer",
+      "execution_owner": "plasticos_gate",
+      "implementation_status": "ACCEPTED_POLICY_LEGACY_CONSTITUTION_CONTRADICTION",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "ADR_ACCEPTED_INVARIANT_SUPERSESSION_PENDING",
+      "phase": "ARCH",
+      "source_evidence_refs": [
+        "E-GATE-LEGACY",
+        "E-GATE-ADR"
+      ],
+      "governing_refs": [
+        "POS-INV-17",
+        "POS-INV-18",
+        "ADR-013-fail-closed-gate-transport.md"
+      ],
+      "code_not_mutated": true,
+      "required_resolution": "DEC-GATE"
+    },
+    {
+      "id": "cap:acl",
+      "label": "Effective ACL/record-rule/role security",
+      "type": "capability",
+      "semantic_owner": "PlasticOS security domain + native Odoo security",
+      "authoritative_writer": "native ir.model.access / ir.rule + guarded domain commands",
+      "execution_owner": "plasticos_security_base and domain module owners",
+      "implementation_status": "BROAD_INTERNAL_GROUP_CROSSMODEL_RIGHTS_IN_SOURCE",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "OPERATOR_ROLE_POLICY_REQUIRED",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-ACL-DOC",
+        "E-ACL-CLAIM",
+        "E-ACL-TX",
+        "E-ACL-BRIEF"
+      ],
+      "governing_refs": [
+        "POS-INV-05",
+        "INVARIANTS-v2.2.0-08"
+      ],
+      "code_not_mutated": true,
+      "required_resolution": "DEC-ACL",
+      "required_fix": "FIX-ACL"
+    },
+    {
+      "id": "cap:ai-candidates",
+      "label": "Source-cited AI extraction/reconciliation/next-action candidates",
+      "type": "capability",
+      "semantic_owner": "EIE/CEG for external inference; native Odoo Docs AI only if present",
+      "authoritative_writer": "no authoritative writer for AI candidates",
+      "execution_owner": "approved candidate-only worker",
+      "implementation_status": "DESIGN_SPECIFIED_NOT_ACTIVE",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "ENTITLEMENT_AND_HUMAN_ACTION_POLICY_PENDING",
+      "phase": "ARCH",
+      "source_evidence_refs": [
+        "E-AI-BRS"
+      ],
+      "governing_refs": [
+        "POS-INV-16",
+        "POS-INV-17"
+      ],
+      "code_not_mutated": true,
+      "no_approval_from_ai": true
+    },
+    {
+      "id": "cap:ai-gate",
+      "label": "Authorized action validation for AI proposals",
+      "type": "capability",
+      "semantic_owner": "each relevant domain owner",
+      "authoritative_writer": "verified Documents/Linda/Commercial/Stock/Accounting commands",
+      "execution_owner": "domain owner",
+      "implementation_status": "DESIGN_SPECIFIED_NOT_ACTIVE",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "ARCH",
+      "source_evidence_refs": [
+        "E-AI-BRS",
+        "E-GATE-ADR"
+      ],
+      "governing_refs": [
+        "POS-INV-16",
+        "POS-INV-20"
+      ],
+      "code_not_mutated": true
+    },
+    {
+      "id": "cap:finance",
+      "label": "Financial posting and settlements",
+      "type": "capability",
+      "semantic_owner": "Odoo Accounting plus explicitly retained external settlement scope",
+      "authoritative_writer": "native account.move action after authorization",
+      "execution_owner": "Accounting",
+      "implementation_status": "SOURCE_PRESENT_CUTOVER_UNKNOWN",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "NOT_APPLICABLE",
+      "phase": "MVP",
+      "source_evidence_refs": [
+        "E-DOC-COMPLIANCE"
+      ],
+      "governing_refs": [
+        "POS-INV-13",
+        "POS-INV-14"
+      ],
+      "code_not_mutated": true
+    },
+    {
+      "id": "cap:booking",
+      "label": "Optional grouped booking/export projections",
+      "type": "capability",
+      "semantic_owner": "future Export BRS, Linda transport owner",
+      "authoritative_writer": "NONE_AUTHORIZED",
+      "execution_owner": "future operator",
+      "implementation_status": "PARKED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "SEPARATE_EXPORT_ADMISSION_REQUIRED",
+      "phase": "DEFERRED",
+      "source_evidence_refs": [
+        "E-DONOR-EXPORT"
+      ],
+      "governing_refs": [
+        "POS-INV-21",
+        "POS-INV-22"
+      ],
+      "code_not_mutated": true
+    },
+    {
+      "id": "cap:shopfloor",
+      "label": "Optional warehouse/shop-floor capture/equipment",
+      "type": "capability",
+      "semantic_owner": "native Stock/MRP plus future domain adapter",
+      "authoritative_writer": "NONE_AUTHORIZED",
+      "execution_owner": "future operator",
+      "implementation_status": "PARKED",
+      "runtime_proof_status": "NOT_RUN",
+      "admission_or_policy_status": "SEPARATE_OPERATIONS_ADMISSION_REQUIRED",
+      "phase": "DEFERRED",
+      "source_evidence_refs": [
+        "E-DONOR-EXPORT"
+      ],
+      "governing_refs": [
+        "POS-INV-11",
+        "POS-INV-21"
+      ],
+      "code_not_mutated": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "cap:original",
+      "target": "cap:typed-link",
+      "relation": "source_for",
+      "guard": "same original, typed separate evidence"
+    },
+    {
+      "source": "cap:typed-link",
+      "target": "cap:assoc",
+      "relation": "provides_evidence_for"
+    },
+    {
+      "source": "cap:assoc",
+      "target": "cap:verification",
+      "relation": "requires_before"
+    },
+    {
+      "source": "cap:verification",
+      "target": "cap:compliance",
+      "relation": "enables_assessment"
+    },
+    {
+      "source": "cap:compliance",
+      "target": "cap:finance",
+      "relation": "evidence_only",
+      "guard": "no postings from assessment"
+    },
+    {
+      "source": "cap:compliance",
+      "target": "cap:log-mail",
+      "relation": "evidence_only",
+      "guard": "Linda remains sole authorized external sender"
+    },
+    {
+      "source": "cap:commercial",
+      "target": "cap:load-many",
+      "relation": "native_basis_for",
+      "guard": "no invented counterpart"
+    },
+    {
+      "source": "cap:stock",
+      "target": "cap:load-many",
+      "relation": "native_basis_for",
+      "guard": "physical movement by native stock"
+    },
+    {
+      "source": "cap:po-only",
+      "target": "cap:stock",
+      "relation": "uses_native_lifecycle"
+    },
+    {
+      "source": "cap:load-many",
+      "target": "cap:typed-link",
+      "relation": "needs_scoped_evidence"
+    },
+    {
+      "source": "cap:seed",
+      "target": "cap:verification",
+      "relation": "governs_change_safety"
+    },
+    {
+      "source": "cap:acl",
+      "target": "cap:verification",
+      "relation": "governs_permissions"
+    },
+    {
+      "source": "cap:acl",
+      "target": "cap:assoc",
+      "relation": "governs_permissions"
+    },
+    {
+      "source": "cap:acl",
+      "target": "cap:load-many",
+      "relation": "governs_permissions"
+    },
+    {
+      "source": "cap:gate",
+      "target": "cap:ai-candidates",
+      "relation": "requires_failure_honesty"
+    },
+    {
+      "source": "cap:ai-candidates",
+      "target": "cap:ai-gate",
+      "relation": "proposes_to",
+      "guard": "never direct write"
+    },
+    {
+      "source": "cap:ai-gate",
+      "target": "cap:verification",
+      "relation": "requests_owner_action",
+      "guard": "no direct verified write"
+    },
+    {
+      "source": "cap:ai-gate",
+      "target": "cap:log-mail",
+      "relation": "requests_owner_action",
+      "guard": "no direct send"
+    },
+    {
+      "source": "cap:ai-gate",
+      "target": "cap:finance",
+      "relation": "requests_owner_action",
+      "guard": "no direct post"
+    },
+    {
+      "source": "cap:load-many",
+      "target": "cap:booking",
+      "relation": "future_enablement_only",
+      "guard": "does not activate Export"
+    },
+    {
+      "source": "cap:stock",
+      "target": "cap:shopfloor",
+      "relation": "future_enablement_only",
+      "guard": "does not activate shop floor"
+    }
+  ],
+  "implementation_status_legend": {
+    "SOURCE_PRESENT_INSTALLED_UNVERIFIED": "source exists, actual Odoo EE runtime unproven",
+    "SOURCE_PRESENT_RUNTIME_SCOPE_UNVERIFIED": "code present, deployed/permission proof unknown",
+    "CONFLICTING_DUAL_RUNTIME_WRITERS_IN_SOURCE": "separate independent fields/actions observed; no successful repair proven",
+    "UNSAFE_PARTNER_RECENCY_WRITER_IN_SOURCE": "routine writes inferred association by partner + newest record",
+    "ONE_TO_ONE_LEGACY_LINK_CONSTRAINT_IN_SOURCE": "single-slot data model and buyer guard preclude general multi-load/PO-only representation",
+    "CONSTITUTIONAL_CONFLICT_UNADMITTED": "current v2.2 norm conflicts with proposed lifecycle-specific rule",
+    "ACCEPTED_POLICY_LEGACY_CONSTITUTION_CONTRADICTION": "accepted ADR supersedes old fallback claim, invariants narrative stale",
+    "BROAD_INTERNAL_GROUP_CROSSMODEL_RIGHTS_IN_SOURCE": "effective permissions require runtime probe; additive ACL rows confirmed",
+    "PARKED": "no implementation authorized"
+  },
+  "status_dimensions": [
+    "source_present",
+    "e2e_tested_exact_head",
+    "enterprise_installed",
+    "deployed",
+    "live_enabled",
+    "operator_accepted"
+  ],
+  "unobserved_dimensions_are": "UNKNOWN_NOT_PASS"
+}

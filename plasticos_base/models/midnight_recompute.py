@@ -7,15 +7,16 @@ but won't auto-update at midnight.
 Solution: This cron runs at 00:05 daily and recomputes all time-sensitive
 stored fields so they're accurate for the new day.
 
-Fields handled:
-- plasticos.document.is_expired
-- plasticos.claim.days_open
-- plasticos.claim.is_overdue
+The cron stays here. Each higher-layer module extends this service with the
+fields it owns:
+
+- plasticos_documents: plasticos.document.is_expired
+- plasticos_claims: plasticos.claim.days_open and is_overdue
 """
 
 import logging
 
-from odoo import api, fields, models
+from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
@@ -57,67 +58,7 @@ class PlasticosMidnightRecompute(models.AbstractModel):
             )
 
     def _recompute_document_expiry(self):
-        """Recompute is_expired for documents with expiry dates.
-
-        Only touches documents where expiry status may have changed:
-        - expiry_date <= today AND is_expired = False (newly expired)
-        - expiry_date > today AND is_expired = True (incorrectly marked)
-        """
-        if "plasticos.document" not in self.env:
-            _logger.debug("plasticos.document not installed, skipping.")
-            return
-        Document = self.env["plasticos.document"]
-
-        today = fields.Date.today()
-
-        # Find documents that should now be expired but aren't marked
-        newly_expired = Document.search(
-            [
-                ("expiry_date", "<=", today),
-                ("is_expired", "=", False),
-                ("active", "=", True),
-            ],
-            order="id ASC",
-            limit=1000,
-        )
-        if newly_expired:
-            # Trigger recompute by calling the compute method
-            newly_expired._compute_is_expired()
-            _logger.info("Recomputed is_expired for %d newly expired documents.", len(newly_expired))
-
-        # Find documents incorrectly marked as expired (edge case: expiry date extended)
-        incorrectly_expired = Document.search(
-            [
-                ("expiry_date", ">", today),
-                ("is_expired", "=", True),
-                ("active", "=", True),
-            ],
-            order="id ASC",
-            limit=1000,
-        )
-        if incorrectly_expired:
-            incorrectly_expired._compute_is_expired()
-            _logger.info("Corrected is_expired for %d documents.", len(incorrectly_expired))
+        """Extension point. Document expiry is implemented by plasticos_documents."""
 
     def _recompute_claim_time_fields(self):
-        """Recompute days_open and is_overdue for active claims.
-
-        Only touches claims that are still open (not resolved/archived).
-        """
-        if "plasticos.claim" not in self.env:
-            _logger.debug("plasticos.claim not installed, skipping.")
-            return
-        Claim = self.env["plasticos.claim"]
-
-        # Find all open claims
-        open_claims = Claim.search(
-            [
-                ("state", "not in", ("resolved", "archived")),
-            ],
-            order="id ASC",
-            limit=1000,
-        )
-        if open_claims:
-            open_claims._compute_days_open()
-            open_claims._compute_is_overdue()
-            _logger.info("Recomputed time fields for %d open claims.", len(open_claims))
+        """Extension point. Claim time fields are implemented by plasticos_claims."""

@@ -1,0 +1,64 @@
+{
+  "branch": "fix/rehearsal-evidence-20261108",
+  "failures": [
+    "Gate7-FAIL:vanillasoft-preflight-failed"
+  ],
+  "finalized_at": "2026-11-08T15:32:47Z",
+  "gates": [
+    {
+      "gate": 1,
+      "name": "branch-identity",
+      "reason": "checkout-bound",
+      "side_effects": false,
+      "state": "PASS"
+    },
+    {
+      "gate": 2,
+      "name": "merge-tree",
+      "reason": "merge-clean",
+      "side_effects": false,
+      "state": "PASS"
+    },
+    {
+      "gate": 3,
+      "name": "install-smoke",
+      "reason": "install-smoke-cached-receipt",
+      "side_effects": true,
+      "state": "PASS"
+    },
+    {
+      "gate": 4,
+      "name": "cutover-clone",
+      "reason": "clone-empty",
+      "side_effects": true,
+      "state": "PASS"
+    },
+    {
+      "gate": 5,
+      "name": "weblead-e2e",
+      "reason": "weblead-crm-opportunity-proven",
+      "side_effects": true,
+      "state": "PASS"
+    },
+    {
+      "gate": 6,
+      "name": "erp-slice",
+      "reason": "erp-partial-source-explained",
+      "side_effects": true,
+      "state": "PASS"
+    },
+    {
+      "gate": 7,
+      "name": "vanillasoft",
+      "reason": "vanillasoft-preflight-failed",
+      "side_effects": true,
+      "state": "FAIL"
+    }
+  ],
+  "head_sha": "a4b1a88b3f7f9d58394af3f9f329c4668c795949",
+  "production_sha": "3318fa646a9f33aed55b9ea8f8596316e30684da",
+  "run_ts": "2026-11-08_152843",
+  "schema": "l9.plasticos.rehearsal.verdict.v1",
+  "staging_sha": "29bc7ca080b5d90f5bd11658e575a5c27c54887c",
+  "verdict": "failed"
+}

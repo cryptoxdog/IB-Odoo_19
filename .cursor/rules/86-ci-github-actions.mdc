@@ -6,7 +6,7 @@ alwaysApply: false
 
 # GitHub Actions CI Rules — PlasticOS
 
-Enforced by SonarCloud `githubactions:S7637` and CI Gate structure.
+**Authority:** `AGENTS.md` § CI Architecture · `.github/workflows/ci.yml` is the single PR gate · SonarCloud `githubactions:S7637` for SHA pins.
 
 ## SHA-Pin All Third-Party Actions (S7637)
 
@@ -57,16 +57,22 @@ The Pure Python Tests step lists test files explicitly. If a file doesn't exist 
 
 When syncing `ci.yml` from `Staging` to an older PR branch, always check which test files actually exist on that branch.
 
-## CI Gate Tier Structure
+## CI Gate Phase Structure (fail-slow)
 
 ```
-Tier 1 (lint)       → always runs, blocks Tier 2 on failure
-Tier 2 (static)     → needs: lint; runs all ci/ scripts
-Tier 3 (pure-python)→ needs: static-checks; runs pytest suite
-Security            → parallel, continue-on-error: true (advisory)
+Phase 1 (parallel, no needs: between them):
+  lint | static-checks | pure-python-tests | secret-scan | audit-baseline
+Phase 2 (always last):
+  ci-gate-result  → needs: [all Phase 1], if: always()
 ```
 
-Never remove `needs:` dependencies — they enforce the fail-fast ordering.
+**Fail-open collectors, fail-closed aggregator:** Phase 1 jobs run concurrently and each aggregates all of its own checks before exiting so one push surfaces every failure. `ci-gate-result` still fails the workflow if any Phase 1 job ≠ `success`.
+
+**Never** reintroduce `needs: lint` / `needs: static-checks` on Phase 1 jobs — that restores fail-fast and hides sibling failures. `ci/check_github_actions_kernel.sh` `merge_gate_logic` enforces Phase 1 parallelism + aggregator presence.
+
+**Cross-workflow:** `ci.yml` and `l9-analysis.yml` start concurrently on PRs. Do **not** chain them with `workflow_run` (serializes and kills max-concurrent feedback). Prefer required status checks on the aggregator (`CI Gate Result`) plus external GitGuardian. The GATE-01 `baseline-ratchet.yml` caller was retired on 2026-10-22; do not re-add it. L9 Analysis stays advisory-first until governance promotes rules.
+
+**Concurrency:** each workflow uses its own `concurrency` group with `cancel-in-progress: true` (cost). Rapid re-pushes cancel in-flight runs — treat only the **latest settled (non-cancelled) HEAD run** as signal. GitGuardian is an external app check; it does **not** cancel GitHub Actions jobs.
 
 ## pytest-timeout
 
@@ -83,12 +89,20 @@ timeout = 30
 timeout_method = "thread"
 ```
 
-## Disabled Workflows
+## Deleted / Do-Not-Revive Workflows
 
-The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-check.yml`, `pr-gate.yml`) are disabled with `workflow_dispatch` triggers. Do not re-enable them — `ci.yml` is the single source of truth:
+The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-check.yml`, `pr-gate.yml`) were **deleted** during GATE-01 adoption. Do not re-add them — `ci.yml` is the single blocking check workflow. `baseline-ratchet.yml` was retired on 2026-10-22. Unique checks from those files were restored into `ci.yml` (see inline `restored 2026-07` comments).
 
-```yaml
-# ✅ These are intentionally disabled:
-on:
-  workflow_dispatch:  # manual only — replaced by ci.yml
-```
+## External Odoo.sh Status Checks (NOT GitHub Actions)
+
+PRs may show **`ci/odoo.sh (dev) — Odoo Test Suite`**. This is **not** a workflow in this repo.
+
+| Context | Branch type | Test suite UI in Odoo.sh? |
+|---------|-------------|---------------------------|
+| `ci/odoo.sh (dev)` | Feature/dev branches on PRs | Yes — dev branch → Settings → Test suite |
+| `ci/odoo.sh (staging)` | `Staging` merges | No — Staging settings have no test suite toggle |
+
+- **Odoo runtime tests in this repo:** Docker Compose, never GitHub Actions. Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc.
+- **Never add** an Odoo runtime job to `ci.yml`.
+- **Cannot disable via SSH** on Odoo.sh containers — branch policy is platform-side only.
+- **GitHub org rulesets 404:** `cryptoxdog/IB-Odoo_19` is a user repo, not an org — that API call is expected to 404 and is unrelated to CI.

@@ -1,0 +1,13 @@
+{
+  "detail": "odoo_test_cutover verified, 0 business partners",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 4,
+  "name": "cutover-clone",
+  "reason": "clone-empty",
+  "recorded_at": "2026-11-08T12:46:02Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "PASS"
+}

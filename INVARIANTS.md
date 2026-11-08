@@ -3,8 +3,8 @@
 **Purpose**: Unchangeable rules that govern the PlasticOS codebase.
 **Status**: Constitutional
 **Enforcement**: Machine + Human
-**Version**: 2.0.0
-**Last Updated**: 2026-03-31
+**Version**: 2.2.0
+**Last Updated**: 2026-08-30
 
 ## Meta-Rule
 
@@ -397,6 +397,90 @@ Every invariant is enforced by one or more automated tools:
 | 15. Cron Safety | `cron-invariants` | — | `cron_invariant_check.py` |
 | 17. File Wiring | `package-init`, `module-wiring` | `static-checks` | `check_package_init.py` |
 | 18. XML Views | `odoo19-xml`, `xpath-stability` | `static-checks` | `check_odoo19_xml.py`, `check_xpath_stability.py` |
+| 20. Legacy Vendor Identifier (BAN001) | `banned-identifier` | `static-checks` | `check_banned_identifier.py` |
+
+---
+
+### 19. Single External Intelligence Authority
+
+**Rule**: Matching and enrichment **intelligence authority** is external and Gate-mediated.
+Local Odoo algorithmic engines are not architectural authority.
+
+**Authority** (binding):
+[`docs/adr/ADR-003-single-external-intelligence-authority.md`](docs/adr/ADR-003-single-external-intelligence-authority.md)
+(supersedes ADR-002 §2 fallback-as-authority). Hub topology and “never Odoo → CEG/EIE direct”
+from ADR-002 remain in force.
+
+**Required**:
+- ✅ Odoo intelligence egress only through `plasticos_gate` → Constellation.Gate (`TransportPacket`)
+- ✅ CEG owns match semantics; EIE owns converge/enrichment intelligence
+- ✅ Cite the full ADR filename — numeric `ADR-003` alone is ambiguous (contact-import ADR shares the prefix)
+
+**Forbidden**:
+- ❌ Treating `plasticos_buyer_match_engine`, local Neo4j matcher paths, or in-Odoo enrichment
+  crawl/extract/inference as the product authority for match/enrichment quality
+- ❌ Direct Odoo → CEG/EIE HTTP or SDK bypass of Gate
+- ❌ Restoring “local fallback as design” language in constitutional docs after this invariant
+
+**Note**: M7 physically retired `plasticos_buyer_match_engine` and `plasticos_inference_engine`
+from the repository. M8 (TASK-052) activates **blocking** drift guards in Makefile, pre-commit,
+and CI via `ci/check_no_local_intelligence.py` — reintroduction of retired modules or
+consumer-path local authority fails the build.
+
+**Detection**: `tests/contracts/test_external_intelligence_authority.py`, `tests/contracts/test_no_local_intelligence.py`, `ci/check_no_local_intelligence.py`
+
+**Enforcement**: Blocking contract tests + CI/pre-commit/Makefile drift guard + ADR-013 fail-closed transport
+
+---
+
+### 20. Legacy Vendor Identifier Prohibition (BAN001)
+
+**Rule**: The legacy vendor identifier designated **BAN001** is permanently prohibited from
+every tracked repository path and every tracked repository content byte, in **every casing**.
+
+BAN001 denotes the 8-character ASCII sequence with code points
+`99, 105, 101, 116, 114, 97, 100, 101`. This document, the guard, the CI wiring, and the
+guard's tests deliberately never spell that sequence contiguously — a policy that named its
+own banned string would violate itself.
+
+**Scope** (no carve-outs): application source, tests, fixtures, documentation, comments,
+configuration, manifests, Odoo metadata (models, fields, views, external IDs, security files,
+data files), migrations, generated artifacts, filenames, directory names, symlink targets, and
+binary files.
+
+**Exceptions**: **NONE.** BAN001 has no exclusion list, no allowlist, no ignore comment, and no
+per-file waiver. It does not appear in the *Known False Positives* table below and must never be
+added to it. Satisfying this invariant by suppressing the scanner is itself a violation.
+
+**Generated content**: generated output is fully in scope. Repair the canonical source or the
+generator and regenerate — never hand-patch a generated artifact that would reintroduce the
+sequence on the next run, and never exempt it.
+
+**Historical content**: files that are old, archival, captured from an external system, or kept
+for compatibility are **not** exempt while they are in the active tracked tree.
+
+**Deployed legacy identifiers**: where a real external server, database, or column name must be
+addressed, supply it at run time (environment variable, parameter, or programmatic
+reconstruction). Do not store the contiguous sequence in repository bytes to preserve a
+connection default.
+
+**Detection**: `ci/check_banned_identifier.py` — the single canonical implementation, invoked
+identically by CI, `make ban-check`, and the `banned-identifier` pre-commit hook. It reads
+every tracked path and its content from the **git index** — not the worktree, so a staged
+violation cannot be hidden by deleting the file, and an unrelated deletion in a dirty tree
+cannot false-block the build. It inspects every path component, resolves every symlink target
+from the same index, and matches raw bytes, so binary files are covered. It fails closed: an
+unreadable index or object exits non-zero rather than reporting clean.
+
+**Enforcement**: blocking. `ci.yml` → `static-checks` (aggregated by `ci-gate-result`), plus
+`tests/test_banned_identifier_guard.py`, which proves the guard rejects lowercase, uppercase,
+capitalized and mixed-case content matches, filename-only matches, directory-name-only matches,
+symlink-target matches (including a symlink absent from the worktree), binary matches, and
+content staged then deleted on disk — while allowing near-miss lookalikes and not
+false-blocking on an unrelated deletion. Violating fixtures are built at run time in a temporary repository, so no
+prohibited literal is ever committed.
+
+**Violation effect**: CI failure.
 
 ---
 
@@ -422,8 +506,8 @@ These patterns are excluded from CI checks because they are valid code, not viol
 ## Enforcement Strategy
 
 ### Automated Checks
-- **Pre-commit hooks**: 27 hooks including ruff, module wiring, XML validation, cron invariants
-- **CI/CD pipeline**: 5 workflow files with ~20 jobs total
+- **Pre-commit hooks**: 39 hooks including ruff, module wiring, XML validation, cron invariants, secret scan (gitleaks); 10 run at pre-push, including the `pr-validate` gate (see the AGENTS.md 2026-11-03 correction)
+- **CI/CD pipeline**: 11 workflow files; `ci.yml` is the single blocking gate (lint → static-checks → pure-python-tests)
 - **Module wiring script**: Dependency graph + `__init__.py` validation
 
 ### Manual Reviews

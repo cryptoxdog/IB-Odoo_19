@@ -10,6 +10,7 @@
     <field name="arch" type="xml">
       <list editable="bottom">
         <field name="polymer_id"/>
+        <field name="material_grade_id" optional="show"/>
         <field name="form_id"/>
         <field name="color_id"/>
         <field name="source_type_id"/>
@@ -79,7 +80,7 @@
             <field name="image_ids" nolabel="1" widget="many2many_binary"/>
           </group>
 
-          <notebook>
+          <notebook name="material_profile_pages">
             <page string="Profile">
               <!-- Row 1: Source + Packaging -->
               <group>
@@ -89,13 +90,13 @@
                   <field name="source_type_id" string="Source Type"/>
                   <field name="polymer_id"/>
                   <field name="sub_grade" invisible="1"/>
+                  <field name="material_grade_id"/>
                   <field name="form_id"/>
                   <field name="color_id"/>
                   <!-- color_flexibility moved to Buyer Fields tab -->
                 </group>
                 <group string="Packaging">
                   <field name="packaging_type_id" string="Packaging"/>
-                  <field name="loads_per_month" string="Loads Per Month"/>
                   <field name="filler_type_id"/>
                   <field name="filler_pct" invisible="not filler_type_id"/>
                   <field name="origin_process_type" string="Process"/>
@@ -106,16 +107,21 @@
                 </group>
               </group>
 
-              <!-- Row 2: Volume + Specs -->
+              <!-- Row 2: Volume / Supply + Specs -->
               <group>
-                <group string="Volume">
+                <group string="Volume / Supply Profile">
+                  <field name="quantity_per_load_lbs"/>
+                  <field name="loads_per_month"/>
                   <field name="avg_lot_size_lbs" string="Avg Weight Lbs"/>
                   <!-- min/max lot sizes removed per mockup -->
                   <field name="min_lot_size_lbs" invisible="1"/>
                   <field name="max_lot_size_lbs" invisible="1"/>
                   <field name="monthly_volume_lbs"/>
                   <field name="frequency" string="Load Frequency"/>
-                  <field name="origin_form_id" string="Origin Form"/>
+                </group>
+                <group string="Geography">
+                  <field name="lat"/>
+                  <field name="lon"/>
                 </group>
                 <group string="Specs">
                   <field name="melt_flow_index"/>

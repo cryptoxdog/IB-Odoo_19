@@ -22,6 +22,12 @@ class PlasticosCommissionRule(models.Model):
     # ── Sales Rep Assignment ──────────────────────────────────
     sales_rep_id = fields.Many2one("res.users", string="Sales Rep", required=True, ondelete="restrict")
 
+    # Active rows only. Inactive rules for the same representative stay legal.
+    _unique_active_sales_rep = models.UniqueIndex(
+        "(sales_rep_id) WHERE (active IS TRUE)",
+        "A sales representative may have only one active commission rule.",
+    )
+
     # ── Calculation Type ──────────────────────────────────────
     calculation_type = fields.Selection(
         [
@@ -113,41 +119,47 @@ class PlasticosCommissionRule(models.Model):
         for rec in self:
             rec.percentage = (rec.display_percentage or 0.0) / 100
 
-    # ── Uniqueness Guard (before SQL) ──────────────────────────
-    def _check_unique_active_sales_rep(self, vals_list):
-        """Raise before INSERT/UPDATE if another active rule exists for the same rep."""
-        for vals in vals_list:
-            rep_id = vals.get("sales_rep_id")
-            is_active = vals.get("active", True)
-            if not rep_id or not is_active:
-                continue
-            rec_id = vals.get("id")
-            domain = [("sales_rep_id", "=", rep_id), ("active", "=", True)]
-            if rec_id:
-                domain.append(("id", "!=", rec_id))
-            if self.search(domain, limit=1):
-                rep = self.env["res.users"].browse(rep_id)
-                raise ValidationError(f"Sales rep {rep.name} already has an active commission rule.")
+    def _reject_active_sales_rep_conflicts(self, rep_ids, exclude_ids):
+        """Friendly check for the intended active representatives.
+
+        The partial unique index is the concurrency authority. This method
+        only raises before the write so the operator sees the business error.
+        """
+        if not rep_ids:
+            return
+        seen = set()
+        conflict_ids = set()
+        for rep_id in rep_ids:
+            if rep_id in seen:
+                conflict_ids.add(rep_id)
+            seen.add(rep_id)
+        domain = [("sales_rep_id", "in", list(seen)), ("active", "=", True)]
+        if exclude_ids:
+            domain.append(("id", "not in", list(exclude_ids)))
+        conflict_ids.update(self.search(domain).mapped("sales_rep_id").ids)
+        if not conflict_ids:
+            return
+        rep = self.env["res.users"].browse(sorted(conflict_ids)[:1])
+        raise ValidationError(f"Sales rep {rep.name} already has an active commission rule.")
 
     @api.model_create_multi
     def create(self, vals_list):
-        self._check_unique_active_sales_rep(vals_list)
+        active_reps = [
+            vals["sales_rep_id"] for vals in vals_list if vals.get("sales_rep_id") and vals.get("active", True)
+        ]
+        self._reject_active_sales_rep_conflicts(active_reps, exclude_ids=())
         return super().create(vals_list)
 
     def write(self, vals):
-        res = super().write(vals)
         if "sales_rep_id" in vals or "active" in vals:
+            rep_ids = []
             for rec in self:
-                if rec.active:
-                    dup = self.search(
-                        [("sales_rep_id", "=", rec.sales_rep_id.id), ("active", "=", True), ("id", "!=", rec.id)],
-                        limit=1,
-                    )
-                    if dup:
-                        raise ValidationError(
-                            f"Sales rep {rec.sales_rep_id.name} already has an active commission rule."
-                        )
-        return res
+                rep_id = vals.get("sales_rep_id", rec.sales_rep_id.id)
+                is_active = vals.get("active", rec.active)
+                if rep_id and is_active:
+                    rep_ids.append(rep_id)
+            self._reject_active_sales_rep_conflicts(rep_ids, exclude_ids=self.ids)
+        return super().write(vals)
 
     # ── Constraints ───────────────────────────────────────────
     @api.constrains("name")

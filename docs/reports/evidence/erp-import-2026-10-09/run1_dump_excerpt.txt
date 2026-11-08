@@ -1,0 +1,312 @@
+# markers
+legacy_erp_address_403856|res.partner|5694
+legacy_erp_address_403935|res.partner|7275
+legacy_erp_address_404434|res.partner|6702
+legacy_erp_address_405080|res.partner|6240
+legacy_erp_cp_1821|res.partner|5694
+legacy_erp_cp_2452|res.partner|6240
+legacy_erp_ininv_516671|account.move|1254
+legacy_erp_ininv_516674|account.move|1359
+legacy_erp_ininv_516675|account.move|1473
+legacy_erp_ininv_516676|account.move|1512
+legacy_erp_ininv_516802|account.move|1572
+legacy_erp_ininv_519422|account.move|1774
+legacy_erp_ininv_519453|account.move|1809
+legacy_erp_ininv_519479|account.move|1772
+legacy_erp_ininv_519480|account.move|1769
+legacy_erp_ininv_519481|account.move|1687
+legacy_erp_ininv_519482|account.move|1710
+legacy_erp_ininv_519483|account.move|1816
+legacy_erp_ininv_519484|account.move|1721
+legacy_erp_ininv_519485|account.move|1075
+legacy_erp_ininv_537978|account.move|2905
+legacy_erp_ininv_557558|account.move|4670
+legacy_erp_ininv_562145|account.move|5038
+legacy_erp_ininv_566297|account.move|5194
+legacy_erp_ininv_569414|account.move|5548
+legacy_erp_ininv_569417|account.move|5514
+legacy_erp_ininv_569420|account.move|5643
+legacy_erp_ininv_569450|account.move|5525
+legacy_erp_ininv_569452|account.move|5452
+legacy_erp_ininv_569453|account.move|5453
+legacy_erp_ininv_569473|account.move|5648
+legacy_erp_ininv_569484|account.move|5627
+legacy_erp_ininv_572951|account.move|5694
+legacy_erp_ininv_577452|account.move|6240
+legacy_erp_ininv_589583|account.move|7275
+legacy_erp_ininv_591398|account.move|7424
+legacy_erp_ininv_591476|account.move|7425
+legacy_erp_ininv_594620|account.move|7426
+legacy_erp_ininv_605450|account.move|9144
+legacy_erp_ininv_605460|account.move|9073
+legacy_erp_ininv_605461|account.move|9145
+legacy_erp_ininv_605467|account.move|8438
+legacy_erp_ininv_605480|account.move|8554
+legacy_erp_ininv_605495|account.move|9109
+legacy_erp_ininv_605553|account.move|9170
+legacy_erp_ininv_624001|account.move|11452
+legacy_erp_ininv_624019|account.move|11422
+legacy_erp_ininv_624023|account.move|10725
+legacy_erp_ininv_624039|account.move|10979
+legacy_erp_ininv_624074|account.move|11377
+legacy_erp_ininv_624077|account.move|11320
+legacy_erp_ininv_625641|account.move|11557
+legacy_erp_ininv_640288|account.move|13289
+legacy_erp_ininv_670206|account.move|17222
+legacy_erp_ininv_670209|account.move|17511
+legacy_erp_ininv_670212|account.move|17474
+legacy_erp_ininv_670215|account.move|17325
+legacy_erp_ininv_670244|account.move|17379
+legacy_erp_ininv_670264|account.move|17514
+legacy_erp_ininv_670273|account.move|17443
+legacy_erp_ininv_670278|account.move|17357
+legacy_erp_ininv_670284|account.move|17326
+legacy_erp_ledger_4670|account.move|5037
+legacy_erp_ledger_5694|account.move|7423
+legacy_erp_outinv_51666|account.move|379
+legacy_erp_outinv_51667|account.move|383
+legacy_erp_outinv_51680|account.move|416
+legacy_erp_outinv_51941|account.move|906
+legacy_erp_outinv_51942|account.move|909
+legacy_erp_outinv_51943|account.move|912
+legacy_erp_outinv_51944|account.move|916
+legacy_erp_outinv_51945|account.move|919
+legacy_erp_outinv_51946|account.move|922
+legacy_erp_outinv_51948|account.move|925
+legacy_erp_outinv_51949|account.move|927
+legacy_erp_outinv_53797|account.move|5036
+legacy_erp_outinv_54528|account.move|6702
+legacy_erp_outinv_54839|account.move|7422
+legacy_erp_outinv_56940|account.move|12140
+legacy_erp_outinv_56941|account.move|12143
+legacy_erp_outinv_56942|account.move|12145
+legacy_erp_outinv_56943|account.move|12149
+legacy_erp_outinv_56944|account.move|12153
+legacy_erp_outinv_56946|account.move|12156
+legacy_erp_outinv_56947|account.move|12161
+legacy_erp_outinv_56948|account.move|12163
+legacy_erp_outinv_56949|account.move|12165
+legacy_erp_outinv_57946|account.move|14263
+legacy_erp_outinv_58699|account.move|15725
+legacy_erp_outinv_60547|account.move|19865
+legacy_erp_outinv_60548|account.move|19869
+legacy_erp_outinv_60549|account.move|19872
+legacy_erp_outinv_60550|account.move|19876
+legacy_erp_outinv_60555|account.move|19892
+legacy_erp_po_10459|purchase.order|5694
+legacy_erp_po_11015|purchase.order|6240
+legacy_erp_po_11498|purchase.order|6702
+legacy_erp_po_5194|purchase.order|593
+legacy_erp_po_5694|purchase.order|1073
+legacy_erp_po_6240|purchase.order|1671
+legacy_erp_po_6702|purchase.order|2029
+legacy_erp_po_7275|purchase.order|2578
+legacy_erp_po_9420|purchase.order|4670
+legacy_erp_po_9956|purchase.order|5194
+legacy_erp_pol_10237|purchase.order.line|7275
+legacy_erp_pol_11557|purchase.order.line|8385
+legacy_erp_pol_13289|purchase.order.line|9729
+legacy_erp_pol_4670|purchase.order.line|2761
+legacy_erp_pol_5194|purchase.order.line|3075
+legacy_erp_pol_5694|purchase.order.line|3410
+legacy_erp_pol_6240|purchase.order.line|3869
+legacy_erp_pol_6702|purchase.order.line|4257
+legacy_erp_pol_7152|purchase.order.line|4670
+legacy_erp_pol_7275|purchase.order.line|4776
+legacy_erp_pol_7775|purchase.order.line|5194
+legacy_erp_pol_8337|purchase.order.line|5694
+legacy_erp_pol_8984|purchase.order.line|6240
+legacy_erp_pol_9538|purchase.order.line|6702
+legacy_erp_so_11557|sale.order|123
+legacy_erp_so_13289|sale.order|1732
+legacy_erp_so_14263|sale.order|2669
+legacy_erp_so_16355|sale.order|4670
+legacy_erp_so_16909|sale.order|5194
+legacy_erp_so_17879|sale.order|5694
+legacy_erp_so_18067|sale.order|6240
+legacy_erp_so_18552|sale.order|6702
+legacy_erp_sol_10508|sale.order.line|7275
+legacy_erp_sol_13289|sale.order.line|9292
+legacy_erp_sol_4670|sale.order.line|2659
+legacy_erp_sol_5194|sale.order.line|2952
+legacy_erp_sol_6240|sale.order.line|3745
+legacy_erp_sol_6702|sale.order.line|4137
+legacy_erp_sol_7275|sale.order.line|4649
+legacy_erp_sol_7301|sale.order.line|4670
+legacy_erp_sol_7930|sale.order.line|5194
+legacy_erp_sol_8552|sale.order.line|5694
+legacy_erp_sol_9210|sale.order.line|6240
+legacy_erp_sol_9833|sale.order.line|6702
+
+# sale orders
+legacy_erp_so_11557|11557|51666, 51667, 51680|sale|5534|10|22692.35|2019-01-18 00:00:00|59
+legacy_erp_so_13289|13289|53797|sale|5819|6|2000.00|2021-03-04 00:00:00|1854
+legacy_erp_so_14263|14263|54839|sale|5507|11|9763.95|2022-02-18 00:00:00|2825
+legacy_erp_so_17369|17369|58699|sale|5914|11|752.96|2024-11-08 00:00:00|5973
+legacy_erp_so_18790|18790|60545|sale|6203|8|0.00|2026-05-29 00:00:00|7473
+legacy_erp_so_18791|18791|60546|sale|5250|7|0.00|2026-06-01 00:00:00|7474
+legacy_erp_so_18796|18796|60555|sale|5508|10|6667.20|2026-06-02 00:00:00|7481
+legacy_erp_so_18838|18838|60547|sale|6203|7|7624.00|2026-06-22 00:00:00|7475
+
+# sale lines
+legacy_erp_sol_10522|5194|144|7560.00|0.05|19
+legacy_erp_sol_11922|5694|392|40890.00|0.25|19
+legacy_erp_sol_12233|6240|144|36320.00|0.22|19
+legacy_erp_sol_12955|6702|204|16480.00|0.35|19
+legacy_erp_sol_13289|6817|155|18136.00|0.32|19
+legacy_erp_sol_4670|1531|229|6251.00|0.06|19
+legacy_erp_sol_5194|1732|129|200.00|10.0|1
+legacy_erp_sol_6240|2346|289|20000.00|0.0|19
+legacy_erp_sol_6702|2669|310|19145.00|0.51|19
+legacy_erp_sol_7275|3106|144|0.00|0.27|19
+legacy_erp_sol_9800|4670|129|300.00|8.5|1
+
+# purchase orders
+legacy_erp_po_10324|10324|58699|draft|5681|11|0.00|2024-11-08 00:00:00
+legacy_erp_po_33599|33599|60545|draft|6502|8|0.00|2026-05-29 00:00:00
+legacy_erp_po_33601|33601|60546|draft|5879|7|0.00|2026-06-01 00:00:00
+legacy_erp_po_33602|33602|60547|draft|5933|7|4844.16|2026-06-01 00:00:00
+legacy_erp_po_33607|33607|60555|draft|5289|10|3704.00|2026-06-02 00:00:00
+legacy_erp_po_4687|4687|51666|draft|5591|10|5225.48|2019-01-18 00:00:00
+legacy_erp_po_4688|4688|51667|draft|5591|10|5460.00|2019-01-18 00:00:00
+legacy_erp_po_4700|4700|51680|draft|5591|10|4442.75|2019-01-23 00:00:00
+legacy_erp_po_5194|5194|52300|draft|5781||599.60|2019-10-16 00:00:00
+legacy_erp_po_5694|5694|52949|draft|5265|7|2120.00|2020-05-21 00:00:00
+legacy_erp_po_6240|6240|53797|draft|5974|6|2000.00|2021-03-04 00:00:00
+legacy_erp_po_6702|6702|54206|draft|5855|11|6313.95|2021-09-07 00:00:00
+legacy_erp_po_7275|7275|54839|draft|6024|11|8826.48|2022-02-18 00:00:00
+
+# purchase lines
+legacy_erp_pol_10642|5194|355|0.00|0.12|19
+legacy_erp_pol_11429|5694|254|38972.00|0.08|19
+legacy_erp_pol_11557|5792|360|41424.00|0.16|19
+legacy_erp_pol_11637|5694|133|4472.00|0.0|19
+legacy_erp_pol_12247|6240|155|6474.00|0.049999999999999996|19
+legacy_erp_pol_12361|6240|155|6882.00|0.0|19
+legacy_erp_pol_12957|6702|179|25000.00|0.035|19
+legacy_erp_pol_13289|6831|155|18600.00|0.24|19
+legacy_erp_pol_4670|1482|229|6251.00|0.0|19
+legacy_erp_pol_5194|1671|129|200.00|10.0|1
+legacy_erp_pol_5694|1931|128|42740.00|0.08|19
+legacy_erp_pol_6240|2277|289|21100.00|0.13|19
+legacy_erp_pol_6702|2578|310|19188.00|0.45999999999999996|19
+legacy_erp_pol_7275|3005|144|0.00|0.22|19
+legacy_erp_pol_9933|4670|194|36120.00|0.08|19
+
+# moves
+legacy_erp_ininv_516671|in_invoice|draft|5587|93.76|2019-08-14|52096|5034 / 52096||5
+legacy_erp_ininv_516674|in_invoice|draft|5642|2168.10|2019-09-20|52143|5069 / 52143||2
+legacy_erp_ininv_516675|in_invoice|draft|5774|7077.60|2019-09-17|52198|5113 / 52198||2
+legacy_erp_ininv_516676|in_invoice|draft|5778|3855.10|2019-09-23|52216|5126 / 52216||2
+legacy_erp_ininv_516802|in_invoice|draft|5279|700.00|2019-10-16|52245|144103||2
+legacy_erp_ininv_519422|in_invoice|draft|5491|2277.00|2019-11-05|52329|6637657||2
+legacy_erp_ininv_519453|in_invoice|draft|5476|975.00|2019-11-19|52353|I469316||2
+legacy_erp_ininv_519479|in_invoice|draft|5371|3984.00|2019-11-01|52328|5216 / 52328||2
+legacy_erp_ininv_519480|in_invoice|draft|5371|4112.00|2019-11-08|52327|5216 / 52327||2
+legacy_erp_ininv_519481|in_invoice|draft|5667|393.42|2019-10-24|52296|5190 / 52296||3
+legacy_erp_ininv_519482|in_invoice|draft|5667|501.45|2019-10-28|52304|5190 / 52304||3
+legacy_erp_ininv_519483|in_invoice|draft|5641|179.80|2019-11-08|52357|5232 / 52357||5
+legacy_erp_ininv_519484|in_invoice|draft|5796|243.00|2019-10-29|52308|5201 / 52308||3
+legacy_erp_ininv_519485|in_invoice|draft|5746|310.56|2019-10-30|52009|4964 / 52009||3
+legacy_erp_ininv_537978|in_invoice|draft|5854|912.00|2020-04-06|52820|5601||2
+legacy_erp_ininv_562145|in_invoice|draft|5974|2000.00|2021-04-30|53797|6240 / 53797||2
+legacy_erp_ininv_569414|in_invoice|draft|5366|2731.20|2021-07-19|54033|76563||2
+legacy_erp_ininv_569417|in_invoice|draft|5345|3307.68|2021-07-26|54016|7627||2
+legacy_erp_ininv_569420|in_invoice|draft|5445|1250.00|2021-08-16|54078|45591178-1||2
+legacy_erp_ininv_569450|in_invoice|draft|5331|8369.63|2021-07-21|54020|6187||3
+legacy_erp_ininv_569452|in_invoice|draft|5342|1244.43|2021-07-05|53986|070521-1JB||2
+legacy_erp_ininv_569453|in_invoice|draft|5342|10666.50|2021-07-05|53986|070521-1JB||2
+legacy_erp_ininv_569473|in_invoice|draft|5281|867.74|2021-08-16|54080|6143632941||2
+legacy_erp_ininv_569484|in_invoice|draft|5542|1150.00|2021-08-12|54072|2098411||2
+legacy_erp_ininv_591398|in_invoice|draft|6024|9366.52|2022-03-07|54839|7275 / 54839||2
+legacy_erp_ininv_591476|in_refund|draft|6024|9366.52|2022-03-07|54839|U-7275 / 54839||2
+legacy_erp_ininv_594620|in_invoice|draft|6024|8826.48|2022-03-07|54839|7275 /54839||2
+legacy_erp_ininv_605450|in_invoice|draft|5484|700.00|2022-09-21|55561|5733284||2
+legacy_erp_ininv_605460|in_invoice|draft|5970|1380.00|2022-07-14|55527|7865 7 55527||2
+legacy_erp_ininv_605461|in_refund|draft|5342|625.00|2022-08-10|55561|55561INV||2
+legacy_erp_ininv_605467|in_invoice|draft|5364|1135.50|2022-06-10|55262|44174||2
+legacy_erp_ininv_605480|in_invoice|draft|5933|480.80|2022-07-22|55308|12467||2
+legacy_erp_ininv_605495|in_refund|draft|5726|428.18|2022-07-19|55542|4021||2
+legacy_erp_ininv_605553|in_invoice|draft|5484|2100.00|2022-08-08|55570|5763562||2
+legacy_erp_ininv_624001|in_invoice|draft|5433|510.00|2023-06-26|56602|1194678||2
+legacy_erp_ininv_624019|in_invoice|draft|5542|1015.00|2023-06-27|56579|INV2819470||2
+legacy_erp_ininv_624023|in_invoice|draft|5484|1550.00|2023-08-18|56259|6892372||2
+legacy_erp_ininv_624039|in_refund|draft|5940|1025.00|2023-05-26|56376|56376INV||2
+legacy_erp_ininv_624074|in_invoice|draft|6174|3134.40|2023-05-26|56562|553679 RI||2
+legacy_erp_ininv_624077|in_invoice|draft|6167|682.72|2023-06-05|56528|11823||3
+legacy_erp_ininv_670206|in_invoice|draft|6032|250.00|2025-05-21|59402|772816||2
+legacy_erp_ininv_670209|in_invoice|draft|6405|695.00|2025-06-16|59546|0873886||2
+legacy_erp_ininv_670212|in_invoice|draft|6407|1150.00|2025-06-18|59530|23256175||2
+legacy_erp_ininv_670215|in_refund|draft|5986|162.91|2025-05-28|59444|168140||2
+legacy_erp_ininv_670244|in_invoice|draft|5918|1300.00|2025-07-17|59475|A-542177||2
+legacy_erp_ininv_670264|in_invoice|draft|6407|2500.00|2025-06-19|59547|23256537||2
+legacy_erp_ininv_670273|in_invoice|draft|6032|1450.00|2025-06-23|59508|776337||2
+legacy_erp_ininv_670278|in_invoice|draft|5933|1000.00|2025-06-04|59465|13860||2
+legacy_erp_ininv_670284|in_invoice|draft|5986|1341.75|2025-05-28|59444|168140||2
+legacy_erp_ledger_4670|out_refund|draft|5819|2000.00|2021-09-27|53797|CM 53797|5036|2
+legacy_erp_ledger_5694|out_refund|draft|5507|382.90|2022-05-12|54839|CM 54839|7422|2
+legacy_erp_outinv_51666|out_invoice|draft|5534|7838.22|2019-02-14|51666|51666||2
+legacy_erp_outinv_51667|out_invoice|draft|5534|8190.00|2019-03-11|51667|51667||2
+legacy_erp_outinv_51680|out_invoice|draft|5534|6664.13|2019-03-12|51680|51680||2
+legacy_erp_outinv_51941|out_invoice|draft|5263|3015.35|2019-06-06|51941|51941||5
+legacy_erp_outinv_51942|out_invoice|draft|5534|7621.08|2019-06-19|51942|51942||2
+legacy_erp_outinv_51943|out_invoice|draft|5534|3394.75|2019-06-26|51943|51943||2
+legacy_erp_outinv_51944|out_invoice|draft|5643|5374.20|2019-06-25|51944|51944||2
+legacy_erp_outinv_51945|out_invoice|draft|5643|5418.40|2019-06-27|51945|51945||2
+legacy_erp_outinv_51946|out_invoice|draft|5643|5083.00|2019-07-24|51946|51946||2
+legacy_erp_outinv_51948|out_invoice|draft|5250|4117.00|2019-07-11|51948|51948||2
+legacy_erp_outinv_51949|out_invoice|draft|5496|3842.40|2019-06-11|51949|51949||2
+legacy_erp_outinv_53797|out_invoice|draft|5819|2000.00|2021-04-30|53797|53797||2
+legacy_erp_outinv_54839|out_invoice|draft|5507|9763.95|2022-04-01|54839|54839||2
+legacy_erp_outinv_56940|out_invoice|draft|5601|12996.30|2023-10-18|56940|56940||2
+legacy_erp_outinv_56941|out_invoice|draft|5536|5340.00|2023-10-30|56941|56941||2
+legacy_erp_outinv_56942|out_invoice|draft|5873|4112.00|2023-10-20|56942|56942||2
+legacy_erp_outinv_56943|out_invoice|draft|6041|1563.00|2023-11-03|56943|56943||2
+legacy_erp_outinv_56944|out_invoice|draft|5551|2577.24|2023-11-20|56944|56944||2
+legacy_erp_outinv_56946|out_invoice|draft|5751|2755.20|2023-10-18|56946|56946||2
+legacy_erp_outinv_56947|out_invoice|draft|5536|5307.50|2023-10-30|56947|56947||2
+legacy_erp_outinv_56948|out_invoice|draft|5536|5157.38|2023-10-30|56948|56948||2
+legacy_erp_outinv_56949|out_invoice|draft|5960|1177.08|2023-10-15|56949|56949||3
+legacy_erp_outinv_58699|out_invoice|draft|5914|752.96|2024-12-06|58699|58699||3
+legacy_erp_outinv_60547|out_invoice|draft|6203|7624.00|2026-08-04|60547|60547||2
+legacy_erp_outinv_60548|out_invoice|draft|6203|924.80|2026-06-09|60548|60548||2
+legacy_erp_outinv_60549|out_invoice|draft|6203|886.40|2026-08-04|60549|60549||2
+legacy_erp_outinv_60550|out_invoice|draft|6203|819.20|2026-08-04|60550|60550||2
+legacy_erp_outinv_60555|out_invoice|draft|5508|6667.20|2026-06-29|60555|60555||2
+
+# transactions
+51666|closed|123|10|5534|5591|379|137|382|381|7838.22|6275.48|1562.74|true|625.41|paid||
+51667|closed|123|10|5534|5591|383|138|385|384|8190.00|6660.00|1530.00|true|612.00|paid||
+51680|closed|123|10|5534|5591|416|149|419|417,418|6664.13|5471.87|1192.26|true|476.90|paid||
+53797|closed|1732|6|5819|5974|5036|1671|5038||0.00|2000.00|-2000.00|true|0.00|paid||
+54839|closed|2669|11|5507|6024|7422|2578|7424,7425,7426||9381.05|8826.48|554.57|true|55.46|paid||
+57355|closed|4670|7|6207||13018||13019||2550.00|1000.97|1549.03|true|0.00|paid||723.00
+58064|closed|5194|6|5399|6255|14502|5101|||378.00|0.00|378.00|true|0.00|paid||
+58699|closed|5628|11|5914|5681|15725|5556||15726,15727|752.96|350.00|402.96|true|60.44|paid||
+58810R|closed|5694|7|5906||15982|||15983,15984|10222.50|515.00|9707.50|true|0.00|paid||
+59625|closed|6240|7|6225|6151|17667|6229|17670|17668,17669|7990.40|7177.72|812.68|true|0.00|paid||
+60216|closed|6702|11|5428|6469|19075|6701||19076,19077|5768.00|2550.00|3218.00|true|643.60|paid||
+60545|cancelled|6924|8|6203|6502||6944|||0.00|0.00|0.00|true|0.00|paid||
+60546|cancelled|6925|7|5250|5879||6945|||0.00|0.00|0.00|true|0.00|unpaid||
+60547|closed|6926|7|6203|5933|19865|6946|19867,19868|19866|7624.00|5924.40|1699.60|true|0.00|unpaid||
+60548|closed|6927|11|6203|6514|19869|6947|19871|19870|924.80|925.00|-0.20|true|-0.04|unpaid||
+60549|closed|6927|11|6203|6514|19872|6947|19875|19873,19874|886.40|653.86|232.54|true|46.51|unpaid||
+60550|closed|6927|11|6203|6514|19876|6947|19879|19877,19878|819.20|575.86|243.34|true|48.67|unpaid||
+60555|closed|6930|10|5508|5289|19892|6950|19893||6667.20|3704.00|2963.20|true|1185.28|unpaid||
+
+# partners
+
+# chatter notes on transactions
+51666|1
+51667|1
+51680|1
+53797|1
+54839|1
+58699|1
+60545|1
+60546|1
+60547|1
+60548|1
+60549|1
+60550|1
+60555|1

@@ -1,4 +1,9 @@
+import logging
+
 from odoo import api, fields, models
+from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class PlasticosIntakeOffersBridge(models.Model):
@@ -32,3 +37,21 @@ class PlasticosIntakeOffersBridge(models.Model):
             "domain": [("intake_id", "=", self.id)],
             "context": {"default_intake_id": self.id},
         }
+
+    def action_send_offers(self):
+        """Retired as an offer-creation authority.
+
+        Offers are created from reviewed Gate match results on the native
+        Opportunity (one matching command, one offer path). The selected
+        intake match lines and their typical price carry no commercial
+        authority, so this action no longer creates offers from them.
+        """
+        self.ensure_one()
+        self._assert_status("matched")
+        if not self.partner_id:
+            raise UserError("Cannot send offers without a supplier. Set the Company on this intake first.")
+        _logger.info("Intake %s: offer creation from match lines is retired; use the Opportunity.", self.id)
+        raise UserError(
+            "Offers are created from reviewed Gate match results on the Opportunity "
+            "(Match via Gate, review results, Create Offers). Selected match lines are display only."
+        )

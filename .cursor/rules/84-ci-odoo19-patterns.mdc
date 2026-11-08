@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Odoo 19 Patterns — PlasticOS
 
-Enforced by `ci/check_odoo19_xml.py`, `ci/check_odoo19_hooks.py`, `scripts/check_odoo_patterns.sh`.
+**Authority:** `AGENTS.md` § Odoo 19 patterns that CI rejects · enforced by `ci/check_odoo19_xml.py`, `ci/check_odoo19_hooks.py`, `scripts/check_odoo_patterns.sh`.
 
 ## XML View Patterns (check_odoo19_xml.py)
 
@@ -65,11 +65,11 @@ Enforced by `ci/check_odoo19_xml.py`, `ci/check_odoo19_hooks.py`, `scripts/check
 
 ### Unescaped `&` in XML (check_odoo_patterns.sh)
 ```xml
-<!-- ❌ WRONG — XML parse error -->
-<field name="name" domain="[('a', '=', 1) &amp; ('b', '=', 2)]"/>
+<!-- ❌ WRONG — raw & is a parse error -->
+<field name="name" string="A & B"/>
 
-<!-- ✅ CORRECT — use &amp; -->
-<field name="name" domain="[('a', '=', 1), ('b', '=', 2)]"/>
+<!-- ✅ CORRECT — escape as &amp; -->
+<field name="name" string="A &amp; B"/>
 ```
 
 ## Hook Patterns (check_odoo19_hooks.py)

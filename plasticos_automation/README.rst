@@ -1,7 +1,7 @@
-PlasticOS automation
-####################
+PlasticOS Automation Layer
+##########################
 
-Deterministic workflow automation: approvals, reminders, logistics follow-ups, SLA monitoring.
+Deterministic workflow automation: approvals, reminders, logistics follow-ups, SLA monitoring
 
 **Features:**
 

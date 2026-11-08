@@ -1,0 +1,30 @@
+{
+  "schema": "plasticos.logistics.native-first-brs-registry/v1",
+  "install_date": "2026-11-05",
+  "source_pack": "PlasticOS_Native_First_BRS_v1.0.0_2026-10-25",
+  "source_pack_version": "v1.0.0",
+  "source_subject": "remaining untracked before leaving only Staging (2026-11-01)",
+  "source_member": "RULES/BRS-POS-10-linda-logistics-commercial-and-physical-communication.md",
+  "chapter_file": "BRS-POS-10-linda-logistics-commercial-and-physical-communication.md",
+  "chapter_sha256": "db02b9d8dba173fad42a538edcfe583b907d4763dfb49296c78b8d03e2179cc4",
+  "admits_other_native_first_chapters": false,
+  "statement": "This registry installs the single BRS-POS-10 chapter. It does not admit the other eleven Native-First chapters as logistics-local authority.",
+  "rules": [
+    {"id": "BRS-POS-10-R001", "title": "Independent PO and SO issue", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R002", "title": "Native commercial approvals remain intact", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R003", "title": "Native reports with party-safe redaction", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"},
+    {"id": "BRS-POS-10-R004", "title": "Native queue and exact delivery-state semantics", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"},
+    {"id": "BRS-POS-10-R005", "title": "Reply evidence by original headers", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"},
+    {"id": "BRS-POS-10-R006", "title": "Free-form response authority", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"},
+    {"id": "BRS-POS-10-R007", "title": "Real physical READY", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R008", "title": "Existing carrier rate authority", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R009", "title": "Dispatch packet and source guard", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"},
+    {"id": "BRS-POS-10-R010", "title": "Carrier acknowledgment milestones", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"},
+    {"id": "BRS-POS-10-R011", "title": "Native order cancellation lifecycle", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R012", "title": "Native reopening is new release cycle", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R013", "title": "Transport revision and sequencing", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R014", "title": "No fake load for warehouse inbound", "scope_class": "EXTERNAL_OWNER_OUT_OF_SCOPE"},
+    {"id": "BRS-POS-10-R015", "title": "External channel owner handoff", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"},
+    {"id": "BRS-POS-10-R016", "title": "Deterministic exception inbox", "scope_class": "CROSS_DOMAIN_CONSUMER_REFERENCE"}
+  ]
+}

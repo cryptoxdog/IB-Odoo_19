@@ -7,13 +7,15 @@
         <field name="arch" type="xml">
             <form string="New Web Lead API Key">
                 <div class="alert alert-warning" role="alert">
-                    Copy this key and store it securely. The settings screen only shows a masked value.
+                    Copy this key now. You can also reveal it later on Web Lead Config
+                    (Settings → Web Lead Config → eye icon on API Key).
                 </div>
                 <group>
-                    <field name="api_key" nolabel="1" readonly="1" colspan="2"/>
+                    <field name="api_key" nolabel="1" readonly="1" colspan="2"
+                             widget="CopyClipboardChar"/>
                 </group>
                 <footer>
-                    <button string="Close" class="btn-primary" special="cancel"/>
+                    <button string="I've copied the key" class="btn-primary" special="cancel"/>
                 </footer>
             </form>
         </field>

@@ -1,0 +1,13 @@
+{
+  "detail": "branch=fix/vanillasoft-tracked-export HEAD=ca21e0093df264e514557fc9bfd9577391bc7f7b origin/Staging=8171f70b2c33b0d7ec626a7965a4648d25164d34 dirty=9",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 1,
+  "name": "branch-identity",
+  "reason": "not-on-staging",
+  "recorded_at": "2026-11-07T21:48:32Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": false,
+  "state": "FAIL"
+}

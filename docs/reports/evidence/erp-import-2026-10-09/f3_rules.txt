@@ -1,0 +1,8 @@
+Plasticos: Purchase Order - Sales Rep Own Records :: [
+            '|',
+            ('user_id', '=', user.id),
+            ('create_uid', '=', user.id)
+        ]
+Purchase Order multi-company :: [('company_id', 'in', company_ids)]
+Portal Purchase Orders :: [('partner_id', 'child_of', [user.commercial_partner_id.id])]
+19.0.1.2.19

@@ -45,10 +45,15 @@ class ResPartner(models.Model):
 
     @api.depends()
     def _compute_material_profile_count(self):
-        """Count material profiles linked to this partner (facility)."""
+        """Count material profiles linked to this partner (facility), one grouped query per recordset."""
         Profile = self.env["plasticos.material.profile"]
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = Profile._read_group([("partner_id", "in", stored_ids)], ["partner_id"], ["__count"])
+            counts = {partner.id: count for partner, count in rows}
         for rec in self:
-            rec.material_profile_count = Profile.search_count([("partner_id", "=", rec.id)])
+            rec.material_profile_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     # NOTE: action_view_intakes and action_create_intake are added by plasticos_intake module
 

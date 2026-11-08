@@ -1,11 +1,6 @@
-PlasticOS uase
+PlasticOS Base
 ##############
 
-Base configuration module providing foundation data for all PlasticOS modules.
+Core seed data, feature gates, and partner tags
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

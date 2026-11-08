@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "Odoo.odoo",
+    "charliermarsh.ruff",
+    "CybrosysTechnologiesOdooOfficialPartner.cybrosys-assista-odoo-helper",
+    "tamasfe.even-better-toml",
+    "EditorConfig.EditorConfig"
+  ]
+}

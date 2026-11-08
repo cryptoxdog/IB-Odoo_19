@@ -5,7 +5,8 @@ alwaysApply: false
 ---
 
 # PlasticOS XML Data & Cron Rules
-# Source: .claude/rules/xml-views.md
+
+**Authority:** `.claude/rules/xml-views.md` (pointer) · `84-ci-odoo19-patterns.mdc` for view XML.
 
 ## Seed Data Rules (Deterministic Seed Doctrine)
 
@@ -95,8 +96,14 @@ Seed categories (all must be XML with noupdate):
 - `✅` Wrap cron records in `<odoo noupdate="1">` so `-u` never resets next-run date or re-enables a disabled cron
 - Use advisory locks for crons that must not overlap (see `tools/cron_invariant_check.py` CRON2xx lifecycle rules):
   ```python
-  if not self.env.cr.execute("SELECT pg_try_advisory_lock(hash)"):
-      return  # another cron instance is running
+  self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_module.ir_cron_my_action"])
+  locked = self.env.cr.fetchone()[0]
+  if not locked:
+      return
+  try:
+      self._run_cron_body()
+  finally:
+      self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_module.ir_cron_my_action"])
   ```
 
 **Correct cron pattern:**

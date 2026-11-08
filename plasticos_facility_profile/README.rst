@@ -1,7 +1,7 @@
-PlasticOS facility profile
+PlasticOS Facility Profile
 ##########################
 
-Facility profiles capturing equipment, capabilities, and operational details for partners.
+Facility capability profiles — equipment, tolerances, BCP fields, company_role, and templates
 
 **Features:**
 

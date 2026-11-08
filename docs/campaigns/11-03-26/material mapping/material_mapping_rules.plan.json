@@ -1,0 +1,383 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "plan",
+  "depth": "standard",
+  "estimate": "continue branch fix/material-mapping-rules (4 commits on origin/Staging); three module bumps; no new model, field, form, or file outside the listed seeds",
+  "title": "Make the unified material matrix and grade templates the single material lookup for ERP and VanillaSoft",
+  "objective": "Both importers resolve a material description by one lookup in the committed matrix plasticos_material_profile/data/material_mapping.csv. A mapped row resolves through its grade template first (get_template_values), then overlays only the row's own extras (attributes, color, grade, filler, process, packaging). Templates carry the mapping: routing is generic by polymer and form, so most rows need only a template code. The three phrase tables in material_normalizer.py, the old VanillaSoft map CSV, and its test are retired.",
+  "already_done": {
+    "branch": "fix/material-mapping-rules in worktree IB-Odoo_19-material-mapping, based on current origin/Staging, unpublished",
+    "commits": [
+      "b4702219 unified ERP + VanillaSoft matrix (material_mapping.csv, 2,323 rows) and its deterministic builder scripts/build_material_mapping.py",
+      "205ca219 nine attributes: repairable, not_repairable, rigid, frac_melt, thick_gauge, copolymer, homopolymer, non_woven, woven",
+      "77d0da03 IBC_TOTES grade template; grade_template column; HDPE_DRUMS, IBC_TOTES, LDPE_FILM_A routing",
+      "df9b2385 hdpe frac melt, pvc rigid, ldpe thick gauge aliases carry their attributes"
+    ],
+    "manifest": "plasticos_material_profile 19.0.5.10.12 (installed Staging is 19.0.5.10.10; this bump covers every later commit on the branch while it stays unpublished)",
+    "matrix_statuses": "mapped, not_material, note_not_material, ambiguous, unknown. Fiber and Engineering Grades are not_material. Call-note text is note_not_material. Multi-polymer descriptions stay ambiguous (operator decision).",
+    "superseded_from_previous_plan": [
+      "old T2/T3 (new polymer phrases in _CRM_EXACT and old CSV rows): the matrix carries them",
+      "old T4 (LDPE grade A phrase family in _SPECS): LDPE_FILM_A template routing in the matrix",
+      "old T5 (delete 27 call-note aliases): matrix marks them note_not_material; the tables are retired whole in T5 below",
+      "old T6/T7 form and source token classifiers: matrix form, type, and color rows map tokens to existing masters (Stacked to palletized, Frac Melt to frac_melt, and so on); U3 is resolved",
+      "old exclusion of packaging_type_id: templates and the matrix now set packaging"
+    ]
+  },
+  "success_criteria": [
+    "V1: ruff and the .pre-commit-config.yaml hooks exit 0 on every touched file.",
+    "V2: every mapped matrix row resolves through normalize_material to its polymer, form, template, attributes, color, and grade; every not_material and note_not_material row returns skip with no profile; every ambiguous and unknown row is unresolved.",
+    "V2: at least 71% of mapped volume (ERP lines plus VanillaSoft contacts) routes to a grade template with the existing 24 templates, and at least 95% after the approved template set is seeded.",
+    "V3: plasticos_crm_sync and plasticos_transaction tests pass with both importers calling the same matrix lookup; an ERP worksheet line and a VanillaSoft section with the same description store the same profile classification.",
+    "V4: material_normalizer.py no longer defines _SPECS, _CRM_EXACT, or _CRM_ALIASES, and plasticos_crm_sync/data/vanillasoft_material_mapping.csv is gone; regenerating the matrix gives the same mapped rows as before the move."
+  ],
+  "scope": {
+    "in": [
+      "seed records for the nine approved polymers",
+      "generic template routing in the matrix builder",
+      "the operator-approved new grade templates",
+      "a matrix-backed normalize_material and the retirement of the phrase tables",
+      "both importer call sites and profile writes",
+      "retiring the old VanillaSoft map CSV and its test",
+      "version bumps of plasticos_material_profile, plasticos_crm_sync, plasticos_transaction"
+    ],
+    "out": [
+      "new forms, new fields, a material type model, origin_form_id",
+      "resolving ambiguous multi-polymer descriptions (operator left them unresolved)",
+      "unknown rows that name no polymer master (Old Corrugated Cardboard, Aluminum Cans, SPC-A, ...)",
+      "pipeline_v2, enrichment, Gate",
+      "publication (make pr is the operator's call)"
+    ]
+  },
+  "code_in_scope": true,
+  "pre_validation": [
+    {
+      "id": "P1",
+      "command_or_action": "git -C <worktree> log --oneline origin/Staging..HEAD && git -C <worktree> merge-base --is-ancestor origin/Staging HEAD",
+      "pass_criteria": "Four commits b4702219..df9b2385 on fix/material-mapping-rules; origin/Staging is an ancestor.",
+      "status": "passed"
+    },
+    {
+      "id": "P2",
+      "command_or_action": "rg 'code\">(TPU|TPV|PVB|PU_FOAM|TEXTILE|UBC|FIBERGLASS|WOOD_PALLETS|AUTO_PARTS)<' polymer_data.xml",
+      "pass_criteria": "No match: the nine polymers are not seeded yet; the matrix references them through the builder's NEW_POLYMERS fallback.",
+      "status": "passed"
+    },
+    {
+      "id": "P3",
+      "command_or_action": "simulate generic template routing over material_mapping.csv",
+      "pass_criteria": "Existing 24 templates cover 12,967 of 18,211 mapped volume (71%); with the candidate set in T3, 17,313 (95%). Today's hand-coded routing covers 11%.",
+      "status": "passed"
+    },
+    {
+      "id": "P4",
+      "command_or_action": "read material_normalizer.py callers",
+      "pass_criteria": "Two callers only: plasticos_crm_sync/services/orchestrator.py _resolve_material (normalize_crm_material plus a normalize_material type-hint probe) and plasticos_transaction/models/native_document_import.py _normalize_line (normalize_material). The builder's load_rules also reads the three tables.",
+      "status": "passed"
+    }
+  ],
+  "todos": [
+    {
+      "id": "T1",
+      "task": "Seed the nine approved polymers in polymer_data.xml: TPU (Thermoplastic Polyurethane, engineering), TPV (Thermoplastic Vulcanizate, engineering), PVB (Polyvinyl Butyral, specialty), PU_FOAM (PU Foam / Polyurethane Foam, specialty), TEXTILE (Textile, specialty), UBC (Used Beverage Containers, specialty), FIBERGLASS (Fiberglass, specialty), WOOD_PALLETS (Wood Pallets, specialty), AUTO_PARTS (Auto Parts, specialty). Add the nine codes to the computed polymer Selection in material_profile.py so _compute_polymer_code does not return False. Drop NEW_POLYMERS and NEW_POLYMER_NAMES from the builder; it reads them from the XML.",
+      "files": [
+        "plasticos_material_profile/data/polymer_data.xml",
+        "plasticos_material_profile/models/material_profile.py",
+        "scripts/build_material_mapping.py"
+      ],
+      "operation": "Insert",
+      "anchor": "polymer_data.xml after polymer_1_7_commingled_bottles; material_profile.py polymer Selection",
+      "effort": "small",
+      "risk": "low",
+      "dependencies": [],
+      "leverage_rank": 1,
+      "shared_root_cause": "matrix references masters that are not seeded"
+    },
+    {
+      "id": "T2",
+      "task": "Replace the builder's hand-coded TEMPLATE_MATCH with generic routing. A mapped material row routes to the template whose polymer and form equal the row's, falling back to the polymer-only template when the row has no form. Discriminators: LDPE FILM uses grade (A to LDPE_FILM_A) and color MIXED (LDPE_MIXED_FILM); PLASTIC_PALLETS with no_metal uses PALLETS_NO_METAL. Narrow templates route by name words only, never by polymer and form: IBC_TOTES (ibc), HDPE_TOTERS (toter), PET_TRAYS (tray), PET_PARTS_PI (post industrial), PP_SUPERSACS_NO_LINERS (supersac + no liner). A template fills only empty columns; is_clean and no_metal flags add clean and no_metal attributes; a description saying baled or bales sets packaging bales. check() fails when a row's template polymer differs from the row polymer.",
+      "files": [
+        "scripts/build_material_mapping.py",
+        "plasticos_material_profile/data/material_mapping.csv"
+      ],
+      "operation": "Replace",
+      "anchor": "TEMPLATE_MATCH, apply_template, check",
+      "effort": "small",
+      "risk": "low",
+      "dependencies": ["T1"],
+      "leverage_rank": 1,
+      "shared_root_cause": "templates exist but are not used"
+    },
+    {
+      "id": "T3",
+      "task": "After operator approval of the list (checkpoint C1), seed the candidate templates in grade_template_data.xml, packaging taken from the nearest existing template of the same form, quality_tier standard unless named. Polymer + form: PLASTIC_PALLETS (plastic_pallets, pallets, loose), WOOD_PALLETS (wood_pallets, pallets, loose), HDPE_PALLETS and PP_PALLETS (pallets, loose), HDPE_BOTTLES and PET_BOTTLES (bottles, bales), COMMINGLED_1_7 and COMMINGLED_3_7 (bottles, bales, source POST_CONSUMER), HDPE_REGRIND, HMW_REGRIND (regrind, gaylords), HMW_DRUMS (hdpe_hmw, drums, loose), HDPE_TOTES (totes, loose), HDPE_BUCKETS (buckets, loose), PP_PURGE (purge, gaylords), PP_PARTS and HDPE_PARTS (parts, gaylords), LDPE_FILM_B (ldpe, film, bales, grade_b). Polymer only: MRP, HDPE_HMW, PVC, NYLON, ABS, PC, LLDPE, PS, HIPS. Regenerate the matrix; reusable stays a row attribute on WOOD_PALLETS rows.",
+      "files": [
+        "plasticos_material_profile/data/grade_template_data.xml",
+        "plasticos_material_profile/data/material_mapping.csv"
+      ],
+      "operation": "Insert",
+      "anchor": "grade_template_data.xml after grade_ibc_totes",
+      "effort": "small",
+      "risk": "low",
+      "dependencies": ["T2"],
+      "leverage_rank": 1,
+      "shared_root_cause": "high-volume polymer and form clusters have no template"
+    },
+    {
+      "id": "T4",
+      "task": "Move rule ownership into the builder before the tables are deleted: copy the current _SPECS, _CRM_EXACT, and _CRM_ALIASES entries (with the three attribute aliases) into builder constants, point load_rules at them, and point PREVIOUS_MAP at the committed material_mapping.csv so carried ambiguous and unknown decisions survive. Regenerate and confirm every mapped row is unchanged.",
+      "files": [
+        "scripts/build_material_mapping.py",
+        "plasticos_material_profile/data/material_mapping.csv"
+      ],
+      "operation": "Replace",
+      "anchor": "load_rules, PREVIOUS_MAP",
+      "effort": "small",
+      "risk": "medium",
+      "dependencies": ["T2"],
+      "leverage_rank": 2,
+      "shared_root_cause": "the builder still reads the runtime tables"
+    },
+    {
+      "id": "T5",
+      "task": "Rewrite material_normalizer.py around the matrix. Load material_mapping.csv once per process with odoo.tools.misc.file_open and index rows by (field_role, match_key) after whitespace collapse and case folding. normalize_material(env, description, hints=None) returns MaterialNormalization with polymer, form, source_type, attributes, grade, plus template, color, filler_type, process_type, packaging_type, and skip. mapped: start from template.get_template_values() when grade_template is set, then overlay the row's non-empty columns. not_material and note_not_material: skip=True, no unresolved. ambiguous, unknown, or no row: unresolved ('unresolved material',). hints are form, type, and color tokens; each hint row fills empty columns only, and a hint naming a different polymer is ('conflicting material evidence',). A row naming a master missing from the database is unresolved with the missing code. Delete _SPECS, _CRM_EXACT, _CRM_ALIASES, and normalize_crm_material.",
+      "files": [
+        "plasticos_material_profile/models/material_normalizer.py"
+      ],
+      "operation": "Replace",
+      "anchor": "whole module",
+      "effort": "medium",
+      "risk": "medium",
+      "dependencies": ["T1", "T4"],
+      "leverage_rank": 1,
+      "shared_root_cause": "two phrase systems for one mapping"
+    },
+    {
+      "id": "T6",
+      "task": "Switch both importers to the one lookup. orchestrator._resolve_material calls normalize_material(env, phrase, hints=structured values) and drops the normalize_material type-hint probe and _HINT_STATUS_UNSUPPORTED; a hint with no matrix row is an OPTIONAL_CONTEXT notice. _store_normalized_materials skips skip=True results silently. _write_profile_classification writes template values and the overlays (attribute_ids, color_id, filler_type_id, origin_process_type, packaging_type_id, sub_grade, quality_tier, has_metal), filling empty fields and leaving conflicts to the existing empty-or-conflict rule. native_document_import._normalize_line keeps calling normalize_material and gains the same result; skip lines create no material classification.",
+      "files": [
+        "plasticos_crm_sync/services/orchestrator.py",
+        "plasticos_transaction/models/native_document_import.py"
+      ],
+      "operation": "Replace",
+      "anchor": "_resolve_material, _store_normalized_materials, _write_profile_classification, _normalize_line",
+      "effort": "medium",
+      "risk": "medium",
+      "dependencies": ["T5"],
+      "leverage_rank": 2,
+      "shared_root_cause": "two phrase systems for one mapping"
+    },
+    {
+      "id": "T7",
+      "task": "Retire the old map: delete plasticos_crm_sync/data/vanillasoft_material_mapping.csv and plasticos_crm_sync/tests/test_material_mapping_map.py. Move their checks into test_material_normalizer.py against the matrix: every mapped row resolves to its listed masters and template, skip rows create nothing, ambiguous and unknown rows stay unresolved. With the old map gone, the builder stops carrying VanillaSoft-only unresolved free text from it, which also removes the personal names that map held.",
+      "files": [
+        "plasticos_crm_sync/data/vanillasoft_material_mapping.csv",
+        "plasticos_crm_sync/tests/test_material_mapping_map.py",
+        "plasticos_material_profile/tests/test_material_normalizer.py",
+        "scripts/build_material_mapping.py"
+      ],
+      "operation": "Delete",
+      "anchor": "old map and its test",
+      "effort": "small",
+      "risk": "low",
+      "dependencies": ["T5"],
+      "leverage_rank": 3,
+      "shared_root_cause": "two phrase systems for one mapping"
+    },
+    {
+      "id": "T8",
+      "task": "Update importer tests: orchestrator section tests for template resolution, hint tokens (Bales, Post Consumer, Stacked to palletized, Frac Melt to frac_melt), skip rows, and conflicts; the transaction test that pins _normalize_line to normalize_material stays, and an LDPE Film Grade A worksheet line resolves to LDPE_FILM_A. Bump plasticos_crm_sync to 19.0.1.9.16 and plasticos_transaction to 19.0.2.3.50; plasticos_material_profile stays 19.0.5.10.12 while the branch is unpublished.",
+      "files": [
+        "plasticos_crm_sync/tests/test_orchestrator_upsert.py",
+        "plasticos_transaction/tests/",
+        "plasticos_crm_sync/__manifest__.py",
+        "plasticos_transaction/__manifest__.py"
+      ],
+      "operation": "Replace",
+      "anchor": "material section tests; manifests",
+      "effort": "medium",
+      "risk": "low",
+      "dependencies": ["T6", "T7"],
+      "leverage_rank": 3
+    },
+    {
+      "id": "T9",
+      "task": "Run V1 to V4. If tests/test_phantom_enum_values.py flags a new polymer or template code, add it to GLOBAL_ALLOWLIST as a master code. Upgrade only the bumped modules: make update m=plasticos_material_profile,plasticos_crm_sync,plasticos_transaction.",
+      "files": [
+        "tests/test_phantom_enum_values.py"
+      ],
+      "operation": "Wrap",
+      "anchor": "GLOBAL_ALLOWLIST only when the phantom-enum test fails",
+      "effort": "small",
+      "risk": "low",
+      "dependencies": ["T8"],
+      "leverage_rank": 4
+    }
+  ],
+  "critical_path": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"],
+  "milestones": [
+    {
+      "id": "M1",
+      "outcome": "Every master the matrix names is seeded, and templates carry most of the mapping (T1 to T3).",
+      "unlocks": "A mapped row needs only a template code plus its own extras."
+    },
+    {
+      "id": "M2",
+      "outcome": "One matrix lookup serves ERP and VanillaSoft; the phrase tables and the old map are gone (T4 to T7).",
+      "unlocks": "A mapping change is one builder decision and one regenerated CSV, with no code edit."
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "C1",
+      "after": "T2",
+      "evidence_required": "The operator approves the T3 template list and packaging defaults.",
+      "no_go_action": "Seed only the approved subset; routing still works with the existing 24 templates (71%)."
+    },
+    {
+      "id": "C2",
+      "after": "T4",
+      "evidence_required": "Regenerated matrix: mapped rows identical to the pre-move run (diff on status, polymer, form, attributes, grade, grade_template).",
+      "no_go_action": "Do not delete the tables until the builder reproduces them."
+    },
+    {
+      "id": "C3",
+      "after": "T6",
+      "evidence_required": "A VanillaSoft section and an ERP line with the same description write the same polymer, form, template values, and attributes; a not_material line writes no profile.",
+      "no_go_action": "Stop if a skip row creates a profile or an unknown row creates a master."
+    }
+  ],
+  "doc_root_surface_impact": [
+    {
+      "surface": "AGENTS.md",
+      "action": "n_a",
+      "reason": "No module is added or removed."
+    },
+    {
+      "surface": "plasticos_material_profile/README.md",
+      "action": "update",
+      "reason": "Name material_mapping.csv as the importer lookup and scripts/build_material_mapping.py as its generator."
+    }
+  ],
+  "stress_test": {
+    "disconfirming_questions": [
+      "Does generic routing send PP tubs (PP, PARTS) to PP_SUPERSACS_NO_LINERS? It must not: narrow templates route by name words only.",
+      "Does a template overwrite a row value such as LDPE Film Grade A's clean and dry? It must not: templates fill empty columns only.",
+      "Does deleting the phrase tables change any mapped row? C2 diffs the regenerated matrix first.",
+      "Does reading a CSV at runtime violate the no-CSV-bootstrap doctrine? It creates no records; it is a read-only lookup shipped in the addon. If review rejects that, the builder can emit the same lookup as XML seed data instead."
+    ],
+    "assumed_false_ifs": [
+      "A polymer-only template adds nothing. It sets quality_tier and is the anchor for later packaging defaults.",
+      "A hint can override the description's polymer. It cannot: a different polymer is a conflict."
+    ],
+    "blast_radius": "Installed databases gain nine polymer rows and the approved templates on upgrade. Both importers classify through one table, so ERP worksheet lines gain CRM rules and VanillaSoft gains ERP rules. Profiles gain packaging, color, filler, process, and template defaults that were dropped before. No column or table is dropped.",
+    "rollback": "Revert the branch. New xml ids can be archived with active false. Profiles already written keep their values."
+  },
+  "leverage": {
+    "ranked_todo_ids": ["T2", "T1", "T5", "T3", "T6", "T4", "T7", "T8", "T9"],
+    "shared_causes": [
+      "Templates exist but routing used three of them; generic routing lifts coverage from 11% to 71% with no new data.",
+      "Two phrase systems (normalizer tables and the matrix) describe one mapping; one matrix removes the drift."
+    ],
+    "deletions_or_consolidations": [
+      "_SPECS, _CRM_EXACT, _CRM_ALIASES, normalize_crm_material, the type-hint probe, vanillasoft_material_mapping.csv, test_material_mapping_map.py.",
+      "Hand-coded TEMPLATE_MATCH becomes one generic rule."
+    ]
+  },
+  "risks": [
+    {
+      "risk": "Template packaging defaults are a commercial choice, not a fact in the data.",
+      "mitigation": "C1 approval; a description that names a packaging overrides the default."
+    },
+    {
+      "risk": "Bare LDPE on an ERP line becomes LDPE film once ERP uses the CRM rules.",
+      "mitigation": "That is the agreed CRM rule; the matrix row is visible and changeable in one place."
+    },
+    {
+      "risk": "The matrix is regenerated from a private VanillaSoft export that is never committed.",
+      "mitigation": "The builder takes the export as an argument; the committed CSV holds no contact details, and T7 removes the names carried from the old map."
+    }
+  ],
+  "unknowns": [
+    {
+      "id": "U1",
+      "question": "Which T3 templates and packaging defaults are approved?",
+      "decision_effect": "Coverage between 71% and 95% of mapped volume.",
+      "resolution": "operator_decision"
+    }
+  ],
+  "final_validation": [
+    {
+      "id": "V1",
+      "command": "ruff check plasticos_material_profile plasticos_crm_sync plasticos_transaction scripts/build_material_mapping.py && ruff format --check plasticos_material_profile plasticos_crm_sync plasticos_transaction scripts/build_material_mapping.py && pre-commit run --files <touched files>",
+      "pass_criteria": "Exit 0.",
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "command": "python3 scripts/build_material_mapping.py --vanillasoft <private export> --workbook <Oct 14 workbook> twice, then make test-module m=plasticos_material_profile",
+      "pass_criteria": "Identical CSV hashes; template coverage at or above the C1 target; module tests pass.",
+      "status": "pending"
+    },
+    {
+      "id": "V3",
+      "command": "make test-module m=plasticos_crm_sync && make test-module m=plasticos_transaction",
+      "pass_criteria": "Zero failures; C3 evidence holds.",
+      "status": "pending"
+    },
+    {
+      "id": "V4",
+      "command": "rg -n '_SPECS|_CRM_EXACT|_CRM_ALIASES|normalize_crm_material|vanillasoft_material_mapping' plasticos_* && python3 -m pytest tests/test_phantom_enum_values.py -q",
+      "pass_criteria": "No match; phantom-enum test exits 0.",
+      "status": "pending"
+    }
+  ],
+  "convergence": {
+    "status": "partial",
+    "remaining_unknown_ids": ["U1"],
+    "next_skill": "cursor-build",
+    "stop_reason": "T1, T2, T4 to T9 are ready. T3 waits on U1."
+  },
+  "gmp_handoff": {
+    "may_modify": [
+      "plasticos_material_profile/data/polymer_data.xml",
+      "plasticos_material_profile/data/grade_template_data.xml",
+      "plasticos_material_profile/data/material_mapping.csv",
+      "plasticos_material_profile/models/material_profile.py",
+      "plasticos_material_profile/models/material_normalizer.py",
+      "plasticos_material_profile/tests/test_material_normalizer.py",
+      "plasticos_material_profile/README.md",
+      "scripts/build_material_mapping.py",
+      "plasticos_crm_sync/services/orchestrator.py",
+      "plasticos_crm_sync/tests/test_orchestrator_upsert.py",
+      "plasticos_crm_sync/data/vanillasoft_material_mapping.csv",
+      "plasticos_crm_sync/tests/test_material_mapping_map.py",
+      "plasticos_crm_sync/__manifest__.py",
+      "plasticos_transaction/models/native_document_import.py",
+      "plasticos_transaction/tests/",
+      "plasticos_transaction/__manifest__.py",
+      "tests/test_phantom_enum_values.py"
+    ],
+    "must_not_modify": [
+      "plasticos_material_profile/data/material_form_data.xml",
+      "plasticos_material_profile/data/material_attribute_data.xml",
+      "existing grade template records",
+      "existing polymer records",
+      "origin_form_id",
+      "pipeline_v2.py"
+    ],
+    "preserved_contracts": [
+      "exact match after whitespace collapse and case folding; no fuzzy matching at runtime",
+      "a value with no mapped row creates no profile and no master",
+      "a template fills empty values only",
+      "the builder output is deterministic and holds no contact details",
+      "plasticos.polymer and plasticos.material.attribute unique code constraints"
+    ],
+    "validation_commands": [
+      "ruff check plasticos_material_profile plasticos_crm_sync plasticos_transaction scripts/build_material_mapping.py",
+      "make test-module m=plasticos_material_profile",
+      "make test-module m=plasticos_crm_sync",
+      "make test-module m=plasticos_transaction",
+      "python3 -m pytest tests/test_phantom_enum_values.py -q"
+    ]
+  }
+}

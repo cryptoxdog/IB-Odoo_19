@@ -5,7 +5,8 @@ alwaysApply: false
 ---
 
 # PlasticOS Security Model
-# Source: .claude/rules/security.md
+
+**Authority:** `INVARIANTS.md` § Security · `.claude/rules/security.md` (pointer).
 
 ## ⚠️ MANDATORY PRE-FLIGHT — Run Before Adding ANY ACL Row
 
@@ -22,28 +23,23 @@ Use `Shell cat <path>/security/ir.model.access.csv`. Never write from memory.
 - **Never mix formats in the same file.** Odoo does not deduplicate across prefix/non-prefix — you will get duplicate external IDs.
 
 **STEP 4 — Use the correct header.**
-The real header is `model_id:id,group_id:id` (colon, not slash). The format template below uses `/` for illustration only — always match the header already in the file.
+The real header is `model_id:id,group_id:id`. Always match the header already in the file.
 
 ---
 
 ## Group Hierarchy (plasticos_security_base)
 
+These are the groups in `plasticos_security_base/security/security_groups.xml`. `category_id` sits on `res.groups.privilege`, not on `res.groups`.
+
 ```
-plasticos_privilege_manager (Full Access)
-  ├── implied → base.group_system, base.group_erp_manager
-  └── CRUD on all models
-
-plasticos_privilege_user (Standard User)
-  ├── implied → base.group_user
-  └── Read all, write own records
-
-plasticos_privilege_readonly (Reports Only)
-  └── Read-only all models
-
-plasticos_group_sales      → implied → privilege_user
-plasticos_group_logistics  → implied → privilege_user
-plasticos_group_compliance → implied → privilege_user
-plasticos_group_accounting → implied → account.group_account_invoice
+group_sales_rep            privilege_sales            implies base.group_user
+group_logistics            privilege_logistics        implies base.group_user
+group_logistics_ops        privilege_logistics        implies group_logistics
+group_accounting           privilege_accounting       implies base.group_user
+group_accounting_ops       privilege_accounting       implies group_accounting
+group_qc_manager           privilege_quality          implies base.group_user
+group_operations_manager   privilege_administration   implies group_logistics_ops, group_qc_manager, group_accounting_ops
+group_system_admin         privilege_administration   implies group_operations_manager, base.group_erp_manager, base.group_system
 ```
 
 ## ACL Requirements
@@ -53,15 +49,13 @@ plasticos_group_accounting → implied → account.group_account_invoice
 - If referencing a model from another module, prefix: `other_module.model_plasticos_x`
 - **model_id:id column** — always use the SHORT format `model_plasticos_foo` (no module prefix); Odoo resolves it within the installing module's namespace
 
-**Canonical format for NEW files (use `plasticos_security_base` groups — not `base.*`):**
+**Canonical format for NEW files.** A model-wide row uses `base.group_user` or `base.group_system`, matching `plasticos_material_profile/security/ir.model.access.csv`. A role-scoped row uses `plasticos_security_base` plus one xmlid from the hierarchy above.
 ```csv
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_plasticos_model_manager,plasticos.model manager,model_plasticos_model,plasticos_security_base.plasticos_privilege_manager,1,1,1,1
-access_plasticos_model_user,plasticos.model user,model_plasticos_model,plasticos_security_base.plasticos_privilege_user,1,1,1,0
-access_plasticos_model_readonly,plasticos.model readonly,model_plasticos_model,plasticos_security_base.plasticos_privilege_readonly,1,0,0,0
+access_plasticos_model_user,plasticos.model user,model_plasticos_model,base.group_user,1,1,1,0
+access_plasticos_model_admin,plasticos.model admin,model_plasticos_model,base.group_system,1,1,1,1
+access_plasticos_model_sales,plasticos.model sales,model_plasticos_model,plasticos_security_base.group_sales_rep,1,1,1,0
 ```
-
-At minimum: manager=CRUD (1,1,1,1), user=CRU (1,1,1,0), readonly=R (1,0,0,0)
 
 **Do NOT add both a `_user` R-only row AND an `_all` CRUD row for the same group on the same model.**
 One row per model+group combination. If CRUD is needed, skip the R-only row entirely.

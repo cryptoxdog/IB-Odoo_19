@@ -21,10 +21,15 @@ class PlasticosMaterialProfileIntake(models.Model):
 
     @api.depends()
     def _compute_intake_count(self):
-        """Count intakes linked to this profile."""
+        """Count intakes linked to this profile, one grouped query per recordset."""
         Intake = self.env["plasticos.intake"]
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = Intake._read_group([("material_profile_id", "in", stored_ids)], ["material_profile_id"], ["__count"])
+            counts = {profile.id: count for profile, count in rows}
         for rec in self:
-            rec.intake_count = Intake.search_count([("material_profile_id", "=", rec.id)])
+            rec.intake_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     # ── Navigation Actions ────────────────────────────────────────
     def action_view_intakes(self):
@@ -40,8 +45,18 @@ class PlasticosMaterialProfileIntake(models.Model):
         }
 
     def action_create_intake(self):
-        """Open intake form pre-filled from this material profile."""
+        """Manual ingress: a native Opportunity for this profile's partner when CRM Bridge is installed.
+
+        Without CRM Bridge the legacy intake form stays. No intake is created
+        either way until the broker saves.
+        """
         self.ensure_one()
+        partner = self.partner_id
+        route = getattr(partner, "_plasticos_opportunity_action", None) if partner else None
+        if callable(route):
+            opportunity_action = route(material_profile=self)
+            if opportunity_action is not None:
+                return opportunity_action
         return {
             "type": "ir.actions.act_window",
             "name": "Create Intake",
@@ -58,7 +73,7 @@ class PlasticosMaterialProfileIntake(models.Model):
                 "default_color_id": self.color_id.id if self.color_id else False,
                 "default_source_type_id": self.source_type_id.id if self.source_type_id else False,
                 "default_packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
-                "default_origin_form_id": self.origin_form_id.id if self.origin_form_id else False,
+                "default_material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
                 "default_filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
                 "default_material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
                 "default_mfi_value": self.melt_flow_index,

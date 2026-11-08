@@ -1,11 +1,6 @@
-PlasticOS geolocalize
+PlasticOS Geolocalize
 #####################
 
-Automated geolocation backfill for intake records using address data.
+Nightly geocode backfill for partners; intake coordinates follow the partner.
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

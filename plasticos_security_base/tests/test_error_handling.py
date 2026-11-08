@@ -1,0 +1,275 @@
+"""Error handling tests for PlastOS robustness.
+
+Covers:
+    - API failures (external service unavailable)
+    - Invalid data (malformed imports)
+    - Permission denied (ACL enforcement)
+    - Concurrent edits (optimistic locking)
+    - Rollback scenarios (transaction failures)
+
+These tests validate that PlastOS handles errors gracefully:
+- External service failures don't crash the system
+- Invalid data is rejected with clear error messages
+- Permission checks are enforced correctly
+- Concurrent operations are handled safely
+- Failed operations roll back cleanly
+"""
+
+from unittest.mock import patch
+
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import AccessError, UserError
+
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
+
+from odoo.tests.common import tagged
+from odoo.tools import mute_logger
+
+
+# ═══════════════════════════════════════════════════════════════
+# API Failure Tests
+# ═══════════════════════════════════════════════════════════════
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "api")
+class TestAPIFailures(PlasticosTestCase):
+    """Tests for graceful handling of external API failures."""
+
+    # Neo4j failure handling was covered here via plasticos.graph.service. That model is
+    # in the mothball DISCARDABLE_CATALOG (scripts/migrations/mothball_local_intelligence.py):
+    # "Local Neo4j graph helper (CEG owns graph)". Graph egress is now Gate-only —
+    # covered by tests/contracts/test_no_local_intelligence.py, test_gate_single_egress.py
+    # and tests/contracts/test_external_intelligence_authority.py.
+
+    def test_geo_backfill_api_timeout(self):
+        partner = self._create_partner("Geo Timeout")
+        us_country = self.env.ref("base.us", raise_if_not_found=False)
+        partner.write({"city": "Test", "country_id": us_country.id if us_country else False})
+        if not hasattr(partner, "cron_geo_backfill"):
+            self.skipTest("cron_geo_backfill not available")
+        with patch("requests.get", side_effect=Exception("Timeout")):
+            partner.cron_geo_backfill()
+        # Timeout must not destroy the partner or raise out of the cron.
+        self.assertTrue(partner.exists())
+        self.assertEqual(partner.city, "Test")
+
+    def test_classification_failure_sets_error_state(self):
+        """A failure raised inside classify_lead() lands the lead in state=error."""
+        if "plasticos.web.lead" not in self.env:
+            self.skipTest("Web leads not installed")
+        import uuid
+
+        lead = self.env["plasticos.web.lead"].create(
+            {
+                "lead_id": f"ERR-{uuid.uuid4().hex[:8]}",
+                "decision": "cold",
+                "company_name": "Fail Co",
+                "state": "received",
+                "raw_payload": {"test": True},
+            }
+        )
+        with patch(
+            "odoo.addons.plasticos_web_leads.models.web_lead.classify_lead",
+            side_effect=Exception("API error"),
+        ):
+            lead._run_triage_pipeline()
+        self.assertEqual(lead.state, "error")
+        self.assertIn("API error", lead.error_message or "")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Invalid Data Tests
+# ═══════════════════════════════════════════════════════════════
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "validation")
+class TestInvalidData(PlasticosTestCase):
+    """Tests for rejection of invalid data with appropriate errors."""
+
+    def test_intake_missing_required_fields(self):
+        if "plasticos.intake" not in self.env:
+            self.skipTest("plasticos.intake not installed")
+        # Odoo's TransactionCase.assertRaises takes one exception class (odoo/tests/common.py:507).
+        # The missing NOT NULL polymer_id is refused by PostgreSQL at INSERT.
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
+            with self.env.cr.savepoint():
+                self.env["plasticos.intake"].create({})
+
+    def test_web_lead_duplicate_lead_id(self):
+        if "plasticos.web.lead" not in self.env:
+            self.skipTest("Web leads not installed")
+        self.env["plasticos.web.lead"].create(
+            {
+                "lead_id": "DUP-001",
+                "decision": "cold",
+                "company_name": "Dup Co",
+            }
+        )
+        # unique(lead_id) is a SQL constraint (plasticos_web_leads/models/web_lead.py:434).
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
+            with self.env.cr.savepoint():
+                self.env["plasticos.web.lead"].create(
+                    {
+                        "lead_id": "DUP-001",
+                        "decision": "cold",
+                        "company_name": "Dup Co 2",
+                    }
+                )
+
+    def test_claim_invalid_state_transition(self):
+        if "plasticos.claim" not in self.env:
+            self.skipTest("Claims not installed")
+        tx = self.env["plasticos.transaction"].create({"name": "TX-ERR-CLM"})
+        claim = self.env["plasticos.claim"].create(
+            {
+                "transaction_id": tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
+                "state": "pending",
+            }
+        )
+        if hasattr(claim, "action_close"):
+            with self.assertRaises(UserError):
+                claim.action_close()
+
+    def test_offer_negative_price_rejected(self):
+        """Negative prices should be rejected."""
+        if "plasticos.offer" not in self.env:
+            self.skipTest("Offer not installed")
+        # Build an otherwise valid offer (intake/supplier/buyer are required,
+        # plasticos_offer/models/offer.py:48-77) so only check(price_per_lb >= 0)
+        # (offer.py:234) can refuse it.
+        supplier = self._create_partner("Negative Price Supplier", supplier_rank=1)
+        buyer = self._create_partner("Negative Price Buyer", customer_rank=1)
+        intake = self._create_intake(partner=supplier)
+        Offer = self.env["plasticos.offer"]
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
+            with self.env.cr.savepoint():
+                Offer.create(
+                    {
+                        "intake_id": intake.id,
+                        "supplier_id": supplier.id,
+                        "buyer_id": buyer.id,
+                        "price_per_lb": -1.0,
+                    }
+                )
+
+    def test_load_cancel_from_delivered_rejected(self):
+        if "plasticos.load" not in self.env:
+            self.skipTest("Load not installed")
+        # create() rejects a non-Draft state (workflow-owned); reach Delivered
+        # through the internal freight capability the way the workflow does.
+        load = self.env["plasticos.load"].create({})
+        load._freight_write({"state": "delivered"})
+        if hasattr(load, "action_cancel"):
+            with self.assertRaises(UserError):
+                load.action_cancel()
+
+    def test_safe_int_helper_handles_garbage(self):
+        from odoo.addons.plasticos_web_leads.models.web_lead import _safe_int
+
+        self.assertEqual(_safe_int(None), 0)
+        self.assertEqual(_safe_int("garbage"), 0)
+        self.assertEqual(_safe_int("123"), 123)
+        self.assertEqual(_safe_int(45.6), 45)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Permission / ACL Tests
+# ═══════════════════════════════════════════════════════════════
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "security")
+class TestPermissionDenied(PlasticosTestCase):
+    """Tests for ACL enforcement and permission denied scenarios."""
+
+    def test_non_admin_cannot_write_config(self):
+        """Regular users cannot modify system config."""
+        if "plasticos.web.lead.config" not in self.env:
+            self.skipTest("Web lead config not installed")
+        demo_user = self.env.ref("base.user_demo", raise_if_not_found=False)
+        if not demo_user:
+            self.skipTest("Demo user not available")
+        Config = self.env["plasticos.web.lead.config"].with_user(demo_user)
+        with self.assertRaises(AccessError):
+            Config.create({"name": "Unauthorized"})
+
+    def test_non_admin_cannot_delete_intake(self):
+        """Regular users should not be able to delete intakes."""
+        if "plasticos.intake" not in self.env:
+            self.skipTest("plasticos.intake not installed")
+        partner = self._create_partner()
+        polymer = self._get_or_create_polymer()
+        form = self._get_or_create_form()
+        intake = self._create_intake(partner=partner, polymer=polymer, form=form)
+        demo_user = self.env.ref("base.user_demo", raise_if_not_found=False)
+        if not demo_user:
+            self.skipTest("Demo user not available")
+        with self.assertRaises(AccessError):
+            intake.with_user(demo_user).unlink()
+
+
+# ═══════════════════════════════════════════════════════════════
+# Concurrent Edit Tests
+# ═══════════════════════════════════════════════════════════════
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "concurrency")
+class TestConcurrentEdits(PlasticosTestCase):
+    """Tests for concurrent edit handling and idempotency."""
+
+    # test_advisory_lock_prevents_double_cron exercised
+    # plasticos.graph.service._cron_nightly_graph_sync — mothballed with the local graph
+    # helper (scripts/migrations/mothball_local_intelligence.py DISCARDABLE_CATALOG).
+    # Cron idempotency is covered by plasticos_claims/tests/test_cron_idempotency.py.
+
+    def test_idempotent_web_lead_creation(self):
+        if "plasticos.web.lead" not in self.env:
+            self.skipTest("Web leads not installed")
+        payload = {
+            "Entry": {"Number": "IDEMP-001", "DateSubmitted": "2026-09-21T12:00:00Z"},
+            "YourBusinessCompanyName": "Idempotent Co",
+            "WhatIsIt": "HDPE regrind",
+        }
+        lead1 = self.env["plasticos.web.lead"].create_from_cognito(payload)
+        lead2 = self.env["plasticos.web.lead"].create_from_cognito(payload)
+        self.assertEqual(lead1.id, lead2.id, "Should return same record on duplicate")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Rollback / Transaction Tests
+# ═══════════════════════════════════════════════════════════════
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "rollback")
+class TestRollbackScenarios(PlasticosTestCase):
+    """Tests for atomic operations and rollback on failure."""
+
+    def test_intake_creation_atomic(self):
+        """Failed intake creation does not leave partial records."""
+        if "plasticos.intake" not in self.env:
+            self.skipTest("plasticos.intake not installed")
+        count_before = self.env["plasticos.intake"].search_count([])
+        # The failing INSERT aborts the transaction, so it must run inside a savepoint
+        # (assertRaises opens one); swallowing it left the cursor unusable.
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
+            self.env["plasticos.intake"].create(
+                {
+                    "partner_id": False,  # polymer_id (NOT NULL) is missing too
+                }
+            )
+        count_after = self.env["plasticos.intake"].search_count([])
+        self.assertEqual(count_before, count_after, "Failed create should not leave partial records")
+
+    def test_web_lead_triage_error_state(self):
+        """Pipeline error sets state=error, does not leave inconsistent data."""
+        if "plasticos.web.lead" not in self.env:
+            self.skipTest("Web leads not installed")
+        import uuid
+
+        lead = self.env["plasticos.web.lead"].create(
+            {
+                "lead_id": f"ROLL-{uuid.uuid4().hex[:8]}",
+                "decision": "cold",
+                "company_name": "Rollback Co",
+                "state": "received",
+                "raw_payload": {"test": True},
+            }
+        )
+        with patch.object(type(lead), "_merge_ai_and_vision", side_effect=Exception("Merge failed")):
+            lead._run_triage_pipeline()
+        self.assertEqual(lead.state, "error")
+        self.assertFalse(lead.intake_id)

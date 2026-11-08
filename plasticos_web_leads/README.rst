@@ -1,11 +1,6 @@
-PlasticOS weu leads
+PlasticOS Web Leads
 ###################
 
-Web lead capture and routing for inbound material inquiries.
+AI-powered triage for provider-neutral inbound web leads
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

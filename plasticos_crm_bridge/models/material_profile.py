@@ -1,8 +1,31 @@
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class MaterialProfileCRMBridge(models.Model):
     _inherit = "plasticos.material.profile"
+
+    partner_id = fields.Many2one(required=False)
+    facility_profile_id = fields.Many2one(
+        "plasticos.facility.profile",
+        string="Facility Profile",
+        index=True,
+        ondelete="restrict",
+        help="Lead-owned facility profile when this material has no partner location yet.",
+    )
+
+    _unique_crm_facility_polymer_form = models.UniqueIndex(
+        "(facility_profile_id, polymer_id, form_id, material_grade_id) NULLS NOT DISTINCT "
+        "WHERE partner_id IS NULL AND facility_profile_id IS NOT NULL",
+        "A lead-owned facility may only have one material profile per polymer, form, and material grade.",
+    )
+
+    @api.constrains("partner_id", "facility_profile_id")
+    def _check_material_owner(self):
+        for rec in self:
+            if rec.partner_id or rec.facility_profile_id:
+                continue
+            raise ValidationError("A material profile needs a facility partner or a lead-owned facility profile.")
 
     # ── Match Stats (per-profile, NOT per-partner) ──────────
     match_count = fields.Integer(
@@ -63,20 +86,31 @@ class MaterialProfileCRMBridge(models.Model):
         Also reaches into plasticos.load for last_pickup_date.
         """
         Transaction = self.env["plasticos.transaction"]
-        for rec in self:
-            # Transactions where this is the supplier's profile
-            txs = Transaction.search(
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        # One query for every transaction on either side of any profile in the
+        # recordset, then grouped per profile in Python (a transaction whose
+        # supplier and buyer profiles are the same record counts once).
+        txs_by_profile = {}
+        if stored_ids:
+            linked = Transaction.search(
                 [
                     "|",
-                    ("supplier_profile_id", "=", rec.id),
-                    ("buyer_profile_id", "=", rec.id),
+                    ("supplier_profile_id", "in", stored_ids),
+                    ("buyer_profile_id", "in", stored_ids),
                 ]
             )
+            in_scope = set(stored_ids)
+            for tx in linked:
+                for profile_id in {tx.supplier_profile_id.id, tx.buyer_profile_id.id}:
+                    if profile_id in in_scope:
+                        txs_by_profile[profile_id] = txs_by_profile.get(profile_id, Transaction) | tx
+        for rec in self:
+            txs = txs_by_profile.get(rec.id, Transaction)
             rec.transaction_count = len(txs)
             rec.total_revenue = sum(txs.mapped("revenue_total"))
 
-            # Last load shipped — traverse tx → load_id → pickup_datetime
-            loads = txs.mapped("load_id").filtered(
+            # Last load shipped — every load on the transaction, through its stored parent.
+            loads = txs.mapped("load_ids").filtered(
                 lambda load: load.pickup_datetime and load.state in ("picked_up", "delivered", "closed")
             )
             if loads:
@@ -104,6 +138,94 @@ class MaterialProfileCRMBridge(models.Model):
                 "type": "warning",
             },
         }
+
+    @api.model
+    def reuse_facility_polymer_profile(self, partner, polymer, forms, note_line=None, grades=None):
+        """Reuse one facility profile for a polymer, a resolved form, and a resolved grade.
+
+        Exactly one selected form is stored. Zero forms or more than one form
+        collapse to a single empty-form profile; grades follow the same rule.
+        A note line is appended only when that exact line is not already present.
+        """
+        if not partner or not (partner.is_facility or partner.parent_id):
+            raise ValidationError("A facility partner or a company contact is required.")
+        if not polymer:
+            raise ValidationError("A polymer is required.")
+        form_id = forms.id if len(forms) == 1 else False
+        grade_id = grades.id if grades and len(grades) == 1 else False
+        profile = self.search(
+            [
+                ("partner_id", "=", partner.id),
+                ("polymer_id", "=", polymer.id),
+                ("form_id", "=", form_id),
+                ("material_grade_id", "=", grade_id),
+            ],
+            limit=1,
+        )
+        if not profile:
+            profile = self.create(
+                {
+                    "partner_id": partner.id,
+                    "polymer_id": polymer.id,
+                    "form_id": form_id,
+                    "material_grade_id": grade_id,
+                }
+            )
+        if note_line:
+            existing_lines = (profile.freeform_notes or "").splitlines()
+            if note_line not in existing_lines:
+                notes = profile.freeform_notes or ""
+                profile.freeform_notes = f"{notes}\n{note_line}" if notes else note_line
+        return profile
+
+    @api.model
+    def reuse_lead_facility_material(self, facility_profile, polymer, forms, note_line=None, grades=None):
+        """Reuse one material on a lead-owned facility profile.
+
+        An empty form or grade is stored and matched as empty. A later location
+        link keeps this row and sets its partner.
+        """
+        if not facility_profile:
+            raise ValidationError("A lead-owned facility profile is required.")
+        if not polymer:
+            raise ValidationError("A polymer is required.")
+        form_id = forms.id if len(forms) == 1 else False
+        grade_id = grades.id if grades and len(grades) == 1 else False
+        domain = [
+            ("facility_profile_id", "=", facility_profile.id),
+            ("polymer_id", "=", polymer.id),
+            ("form_id", "=", form_id),
+            ("material_grade_id", "=", grade_id),
+        ]
+        profile = self.search(domain, limit=1)
+        if not profile and facility_profile.partner_id:
+            profile = self.search(
+                [
+                    ("partner_id", "=", facility_profile.partner_id.id),
+                    ("polymer_id", "=", polymer.id),
+                    ("form_id", "=", form_id),
+                    ("material_grade_id", "=", grade_id),
+                ],
+                limit=1,
+            )
+            if profile and not profile.facility_profile_id:
+                profile.facility_profile_id = facility_profile
+        if not profile:
+            vals = {
+                "facility_profile_id": facility_profile.id,
+                "polymer_id": polymer.id,
+                "form_id": form_id,
+                "material_grade_id": grade_id,
+            }
+            if facility_profile.partner_id:
+                vals["partner_id"] = facility_profile.partner_id.id
+            profile = self.create(vals)
+        if note_line:
+            existing_lines = (profile.freeform_notes or "").splitlines()
+            if note_line not in existing_lines:
+                notes = profile.freeform_notes or ""
+                profile.freeform_notes = f"{notes}\n{note_line}" if notes else note_line
+        return profile
 
     def action_view_transactions(self):
         """Navigate to transactions for this material profile."""

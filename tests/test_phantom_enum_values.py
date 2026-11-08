@@ -23,11 +23,11 @@ Zero Odoo runtime. Pure AST + XML parsing.
 import ast
 import os
 import re
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple
 
+import defusedxml.ElementTree as ET
 import pytest
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -73,6 +73,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "closed",
         "paid",
         "posted",
+        "to approve",
         # Odoo move types (account.move)
         "entry",
         "out_invoice",
@@ -87,6 +88,40 @@ GLOBAL_ALLOWLIST = frozenset(
         "cash",
         "bank",
         "general",
+        # Odoo account.account types (core selections, not declared in this repo)
+        "asset_receivable",
+        "liability_payable",
+        "equity_unaffected",
+        "expense_direct_cost",
+        # ERP worksheet document map keys (native_document_import), not Selection values
+        "sales",
+        "purchases",
+        "credits",
+        "bills",
+        "freight_bills",
+        # ERP source-exception census keys (native_document_import / run_erp_import), not Selection values
+        "census",
+        "anomalies",
+        "unresolved",
+        "rows",
+        "worksheets",
+        "number",
+        "detail_id",
+        "side",
+        "key",
+        "payable_id",
+        "worksheet",
+        "vendor",
+        "invoice_no",
+        "gl",
+        "disposition",
+        "rows_seen",
+        "billed_rows",
+        "billed_amount",
+        "quarantined_rows",
+        "quarantined_amount",
+        "by_disposition",
+        "closes",
         # Odoo partner types
         "contact",
         "invoice",
@@ -162,6 +197,9 @@ GLOBAL_ALLOWLIST = frozenset(
         "company",
         "person",
         # ─────────────────────────────────────────────────────────────────────
+        # SQL table names for the load row lock, not Selection values
+        "sale_order",
+        "plasticos_load",
         # ODOO MANIFEST KEYS — standard __manifest__.py dict keys
         # ─────────────────────────────────────────────────────────────────────
         "name",
@@ -410,6 +448,8 @@ GLOBAL_ALLOWLIST = frozenset(
         "type_name",
         "pct",
         "volume",
+        "polymer",
+        "material_grade",
         # ─────────────────────────────────────────────────────────────────────
         # NULL/EMPTY MARKERS
         # ─────────────────────────────────────────────────────────────────────
@@ -431,6 +471,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "Person",
         "Contact",
         "corporate",
+        "facility",
         # ─────────────────────────────────────────────────────────────────────
         # INFERENCE ENGINE / RULE ENGINE VALUES
         # ─────────────────────────────────────────────────────────────────────
@@ -684,18 +725,34 @@ GLOBAL_ALLOWLIST = frozenset(
         "mistral",
         "gemini",
         "perplexity",
+        # Gate SDK error code compared in gate_client.py — not an Odoo Selection.
+        "action_not_permitted",
         # ─────────────────────────────────────────────────────────────────────
         # WEB LEAD PARSER DISPATCH KEYS — triage_helpers.py container/unit maps
         # These are natural language parsing keys, not Odoo selection values
         # ─────────────────────────────────────────────────────────────────────
         "drum",
         "tote",
+        # Normalizer grade words. What the items were, not a form Selection.
+        "crate",
+        "bucket",
+        "pail",
+        "pails",
         "supersack",
         "super sack",
         "truckload",
         "truck",
         "container",
         "load",
+        # ─────────────────────────────────────────────────────────────────────
+        # IMPORT RUN CLASSIFICATION OUTCOMES — per-record outcome vocabulary
+        # persisted as counters on plasticos.crm.sync.run / the ERP import
+        # report, not Odoo Selection values (odoo-intent-1 ingestion milestone)
+        # ─────────────────────────────────────────────────────────────────────
+        "unchanged",
+        "duplicate_rejected",
+        "table_rows",
+        "error_rows",
         "one",
         "two",
         "three",
@@ -735,6 +792,73 @@ GLOBAL_ALLOWLIST = frozenset(
         "gif",
         "jpg",
         "jpeg",
+        # ─────────────────────────────────────────────────────────────────────
+        # HTML TAG NAMES — html.parser callbacks that split res.partner.comment
+        # into paragraphs (approved_identity.py, erp_import_service.py)
+        # ─────────────────────────────────────────────────────────────────────
+        "br",
+        # ─────────────────────────────────────────────────────────────────────
+        # ERP IMPORT SOURCE VOCABULARY — erp_import_service.py
+        # ISO country codes and ERP Address.Type words read from the bulk
+        # grids, not Odoo selection values
+        # ─────────────────────────────────────────────────────────────────────
+        "US",
+        "REMIT",
+        # ERP partner layer names (erp_import_service.PARTNER_LAYERS, the shell
+        # driver, the layer validator), the ERP RR role code, and the contact
+        # role tag name the role mapping writes
+        "counterparties",
+        "addresses",
+        "roles",
+        "salesreps",
+        "rr",
+        "Decision Maker",
+        # ─────────────────────────────────────────────────────────────────────
+        # CORE ODOO SELECTION VALUES — declared by Odoo, not by plasticos_*
+        # modules, so the scanner's Selection registry cannot see them
+        # ─────────────────────────────────────────────────────────────────────
+        "installed",  # ir.module.module.state
+        # Material normalizer source phrases (_SPECS) and CRM column labels.
+        # Exact importer text and field-kind names, not Selection values.
+        "99 clear ldpe film",
+        "ldpe grade a film",
+        "95 clear ldpe film",
+        "ldpe grade b film",
+        "90 clear ldpe film",
+        "ldpe grade c film",
+        "pp film (bopp)",
+        "pc-abs",
+        "3-7",
+        "1-7",
+        "pe",
+        "explicit hmw-hdpe drums",
+        "hdpe drums (hmw-hdpe)",
+        "ldpe film a",
+        "3-7 commingled",
+        "1-7 commingled",
+        "pp supersacs",
+        "materials",
+        "material",
+        "material form",
+        "material type",
+        "phrase",
+        "hint",
+        # CRM material section buckets. Source labels and slot names, not Selection values.
+        "mrfs",
+        "pps",
+        "weight",
+        "weights",
+        "loads",
+        "loads per month",
+        "notes",
+        "note",
+        "previous content",
+        "size",
+        "phrases",
+        "hints",
+        # Linda outgoing-claim decisions in mail.mail._send. Not Selection values.
+        "claimed",
+        "skip",
     }
 )
 
@@ -904,7 +1028,7 @@ def _extract_xml_enum_values(xml_path: str):
     sources: list[EnumSource] = []
 
     try:
-        tree = ET.parse(xml_path)  # nosec B314 - parsing trusted local Odoo XML
+        tree = ET.parse(xml_path)
     except ET.ParseError:
         return names, codes, ext_ids, sources
 
@@ -1098,11 +1222,21 @@ def _discover_plasticos_modules():
     )
 
 
+# Odoo-free packages inside a plasticos module that hold **external** source-
+# system vocabulary rather than Odoo Selection values. Their string literals
+# (foreign table names, legacy type labels, source boolean spellings) can never
+# resolve to an Odoo enum, so scanning them yields only false positives.
+# Each is asserted Odoo-import-free by its own contract test.
+NON_ODOO_VOCABULARY_DIRS = frozenset({"erp"})
+
+
 def _iter_python_files(module_dir: Path):
     """Yield (relative_path, contents) for all .py files in a module.
-    Skips docs/ and any directory named docs."""
+
+    Skips docs/ and any Odoo-free external-vocabulary package."""
     for dirpath, _, filenames in os.walk(module_dir):
-        if "docs" in Path(dirpath).parts:
+        parts = Path(dirpath).parts
+        if "docs" in parts or NON_ODOO_VOCABULARY_DIRS & set(parts):
             continue
         for fname in sorted(filenames):
             if fname.endswith(".py") and fname != "__pycache__":
@@ -1285,6 +1419,7 @@ class TestRegistrySanity:
             "thermoform",
             "rotomold",
             "compounding",
+            "compression_mold",
             "other",
         }
         try:
@@ -1438,47 +1573,164 @@ class TestPerModulePhantomAudit:
 # ═════════════════════════════════════════════════════════════════════════
 
 
+def _string_constants(node: ast.expr) -> list[str] | None:
+    """The strings of a str constant or a list/tuple of str constants, else None."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value]
+    if isinstance(node, (ast.List, ast.Tuple)) and node.elts:
+        values = [e.value for e in node.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+        if len(values) == len(node.elts):
+            return values
+    return None
+
+
+def _full_selection_keys(call: ast.Call) -> set[str] | None:
+    """Keys of a full ``fields.Selection`` list (positional or ``selection=``), else None.
+
+    ``selection_add`` is an extension, not a full definition, and is not read.
+    """
+    if not (isinstance(call.func, ast.Attribute) and call.func.attr == "Selection"):
+        return None
+    selection = call.args[0] if call.args else next((k.value for k in call.keywords if k.arg == "selection"), None)
+    if not isinstance(selection, ast.List):
+        return None
+    return {
+        elt.elts[0].value
+        for elt in selection.elts
+        if isinstance(elt, ast.Tuple)
+        and len(elt.elts) >= 2
+        and isinstance(elt.elts[0], ast.Constant)
+        and isinstance(elt.elts[0].value, str)
+    }
+
+
+def _full_selection_definitions(filepath: str, src: str):
+    """Model-owned full Selection lists in one source file.
+
+    Returns ``(definitions, unresolved)``. ``definitions`` is a list of
+    ``(model, field, keys, location)``; ``unresolved`` lists classes that define a
+    full Selection list but whose owning model cannot be read as string constants.
+
+    Owner: the class ``_name`` when it is a string constant; with no ``_name``,
+    each string in ``_inherit``. A class with ``_name`` never files its fields
+    under the models it inherits. Only direct class-body assignments are read.
+    """
+    try:
+        tree = ast.parse(src, filename=filepath)
+    except SyntaxError:
+        return [], []
+    definitions = []
+    unresolved = []
+    for cls in ast.walk(tree):
+        if not isinstance(cls, ast.ClassDef):
+            continue
+        attrs: dict[str, ast.expr] = {}
+        selections: list[tuple[str, set[str], int]] = []
+        for stmt in cls.body:
+            if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name)):
+                continue
+            target = stmt.targets[0].id
+            if target in ("_name", "_inherit"):
+                attrs[target] = stmt.value
+            elif isinstance(stmt.value, ast.Call):
+                keys = _full_selection_keys(stmt.value)
+                if keys is not None:
+                    selections.append((target, keys, stmt.lineno))
+        if not selections:
+            continue
+        if "_name" in attrs:
+            name = attrs["_name"]
+            owners = [name.value] if isinstance(name, ast.Constant) and isinstance(name.value, str) else None
+        elif "_inherit" in attrs:
+            owners = _string_constants(attrs["_inherit"])
+        else:
+            owners = None
+        if not owners:
+            unresolved.append(f"{filepath}:{cls.lineno}: class {cls.name} has no string-constant _name/_inherit")
+            continue
+        for field_name, keys, lineno in selections:
+            for model in owners:
+                definitions.append((model, field_name, keys, f"{filepath}:{lineno}"))
+    return definitions, unresolved
+
+
+def _selection_violations(sources) -> list[str]:
+    """Incompatible full redefinitions of one field on one model, plus unresolved owners.
+
+    ``sources`` yields ``(filepath, src)``. Definitions of the same ``(model, field)``
+    are compatible when one set contains every other set; equal sets pass.
+    """
+    by_field: dict[tuple[str, str], list[tuple[str, set[str]]]] = defaultdict(list)
+    violations: list[str] = []
+    for filepath, src in sources:
+        definitions, unresolved = _full_selection_definitions(filepath, src)
+        violations.extend(unresolved)
+        for model, field_name, keys, location in definitions:
+            by_field[(model, field_name)].append((location, keys))
+    for (model, field_name), defs in sorted(by_field.items()):
+        if len(defs) < 2:
+            continue
+        if any(all(keys >= other for _, other in defs) for _, keys in defs):
+            continue
+        detail = "; ".join(f"{loc} {sorted(keys)}" for loc, keys in defs)
+        violations.append(f"{model}.{field_name}: incompatible full Selection lists: {detail}")
+    return violations
+
+
 class TestSelectionFieldConsistency:
-    """When multiple modules define the SAME Selection field name
-    (e.g., via _inherit), their option sets must be identical or
-    one must be a strict superset of the other."""
+    """When several classes give the SAME model the SAME Selection field a full
+    option list, those lists must be identical or one must contain all the others.
 
-    def _find_selection_collisions(self):
-        """Return {field_name: {module: set(options)}} for fields
-        defined in multiple modules."""
-        field_by_module = defaultdict(lambda: defaultdict(set))
-
-        for mod in MODULES:
-            mod_path = REPO_ROOT / mod
-            for rel_path, src in _iter_python_files(mod_path):
-                field_opts, _, _ = _extract_selection_options_from_source(src, rel_path)
-                for field_name, keys in field_opts.items():
-                    field_by_module[field_name][mod].update(keys)
-
-        # Keep only fields defined in >1 module
-        return {fname: dict(modules) for fname, modules in field_by_module.items() if len(modules) > 1}
+    Identity is ``(model, field)``, never a bare attribute name: ``state`` on two
+    unrelated models is not a collision. Extensions use ``selection_add``.
+    """
 
     def test_shared_selection_fields_are_compatible(self):
-        collisions = self._find_selection_collisions()
-        violations = []
+        sources = ((str(rel_path), src) for mod in MODULES for rel_path, src in _iter_python_files(REPO_ROOT / mod))
+        violations = _selection_violations(sources)
+        assert violations == [], "Selection field conflicts:\n" + "\n".join(violations)
 
-        for field_name, module_opts in collisions.items():
-            all_sets = list(module_opts.values())
-            # Check: is one a superset of all others?
-            union = set().union(*all_sets)
-            for mod, opts in module_opts.items():
-                if opts != union and not union.issuperset(opts):
-                    violations.append(f"  Field '{field_name}' in {mod}: {sorted(opts)} vs union {sorted(union)}")
+    def test_same_model_incompatible_lists_are_a_violation(self):
+        a = "class A:\n    _name = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('b', 'B')])\n"
+        b = "class B:\n    _inherit = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('c', 'C')])\n"
+        violations = _selection_violations([("a.py", a), ("b.py", b)])
+        assert len(violations) == 1
+        assert violations[0].startswith("x.foo.state:")
 
-        # This is a warning, not a hard fail — extension modules
-        # legitimately add options via selection_add
-        if violations:
-            import warnings
+    def test_same_model_equal_or_superset_lists_pass(self):
+        a = "class A:\n    _name = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('b', 'B')])\n"
+        b = "class B:\n    _inherit = 'x.foo'\n    state = fields.Selection([('a', 'A'), ('b', 'B')])\n"
+        c = "class C:\n    _inherit = 'x.foo'\n    state = fields.Selection([('a', 'A')])\n"
+        assert _selection_violations([("a.py", a), ("b.py", b), ("c.py", c)]) == []
 
-            warnings.warn(
-                "Selection fields defined in multiple modules with different option sets:\n" + "\n".join(violations),
-                stacklevel=1,
-            )
+    def test_different_models_sharing_a_field_name_do_not_collide(self):
+        a = "class A:\n    _name = 'x.foo'\n    state = fields.Selection([('a', 'A')])\n"
+        b = "class B:\n    _name = 'x.bar'\n    state = fields.Selection([('z', 'Z')])\n"
+        assert _selection_violations([("a.py", a), ("b.py", b)]) == []
+
+    def test_named_class_does_not_file_fields_under_inherited_mixin(self):
+        src = (
+            "class A:\n    _name = 'x.foo'\n    _inherit = 'mail.thread'\n    state = fields.Selection([('a', 'A')])\n"
+        )
+        definitions, unresolved = _full_selection_definitions("a.py", src)
+        assert unresolved == []
+        assert [(model, field) for model, field, _, _ in definitions] == [("x.foo", "state")]
+        other = "class B:\n    _inherit = 'mail.thread'\n    state = fields.Selection([('z', 'Z')])\n"
+        assert _selection_violations([("a.py", src), ("b.py", other)]) == []
+
+    def test_unresolved_owner_is_a_violation(self):
+        src = "class A:\n    _name = MODEL\n    state = fields.Selection([('a', 'A')])\n"
+        violations = _selection_violations([("a.py", src)])
+        assert len(violations) == 1
+        assert "class A" in violations[0]
+
+    def test_selection_add_and_nested_assignments_are_not_full_definitions(self):
+        src = (
+            "class A:\n    _inherit = 'x.foo'\n"
+            "    state = fields.Selection(selection_add=[('z', 'Z')])\n"
+            "    def _m(self):\n        state = fields.Selection([('q', 'Q')])\n"
+        )
+        assert _full_selection_definitions("a.py", src) == ([], [])
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -1633,7 +1885,7 @@ class TestEquipmentCodeAlignment:
         for mod in MODULES:
             for xml_path in _iter_xml_data_files(REPO_ROOT / mod):
                 try:
-                    tree = ET.parse(xml_path)  # nosec B314 - parsing trusted local Odoo XML
+                    tree = ET.parse(xml_path)
                 except ET.ParseError:
                     continue
                 for record in tree.getroot().iter("record"):
@@ -1656,43 +1908,3 @@ class TestEquipmentCodeAlignment:
             f"  Defined in XML:    {sorted(xml_codes)}\n"
             f"  MISSING (phantom): {sorted(missing)}"
         )
-
-
-# ═════════════════════════════════════════════════════════════════════════
-# TEST CLASS 8 — Reporting (always passes, prints audit)
-# ═════════════════════════════════════════════════════════════════════════
-
-
-class TestPhantomAuditReport:
-    """Generate a human-readable report of all phantoms found.
-    This test always passes — it writes to stdout for inspection."""
-
-    def test_print_phantom_summary(self, capsys):
-        phantoms = [u for u in ALL_USAGES if _is_phantom(u.value)]
-        by_module = defaultdict(list)
-        for p in phantoms:
-            mod = p.file.split("/")[0] if "/" in p.file else p.file.split(os.sep)[0]
-            by_module[mod].append(p)
-
-        lines = [
-            "═══ PHANTOM ENUM AUDIT ═══",
-            f"Total canonical values:   {len(ALL_CANONICAL)}",
-            f"  Selection field keys:   {len(ALL_SELECTION_KEYS)}",
-            f"  XML name values:        {len(XML_NAMES)}",
-            f"  XML code values:        {len(XML_CODES)}",
-            f"Total enum usages found:  {len(ALL_USAGES)}",
-            f"Total phantoms detected:  {len(phantoms)}",
-            "",
-        ]
-        for mod in sorted(by_module):
-            items = by_module[mod]
-            lines.append(f"  {mod}: {len(items)} phantom(s)")
-            for item in items[:5]:
-                lines.append(f"    L{item.line} '{item.value}' ({item.context})")
-            if len(items) > 5:
-                lines.append(f"    ... +{len(items) - 5} more")
-
-        report = "\n".join(lines)
-        print(f"\n{report}")
-        # This test always passes — it's for visibility only
-        assert True

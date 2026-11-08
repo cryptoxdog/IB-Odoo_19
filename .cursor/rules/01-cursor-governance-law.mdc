@@ -1,0 +1,68 @@
+---
+description: Enforces Cursor CANONICAL_LAW — global governance via .cursor-commands only; repo .cursor/ is overlay-only. PlasticOS skill SSOT is skills/ (repo law).
+alwaysApply: true
+---
+
+# Cursor Governance Law (repo)
+
+## Two law files (do not confuse)
+
+| File | Owner | Edit in |
+|---|---|---|
+| `@.cursor/governance/CANONICAL_LAW.md` | Global (symlink → Cursor-Governance) | **Never from IB-Odoo_19** |
+| `@skills/PLASTICOS_CANONICAL_LAW.md` | PlasticOS repo | **This repo only** |
+
+Read **`skills/PLASTICOS_CANONICAL_LAW.md`** for PlasticOS project skills (`skills/`),
+version-bump law, and non-addon boundaries. Read the global symlink only for L9 /
+GlobalCommands / path-contract concerns.
+
+## Global (SSOT — single repo entry: `.cursor-commands`)
+
+| Asset | Path |
+|-------|------|
+| GlobalCommands | `@.cursor-commands/` |
+| Commands | `@.cursor-commands/commands/` |
+| L9 skills | `@.cursor-commands/skills/l9-*/` |
+| Global rules | `@.cursor-commands/rules/` |
+| Wiring scripts | `.cursor-commands/ops/scripts/` |
+
+## Repo `.cursor/` allowed
+
+- `governance/CANONICAL_LAW.md` — symlink to governance law file only (do not edit target here)
+- `rules/` — PlasticOS overlay
+- `README.md`
+
+PlasticOS law (tracked): `skills/PLASTICOS_CANONICAL_LAW.md` — not under gitignored `.cursor/governance/`.
+
+## PlasticOS project skills (repo SSOT)
+
+| Asset | Path |
+|---|---|
+| Skill packs | `skills/plasticos-*/` |
+| Manifest | `skills/PLASTICOS_SKILLS_MANIFEST.yaml` |
+| Discovery symlinks | `.claude/skills/plasticos-*` → `../../skills/...` (adapters only) |
+
+Not an Odoo addon tree (like `scripts/` / `tools/`). Validate: `make check-plasticos-skills`.
+
+## Forbidden
+
+- `.cursor/governance` symlink to Dropbox root (exposes duplicate GlobalCommands tree)
+- `.cursor/governance/GlobalCommands/`
+- `.cursor/commands/`, `.cursor/skills/`
+- PlasticOS skill SSOT under `.claude/skills/` or Cursor-Governance
+- `__manifest__.py` / `__init__.py` under `skills/`
+
+## Path contract (global CANONICAL_LAW §9)
+
+- SSOT paths: **`$HOME/Dropbox/...` only** — never `/Users/<user>/...` or `/home/<user>/...`
+- Bash resolver: `resolve_governance_paths.sh` → `$GOV_ROOT`, `$GLOBAL_COMMANDS`
+- Global rule: `@.cursor-commands/rules/97-governance-ssot-paths.mdc` (`alwaysApply: true`)
+- Hooks via `~/.cursor/hooks/` symlinks: use `realpath` + `$GLOBAL_COMMANDS`, not `dirname "$0"`
+
+## Validate
+
+```bash
+bash .cursor-commands/ops/scripts/validate_governance_symlinks.sh
+bash .cursor-commands/ops/scripts/validate_governance_no_hardcoded_paths.sh
+make check-plasticos-skills
+```

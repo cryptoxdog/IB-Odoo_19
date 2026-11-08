@@ -1,11 +1,6 @@
-PlasticOS material profile
+PlasticOS Material Profile
 ##########################
 
-Comprehensive material taxonomy for plastics industry including polymers, forms, colors, and sources.
+Canonical material master registries: polymer, form, color, source, process, grade templates
 
-**Features:**
-
-* Odoo 19.0 compatible
-* Integrated with PlasticOS ecosystem
-
-For detailed documentation, see the module's README.md file.
+See README.md in this module for how it works, its models, and its boundaries.

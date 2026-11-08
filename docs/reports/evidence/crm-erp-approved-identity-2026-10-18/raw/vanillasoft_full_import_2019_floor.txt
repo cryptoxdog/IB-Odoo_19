@@ -1,0 +1,6 @@
+# make import-vanillasoft with VANILLASOFT_CONTACT_FLOOR=2019-01-01T00:00:00Z through scripts/test_env.sh run
+    raise CrmAdapterError(f"VanillaSoft HTTP {status}: {detail}") from exc
+2026-10-18 02:59:40,576 1 ERROR odoo_test_w2495f48767 odoo.addons.plasticos_crm_sync.services.orchestrator: CRM full import failed connection=1
+IMPORT FAILED: CrmAdapterError: VanillaSoft HTTP 400:
+odoo.addons.plasticos_crm_sync.adapters.base.CrmAdapterError: VanillaSoft HTTP 400:
+→ VanillaSoft full import on database odoo_test_w2495f48767…

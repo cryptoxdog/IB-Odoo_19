@@ -1,0 +1,12 @@
+.o_field_widget.o_field_many2many_tags_open .o_tag {
+    cursor: pointer;
+
+    .o_tag_badge_text {
+        color: $link-color;
+
+        &:hover {
+            color: $link-hover-color;
+            text-decoration: underline;
+        }
+    }
+}

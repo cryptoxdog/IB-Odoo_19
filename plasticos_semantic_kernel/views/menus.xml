@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <menuitem id="menu_plasticos_semantic_kernel_root"
+            name="Semantic Kernel"
+            parent="plasticos_base.plasticos_root_menu"
+            sequence="45"/>
+  <menuitem id="menu_material_specification" name="Specifications" parent="menu_plasticos_semantic_kernel_root" action="action_material_specification" sequence="10"/>
+  <menuitem id="menu_material_observation" name="Observations" parent="menu_plasticos_semantic_kernel_root" action="action_material_observation" sequence="20"/>
+  <menuitem id="menu_supply_opportunity" name="Supply Opportunities" parent="menu_plasticos_semantic_kernel_root" action="action_supply_opportunity" sequence="30"/>
+  <menuitem id="menu_buyer_demand" name="Buyer Demand" parent="menu_plasticos_semantic_kernel_root" action="action_buyer_demand" sequence="40"/>
+  <menuitem id="menu_facility_material_rule" name="Facility Rules" parent="menu_plasticos_semantic_kernel_root" action="action_facility_material_rule" sequence="50"/>
+  <menuitem id="menu_capacity_observation" name="Capacity Observations" parent="menu_plasticos_semantic_kernel_root" action="action_capacity_observation" sequence="60"/>
+</odoo>

@@ -37,6 +37,7 @@ class PurchaseOrderAutomation(models.Model):
                 limit=200,
             )
             log_model = self.env["plasticos.automation.log"]
+            log_vals = []
 
             for order in orders:
                 order.followup_count += 1
@@ -53,7 +54,7 @@ class PurchaseOrderAutomation(models.Model):
                 )
                 if template:
                     template.send_mail(order.id, force_send=False)
-                log_model.create(
+                log_vals.append(
                     {
                         "name": f"Supplier follow-up #{order.followup_count} for {order.name}",
                         "model_name": "purchase.order",
@@ -71,6 +72,8 @@ class PurchaseOrderAutomation(models.Model):
                             f"{order.partner_id.name or 'Unknown'} has not confirmed readiness."
                         ),
                     )
+            if log_vals:
+                log_model.create(log_vals)
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_supplier_followup"]

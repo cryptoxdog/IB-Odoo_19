@@ -1,0 +1,975 @@
+{
+  "schema": "plasticos.documents.effective-rules/v1",
+  "version": "1.0.0",
+  "origin_source_sha256": "08e0ac3ecc463f1b701b0e15c505d26fb15526d436fed566b8d48cfbb45089c4",
+  "rules": [
+    {
+      "id": "BRS-POS-02-R001",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Native original custody",
+      "normative_text": "The original business file SHALL reside once as an Odoo native Documents file linked to ir.attachment; business evidence links SHALL reuse that original.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-001"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R002",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Native internal folder structure",
+      "normative_text": "Documents Inbox, BOL, scale, receiving, supplier bills and compliance folders/tags SHALL use native Documents organization where suitable.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-002"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R003",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "External inbound by alias",
+      "normative_text": "An authenticated inbound email with attachments MAY enter via an Odoo folder email alias and native Mail; this SHALL NOT grant sender access to Documents.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-003"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R004",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Internal request placeholders",
+      "normative_text": "An outstanding file obligation SHALL use an Odoo native Documents Request placeholder with an internal assignee, type/tag and due date where supported.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-004"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R005",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Native request fulfillment requires verification",
+      "normative_text": "Receiving a file or filling a native request placeholder SHALL NOT alone satisfy business compliance before correct matching and authorized verification.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-005"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R006",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Native email alias triage",
+      "normative_text": "Unknown or ambiguously matched files SHALL remain in a native Inbox and create or update one internal review activity rather than auto-assigning to the newest deal.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-006"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R007",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Versions and supersession",
+      "normative_text": "New document versions SHALL use native Documents versions and corresponding PlasticOS evidence supersession links without deleting historical authoritative originals.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-007"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R008",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Native shortcuts before duplicating",
+      "normative_text": "Where a single file belongs in more than one native folder, native Documents shortcuts or links SHALL be considered before copying the file.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-008"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R009",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Native file actions only when fit",
+      "normative_text": "Native PDF split, merge, lock and file centralization MAY be used when they preserve the original source and its provenance.",
+      "status": "CONDITIONAL",
+      "status_meaning": "Mandatory guard on the proposed use; actual capability or contract still requires proof",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-009"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R010",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "AI classification without authority",
+      "normative_text": "Optional installed Documents AI/OCR MAY propose tags or folder routing for internal review; it SHALL NOT verify evidence, set weights, decide liability or post journals.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-010"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R011",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "No external Documents sharing",
+      "normative_text": "The workflow SHALL NOT grant external Documents folder/file access, request links, portal invitations, external Sign requests or share URLs.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-011"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R012",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "Document journal intake",
+      "normative_text": "Native Accounting purchase-journal email aliases and bill-upload actions SHALL be preferred for real supplier invoices, preserving the submitted PDF.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-012"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-02-R013",
+      "chapter": "BRS-POS-02",
+      "chapter_title": "Native Documents originals and intake",
+      "title": "No mandatory digitization charges",
+      "normative_text": "Paid Odoo document digitization/IAP SHALL NOT be required for the initial workflow unless separately selected and cost-authorized.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents / plasticos_documents_native",
+      "native_owner_or_capability": "documents.document, ir.attachment, folder alias, versions, locks, shortcuts, Requests",
+      "planned_workstream": "NAT-02",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_CAPABILITY_REGISTER.md",
+        "CONSOLIDATED_DECISIONS.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-02-013"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R001",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "One canonical business classification",
+      "normative_text": "PlasticOS document tag plus party category SHALL be the compliance vocabulary; native classification fields shall project it without becoming a second verifier.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-001"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R002",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Typed exact association",
+      "normative_text": "Each validated evidence link SHALL identify the exact company, transaction/load or PO/picking when appropriate, and applicable source request/version.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-002"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R003",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Multi-record original reuse",
+      "normative_text": "One original attachment MAY create multiple typed evidence associations when each reference is independently established; this SHALL NOT duplicate its bytes.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-003"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R004",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Authoritative verification writer",
+      "normative_text": "Only the approved PlasticOS document verification/override operation SHALL authoritatively set verified, verified_by, verified_at and override evidence, with native views delegating to that owner.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-004"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R005",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Verification is attributable",
+      "normative_text": "Verification SHALL retain signer/actor, instant, file version, exact party and object, decision and override reason where applicable.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-005"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R006",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Expired, inactive or superseded evidence",
+      "normative_text": "Expired, inactive, superseded, unverified or irrelevant-party evidence SHALL NOT satisfy a required document rule.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-006"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R007",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Operation-scoped compliance",
+      "normative_text": "Compliance queries SHALL be read-only and honor operation-specific requirements for invoice, logistics close and dispatch rather than a universal complete flag.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-007"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R008",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "No financial side effect from recompute",
+      "normative_text": "Creating, editing, classifying, verifying or recomputing a document SHALL NOT call account.move.action_post, issue a note, make a payment or create an accounting recovery.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-008"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R009",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Buyer receiving authority",
+      "normative_text": "A buyer Receiving Report matched and verified for the correct delivery SHALL be authoritative documentary evidence for buyer invoice eligibility and operational delivery proof.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-009"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R010",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Partial receiving attribution",
+      "normative_text": "A buyer Receiving Report covering only part of an order SHALL not silently authorize an invoice or final close for additional unproven delivered quantities.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-010"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R011",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "CST is a distinct carrier obligation",
+      "normative_text": "Missing carrier certified scale/CST evidence SHALL remain a collection/claim issue; it SHALL NOT block ordinary buyer invoicing or documented commercial close.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-011"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R012",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Receipt versus certified proof",
+      "normative_text": "An uploaded scale image SHALL NOT be treated as certified CST without the agreed document form and required fields.",
+      "status": "DESIGN",
+      "status_meaning": "Converged working design; approval for repo admission, not proof of implementation",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-012"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R013",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Human weight capture until extraction admission",
+      "normative_text": "Authoritative supplier/buyer/scale weights SHALL be entered from verified filed source evidence by an authorized human until a separately admitted extraction capability is proven.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-013"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-03-R014",
+      "chapter": "BRS-POS-03",
+      "chapter_title": "Evidence classification, attribution and verification",
+      "title": "Company-aware evidence controls",
+      "normative_text": "Every evidence relation SHALL preserve the legal company and enforce company-consistent source links and view rights.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_documents compliance owner",
+      "native_owner_or_capability": "native Documents fields + existing plasticos.document typed evidence",
+      "planned_workstream": "NAT-02 / SAFETY",
+      "source_file_refs": [
+        "CONSOLIDATED_DECISIONS.md",
+        "CREDIT_DEBIT_CONVERGENCE_2026-10-25.md",
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-03-014"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R001",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Use all applicable native primitives",
+      "normative_text": "Missing files, internal exceptions, field-change triggers, time evaluation, template mail and accounting dunning SHALL reuse native Odoo mechanisms where fit is verified.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-001"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R002",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Internal Documents Request purpose",
+      "normative_text": "Native Documents Request SHALL present missing-file assignments and due dates to internal staff only; external parties shall get ordinary authorized email via Linda.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-002"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R003",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "One internal Activity per unresolved obligation",
+      "normative_text": "An exception SHALL have at most one active native mail.activity for exact company, business record, document/obligation, reason and revision; reevaluations update or resolve it.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-003"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R004",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Simple event trigger on native automation",
+      "normative_text": "Odoo base.automation/ir.actions.server SHALL handle safe deterministic on-create/on-write effects and exact mail.message intake; domain approvals remain in their business owners.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-004"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R005",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Native scheduler is the only job platform",
+      "normative_text": "Due evaluations SHALL use Odoo ir.cron or supported native timed actions, not an independent scheduler; legitimate separate jobs may coexist for distinct owners.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-005"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R006",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Only one external reminder writer",
+      "normative_text": "For the same file, recipient, fulfillment episode and due date, Linda SHALL own at most one approved external reminder; PlasticOS Documents and Activities shall supply status, not duplicate mail.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-006"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R007",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Supplier document business clock",
+      "normative_text": "Supplier missing-document chase SHALL start on the actual pickup event with business-day +1 reminder and +5 escalation for the applicable supplier obligation.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-007"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R008",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Carrier document business clock",
+      "normative_text": "Carrier missing-document chase SHALL start on actual pickup with +2 business-day reminder and +6 escalation, independent of buyer invoice eligibility.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-008"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R009",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Buyer document business clock",
+      "normative_text": "Buyer missing Receiving chase SHALL start on actual delivery with +1 business-day reminder and +5 escalation for that buyer obligation.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-009"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R010",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "No duplicate daily touch",
+      "normative_text": "Routine reminders SHALL not repeat more than once per exact party, obligation and local business day; retries shall preserve delivery uncertainty and revision identity.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-010"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R011",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Quiet hours and locale aware deadlines",
+      "normative_text": "Linda-origin routine supplier/carrier appointment or document notices SHALL honor approved recipient/source local clocks and quiet hours; urgent internal exceptions remain visible.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-011"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R012",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Stop on verified or inapplicable",
+      "normative_text": "Document verification, cancellation, source supersession or irrelevant fulfillment episode SHALL cancel/close pending reminder intents, requests and Activities while preserving the audit trail.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "plasticos_logistics (Linda external send); Documents and Activities supply status only",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-012"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R013",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "No hidden financial triggers",
+      "normative_text": "Native automation on Documents or claim state SHALL NOT post customer/vendor invoices, credits, penalties or payments.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-013"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R014",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Automation last live stage",
+      "normative_text": "External recurring reminders, automated dispatch and dunning SHALL remain off or shadow until manual finance/Documents/stock proof, exact ownership handoff and separate activation approval.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-014"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R015",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Accounting follow-ups later than operational automation",
+      "normative_text": "Native Accounting follow-ups SHALL only be activated after a separately authorized QB exit, even if other Linda logistics messages have been activated.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-015"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R016",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Optional Studio or AI costs",
+      "normative_text": "Studio UI automation and AI extraction SHALL not be mandatory or purchased without evidence of necessity and separate cost authorization; version-controlled Odoo-native rules may suffice.",
+      "status": "LOCKED",
+      "status_meaning": "Previously accepted operator/business invariant or explicit current direction; frozen as working campaign intent",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-016"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    },
+    {
+      "id": "BRS-POS-09-R017",
+      "chapter": "BRS-POS-09",
+      "chapter_title": "Native Documents Requests, Activities, automation and scheduler",
+      "title": "Time-based native engine limitations",
+      "normative_text": "The exact installed time-trigger cron frequency, last-run window semantics and historical-run behavior SHALL be inspected before relying on native timed automation for 2-hour/4-hour Linda obligations.",
+      "status": "CONDITIONAL",
+      "status_meaning": "Mandatory guard on the proposed use; actual capability or contract still requires proof",
+      "semantic_owner": "Odoo Documents/Activity, PlasticOS obligation service, Linda external mail",
+      "native_owner_or_capability": "Documents Requests, mail.activity, base.automation, ir.actions.server, ir.cron, Mail",
+      "planned_workstream": "SAFETY / NAT-02 / NAT-03 / NAT-04",
+      "source_file_refs": [
+        "NATIVE_AUTOMATION_ODOO19_ALIGNMENT.md",
+        "NATIVE_AUTOMATION_CAPABILITY_MATRIX.json",
+        "AUTOMATION_EXPLORATION_NEXT.md"
+      ],
+      "acceptance_ids": [
+        "AC-POS-09-017"
+      ],
+      "implementation_status": "PLANNED_OR_UNKNOWN_NOT_RUN",
+      "source_class": "REV008_PRIMARY_CAMPAIGN_CONVERGENCE"
+    }
+  ]
+}

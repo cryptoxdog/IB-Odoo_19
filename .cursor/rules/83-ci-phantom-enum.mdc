@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Phantom Enum Values — PlasticOS
 
-Enforced by `tests/test_phantom_enum_values.py`. The scanner detects string literals used in comparisons/domains/dict-keys and checks they're registered as valid Selection values or XML data.
+**Authority:** `AGENTS.md` § Known False Positives · enforced by `tests/test_phantom_enum_values.py` (Tier 3 pytest).
 
 ## Selection Field Declaration
 

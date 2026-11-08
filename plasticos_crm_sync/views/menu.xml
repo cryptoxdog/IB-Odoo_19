@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_crm_sync_root"
+              name="CRM Sync"
+              parent="crm.crm_menu_root"
+              sequence="95"
+              groups="base.group_system"/>
+
+    <menuitem id="menu_crm_connection"
+              name="Connections"
+              parent="menu_crm_sync_root"
+              action="action_crm_connection"
+              sequence="10"/>
+
+    <menuitem id="menu_crm_sync_run"
+              name="Sync Runs"
+              parent="menu_crm_sync_root"
+              action="action_crm_sync_run"
+              sequence="20"/>
+
+    <menuitem id="menu_crm_call_event"
+              name="Call Events"
+              parent="menu_crm_sync_root"
+              action="action_crm_call_event"
+              sequence="30"/>
+
+    <menuitem id="menu_crm_sync_plasticos"
+              name="CRM Sync"
+              parent="plasticos_base.plasticos_root_menu"
+              action="action_crm_connection"
+              sequence="92"
+              groups="base.group_system"/>
+</odoo>

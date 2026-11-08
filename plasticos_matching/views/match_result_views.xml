@@ -11,6 +11,7 @@
         <field name="arch" type="xml">
             <search>
                 <field name="intake_id"/>
+                <field name="match_run_id"/>
                 <field name="intake_partner_id" string="Supplier"/>
                 <field name="buyer_partner_id"/>
                 <field name="intake_polymer"/>
@@ -55,7 +56,8 @@
             <list decoration-success="state == 'accepted'"
                   decoration-danger="state == 'rejected'"
                   decoration-muted="state == 'expired'">
-                <field name="intake_id"/>
+                <field name="intake_id" optional="show"/>
+                <field name="match_run_id" optional="show"/>
                 <field name="intake_polymer"/>
                 <field name="intake_form"/>
                 <field name="intake_partner_id" string="Supplier"/>
@@ -155,7 +157,8 @@
                     <div class="oe_button_box" name="button_box"/>
                     <group>
                         <group string="Supply Side">
-                            <field name="intake_id"/>
+                            <field name="match_run_id"/>
+                            <field name="intake_id" placeholder="None — lot result from a native opportunity"/>
                             <field name="intake_polymer"/>
                             <field name="intake_form"/>
                             <field name="intake_partner_id"/>

@@ -1,0 +1,311 @@
+{
+  "format": "package-local-proof-plan/v1",
+  "proofs": [
+    {
+      "id": "P01",
+      "stage": "PRECODE",
+      "positive": "Live registry/source census resolves installed modules, rows, dynamic actions and exact build.",
+      "negative": "Missing data/access or changed refs blocks affected scope.",
+      "owner": "Odoo runtime operator",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P02",
+      "stage": "PRECODE",
+      "positive": "All current source contracts, payload roots and package topology accepted at their source owners.",
+      "negative": "Unadopted shape, generic inferred authority or missing source stays blocked.",
+      "owner": "Repository contract owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P03",
+      "stage": "POSTCODE",
+      "positive": "Dormant calls are side-effect free in user/API/import/cron paths even when optional addon is installed.",
+      "negative": "False flags, stale grants, cross-tenant context, queued job after disable cannot mutate or dispatch.",
+      "owner": "Odoo integration owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P04",
+      "stage": "POSTCODE",
+      "positive": "Verified current opportunity and snapshot produce one stable supply identity and revision.",
+      "negative": "Profile alone, past transaction, cold web submission or unapproved material creates no active supply.",
+      "owner": "Odoo semantic owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P05",
+      "stage": "POSTCODE",
+      "positive": "Confirmed buyer inquiry produces a scoped requirement with evidence/time/spec/quantity state.",
+      "negative": "Processing machinery or installed capacity alone creates no confirmed demand.",
+      "owner": "Odoo demand admission owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P06",
+      "stage": "POSTCODE",
+      "positive": "Every industrial inference has observed prerequisites, rule version, evidence and abstention behavior.",
+      "negative": "Hot runners, internal recycling, unsuitable resin or captive sourcing defeat overbroad rules.",
+      "owner": "EIE domain owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P07",
+      "stage": "POSTCODE",
+      "positive": "Quantity/unit/currency conversions preserve exact values and typed uncertainty.",
+      "negative": "Unknown zero, lb/metric-ton/short-ton ambiguity, conflicting ranges or stale price cannot become tradable truth.",
+      "owner": "All payload owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P08",
+      "stage": "POSTCODE",
+      "positive": "Recorded create/update counts equal actual committed ORM rows and revisions.",
+      "negative": "Rollback, writer failure, duplicate/reordered retries and mapping-version upgrade produce no false creates or duplicate business identity.",
+      "owner": "Odoo backfill owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P09",
+      "stage": "POSTCODE",
+      "positive": "Controlled migration retains existing IDs, UUIDs, evidence and material/lead references.",
+      "negative": "Orphans, conflicting company/owner, ambiguous source or inferred historical availability are quarantined.",
+      "owner": "Odoo data owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P10",
+      "stage": "POSTCODE",
+      "positive": "Prospect-owned profile works without res.partner; later verified linking preserves identity and history.",
+      "negative": "Duplicate companies/profile collisions are not resolved by name-only guessing or losing references.",
+      "owner": "CRM bridge owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P11",
+      "stage": "POSTCODE",
+      "positive": "Native material/spec observations remain attributable, superseded and immutable after approval.",
+      "negative": "Editing published observation or attachment cannot rewrite an approved historical offer or projection.",
+      "owner": "Odoo semantic owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P12",
+      "stage": "POSTCODE",
+      "positive": "Tenant-bound signed Gate invocation and acknowledgement validate action, source, revision and entity.",
+      "negative": "Unsigned/unknown/wrong-node/wrong-tenant/action-denied or HTTP200 failure remains failure.",
+      "owner": "Gate/SDK owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P13",
+      "stage": "POSTCODE",
+      "positive": "CEG persists the exact current nodes and required typed edges with source lineage.",
+      "negative": "Node-only writes, missing FULFILLS_POLYMER/PROCESSES edges, stale revision or replayed tombstone cannot yield false success.",
+      "owner": "CEG sync owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P14",
+      "stage": "POSTCODE",
+      "positive": "Supplier-load query returns eligible buying facilities with resolvable identities.",
+      "negative": "Mere supplier identity, blocked counterparties, incompatible materials and fabricated buyer IDs are rejected.",
+      "owner": "CEG domain owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P15",
+      "stage": "POSTCODE",
+      "positive": "Confirmed buyer need finds the correct available supply and resolves to native opportunity.",
+      "negative": "Facility capability, reserved/withdrawn/expired supply and hypothesis-only nodes never satisfy actual demand.",
+      "owner": "CEG match owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P16",
+      "stage": "POSTCODE",
+      "positive": "Canonical result mapper preserves score scale, uncertainty and evidence and renders one review set.",
+      "negative": "Raw candidate row mismatch, unresolved entity_ref, duplicate selections or 0-1 versus 0-100 drift cannot pass.",
+      "owner": "Odoo matching/CEG contract owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P17",
+      "stage": "POSTCODE",
+      "positive": "Gap report states scope/time/coverage and distinguishes shortage, surplus and information gap.",
+      "negative": "Empty graph, unavailable worker or insufficient evidence cannot be reported as confirmed market shortage.",
+      "owner": "CEG gap owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P18",
+      "stage": "POSTCODE",
+      "positive": "Compatible available quantity is allocated once across overlapping requests/windows.",
+      "negative": "One lot counted twice, recurring capacity counted as stock, or incompatible units cannot inflate coverage.",
+      "owner": "CEG gap owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P19",
+      "stage": "POSTCODE",
+      "positive": "Operator can inspect facts, hypotheses, evidence and gaps in native read-only Odoo views.",
+      "negative": "Portal user, public user or unauthorized company cannot read evidence or approve a fact.",
+      "owner": "Odoo ACL/UI owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P20",
+      "stage": "POSTCODE",
+      "positive": "Accepted discovery creates/reuses a native lead or links an existing opportunity with explicit operator intent.",
+      "negative": "Inference alone never creates partners, POs, active offers, won stages or duplicate commercial opportunities.",
+      "owner": "CRM handoff owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P21",
+      "stage": "POSTCODE",
+      "positive": "Opportunity closure, withdrawal, expiry, reopen and PO event produce correct listing disposition.",
+      "negative": "PO procurement is not blindly treated as a buyer sale; stale approved listing cannot remain marketable without explicit current owner.",
+      "owner": "Commercial lifecycle/bridge owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P22",
+      "stage": "POSTCODE",
+      "positive": "Existing web-lead, CRM, material ownership and offer gates remain unchanged outside handoff.",
+      "negative": "New semantic installation cannot alter non-HOT policy or trigger offer email.",
+      "owner": "Separate web/CRM campaign",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P23",
+      "stage": "PREMERGE",
+      "positive": "Addon DAG, imports, manifests, ACL/XML IDs and future bridge dependencies are coherent.",
+      "negative": "Circular dependency, latent optional-model reference or dangling import/view fails build.",
+      "owner": "Odoo integration owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P24",
+      "stage": "PREMERGE",
+      "positive": "Pinned native Odoo 19 Enterprise install/upgrade runs optional addon and its non-standard collision tests.",
+      "negative": "Community-only run or default smoke that excludes the kernel cannot satisfy this gate.",
+      "owner": "Runtime verification owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P25",
+      "stage": "PREMERGE",
+      "positive": "Independent code review dispositions every in-scope finding on the exact candidate revisions.",
+      "negative": "Unrun tests, suppressed findings or source-changed receipts block closure.",
+      "owner": "Independent reviewer",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P26",
+      "stage": "PRERELEASE",
+      "positive": "Real Odoo/Gate/EIE/CEG/Neo4j fixture proves full lineage from approved source to result and back.",
+      "negative": "Synthetic-only HTTP success, empty candidates key or mismatched deployed hashes is not end-to-end proof.",
+      "owner": "Cross-system integration owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P27",
+      "stage": "PRERELEASE",
+      "positive": "Disable/recovery restores safe operation while preserving evidence and paused work.",
+      "negative": "Restart, pending jobs or disabling projection must not resurrect local intelligence or stale tradable supply.",
+      "owner": "Release/recovery owner",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P28",
+      "stage": "PRERELEASE",
+      "positive": "Two complete observations in isolated Staging show correct lifecycle freshness and read-only business output.",
+      "negative": "Mail delivery, partner/PO writes, unapproved cost or source drift invalidates receipt.",
+      "owner": "Staging operator",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P29",
+      "stage": "PRERELEASE",
+      "positive": "Operator approves exact tenant/release/operations after passed proofs and restore rehearsal.",
+      "negative": "Green CI, approved design or one global flag alone cannot activate production.",
+      "owner": "Operator",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P30",
+      "stage": "POSTCODE",
+      "positive": "Supplier-specific exclusions survive provisional-to-partner identity and both match directions.",
+      "negative": "Missing partner identity is not an exemption from exclusion or privacy policy.",
+      "owner": "Odoo/CEG owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P31",
+      "stage": "POSTCODE",
+      "positive": "Shared SDK/action paths remain domain-neutral and unchanged where sufficient.",
+      "negative": "Odoo-specific engine branch, transport field in domain payload or hidden second caller is rejected.",
+      "owner": "External owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P32",
+      "stage": "POSTCODE",
+      "positive": "Graph inference updates retain cited hypotheses without overwriting operator facts.",
+      "negative": "Later low-confidence or circularly derived evidence cannot overwrite documented commercial data.",
+      "owner": "EIE/CEG/Odoo owners",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P33",
+      "stage": "POSTCODE",
+      "positive": "Inference evaluation uses a held-out, domain-reviewed corpus and approved confidence/abstention policy.",
+      "negative": "A rule author validating only its own happy examples or uncalibrated confidence cannot claim reliability.",
+      "owner": "Domain evaluator",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    },
+    {
+      "id": "P34",
+      "stage": "PRERELEASE",
+      "positive": "Read-only shadow use reports marginal useful hypotheses and bounded cost/latency without business mutation.",
+      "negative": "Accuracy claims from synthetic tests alone or spend beyond authorized budget fail pilot.",
+      "owner": "Operator and evaluator",
+      "status": "NOT_RUN",
+      "evidence": "Planned proof only; no product test, runtime verification or independent acceptance executed by package preparation."
+    }
+  ]
+}

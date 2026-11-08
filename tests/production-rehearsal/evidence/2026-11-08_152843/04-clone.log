@@ -1,0 +1,380 @@
+ Container odoo19-odoo-run-966e671da345 Creating
+ Container odoo19-odoo-run-966e671da345 Created
+✅ odoo_test_cutover is a fresh clone of odoo_test_tpl_ee_c9e8a81f52f23680 (owner w2495f48767, parity ee)
+✓ odoo_test_cutover: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
+→ Upgrading 25 PlasticOS modules on odoo_test_cutover to the source on disk
+ Container odoo19-odoo-run-7412ef60943f Creating
+ Container odoo19-odoo-run-7412ef60943f Created
+2026-11-08 15:28:58,397 1 INFO ? odoo: Odoo version 19.0-20261102
+2026-11-08 15:28:58,397 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf
+2026-11-08 15:28:58,397 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons'])
+2026-11-08 15:28:58,398 1 INFO ? odoo: database: odoo@db:5432
+2026-11-08 15:28:58,511 1 INFO odoo_test_cutover odoo.modules.loading: loading 1 modules...
+2026-11-08 15:28:58,512 1 INFO odoo_test_cutover odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra)
+2026-11-08 15:28:58,520 1 INFO odoo_test_cutover odoo.modules.loading: updating modules list
+2026-11-08 15:28:58,522 1 INFO odoo_test_cutover odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a
+2026-11-08 15:28:59,534 1 INFO odoo_test_cutover odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a
+2026-11-08 15:28:59,534 1 INFO odoo_test_cutover odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['PlasticOS Automation Layer', 'PlasticOS Base', 'PlasticOS Claims', 'Plasticos Documents Engine', 'Plasticos Logistics Engine', 'Plasticos Transaction Spine', 'PlasticOS Accounting', 'PlasticOS Admin Dashboard', 'PlasticOS Commission Engine', 'PlastOS CRM Bridge', 'PlasticOS CRM Sync', 'PlastOS Buyer CRM Enrichment Engine', 'PlasticOS Facility Profile', 'PlasticOS Gate Client', 'PlasticOS Geolocalize', 'PlasticOS Intake', 'Plasticos Intake Normalizer', 'PlasticOS Matching', 'PlasticOS Material Profile', 'PlasticOS Offer', 'PlasticOS Order Lines', 'Plasticos Partner Import', 'PlasticOS Product Catalog', 'Plasticos — Security Base', 'PlasticOS Web Leads'] to user __system__ #1 via n/a
+2026-11-08 15:29:00,306 1 INFO odoo_test_cutover odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a
+2026-11-08 15:29:00,349 1 INFO odoo_test_cutover odoo.modules.loading: loading 170 modules...
+2026-11-08 15:29:00,650 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_accounting (87/170)
+2026-11-08 15:29:00,729 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_accounting/data/payment_terms.xml
+2026-11-08 15:29:00,732 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_accounting/data/accounts.xml
+2026-11-08 15:29:00,939 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_accounting loaded in 0.29s, 807 queries (+807 other)
+2026-11-08 15:29:01,140 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_base (146/170)
+2026-11-08 15:29:01,194 1 INFO odoo_test_cutover odoo.registry: module plasticos_base: creating or updating database tables
+2026-11-08 15:29:01,218 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/security/ir.model.access.csv
+2026-11-08 15:29:01,221 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/views/menu.xml
+2026-11-08 15:29:01,223 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/company.xml
+2026-11-08 15:29:01,225 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/service_user.xml
+2026-11-08 15:29:01,226 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/admin_users.xml
+2026-11-08 15:29:01,227 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/partner_tags.xml
+2026-11-08 15:29:01,237 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/material_taxonomy.xml
+2026-11-08 15:29:01,304 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/sales_reps.xml
+2026-11-08 15:29:01,307 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/attachment_maintenance_cron.xml
+2026-11-08 15:29:01,316 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/midnight_recompute_cron.xml
+2026-11-08 15:29:01,321 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_base/data/uom_defaults.xml
+2026-11-08 15:29:01,331 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_base loaded in 0.19s, 789 queries (+789 other)
+2026-11-08 15:29:01,331 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_gate (147/170)
+2026-11-08 15:29:01,359 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_gate/data/gate_icp_seed.xml
+2026-11-08 15:29:01,366 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_gate loaded in 0.03s, 45 queries (+45 other)
+2026-11-08 15:29:01,366 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_material_profile (148/170)
+2026-11-08 15:29:01,387 1 INFO odoo_test_cutover odoo.registry: module plasticos_material_profile: creating or updating database tables
+2026-11-08 15:29:01,435 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/security/ir.model.access.csv
+2026-11-08 15:29:01,444 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/filler_type_data.xml
+2026-11-08 15:29:01,449 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/material_attribute_data.xml
+2026-11-08 15:29:01,461 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/packaging_type_data.xml
+2026-11-08 15:29:01,465 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/polymer_data.xml
+2026-11-08 15:29:01,488 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/material_grade_data.xml
+2026-11-08 15:29:01,494 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/material_form_data.xml
+2026-11-08 15:29:01,506 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/material_color_data.xml
+2026-11-08 15:29:01,513 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/source_type_data.xml
+2026-11-08 15:29:01,519 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/process_type_data.xml
+2026-11-08 15:29:01,524 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/data/grade_template_data.xml
+2026-11-08 15:29:01,530 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/polymer_views.xml
+2026-11-08 15:29:01,542 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/grade_template_views.xml
+2026-11-08 15:29:01,550 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/material_grade_views.xml
+2026-11-08 15:29:01,554 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/material_form_views.xml
+2026-11-08 15:29:01,557 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/material_color_views.xml
+2026-11-08 15:29:01,560 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/source_type_views.xml
+2026-11-08 15:29:01,563 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/process_type_views.xml
+2026-11-08 15:29:01,566 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/material_profile_views.xml
+2026-11-08 15:29:01,589 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/material_profile_ux.xml
+2026-11-08 15:29:01,597 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_material_profile/views/partner_material_ux.xml
+2026-11-08 15:29:01,624 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_material_profile loaded in 0.26s, 1233 queries (+1233 other)
+2026-11-08 15:29:01,624 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_enrichment (149/170)
+2026-11-08 15:29:01,642 1 INFO odoo_test_cutover odoo.registry: module plasticos_enrichment: creating or updating database tables
+2026-11-08 15:29:01,679 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_enrichment/security/security.xml
+2026-11-08 15:29:01,680 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_enrichment/security/ir.model.access.csv
+2026-11-08 15:29:01,685 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_enrichment/data/sequence.xml
+2026-11-08 15:29:01,686 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_enrichment/data/cron.xml
+2026-11-08 15:29:01,687 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_enrichment/views/enrichment_run_views.xml
+2026-11-08 15:29:01,698 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_enrichment/views/enrichment_source_views.xml
+2026-11-08 15:29:01,701 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_enrichment/views/res_partner_enrichment.xml
+2026-11-08 15:29:01,725 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_enrichment loaded in 0.10s, 270 queries (+270 other)
+2026-11-08 15:29:01,725 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_facility_profile (150/170)
+2026-11-08 15:29:01,742 1 INFO odoo_test_cutover odoo.registry: module plasticos_facility_profile: creating or updating database tables
+2026-11-08 15:29:01,751 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 15:29:01,751 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 15:29:01,783 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/security/ir.model.access.csv
+2026-11-08 15:29:01,787 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/data/equipment_type_data.xml
+2026-11-08 15:29:01,797 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/data/utm_source_data.xml
+2026-11-08 15:29:01,798 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/data/partner_type_data.xml
+2026-11-08 15:29:01,805 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/data/facility_template_data.xml
+2026-11-08 15:29:01,809 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/views/partner_type_views.xml
+2026-11-08 15:29:01,816 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/views/facility_template_views.xml
+2026-11-08 15:29:01,822 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_views.xml
+2026-11-08 15:29:01,830 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 15:29:01,841 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.capability.tab (plasticos_facility_profile.view_partner_form_profile_tab): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 15:29:01,850 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/views/facility_profile_ux.xml
+2026-11-08 15:29:01,859 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_facility_profile/views/partner_ux.xml
+2026-11-08 15:29:01,861 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 15:29:01,868 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_ui_view: Error-prone use of @class in view res.partner.form.plasticos.ux (plasticos_facility_profile.partner_form_plasticos_ux): use the hasclass(*classes) function to filter elements by their classes
+2026-11-08 15:29:01,892 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_facility_profile loaded in 0.17s, 534 queries (+534 other)
+2026-11-08 15:29:01,892 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_product (151/170)
+2026-11-08 15:29:01,904 1 INFO odoo_test_cutover odoo.registry: module plasticos_product: creating or updating database tables
+2026-11-08 15:29:01,931 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_product/security/ir.model.access.csv
+2026-11-08 15:29:01,934 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_product/data/product_category_data.xml
+2026-11-08 15:29:01,945 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_product/data/product_data.xml
+2026-11-08 15:29:01,945 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_product/views/polymer_views.xml
+2026-11-08 15:29:01,965 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_product loaded in 0.07s, 216 queries (+216 other)
+2026-11-08 15:29:01,965 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_intake (152/170)
+2026-11-08 15:29:01,982 1 INFO odoo_test_cutover odoo.registry: module plasticos_intake: creating or updating database tables
+2026-11-08 15:29:02,004 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 15:29:02,004 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 15:29:02,036 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake/security/ir.model.access.csv
+2026-11-08 15:29:02,039 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake/data/sequence.xml
+2026-11-08 15:29:02,041 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake/views/intake_views.xml
+2026-11-08 15:29:02,061 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake/views/material_profile_intake_views.xml
+2026-11-08 15:29:02,088 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake/views/intake_ux.xml
+2026-11-08 15:29:02,103 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_intake loaded in 0.14s, 321 queries (+321 other)
+2026-11-08 15:29:02,103 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_order_lines (153/170)
+2026-11-08 15:29:02,113 1 INFO odoo_test_cutover odoo.registry: module plasticos_order_lines: creating or updating database tables
+2026-11-08 15:29:02,142 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_order_lines/security/ir.model.access.csv
+2026-11-08 15:29:02,142 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_order_lines/views/purchase_order_views.xml
+2026-11-08 15:29:02,164 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_order_lines/views/sale_order_views.xml
+2026-11-08 15:29:02,191 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_order_lines loaded in 0.09s, 191 queries (+191 other)
+2026-11-08 15:29:02,191 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_geolocalize (154/170)
+2026-11-08 15:29:02,207 1 INFO odoo_test_cutover odoo.registry: module plasticos_geolocalize: creating or updating database tables
+2026-11-08 15:29:02,227 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 15:29:02,227 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 15:29:02,256 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_geolocalize/security/ir.model.access.csv
+2026-11-08 15:29:02,257 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_geolocalize/data/geolocalize_config_params.xml
+2026-11-08 15:29:02,258 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_geolocalize/data/cron_geo_backfill.xml
+2026-11-08 15:29:02,259 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_geolocalize/views/intake_geo_views.xml
+2026-11-08 15:29:02,288 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_geolocalize loaded in 0.10s, 169 queries (+169 other)
+2026-11-08 15:29:02,288 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_intake_normalizer (155/170)
+2026-11-08 15:29:02,296 1 INFO odoo_test_cutover odoo.registry: module plasticos_intake_normalizer: creating or updating database tables
+2026-11-08 15:29:02,317 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake_normalizer/security/ir.model.access.csv
+2026-11-08 15:29:02,320 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake_normalizer/data/normalizer_config_data.xml
+2026-11-08 15:29:02,321 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake_normalizer/data/cron_batch_normalize.xml
+2026-11-08 15:29:02,328 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake_normalizer/views/normalizer_config_views.xml
+2026-11-08 15:29:02,334 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_intake_normalizer/views/intake_normalizer_views.xml
+2026-11-08 15:29:02,349 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_intake_normalizer loaded in 0.06s, 142 queries (+142 other)
+2026-11-08 15:29:02,349 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_matching (156/170)
+2026-11-08 15:29:02,359 1 INFO odoo_test_cutover odoo.registry: module plasticos_matching: creating or updating database tables
+2026-11-08 15:29:02,391 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_matching/security/ir.model.access.csv
+2026-11-08 15:29:02,394 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_matching/views/match_result_views.xml
+2026-11-08 15:29:02,408 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_matching/views/match_run_views.xml
+2026-11-08 15:29:02,414 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_matching/views/match_exclusion_views.xml
+2026-11-08 15:29:02,422 1 INFO odoo_test_cutover odoo.modules.migration: module plasticos_matching: Running upgrade [19.0.3.1.5>] post-migrate
+2026-11-08 15:29:02,422 1 INFO odoo_test_cutover odoo.upgrade.plasticos_matching.19.0.3.1.5.post-migrate: plasticos_matching 19.0.3.1.5: retired constraint plasticos_match_result_unique_match_per_run
+2026-11-08 15:29:02,427 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_matching loaded in 0.08s, 254 queries (+254 other)
+2026-11-08 15:29:02,427 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_offer (157/170)
+2026-11-08 15:29:02,436 1 INFO odoo_test_cutover odoo.registry: module plasticos_offer: creating or updating database tables
+2026-11-08 15:29:02,462 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_offer/security/ir.model.access.csv
+2026-11-08 15:29:02,464 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_offer/data/sequence.xml
+2026-11-08 15:29:02,465 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_offer/data/offer_cron.xml
+2026-11-08 15:29:02,473 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_offer/views/offer_views.xml
+2026-11-08 15:29:02,494 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_offer/views/intake_offers_bridge_views.xml
+2026-11-08 15:29:02,501 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_offer/views/offer_bulk_action_wizard_views.xml
+2026-11-08 15:29:02,504 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_offer/views/offer_ux.xml
+2026-11-08 15:29:02,523 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_offer loaded in 0.10s, 288 queries (+288 other)
+2026-11-08 15:29:02,523 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_partner_import (158/170)
+2026-11-08 15:29:02,537 1 INFO odoo_test_cutover odoo.registry: module plasticos_partner_import: creating or updating database tables
+2026-11-08 15:29:02,558 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_partner_import/security/ir.model.access.csv
+2026-11-08 15:29:02,562 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_partner_import/views/partner_bulk_update_wizard_views.xml
+2026-11-08 15:29:02,571 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_partner_import loaded in 0.05s, 98 queries (+98 other)
+2026-11-08 15:29:02,571 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_web_leads (159/170)
+2026-11-08 15:29:02,588 1 INFO odoo_test_cutover odoo.registry: module plasticos_web_leads: creating or updating database tables
+2026-11-08 15:29:02,592 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (anthropic_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 15:29:02,592 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (anthropic_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 15:29:02,592 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (anthropic_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 15:29:02,592 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (mistral_model, openai_model) of plasticos.web.lead.config() have the same label: Text Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 15:29:02,592 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (mistral_vision_model, openai_vision_model) of plasticos.web.lead.config() have the same label: Vision Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 15:29:02,592 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (mistral_economic_model, openai_economic_model) of plasticos.web.lead.config() have the same label: Economic Assessment Model Identifier. [Modules: plasticos_web_leads and plasticos_web_leads]
+2026-11-08 15:29:02,614 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/security/ir.model.access.csv
+2026-11-08 15:29:02,618 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/data/web_lead_config_data.xml
+2026-11-08 15:29:02,619 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/data/logistics_ir_rules.xml
+2026-11-08 15:29:02,626 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/views/web_lead_views.xml
+2026-11-08 15:29:02,641 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/views/web_lead_review_snapshot_views.xml
+2026-11-08 15:29:02,645 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/views/web_lead_config_views.xml
+2026-11-08 15:29:02,650 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/views/web_lead_api_key_wizard_views.xml
+2026-11-08 15:29:02,653 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/views/lead_bulk_action_wizard_views.xml
+2026-11-08 15:29:02,656 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/views/web_lead_ux.xml
+2026-11-08 15:29:02,664 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_web_leads/views/web_lead_bridge_views.xml
+2026-11-08 15:29:02,670 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_web_leads loaded in 0.10s, 281 queries (+281 other)
+2026-11-08 15:29:02,670 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_transaction (160/170)
+2026-11-08 15:29:02,701 1 INFO odoo_test_cutover odoo.registry: module plasticos_transaction: creating or updating database tables
+2026-11-08 15:29:02,723 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 15:29:02,723 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 15:29:02,781 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/security/security_hardening.xml
+2026-11-08 15:29:02,785 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/security/ir.model.access.csv
+2026-11-08 15:29:02,789 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/data/sequence.xml
+2026-11-08 15:29:02,791 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/data/res.groups.csv
+2026-11-08 15:29:02,801 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/data/audit_cron.xml
+2026-11-08 15:29:02,808 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/transaction_views.xml
+2026-11-08 15:29:02,824 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/sale_quotation_scope.xml
+2026-11-08 15:29:02,827 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_update_wizard_views.xml
+2026-11-08 15:29:02,831 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml
+2026-11-08 15:29:02,834 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/transaction_import_wizard_views.xml
+2026-11-08 15:29:02,839 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/transaction_reopen_wizard_views.xml
+2026-11-08 15:29:02,842 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/transaction_ux.xml
+2026-11-08 15:29:02,853 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/transaction_bridge_views.xml
+2026-11-08 15:29:02,858 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/intake_bridge_views.xml
+2026-11-08 15:29:02,866 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/partner_bridge_views.xml
+2026-11-08 15:29:02,889 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_transaction/views/offer_bridge_views.xml
+2026-11-08 15:29:02,895 1 INFO odoo_test_cutover odoo.modules.migration: module plasticos_transaction: Running upgrade [19.0.2.3.55>] post-migrate
+2026-11-08 15:29:02,896 1 INFO odoo_test_cutover odoo.upgrade.plasticos_transaction.19.0.2.3.55.post-migrate: plasticos_transaction 19.0.2.3.55: sale.order.opportunity_id present (sale_crm installed)
+2026-11-08 15:29:02,906 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_transaction loaded in 0.24s, 746 queries (+746 other)
+2026-11-08 15:29:02,906 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_logistics (161/170)
+2026-11-08 15:29:02,928 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 15:29:02,928 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 15:29:02,930 1 INFO odoo_test_cutover odoo.registry: module plasticos_logistics: creating or updating database tables
+2026-11-08 15:29:02,983 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/security/ir.model.access.csv
+2026-11-08 15:29:02,991 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/security/record_rules.xml
+2026-11-08 15:29:03,001 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/data/incoterms.xml
+2026-11-08 15:29:03,003 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/data/sequence.xml
+2026-11-08 15:29:03,004 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/data/cron.xml
+2026-11-08 15:29:03,023 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/report/report_purchaseorder_supplier.xml
+2026-11-08 15:29:03,030 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/data/linda_po_mail_template.xml
+2026-11-08 15:29:03,031 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/data/linda_so_mail_template.xml
+2026-11-08 15:29:03,032 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/data/linda_order_cancel_mail_templates.xml
+2026-11-08 15:29:03,033 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/data/linda_inbound_ai.xml
+2026-11-08 15:29:03,034 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/load_views.xml
+2026-11-08 15:29:03,053 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/freight_views.xml
+2026-11-08 15:29:03,066 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/freight_actual_correction_wizard_views.xml
+2026-11-08 15:29:03,068 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/load_dashboard_views.xml
+2026-11-08 15:29:03,090 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/sale_order_button.xml
+2026-11-08 15:29:03,109 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/load_bulk_update_wizard_views.xml
+2026-11-08 15:29:03,112 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/load_ux.xml
+2026-11-08 15:29:03,123 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/transaction_load_views.xml
+2026-11-08 15:29:03,142 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/views/linda_response_views.xml
+2026-11-08 15:29:03,150 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/report/load_reports.xml
+2026-11-08 15:29:03,151 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/report/report_bol_pickup.xml
+2026-11-08 15:29:03,154 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/report/report_bol_delivery.xml
+2026-11-08 15:29:03,157 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_logistics/report/report_delivery_order.xml
+2026-11-08 15:29:03,175 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_logistics loaded in 0.27s, 898 queries (+898 other)
+2026-11-08 15:29:03,175 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_documents (162/170)
+2026-11-08 15:29:03,194 1 INFO odoo_test_cutover odoo.registry: module plasticos_documents: creating or updating database tables
+2026-11-08 15:29:03,207 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents]
+2026-11-08 15:29:03,242 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/security/security.xml
+2026-11-08 15:29:03,256 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/security/ir.model.access.csv
+2026-11-08 15:29:03,260 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/data/cron.xml
+2026-11-08 15:29:03,267 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/data/document_tags_data.xml
+2026-11-08 15:29:03,272 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/data/cron_missing_docs.xml
+2026-11-08 15:29:03,276 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/data/scale_ticket_rule.xml
+2026-11-08 15:29:03,282 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/document_tag_views.xml
+2026-11-08 15:29:03,288 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/document_rule_views.xml
+2026-11-08 15:29:03,291 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/document_views.xml
+2026-11-08 15:29:03,301 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/document_extension_views.xml
+2026-11-08 15:29:03,304 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/validation_matrix_views.xml
+2026-11-08 15:29:03,310 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/transaction_docs_views.xml
+2026-11-08 15:29:03,318 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/transaction_docs_bridge_views.xml
+2026-11-08 15:29:03,323 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents/views/load_docs_bridge_views.xml
+2026-11-08 15:29:03,340 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_documents loaded in 0.16s, 552 queries (+552 other)
+2026-11-08 15:29:03,340 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_claims (163/170)
+2026-11-08 15:29:03,351 1 INFO odoo_test_cutover odoo.registry: module plasticos_claims: creating or updating database tables
+2026-11-08 15:29:03,355 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents]
+2026-11-08 15:29:03,380 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/security/claims_security.xml
+2026-11-08 15:29:03,392 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/security/ir.model.access.csv
+2026-11-08 15:29:03,395 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/data/claim_sequence.xml
+2026-11-08 15:29:03,396 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/data/claim_cron.xml
+2026-11-08 15:29:03,403 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/data/email_templates.xml
+2026-11-08 15:29:03,407 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/views/claim_views.xml
+2026-11-08 15:29:03,419 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/views/claim_menus.xml
+2026-11-08 15:29:03,422 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/views/claim_bulk_update_wizard_views.xml
+2026-11-08 15:29:03,425 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/views/claim_ux.xml
+2026-11-08 15:29:03,435 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_claims/views/transaction_claims_bridge_views.xml
+2026-11-08 15:29:03,452 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_claims loaded in 0.11s, 324 queries (+324 other)
+2026-11-08 15:29:03,452 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_automation (164/170)
+2026-11-08 15:29:03,481 1 INFO odoo_test_cutover odoo.registry: module plasticos_automation: creating or updating database tables
+2026-11-08 15:29:03,499 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 15:29:03,499 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 15:29:03,548 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/security/security.xml
+2026-11-08 15:29:03,550 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/security/ir.model.access.csv
+2026-11-08 15:29:03,554 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/automation_config_data.xml
+2026-11-08 15:29:03,555 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/config_parameters.xml
+2026-11-08 15:29:03,558 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/email_templates.xml
+2026-11-08 15:29:03,572 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/sale_approval_cron.xml
+2026-11-08 15:29:03,579 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/invoice_reminder_cron.xml
+2026-11-08 15:29:03,583 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/contract_renewal_cron.xml
+2026-11-08 15:29:03,588 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/stock_alert_cron.xml
+2026-11-08 15:29:03,593 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/cron_supplier_followup.xml
+2026-11-08 15:29:03,597 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/cron_trucker_followup.xml
+2026-11-08 15:29:03,601 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/cron_load_sla.xml
+2026-11-08 15:29:03,606 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/data/workflow_automations.xml
+2026-11-08 15:29:03,645 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/views/automation_config_views.xml
+2026-11-08 15:29:03,654 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/views/automation_log_views.xml
+2026-11-08 15:29:03,660 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/views/purchase_order_views.xml
+2026-11-08 15:29:03,677 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/views/sale_order_views.xml
+2026-11-08 15:29:03,696 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/views/stock_picking_views.xml
+2026-11-08 15:29:03,710 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_automation/views/penalty_rule_views.xml
+2026-11-08 15:29:03,764 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_automation loaded in 0.31s, 969 queries (+969 other)
+2026-11-08 15:29:03,764 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_security_base (165/170)
+2026-11-08 15:29:03,781 1 INFO odoo_test_cutover odoo.registry: module plasticos_security_base: creating or updating database tables
+2026-11-08 15:29:03,787 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 15:29:03,787 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 15:29:03,817 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_security_base/security/security_groups.xml
+2026-11-08 15:29:03,866 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_security_base/security/record_rules.xml
+2026-11-08 15:29:03,884 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_security_base/security/ir.model.access.csv
+2026-11-08 15:29:03,898 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_security_base/views/res_partner_views.xml
+2026-11-08 15:29:04,037 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_security_base loaded in 0.27s, 594 queries (+594 other)
+2026-11-08 15:29:04,037 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_commission (166/170)
+2026-11-08 15:29:04,049 1 INFO odoo_test_cutover odoo.registry: module plasticos_commission: creating or updating database tables
+<string>:22: (WARNING/2) Line block ends without a blank line.
+<string>:38: (WARNING/2) Line block ends without a blank line.
+<string>:53: (WARNING/2) Line block ends without a blank line.
+<string>:111: (ERROR/3) Unexpected indentation.
+<string>:109: (WARNING/2) Inline literal start-string without end-string.
+<string>:109: (WARNING/2) Inline interpreted text or phrase reference start-string without end-string.
+<string>:113: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+<string>:113: (WARNING/2) Inline literal start-string without end-string.
+<string>:113: (WARNING/2) Inline interpreted text or phrase reference start-string without end-string.
+<string>:128: (WARNING/2) Line block ends without a blank line.
+<string>:137: (WARNING/2) Line block ends without a blank line.
+<string>:22: (ERROR/3) Undefined substitution referenced: "---".
+<string>:22: (ERROR/3) Undefined substitution referenced: "---".
+<string>:38: (ERROR/3) Undefined substitution referenced: "---".
+<string>:38: (ERROR/3) Undefined substitution referenced: "---".
+<string>:53: (ERROR/3) Undefined substitution referenced: "---".
+<string>:53: (ERROR/3) Undefined substitution referenced: "---".
+<string>:128: (ERROR/3) Undefined substitution referenced: "---".
+<string>:128: (ERROR/3) Undefined substitution referenced: "---".
+<string>:137: (ERROR/3) Undefined substitution referenced: "---".
+2026-11-08 15:29:04,088 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/security/commission_group.xml
+2026-11-08 15:29:04,090 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/security/ir.model.access.csv
+2026-11-08 15:29:04,095 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/security/record_rules.xml
+2026-11-08 15:29:04,101 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/data/commission_payout_sequence.xml
+2026-11-08 15:29:04,102 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/views/commission_rule_views.xml
+2026-11-08 15:29:04,112 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/views/commission_payout_views.xml
+2026-11-08 15:29:04,120 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/views/sales_dashboard_views.xml
+2026-11-08 15:29:04,200 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_commission/views/transaction_commission_views.xml
+2026-11-08 15:29:04,214 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_commission loaded in 0.18s, 313 queries (+313 other)
+2026-11-08 15:29:04,214 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_crm_bridge (167/170)
+2026-11-08 15:29:04,227 1 INFO odoo_test_cutover odoo.registry: module plasticos_crm_bridge: creating or updating database tables
+2026-11-08 15:29:04,293 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/security/crm_group_imply.xml
+2026-11-08 15:29:04,323 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/security/ir.model.access.csv
+2026-11-08 15:29:04,330 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/data/crm_stage_data.xml
+2026-11-08 15:29:04,333 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/data/crm_tag_data.xml
+2026-11-08 15:29:04,335 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/data/partner_category_data.xml
+2026-11-08 15:29:04,338 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/data/lead_source_data.xml
+2026-11-08 15:29:04,341 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/views/crm_lead_views.xml
+2026-11-08 15:29:04,385 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_bridge/views/crm_facility_ownership_views.xml
+2026-11-08 15:29:04,398 1 INFO odoo_test_cutover odoo.modules.migration: module plasticos_crm_bridge: Running upgrade [19.0.3.4.20>] post-migrate
+2026-11-08 15:29:04,398 1 INFO odoo_test_cutover odoo.upgrade.plasticos_crm_bridge.19.0.3.4.20.post-migrate: plasticos_crm_bridge 19.0.3.4.20: 0 historical match runs and 0 historical offers keep null lineage
+2026-11-08 15:29:04,406 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_crm_bridge loaded in 0.19s, 660 queries (+660 other)
+2026-11-08 15:29:04,406 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_documents_native (168/170)
+2026-11-08 15:29:04,417 1 INFO odoo_test_cutover odoo.registry: module plasticos_documents_native: creating or updating database tables
+2026-11-08 15:29:04,421 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of documents.document() have the same label: Override Reason. [Modules: plasticos_documents_native and plasticos_documents_native]
+2026-11-08 15:29:04,421 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (override_reason_draft, override_reason) of plasticos.document() have the same label: Override Reason. [Modules: plasticos_documents and plasticos_documents]
+2026-11-08 15:29:04,446 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents_native/security/ir.model.access.csv
+2026-11-08 15:29:04,448 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents_native/data/document_folders.xml
+2026-11-08 15:29:04,458 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents_native/data/document_tags.xml
+2026-11-08 15:29:04,464 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_documents_native/views/document_native_views.xml
+2026-11-08 15:29:04,493 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_documents_native loaded in 0.09s, 254 queries (+254 other)
+2026-11-08 15:29:04,493 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_admin_dashboard (169/170)
+2026-11-08 15:29:04,502 1 INFO odoo_test_cutover odoo.registry: module plasticos_admin_dashboard: creating or updating database tables
+2026-11-08 15:29:04,533 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_admin_dashboard/security/ir.model.access.csv
+2026-11-08 15:29:04,537 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_admin_dashboard/views/admin_dashboard_views.xml
+2026-11-08 15:29:04,560 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_admin_dashboard/data/cron_refresh_dashboard.xml
+2026-11-08 15:29:04,568 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_admin_dashboard loaded in 0.07s, 129 queries (+129 other)
+2026-11-08 15:29:04,568 1 INFO odoo_test_cutover odoo.modules.loading: Loading module plasticos_crm_sync (170/170)
+2026-11-08 15:29:04,599 1 INFO odoo_test_cutover odoo.registry: module plasticos_crm_sync: creating or updating database tables
+2026-11-08 15:29:04,612 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.partner() have the same label: Contact. [Modules: plasticos_facility_profile and base]
+2026-11-08 15:29:04,612 1 WARNING odoo_test_cutover odoo.addons.base.models.ir_model: Two fields (contact_header_name, child_ids) of res.users() have the same label: Contact. [Modules: None and None]
+2026-11-08 15:29:04,652 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/security/ir.model.access.csv
+2026-11-08 15:29:04,656 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/data/ir_cron_data.xml
+2026-11-08 15:29:04,657 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/views/crm_connection_views.xml
+2026-11-08 15:29:04,667 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/views/crm_sync_run_views.xml
+2026-11-08 15:29:04,670 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/views/crm_call_event_views.xml
+2026-11-08 15:29:04,674 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/views/res_partner_sync_views.xml
+2026-11-08 15:29:04,706 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/views/crm_lead_sync_views.xml
+2026-11-08 15:29:04,720 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/views/res_config_settings_views.xml
+2026-11-08 15:29:04,752 1 INFO odoo_test_cutover odoo.modules.loading: loading plasticos_crm_sync/views/menu.xml
+2026-11-08 15:29:04,764 1 INFO odoo_test_cutover odoo.modules.loading: Module plasticos_crm_sync loaded in 0.20s, 475 queries (+475 other)
+2026-11-08 15:29:04,764 1 INFO odoo_test_cutover odoo.modules.loading: 170 modules loaded in 4.41s, 11552 queries (+11552 extra)
+2026-11-08 15:29:04,820 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 15:29:04,820 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 15:29:04,922 1 INFO odoo_test_cutover odoo.addons.base.models.ir_model: Deleting 2609@ir.model.constraint (plasticos_matching.constraint_plasticos_match_result_unique_match_per_run)
+2026-11-08 15:29:04,937 1 INFO odoo_test_cutover odoo.models.unlink: User #1 deleted ir.model.data records with IDs: [72700]
+2026-11-08 15:29:04,938 1 INFO odoo_test_cutover odoo.models.unlink: User #1 deleted ir.model.constraint records with IDs: [2609]
+2026-11-08 15:29:05,167 1 INFO odoo_test_cutover odoo.modules.loading: Modules loaded.
+2026-11-08 15:29:05,177 1 INFO odoo_test_cutover odoo.registry: Registry changed, signaling through the database
+2026-11-08 15:29:05,178 1 INFO odoo_test_cutover odoo.registry: Registry loaded in 6.675s
+2026-11-08 15:29:05,178 1 INFO odoo_test_cutover odoo.service.server: Initiating shutdown
+2026-11-08 15:29:05,178 1 INFO odoo_test_cutover odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown.
+2026-11-08 15:29:05,178 1 INFO odoo_test_cutover odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections
+fingerprint=9d47997766e6922eddb73af3b354b8567e185ec709cdd54378b9ecf03734483b
+source=7dff4f0a2a97046f14237931fa7c0ac434721d8d95f3e19168ddfbc24b7902cf
+✓ odoo_test_cutover: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
