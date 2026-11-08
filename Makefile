@@ -1119,7 +1119,7 @@ import-erp:
 	@if docker info >/dev/null 2>&1; then \
 		$(erp_source_guard); \
 		$(call mount_guard,ERP_PRODUCTION_PERMIT,import-erp); \
-		docker compose run --rm -w /mnt/extra-addons \
+		docker compose run --rm $(if $(ERP_ISOLATED_REPORT_DIR),-v "$(ERP_ISOLATED_REPORT_DIR):/erp-isolated",) -w /mnt/extra-addons \
 			-e ERP_PRODUCTION_PERMIT="$(call runtime_path,$(ERP_PRODUCTION_PERMIT))" \
 			-e ODOO_STAGE="$(ODOO_STAGE)" \
 			-e ERP_DRY="$(ERP_DRY)" \

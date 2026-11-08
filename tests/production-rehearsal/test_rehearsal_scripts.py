@@ -151,8 +151,15 @@ case "$sub" in
           if [ -f "$STUB_DIR/06-crm-history.jsonl" ]; then cp "$STUB_DIR/06-crm-history.jsonl" "${STUB_REPO}/${arg#*=}"; fi ;;
         VANILLASOFT_CALL_FLOOR=*|VANILLASOFT_CONTACT_FLOOR=*) echo "floor given with the census"; exit 2 ;;
         REPORT_PATH=*|VANILLASOFT_REPORT_PATH=*)
-          path="${arg#*=}"; host="${STUB_REPO}${path#/mnt/extra-addons}"
+          path="${arg#*=}"
+          case "$path" in
+            /erp-isolated/*)
+              [ -n "${ERP_ISOLATED_HOST:-}" ] || { echo "isolated report host is unset"; exit 2; }
+              host="${ERP_ISOLATED_HOST}/$(basename "$path")" ;;
+            *) host="${STUB_REPO}${path#/mnt/extra-addons}" ;;
+          esac
           base="$(basename "$host" .json)"
+          mkdir -p "$(dirname "$host")"
           if [ -f "$STUB_DIR/$base.json" ]; then cp "$STUB_DIR/$base.json" "$host"; fi
           if [ -f "$STUB_DIR/$base-census.json" ]; then cp "$STUB_DIR/$base-census.json" "$(dirname "$host")/$base-census.json"; fi ;;
       esac
@@ -892,13 +899,24 @@ def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     assert gate["facts"]["verification_spec"] == "l9.plasticos.rehearsal.fidelity.v1"
     assert gate["facts"]["source_fingerprint"]
     assert any(row["source_field"] == "CompanyNm" for row in gate["facts"]["coverage"])
-    for name in (
-        "05-erp-fidelity.json",
-        "05-erp-fidelity-coverage.json",
-        "05-erp-fidelity-odoo.json",
-        "05-erp-summary-census.json",
-    ):
+    ledger = gate["facts"]["coverage_ledger"]
+    partition = ledger["partition"]
+    assert partition["compared"] + partition["rejected"] + partition["excluded"] == ledger["expected_count"]
+    assert gate["facts"]["comparison_digest"]
+    for name in ("05-erp-fidelity-coverage.json", "05-erp-fidelity-odoo.json"):
         assert not (erp.evidence / name).exists()
+    fidelity = json.loads((erp.evidence / "05-erp-fidelity.json").read_text(encoding="utf-8"))
+    assert fidelity["rows_retained"] == "failures"
+    assert all(row["result"] == "FAIL" for row in fidelity["rows"])
+    census = json.loads((erp.evidence / "05-erp-summary-census.json").read_text(encoding="utf-8"))
+    assert census["payload_kind"] == "database"
+    assert census["origin_sha256"]
+    assert "source_origin" not in census
+    assert "anomalies" not in census
+    assert "unresolved" not in census
+    full = json.loads((erp.home / ".l9" / "rehearsal-census" / "gate6" / "05-erp-summary-census.json").read_text())
+    assert "unresolved" in full
+    assert "source_origin" in full
     summary = json.loads((erp.evidence / "05-erp-summary.json").read_text())
     assert "gate" not in summary
     path = gate["facts"]["execution_path"]
@@ -1219,7 +1237,23 @@ def test_make_import_erp_forwards_the_permit_and_pipes_only_the_erp_driver(mk):
     assert call["env"]["ERP_LIMIT"] == "10%" and call["env"]["ERP_REQUIRE_EMPTY"] == "1"
     assert call["env"]["ERP_PAYLOAD_ROOT"] == "" and call["env"]["ERP_TARGET_DB"] == "probe_db"
     assert call["stdin"] == (ROOT / ERP_DRIVER).read_text(encoding="utf-8")
+    assert "-v" not in call["argv"]
     assert "plasticos.erp.import" in result.stdout
+
+
+def test_make_import_erp_mounts_an_isolated_census_directory(mk, tmp_path):
+    isolated = tmp_path / "outside-checkout"
+    isolated.mkdir()
+    result = mk.run(
+        "import-erp",
+        *SQL_ARGS,
+        f"ERP_ISOLATED_REPORT_DIR={isolated}",
+        "REPORT_PATH=/erp-isolated/05-erp-summary.json",
+    )
+    assert result.returncode == 0, result.stderr
+    (call,) = mk.compose_calls()
+    assert f"{isolated}:/erp-isolated" in call["argv"]
+    assert call["env"]["ERP_REPORT_PATH"] == "/erp-isolated/05-erp-summary.json"
 
 
 def test_make_import_erp_on_the_local_runner_passes_the_permit_host_path(mk):

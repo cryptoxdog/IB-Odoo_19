@@ -479,7 +479,17 @@ def main(argv: list[str] | None = None) -> int:
         source = _stub_source() if os.environ.get("STUB_DIR") else None
         if source is None:
             source = read_source(odoo if odoo.get("evidence") == "complete" else {})
-        report = evaluate(odoo, source, _unresolved(args.census), retain_passes=False)
+        unresolved = _unresolved(args.census)
+        report = evaluate(odoo, source, unresolved, retain_passes=False)
+        if (
+            isinstance(odoo, dict)
+            and odoo.get("evidence") == "complete"
+            and isinstance(source, dict)
+            and source.get("evidence") == "complete"
+        ):
+            from common import attach_coverage
+
+            attach_coverage(report, odoo, source, unresolved)
     _write(out, report)
     return 0
 

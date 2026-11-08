@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # Gate 6 — full ERP import from the restored SQL Server database.
 #
-# The importer writes its own summary (05-erp-summary.json) and census
-# (05-erp-summary-census.json); this script never writes into either. After
-# the gate has copied their counts, the census and the two fidelity working
-# files are removed. The persisted comparison is gate-6.json. Mismatch and
-# rejection rows, when there are any, stay in the gitignored diagnostics file.
-# Exit 0 only on PASS.
+# The importer writes its summary and its full census only in an isolated
+# directory outside this checkout. The evidence directory receives the summary
+# copy and atomically published compact receipts. It never receives the clone
+# snapshot, the full comparison ledger, or the anomaly and unresolved arrays.
+# The full census stays in the isolated directory. Exit 0 only on PASS.
 # Usage: bash erp_slice.sh <plasticos_root> <db> <evidence_dir>
 set -uo pipefail
 umask 077
@@ -19,16 +18,20 @@ KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${KIT_DIR}/rehearsal_common.sh"
 
 SUMMARY_FILE="${EVIDENCE_DIR}/05-erp-summary.json"
-CENSUS_FILE="${EVIDENCE_DIR}/05-erp-summary-census.json"
+CENSUS_RECEIPT="${EVIDENCE_DIR}/05-erp-summary-census.json"
 IMPORT_LOG="${EVIDENCE_DIR}/05-erp-import.log"
 LAYERS_FILE="${EVIDENCE_DIR}/05-erp-layers.json"
-ODOO_FIDELITY="${EVIDENCE_DIR}/05-erp-fidelity-odoo.json"
-FIDELITY_FILE="${EVIDENCE_DIR}/05-erp-fidelity.json"
-COVERAGE_FILE="${EVIDENCE_DIR}/05-erp-fidelity-coverage.json"
-# The Odoo container sees the repo at /mnt/extra-addons. The summary must be
-# written there so the host evidence folder receives it through the bind mount.
-EVIDENCE_REL="${EVIDENCE_DIR#"${ROOT}/"}"
-CONTAINER_SUMMARY="/mnt/extra-addons/${EVIDENCE_REL}/05-erp-summary.json"
+FIDELITY_RECEIPT="${EVIDENCE_DIR}/05-erp-fidelity.json"
+LEDGER_RECEIPT="${EVIDENCE_DIR}/05-erp-identity-ledger.json"
+# Outside the checkout. The container sees it only through the extra mount
+# Makefile adds when ERP_ISOLATED_REPORT_DIR is set. A crash before the
+# atomic rename cannot leave the full census in the evidence directory.
+ISOLATED_HOST="${HOME}/.l9/rehearsal-census/gate6"
+ISOLATED_SUMMARY="${ISOLATED_HOST}/05-erp-summary.json"
+ISOLATED_CENSUS="${ISOLATED_HOST}/05-erp-summary-census.json"
+ISOLATED_SNAPSHOT="${ISOLATED_HOST}/05-erp-fidelity-odoo.json"
+ISOLATED_FIDELITY="${ISOLATED_HOST}/05-erp-fidelity.json"
+CONTAINER_SUMMARY="/erp-isolated/05-erp-summary.json"
 PROOF_DIR="${HOME}/.l9/erp-proof"
 PROOF_PW="${PROOF_DIR}/reader.pw"
 PROOF_DB="${PROOF_DIR}/database"
@@ -38,7 +41,12 @@ echo "→ [Gate 6] ERP import on ${DB}"
 # gate6 <STATE> <reason> [detail] — scan, write the receipt, exit nonzero.
 gate6() {
   local state="$1" reason="$2" detail="${3:-}"
-  rm -f "${ODOO_FIDELITY:-}" "${FIDELITY_FILE:-}" "${COVERAGE_FILE:-}" "${CENSUS_FILE:-}"
+  rm -f \
+    "${EVIDENCE_DIR}/05-erp-fidelity-odoo.json" \
+    "${EVIDENCE_DIR}/05-erp-fidelity-coverage.json" \
+    "${EVIDENCE_DIR}/05-erp-fidelity.json" \
+    "${EVIDENCE_DIR}/05-erp-summary-census.json" \
+    "${EVIDENCE_DIR}/05-erp-identity-ledger.json"
   if ! rlib scan-secrets "${EVIDENCE_DIR}" --env ERP_SQL_PASSWORD; then
     state="FAIL"
     reason="evidence-secret-redacted"
@@ -102,6 +110,12 @@ if [ "${PARTNER_COUNT}" -ne 0 ]; then
 fi
 
 # ── Run import via test_env.sh run (verified clone only) ────────────────────
+case "${ISOLATED_HOST}/" in
+  "${ROOT}/"*|"${EVIDENCE_DIR}/"*)
+    gate6 FAIL "census-inside-checkout" "the rehearsal census directory is inside the checkout" ;;
+esac
+mkdir -p "${ISOLATED_HOST}"
+export ERP_ISOLATED_HOST="${ISOLATED_HOST}"
 echo "  → Running import-erp on ${DB}..."
 bash "${ROOT}/scripts/test_env.sh" run "${DB}" -- \
   make import-erp \
@@ -110,6 +124,7 @@ bash "${ROOT}/scripts/test_env.sh" run "${DB}" -- \
     ERP_SQL_PORT="${ERP_SQL_PORT:-1433}" \
     ERP_SQL_DATABASE="${ERP_SQL_DATABASE}" \
     ${ERP_SQL_USER:+ERP_SQL_USER="${ERP_SQL_USER}"} \
+    ERP_ISOLATED_REPORT_DIR="${ISOLATED_HOST}" \
     REPORT_PATH="${CONTAINER_SUMMARY}" \
   >"${IMPORT_LOG}" 2>&1
 IMPORT_EXIT=$?
@@ -129,35 +144,51 @@ printf '%s\n' "SELECT json_build_object(
         AND NOT starts_with(d.name, 'legacy_erp_contact_role_')));" \
   | db_query "${DB}" "${LAYERS_FILE}" || rm -f "${LAYERS_FILE}"
 
-# Field fidelity reads the clone and the same SQL source.
-# A missing snapshot is an incomplete report, which check-erp fails closed.
+# The summary is the importer's file. Copy it; do not rewrite it. The full
+# census stays beside it, outside the checkout.
+if [ -s "${ISOLATED_SUMMARY}" ]; then
+  cp "${ISOLATED_SUMMARY}" "${SUMMARY_FILE}"
+  chmod 600 "${SUMMARY_FILE}"
+fi
+if [ -s "${ISOLATED_CENSUS}" ]; then
+  rlib publish-census "${ISOLATED_CENSUS}" "${CENSUS_RECEIPT}" --staging "${ISOLATED_HOST}" || rm -f "${CENSUS_RECEIPT}"
+fi
+
+# Field fidelity reads the clone and the same SQL source. The snapshot is
+# written only in the isolated directory and removed after the compact ledger
+# is published. A missing snapshot is an incomplete report, which check-erp
+# fails closed.
 echo "  → ERP native mapping fidelity..."
-if ! "${REHEARSAL_PY}" "${KIT_DIR}/fidelity_run.py" --print-odoo-sql | db_query "${DB}" "${ODOO_FIDELITY}"; then
-  rm -f "${ODOO_FIDELITY}"
+if ! "${REHEARSAL_PY}" "${KIT_DIR}/fidelity_run.py" --print-odoo-sql | db_query "${DB}" "${ISOLATED_SNAPSHOT}"; then
+  rm -f "${ISOLATED_SNAPSHOT}"
 fi
 if [ -n "${STUB_DIR:-}" ] || "${REHEARSAL_PY}" -c 'import pymssql' >/dev/null 2>&1; then
   "${REHEARSAL_PY}" "${KIT_DIR}/fidelity_run.py" \
-    --odoo "${ODOO_FIDELITY}" \
-    --out "${FIDELITY_FILE}" \
-    --coverage "${COVERAGE_FILE}" \
-    --census "${SUMMARY_FILE%.json}-census.json" || true
+    --odoo "${ISOLATED_SNAPSHOT}" \
+    --out "${ISOLATED_FIDELITY}" \
+    --census "${ISOLATED_CENSUS}" || true
 else
   # The compose stack declares db, odoo, odoo-test and odoo-test-demo (no `web`),
   # and `exec` needs a running service. `run --rm --no-deps` starts the same
   # odoo image make import-erp uses, whose entrypoint execs python3 directly;
   # the SQL password travels in the environment (-e NAME, no value), never argv.
   docker compose -f "${ROOT}/docker-compose.yml" run --rm --no-deps -T \
+    -v "${ISOLATED_HOST}:/erp-isolated" \
     -e ERP_SQL_SERVER -e ERP_SQL_PORT -e ERP_SQL_DATABASE -e ERP_SQL_USER -e ERP_SQL_PASSWORD \
     -e FIDELITY_IN_WEB=1 \
     odoo python3 /mnt/extra-addons/tests/production-rehearsal/fidelity_run.py \
-    --odoo "/mnt/extra-addons/${EVIDENCE_REL}/05-erp-fidelity-odoo.json" \
-    --out "/mnt/extra-addons/${EVIDENCE_REL}/05-erp-fidelity.json" \
-    --coverage "/mnt/extra-addons/${EVIDENCE_REL}/05-erp-fidelity-coverage.json" \
-    --census "/mnt/extra-addons/${EVIDENCE_REL}/05-erp-summary-census.json" || true
+    --odoo "/erp-isolated/05-erp-fidelity-odoo.json" \
+    --out "/erp-isolated/05-erp-fidelity.json" \
+    --census "/erp-isolated/05-erp-summary-census.json" || true
 fi
-if [ ! -s "${FIDELITY_FILE}" ]; then
+if [ ! -s "${ISOLATED_FIDELITY}" ]; then
   printf '%s\n' '{"schema":"l9.plasticos.rehearsal.fidelity.v1","evidence":"missing","missing_reason":"fidelity checker produced no report","status":"FAIL","failed":1,"compared":0,"rows":[]}' \
-    > "${FIDELITY_FILE}"
+    > "${ISOLATED_FIDELITY}"
+fi
+rlib publish-file "${ISOLATED_FIDELITY}" "${FIDELITY_RECEIPT}" --staging "${ISOLATED_HOST}" || rm -f "${FIDELITY_RECEIPT}"
+if [ -s "${ISOLATED_SNAPSHOT}" ]; then
+  rlib publish-identity "${ISOLATED_SNAPSHOT}" "${LEDGER_RECEIPT}" --staging "${ISOLATED_HOST}" || rm -f "${LEDGER_RECEIPT}"
+  rm -f "${ISOLATED_SNAPSHOT}" "${ISOLATED_SNAPSHOT}.err"
 fi
 
 if ! rlib scan-secrets "${EVIDENCE_DIR}" --env ERP_SQL_PASSWORD; then
@@ -176,10 +207,10 @@ rlib check-erp "${EVIDENCE_DIR}" \
   --limit "full" \
   --release-sha "${RELEASE_SHA}" \
   --run-started "${RUN_STARTED_UTC:-}" \
-  --fidelity "${FIDELITY_FILE}" \
-  --snapshot "${ODOO_FIDELITY}"
+  --fidelity "${FIDELITY_RECEIPT}" \
+  --snapshot "${LEDGER_RECEIPT}"
 status=$?
-# The receipt now holds the counters, the coverage matrix, and any mismatches.
-# The working extracts are not evidence.
-rm -f "${ODOO_FIDELITY}" "${FIDELITY_FILE}" "${COVERAGE_FILE}" "${CENSUS_FILE}"
+# Compact receipts stay. The snapshot does not. The full census stays outside
+# the checkout for local inspection of the anomaly rows.
+rm -f "${ISOLATED_SNAPSHOT}" "${EVIDENCE_DIR}/05-erp-fidelity-odoo.json" "${EVIDENCE_DIR}/05-erp-fidelity-coverage.json"
 exit "${status}"
