@@ -27,7 +27,7 @@ byte-faithful to the accepted decision set.
 | [ADR-003](ADR-003-odoo-owns-domain-not-transport.md) | Odoo owns domain mapping, not transport semantics | Accepted |
 | [ADR-004](ADR-004-canonical-enrichment-contract.md) | Canonical enrichment contract is EnrichRequest → EnrichResponse | Accepted |
 | [ADR-005](ADR-005-canonical-entity-identity.md) | Canonical Odoo entity identity is `entity.id` | Accepted |
-| [ADR-006](ADR-006-one-logical-operation-identity.md) | One logical operation identity spans replay boundaries | Accepted |
+| [ADR-006](ADR-006-one-logical-operation-identity.md) | One logical operation identity spans replay boundaries | Accepted; amended 2026-11-08 (an operator retry is a new attempt identity) |
 | [ADR-007](ADR-007-one-sdk-invocation-surface.md) | One SDK invocation surface replaces Odoo shadow transport | Accepted |
 | [ADR-008](ADR-008-no-odoo-transport-retry.md) | Odoo owns no transport retry layer | Accepted |
 | [ADR-009](ADR-009-one-caller-deadline.md) | One caller deadline governs Odoo → Gate execution | Accepted |
