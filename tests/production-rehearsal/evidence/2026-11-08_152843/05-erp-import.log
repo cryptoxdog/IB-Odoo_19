@@ -20,13 +20,13 @@
 2026-11-08 15:29:20,578 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
 2026-11-08 15:29:20,594 1 INFO odoo_test_cutover odoo.modules.loading: Modules loaded. 
 2026-11-08 15:29:20,622 1 INFO odoo_test_cutover odoo.registry: Registry loaded in 0.730s 
-2026-11-08 15:29:21,923 1 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/cieTrade_SM): {'Address': 2968, 'BuySell': 8961, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'GPLedger': 8353, 'PO': 14724, 'PODetail': 19630, 'Payables': 14649, 'PayablesBatch': 12049, 'Receipt': 7538, 'ReceiptBatch': 4615, 'SalesReps': 1058, 'WKSDetail': 11441, 'WksDelivery': 8451} 
+2026-11-08 15:29:21,923 1 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/[legacy-vendor]_SM): {'Address': 2968, 'BuySell': 8961, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'GPLedger': 8353, 'PO': 14724, 'PODetail': 19630, 'Payables': 14649, 'PayablesBatch': 12049, 'Receipt': 7538, 'ReceiptBatch': 4615, 'SalesReps': 1058, 'WKSDetail': 11441, 'WksDelivery': 8451} 
 2026-11-08 15:30:28,015 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 200 
 2026-11-08 15:31:12,548 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 400 
 2026-11-08 15:31:58,279 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 600 
 2026-11-08 15:32:30,955 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 800 
 2026-11-08 15:32:34,083 1 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: ERP import finished: {'counterparties': {'created': 1300, 'updated': 0, 'skipped': 0, 'rejected': 0}, 'locations': {'created': 1266, 'updated': 1297, 'skipped': 80, 'rejected': 0}, 'contacts': {'created': 2615, 'updated': 0, 'skipped': 1116, 'rejected': 0}, 'contact_roles': {'created': 2498, 'updated': 0, 'skipped': 180, 'rejected': 0}, 'salespersons': {'created': 0, 'updated': 914, 'skipped': 2, 'rejected': 0}, 'transactions': {'created': 759, 'updated': 0, 'skipped': 7562, 'rejected': 52}, 'transaction_lines': {'created': 995, 'updated': 0, 'skipped': 10360, 'rejected': 86}} 
-ERP source: direct database read (host.docker.internal/cieTrade_SM)
+ERP source: direct database read (host.docker.internal/[legacy-vendor]_SM)
 VALIDATOR PASSED (database)
 res.partner before import: 13 (pre-existing business partners: 0)
 VALIDATOR PASSED (counterparties)
