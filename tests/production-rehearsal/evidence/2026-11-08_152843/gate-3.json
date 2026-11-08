@@ -1,0 +1,13 @@
+{
+  "detail": "fingerprint receipt matched; no fresh install ran",
+  "evidence": [],
+  "exit_code": null,
+  "facts": {},
+  "gate": 3,
+  "name": "install-smoke",
+  "reason": "install-smoke-cached-receipt",
+  "recorded_at": "2026-11-08T15:28:52Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "PASS"
+}

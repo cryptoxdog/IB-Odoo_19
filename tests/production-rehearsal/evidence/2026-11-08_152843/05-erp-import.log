@@ -1,0 +1,74 @@
+✓ odoo_test_cutover: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
+→ ERP import on database odoo_test_cutover  [direct SQL read]…
+   path: make import-erp → plasticos_partner_import/scripts/import_erp_shell.py → plasticos.erp.import (direct SQL source required)
+ Container odoo19-db-1 Running
+ Container odoo19-db-1 Waiting
+ Container odoo19-db-1 Healthy
+ Container odoo19-odoo-run-49b5498f723d Creating
+ Container odoo19-odoo-run-49b5498f723d Created
+2026-11-08 15:29:19,786 1 INFO ? odoo: Odoo version 19.0-20261102
+2026-11-08 15:29:19,786 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf
+2026-11-08 15:29:19,786 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons'])
+2026-11-08 15:29:19,786 1 INFO ? odoo: database: odoo@db:5432
+2026-11-08 15:29:19,891 1 INFO ? odoo.service.server: Initiating shutdown
+2026-11-08 15:29:19,891 1 INFO ? odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown.
+2026-11-08 15:29:19,899 1 INFO odoo_test_cutover odoo.modules.loading: loading 1 modules...
+2026-11-08 15:29:19,900 1 INFO odoo_test_cutover odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra)
+2026-11-08 15:29:19,927 1 INFO odoo_test_cutover odoo.modules.loading: loading 170 modules...
+2026-11-08 15:29:20,509 1 INFO odoo_test_cutover odoo.modules.loading: 170 modules loaded in 0.58s, 0 queries (+0 extra)
+2026-11-08 15:29:20,577 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 15:29:20,578 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it
+2026-11-08 15:29:20,594 1 INFO odoo_test_cutover odoo.modules.loading: Modules loaded.
+2026-11-08 15:29:20,622 1 INFO odoo_test_cutover odoo.registry: Registry loaded in 0.730s
+2026-11-08 15:29:21,923 1 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: ERP payload loaded (database from host.docker.internal/[legacy-vendor]_SM): {'Address': 2968, 'BuySell': 8961, 'Contact': 4084, 'ContactRoleAssignment': 3108, 'CounterParty': 1300, 'GPLedger': 8353, 'PO': 14724, 'PODetail': 19630, 'Payables': 14649, 'PayablesBatch': 12049, 'Receipt': 7538, 'ReceiptBatch': 4615, 'SalesReps': 1058, 'WKSDetail': 11441, 'WksDelivery': 8451}
+2026-11-08 15:30:28,015 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 200
+2026-11-08 15:31:12,548 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 400
+2026-11-08 15:31:58,279 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 600
+2026-11-08 15:32:30,955 1 INFO odoo_test_cutover odoo.addons.plasticos_transaction.models.native_document_import: ERP import committed through worksheet 800
+2026-11-08 15:32:34,083 1 INFO odoo_test_cutover odoo.addons.plasticos_partner_import.models.erp_import_service: ERP import finished: {'counterparties': {'created': 1300, 'updated': 0, 'skipped': 0, 'rejected': 0}, 'locations': {'created': 1266, 'updated': 1297, 'skipped': 80, 'rejected': 0}, 'contacts': {'created': 2615, 'updated': 0, 'skipped': 1116, 'rejected': 0}, 'contact_roles': {'created': 2498, 'updated': 0, 'skipped': 180, 'rejected': 0}, 'salespersons': {'created': 0, 'updated': 914, 'skipped': 2, 'rejected': 0}, 'transactions': {'created': 759, 'updated': 0, 'skipped': 7562, 'rejected': 52}, 'transaction_lines': {'created': 995, 'updated': 0, 'skipped': 10360, 'rejected': 86}}
+ERP source: direct database read (host.docker.internal/[legacy-vendor]_SM)
+VALIDATOR PASSED (database)
+res.partner before import: 13 (pre-existing business partners: 0)
+VALIDATOR PASSED (counterparties)
+VALIDATOR PASSED (addresses)
+VALIDATOR PASSED (contacts)
+Eddie Dyess partner id 3653
+http://localhost:8069/odoo/contacts/3653
+TUCKAHOE NURSERIES INC has no partner named 16098610383
+VALIDATOR PASSED (roles)
+VALIDATOR PASSED (salesreps)
+
+=== ERP IMPORT SUMMARY ===
+status      : partial
+seen/valid  : 32332 / 30944 (rejected 1388)
+created     : 9433  updated: 2211  unchanged: 19300  duplicates: 0
+errors      : 1000 (first 10 below)
+  - 400094: Address unresolved_counterparty: CpID=(OTHER) not in exported (active) counterparties
+  - 400096: Address unresolved_counterparty: CpID={C} not in exported (active) counterparties
+  - 400097: Address unresolved_counterparty: CpID={C} not in exported (active) counterparties
+  - 401838: Address unresolved_counterparty: CpID=134 not in exported (active) counterparties
+  - 402007: Address unresolved_counterparty: CpID=303 not in exported (active) counterparties
+  - 402015: Address unresolved_counterparty: CpID=312 not in exported (active) counterparties
+  - 402163: Address unresolved_counterparty: CpID=134 not in exported (active) counterparties
+  - 402526: Address unresolved_counterparty: CpID=303 not in exported (active) counterparties
+  - 402549: Address unresolved_counterparty: CpID=1102 not in exported (active) counterparties
+  - 402550: Address unresolved_counterparty: CpID=1103 not in exported (active) counterparties
+
+=== SOURCE EXCEPTION CENSUS ===
+purchase  blank_key                    lines    202  worksheets   141  keys     0  sale     636,533.10  purchase     540,370.73
+purchase  key_without_order_line       lines      1  worksheets     1  keys     1  sale      11,544.00  purchase       7,936.50
+purchase  number_under_other_source    lines      2  worksheets     1  keys     1  sale         635.10  purchase           0.00
+sale      blank_key                    lines     73  worksheets    63  keys     0  sale      19,525.49  purchase      56,462.14
+sale      key_without_order_line       lines      1  worksheets     1  keys     1  sale           0.00  purchase           0.00
+without_sale_link: 34 worksheets, 36 lines, sale 17,346.88, purchase 56,287.86, partner active 34, inactive/absent 0
+without_purchase_link: 100 worksheets, 154 lines, sale 636,889.94, purchase 536,804.12, partner active 35, inactive/absent 65
+price precision (None decimals): 0 lines drift, net 0.00, abs 0.00, max 0.00
+payables gl_50100_billed                    rows    656  worksheets   565    1,700,857.25
+payables gl_50200_billed                    rows    702  worksheets   506      608,737.27
+payables gl_50300_as_other_expenses         rows     15  worksheets    13       17,980.10
+payables gl_50300_not_realized              rows     19  worksheets    16       27,974.00
+payables gl_50600_not_realized              rows      3  worksheets     3       12,703.33
+payables no_order_link_not_realized         rows     44  worksheets    22       33,442.60
+payables outside_worksheet_universe_not_realized rows    628  worksheets   525      295,716.30
+payables reconciliation: source 14649 = billed 1358 + quarantined 709 + excluded 12582 -> CLOSES
+DATA VERDICT {"accounting_acceptance": "BLOCKED_ARCHITECTURE", "accounting_state": "draft_unposted", "data_complete": false, "exceptions_digest": "be7932f64d74b04c65334088e0345b899c6a6182899156b2eda56e19b9bd8835", "final_status": "partial", "open_exceptions": 1388, "run_failures": []}

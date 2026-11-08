@@ -1,0 +1,31 @@
+{
+  "detail": "import-vanillasoft refused (exit 2)",
+  "evidence": [
+    "06-crm-result.json",
+    "06-crm-history.jsonl",
+    "06-crm-log.txt"
+  ],
+  "exit_code": 2,
+  "facts": {
+    "execution_path": {
+      "census_sha256": "93fbbf261aa175d16c66ffc9c6bc8add7c51bce83a548d2af6da8d5e28ed0da9",
+      "database": "odoo_test_cutover",
+      "dispatcher": "history() \u2192 SyncOrchestrator.upsert_contact_external_id, one ContactID at a time",
+      "driver": "plasticos_crm_sync/scripts/import_vanillasoft_shell.py",
+      "make_target": "import-vanillasoft",
+      "max_ids": null,
+      "release_sha": "a4b1a88b3f7f9d58394af3f9f329c4668c795949",
+      "source": "contact file in the checkout + VanillaSoft API"
+    },
+    "full_cohort_claimed": false,
+    "max_ids": null,
+    "scope": "contact file in the checkout; a cap is recorded only when the operator set one"
+  },
+  "gate": 7,
+  "name": "vanillasoft",
+  "reason": "vanillasoft-preflight-failed",
+  "recorded_at": "2026-11-08T15:32:46Z",
+  "schema": "l9.plasticos.rehearsal.gate.v1",
+  "side_effects": true,
+  "state": "FAIL"
+}

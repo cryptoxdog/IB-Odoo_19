@@ -1,0 +1,1 @@
+{"web_lead" : {"id":1,"lead_id":"CG-rehearsal-hot-001","state":"intake_created","intake_id":1,"crm_lead_id":1,"partner_id":null}, "same_lead_id_rows" : 1, "intake_exists" : 1, "crm_for_intake" : 1, "crm" : {"id":1,"type":"opportunity","user_id":null,"partner_id":null,"active":true,"source_intake_id":1,"is_won":false}}
