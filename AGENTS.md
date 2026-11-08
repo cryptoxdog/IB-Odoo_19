@@ -173,6 +173,7 @@ Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skil
 | `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
 | `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
 | `plasticos-final-touches` | `FINAL_TOUCHES_MODE` | `audit` + `pr-check` |
+| `plasticos-branch-promotion-rehearsal` | Staging → Production promotion: rehearse the post-cutover imports at 10% volume, five evidence files max | `import-erp`, `import-vanillasoft` |
 | `plasticos-prompt-pack` | Router for `docs/plasticos_prompt_pack/` — context primer, tiered audit (`AUDIT_MODE`), matching-pipeline gap handoff, pre-code kernel, 10-block architecture/deployment reasoning chain | `audit`, `pr-check` |
 
 | Subagent | Preloaded skills | Delegate for |
