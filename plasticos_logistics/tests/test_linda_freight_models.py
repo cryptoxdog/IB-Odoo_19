@@ -628,8 +628,13 @@ class TestLindaFreightModels(PlasticosTestCase):
             evidence,
         )
 
-    def test_repeat_reconciliation_is_idempotent_across_company_switching_and_restart(self):
-        """Case D: the active-company switch never changes the stored answer or duplicates it."""
+    def test_repeat_reconciliation_is_idempotent_across_company_switching_and_fresh_env(self):
+        """Case D: the active-company switch never changes the stored answer or duplicates it.
+
+        A real process restart cannot run inside one test transaction; a fresh environment with
+        every cache dropped proves the replay reads only database state. The cross-process replay
+        is proven separately on the upgraded database.
+        """
         company_a = self.env.company
         company_b = self._company_b()
         load, legacy = self._company_a_exact_row(1340.0)
@@ -644,7 +649,7 @@ class TestLindaFreightModels(PlasticosTestCase):
         both.action_reconcile_to_canonical_history()
         both.action_reconcile_to_canonical_history()
         self.assertTrue(only_b.action_reconcile_to_canonical_history())
-        # A restart keeps nothing but the database: drop every cache and use a fresh environment.
+        # Only database state survives: drop every cache and use a fresh environment.
         self.env.invalidate_all()
         fresh = self.env(user=operator.id, context={"allowed_company_ids": [company_b.id]})
         self.assertTrue(fresh["plasticos.rate.memory"].browse(legacy.id).action_reconcile_to_canonical_history())
@@ -653,6 +658,75 @@ class TestLindaFreightModels(PlasticosTestCase):
         self.assertEqual(evidence.disposition, "exact_single_match")
         self.assertEqual(evidence.canonical_load_id, load)
         self.assertEqual(evidence.company_id, company_a)
+
+    def _confirmed_load_in(self, company, rate, buyer=None):
+        """A rate-confirmed load whose sale order (and so company) is ``company``."""
+        main_env = self.env
+        self.env = self.env(context=dict(self.env.context, allowed_company_ids=[company.id]))
+        try:
+            load, context = self._new_load(buyer=buyer)
+            load._confirm_freight_rate(
+                rate=rate,
+                carrier=self.carrier,
+                currency=self.currency,
+                resolution_method="manual",
+                context_fingerprint=context.fingerprint,
+            )
+        finally:
+            self.env = main_env
+        self.assertEqual(load.company_id, company)
+        return load.with_env(main_env)
+
+    def test_real_classifier_records_multiple_candidate_matches_unowned(self):
+        """Two readable loads on one lane, carrier, amount and date: no stub, one unowned row."""
+        company_a = self.env.company
+        first = self._confirmed_load_in(company_a, 1390.0)
+        second = self._confirmed_load_in(company_a, 1390.0)
+        self.assertEqual(first.rate_confirmed_at.date(), second.rate_confirmed_at.date())
+        sale = first.sale_order_id
+        legacy = self._legacy_cache_row(
+            f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}",
+            1390.0,
+            fields.Date.to_date(first.rate_confirmed_at),
+        )
+        user_a = self._logistics_user("linda.real.multiple", company_a)
+        legacy.with_user(user_a).action_reconcile_to_canonical_history()
+        evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "=", legacy.id)])
+        self.assertEqual(evidence.disposition, "multiple_candidate_matches")
+        self.assertEqual(evidence.candidate_count, 2)
+        self.assertFalse(evidence.company_id)
+        self.assertFalse(evidence.canonical_load_id)
+
+    def test_real_scan_truncation_is_decided_by_every_scanned_load(self):
+        """A truncated scan counts unmatched loads too, so one the actor cannot read makes it incomplete."""
+        from odoo.addons.plasticos_logistics.services.freight_history import legacy_lane_candidates
+
+        company_a = self.env.company
+        company_b = self._company_b()
+        matching = self._confirmed_load_in(company_a, 1395.0)
+        other_buyer = self.env["res.partner"].create(
+            {"name": "Linda Company B Buyer", "is_company": True, "customer_rank": 1}
+        )
+        unmatched_b = self._confirmed_load_in(company_b, 1395.0, buyer=other_buyer)
+        sale = matching.sale_order_id
+        legacy = self._legacy_cache_row(
+            f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}",
+            1395.0,
+            fields.Date.to_date(matching.rate_confirmed_at),
+        )
+        self.assertEqual(fields.Date.to_date(unmatched_b.rate_confirmed_at), legacy.rate_date)
+        user_a_env = legacy.with_user(self._logistics_user("linda.real.truncated", company_a)).env
+
+        # Not truncated: only the lane match decides, and the actor can read it.
+        candidates, truncated, complete = legacy_lane_candidates(user_a_env, legacy, scan_limit=5)
+        self.assertEqual((candidates, truncated, complete), (matching.with_env(user_a_env), False, True))
+        # Truncated at one load: both scanned loads decide, and company B's is unreadable.
+        candidates, truncated, complete = legacy_lane_candidates(user_a_env, legacy, scan_limit=1)
+        self.assertEqual((bool(candidates), truncated, complete), (False, True, False))
+        # The same truncated scan is complete for an actor who can read both loads.
+        candidates, truncated, complete = legacy_lane_candidates(self.env, legacy, scan_limit=1)
+        self.assertTrue(truncated)
+        self.assertTrue(complete)
 
     # ── ADR-129 model boundary: direct ORM creates ─────────────────────────────
 

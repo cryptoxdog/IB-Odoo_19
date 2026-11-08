@@ -108,8 +108,8 @@ class PlasticosRateMemory(models.Model):
             # Fail closed for the whole batch: nothing is recorded until an
             # operator who can read every candidate load runs it.
             raise AccessError(
-                f"Legacy rate-memory rows {sorted(unclassifiable)} match canonical loads you cannot read. "
-                "Nothing was reconciled; run it as an operator whose allowed companies cover those loads."
+                f"Legacy rate-memory rows {sorted(unclassifiable)} cannot be classified with your access. "
+                "Nothing was reconciled; an operator with access to every company must run it."
             )
         if reconciliation_vals:
             # One immutable classification per legacy row, created in one batch.
