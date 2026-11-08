@@ -168,19 +168,33 @@ def _load_company(load):
 
 
 def legacy_lane_candidates(env, legacy_row, *, scan_limit=200):
-    """Return bounded exact candidates and a conservative truncation signal.
+    """Return ``(candidates, truncated, complete)`` for one legacy cache row.
 
-    Legacy cache rows have no durable company owner. The query is therefore
-    constrained to the actor's allowed companies and bounded at ``scan_limit``;
-    a truncated scan is never classified as an exact historical match.
+    A legacy cache row has no company, and its reconciliation is one global,
+    immutable row (ADR-129). The classification must therefore come from every
+    load in the database, not from the actor's companies, or the first
+    operator to run it would decide the answer for everyone.
+
+    The scan runs over the whole load table, bounded at ``scan_limit``. A
+    truncated scan is never classified as an exact historical match.
+
+    ``complete`` is True only when the actor can read every load the scan
+    found. When it is False the caller must not record a classification, and
+    ``candidates`` is empty, so no load outside the actor's access leaves this
+    function. ``candidates`` is bound to the actor's environment.
     """
+    loads = env[PLASTICOS_LOAD]
     if not legacy_row.rate_date:
-        return env[PLASTICOS_LOAD].browse(), False
+        return loads.browse(), False, True
     start = fields.Datetime.to_datetime(legacy_row.rate_date)
     end = start + timedelta(days=1)
-    candidates = env[PLASTICOS_LOAD].search(
+    # sudo() justification: existence check only. Company isolation on
+    # plasticos.load would hide another company's matching load, and a global
+    # reconciliation recorded from that partial view would be permanently
+    # wrong. The search is pinned to this legacy row's carrier, amount and
+    # date; the elevated records are compared by id below and never returned.
+    scanned = loads.sudo().search(
         [
-            ("company_id", "in", env.companies.ids),
             ("carrier_id", "=", legacy_row.carrier_id.id),
             ("rate_amount", "=", legacy_row.rate_amount),
             ("rate_confirmed_at", ">=", start),
@@ -190,18 +204,23 @@ def legacy_lane_candidates(env, legacy_row, *, scan_limit=200):
         order="rate_confirmed_at desc, id desc",
         limit=scan_limit + 1,
     )
-    truncated = len(candidates) > scan_limit
-    if truncated:
-        candidates = candidates[:scan_limit]
-    return candidates.filtered(
+    truncated = len(scanned) > scan_limit
+    matches = scanned[:scan_limit].filtered(
         lambda load: (
-            load.carrier_id == legacy_row.carrier_id
+            load.carrier_id.id == legacy_row.carrier_id.id
             and load.rate_amount == legacy_row.rate_amount
             and load.rate_confirmed_at
             and fields.Date.to_date(load.rate_confirmed_at) == legacy_row.rate_date
             and _legacy_lane_key(load) == legacy_row.lane_key
         )
-    ), truncated
+    )
+    # A truncated outcome is decided by every scanned load; any other outcome
+    # by the lane matches. The actor must be able to read all of them.
+    decisive = scanned if truncated else matches
+    readable = loads.search([("id", "in", decisive.ids)]) if decisive else loads.browse()
+    if len(readable) != len(decisive):
+        return loads.browse(), truncated, False
+    return loads.browse(matches.ids), truncated, True
 
 
 def _legacy_lane_key(load):
