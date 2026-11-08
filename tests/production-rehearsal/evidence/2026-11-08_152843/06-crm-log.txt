@@ -1,0 +1,27 @@
+✓ odoo_test_cutover: clone of odoo_test_tpl_ee_c9e8a81f52f23680 (parity ee, owner w2495f48767, 19.0.1.3, chart us, 170 modules)
+→ VanillaSoft full import on database odoo_test_cutover…
+   mode: history — plasticos_crm_sync/scripts/import_vanillasoft_shell.py history(): census sha256 93fbbf261aa175d16c66ffc9c6bc8add7c51bce83a548d2af6da8d5e28ed0da9 ledger tests/production-rehearsal/evidence/2026-11-08_152843/06-crm-history.jsonl max_ids all (not the rolling window)
+ Container odoo19-db-1 Running 
+ Container odoo19-db-1 Waiting 
+ Container odoo19-db-1 Healthy 
+ Container odoo19-odoo-run-3ace41f335ae Creating 
+ Container odoo19-odoo-run-3ace41f335ae Created 
+2026-11-08 15:32:45,374 1 INFO ? odoo: Odoo version 19.0-20261102 
+2026-11-08 15:32:45,374 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf 
+2026-11-08 15:32:45,374 1 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/enterprise', '/usr/lib/python3/dist-packages/addons']) 
+2026-11-08 15:32:45,374 1 INFO ? odoo: database: odoo@db:5432 
+2026-11-08 15:32:45,479 1 INFO ? odoo.service.server: Initiating shutdown 
+2026-11-08 15:32:45,479 1 INFO ? odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-11-08 15:32:45,486 1 INFO odoo_test_cutover odoo.modules.loading: loading 1 modules... 
+2026-11-08 15:32:45,488 1 INFO odoo_test_cutover odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-11-08 15:32:45,516 1 INFO odoo_test_cutover odoo.modules.loading: loading 170 modules... 
+2026-11-08 15:32:46,093 1 INFO odoo_test_cutover odoo.modules.loading: 170 modules loaded in 0.58s, 0 queries (+0 extra) 
+2026-11-08 15:32:46,164 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.estimate.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-11-08 15:32:46,164 1 WARNING odoo_test_cutover odoo.fields: Field plasticos.freight.quote.selected: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-11-08 15:32:46,182 1 INFO odoo_test_cutover odoo.modules.loading: Modules loaded. 
+2026-11-08 15:32:46,211 1 INFO odoo_test_cutover odoo.registry: Registry loaded in 0.731s 
+VANILLASOFT_HISTORY_AUDIT {"event": "crm_history.refused", "reasons": ["the census file named by VANILLASOFT_HISTORY_CENSUS is missing"]}
+PRECHECK FAILED: the census file named by VANILLASOFT_HISTORY_CENSUS is missing
+Nothing was imported.
+
+make: *** [import-vanillasoft] Error 2
