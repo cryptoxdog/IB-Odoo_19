@@ -1,437 +1,209 @@
 # INVARIANTS.md — PlasticOS System Invariants
 
-**Purpose**: Unchangeable rules that govern the PlasticOS codebase.
-**Status**: Constitutional
-**Enforcement**: Machine + Human
-**Version**: 2.2.0
-**Last Updated**: 2026-08-30
+**Repository:** `cryptoxdog/IB-Odoo_19`
+**Status:** ACTIVE
+**Version:** 3.0.0
+**Admitted:** 2026-11-08
+**Supersedes:** `INVARIANTS.md` v2.2.0
+**Admission baseline:** `Staging@b5b6056f01639212e722ccdec5b964b36deee9f5`
+**Source:** `docs/campaigns/future-add-ons/PlasticOS_Export/GOVERNANCE/SOURCES/ODOO_INVARIANTS_v3.0.0_DRAFT_r3.md`
 
-## Meta-Rule
+This file is the canonical invariant source. It does not certify implementation conformance. Unimplemented behavior must not be described as compliance.
 
-**If code violates an invariant, code is wrong — not invariant.**
+## Constitutional scope
 
----
+These invariants define durable, falsifiable boundaries of PlasticOS on Odoo 19 Enterprise. They govern **who may establish a fact, what evidence makes it valid, and which operations may change it**. They do not replace the Logistics BRS, document-rule configuration, accepted ADRs, Odoo's native contracts, or executable tests.
 
-## Core Invariants
+**MUST** and **MUST NOT** are binding. A source assertion, observation, inference, proposal, approval, business event, and posted financial fact are different kinds of truth. Storage, projection, visibility, and API access do not independently confer authority. A missing fact remains unknown, not zero, false, confirmed, or successful by default.
 
-### 1. Odoo 19 Compliance
+A candidate belongs here only if it is **durable, cross-cutting, consequential, and independently falsifiable**. A threshold, formula, deadline, model field, cron interval, specific document matrix, or implementation recipe belongs to its BRS, ADR, or code owner.
 
-**Rule**: No deprecated Odoo patterns.
+## I. Platform, authority, and identity
 
-**Forbidden Patterns**:
-- ❌ `_sql_constraints` → Use `models.Constraint` / `UniqueConstraint`
-- ❌ `@api.depends("id")` → Remove `"id"` from depends
-- ❌ `@api.one` / `@api.multi` → Removed in Odoo 13
-- ❌ `category_id` on `res.groups` → Removed in Odoo 19
-- ❌ `numbercall` on `ir.cron` → Deprecated
-- ❌ `<tree>` in views → Use `<list>`
-- ❌ `string="..."` on `<search>` → Remove it
-- ❌ `attrs="{...}"` on fields → Use `invisible="..."` / `readonly="..."` / `required="..."` directly
-- ❌ `states={"done": [("readonly", True)]}` → Use `readonly="state == 'done'"`
-- ❌ `t-esc=` in templates → Use `t-out=`
-- ❌ `decoration-secondary=` on list columns → Removed
-- ❌ `x_` prefixed fields → Use proper field names
+### POS-INV-01 | Native Odoo Before Custom Machinery
 
-**Detection**: `scripts/check_odoo_patterns.sh` (24 checks), `ci/check_odoo19_xml.py`, `ci/check_odoo19_hooks.py`
+PlasticOS **MUST** use applicable native Odoo 19 Enterprise capabilities before implementing a parallel model, workflow, scheduler, document store, mail processor, stock mechanism, or accounting process. Custom behavior **MUST** address a demonstrated domain gap while preserving the native owner's lifecycle and data semantics.
 
-**Enforcement**: Pre-commit hook + CI pipeline (`static-checks` in `test-quality.yml` and `odoo-audit.yml`)
+**Rejects:** building a second mail queue or inventory ledger because native integration requires more work.
 
----
+### POS-INV-02 | One Writer per Business Fact
 
-### 2. Dependency Graph Acyclicity
+Each consequential business fact **MUST** have one authoritative writer. Sales/Purchase own native order state; Inventory owns physical stock; Accounting owns Odoo postings; native Documents/attachments own original files; PlasticOS domain services own explicitly delegated verification and operational decisions. Other representations **MUST** be projections, evidence, or governed commands to the owner, not competing writes.
 
-**Rule**: Module dependency graph must be a DAG (Directed Acyclic Graph).
+A mirror, dual-write, feature flag, imported record, or installed semantic model **MUST NOT** acquire authority by existence. Any authority cutover requires an explicit scope, approved transition, observable reconciliation, and a safe recovery boundary. Cross-system settlement has the additional rule in POS-INV-14.
 
-**Prohibited**:
-- ❌ Circular dependencies: A → B → A
-- ❌ Transitive cycles: A → B → C → A
-- ❌ Import from module not listed in `depends` in `__manifest__.py`
+**Rejects:** a compatibility document mirror independently overturning the native verification decision.
 
-**Detection**:
-```bash
-python3 scripts/check_module_wiring.py     # dependency + __init__.py wiring
-python3 ci/check_circular_deps.py          # circular dependency detection
-```
+### POS-INV-03 | No Fabricated Business Reality
 
-**Enforcement**: Pre-commit hooks (`module-wiring`, `circular-deps`) + CI (`static-checks`)
+An order, load, stock change, readiness or delivery confirmation, approval, commitment, posting, or settlement **MUST** arise from a real eligible source and its authorized business operation. Evidence **MUST** preserve whether it is a requirement, assertion, observation, inference, proposal, or accepted fact; neither AI confidence nor an unverified source claim may silently promote it.
 
----
+Unknown or contradictory prerequisites remain unresolved. A provisional review record is permitted; a fictional counterpart, event, or completed state is not. Native workflow-generated records remain valid when their real prerequisites are satisfied.
 
-### 3. Namespace Consistency
+**Rejects:** creating a fictitious PO to complete an SO, or accepting carrier-reported delivery as verified receipt without required evidence.
 
-**Rule**: Use `plasticos_` prefix universally.
+### POS-INV-04 | Stable Identity, Complete Accounting, Replay
 
-**Required**:
-- ✅ Module names: `plasticos_<module>`
-- ✅ Model names: `plasticos.<model>`
-- ✅ External IDs: `plasticos_<module>.<external_id>`
-- ✅ Class names: `Plasticos<Model>` (not `Plastos<Model>`)
+Each ingestion or integration path **MUST** use its approved stable source identity and a single authoritative ingestion seam. Historical ERP data uses the accepted SQL-projection pipeline; CRM data uses its approved provider API and crosswalk. Names, emails, guessed associations, and mutable content are not identity keys. Accepted semantic entity identities must remain stable through changes and supersession.
 
-**Forbidden**:
-- ❌ `plastos_` (namespace drift — caught by CI check #8)
-- ❌ `plast_` (abbreviation)
-- ❌ Mixed conventions
-- ❌ `self.env.get("model.name")` anti-pattern (caught by CI check #24)
+Replaying the same logical input **MUST** neither duplicate records/effects nor lose earlier evidence; concurrent attempts must resolve consistently. Every in-scope source item **MUST** have an explicit disposition, counts and relevant financial populations **MUST** reconcile, and checkpoints **MUST NOT** advance ahead of committed work. Test extracts are not replacement production import authorities.
 
-**Detection**: `scripts/check_odoo_patterns.sh` checks #8 and #24
+**Rejects:** a rerun duplicates contacts, silently drops unmatched payables, or advances a CRM watermark beyond a failed page.
 
----
+### POS-INV-05 | Company, Party, and Privilege Isolation
 
-### 4. Deterministic Seed Doctrine
+Every consequential read, association, write, report, attachment, and message **MUST** enforce its applicable legal-company scope, authorized role, and counterparty audience. Participation in the same transaction does not entitle a supplier, buyer, carrier, follower, or automation identity to another party's confidential information. Legitimate explicitly authorized intercompany operations remain possible, but isolation may never be bypassed implicitly.
 
-**Rule**: All reference data versioned in XML with `noupdate="1"`.
+Privilege elevation **MUST** be narrowly scoped after effective access checks. Credentials and sensitive business data belong only in approved stores and communication paths.
 
-**Required**:
-- ✅ Partner tags, material taxonomy, payment terms, chart of accounts in XML
-- ✅ External IDs on all seed records
-- ✅ Module-prefixed `ref()` calls: `ref('plasticos_module.record_id')`
+**Rejects:** a buyer-facing report or chatter follower exposing confidential supplier documents through an indirect link.
 
-**Forbidden**:
-- ❌ Runtime CSV bootstrap
-- ❌ Python seed generation (except migrations)
-- ❌ Hardcoded database IDs
-- ❌ `ref="record_id"` without module prefix (caught by CI check #10)
-- ❌ Unescaped `&` in XML (caught by CI check #6)
-- ❌ Nested double quotes in `eval` (caught by CI check #11)
+## II. Documents, approval, and compliance
 
-**Enforcement**: Code review, `ci/check_odoo19_xml.py`, `scripts/check_odoo_patterns.sh`
+### POS-INV-06 | One Original, Exact Associations
 
----
+Each source-document identity **MUST** preserve one canonical original in native Odoo Documents/attachment storage. It **MAY** support multiple independently justified, typed associations to orders, loads, pickings, transactions, parties, and evidence obligations without multiplying the original. Identical bytes do not automatically imply identical source-document identity.
 
-### 5. Graph Isolation Boundary
+Authoritative links **MUST** be established from sufficient attributable identifiers and context, including the correct company, party, subject, purpose, and revision. Filename resemblance, nearest date, partial order number, shared partner, or AI score may propose candidates **but MUST NOT** finalize an ambiguous association. Corrections and supersession preserve the source bytes and prior associations as audit history.
 
-**Rule**: Neo4j integration must not break Odoo registry.
+**Rejects:** attaching a supplier PDF to the newest PO for that partner and treating the guess as verified evidence.
 
-**Required**:
-- ✅ Neo4j imports wrapped in try/except
-- ✅ Graph failures return empty results
-- ✅ No Neo4j imports in `__init__.py` registry load
-- ✅ Connection timeout defined
-- ✅ Lazy driver initialization (not at import time)
+### POS-INV-07 | Classification Is Not Verification
 
-**Forbidden**:
-- ❌ Graph failures raise unhandled exceptions
-- ❌ Neo4j driver imported at module load (`from neo4j import ...` at top level)
-- ❌ Blocking Odoo startup on Neo4j availability
-- ❌ Writing canonical business data only to Neo4j
-- ❌ Using graph results inside `@api.constrains` as authority
+Receipt, OCR, parsing, tagging, matching, hashing, and AI inference **MUST NOT** themselves verify a document or authorize an override. Verification **MUST** be an attributable action by the designated authority against the correct original, classification, party, purpose, and current revision; an override **MUST** retain its authorization and reason. Earlier approved evidence remains immutable, with material corrections recorded as successors.
 
-**Enforcement**: Code review, integration tests, `ci/check_pipeline_v2_guard.py`
+Only current verified evidence or an explicitly authorized override may satisfy a documentary obligation. The BRS and document-rule owner determine the particular required classes and conditions.
 
----
+**Rejects:** a high-confidence classification toggling `verified` or an updated attachment inheriting approval of older bytes.
 
-### 6. Partner Architecture Integrity
+### POS-INV-08 | Evidence Gates Are Operation-Specific
 
-**Rule**: Use native Odoo partner fields + isolated capability profiles.
+An evidence requirement **MUST** be assessed for the exact action, company, responsible party, and current document/evidence revision. Commercial order issue, dispatch, receiving, customer invoicing, supplier settlement, operational close, and financial close have distinct prerequisites; a requirement for one **MUST NOT** silently block or satisfy another.
 
-**Required**:
-- ✅ `company_type` for entity type
-- ✅ `customer_rank` / `supplier_rank` for business role
-- ✅ `category_id` for partner tags
-- ✅ `plasticos.facility.profile` for capabilities (One2many)
+The applicable BRS or configured rule determines the exact required documents, permitted equivalents, and overrides. Present-but-unverified, stale, expired, or unrelated evidence cannot satisfy a verification gate.
 
-**Forbidden**:
-- ❌ Custom partner role booleans (`is_buyer`, `is_supplier`)
-- ❌ Material profiles attached directly to `res.partner`
-- ❌ Capability fields on `res.partner` model
+**Rejects:** missing carrier scale evidence automatically blocking an otherwise eligible buyer invoice without a rule applicable to that invoice.
 
-**Enforcement**: Architectural review, module wiring check
+### POS-INV-09 | Compliance Evaluation Is Observational
 
----
+Reading or computing compliance **MUST** assess existing evidence and rule state without exercising separate business authority. It **MUST NOT** post or reverse accounting, mutate commercial or stock state, dispatch a load, approve a document, or send external correspondence. An authorized command may act *after* evaluating the applicable gate; the evaluation itself may only maintain ordinary derived assessment state.
 
-### 7. Layer Dependency Direction
+**Rejects:** a computed compliance field calling `account.move.action_post()`.
 
-**Rule**: Higher layers depend on lower layers, never reverse.
+## III. Commercial, physical, and financial truth
 
-**Dependency Flow**:
-```
-Transaction Layer (5)
-    ↓ depends on
-Compliance Layer (4)
-    ↓ depends on
-Commercial Layer (3)
-    ↓ depends on
-Capability Layer (2)
-    ↓ depends on
-Material Layer (1)
-```
+### POS-INV-10 | Orders Are Independent; State Changes Are Real
 
-**Forbidden**:
-- ❌ Material layer depending on transaction layer
-- ❌ Intake depending on documents
-- ❌ Capability depending on commercial
+A legitimate PO or SO **MUST** be independently creatable, approved, issued, canceled, or reopened through its actual native Odoo lifecycle. Neither order requires a fabricated counterpart, transaction, or load. An Odoo-native downstream transaction created by a genuinely eligible workflow is not fabrication. Draft/creation is not confirmation, and confirmation is not physical readiness.
 
-**Enforcement**: Dependency graph analysis, `scripts/check_module_wiring.py`
+Cancellation and legitimate reconfirmation represent distinct lifecycle events. Historical imports **MUST NOT** synthesize procurement, postings, shipments, or other events merely to imitate a source status.
 
----
+**Rejects:** a PO-only inventory purchase being forced through a company-less load or fictitious SO.
 
-### 8. Security Model Completeness
+### POS-INV-11 | Stock Truth Is Not Dispatch Permission
 
-**Rule**: Every model requires ACL and record rules.
+Physical inventory **MUST** derive from valid native Odoo stock movements and stock records, respecting actual ownership, custody, location, quantities, and route. Dropship and third-party custody must not invent on-hand stock. Documents, invoices, and PlasticOS load states **MUST NOT** independently modify physical inventory.
 
-**Required**:
-- ✅ `security/ir.model.access.csv` in every module with models
-- ✅ CSV included in `__manifest__.py` `data` list
-- ✅ Record rules for multi-company isolation
-- ✅ Group-based access control (manager CRUD, user CRU, readonly R)
+Reservation or picking assignment alone **MUST NOT** establish site readiness, accepted appointment, carrier authorization, packet acknowledgment, or physical dispatch. Every dispatch path must pass the same applicable logistics-release checks. Physical milestones remain distinct from financial completion.
 
-**Forbidden**:
-- ❌ Models without ACL file
-- ❌ `sudo()` without explicit justification comment
-- ❌ World-readable sensitive fields
+**Rejects:** `stock.picking` becoming `assigned` and automatically sending a carrier to an unready facility.
 
-**Enforcement**: `ci/check_acl_completeness.py` (warn-only), `ci/enhanced_audit.py`
+### POS-INV-12 | Commercial Weights Have Distinct Authorities
 
----
+Supplier settlement weight, buyer billing weight, carrier-certified measurements, and operational estimates **MUST** retain their own sources, units, and acceptance authority. Gross, certified tare, certified net, packaging tare, and billable material net **MUST NOT** be treated as interchangeable facts. A computed `final_weight` or convenient fallback cannot silently replace an accepted commercial weight.
 
-### 9. External ID Referential Integrity
+Conflicts remain unresolved until the designated adjudication. Arithmetic, tolerances, minimums, and chargeback thresholds stay in the BRS or contractual rules.
 
-**Rule**: All `ref="..."` must point to existing external IDs.
+**Rejects:** using carrier-certified net weight to overwrite independently accepted buyer billing weight.
 
-**Required**:
-- ✅ External IDs defined before use
-- ✅ No duplicate external IDs across modules
-- ✅ Seed data loading order enforced by dependencies
+### POS-INV-13 | One Economic Effect; Corrections Preserve History
 
-**Forbidden**:
-- ❌ `ref="module.nonexistent_id"`
-- ❌ Duplicate external IDs
-- ❌ Orphaned XML records
+Claims, discrepancies, and logistics exceptions are operational evidence, **not** accounting postings. Each economic adjustment **MUST** be recognized at most once through authorized native accounting and applicable stock valuation; credits, debits, claims, allocations, and reconciliations cannot independently book the same effect.
 
-**Detection**: `ci/check_orphan_model_refs.py`
+Physical close protects historical fulfillment and original records, **not** an absolute ban on later authorized financial corrections. Such corrections use proper native credit, debit, reversal, or adjustment operations without silently rewriting posted originals or reopening physical events.
 
----
+**Rejects:** a vendor credit booked once in Accounting and again as a separate posted claim recovery, or a legitimate credit note denied solely because the physical load closed.
 
-### 10. Test Isolation
+### POS-INV-14 | Exactly One Settlement Writer per Scope
 
-**Rule**: Tests must not mutate seed data or production database.
+For each legal company and accounting period, **one designated system** MUST own operational settlement posting and payment reconciliation. Any expressly authorized partial cutover **MUST** define disjoint obligations and prevent overlapping writers. An imported historical document **MUST NOT** imply that Odoo collected, paid, posted, or reconciled it. External settlement ownership remains intact until an explicitly authorized, reconciled accounting cutover establishes the new boundary.
 
-**Required**:
-- ✅ Use dedicated test database (`odoo_test`)
-- ✅ Transactional rollback after tests
-- ✅ No test data committed to seed XML
+Cutover **MUST** preserve opening positions, payment and source identities, and a nonoverlapping writer transition; it cannot double-post or silently discard prior settlement evidence.
 
-**Forbidden**:
-- ❌ Tests writing to production database
-- ❌ Test data in `data/*.xml` files
-- ❌ Tests assuming specific database state
+**Rejects:** paying or reconciling one historical obligation in both the external accounting system and Odoo.
 
-**Enforcement**: Test suite configuration, code review
+## IV. Automation and correspondence
 
----
+### POS-INV-15 | Authorized Automation; One Outbound Intent
 
-### 11. API Dependency Isolation
+Automation **MUST** distinguish disabled, shadow, and live effects and prevent installation, import, test, and replay from causing unauthorized external action. Each consequential outbound communication through the approved Odoo Mail path **MUST** bind a durable obligation to its actual order/load/request owner, company, recipient, purpose, and lifecycle revision. Due times derive from real business milestones with the applicable local-time and business-day contract.
 
-**Rule**: External API failures must not crash Odoo.
+Native order release, not draft creation, authorizes order issuance. An unsent issue withdrawn on cancellation is not a sent cancellation; a previously communicated cancellation creates its own ordered obligation. Legitimate reopening and reconfirmation begin a new issuance cycle, while repetition within a cycle does not. Native/provider queuing, acceptance, uncertain outcome, acknowledgment, and business acceptance **MUST** remain distinguishable. Uncertain delivery is reconciled before any unsafe resend: **exactly-once intent is not exactly-once external delivery**.
 
-**Required**:
-- ✅ OpenAI API wrapped in try/except
-- ✅ API failures return safe defaults (e.g., COLD classification)
-- ✅ Rate limiting handled
-- ✅ API keys in environment variables (never hardcoded)
-- ✅ `temperature=0.0` for deterministic LLM outputs
+Documents Requests and internal file access **MUST NOT** become an ungoverned external authorization or sharing channel; external party requests use a suitably scoped approved communication path.
 
-**Forbidden**:
-- ❌ Unhandled OpenAI exceptions
-- ❌ Hardcoded API keys (caught by `gitleaks` + `secret-scan` CI)
-- ❌ Blocking operations without timeout
+**Rejects:** shadow-mode email, double-sending after provider timeout, or a new issue overtaking an unresolved cancellation to the same recipient.
 
-**Enforcement**: Code review, integration tests, `security.yml` CI
+### POS-INV-16 | Inbound Interpretation Has No Decision Authority
 
----
+An external response **MUST** bind to the exact current request, authorized party, company, purpose, subject, and revision before it can inform a business transition. Replies to unrelated, canceled, or superseded requests cannot satisfy present obligations. Sender addresses, thread position, forwarded content, bearer links, and LLM interpretations are individually insufficient to authenticate a commitment.
 
-### 12. Model Name Uniqueness
+AI may extract **candidate facts**; only authorized deterministic domain validation can accept them, schedule a permitted next action, or create an attributable exception. This does not impose an extra human approval on routine actions already authorized by the business rules.
 
-**Rule**: No duplicate `_name` across all modules.
+**Rejects:** a forwarded old email automatically establishing supplier READY or carrier acknowledgment.
 
-**Required**:
-- ✅ Unique `_name` for each model
-- ✅ Use `_inherit` for extensions (no new `_name`)
-- ✅ `_name` MUST be a string literal — never a variable or constant
+## V. External intelligence and trustworthy outcomes
 
-**Forbidden**:
-- ❌ Two modules defining `plasticos.intake`
-- ❌ Model name collision with Odoo core
-- ❌ `_name = SOME_CONSTANT` (caught by `odoo-audit.yml` `_name` check)
+### POS-INV-17 | One External Intelligence and Transport Plane
 
-**Detection**: `scripts/check_module_wiring.py`, `odoo-audit.yml` enforce-string-literal step
+For canonical matching/scoring and enrichment/inference, **CEG and EIE own intelligence**, **Constellation.Gate owns routing/admission**, and **Gate_SDK owns transport**. Odoo owns the domain request, operator interaction, and resulting business persistence. Production calls **MUST** pass through the single designated `plasticos_gate` SDK seam; Odoo **MUST NOT** recreate packets, signing, transport retries, routing, or direct worker access.
 
----
+A missing SDK capability is an upstream capability gap, not license for a local shadow implementation. The same logical attempt preserves its operation identity; a genuinely new authorized attempt uses a new correlatable identity. Local web-lead triage is not an alternative canonical matching or enrichment engine.
 
-### 13. Field Reference Safety
+**Rejects:** Gate failure triggering a local matcher, or an Odoo-side custom HTTP transport to EIE.
 
-**Rule**: All field references must exist before use.
+### POS-INV-18 | External Results Cannot Invent Success or Writeback
 
-**Required**:
-- ✅ Fields defined before `@api.depends`
-- ✅ Related fields point to existing paths
-- ✅ Computed fields reference valid fields
-- ✅ Every `@api.constrains(...)` field name must exist on the model
-- ✅ Every `fields.Many2one` MUST have `ondelete=` parameter
+Transport receipt, canonical domain completion, durable persistence, and business success **MUST** be judged separately. Disabled, unreachable, malformed, incomplete, or failed matching/enrichment **MUST** produce classified, durable, operator-visible failure evidence, not empty success or substituted local output.
 
-**Forbidden**:
-- ❌ `@api.depends("nonexistent_field")`
-- ❌ `related="missing.path"`
-- ❌ Undefined field in compute method
-- ❌ Related fields using old intake paths without `_id` suffix (caught by CI check #18)
+External results are **proposals**, not CRM write commands. Only Odoo's approved allowlist, review policy, merge-not-overwrite rules, and provenance controls may modify authoritative partner data. A field-family cutover cannot silently override those business protections.
 
-**Detection**: Odoo registry load errors, `ci/check_field_integrity.py`, `ci/check_automation_field_refs.py`
+**Rejects:** a noncompleted Gate response mutating an existing customer field or being displayed as a successful match.
 
----
+### Single External Intelligence Authority
 
-### 14. Migration Safety
-
-**Rule**: Migrations must be idempotent and safe.
-
-**Required**:
-- ✅ Migrations check before modify
-- ✅ No data loss on rollback
-- ✅ Version numbering enforced
-
-**Forbidden**:
-- ❌ Destructive migrations without backup
-- ❌ Non-idempotent operations
-- ❌ Missing version tags
-
-**Enforcement**: Code review, staging environment testing
-
----
-
-### 15. Cron Job Discipline
-
-**Rule**: Cron jobs must have safe failure modes.
-
-**Required**:
-- ✅ Cron failures logged, not raised
-- ✅ Idempotent operations
-- ✅ `active="False"` by default for production safety
-- ✅ `model_id` refs must include module prefix: `ref="plasticos_module.model_plasticos_model"`
-- ✅ No `numbercall` attribute (deprecated)
-
-**Forbidden**:
-- ❌ Crons crashing on failure
-- ❌ Non-idempotent batch operations
-- ❌ Auto-enabled crons in production
-- ❌ `ref="model_plasticos_load"` without module prefix (caught by CI check #10)
-
-**Enforcement**: `tools/cron_invariant_check.py`, `scripts/check_odoo_patterns.sh` check #5 and #10
-
----
-
-### 16. Cross-Addon Import Safety
-
-**Rule**: No top-level cross-addon imports in model files.
-
-**Required**:
-- ✅ All `from odoo.addons.plasticos_*` imports must be inside functions (lazy loading)
-- ✅ Use `_get_<thing>()` helper functions for deferred imports
-
-**Forbidden**:
-- ❌ `from odoo.addons.plasticos_other.models.file import Class` at top level
-- ❌ Top-level imports that depend on module initialization order
-
-**Pattern**:
-```python
-def _get_inference_classes():
-    from odoo.addons.plasticos_inference_engine.engine import InferenceEngine
-    return InferenceEngine
-```
-
-**Enforcement**: `ci/check_pipeline_v2_guard.py`, code review
-
----
-
-### 17. File Wiring Completeness
-
-**Rule**: Every Python file in a module must be registered.
-
-**Required**:
-- ✅ Every `.py` file in `models/` has a `from . import <file>` in `models/__init__.py`
-- ✅ Every `.py` file in `controllers/` has a `from . import <file>` in `controllers/__init__.py`
-- ✅ Every `.py` file in `wizards/` has a `from . import <file>` in `wizards/__init__.py`
-- ✅ No empty `__init__.py` in `plasticos_*` module roots
-
-**Forbidden**:
-- ❌ Python file exists but no import in `__init__.py` (models won't load)
-- ❌ Empty `__init__.py` in module root (caught by CI check #7)
-
-**Detection**: `scripts/check_module_wiring.py`, `ci/check_package_init.py`
-
----
-
-### 18. XML View Compatibility
-
-**Rule**: Views must use Odoo 19 syntax exclusively.
-
-**Required**:
-- ✅ `<list>` not `<tree>` (CI check #12)
-- ✅ No `string=` on `<search>` (CI check #13)
-- ✅ No `string=` on `<group>` in search views (CI check #14)
-- ✅ No `attrs=` attribute (CI check #19) — use `invisible=`, `readonly=`, `required=` directly
-- ✅ No `states=` attribute (CI check #20)
-- ✅ Font Awesome `<i>` tags must have `title=` (CI check #21, accessibility)
-- ✅ XPath anchored to stable nodes
-
-**Forbidden**:
-- ❌ `<tree>`, `attrs=`, `states=`, `string=` on search, `decoration-secondary=`, `t-esc=`
-
-**Detection**: `scripts/check_odoo_patterns.sh` checks #12–21, `ci/check_odoo19_xml.py`, `ci/check_xpath_stability.py`
-
----
-
-## CI Enforcement Map
-
-Every invariant is enforced by one or more automated tools:
-
-| Invariant | Pre-commit Hook | CI Workflow | Script |
-|-----------|----------------|-------------|--------|
-| 1. Odoo 19 Compliance | `odoo-patterns` | `static-checks` | `check_odoo_patterns.sh` |
-| 2. DAG Dependencies | `module-wiring`, `circular-deps` | `static-checks` | `check_module_wiring.py`, `check_circular_deps.py` |
-| 3. Namespace | `odoo-patterns` | `static-checks` | `check_odoo_patterns.sh` #8 |
-| 5. Graph Isolation | `pipeline-v2-guard` | — | `check_pipeline_v2_guard.py` |
-| 8. Security/ACL | `acl-completeness` (warn) | `audit` | `check_acl_completeness.py`, `enhanced_audit.py` |
-| 9. External IDs | `orphan-model-refs` | `static-checks` | `check_orphan_model_refs.py` |
-| 11. Secret Safety | — | `secret-scan` | `gitleaks` |
-| 12. `_name` Literal | — | `odoo-audit.yml` | grep `_name = [A-Z]` |
-| 13. Field Refs | `field-integrity`, `automation-field-refs` | `static-checks` | `check_field_integrity.py` |
-| 15. Cron Safety | `cron-invariants` | — | `cron_invariant_check.py` |
-| 17. File Wiring | `package-init`, `module-wiring` | `static-checks` | `check_package_init.py` |
-| 18. XML Views | `odoo19-xml`, `xpath-stability` | `static-checks` | `check_odoo19_xml.py`, `check_xpath_stability.py` |
-| 20. Legacy Vendor Identifier (BAN001) | `banned-identifier` | `static-checks` | `check_banned_identifier.py` |
-
----
-
-### 19. Single External Intelligence Authority
-
-**Rule**: Matching and enrichment **intelligence authority** is external and Gate-mediated.
-Local Odoo algorithmic engines are not architectural authority.
+Preserved detection wiring for POS-INV-17 and POS-INV-18. Former v2.2.0 invariant 19. Local Odoo algorithmic engines are not architectural authority.
 
 **Authority** (binding):
 [`docs/adr/ADR-003-single-external-intelligence-authority.md`](docs/adr/ADR-003-single-external-intelligence-authority.md)
 (supersedes ADR-002 §2 fallback-as-authority). Hub topology and “never Odoo → CEG/EIE direct”
 from ADR-002 remain in force.
 
-**Required**:
-- ✅ Odoo intelligence egress only through `plasticos_gate` → Constellation.Gate (`TransportPacket`)
-- ✅ CEG owns match semantics; EIE owns converge/enrichment intelligence
-- ✅ Cite the full ADR filename — numeric `ADR-003` alone is ambiguous (contact-import ADR shares the prefix)
-
-**Forbidden**:
-- ❌ Treating `plasticos_buyer_match_engine`, local Neo4j matcher paths, or in-Odoo enrichment
-  crawl/extract/inference as the product authority for match/enrichment quality
-- ❌ Direct Odoo → CEG/EIE HTTP or SDK bypass of Gate
-- ❌ Restoring “local fallback as design” language in constitutional docs after this invariant
-
-**Note**: M7 physically retired `plasticos_buyer_match_engine` and `plasticos_inference_engine`
-from the repository. M8 (TASK-052) activates **blocking** drift guards in Makefile, pre-commit,
-and CI via `ci/check_no_local_intelligence.py` — reintroduction of retired modules or
-consumer-path local authority fails the build.
-
 **Detection**: `tests/contracts/test_external_intelligence_authority.py`, `tests/contracts/test_no_local_intelligence.py`, `ci/check_no_local_intelligence.py`
 
-**Enforcement**: Blocking contract tests + CI/pre-commit/Makefile drift guard + ADR-013 fail-closed transport
+**Enforcement**: Blocking contract tests + CI/pre-commit/Makefile drift guard + ADR-013 fail-closed transport. Reintroduction of retired modules or consumer-path local authority fails the build.
 
----
+## VI. Structural integrity and release proof
+
+### POS-INV-19 | Installable, Acyclic, Migratable Odoo 19
+
+The addon dependency graph **MUST** remain acyclic and accurately declare consumed dependencies. Models, fields, XML IDs, access rules, views, imports, and data load order **MUST** resolve on the supported Odoo 19 Enterprise runtime. Changes requiring reload **MUST** version the affected addon and use an appropriately scoped upgrade; migrations **MUST** preserve identities and be repeatable and recoverable under approved safety conditions.
+
+A conceptual layer diagram, universal `noupdate` rule, or blanket ACL formula **MUST NOT** override actual lifecycle and model semantics. Destructive migrations require separate authorization and verified recovery capability.
+
+**Rejects:** a green source lint with an addon that fails to install because a dependency or referenced model is absent.
+
+### POS-INV-20 | Proof and Activation Are Separate Decisions
+
+A claim of correctness, readiness, or completion **MUST** identify the exact code revision, environment, executed assertions, and limitations. Static checks and mocks do not prove Enterprise registry behavior; Community tests do not prove Enterprise integration; simulated provider responses do not prove live delivery. Transaction, concurrency, rollback, import replay, and external SDK paths need proof at the actual affected seam. `NOT_RUN`, skipped, partial, blocked, and unknown are never `PASS`.
+
+Test execution **MUST** protect production data and use authorized, compatible isolated environments. Passing tests or merging code **MUST NOT** authorize production deployment, financial-writer cutover, live mail, or other consequential activation; those remain operator-controlled decisions.
+
+**Rejects:** claiming full Enterprise acceptance from pure-Python CI, or activating live correspondence because a migration installed a scheduler.
+
+## BAN001 | Permanent Legacy Identifier Prohibition
+
+**Preserved authority:** Former `INVARIANTS.md` v2.2.0 invariant 20. Its scope, all-case ban, and blocking enforcement remain intact.
 
 ### 20. Legacy Vendor Identifier Prohibition (BAN001)
 
@@ -482,55 +254,29 @@ prohibited literal is ever committed.
 
 **Violation effect**: CI failure.
 
----
-
 ## Known False Positives
-
-These patterns are excluded from CI checks because they are valid code, not violations:
 
 | Check | Excluded File/Path | Reason |
 |-------|-------------------|--------|
-| Many2one string write (#22) | `ai_normalizer.py` | LLM prompt JSON schema, not field assignment |
-| Many2one string write (#22) | `graph_service.py`, `matcher.py` | Dict/API payloads, not ORM writes |
-| Many2one string write (#22) | `enrichment_service.py`, `material_profile.py` | Dict construction, not ORM writes |
-| `self.env.get()` (#24) | `ci/*.py` | CI scripts contain detection patterns |
-| Unescaped `&` (#6) | Lines with `&amp;`, `&lt;`, `&gt;`, `&quot;` | Valid XML entities |
-| `<tree>` (#12) | `tree.txt` | Index file, not Odoo view |
-| Ruff lint | `plasticos_inference_engine`, `plasticos_buyer_match_engine`, `plasticos_matching` | Excluded in `pr-gate.yml` ruff step |
-| mypy | `plasticos_web_leads`, `plasticos_enrichment`, `plasticos_buyer_match_engine` | Complex recordset patterns, gradual typing |
-| ACL completeness | all modules | Non-blocking (warn-only hook) |
-| Odoo patterns script | all workflows | `|| true` — tracked separately, non-blocking in CI |
+| BAN001 | none | No exclusion. Do not add one. |
 
----
+## Ownership and precedence
 
-## Enforcement Strategy
+- **This file** owns repository-level architectural boundaries.
+- [`plasticos_logistics/business_rules/README.md`](plasticos_logistics/business_rules/README.md), its seven BRS chapters, and [`SUPERSESSION.md`](plasticos_logistics/business_rules/SUPERSESSION.md) own their applicable specific business policy and narrow later operator corrections. Preserve stable BRS IDs and source history.
+- Accepted [`docs/adr/`](docs/adr/) and [`docs/adr/gate-integration/`](docs/adr/gate-integration/) decisions own their specific architecture and integration contracts until explicitly superseded. In particular, external-intelligence and import authorities are not redefined by abbreviation.
+- Native Odoo and installed Enterprise features provide actual platform contracts; code and test results provide **implementation evidence**, not power to amend an invariant.
 
-### Automated Checks
-- **Pre-commit hooks**: 39 hooks including ruff, module wiring, XML validation, cron invariants, secret scan (gitleaks); 10 run at pre-push, including the `pr-validate` gate (see the AGENTS.md 2026-11-03 correction)
-- **CI/CD pipeline**: 11 workflow files; `ci.yml` is the single blocking gate (lint → static-checks → pure-python-tests)
-- **Module wiring script**: Dependency graph + `__init__.py` validation
+Existing CI, pre-commit, and contract checks stay in force. This admission does not align agent guidance and does not change addon code.
 
-### Manual Reviews
-- **Architectural review**: Layer violations, partner model changes
-- **Security audit**: ACL completeness, sensitive data exposure
-- **Code review**: API isolation, error handling
-
-### Violation Response
-1. **Block merge**: If automated check fails
-2. **Request remediation**: If manual review finds violation
-3. **Document exception**: If invariant must be violated (rare, requires approval)
-
----
-
-## Invariant Change Process
-
-**Invariants are constitutional.**
+## Invariant change process
 
 To modify an invariant:
-1. Propose change with justification
-2. Architectural review and approval
-3. Update INVARIANTS.md
-4. Update enforcement tooling
-5. Remediate existing codebase
+
+1. Propose the change with justification.
+2. Obtain architectural review and approval.
+3. Update this file.
+4. Update enforcement tooling.
+5. Remediate the existing codebase.
 
 **No silent invariant violations.**

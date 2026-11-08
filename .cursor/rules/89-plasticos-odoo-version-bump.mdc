@@ -1,6 +1,7 @@
 ---
-description: Mandatory PlasticOS module version bumps and scoped -u upgrades. Never ask; never reload the whole stack for one module.
-alwaysApply: true
+description: Mandatory PlasticOS module version bumps and scoped -u upgrades. Never ask; never reload the whole stack for one module. Skill: skills/plasticos-odoo-version-bump/SKILL.md.
+alwaysApply: false
+globs: "plasticos_*/**/*"
 ---
 
 # PlasticOS Version Bump — Mandatory

@@ -1,6 +1,6 @@
 ---
 description: Auto-invoke Context7 MCP before coding on external libraries — FastAPI, Neo4j, pytest, GitHub Actions, new platforms/tools.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Context7 Auto-Invoke (External Docs)

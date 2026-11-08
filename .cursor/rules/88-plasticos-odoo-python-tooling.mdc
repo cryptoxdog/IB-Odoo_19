@@ -1,6 +1,6 @@
 ---
 description: Odoo PlasticOS Python editor tooling — Pyright basic (editor-only), pyproject SSOT, no uv/strict CI typing. Supersedes global 20-lang-python for this repo.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # PlasticOS Odoo Python Tooling

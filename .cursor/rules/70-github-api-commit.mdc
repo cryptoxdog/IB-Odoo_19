@@ -1,6 +1,6 @@
 ---
 description: Publication is make pr. API publication is refused. Merge is a separate human decision.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Publishing Code — PlasticOS

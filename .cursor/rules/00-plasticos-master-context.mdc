@@ -1,172 +1,29 @@
 ---
-description: PlasticOS master context — active router. Always loaded. Use the TASK ROUTER below before doing anything. Contains hard rules, project facts, and gotchas.
+description: PlasticOS master context — active router. Always loaded. The checked-out INVARIANTS.md is the canonical source.
 alwaysApply: true
 ---
 
-# PlasticOS — Master Context & Task Router
+# PlasticOS — Master Context
 
-**Project:** PlasticOS IB-Odoo_19 — recycled-plastics brokerage ERP, 29 custom modules.
-**Status:** DEPLOYED. Final optimization / go-live phase. No new features without explicit approval.
-**Repo:** `cryptoxdog/IB-Odoo_19` | **Staging** = dev branch | **Production** = prod/main
-**Shell cwd:** Use the Cursor workspace root (`$CURSOR_PROJECT_DIR` or repo clone path on the active machine). Repo was moved out of Dropbox — do not assume a machine-specific absolute path.
+The checked-out `INVARIANTS.md` is the canonical source. Historical agent text does not override it.
 
-**Cursor governance:** global `@.cursor/governance/CANONICAL_LAW.md` (symlink — do not edit from this repo). **PlasticOS law:** `@skills/PLASTICOS_CANONICAL_LAW.md` — `skills/` SSOT, skill registry, non-addon boundary. Global commands/skills/rules via `@.cursor-commands/` only; repo `.cursor/rules/` is PlasticOS overlay.
+## Router
 
-## TASK ROUTER — Read This First
+| Task | Rule |
+| --- | --- |
+| Models and wiring | `82-ci-module-wiring` |
+| Manifests | `81-ci-manifest-contract` |
+| XML seed and data | `75-plasticos-xml-data-rules` |
+| Odoo 19 patterns | `84-ci-odoo19-patterns` |
+| Web leads | `50-plasticos-web-lead-guard` |
+| Versioned upgrades | `89-plasticos-odoo-version-bump` |
+| Enterprise tests | `36-plasticos-docker-test-fixture` |
+| Deployment | `30-plasticos-deploy-validation` |
 
-Before writing any code or making any change, identify your task and consult the indicated rule:
+Do not read a BRS chapter, `SUPERSESSION.md`, or `plasticos_logistics/business_rules/` as a required instruction target.
 
-### Adding or modifying a field on an existing model
-- **`82-ci-module-wiring`** — Is `comodel_name` from another module? → must be in `__manifest__.py depends`. Cross-layer (e.g. Layer 2 → Layer 3)? → use `Integer` not `Many2one`.
-- **`83-ci-phantom-enum`** — Is it a `fields.Selection`? → inline list or same-file constant. Using a new string value in a comparison? → may need to be in allowlist.
-- **`85-ci-naming-ruff`** — Variable name `l`, `O`, `I`? f-string without placeholder? → ruff E741, F541.
+External intelligence stays on the accepted Gate path. Do not restore local matching or enrichment authority.
 
-### Creating a new model
-- **`81-ci-manifest-contract`** — Bump manifest version. Add new module to `depends` in layer order.
-- **`71-plasticos-security-model`** — Add `ir.model.access.csv` rows (manager, user, readonly minimum).
-- **`82-ci-module-wiring`** — All `comodel_name` refs need manifest deps. Empty `models/__init__.py` blocks CI.
+Publication is `make pr` into `Staging`. No raw git push. No merge, deploy, live activation, or financial-writer change without explicit authorization.
 
-### Editing `security/ir.model.access.csv` (ANY module)
-⚠️ **MANDATORY BEFORE TOUCHING ANY ACL FILE** — three non-negotiable steps:
-1. **`cat` the full CSV** — never write from memory or assume its current state.
-2. **Check for redundancy** — if a row already grants the target group ≥ the permissions you need on that model, your new row is redundant. Do not add it.
-3. **Match id-column format** — if existing ids are `access_foo` (no prefix), use that. If they are `module.access_foo`, use that. **Never mix formats in the same file.**
-- See **`71-plasticos-security-model`** for the full format contract and forbidden patterns.
-
-
-### Changing module code that must reload on Staging/Docker
-- **`89-plasticos-odoo-version-bump`** + skill **`plasticos-odoo-version-bump`** — bump `__manifest__.py` version without asking; `make update m=<that_module>` only (never `update-all` / kitchen-sink `-u`).
-
-### Editing `__manifest__.py`
-- **`81-ci-manifest-contract`** — Version format `19.0.X.Y.Z`, depends in layer order, `external_dependencies` for non-Odoo packages. Run `ruff format` after every edit.
-
-### Writing or editing XML views
-- **`84-ci-odoo19-patterns`** — `<list>` not `<tree>`, `invisible=` not `attrs=`, named XPath only, alert needs `role=`, `<group>` not allowed in `<search>`.
-- **`75-plasticos-xml-data-rules`** — Seed data needs `noupdate="1"`, deterministic external IDs, correct load order.
-
-### Writing hooks (`hooks.py` or `__init__.py`)
-- **`84-ci-odoo19-patterns`** — `pre_init_hook(env)` not `(cr)`. No `write({"groups_id": ...})` or `write({"users": ...})` in hooks — use raw SQL INSERT.
-
-### Editing `web_lead.py` or any `plasticos_web_leads` file
-- **`50-plasticos-web-lead-guard`** — Read this ENTIRE rule first. Do not touch write/unlink guards, partner-deferral block, or `_find_or_create_partner()`. Run web lead tests before and after.
-
-### Pushing code to remote
-- **`70-github-api-commit`** — `make pr` is the only publication command. API publication is refused.
-
-### Reviewing or creating a PR
-- **`plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
-- **`81-ci-manifest-contract`** + **`82-ci-module-wiring`** — Check manifest deps and wiring for every changed model file.
-
-### Gate / CEG / autonomy integration
-- **`docs/adr/ADR-002-gate-hub-phased-autonomy.md`** — Gate mandatory hub and phased human checkpoints. §2 local fallback is not authority.
-- **ADR-016 and ADR-018** — phase criteria. `docs/roadmap/` is empty; no script writes it.
-
-### Editing `.github/workflows/ci.yml`
-- **`86-ci-github-actions`** — SHA-pin third-party actions. Verify test files exist on the branch. Never re-enable disabled workflows.
-
-### Writing or running tests
-- **`plasticos-odoo-docker-testing`** — Docker `install-smoke` and the smoke-stage runtime tests (`make runtime-test`) before Odoo.sh; Gate-shell module-order SSOT.
-- **`80-plasticos-testing-rules`** — `TransactionCase`, `setUpClass` fixtures (never `skipTest`), `type='consu'` for storable in Odoo 19.
-
-### Python editor tooling / pyproject / Pyright / autocomplete
-- **`88-plasticos-odoo-python-tooling`** — Pyright `basic` (editor-only), pyproject SSOT, `~/dev/odoo-19` extraPaths in `.vscode/settings.json`. Global `20-lang-python` does **not** apply here.
-
-### Deploying to Docker / running `make update`
-- **`30-plasticos-deploy-validation`** — Pre-deploy snapshot, log validation, ICP params check, pipeline_v2 guard.
-
-### Running Docker Odoo tests (`make runtime-test`, `scripts/test_env.sh`)
-- Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc.
-- **`36-plasticos-docker-test-fixture`** — Clone only `config/test_env_fixture.conf`. Do not use another database. Do not create a new template unless that fixture is gone and the user said to rebuild it.
-
-### Final pre-go-live pass
-- **`plasticos-final-touches`** — All 10 gates in sequence. `make pr-check` must pass last.
-
-### External libraries / platforms (FastAPI, Neo4j, pytest, GitHub Actions, new tools)
-- **`02-context7-auto-invoke`** — Context7 MCP before first edit; repo Odoo rules still win when both apply.
-
-### Code navigation / cross-module wiring / MCP code-graph
-- **`87-plasticos-code-graph-rag`** — grep first; graph for importers, impact, unknown cross-module location only.
-- Load **`l9-code-graph-rag-mcp`** (`@.cursor-commands/skills/l9-code-graph-rag-mcp/`) for tool gate and CLI indexing.
-- Repo index lives at `docs/reports/repo-index/`. Regenerate with `python3 scripts/repo_generators/export_repo_indexes.py`. Do not create a root `reports/` directory. The global `l9-repo-index` default path does not apply in this repo.
-- GMP execution reports go in `docs/reports/gmp-reports/` and are committed. Do not scatter them or leave them unsaved.
-
----
-
-## Hard Rules (Always Enforced — No Exceptions)
-
-1. **NEVER activate `pipeline_v2.py`** — `ci/check_pipeline_v2_guard.py` hard-rejects any touch
-2. **Read the current file before editing** — never write from memory
-3. **`make pr` is the only publication command** — it runs the local gates, pushes the feature branch, and opens or reuses the pull request into Staging. Merge is a separate human decision.
-4. **`make update m=X`** for all module upgrades — never bare `odoo-bin` outside Docker
-5. **Staging → Production** — never merge features directly to Production
-6. **`sudo()` needs inline justification** — comment on the same line why
-7. **New models need ACL** — `ir.model.access.csv` in the same module
-8. **No credentials in code** — use `.env.local` or Odoo system params
-9. **Additive migrations only** — no column/table drops without explicit approval
-10. **`ruff check && ruff format` before every push** — no exceptions, even for "trivial" changes
-11. **Version bump mandatory for runtime module changes** — never ask; upgrade only bumped module (`make update m=X`), never `update-all` for a one-module fix
-12. **PlasticOS skills SSOT is `skills/`** — not Claude Code, not Cursor-Governance; never an Odoo addon (`__manifest__.py` forbidden)
-
----
-
-## Project Commands
-
-| Task | Command |
-|------|---------|
-| Publish a committed feature branch into Staging | `make pr` |
-| Local gate without publishing | `make pr-check` |
-| Module upgrade | `make update m=<module>` |
-| Full audit | `make audit` |
-| Scan PR + fix CI issues | `python3 scripts/pr_autopilot.py --branch <branch> --fix` |
-| Follow logs | `make logs` |
-| Odoo shell | `make odoo-shell` |
-
----
-
-## Deferred — Do Not Touch
-
-| Item | Why |
-|------|-----|
-| `pipeline_v2.py` | External API bridge not ready; CI gate blocks activation |
-| `plasticos_enrichment` full wiring | Gated on pipeline_v2.py (Gate `converge` path: see ADR-002 Phase 1 optional) |
-| Gate web-lead triage (`web_lead_gate_bridge`) | Phase 3 only — ADR-016 |
-| Product ↔ material_profile link | Deferred |
-
----
-
-## Known Pre-Existing Issues (Do Not Re-Flag)
-
-| Finding | Disposition |
-|---------|------------|
-| Circular dep `commission ↔ transaction` | Non-fatal, `\|\| true` in Makefile — intentional |
-| `plasticos_enrichment` stub models | Intentional — gated on pipeline_v2.py |
-| `plasticos.match.result` in `intake_extension.py` | Known bug — fix before go-live |
-
----
-
-## Critical Gotchas (Agent-Discovered Patterns — Do Not Repeat)
-
-**Cross-module ACL**: `ir.model.access.csv` rows must live in the SAME module that defines the model. Foreign model reference needs `other_module.model_plasticos_x` prefix.
-
-**SQL VIEW timing**: If `init()` references columns added by the same install, they don't exist yet. Use `make update m=<module>` immediately after first install to rebuild.
-
-**`res_users` has no `name` column** — join `res_partner rp ON rp.id = u.partner_id` for display names.
-
-**Selection with variable reference** — `fields.Selection(MY_CONSTANT)` only works if `MY_CONSTANT` is defined in the SAME file. See `83-ci-phantom-enum`.
-
-**`ruff format` manifests** — `__manifest__.py` is a Python dict. Always run `ruff format` after editing it or CI will fail on format check.
-
-**pytest-timeout version** — `2.4.0` is current. `4.3.0` does not exist on PyPI.
-
-**Phantom enum false positives** — image formats (`png`, `jpg`), LLM providers (`openai`, `anthropic`), web form parser keys (`drum`, `tote`) are in `GLOBAL_ALLOWLIST`. Add new non-enum dispatch strings there, not as Selection values.
-
----
-
-## Session Invocation Triggers
-
-| Phrase | Activates |
-|--------|-----------|
-| `PR_REVIEW_MODE` or `REVIEW PR #N` | `plasticos-pr-review-kernel` |
-| `DEPLOY_VALIDATION_MODE` | `30-plasticos-deploy-validation` |
-| `FINAL_TOUCHES_MODE` | `plasticos-final-touches` |
-| `AUDIT_MODE = "FULL"` | `docs/.../01_code_review_audit_prompt.md` |
+Never activate `pipeline_v2.py`. `ci/check_pipeline_v2_guard.py` rejects it.

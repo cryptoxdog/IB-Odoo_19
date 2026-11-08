@@ -8,18 +8,9 @@ alwaysApply: false
 
 **Authority:** `AGENTS.md` § Testing · global `95-test-fix-policy.mdc` · `.claude/rules/testing.md` (pointer).
 
-## Test Catalog (Production branch — flat layout)
+## Catalog
 
-| Type | Location | Count | Coverage |
-|---|---|---|---|
-| Contract tests | `tests/contracts/` | 8 files | API signatures, bridge wiring, computed deps, CRM leads, intake, partner, selection, transaction |
-| Integration tests | `tests/integration/` | 10 files | account-move links, compliance, cron idempotency, graph hooks, intake cascade, match guards, offer state, polymer sync, sale-order autocreate, write/unlink guards |
-| Unit tests | `tests/test_*.py` | 20+ files | Constraints, state machines, golden flows, security ACL, performance, Odoo 19 compat |
-
-**PR #85 HEAD only** (not yet on Production):
-- `tests/plasticos_intake/test_intake_matching_flow.py`
-- `tests/plasticos_claims/test_claim_ux_filters.py`
-- `tests/plasticos_offer/test_offer_ux_icons.py`
+The live catalog is `pytest tests/ --collect-only`. Enterprise runs use the pinned fixture in `config/test_env_fixture.conf`. Record `PASS`, `FAIL`, `NOT_RUN`, and skipped as separate outcomes.
 
 ## Rules
 

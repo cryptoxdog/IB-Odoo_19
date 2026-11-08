@@ -1,17 +1,19 @@
 # AGENTS.md — PlasticOS (Odoo 19)
 
+Read the checked-out `INVARIANTS.md`. Apply the cited `POS-INV-*` ids and `BAN001`. Do not follow a layer diagram, an integer-foreign-key workaround, a local matcher fallback, or a universal `noupdate` rule from older text in this file.
+
 Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code, Codex, Cursor, Copilot, Jules, Aider, CodeRabbit, and all AGENTS.md-compatible tools.
 
 ### Logistics business requirements (BRS)
 
-The canonical local Linda business requirements live **inside** `plasticos_logistics/business_rules/`, not under `docs/`. Read `plasticos_logistics/LINDA_BUILD_PLAN.md` (60-rule work-package/acceptance map), its business-rules README, applicable `BRS-01`..`BRS-07`, the exact-ID `SUPERSESSION.md`, and accepted ADRs before implementing Linda. Keep the seven original BRS files unchanged. For changes, cite affected rule IDs and observable acceptance evidence; don't treat source status as runtime proof.
+Linda business-requirements files live inside `plasticos_logistics/business_rules/`. They are not required reading for this instruction set. Keep the seven original BRS files unchanged. For a change that cites them, name the rule id and the observable acceptance evidence. Source status is not runtime proof.
 
 ## Project Overview
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
 - **Type**: Odoo 19 custom module suite (**30** `plasticos_*` addons — **28** installable, 2 dev/non-installable; **~33K** lines Python in addons, **~174** XML files in addons).
 - **Stage**: Production (`Staging` branch → `Production`)
-- **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
+- **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Docker
 
 ## Commands
 
@@ -185,32 +187,32 @@ Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skil
 
 ```
 skills/                # PlasticOS agent skills SSOT (NOT an Odoo addon; see PLASTICOS_CANONICAL_LAW)
-plasticos_base/              # Layer 1: Core seed data, feature gates, partner tags
-plasticos_security_base/     # Layer 1: RBAC roles, record rules, ACL
-plasticos_material_profile/  # Layer 1: Material master (polymer, form, color, source)
-plasticos_product/           # Layer 1: Scrap plastic product catalog
-plasticos_facility_profile/  # Layer 2: Facility capabilities, equipment, tolerances
-plasticos_intake/            # Layer 2: Material intake with contact intelligence
-plasticos_intake_normalizer/ # Layer 2: L9 packet normalization
-plasticos_matching/          # Layer 2: Gate match orchestrator + result store (ADR-015; CEG scores)
-plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
-plasticos_gate/              # Layer 2: Sole TransportPacket client (ADR-002 / ADR-011)
-plasticos_enrichment/        # Layer 2: Gate converge orchestrator + writeback shell (ADR-012/015; ranking ADR-009)
-plasticos_web_leads/         # Layer 2: AI lead triage local Phase 1 (ADR-016; not enrichment ranking)
-plasticos_accounting/        # Layer 3: Chart of accounts, payment terms, incoterms
-plasticos_offer/             # Layer 3: Offer lifecycle (match → negotiation → deal)
-plasticos_order_lines/       # Layer 3: PO/SO lines with material specs
-plasticos_automation/        # Layer 3: Workflow automation, SLA monitoring
-plasticos_partner_import/    # Layer 3: Partner import wizard
-plasticos_crm_bridge/        # Layer 3: CRM integration bridge
-plasticos_commission/        # Layer 3: Commission calculation engine
-plasticos_documents/         # Layer 4: Document validation matrices
-plasticos_documents_native/  # Layer 4: Enterprise Documents bridge
-plasticos_transaction/       # Layer 5: Transaction spine + commission
-plasticos_logistics/         # Layer 5: Load management, BOL, dispatch
-plasticos_claims/            # Layer 5: QC cases, claims, chargebacks
+plasticos_base/              # Core seed data, feature gates, partner tags
+plasticos_security_base/     # RBAC roles, record rules, ACL
+plasticos_material_profile/  # Material master (polymer, form, color, source)
+plasticos_product/           # Scrap plastic product catalog
+plasticos_facility_profile/  # Facility capabilities, equipment, tolerances
+plasticos_intake/            # Material intake with contact intelligence
+plasticos_intake_normalizer/ # L9 packet normalization
+plasticos_matching/          # Gate match orchestrator + result store (ADR-015; CEG scores)
+plasticos_geolocalize/       # Auto-geocode + nightly backfill
+plasticos_gate/              # Sole TransportPacket client (ADR-002 / ADR-011)
+plasticos_enrichment/        # Gate converge orchestrator + writeback shell (ADR-012/015; ranking ADR-009)
+plasticos_web_leads/         # AI lead triage local Phase 1 (ADR-016; not enrichment ranking)
+plasticos_accounting/        # Chart of accounts, payment terms, incoterms
+plasticos_offer/             # Offer lifecycle (match → negotiation → deal)
+plasticos_order_lines/       # PO/SO lines with material specs
+plasticos_automation/        # Workflow automation, SLA monitoring
+plasticos_partner_import/    # Partner import wizard
+plasticos_crm_bridge/        # CRM integration bridge
+plasticos_commission/        # Commission calculation engine
+plasticos_documents/         # Document validation matrices
+plasticos_documents_native/  # Enterprise Documents bridge
+plasticos_transaction/       # Transaction spine + commission
+plasticos_logistics/         # Load management, BOL, dispatch
+plasticos_claims/            # QC cases, claims, chargebacks
 plasticos_website/           # UI: Website extensions (installable: False — disabled)
-plasticos_admin_dashboard/   # Layer 3: RevOps KPI dashboard (admin)
+plasticos_admin_dashboard/   # RevOps KPI dashboard (admin)
 plasticos_odoo_standard_apps/ # Meta: auto-install bundle of standard Odoo CE apps (optional)
 plasticos_dev_tools/         # Dev-only: audit scripts, integrity checks
 tests/                       # Cross-module test suite
@@ -280,7 +282,7 @@ Every code change MUST pass these checks. CI will reject PRs that fail. This sec
 11. Cron `model_id` refs MUST include module prefix: `ref="plasticos_module.model_plasticos_model"` (CI check #10)
 12. No `numbercall` on `ir.cron` (CI check #5)
 13. No `category_id` on `res.groups` records (CI check #4)
-14. Seed data must be wrapped in `<odoo noupdate="1">`
+14. Stable reference data that must survive an upgrade may use `<odoo noupdate="1">`. That is not a rule for every XML record.
 
 ### When you modify `__manifest__.py`
 
@@ -457,7 +459,7 @@ These files are intentionally excluded from specific checks:
 | `state-guard-bypass` | Odoo | Yes | State guard bypass detection |
 | `acl-completeness` | Odoo | **No** | ACL coverage (warn-only) |
 | `phantom-enum-values` | Odoo | Yes (pre-push) | `tests/test_phantom_enum_values.py` |
-| `manifest-contract` | Odoo | Yes (pre-push) | `tests/test_repo_dependency_integrity.py` (version, depends order) |
+| `manifest-contract` | Odoo | Yes (pre-push) | `tests/test_repo_dependency_integrity.py` (version, resolvable dependencies) |
 | `pipeline-v2-guard` | Odoo | Yes | Import fence for pipeline v2 |
 | `dev-tools-fence` | Odoo | Yes | Dev tools not imported from production |
 | `critical-manifest` | Odoo | Yes | Critical manifest rules |
@@ -533,7 +535,7 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Add `security/ir.model.access.csv` for every new model
 - Use `sanitize_label()` patterns — no f-string SQL/Cypher
 - Declare dependencies in `__manifest__.py` before importing
-- Seed data in XML with `noupdate="1"` and external IDs
+- Stable reference data may use `noupdate="1"` with external IDs. Views and records that must refresh on upgrade do not.
 - Run `python3 scripts/check_module_wiring.py` before commit
 - Keep PlasticOS skills under `skills/` (repo law: `skills/PLASTICOS_CANONICAL_LAW.md`); run `make check-plasticos-skills` when adding or moving skills
 
@@ -615,7 +617,7 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `Production` are validated by the push event. `workflow_dispatch` remains for the repo-index bot.
 
 > **2026-10-18 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
-> The Project Structure line for `plasticos_documents_native` names it only as the Layer 4 Enterprise Documents bridge.
+> The Project Structure line for `plasticos_documents_native` names it only as the Enterprise Documents bridge.
 > That bridge is `installable: True`, `application: True`, and `auto_install: True`. Odoo installs it when Enterprise
 > `documents`, `documents_account`, and its PlasticOS dependencies are installed.
 > `plasticos_semantic_kernel` is optional (`auto_install: False`) and stays uninstalled. No module depends on it.

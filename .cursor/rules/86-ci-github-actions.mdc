@@ -36,26 +36,9 @@ gh api /repos/gitleaks/gitleaks-action/git/ref/tags/v2 | python3 -c \
   "import json,sys; r=json.load(sys.stdin); print(r['object']['sha'])"
 ```
 
-## Test File Existence Before Listing in CI
+## Pure-Python tests
 
-The Pure Python Tests step lists test files explicitly. If a file doesn't exist on the branch, pytest exits with code 4 (no tests collected) and the step fails:
-
-```yaml
-# ❌ WRONG — test_triage_pipeline.py may not exist on older branches
-- run: |
-    python3 -m pytest \
-      tests/test_triage_pipeline.py \   # ← error if not on this branch
-      tests/test_wiring_gap2.py \
-      ...
-
-# ✅ CORRECT — verify file exists or use glob
-- run: |
-    python3 -m pytest \
-      $(find tests/ -name "test_*.py" ! -path "*/odoo*" | sort | tr '\n' ' ') \
-      -v --tb=short
-```
-
-When syncing `ci.yml` from `Staging` to an older PR branch, always check which test files actually exist on that branch.
+`ci.yml` runs `python3 -m pytest tests/`. Collection ignores are in `tests/conftest.py`. Do not maintain a hand-written list of test files in the workflow.
 
 ## CI Gate Phase Structure (fail-slow)
 
