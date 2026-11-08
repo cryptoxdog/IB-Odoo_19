@@ -477,7 +477,7 @@ class TestLindaFreightModels(PlasticosTestCase):
         self.assertEqual(exact.company_id, load.company_id)
         self.assertEqual(exact.canonical_load_id, load)
         other_company = self.env["res.company"].create({"name": "Linda Other Company", "currency_id": self.currency.id})
-        mismatched = self._legacy_cache_row(lane_key, 1000.0, rate_date)
+        mismatched = self._legacy_cache_row(lane_key, 1000.0, fields.Date.add(rate_date, days=1))
         with self.assertRaises(ValidationError):
             self.env[RATE_MEMORY_RECONCILIATION].create(
                 {
