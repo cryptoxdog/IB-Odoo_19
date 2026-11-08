@@ -164,7 +164,7 @@ if [[ "${SMOKE_BYPASS}" != "1" ]] && ! bash scripts/install_smoke.sh --resolve; 
 fi
 
 # Leave PR_SMOKE_BYPASS set. pr_check_run.sh skips Docker while it is set, then
-# clears it before pytest, so the publication tests never see the switch.
+# clears it before the rest of the gate.
 if ! make pr-check; then
   refuse "make pr-check failed"
 fi

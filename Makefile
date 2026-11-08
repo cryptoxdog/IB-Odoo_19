@@ -698,7 +698,8 @@ pr:
 # REQUIRED before any push or PR creation (local + remote when PR/CI exists).
 # The local pre-push gate — not the full GitHub CI job graph (gate-sdk-tests runs
 # only in CI; secrets are scanned by the gitleaks-push hook and CI secret-scan). Scheduled in parallel waves via
-# scripts/pr_check_run.sh (audit + audit-baseline + test in parallel, then smoke, then remote).
+# scripts/pr_check_run.sh (audit + audit-baseline in parallel, then smoke, then remote).
+# The pure-Python suite is not part of this gate. ci.yml pure-python-tests runs it.
 # secret-scan is intentionally NOT listed here: pre-commit's gitleaks-push
 # hook already runs at `git push` time regardless of make, so listing it here
 # would just run gitleaks twice.
@@ -1261,11 +1262,12 @@ pr-nosmoke:
 	@PR_SMOKE_BYPASS='$(reason)' $(MAKE) --no-print-directory pr $(if $(b),b=$(b),) $(if $(base),base=$(base),)
 
 # 2026-10-22 — make pr-check runs only what the branch changed can reach
-# (scripts/pr_check_scope.py): the pytest wave gets the selected test modules
-# in TEST_PATHS through this target, install-smoke runs only when an addon or
+# (scripts/pr_check_scope.py): install-smoke runs only when an addon or
 # installer input changed, and a documentation-only branch publishes with no
-# collector and no Docker. PR_CHECK_SCOPE=full runs the whole gate. make test
-# and GitHub ci.yml still run the whole suite.
+# collector and no Docker. PR_CHECK_SCOPE=full keeps the audit and Docker
+# gate. This target is a manual scoped pytest run. make pr, make pr-check,
+# and the pre-push gate do not call it. make test and GitHub ci.yml run the
+# whole suite; ci.yml is the merge verdict.
 .PHONY: test-scoped
 test-scoped:
 	@echo "→ Pure-Python tests reached by the changed files: $(TEST_PATHS)"
