@@ -83,3 +83,6 @@ extended_audit_report.json
 # environment config and duplicate the governance SSOT into this repo.
 .claude/settings.local.json
 .claude/hooks/
+
+# Customer VanillaSoft export. Local Gate 7 input only; not published.
+plasticos_crm_sync/Vanillasoft-Scrap-Management.csv
