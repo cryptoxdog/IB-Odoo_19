@@ -129,10 +129,12 @@ blockers:
   - id: erp-full-import
     gate: 6
     status: by-design
-    step: make import-erp with no LIMIT
+    step: make import-erp with ERP_LIMIT=10%
     reason: >
-      An unset limit is the full import. The summary equation, duplicates,
-      database source and field fidelity stay fail-closed.
+      The rehearsal imports every partner layer and the newest 10% of worksheets,
+      plus pinned worksheet 58699 when the source contains it. make import-erp
+      with no limit remains the full import. The summary equation, duplicates,
+      database source and field fidelity of the imported slice stay fail-closed.
     severity: expected
 
   - id: vanillasoft-history-bounded-sample

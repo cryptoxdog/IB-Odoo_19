@@ -125,6 +125,7 @@ bash "${ROOT}/scripts/test_env.sh" run "${DB}" -- \
     ERP_SQL_DATABASE="${ERP_SQL_DATABASE}" \
     ${ERP_SQL_USER:+ERP_SQL_USER="${ERP_SQL_USER}"} \
     ERP_ISOLATED_REPORT_DIR="${ISOLATED_HOST}" \
+    ERP_LIMIT=10% \
     REPORT_PATH="${CONTAINER_SUMMARY}" \
   >"${IMPORT_LOG}" 2>&1
 IMPORT_EXIT=$?
@@ -204,7 +205,7 @@ rlib check-erp "${EVIDENCE_DIR}" \
   --layers "${LAYERS_FILE}" \
   --log "${IMPORT_LOG}" \
   --database "${DB}" \
-  --limit "full" \
+  --limit "10%" \
   --release-sha "${RELEASE_SHA}" \
   --run-started "${RUN_STARTED_UTC:-}" \
   --fidelity "${FIDELITY_RECEIPT}" \

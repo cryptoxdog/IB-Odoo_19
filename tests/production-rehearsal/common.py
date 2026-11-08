@@ -1123,6 +1123,33 @@ def _anomaly_total(census: dict) -> int | None:
     return len(anomalies) if isinstance(anomalies, list) else None
 
 
+_FULL_SCOPE = "full import-erp of the checkout; every partner layer and every worksheet"
+_SLICE_SCOPE = (
+    "rehearsal import-erp of the checkout; every partner layer and the newest 10% of worksheets, "
+    "plus pinned worksheet 58699 when the source contains it"
+)
+
+
+def _rehearsal_limit(limit: str, census: dict) -> tuple[list[tuple[str, str]], str]:
+    """A 10% rehearsal is a pass only when the importer recorded the exclusion.
+
+    ``payables_unselected`` lives in the nested census dict ``compact_census`` copies.
+    Limit ``full`` stays the full-book receipt. Any other limit is refused.
+    """
+    if limit == "full":
+        return [], _FULL_SCOPE
+    if limit != "10%":
+        return [("erp-rehearsal-limit", f"rehearsal limit {limit!r} is not 10% or full")], (
+            "rehearsal import-erp refused because the limit was not 10% or full"
+        )
+    nested = census.get("census")
+    unselected = nested.get("payables_unselected") if isinstance(nested, dict) else None
+    rows = _count(unselected.get("rows")) if isinstance(unselected, dict) else None
+    if rows is None or rows < 1:
+        return [("erp-rehearsal-limit-unproven", "a 10% rehearsal has no diagnostic_limit exclusion")], _SLICE_SCOPE
+    return [], _SLICE_SCOPE
+
+
 def check_erp(
     summary_path: Path | str,
     census_path: Path | str,
@@ -1212,6 +1239,8 @@ def check_erp(
             else:
                 layer_counts[layer] = count
 
+    limit_failures, rehearsal_scope = _rehearsal_limit(limit, census)
+    failures.extend(limit_failures)
     failures.extend(fidelity_failures(fidelity))
     failures.extend(source_coverage_failures(fidelity))
     native_failures, native_facts = native_document_failures(log_text, snapshot)
@@ -1246,7 +1275,7 @@ def check_erp(
         "anomalies": _anomaly_total(census),
         "native_documents": native_facts,
         "execution_path": execution_path,
-        "scope": "full import-erp of the checkout; every partner layer and every worksheet",
+        "scope": rehearsal_scope,
     }
     if failures:
         facts["failure_codes"] = [code for code, _text in failures]

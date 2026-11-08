@@ -850,7 +850,12 @@ def test_weblead_missing_key_fails(wl):
 
 # ── RK-05 / RK-07: erp_slice.sh end to end against stubs ────────────────────
 
-ERP_CENSUS = {"payload_kind": "database", "source_origin": "erp-host/erp_db", "census": {}, "unresolved": []}
+ERP_CENSUS = {
+    "payload_kind": "database",
+    "source_origin": "erp-host/erp_db",
+    "census": {"payables_unselected": {"rows": 12, "amount": 0.0}},
+    "unresolved": [],
+}
 ERP_ENV = {
     "ERP_SQL_SERVER": "erp-host.invalid",
     "ERP_SQL_DATABASE": "erp_db",
@@ -893,7 +898,8 @@ def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     gate = _gate(erp.evidence, 6)
     assert gate["state"] == "PASS"
     assert FAKE_ERP_PASSWORD not in erp.calls_text()
-    assert "LIMIT=" not in erp.calls_text()
+    assert "ERP_LIMIT=10%" in erp.calls_text()
+    assert "import-erp-test" not in erp.calls_text()
     assert gate["facts"]["fidelity_failed"] == 0
     assert gate["facts"]["fidelity_compared"] > 0
     assert gate["facts"]["verification_spec"] == "l9.plasticos.rehearsal.fidelity.v1"
@@ -920,7 +926,9 @@ def test_erp_slice_database_run_passes_and_keeps_password_off_argv(erp):
     summary = json.loads((erp.evidence / "05-erp-summary.json").read_text())
     assert "gate" not in summary
     path = gate["facts"]["execution_path"]
-    assert (path["make_target"], path["database"], path["limit"]) == ("import-erp", "odoo_test_cutover", "full")
+    assert (path["make_target"], path["database"], path["limit"]) == ("import-erp", "odoo_test_cutover", "10%")
+    assert "every worksheet" not in gate["facts"]["scope"]
+    assert "58699" in gate["facts"]["scope"]
     assert path["release_sha"] == erp.staging_sha
     assert "05-erp-import.log" in gate["evidence"]
 

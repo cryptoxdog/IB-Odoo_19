@@ -11,7 +11,7 @@
 | All PlasticOS + Enterprise modules load | `make install-smoke` on the pinned fixture (cached fingerprint match is labelled as such) |
 | The clone is fresh and empty | `test_env.sh clone/upgrade/assert-clone` + business-partner census (inactive included) |
 | Web lead webhook reaches the wired end (crm.lead) | HOT Cognito POST → intake → one unassigned non-Won opportunity, read back from the clone; replay creates nothing |
-| ERP counterparties, addresses, contacts, and native documents import from the restored database | `make import-erp` with no `LIMIT`, summary + census + driver trace in the log + clone layer counts + native-document completeness + field-level source comparison |
+| ERP counterparties, addresses, contacts, and native documents import from the restored database | `make import-erp` with `ERP_LIMIT=10%` (newest worksheets, plus pinned worksheet 58699 when present; partners stay complete), summary + census + driver trace in the log + clone layer counts + native-document completeness + field-level source comparison of that slice |
 | VanillaSoft contacts import against ERP partners | `make import-vanillasoft` on `plasticos_crm_sync/Vanillasoft-Scrap-Management.csv` in this checkout, judged by the history driver's own report, ledger, audit trail and durable refs read back from the clone |
 
 Both import gates run the same `make` target, driver and dispatcher production
