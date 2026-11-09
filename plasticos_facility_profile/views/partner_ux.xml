@@ -74,6 +74,10 @@
                 <attribute name="invisible">not is_company</attribute>
             </xpath>
 
+            <xpath expr="//field[@name='contact_header_name']" position="after">
+                <field name="first_name" invisible="is_company" readonly="1"/>
+                <field name="last_name" invisible="is_company" readonly="1"/>
+            </xpath>
             <xpath expr="//field[@name='address_type_meaning']/parent::div" position="after">
                 <field name="company_role_tag_ids"
                        widget="many2many_tags"
@@ -94,6 +98,10 @@
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="priority">20</field>
         <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='complete_name']" position="after">
+                <field name="first_name" optional="show"/>
+                <field name="last_name" optional="show"/>
+            </xpath>
             <xpath expr="//list/field[@name='country_id']" position="before">
                 <field name="company_role_tag_ids"
                        widget="many2many_tags"
