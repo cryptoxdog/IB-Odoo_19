@@ -5,6 +5,14 @@ from __future__ import annotations
 from odoo import SUPERUSER_ID, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
+# ADR-129: reconciliation dispositions that carry no company and no canonical load.
+UNOWNED_RECONCILIATION_DISPOSITIONS = (
+    "invalid_lane_key",
+    "no_candidate_match",
+    "multiple_candidate_matches",
+    "candidate_scan_truncated",
+)
+
 EVENT_TYPES = [
     ("freight_resolution_started", "Freight Resolution Started"),
     ("sal_hit", "SAL Hit"),
@@ -172,7 +180,13 @@ class PlasticosRateMemoryReconciliation(models.Model):
     _order = "legacy_rate_date desc, id desc"
 
     company_id = fields.Many2one(
-        "res.company", required=True, default=lambda self: self.env.company, ondelete="restrict"
+        "res.company",
+        required=False,
+        ondelete="restrict",
+        help=(
+            "Company of the matched canonical load. Empty for a non-exact disposition "
+            "so the operator's company is not stored as ownership. See ADR-129."
+        ),
     )
     legacy_rate_memory_id = fields.Many2one("plasticos.rate.memory", required=True, index=True, ondelete="restrict")
     carrier_id = fields.Many2one("res.partner", required=True, ondelete="restrict")
@@ -212,16 +226,39 @@ class PlasticosRateMemoryReconciliation(models.Model):
             ):
                 raise ValidationError("Reconciliation snapshot must exactly preserve the legacy row.")
 
-    @api.constrains("company_id", "canonical_load_id")
+    @api.constrains("disposition", "company_id", "canonical_load_id")
     def _check_canonical_load_company(self):
+        """ADR-129: ownership follows the historical evidence.
+
+        An exact match carries its canonical load and that load's company. The
+        four unowned dispositions carry neither. ``rate_mismatch`` and
+        ``missing_canonical_rate`` have no producer and no ADR-129 ownership
+        rule, so they are refused rather than given an ownership shape here.
+        """
         for record in self:
-            if not record.canonical_load_id:
-                continue
-            load_company = getattr(record.canonical_load_id, "company_id", False) or (
-                record.canonical_load_id.sale_order_id.company_id if record.canonical_load_id.sale_order_id else False
-            )
-            if load_company != record.company_id:
-                raise ValidationError("Canonical load must belong to the reconciliation company.")
+            disposition = record.disposition
+            if disposition == "exact_single_match":
+                load = record.canonical_load_id
+                if not load:
+                    raise ValidationError("An exact rate-memory match requires its canonical load.")
+                # sudo() justification: reads only the company that owns the
+                # load this row already links, so the check does not depend on
+                # whether the creating actor can see that company.
+                load_sudo = load.sudo()  # sudo: reads only the linked load's company (ADR-129)
+                load_company = getattr(load_sudo, "company_id", False) or (
+                    load_sudo.sale_order_id.company_id if load_sudo.sale_order_id else False
+                )
+                if not load_company:
+                    raise ValidationError("An exact rate-memory match requires the canonical load's company.")
+                if load_company != record.company_id:
+                    raise ValidationError("Canonical load must belong to the reconciliation company.")
+            elif disposition in UNOWNED_RECONCILIATION_DISPOSITIONS:
+                if record.company_id or record.canonical_load_id:
+                    raise ValidationError(
+                        "A non-exact rate-memory reconciliation has no company and no canonical load (ADR-129)."
+                    )
+            else:
+                raise ValidationError(f"Rate-memory disposition {disposition!r} has no ADR-129 ownership rule.")
 
     def write(self, vals):
         raise UserError("Rate-memory reconciliation evidence is immutable.")

@@ -191,6 +191,28 @@ def map_match_response_to_matcher_dicts(
 
 
 EIE_STATE_COMPLETED = "completed"
+SDK_FAILURE_STATUS = "failed"
+
+
+def _sdk_failure_reason(payload: dict[str, Any]) -> str | None:
+    """The reason a Gate_SDK failure packet carries, or None.
+
+    When the node handler raises, the SDK runtime answers with a failure packet
+    whose payload is ``{"status": "failed", "error": <exception class>,
+    "message": <client message>, "packet_id": ...}``
+    (``constellation_node_sdk.runtime.execution.create_error_transport_packet``).
+    It has no ``state`` or ``failure_reason``. Without this, the operator saw
+    only ``failed`` and lost the reason EIE gave.
+    """
+    if payload.get("status") != SDK_FAILURE_STATUS:
+        return None
+    error = payload.get("error")
+    message = payload.get("message")
+    error = error.strip() if isinstance(error, str) else ""
+    message = message.strip() if isinstance(message, str) else ""
+    if error and message and message != error:
+        return f"{error}: {message}"
+    return error or message or None
 
 
 def map_converge_response(payload: dict[str, Any]) -> ConvergeResponse:
@@ -200,13 +222,14 @@ def map_converge_response(payload: dict[str, Any]) -> ConvergeResponse:
     ``tokens_used``; ``total_cost_usd`` and ``writeback_applied`` stay
     explicitly UNAVAILABLE (None) — never fabricated (DNB-006). ``status`` is
     derived from EIE ``state``/``failure_reason`` for the Odoo consumer's
-    usable-result check.
+    usable-result check. A Gate_SDK failure packet (``status: failed`` with
+    ``error``/``message``) supplies ``failure_reason`` when EIE sent none.
     """
     # Require an explicit completed state — never manufacture completed/ok on
     # empty, partial, or version-skewed payloads that omit state.
     raw_state = payload.get("state")
     state = raw_state if isinstance(raw_state, str) and raw_state.strip() else None
-    failure_reason = payload.get("failure_reason")
+    failure_reason = payload.get("failure_reason") or _sdk_failure_reason(payload)
     if state == EIE_STATE_COMPLETED and not failure_reason:
         status = "ok"
     else:

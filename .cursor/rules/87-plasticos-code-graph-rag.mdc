@@ -1,6 +1,6 @@
 ---
 description: Code-graph RAG MCP discipline — grep first; graph for importers, impact, cross-module only.
-alwaysApply: true
+alwaysApply: false
 ---
 # Code Graph RAG MCP Discipline
 

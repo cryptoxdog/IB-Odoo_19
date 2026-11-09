@@ -304,7 +304,7 @@ class ResPartner(models.Model):
         help="Mobile number. Stored with the partner's other phone lines.",
     )
     contact_header_name = fields.Char(
-        string="Contact",
+        string="Contact Names",
         compute="_compute_contact_header_name",
         help="People at this company, or the people linked to this location.",
     )

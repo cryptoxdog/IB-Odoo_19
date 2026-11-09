@@ -49,16 +49,9 @@ group_system_admin         privilege_administration   implies group_operations_m
 - If referencing a model from another module, prefix: `other_module.model_plasticos_x`
 - **model_id:id column** — always use the SHORT format `model_plasticos_foo` (no module prefix); Odoo resolves it within the installing module's namespace
 
-**Canonical format for NEW files.** A model-wide row uses `base.group_user` or `base.group_system`, matching `plasticos_material_profile/security/ir.model.access.csv`. A role-scoped row uses `plasticos_security_base` plus one xmlid from the hierarchy above.
-```csv
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_plasticos_model_user,plasticos.model user,model_plasticos_model,base.group_user,1,1,1,0
-access_plasticos_model_admin,plasticos.model admin,model_plasticos_model,base.group_system,1,1,1,1
-access_plasticos_model_sales,plasticos.model sales,model_plasticos_model,plasticos_security_base.group_sales_rep,1,1,1,0
-```
+Read the CSV, then judge effective ACL and record rules. There is no blanket manager, user, or readonly CRUD formula.
 
-**Do NOT add both a `_user` R-only row AND an `_all` CRUD row for the same group on the same model.**
-One row per model+group combination. If CRUD is needed, skip the R-only row entirely.
+`ci/check_acl_completeness.py` only proves an ACL row exists.
 
 ## Record Rules
 

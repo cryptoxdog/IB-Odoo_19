@@ -59,11 +59,10 @@ ODOO_TEST_DB := $(shell bash scripts/test_env.sh name)
 endif
 ODOO_COMPOSE_PROJECT  ?= odoo19
 
-# Pinned ruff resolver. pyproject pins ruff EXACTLY (==0.16.0 via [tool.ruff]
-# required-version), so a mismatched PATH ruff (e.g. Homebrew latest, or an old
-# pip --user 0.14.x) aborts every invocation. Prefer the project venv's pinned
-# binary; fall back to PATH ruff (CI has no .venv and installs 0.16.0 directly).
-RUFF := $(shell [ -x .venv/bin/ruff ] && echo .venv/bin/ruff || echo ruff)
+# Ruff for lint/format is scripts/with_pinned_ruff.sh. It runs the
+# requirements-dev.txt pin (ruff==X: same binary as .venv, ci.yml, and
+# pre-commit). A linked worktree has no .venv; falling back to PATH ruff
+# runs a newer binary and pyproject required-version aborts make pr.
 
 # Symlinked governance tree — lives in Dropbox / separate repo; never commit or push from here.
 COMMIT_EXCLUDE := .cursor-commands
@@ -179,7 +178,8 @@ help:
 # (ruff, semgrep, mypy, pytest + plugins, pr-repair); nothing is re-pinned here.
 # System capabilities CI also uses (shellcheck, gitleaks, xmllint) are NOT
 # installed by this target — install them separately. The .envrc (direnv)
-# auto-activates it; `make` also auto-prefers .venv/bin/ruff via $(RUFF).
+# auto-activates it. lint/format go through scripts/with_pinned_ruff.sh,
+# which uses this venv when its ruff matches the requirements-dev.txt pin.
 # Idempotent: safe to re-run to repair/upgrade the environment.
 VENV ?= .venv
 venv:
@@ -199,13 +199,13 @@ install-extensions:
 	@bash scripts/install_editor_extensions.sh
 
 lint:
-	$(RUFF) check .
+	bash scripts/with_pinned_ruff.sh check .
 
 format:
-	$(RUFF) format --check .
+	bash scripts/with_pinned_ruff.sh format --check .
 
 format-fix:
-	$(RUFF) format .
+	bash scripts/with_pinned_ruff.sh format .
 
 check: lint format
 	@echo "✅ lint + format check passed"

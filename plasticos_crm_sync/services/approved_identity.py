@@ -263,13 +263,61 @@ def phone_kind(name: str) -> str:
     return "other"
 
 
+def _compose_phone_parts(item: dict) -> tuple[str, str]:
+    """``(number, conflict)``: the number with a separate extension and country code folded in.
+
+    A separate extension is appended when the number has none inline. A
+    country code is prefixed only when the number does not already start with
+    ``+`` or that code. ``conflict`` names the two extensions when a separate
+    extension contradicts an inline one; the number is then returned as sent.
+    """
+    number = str(item.get("number") or "").strip()
+    extension_raw = item.get("extension", item.get("Extension"))
+    extension = "" if extension_raw is None else str(extension_raw).strip()
+    if extension:
+        inline = _PHONE_EXTENSION.search(number)
+        extension_digits = digits_only(extension)
+        if inline:
+            inline_digits = digits_only(inline.group(0))
+            if extension_digits and inline_digits and extension_digits != inline_digits:
+                return number, f"inline extension {inline_digits} != extension {extension_digits}"
+        elif extension_digits and number:
+            number = f"{number} x{extension_digits}"
+    country_raw = item.get("country_code", item.get("CountryCode"))
+    country = "" if country_raw is None else str(country_raw).strip()
+    code_digits = digits_only(country)
+    if code_digits and number and not number.startswith("+"):
+        national = digits_only(_PHONE_EXTENSION.sub("", number))
+        if national and not national.startswith(code_digits):
+            number = f"+{code_digits} {number}"
+    return number, ""
+
+
+def compose_phone_number(item: dict, *, field: str = "phone_numbers[]") -> str:
+    """The entry's number with its separate extension and country code folded in.
+
+    A separate extension that contradicts an inline one is contradictory source
+    data: it raises ``CrmAdapterError`` naming the field and both values, so the
+    contact fails through the recorded per-record path instead of losing the line.
+    """
+    # Imported here: the adapter package lazily imports this module.
+    from ..adapters.base import CrmAdapterError
+
+    number, conflict = _compose_phone_parts(item)
+    if conflict:
+        raise CrmAdapterError(f"VanillaSoft {field}: contradictory phone extension ({conflict}) on {number!r}")
+    return number
+
+
 def read_phones(phones: object, *, contact_ref: str = "") -> tuple[tuple[tuple[str, str], ...], frozenset[str]]:
     """``((source label, number), ...)`` for every enabled entry, and the keys of the disabled ones.
 
     ``disabled`` is read with the adapter's strict parser. An unrecognised
     spelling raises ``CrmAdapterError`` naming the contact and the entry: it is
-    neither an enabled nor a disabled number. The disabled keys let a caller
-    refuse the same number arriving through another payload field.
+    neither an enabled nor a disabled number. An enabled entry whose separate
+    extension contradicts its inline one raises ``CrmAdapterError`` too: the
+    contact fails visibly rather than losing that line. The disabled keys let a
+    caller refuse the same number arriving through another payload field.
     """
     # Imported here: the adapter package lazily imports this module.
     from ..adapters.vanillasoft.adapter import _first_present, vs_bool
@@ -282,12 +330,17 @@ def read_phones(phones: object, *, contact_ref: str = "") -> tuple[tuple[tuple[s
         if not isinstance(item, dict):
             continue
         field_name = f"contact {contact_ref} phone_numbers[{position}].disabled"
-        number = str(item.get("number") or "").strip()
-        key = phone_identity_key(number)
-        if vs_bool(_first_present(item, "disabled", "Disabled"), field=field_name):
-            if key:
-                disabled.add(key)
+        is_disabled = vs_bool(_first_present(item, "disabled", "Disabled"), field=field_name)
+        if is_disabled:
+            # A disabled line is excluded either way; both spellings stay refused.
+            composed, _conflict = _compose_phone_parts(item)
+            for candidate in (composed, str(item.get("number") or "").strip()):
+                key = phone_identity_key(candidate)
+                if key:
+                    disabled.add(key)
             continue
+        number = compose_phone_number(item, field=f"contact {contact_ref} phone_numbers[{position}].extension")
+        key = phone_identity_key(number)
         if key:
             kept.append((str(item.get("name") or "").strip(), number))
     return tuple(kept), frozenset(disabled)

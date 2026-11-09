@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_crm_sync
 component_name: PlasticOS CRM Sync
-module_version: 19.0.1.9.23
+module_version: 19.0.1.9.24
 installable: true
 auto_install: false
 application: false

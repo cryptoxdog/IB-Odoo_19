@@ -187,6 +187,8 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
         self.assertNotEqual(run.state, "injected")
+        # The run records EIE's own reason, not the empty-allowlist reason.
+        self.assertEqual(run.validation_issues, ["Gate converge failed: no_valid_responses"])
 
     def test_gate_converge_empty_fields_fails_closed(self):
         """state completed but no writable allowlisted fields -> degraded in BOTH modes."""
@@ -206,6 +208,7 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
         self.assertNotEqual(run.state, "injected")
+        self.assertEqual(run.validation_issues, ["Gate converge produced no injectable allowlisted fields."])
 
     def test_operator_retry_advances_the_operation_attempt(self):
         """A retry is a new logical operation: Gate caches per identity, failures included."""

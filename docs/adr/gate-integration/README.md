@@ -27,12 +27,12 @@ byte-faithful to the accepted decision set.
 | [ADR-003](ADR-003-odoo-owns-domain-not-transport.md) | Odoo owns domain mapping, not transport semantics | Accepted |
 | [ADR-004](ADR-004-canonical-enrichment-contract.md) | Canonical enrichment contract is EnrichRequest → EnrichResponse | Accepted |
 | [ADR-005](ADR-005-canonical-entity-identity.md) | Canonical Odoo entity identity is `entity.id` | Accepted |
-| [ADR-006](ADR-006-one-logical-operation-identity.md) | One logical operation identity spans replay boundaries | Accepted |
+| [ADR-006](ADR-006-one-logical-operation-identity.md) | One logical operation identity spans replay boundaries | Accepted; amended 2026-11-08 (an operator retry is a new attempt identity) |
 | [ADR-007](ADR-007-one-sdk-invocation-surface.md) | One SDK invocation surface replaces Odoo shadow transport | Accepted |
 | [ADR-008](ADR-008-no-odoo-transport-retry.md) | Odoo owns no transport retry layer | Accepted |
 | [ADR-009](ADR-009-one-caller-deadline.md) | One caller deadline governs Odoo → Gate execution | Accepted |
 | [ADR-010](ADR-010-odoo-owns-crm-writeback.md) | Odoo owns CRM writeback policy | Accepted |
-| [ADR-011](ADR-011-exact-sdk-revision-pins.md) | Runtime dependencies use exact proven SDK revisions | Accepted |
+| [ADR-011](ADR-011-exact-sdk-revision-pins.md) | Runtime dependencies use exact proven SDK revisions | Accepted; amended 2026-11-08 (Gate_SDK declared on the `v1` channel) |
 | [ADR-012](ADR-012-installed-and-runtime-proof.md) | Installed/runtime proof is required for Gate integration | Accepted |
 | [ADR-013](ADR-013-sdk-capability-gaps-belong-in-gate-sdk.md) | SDK capability gaps must be fixed in Gate_SDK, not shadowed in Odoo | Accepted |
 | [ADR-014](ADR-014-architecture-boundary-tests-are-release-gates.md) | Architecture-boundary tests are release gates | Accepted |

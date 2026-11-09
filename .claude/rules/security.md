@@ -5,9 +5,9 @@ paths:
 ---
 # Security — Path-Scoped Pointer
 
-**Authority:** `71-plasticos-security-model.mdc` · `INVARIANTS.md` § Security
+**Authority:** effective ACL and record rules, and rule `71-plasticos-security-model`.
 
-**Before ANY ACL edit:** `cat` the full CSV · check redundancy · match id-column format · never mix prefix styles.
+**Before ANY ACL edit:** `cat` the full CSV · check redundancy · match id-column format · never mix prefix styles. `ci/check_acl_completeness.py` only proves a row exists.
 
 **Every new model:** `security/ir.model.access.csv` in the **same module** that defines the model.
 

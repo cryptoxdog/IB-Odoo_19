@@ -369,3 +369,6 @@ wants us to bid on everything,1,1,UNMAPPED,note_not_material,call_note,,,,,,call
 Westbury,1,1,UNMAPPED,note_not_material,call_note,,,,,,call-note text; not a material
 wonderful lady,1,1,UNMAPPED,note_not_material,call_note,,,,,,call-note text; not a material
 WV is simple grinder/shredder op.,1,1,UNMAPPED,note_not_material,call_note,,,,,,call-note text; not a material
+1 & 2 bottles (pet/hdpe),,,CODE_ONLY,mapped,approved_alias,1_2_COMMINGLED_BOTTLES,,,POST_CONSUMER,,alias already resolved by the normalizer
+1 & 2 pet & hdpe co-mingled bottles,,,CODE_ONLY,mapped,approved_alias,1_2_COMMINGLED_BOTTLES,,,POST_CONSUMER,,alias already resolved by the normalizer
+commingled bottles 1&2,,,CODE_ONLY,mapped,approved_alias,1_2_COMMINGLED_BOTTLES,,,POST_CONSUMER,,alias already resolved by the normalizer

@@ -536,6 +536,10 @@ def _approved_context_lines(dto: CanonicalLead, current=None) -> list[str]:
             _queue_provenance(lines, current, dto.external_id, name, value, shared_owner=True)
         else:
             lines.append(provenance_line(dto.external_id, name, value))
+    # Issue #299: Website and Title stay labelled source text on the ERP person;
+    # its native website/function fields are not written until a mapping is approved.
+    _queue_provenance(lines, current, dto.external_id, "Website", dto.website, shared_owner=True)
+    _queue_provenance(lines, current, dto.external_id, "Title", dto.job_title, shared_owner=True)
     return lines
 
 
@@ -2030,6 +2034,10 @@ class SyncOrchestrator:
         status = _collapse_ws(dto.lead_status_raw)
         if status:
             _queue_provenance(lines, current, ref, "Lead Status", status)
+        # Issue #299: Website and Title have no approved native destination yet,
+        # so they are preserved as ContactID-labelled source text, never mapped.
+        _queue_provenance(lines, current, ref, "Website", dto.website)
+        _queue_provenance(lines, current, ref, "Title", dto.job_title)
         return lines
 
     def _lead_source_is_fallback(self, raw_source: str) -> bool:
