@@ -74,6 +74,10 @@
                 <attribute name="invisible">not is_company</attribute>
             </xpath>
 
+            <xpath expr="//field[@name='address_type_meaning']/parent::div" position="after">
+                <field name="company_role_tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+            </xpath>
+
         </field>
     </record>
 
@@ -88,12 +92,16 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
             <xpath expr="//list/field[@name='country_id']" position="before">
+                <field name="company_role_tag_ids"
+                       widget="many2many_tags"
+                       options="{'color_field': 'color'}"
+                       optional="show"/>
                 <field name="company_role"
                        widget="badge"
                        decoration-success="company_role == 'buyer'"
                        decoration-info="company_role == 'supplier'"
                        decoration-warning="company_role == 'prospect'"
-                       optional="show"/>
+                       optional="hide"/>
                 <field name="entity_status"
                        widget="badge"
                        decoration-danger="entity_status == 'blocked'"
