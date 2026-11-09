@@ -253,6 +253,43 @@ def test_mapper_reports_failure_reason_over_state():
     assert resp.status == "provider timeout"
 
 
+def _sdk_failure_payload(**overrides):
+    """The payload Gate_SDK's runtime puts on a failure packet when the node handler raises."""
+    base = {"status": "failed", "error": "RuntimeError", "message": "provider unavailable", "packet_id": "p-1"}
+    base.update(overrides)
+    return base
+
+
+def test_mapper_surfaces_the_sdk_failure_packet_reason():
+    resp = map_converge_response(_sdk_failure_payload())
+    assert resp.status == "RuntimeError: provider unavailable"
+    assert resp.failure_reason == "RuntimeError: provider unavailable"
+    assert resp.state is None
+    assert resp.final_fields == {}
+
+
+def test_mapper_does_not_repeat_a_message_that_is_only_the_class_name():
+    """Without expose_internal_errors the SDK sends the class name as the message."""
+    resp = map_converge_response(_sdk_failure_payload(message="RuntimeError"))
+    assert resp.status == "RuntimeError"
+
+
+def test_eie_failure_reason_wins_over_the_sdk_failure_fields():
+    resp = map_converge_response(_sdk_failure_payload(failure_reason="invalid converge request: entity missing"))
+    assert resp.status == "invalid converge request: entity missing"
+
+
+def test_sdk_failure_packet_without_text_still_fails_closed():
+    resp = map_converge_response({"status": "failed", "error": "", "message": None})
+    assert resp.status == "failed"
+    assert resp.failure_reason is None
+
+
+def test_status_failed_is_never_read_as_success():
+    for payload in (_sdk_failure_payload(), {"status": "ok"}, {"status": "ok", "fields": {"website": "x"}}):
+        assert map_converge_response(payload).status != "ok"
+
+
 # ── PATCH 7 — writeback safety survives the contract repair ────────────────
 
 
