@@ -1,0 +1,414 @@
+{
+  "schema": "plasticos.planning.release-gate-checkpoint/v1",
+  "as_of": "2026-11-09 GitHub source; hosted Production unknown",
+  "status": "GITHUB_PRODUCTION_PROMOTED_OPERATOR_TARGET_TEST_READY_IMPORTS_AND_QA_UNVERIFIED",
+  "staging_sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+  "production_sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+  "merge_base": null,
+  "staging_only_commit_count": null,
+  "production_only_commit_count": null,
+  "open_prs": [
+    {
+      "number": 418,
+      "head": "bfcad3b8268b6e3a3beb9d799e0bd43e92fd74e0",
+      "role": "STAGING_PENDING_REGISTRY_VIEW_AND_TRANSACTIONS_MENU_NOT_AUTOMATIC_TEST_READY_GATE",
+      "ci": "NOT_REVERIFIED",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/418"
+    }
+  ],
+  "merged_release_relevant_prs": [
+    322,
+    323,
+    339,
+    342,
+    343,
+    346,
+    347,
+    348,
+    349,
+    350,
+    351,
+    384,
+    398,
+    403,
+    405,
+    406,
+    408,
+    409,
+    410,
+    411,
+    412,
+    413,
+    414,
+    415,
+    416,
+    417
+  ],
+  "external_test_report": {
+    "source": "PR #346 historical Enterprise test report on a prior SHA; NOT latest Staging full Enterprise result",
+    "type": "NOT_INDEPENDENTLY_REEXECUTED",
+    "logistics": {
+      "tests": 152,
+      "failures": 0,
+      "errors": 0
+    },
+    "full": {
+      "tests": 1103,
+      "failures": 8,
+      "errors": 2
+    },
+    "seven_known": [
+      "TestTransactionClaimsBridgeDepends.test_freight_chargeback_recovery_flows_to_transaction",
+      "TestTransactionClaimsBridgeDepends.test_lightweight_penalty_recovery_flows_to_transaction",
+      "TestOfferBridge.test_offer_accept_creates_transaction",
+      "TestOfferActions.test_action_accept_creates_transaction",
+      "TestTransactionACL.test_base_user_cannot_write_tx_line",
+      "TestClaimACL.test_claim_user_cannot_unlink",
+      "TestClaimACL.test_no_group_cannot_read"
+    ],
+    "three_unclassified": [
+      "TestCronInDomain.test_compliance_audit_clears_verified_on_expired_document",
+      "TestCronInDomain.test_scale_tickets_leave_unloaded_transaction",
+      "TestWebLeadOpportunity.test_hot_admission_creates_one_new_opportunity_without_partner"
+    ],
+    "historical_evidence_only": true,
+    "rechecked_against_current_staging": "NOT_VERIFIED"
+  },
+  "gates": [
+    {
+      "id": "PL-RELEASE-BASE",
+      "status": "GITHUB_PRODUCTION_PROMOTION_MERGED",
+      "depends_on": [
+        "PL-RELEASE-SCOPE"
+      ],
+      "criterion": "PR #408 merged Staging b5b6056f0163 into Production. Latest Staging bdc222246fbf now differs from Production 729d3ab0b7cd; do not assume post-promotion PRs are deployed."
+    },
+    {
+      "id": "PL-RELEASE-SCOPE",
+      "status": "OPERATOR_CORE_QA_SCOPE_DEFINED",
+      "depends_on": [],
+      "criterion": "Freeze minimum test-ready Production: transactions, eligible ERP + CRM contact/history, Admin dashboard, web-lead qualification, logistics automation and document automation. Matching/enrichment disabled, Export next after QA."
+    },
+    {
+      "id": "PL-RELEASE-PR346",
+      "status": "MERGED_STAGING_COMPLETE",
+      "depends_on": [],
+      "criterion": "PR #346 multi-load guard merged, no longer open"
+    },
+    {
+      "id": "PL-RELEASE-EE",
+      "status": "PRODUCTION_CURRENT_ADDON_RUNTIME_PROOF_REQUIRED",
+      "depends_on": [
+        "PL-RELEASE-MIGRATION"
+      ],
+      "criterion": "Check exact hosted Production build, Odoo 19 EE registry/upgrade, logs, enabled addon versions and critical permissions; pure Python CI and GitHub merge alone are not the required proof."
+    },
+    {
+      "id": "PL-RELEASE-MIGRATION",
+      "status": "HOSTED_PRODUCTION_UPGRADE_NOT_VERIFIED",
+      "depends_on": [
+        "PL-RELEASE-CUTOVER"
+      ],
+      "criterion": "Production active Odoo.sh build and exact addon upgrades must be verified with logs; Admin module is not auto-installed."
+    },
+    {
+      "id": "PL-RELEASE-DATA",
+      "status": "PRODUCTION_FULL_ELIGIBLE_IMPORT_UNVERIFIED",
+      "depends_on": [
+        "PL-RELEASE-MIGRATION",
+        "PL-RELEASE-IMPORT-AUTH",
+        "PL-RELEASE-SOURCES"
+      ],
+      "criterion": "Read-only prove full authorized ERP companies/partners/transactions/history and VanillaSoft approved CRM contacts loaded on Production; preserve exclusions, source counts, crosswalk/replay. A 10% rehearsal is not full import."
+    },
+    {
+      "id": "PL-RELEASE-DR",
+      "status": "DEFERRED_POST_PROMOTION",
+      "depends_on": [
+        "PL-RELEASE-CUTOVER"
+      ],
+      "criterion": "Post-promotion independent AWS disaster recovery and operational drill"
+    },
+    {
+      "id": "PL-RELEASE-CUTOVER",
+      "status": "GITHUB_PRODUCTION_CODE_MERGED_ODOO_SH_UNKNOWN",
+      "depends_on": [
+        "PL-RELEASE-BASE",
+        "PL-RELEASE-SCOPE",
+        "PL-RELEASE-IMPORT-AUTH"
+      ],
+      "criterion": "GitHub PR #408 is merged and Production branch exists. Verify actual Odoo.sh Production build, addon install and dependency registry; no claim of running DB state."
+    },
+    {
+      "id": "PL-MVP-01",
+      "status": "GITHUB_PRODUCTION_CODE_PROMOTED_TESTABLE_ENV_UNKNOWN",
+      "depends_on": [
+        "PL-RELEASE-MIGRATION"
+      ],
+      "criterion": "Target code-clean-enough Production build for hands-on QA. Confirm hosted startup + addon list, not bug-free certification or final financial go-live."
+    },
+    {
+      "id": "PL-RELEASE-IMPORT-AUTH",
+      "status": "IMPORT_IMPLEMENTATION_MERGED_PROD_RUNNING_UNVERIFIED",
+      "depends_on": [],
+      "criterion": "PR #349 import capability was included in promoted Staging history; verify actual active code, environment permits and imported rows before claiming success."
+    },
+    {
+      "id": "PL-RELEASE-SOURCES",
+      "status": "PRODUCTION_SOURCE_MANIFEST_NOT_REVERIFIED",
+      "depends_on": [
+        "PL-RELEASE-SCOPE"
+      ],
+      "criterion": "Bind actual frozen ERP SQL extracts, CRM API cohort and permits to Production-only execution receipts; no rerun just to satisfy documentation."
+    },
+    {
+      "id": "PL-RELEASE-RECONCILE",
+      "status": "PRODUCTION_IMPORT_CENSUS_NOT_VERIFIED",
+      "depends_on": [
+        "PL-RELEASE-DATA"
+      ],
+      "criterion": "Exact source-to-Production counts and financial identities, unresolved disposition register, imported archived drafts. No new posting, settlement or live mail."
+    },
+    {
+      "id": "PL-RELEASE-DOC-BLOBS",
+      "status": "DEFERRED_POST_CUTOVER_NO_BLOCKER",
+      "depends_on": [],
+      "criterion": "Separate worksheet image binary importer after executable exists"
+    },
+    {
+      "id": "PL-RELEASE-BUSINESS-ACCEPT",
+      "status": "ACTIVE_AFTER_CORE_QA_AND_BUTTON_SWEEP",
+      "depends_on": [
+        "PL-PROD-UI-SWEEP"
+      ],
+      "criterion": "Real user acceptance of active Production core features and full installed-app UI sweep; no tolerance for blocking crashes, data corruption, wrong-company exposure or unintended outbound effects."
+    },
+    {
+      "id": "PL-RELEASE-REHEARSAL",
+      "status": "EXACT_HEAD_REHEARSAL_PASSED_NOT_FULL_IMPORT",
+      "depends_on": [],
+      "criterion": "Nov 8 seven-gate rehearsal accepted for its tested SHA and limited slice; no requirement to repeat simply for planning."
+    },
+    {
+      "id": "PL-RELEASE-ODOOLS",
+      "status": "MERGED_STAGING_COMPLETE",
+      "depends_on": [],
+      "criterion": "OdooLS 66 ownership remediation merged to Staging PR #351"
+    },
+    {
+      "id": "PL-PROD-IMPORT-CENSUS",
+      "status": "NOT_VERIFIED_LIVE_PRODUCTION",
+      "depends_on": [
+        "PL-RELEASE-RECONCILE"
+      ],
+      "criterion": "Prove Production transactions, eligible ERP rows, and CRM contact/history import completeness"
+    },
+    {
+      "id": "PL-PROD-ADMIN-ACCESS",
+      "status": "MENU_IN_CODE_NOT_INSTALLED_OR_ACCESS_TESTED",
+      "depends_on": [
+        "PL-RELEASE-MIGRATION"
+      ],
+      "criterion": "Confirm Production Admin tile, admin group permissions, Command Center and dashboard drill-throughs"
+    },
+    {
+      "id": "PL-PROD-LOAD-SNAPSHOT",
+      "status": "SOURCE_FILTER_EXCLUDES_OLD_CLOSED_LOADS",
+      "depends_on": [
+        "PL-PROD-ADMIN-ACCESS"
+      ],
+      "criterion": "Resolve whether Admin logistics view must show all historical loads and prove exact visibility"
+    },
+    {
+      "id": "PL-PROD-TEST-BASE",
+      "status": "OPERATOR_TARGET_NOT_INDEPENDENTLY_VERIFIED",
+      "depends_on": [
+        "PL-MVP-01",
+        "PL-RELEASE-EE",
+        "PL-PROD-IMPORT-CENSUS",
+        "PL-PROD-ADMIN-ACCESS"
+      ],
+      "criterion": "Accept test-ready Production build with imported data, functional Admin access and bounded smoke baseline"
+    },
+    {
+      "id": "PL-PROD-WEBLEAD-QA",
+      "status": "PRODUCTION_QA_NOT_RUN",
+      "depends_on": [
+        "PL-PROD-TEST-BASE"
+      ],
+      "criterion": "Exercise native web-lead qualification without enabling external matching or enrichment"
+    },
+    {
+      "id": "PL-PROD-LOGISTICS-QA",
+      "status": "PRODUCTION_QA_NOT_RUN",
+      "depends_on": [
+        "PL-PROD-TEST-BASE"
+      ],
+      "criterion": "Exercise loads, freight governance and Linda logistics automation under safe test-side-effect controls"
+    },
+    {
+      "id": "PL-PROD-DOC-QA",
+      "status": "PRODUCTION_QA_NOT_RUN",
+      "depends_on": [
+        "PL-PROD-TEST-BASE"
+      ],
+      "criterion": "Exercise native document capture, exact association, verification, requests and expiry/compliance automation"
+    },
+    {
+      "id": "PL-PROD-CORE-SMOKE",
+      "status": "TESTS_NOT_RUN",
+      "depends_on": [
+        "PL-PROD-WEBLEAD-QA",
+        "PL-PROD-LOGISTICS-QA",
+        "PL-PROD-DOC-QA"
+      ],
+      "criterion": "Accept basic Production web-lead, logistics, document automations and transactions without advanced intelligence"
+    },
+    {
+      "id": "PL-PROD-UI-SWEEP",
+      "status": "TESTS_NOT_RUN",
+      "depends_on": [
+        "PL-PROD-CORE-SMOKE",
+        "PL-PROD-LOAD-SNAPSHOT"
+      ],
+      "criterion": "Kick every active menu, screen, form, button, action and empty state; eliminate real bloat before Export"
+    },
+    {
+      "id": "PL-FUT-01",
+      "status": "NEXT_AFTER_PRODUCTION_CORE_QA_NOT_STARTED",
+      "depends_on": [
+        "PL-RELEASE-BUSINESS-ACCEPT",
+        "PL-ARCH-07"
+      ],
+      "criterion": "Build Export as next separately authorized module after Production core test acceptance; unify existing domestic Logistics, documents, Sales/Purchase, stock and Linda, do not duplicate their writers."
+    }
+  ],
+  "excluded_optional_frontiers": [
+    "Export",
+    "Warehouse/shop-floor",
+    "Optional live AI",
+    "Matching / NBA"
+  ],
+  "observed_evidence_urls": [
+    "https://github.com/cryptoxdog/IB-Odoo_19/commit/fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+    "https://github.com/cryptoxdog/IB-Odoo_19/compare/Production...Staging",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/322",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/339",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/346",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/349",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/350",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/351",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/352"
+  ],
+  "operator_approval": "PLAN_ONLY_NO_PERMISSION_FOR_PRODUCTION_POSTINGS_SENDS_IMPORT_RERUNS_OR_DEPLOY",
+  "live_runtime_inspected": false,
+  "repository_mutated": false,
+  "historical_invariant_members_missing": [
+    "01_INVARIANTS_v3.2.0_DRAFT_r1.md",
+    "01B_INVARIANTS_v3.3.0_DRAFT_r1.md"
+  ],
+  "operator_intent": "2026-11-09: import complete eligible transaction/ERP/CRM history into test-ready Production; verify Admin, core workflows, every button and zero bloat; only then authorize Export; no matching/enrichment now.",
+  "operator_goal_acknowledged": true,
+  "deferred_not_predecessors_of_promotion": [
+    "PL-RELEASE-DR",
+    "PL-RELEASE-BUSINESS-ACCEPT",
+    "PL-RELEASE-RECONCILE",
+    "PL-RELEASE-DOC-BLOBS"
+  ],
+  "import_runtime_blocker": {
+    "path": "plasticos_partner_import/erp/production_permit.py; plasticos_partner_import/scripts/odoosh_import_erp.sh",
+    "code_status": "MERGED_BY_PR_349",
+    "production_seam": "LIVE_TARGET_AND_CREDENTIALS_UNKNOWN",
+    "bypass_forbidden": true,
+    "hosted_proof": "NOT_RUN_IN_THIS_UPDATE",
+    "live_proof": "NOT_VERIFIED"
+  },
+  "crm_runtime_blocker": {
+    "source": "plasticos_crm_sync/services/historical_cohort.py; scripts/import_vanillasoft_shell.py",
+    "contract": "Historical 4,876-ID import + approved crosswalk, stable checkpoint, fail-closed permit",
+    "code_status": "MERGED_BY_PR_349",
+    "production_runner": "LIVE_TARGET_UNVERIFIED",
+    "live_proof": "NOT_VERIFIED"
+  },
+  "cutover_order": [
+    "PL-RELEASE-CUTOVER",
+    "PL-RELEASE-MIGRATION",
+    "PL-RELEASE-DATA",
+    "PL-RELEASE-RECONCILE",
+    "PL-PROD-IMPORT-CENSUS",
+    "PL-PROD-ADMIN-ACCESS",
+    "PL-PROD-TEST-BASE",
+    "PL-PROD-CORE-SMOKE",
+    "PL-PROD-UI-SWEEP",
+    "PL-RELEASE-BUSINESS-ACCEPT",
+    "PL-FUT-01"
+  ],
+  "source_evidence_addenda": [
+    "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/adr/ADR-021-erp-sql-crm-api-import.md",
+    "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/campaigns/Document Blob Imports/ERP-DOCUMENT-RECOVERY-001/11_IMPORT_SCOPE.md",
+    "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/CURSOR_EXECUTION_CONTRACT.md",
+    "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/plasticos_partner_import/scripts/validate_partner_layer.py",
+    "https://github.com/cryptoxdog/IB-Odoo_19/commit/fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+    "https://github.com/cryptoxdog/IB-Odoo_19/compare/Production...Staging",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/322",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/339",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/346",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/349",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/350",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/351",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/352",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/408",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/414",
+    "https://github.com/cryptoxdog/IB-Odoo_19/pull/418",
+    "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+    "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_logistics/models/load_dashboard.py"
+  ],
+  "rehearsal_status": {
+    "operator_report": "DONE",
+    "run": "2026-11-08_173212",
+    "test_head": "f8733d213fc96419698b1fd374de5fea54c4d362",
+    "proof": "SEVEN_GATES_RECORDED_FOR_BOUNDED_REHEARSAL_NOT_FULL_VOLUME",
+    "rerun_required_for_this_planning_update": false
+  },
+  "odools_remediation_status": {
+    "state": "MERGED_TO_STAGING_HISTORICAL_PR351",
+    "pr": 351,
+    "merge_sha": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+    "ci_gate": "PASS_ON_PR_HEAD_498f88d",
+    "production_state": "GITHUB_PRODUCTION_BRANCH_INCLUDES_PR351_HOSTED_INSTALL_UNKNOWN",
+    "source": "https://github.com/cryptoxdog/IB-Odoo_19/pull/351",
+    "final_odools_reparse_receipt": "NOT_RETRIEVED"
+  },
+  "promotion_status": "GITHUB_PR_408_MERGED_TO_PRODUCTION_ODOO_SH_RUNTIME_NOT_OBSERVED",
+  "overnight_import_status": "FULL_PRODUCTION_ELIGIBLE_COHORT_NOT_VERIFIED",
+  "historical_notes": "Old PR #346 and ten-test report represent earlier epoch. PR #346/347/348/349/350/351 merged. Rehearsal is operator-reported complete; missing receipt is a provenance gap, not an instruction to redo it.",
+  "branch_comparison": "NOT_RECOMPUTED_POST_PR408; no invented ahead/behind counts",
+  "current_github_production_head": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+  "user_goal_not_execution_proof": true,
+  "active_release_acceptance_sequence": [
+    "PL-RELEASE-CUTOVER",
+    "PL-RELEASE-MIGRATION",
+    "PL-RELEASE-DATA",
+    "PL-RELEASE-RECONCILE",
+    "PL-PROD-IMPORT-CENSUS",
+    "PL-PROD-ADMIN-ACCESS",
+    "PL-PROD-TEST-BASE",
+    "PL-PROD-CORE-SMOKE",
+    "PL-PROD-UI-SWEEP",
+    "PL-RELEASE-BUSINESS-ACCEPT",
+    "PL-FUT-01"
+  ],
+  "advanced_features_deferred": [
+    "matching",
+    "enrichment",
+    "AI extraction",
+    "Export until basic QA accepted",
+    "shopfloor"
+  ],
+  "hosted_gates": {
+    "admin_install": "UNKNOWN",
+    "production_current_build": "UNKNOWN",
+    "full_import_census": "UNKNOWN",
+    "full_button_inventory": "NOT_RUN"
+  }
+}
