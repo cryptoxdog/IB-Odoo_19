@@ -122,3 +122,7 @@ When adding a new `plasticos_*` module:
 3. Tier 2 modules MUST define their own top-level `<menuitem>` with `web_icon`
 4. Tier 3–5 modules MUST NOT define standalone menus for their primary models
 5. Document any exceptions in this ADR
+
+## Amendment 2026-11-09
+
+Transactions leaves the PlasticOS bar and becomes its own home-screen tile. `plasticos_transaction.menu_transaction_root` keeps its XML id and has no parent. All Transactions and Import Transactions (CSV) stay its children, on the same window actions. Lead import, models, and transaction creation are unchanged.
