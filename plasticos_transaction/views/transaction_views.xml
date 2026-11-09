@@ -257,6 +257,7 @@
     <!-- Root app tile. Children stay under this menu. -->
     <menuitem id="menu_transaction_root"
               name="Transactions"
+              web_icon="plasticos_transaction,static/description/icon.png"
               sequence="30"/>
     <menuitem id="menu_transactions_all"
               name="All Transactions"
