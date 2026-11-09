@@ -99,8 +99,18 @@ class ResPartner(models.Model):
         help=(
             "Trade-facing role. Drives supplier_rank / customer_rank visibility, "
             "partner form UX, and CEG node classification. "
-            "Set during import; can be updated manually on partner record."
+            "Set during import; can be updated manually on partner record. "
+            "A company that is both a buyer and a supplier keeps that on "
+            "Company Roles instead of this badge."
         ),
+    )
+    company_role_tag_ids = fields.Many2many(
+        "plasticos.company.role.tag",
+        "plasticos_partner_company_role_tag_rel",
+        "partner_id",
+        "tag_id",
+        string="Company Roles",
+        help="Trade roles from the ERP letter. A company can carry more than one.",
     )
 
     _SUPPLIER_ROLES = {"supplier", "broker"}
