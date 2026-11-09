@@ -52,7 +52,7 @@
             </xpath>
 
             <!-- ── Personal Intel — inline field for person contacts ──────── -->
-            <xpath expr="//div[@class='o_address_format']" position="after">
+            <xpath expr="//div[hasclass('o_address_format')]" position="after">
                 <field name="personal_intel"
                        string="Personal Intel"
                        widget="html"

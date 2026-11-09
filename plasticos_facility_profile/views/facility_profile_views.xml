@@ -204,7 +204,7 @@
       </xpath>
 
       <!-- Under the address block so the label is a normal form row, not inside the tax-id cell. -->
-      <xpath expr="//div[@class='o_address_format']" position="after">
+      <xpath expr="//div[hasclass('o_address_format')]" position="after">
         <field name="default_delivery_term" string="Dock Rule" invisible="not is_company"/>
       </xpath>
 
