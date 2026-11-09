@@ -57,19 +57,28 @@ def fill_template(template: str, *, commits: str, stat: str) -> str:
 
 
 def cap_commit_list(commits: str, limit: int = MAX_COMMIT_LIST_CHARS) -> str:
-    """Keep whole commit lines, newest first, until ``limit``; name how many were left out."""
+    """Keep whole leading commit lines within ``limit`` characters, including the omission note.
+
+    Lines are kept in the order given (``git log`` order: newest first). When
+    lines are dropped, the last kept line is followed by a note naming how many.
+    """
     lines = commits.splitlines()
+    if len(commits) <= limit:
+        return commits
     kept: list[str] = []
     used = 0
-    for line in lines:
-        if used + len(line) + 1 > limit:
+    for index, line in enumerate(lines):
+        note = _omission_note(len(lines) - index - 1)
+        if used + len(line) + 1 + len(note) > limit:
             break
         kept.append(line)
         used += len(line) + 1
-    omitted = len(lines) - len(kept)
-    if omitted:
-        kept.append(f"- … and {omitted} more commit(s); see the pull request's Commits tab.")
+    kept.append(_omission_note(len(lines) - len(kept)))
     return "\n".join(kept)
+
+
+def _omission_note(omitted: int) -> str:
+    return f"- … and {omitted} more commit(s); see the pull request's Commits tab."
 
 
 def _fallback_body(base: str, commits: str) -> str:

@@ -55,7 +55,7 @@ def test_long_commit_list_keeps_whole_lines_and_names_the_omitted_count():
 
     capped = cap_commit_list(commits)
 
-    assert len(capped) <= MAX_COMMIT_LIST_CHARS + 100
+    assert len(capped) <= MAX_COMMIT_LIST_CHARS
     kept = capped.splitlines()[:-1]
     assert all(line in commits.splitlines() for line in kept)
     assert kept[0] == "- feat: change number 00000 with a reasonably long subject"
@@ -68,3 +68,12 @@ def test_capped_body_fits_the_github_limit():
     body = fill_template(TEMPLATE, commits=commits, stat="")
 
     assert len(body) < 65_536
+
+
+def test_cap_is_exact_including_the_omission_note():
+    commits = "\n".join("- " + "y" * 98 for _ in range(50))
+
+    capped = cap_commit_list(commits, limit=1000)
+
+    assert len(capped) <= 1000
+    assert capped.splitlines()[-1].startswith("- … and ")
