@@ -1,0 +1,131 @@
+{
+  "schema": "plasticos.planning.release-source-binding/v1",
+  "as_of": "2026-11-09",
+  "kind": "WORKING_NON_ADMITTED_GITHUB_SOURCE_CHECKPOINT",
+  "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+  "staging_sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+  "production_sha": "02b90f199f2ae8733e3759b3d60cda85800ee486",
+  "merge_base": null,
+  "staging_ahead_by": null,
+  "production_ahead_by": null,
+  "merged_prs": [
+    346,
+    347,
+    348,
+    349,
+    350,
+    351,
+    384,
+    403,
+    405,
+    406,
+    408,
+    409,
+    410,
+    411,
+    412,
+    413,
+    414,
+    415,
+    416,
+    417
+  ],
+  "open_prs": [
+    418
+  ],
+  "rehearsal": {
+    "stage": "COMPLETE",
+    "evidence_type": "OPERATOR_REPORT",
+    "receipt": "NOT_LINKED",
+    "rerun_as_gate": false
+  },
+  "remediation": {
+    "stage": "MERGED_TO_STAGING",
+    "pr": 351,
+    "runtime_test_status": "NOT_INDEPENDENTLY_VERIFIED",
+    "editor_66_campaign": "CODE_REMEDIATION_MERGED"
+  },
+  "implementation_status": {
+    "erp_and_crm_production_import_code": "MERGED_PR_349",
+    "historical_financial_closure": "MERGED_PR_348",
+    "crm_materials": "MERGED_PR_350",
+    "final_current_enterprise": "UNKNOWN",
+    "production_promotion": "NOT_OBSERVED",
+    "overnight_import": "NOT_OBSERVED",
+    "production_code_pr_408": "MERGED",
+    "odoo_sh_production_build": "UNKNOWN",
+    "production_addon_upgrade": "UNKNOWN",
+    "production_transactions_erp_crm_all_imported": "UNKNOWN",
+    "admin_tile_live_access": "UNKNOWN",
+    "admin_module_auto_install": false,
+    "all_historical_loads_in_existing_dashboard": "NO_SOURCE_FILTER_EXCLUDES_OLDER_CLOSED",
+    "core_automations_qa": "NOT_RUN",
+    "every_button_qa": "NOT_RUN",
+    "matching_enrichment": "DEFERRED",
+    "export": "NEXT_AFTER_QA_NOT_STARTED"
+  },
+  "active_release_gates": [
+    "PL-RELEASE-MIGRATION",
+    "PL-RELEASE-RECONCILE",
+    "PL-PROD-IMPORT-CENSUS",
+    "PL-PROD-ADMIN-ACCESS",
+    "PL-PROD-TEST-BASE",
+    "PL-PROD-CORE-SMOKE",
+    "PL-PROD-UI-SWEEP"
+  ],
+  "completed_nodes": [
+    "PL-RELEASE-CUTOVER",
+    "PL-RELEASE-ODOOLS",
+    "PL-RELEASE-PR346",
+    "PL-RELEASE-REHEARSAL"
+  ],
+  "post_promotion_deferred": [
+    "PL-RELEASE-DR",
+    "PL-RELEASE-DOC-BLOBS",
+    "PL-AI-03",
+    "PL-FUT-02"
+  ],
+  "evidence": {
+    "PR_349": "https://github.com/cryptoxdog/IB-Odoo_19/pull/349",
+    "PR_350": "https://github.com/cryptoxdog/IB-Odoo_19/pull/350",
+    "PR_351": "https://github.com/cryptoxdog/IB-Odoo_19/pull/351",
+    "PR_352": "https://github.com/cryptoxdog/IB-Odoo_19/pull/352",
+    "Staging_commit": "https://github.com/cryptoxdog/IB-Odoo_19/commit/fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+    "Production_branch": "https://github.com/cryptoxdog/IB-Odoo_19/commit/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+    "Staging_branch": "https://github.com/cryptoxdog/IB-Odoo_19/commit/bdc222246fbfb647e8e008046b759eecd60a2028",
+    "PR_408": "https://github.com/cryptoxdog/IB-Odoo_19/pull/408",
+    "PR_414": "https://github.com/cryptoxdog/IB-Odoo_19/pull/414",
+    "PR_418": "https://github.com/cryptoxdog/IB-Odoo_19/pull/418",
+    "Admin_menu": "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+    "Load_dashboard_sql": "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_logistics/models/load_dashboard.py"
+  },
+  "limits": [
+    "No access to live Odoo.sh Production instance",
+    "Operator rehearsal report lacks linked exact receipt",
+    "CI Gate success not full current EE suite acceptance",
+    "No merge/deploy/Production writes authorized by plan update",
+    "No signed-in Odoo.sh Production browser/session or live database inspection available; live Admin access and import completeness are unknown",
+    "Latest Staging includes PRs after the Production promotion PR #408; do not equate two branch heads",
+    "Full load dashboard SQL view excludes old closed loads; operator all-load snapshot requires resolution before acceptance",
+    "No automatic new code merge, financial posting, real outbound messages or import reruns authorized"
+  ],
+  "completed_nodes_qualification": "PL-RELEASE-CUTOVER means GITHUB branch code merge only, not hosted deploy or business readiness.",
+  "prior_branch_lookup": {
+    "staging_sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+    "production_sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+    "as_of": "2026-11-09"
+  },
+  "new_post_import_source_lookup": {
+    "as_of": "2026-11-09",
+    "staging_sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+    "production_sha": "02b90f199f2ae8733e3759b3d60cda85800ee486",
+    "claims": "branch-head-only plus sampled source files; merged/open PR lists under predecessor require refresh",
+    "source_evidence_ids": [
+      "E-POST-BRANCHES",
+      "E-POST-REOPEN",
+      "E-POST-ADR022",
+      "E-POST-DR",
+      "E-POST-BLOB"
+    ]
+  }
+}

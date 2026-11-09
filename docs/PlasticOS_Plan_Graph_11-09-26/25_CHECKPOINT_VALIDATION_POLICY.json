@@ -1,0 +1,257 @@
+{
+  "authority_ref": "Operator November 9 v5.1 post-import update; live GitHub Staging@d6cc3c8ba04041da1844d7d0be396f4fad907be7 Production@02b90f199f2ae8733e3759b3d60cda85800ee486; earlier 24_RELEASE_GATE_GRAPH is an immutable historical snapshot, not current branch identity.",
+  "policy_status": "WORKING_OPERATOR_DECLARED_PRODUCTION_QA_ASSERTIONS_NOT_GLOBAL_AUTHORITY",
+  "assertions": [
+    {
+      "id": "prod-sha",
+      "kind": "equals",
+      "file": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "pointer": "/production_sha",
+      "value": "02b90f199f2ae8733e3759b3d60cda85800ee486"
+    },
+    {
+      "id": "staging-sha",
+      "kind": "matches_file",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/source_revision",
+      "other_file": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "other_pointer": "/staging_sha"
+    },
+    {
+      "id": "admin-live-unknown",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/hosted_gates/admin_install",
+      "value": "UNKNOWN"
+    },
+    {
+      "id": "admin-source-only",
+      "kind": "equals",
+      "file": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "pointer": "/implementation_status/admin_tile_live_access",
+      "value": "UNKNOWN"
+    },
+    {
+      "id": "import-not-proven",
+      "kind": "equals",
+      "file": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "pointer": "/implementation_status/production_transactions_erp_crm_all_imported",
+      "value": "UNKNOWN"
+    },
+    {
+      "id": "no-automatic-deploy",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/repository_mutated",
+      "value": false
+    },
+    {
+      "id": "no-export-basic",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/mvp_separation/no_export_or_shopfloor_implementation",
+      "value": true
+    },
+    {
+      "id": "unique-work",
+      "kind": "unique_field",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/work_items",
+      "field": "id"
+    },
+    {
+      "id": "unique-capabilities",
+      "kind": "unique_field",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "pointer": "/nodes",
+      "field": "id"
+    },
+    {
+      "id": "unique-gates",
+      "kind": "unique_field",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/gates",
+      "field": "id"
+    },
+    {
+      "id": "historical-release-gate-prod-sha-preserved",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/production_sha",
+      "value": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56"
+    },
+    {
+      "id": "historical-release-gate-staging-sha-preserved",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/staging_sha",
+      "value": "bdc222246fbfb647e8e008046b759eecd60a2028"
+    }
+  ],
+  "superseded_assertions_2026_10_30": [
+    {
+      "id": "working-no-prod-grant",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/operator_approval",
+      "value": "NOT_GRANTED_FOR_DEPLOY_OR_IMPORT_BY_THIS_PLAN_UPDATE"
+    },
+    {
+      "id": "staging-epoch-consistent",
+      "kind": "matches_file",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/source_revision",
+      "other_file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "other_pointer": "/staging_sha"
+    },
+    {
+      "id": "capability-epoch-consistent",
+      "kind": "matches_file",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "pointer": "/source_sha",
+      "other_file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "other_pointer": "/staging_sha"
+    },
+    {
+      "id": "promotion-not-executed",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/work_items/0/status",
+      "value": "PENDING_PROMOTION"
+    },
+    {
+      "id": "mvp-production-addon-gate",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/work_items/0/predecessors",
+      "value": [
+        "PL-RELEASE-MIGRATION"
+      ]
+    },
+    {
+      "id": "no-export-prereq",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/invariants/current_mvp_not_depends_on_export",
+      "value": true
+    },
+    {
+      "id": "unique-phase-items",
+      "kind": "unique_field",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/work_items",
+      "field": "id"
+    },
+    {
+      "id": "unique-capabilities",
+      "kind": "unique_field",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "pointer": "/nodes",
+      "field": "id"
+    },
+    {
+      "id": "no-production-deployment",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/repository_mutated",
+      "value": false
+    },
+    {
+      "id": "operator-goal-recorded",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/operator_goal_acknowledged",
+      "value": true
+    },
+    {
+      "id": "import-after-release",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/operator_cutover_decision/postdeployment_order",
+      "value": [
+        "PL-RELEASE-MIGRATION",
+        "PL-RELEASE-DATA",
+        "PL-RELEASE-RECONCILE"
+      ]
+    },
+    {
+      "id": "rehearsal-complete",
+      "kind": "equals",
+      "file": "27_OVERNIGHT_CUTOVER_EXECUTION_GRAPH.json",
+      "pointer": "/rehearsal_status",
+      "value": "COMPLETE_OPERATOR_REPORTED_RECEIPT_UNLINKED"
+    },
+    {
+      "id": "import-production-prohibition-not-waived",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/import_runtime_blocker/bypass_forbidden",
+      "value": true
+    },
+    {
+      "id": "never-claim-live-execution",
+      "kind": "equals",
+      "file": "27_OVERNIGHT_CUTOVER_EXECUTION_GRAPH.json",
+      "pointer": "/actual_execution",
+      "value": "NO_PRODUCTION_PROMOTION_OR_IMPORT_OBSERVED"
+    },
+    {
+      "id": "dr-deferred",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/operator_cutover_decision/aws_dr",
+      "value": "POST_PROMOTION"
+    },
+    {
+      "id": "staging-new-sha",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/staging_sha",
+      "value": "fba54b28168d870e9b0f67a196e10e7f7a36ac08"
+    },
+    {
+      "id": "rehearsal-graph-recorded",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/operator_current_checkpoint/rehearsal",
+      "value": "COMPLETE_OPERATOR_REPORTED_RECEIPT_UNLINKED"
+    },
+    {
+      "id": "odools-merged",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/odools_remediation_status/state",
+      "value": "CODE_MERGED_STAGING"
+    },
+    {
+      "id": "erp-import-code-merged",
+      "kind": "equals",
+      "file": "27_OVERNIGHT_CUTOVER_EXECUTION_GRAPH.json",
+      "pointer": "/erp_production_guard",
+      "value": "CODE_PATH_MERGED_PR_349_LIVE_AUTHORIZATION_UNVERIFIED"
+    },
+    {
+      "id": "one-open-pr",
+      "kind": "equals",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/open_prs/0/number",
+      "value": 352
+    },
+    {
+      "id": "unique-release-gates",
+      "kind": "unique_field",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/gates",
+      "field": "id"
+    },
+    {
+      "id": "no-precutover-binary",
+      "kind": "equals",
+      "file": "27_OVERNIGHT_CUTOVER_EXECUTION_GRAPH.json",
+      "pointer": "/document_binary_importer",
+      "value": "DEFERRED_BY_OPERATOR"
+    }
+  ],
+  "prior_authority_ref": "Operator 2026-11-09 Production-test-ready objective; source-bound Staging@bdc222246fbfb647e8e008046b759eecd60a2028 Production@729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56; no live Production inspection.",
+  "policy_history": "Historical release-gate identifiers remain byte-preserved in file 24; cross-file current pointers reference refreshed file 29; current branch SHAs never rewrite the historical ledger."
+}
