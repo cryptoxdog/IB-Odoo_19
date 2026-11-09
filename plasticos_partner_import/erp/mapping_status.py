@@ -425,7 +425,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             ),
             "required": True,
             "null_behavior": (
-                "N, blank or unrecognised -> unresolved inactive_contact (counted in records_rejected); an earlier "
+                "N, blank or unrecognised -> omitted (skipped, not an open exception); an earlier "
                 "run's marker is removed and its person archived when no other contact marker points at it"
             ),
             "identity_role": "none",

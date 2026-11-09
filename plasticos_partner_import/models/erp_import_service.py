@@ -162,6 +162,7 @@ class PlasticosErpImport(models.AbstractModel):
         for violation in index.violations:
             report.unresolved.append(violation.as_dict())
         source_index.account_inventory_destinations(index, report)
+        source_index.account_omissions(index, report)
 
         def stage_done(name: str) -> None:
             if after_stage is not None and not dry_run:
@@ -557,7 +558,8 @@ class PlasticosErpImport(models.AbstractModel):
                 if excluded:
                     # Before grouping, channel writes and aliasing: an inactive
                     # CT_ID gets no person, no number on the company and no marker.
-                    report.unresolved_ref("Contact", "inactive_contact", contact_id, f"not imported: {excluded}")
+                    index.omitted_contact_ids.add(contact_id)
+                    report.skip("contacts")
                     excluded_ids.append(contact_id)
                     continue
                 name = _text(row, "ContactNm")
@@ -566,6 +568,7 @@ class PlasticosErpImport(models.AbstractModel):
                     report.reject("contacts")
                     continue
                 if not mapping.is_person_name(name):
+                    index.omitted_contact_ids.add(contact_id)
                     retired = False
                     if not dry_run and company_partner_id:
                         self._apply_non_person(Partner.browse(company_partner_id), row)
@@ -574,6 +577,7 @@ class PlasticosErpImport(models.AbstractModel):
                     continue
                 target = mapping.site_mailbox_target(name, addresses, _text(row, "Location"), mailbox_keys)
                 if target:
+                    index.omitted_contact_ids.add(contact_id)
                     retired = False
                     if not dry_run:
                         self._apply_site_mailbox(partner_by_address, target, row)
@@ -804,6 +808,9 @@ class PlasticosErpImport(models.AbstractModel):
         grouped: dict[int, dict] = {}
         unresolved_rr: list[str] = []
         for contact_id in sorted(index.roles_by_contact):
+            if contact_id in index.omitted_contact_ids:
+                report.skip("contact_roles", len(index.roles_by_contact[contact_id]))
+                continue
             partner = self._partner_by_xmlid(Partner, f"legacy_erp_contact_{contact_id}")
             for role_id in index.roles_by_contact[contact_id]:
                 row = index.contact_roles[role_id]
