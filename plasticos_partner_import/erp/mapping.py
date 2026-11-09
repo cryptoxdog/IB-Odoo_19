@@ -54,7 +54,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # CounterParty.Role -> company role tags
 # ---------------------------------------------------------------------------
-# cieTrade stores one character and no legend. The letter meanings used here:
+# The source stores one character and no legend. The letter meanings used here:
 #
 #   C  Customer
 #   S  Supplier
