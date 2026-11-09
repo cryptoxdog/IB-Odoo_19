@@ -321,7 +321,7 @@ def test_complete_transactions_carry_both_parties_and_a_date(headers):
 # ---------------------------------------------------------------------------
 def test_every_counterparty_role_in_the_payload_is_mapped(index):
     codes = {(row.get("Role") or "").strip().upper() for row in index.counterparties.values()}
-    assert codes == set(mapping.COMPANY_ROLE_BY_ERP_ROLE)
+    assert codes == set(mapping.COMPANY_ROLE_TAGS_BY_ERP_ROLE)
 
 
 def test_unknown_role_is_reported_not_defaulted():
@@ -333,8 +333,24 @@ def test_unknown_role_is_reported_not_defaulted():
 def test_role_ranks_match_observed_trade_behaviour():
     assert mapping.trade_ranks("V") == (1, 0)
     assert mapping.trade_ranks("X") == (0, 1)
-    assert mapping.trade_ranks("A") == (1, 1)  # trades on both sides
+    assert mapping.trade_ranks("A") == (1, 1)  # buyer and supplier
     assert mapping.trade_ranks("D") == (0, 0)  # carrier only
+
+
+def test_role_letters_become_buyer_supplier_and_service_tags():
+    assert mapping.company_role_tags("C") == (("buyer",), None)
+    assert mapping.company_role_tags("S") == (("supplier",), None)
+    assert mapping.company_role_tags("P") == (("buyer", "supplier"), None)
+    assert mapping.company_role_tags("X") == (("buyer", "service"), None)
+    assert mapping.company_role_tags("V") == (("supplier", "service"), None)
+    assert mapping.company_role_tags("A") == (("buyer", "supplier", "service"), None)
+    assert mapping.company_role_tags("D") == (("carrier",), None)
+    assert mapping.company_role("P") == (None, None)
+    assert mapping.company_role("A") == (None, None)
+    assert mapping.company_role("D") == ("carrier", None)
+    assert mapping.company_role("X") == ("buyer", None)
+    assert mapping.company_role("V") == ("supplier", None)
+    assert "service" not in mapping.company_role_tags("D")[0]
 
 
 def test_shared_weight_uom_is_used_when_both_sides_agree():

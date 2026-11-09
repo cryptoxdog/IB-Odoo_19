@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <record id="company_role_buyer" model="plasticos.company.role.tag">
+      <field name="name">Buyer</field>
+      <field name="code">buyer</field>
+      <field name="sequence">10</field>
+      <field name="color">10</field>
+    </record>
+    <record id="company_role_supplier" model="plasticos.company.role.tag">
+      <field name="name">Supplier</field>
+      <field name="code">supplier</field>
+      <field name="sequence">20</field>
+      <field name="color">4</field>
+    </record>
+    <record id="company_role_service" model="plasticos.company.role.tag">
+      <field name="name">Service</field>
+      <field name="code">service</field>
+      <field name="description">Service Provider</field>
+      <field name="sequence">30</field>
+      <field name="color">2</field>
+    </record>
+    <record id="company_role_carrier" model="plasticos.company.role.tag">
+      <field name="name">Carrier</field>
+      <field name="code">carrier</field>
+      <field name="sequence">40</field>
+      <field name="color">3</field>
+    </record>
+  </data>
+</odoo>

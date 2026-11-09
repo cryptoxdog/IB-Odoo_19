@@ -237,7 +237,7 @@ class PlasticosErpImport(models.AbstractModel):
                 report.reject("counterparties")
                 continue
 
-            role, role_anomaly = mapping.company_role(row.get("Role"))
+            tags, role_anomaly = mapping.company_role_tags(row.get("Role"))
             if role_anomaly:
                 report.anomaly("CounterParty", cp_id, role_anomaly)
             supplier_rank, customer_rank = mapping.trade_ranks(row.get("Role"))
@@ -251,8 +251,14 @@ class PlasticosErpImport(models.AbstractModel):
                 "supplier_rank": supplier_rank,
                 "customer_rank": customer_rank,
             }
-            if role:
-                values["company_role"] = role
+            if tags:
+                selection, _selection_anomaly = mapping.company_role(row.get("Role"))
+                values["company_role"] = selection or False
+                tag_ids, missing = self._company_role_tag_ids(tags)
+                if missing:
+                    report.anomaly("CounterParty", cp_id, f"company role tag missing: {', '.join(missing)}")
+                elif "company_role_tag_ids" in Partner._fields:
+                    values["company_role_tag_ids"] = [Command.set(tag_ids)]
             _set_if(values, "ref", _text(row, "OurCustNo"))
             _set_if(values, "email", _text(row, "APEMail"))
             _set_if(values, "website", _text(row, "WebSite"))
@@ -1190,16 +1196,35 @@ class PlasticosErpImport(models.AbstractModel):
             }
         )
 
+    def _company_role_tag_ids(self, tags: tuple[str, ...]) -> tuple[list[int], list[str]]:
+        """Resolve role tag keys to records. A missing tag is named, not skipped silently."""
+        from ..erp import mapping
+
+        found: list[int] = []
+        missing: list[str] = []
+        for key in tags:
+            record = self.env.ref(mapping.COMPANY_ROLE_TAG_XMLID[key], raise_if_not_found=False)
+            if record:
+                found.append(record.id)
+            else:
+                missing.append(key)
+        return found, missing
+
     def _copied_role(self, parent) -> dict:
-        """The child's Company Role and ranks are the parent's."""
+        """The child's Company Role, role tags, and ranks are the parent's."""
         if not parent:
             return {}
         values = {
             "supplier_rank": parent.supplier_rank or 0,
             "customer_rank": parent.customer_rank or 0,
         }
+        fields_on_parent = getattr(parent, "_fields", {})
         if parent.company_role:
             values["company_role"] = parent.company_role
+        elif "company_role" in fields_on_parent:
+            values["company_role"] = False
+        if "company_role_tag_ids" in fields_on_parent:
+            values["company_role_tag_ids"] = [Command.set(list(parent.company_role_tag_ids.ids))]
         return values
 
     def _apply_site_mailbox(self, partner_by_address: dict, address_id: str, row) -> None:
@@ -1262,6 +1287,10 @@ def _differs(record, field_name: str, value) -> bool:
     current = record[field_name]
     target = value if value is not None else False
     if field.type in ("many2many", "one2many"):
+        set_command = getattr(Command, "SET", 6)
+        if isinstance(target, list) and len(target) == 1 and target[0][0] == set_command:
+            current_ids = set(current.ids) if current else set()
+            return current_ids != set(target[0][2])
         # The import writes relational lines as a clear command; an empty relation is already clear.
         return not (isinstance(target, list) and target == [Command.clear()] and not current)
     if hasattr(current, "id"):
