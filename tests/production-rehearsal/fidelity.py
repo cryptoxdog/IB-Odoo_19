@@ -75,7 +75,7 @@ COVERAGE: list[dict] = [
         "source_table": "CounterParty",
         "source_field": "Role",
         "target_model": "res.partner",
-        "target_field": "company_role_tag_ids,company_role,supplier_rank,customer_rank",
+        "target_field": "company_role,supplier_rank,customer_rank",
         "kind": "direct",
         "scope": "all_imported",
     },

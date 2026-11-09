@@ -79,7 +79,10 @@
                 <field name="last_name" invisible="is_company" readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='address_type_meaning']/parent::div" position="after">
-                <field name="company_role_tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                <field name="company_role_tag_ids"
+                       widget="many2many_tags"
+                       options="{'color_field': 'color'}"
+                       invisible="not is_company"/>
             </xpath>
 
         </field>
