@@ -131,7 +131,7 @@ class DocumentNative(models.Model):
         compute="_compute_business_verification",
     )
     override_reason_draft = fields.Text(
-        string="Override Reason",
+        string="Draft Override Reason",
         help="Reason typed before the override command. It is not the recorded decision.",
     )
     verification_review_required = fields.Boolean(
