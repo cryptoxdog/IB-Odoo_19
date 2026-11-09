@@ -918,29 +918,14 @@ class PlasticosTransaction(models.Model):
 
     @api.model
     def _historical_erp_moves(self, moves):
-        """Candidate moves whose identity row is an imported historical account.move.
+        """Moves whose identity is an imported historical account.move.
 
-        One search. A row counts only when the module, the model, and one of
-        the three historical name prefixes all match. Other xmlids, other
-        modules, and other models stay eligible for automatic posting.
+        Same classifier as account.move._historical_source_ids. Compliance
+        recompute does not call _auto_post_pending_invoices.
         """
         if not moves:
             return moves
-        rows = self.env["ir.model.data"].search(
-            [
-                ("module", "=", "plasticos_transaction"),
-                ("model", "=", ACCOUNT_MOVE),
-                ("res_id", "in", moves.ids),
-                "|",
-                "|",
-                ("name", "=like", "legacy_erp_outinv_%"),
-                ("name", "=like", "legacy_erp_ininv_%"),
-                ("name", "=like", "legacy_erp_ledger_%"),
-            ]
-        )
-        if not rows:
-            return moves.browse()
-        return moves.browse(rows.mapped("res_id"))
+        return moves.browse(list(moves._historical_source_ids()))
 
     @api.model_create_multi
     def create(self, vals_list):
