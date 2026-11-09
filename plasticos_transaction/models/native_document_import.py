@@ -1165,7 +1165,10 @@ def _vendor_due_terms(importer, context, report, batch: str, facts: dict) -> dic
 
 
 def _payment_term(env, context, report, batch: str, name: str):
-    """Existing ``account.payment.term`` named exactly ``name``. An unmatched name is reported once."""
+    """Existing ``account.payment.term`` for an ERP term name. An unmatched name is reported once."""
+    from odoo.addons.plasticos_partner_import.erp.mapping import payment_term_name  # noqa: PLC0415
+
+    name = payment_term_name(name)
     if not name:
         return None
     cache = context.setdefault("payment_term_cache", {})
