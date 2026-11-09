@@ -6,7 +6,7 @@ alwaysApply: false
 
 # PlasticOS Deploy Validation
 
-Enterprise Docker testing (`make test-module` / `make test-odoo`) uses the fixture in rule `36-plasticos-docker-test-fixture`. `make test-module` does not use a database named `odoo_test`.
+Enterprise Docker testing uses the fixture in rule `36-plasticos-docker-test-fixture`. That run does not use a database named `odoo_test`.
 
 Odoo.sh deployment is rule `98-odoo-sh-staging`.
 

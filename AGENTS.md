@@ -187,32 +187,32 @@ Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skil
 
 ```
 skills/                # PlasticOS agent skills SSOT (NOT an Odoo addon; see PLASTICOS_CANONICAL_LAW)
-plasticos_base/              # Core seed data, feature gates, partner tags
-plasticos_security_base/     # RBAC roles, record rules, ACL
-plasticos_material_profile/  # Material master (polymer, form, color, source)
-plasticos_product/           # Scrap plastic product catalog
-plasticos_facility_profile/  # Facility capabilities, equipment, tolerances
-plasticos_intake/            # Material intake with contact intelligence
-plasticos_intake_normalizer/ # L9 packet normalization
-plasticos_matching/          # Gate match orchestrator + result store (ADR-015; CEG scores)
-plasticos_geolocalize/       # Auto-geocode + nightly backfill
-plasticos_gate/              # Sole TransportPacket client (ADR-002 / ADR-011)
-plasticos_enrichment/        # Gate converge orchestrator + writeback shell (ADR-012/015; ranking ADR-009)
-plasticos_web_leads/         # AI lead triage local Phase 1 (ADR-016; not enrichment ranking)
-plasticos_accounting/        # Chart of accounts, payment terms, incoterms
-plasticos_offer/             # Offer lifecycle (match → negotiation → deal)
-plasticos_order_lines/       # PO/SO lines with material specs
-plasticos_automation/        # Workflow automation, SLA monitoring
-plasticos_partner_import/    # Partner import wizard
-plasticos_crm_bridge/        # CRM integration bridge
-plasticos_commission/        # Commission calculation engine
-plasticos_documents/         # Document validation matrices
-plasticos_documents_native/  # Enterprise Documents bridge
-plasticos_transaction/       # Transaction spine + commission
-plasticos_logistics/         # Load management, BOL, dispatch
-plasticos_claims/            # QC cases, claims, chargebacks
+plasticos_base/              # Layer 1: Core seed data, feature gates, partner tags
+plasticos_security_base/     # Layer 1: RBAC roles, record rules, ACL
+plasticos_material_profile/  # Layer 1: Material master (polymer, form, color, source)
+plasticos_product/           # Layer 1: Scrap plastic product catalog
+plasticos_facility_profile/  # Layer 2: Facility capabilities, equipment, tolerances
+plasticos_intake/            # Layer 2: Material intake with contact intelligence
+plasticos_intake_normalizer/ # Layer 2: L9 packet normalization
+plasticos_matching/          # Layer 2: Gate match orchestrator + result store (ADR-015; CEG scores)
+plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
+plasticos_gate/              # Layer 2: Sole TransportPacket client (ADR-002 / ADR-011)
+plasticos_enrichment/        # Layer 2: Gate converge orchestrator + writeback shell (ADR-012/015; ranking ADR-009)
+plasticos_web_leads/         # Layer 2: AI lead triage local Phase 1 (ADR-016; not enrichment ranking)
+plasticos_accounting/        # Layer 3: Chart of accounts, payment terms, incoterms
+plasticos_offer/             # Layer 3: Offer lifecycle (match → negotiation → deal)
+plasticos_order_lines/       # Layer 3: PO/SO lines with material specs
+plasticos_automation/        # Layer 3: Workflow automation, SLA monitoring
+plasticos_partner_import/    # Layer 3: Partner import wizard
+plasticos_crm_bridge/        # Layer 3: CRM integration bridge
+plasticos_commission/        # Layer 3: Commission calculation engine
+plasticos_documents/         # Layer 4: Document validation matrices
+plasticos_documents_native/  # Layer 4: Enterprise Documents bridge
+plasticos_transaction/       # Layer 5: Transaction spine + commission
+plasticos_logistics/         # Layer 5: Load management, BOL, dispatch
+plasticos_claims/            # Layer 5: QC cases, claims, chargebacks
 plasticos_website/           # UI: Website extensions (installable: False — disabled)
-plasticos_admin_dashboard/   # RevOps KPI dashboard (admin)
+plasticos_admin_dashboard/   # Layer 3: RevOps KPI dashboard (admin)
 plasticos_odoo_standard_apps/ # Meta: auto-install bundle of standard Odoo CE apps (optional)
 plasticos_dev_tools/         # Dev-only: audit scripts, integrity checks
 tests/                       # Cross-module test suite

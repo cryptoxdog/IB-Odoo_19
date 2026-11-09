@@ -20,6 +20,8 @@ The checked-out `INVARIANTS.md` is the canonical source. Historical agent text d
 | Enterprise tests | `36-plasticos-docker-test-fixture` |
 | Deployment | `30-plasticos-deploy-validation` |
 
+Odoo runtime tests (`make test-module` / `make test-odoo`) run only in the `make pr-check` smoke stage or when `l9-pr-integration-testing` is invoked (`make runtime-test m=<modules>`). Do not run them ad hoc.
+
 Do not read a BRS chapter, `SUPERSESSION.md`, or `plasticos_logistics/business_rules/` as a required instruction target.
 
 External intelligence stays on the accepted Gate path. Do not restore local matching or enrichment authority.
