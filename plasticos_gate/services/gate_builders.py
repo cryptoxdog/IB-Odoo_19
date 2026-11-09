@@ -67,16 +67,18 @@ def build_operation_id(
     is the business act meaning "ask again", so it is a new logical operation:
     same durable run, new attempt number, new identity.
 
-    Generated ONCE per run and reused at both replay boundaries: the
+    Generated ONCE per attempt and reused at both replay boundaries: the
     EnrichRequest domain idempotency field and the TransportPacket header.
     Those remain different mechanisms owned by EIE and Gate_SDK respectively —
     they share a logical identity, they do not become one subsystem.
 
-    Identity is derived only from durable run identity. It carries no payload
-    digest, timestamp, or randomness, so:
+    Identity is derived only from durable run identity and the attempt
+    counter. It carries no payload digest, timestamp, or randomness, so:
 
-    * retrying the same durable run yields the same id — which is what "the
-      same operation" means once a run is the unit of business identity;
+    * the same attempt of the same durable run always yields the same id, so a
+      transport replay of that attempt is recognised as the same operation;
+    * an operator retry (``gate_attempt`` + 1) yields a new id (ADR-006
+      amendment 2026-11-08);
     * a new run over the same partner yields a different id;
     * a different partner yields a different id.
 
@@ -84,9 +86,9 @@ def build_operation_id(
     into the key. That made a retry of one run after the partner was edited a
     *different* logical operation, which is ADR-006's rejected Option B: it
     makes "same operation" a serialization fact rather than a business fact,
-    and leaves the transport key uncorrelatable with the durable run. An
-    operator who needs a materially new request creates a new run — that is the
-    business act meaning "ask again".
+    and leaves the transport key uncorrelatable with the durable run. Asking
+    again is a business act: an operator retry or a new run, never a payload
+    edit.
 
     Returns None when run identity is unknown; an unidentifiable request is left
     un-keyed rather than given a guessed identity.

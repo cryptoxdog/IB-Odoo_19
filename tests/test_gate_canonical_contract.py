@@ -274,9 +274,23 @@ def _ctx(record_id: int = RUN_ID, db_name: str = "plasticos"):
     return build_odoo_context(_FakeEnv(db_name), model="plasticos.enrichment.run", record_id=record_id).to_dict()
 
 
-def test_operation_id_is_stable_for_a_retry_of_the_same_run():
-    """ADR-006 required behavior: same durable run + retry -> same operation ID."""
+def test_operation_id_is_stable_for_the_same_attempt_of_the_same_run():
+    """ADR-006: one attempt of one durable run has one operation ID."""
     assert build_operation_id(_ctx()) == build_operation_id(_ctx())
+    assert build_operation_id(_ctx(), attempt=2) == build_operation_id(_ctx(), attempt=2)
+
+
+def test_operator_retry_is_a_new_operation_id():
+    """ADR-006 amendment 2026-11-08: a retried run gets a new ID.
+
+    Gate caches the response per identity, failures included; reusing the
+    failed attempt's ID would be answered from that cache without reaching EIE.
+    The retry stays correlatable: same run prefix, explicit attempt suffix.
+    """
+    first = build_operation_id(_ctx())
+    retry = build_operation_id(_ctx(), attempt=2)
+    assert retry != first
+    assert retry == f"{first}:attempt-2"
 
 
 def test_operation_id_does_not_depend_on_the_payload():
