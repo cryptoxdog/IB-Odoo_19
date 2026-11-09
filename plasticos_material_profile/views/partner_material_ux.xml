@@ -12,46 +12,41 @@
         <field name="name">res.partner.form.material.profiles.tab</field>
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
-        <field name="priority">30</field>
+        <field name="priority">10</field>
         <field name="arch" type="xml">
 
-            <xpath expr="//notebook[page[@name='internal_notes']]" position="inside">
+            <!-- Priority 10 places this block above Locations (priority 16) and Notes (priority 99). -->
+            <xpath expr="//notebook[page[@name='internal_notes']]" position="before">
 
-                <page string="Material Profile"
-                      invisible="not is_company"
-                      name="material_profiles_tab"
-                      sequence="1">
+                <separator string="Material Profile" invisible="not is_company"/>
 
-                    <!-- Summary banner (zero-state guidance) -->
-                    <div class="alert alert-light text-muted"
-                         role="status"
-                         invisible="material_profile_count > 0">
-                        <i class="fa fa-info-circle" title="Info"/>
-                        No material profiles yet. Click "Add a line" to define what
-                        materials this company supplies or accepts.
-                    </div>
+                <div class="alert alert-light text-muted"
+                     role="status"
+                     invisible="not is_company or material_profile_count > 0">
+                    <i class="fa fa-info-circle" title="Info"/>
+                    No material profiles yet. Click "Add a line" to define what
+                    materials this company supplies or accepts.
+                </div>
 
-                    <field name="material_profile_ids"
-                           context="{'default_partner_id': id,
-                                     'form_view_ref': 'plasticos_material_profile.view_material_profile_form'}">
-                        <list editable="bottom">
-                            <field name="polymer_id"/>
-                            <field name="material_grade_id" optional="show"/>
-                            <field name="form_id"/>
-                            <field name="color_id" optional="show"/>
-                            <field name="source_type_id" optional="show"/>
-                            <field name="contamination_percent" string="Contam %"
-                                   optional="show"/>
-                            <!-- Profile form opens on row click or expand -->
-                            <button name="action_open_profile_form"
-                                    type="object"
-                                    icon="fa-external-link"
-                                    title="Open Full Profile"
-                                    class="btn-link p-0"/>
-                        </list>
-                    </field>
-
-                </page>
+                <field name="material_profile_ids"
+                       invisible="not is_company"
+                       context="{'default_partner_id': id,
+                                 'form_view_ref': 'plasticos_material_profile.view_material_profile_form'}">
+                    <list editable="bottom">
+                        <field name="polymer_id"/>
+                        <field name="material_grade_id" optional="show"/>
+                        <field name="form_id"/>
+                        <field name="color_id" optional="show"/>
+                        <field name="source_type_id" optional="show"/>
+                        <field name="contamination_percent" string="Contam %"
+                               optional="show"/>
+                        <button name="action_open_profile_form"
+                                type="object"
+                                icon="fa-external-link"
+                                title="Open Full Profile"
+                                class="btn-link p-0"/>
+                    </list>
+                </field>
 
             </xpath>
 

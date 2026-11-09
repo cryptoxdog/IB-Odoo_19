@@ -308,6 +308,28 @@ class ResPartner(models.Model):
         compute="_compute_contact_header_name",
         help="People at this company, or the people linked to this location.",
     )
+    first_name = fields.Char(
+        string="First Name",
+        compute="_compute_name_parts",
+        store=True,
+        help="First word of a person's name. Blank on a company or a location.",
+    )
+    last_name = fields.Char(
+        string="Last Name",
+        compute="_compute_name_parts",
+        store=True,
+        help="Last word of a person's name. Blank on a company, a location, or a one-word name.",
+    )
+    linked_person_email = fields.Char(
+        string="Email",
+        compute="_compute_linked_person_channels",
+        help="A location's own email, or the email of the first linked person when the location has none.",
+    )
+    linked_person_mobile = fields.Char(
+        string="Mobile",
+        compute="_compute_linked_person_channels",
+        help="A location's own mobile, or the mobile of the first linked person when the location has none.",
+    )
     location_child_ids = fields.Many2many(
         "res.partner",
         compute="_compute_location_child_ids",
@@ -345,6 +367,53 @@ class ResPartner(models.Model):
                 company_role=partner.company_role,
                 source_label=partner.erp_address_label,
             )
+
+    @api.depends("name", "is_company")
+    def _compute_name_parts(self):
+        for partner in self:
+            words = [] if partner.is_company or not partner.name else partner.name.split()
+            partner.first_name = words[0] if words else False
+            partner.last_name = words[-1] if len(words) > 1 else False
+
+    @api.depends(
+        "is_company",
+        "parent_id",
+        "email",
+        "mobile",
+        "site_person_ids.email",
+        "site_person_ids.mobile",
+    )
+    def _compute_linked_person_channels(self):
+        for partner in self:
+            email = False
+            mobile = False
+            if partner.is_company and partner.parent_id:
+                person_email = partner.site_person_ids.filtered("email")[:1]
+                person_mobile = partner.site_person_ids.filtered("mobile")[:1]
+                email = partner.email or (person_email.email if person_email else False)
+                mobile = partner.mobile or (person_mobile.mobile if person_mobile else False)
+            partner.linked_person_email = email
+            partner.linked_person_mobile = mobile
+
+    def _salesperson_from_parent(self):
+        """The parent's salesperson, or the parent's parent when the parent has none."""
+        self.ensure_one()
+        parent = self.parent_id
+        if parent.user_id:
+            return parent.user_id
+        if parent.parent_id.user_id:
+            return parent.parent_id.user_id
+        return self.env["res.users"]
+
+    @api.depends("parent_id", "parent_id.user_id", "parent_id.parent_id.user_id")
+    def _compute_user_id(self):
+        """A child takes the company salesperson. An empty parent salesperson is left alone."""
+        for partner in self:
+            if not partner.parent_id:
+                continue
+            source = partner._salesperson_from_parent()
+            if source:
+                partner.user_id = source
 
     @api.depends("phone_line_ids.label", "phone_line_ids.number")
     def _compute_mobile(self):
