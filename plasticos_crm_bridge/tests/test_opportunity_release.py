@@ -6,6 +6,7 @@ import os
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from odoo import Command
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_crm_bridge.tests.test_opportunity_approval import (
     _CLASSIFY,
@@ -15,6 +16,7 @@ from odoo.addons.plasticos_crm_bridge.tests.test_opportunity_approval import (
     _eligible,
     _fake_gate_result,
 )
+from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
 
 
@@ -139,3 +141,42 @@ class TestOpportunityRelease(PlasticosTestCase):
         sale.action_confirm()
         self.assertEqual(self.env["plasticos.transaction"].search_count([("sale_order_id", "=", sale.id)]), 1)
         self.assertEqual(sale.transaction_id, transaction)
+
+    def test_submit_refuses_a_partial_release_instead_of_duplicating_it(self):
+        opportunity, offer = self._accepted_offer()
+        opportunity.write(
+            {
+                "release_buyer_company_id": self.buyer.id,
+                "release_buyer_facility_id": self.facility.id,
+                "release_buyer_price": 0.20,
+            }
+        )
+        opportunity.action_submit_release()
+        purchase = opportunity.release_purchase_order_id
+        opportunity.write({"release_sale_order_id": False, "release_transaction_id": False})
+
+        with self.assertRaises(UserError):
+            opportunity.action_submit_release()
+        self.assertEqual(opportunity.release_purchase_order_id, purchase)
+        self.assertEqual(self.env["purchase.order"].search_count([("origin", "=", offer.name)]), 1)
+
+    def test_submit_requires_an_operations_manager(self):
+        opportunity, _offer = self._accepted_offer()
+        opportunity.write(
+            {
+                "release_buyer_company_id": self.buyer.id,
+                "release_buyer_facility_id": self.facility.id,
+                "release_buyer_price": 0.20,
+            }
+        )
+        sales_user = self.env["res.users"].create(
+            {
+                "name": "Release Sales Rep",
+                "login": "release_sales_rep",
+                "group_ids": [Command.link(self.env.ref("sales_team.group_sale_salesman").id)],
+            }
+        )
+
+        with self.assertRaises(AccessError):
+            opportunity.with_user(sales_user).action_submit_release()
+        self.assertFalse(opportunity.release_purchase_order_id)

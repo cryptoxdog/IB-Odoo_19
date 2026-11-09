@@ -43,7 +43,8 @@
                         string="Submit"
                         class="btn btn-primary"
                         title="PlasticOS: Creates one draft purchase order at the accepted offer price, one draft sale order at the buyer price, and one draft transaction."
-                        invisible="type != 'opportunity' or not stage_id.is_won or release_sale_order_id"/>
+                        invisible="type != 'opportunity' or not stage_id.is_won or release_sale_order_id"
+                        groups="plasticos_security_base.group_operations_manager"/>
             </xpath>
 
             <xpath expr="//div[@name='button_box']" position="after">
@@ -70,7 +71,7 @@
                         </list>
                     </field>
                 </group>
-                <group string="Admin Release" invisible="type != 'opportunity' or not stage_id.is_won">
+                <group string="Admin Release" invisible="type != 'opportunity' or not stage_id.is_won" groups="plasticos_security_base.group_operations_manager">
                     <field name="release_buyer_company_id"/>
                     <field name="release_buyer_facility_id"/>
                     <field name="release_buyer_price"/>

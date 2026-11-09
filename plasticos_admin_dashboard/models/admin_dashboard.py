@@ -490,10 +490,15 @@ class PlasticosAdminKpi(models.Model):
     def action_open_pending_approval(self):
         """Won opportunities with an accepted offer and no sale order. No count badge."""
         Lead = self.env["crm.lead"]
-        won = Lead.search([("type", "=", "opportunity"), ("stage_id.is_won", "=", True)])
         offered = (
             self.env["plasticos.offer"]
-            .search([("state", "=", "accepted"), ("opportunity_id", "in", won.ids)])
+            .search(
+                [
+                    ("state", "=", "accepted"),
+                    ("opportunity_id.type", "=", "opportunity"),
+                    ("opportunity_id.stage_id.is_won", "=", True),
+                ]
+            )
             .opportunity_id
         )
         ordered = Lead.browse()

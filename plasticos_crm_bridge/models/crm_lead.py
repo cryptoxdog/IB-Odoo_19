@@ -1,7 +1,7 @@
 import re
 
 from odoo import Command, _, api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 class CrmLeadPlastOS(models.Model):
@@ -701,8 +701,21 @@ class CrmLeadPlastOS(models.Model):
         activated, or sent.
         """
         self.ensure_one()
-        if self.release_purchase_order_id and self.release_sale_order_id and self.release_transaction_id:
+        if not (self.env.is_superuser() or self.env.user.has_group("plasticos_security_base.group_operations_manager")):
+            raise AccessError(_("Only an Operations Manager can submit a release."))
+        links = (self.release_purchase_order_id, self.release_sale_order_id, self.release_transaction_id)
+        if all(links):
             return True
+        if any(links):
+            raise UserError(
+                _(
+                    "This opportunity has a partial release (purchase %(po)s, sale %(so)s, transaction %(tx)s). "
+                    "Submit creates all three together; resolve the existing records before submitting again.",
+                    po=self.release_purchase_order_id.name or "-",
+                    so=self.release_sale_order_id.name or "-",
+                    tx=self.release_transaction_id.name or "-",
+                )
+            )
         if self.type != "opportunity" or not self.stage_id.is_won:
             raise UserError(_("Submit is available on a won opportunity."))
         if not self.release_buyer_company_id or not self.release_buyer_facility_id:
