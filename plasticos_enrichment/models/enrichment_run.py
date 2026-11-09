@@ -7,6 +7,7 @@ _logger = logging.getLogger(__name__)
 
 PROVENANCE_MODEL = "plasticos.enrichment.provenance"
 SUBTYPE_NOTE = "mail.mt_note"
+NO_INJECTABLE_FIELDS_REASON = "Gate converge produced no injectable allowlisted fields."
 
 
 class EnrichmentRun(models.Model):
@@ -147,8 +148,11 @@ class EnrichmentRun(models.Model):
         proposal for human approval (state='review') without partner writes.
         When auto_writeback is explicitly enabled, apply allowlisted fields
         (merge-not-overwrite, with provenance) and set state to 'injected'.
-        Returns True when Gate produced a usable result; False on non-ok status
-        or empty allowlist (caller fails closed / no local fallback on M4).
+
+        Returns None when Gate produced a usable result. Otherwise returns the
+        operator-visible reason it did not: EIE's own failure reason for a
+        non-ok status, or a no-injectable-fields reason for an empty allowlist.
+        The caller fails closed on either; nothing falls back to local (M4).
         """
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
@@ -178,14 +182,15 @@ class EnrichmentRun(models.Model):
         audit = extract_audit_metadata(result["packet"])
 
         # EIE contract: only status == "ok" is a usable result. Anything else is a
-        # worker/hub failure signal -> fall back to local (never mark injected on junk).
+        # worker/hub failure signal. The run fails closed with EIE's reason; it is
+        # never marked injected on junk and never handed to a local engine (M4).
         if str(resp.status or "").strip().lower() != "ok":
             _logger.warning(
-                "Gate converge returned non-ok status %r (packet %s); falling back to local.",
+                "Gate converge returned non-ok status %r (packet %s); failing closed.",
                 resp.status,
                 audit.get("gate_packet_id"),
             )
-            return False
+            return f"Gate converge failed: {resp.status or 'failed'}"
 
         proposed = partner_writeback_from_converge(resp)
         # EIE provenance travels with the proposal so the audit trail on the run
@@ -223,7 +228,7 @@ class EnrichmentRun(models.Model):
                 "Gate converge returned no writable allowlisted fields (packet %s).",
                 audit.get("gate_packet_id"),
             )
-            return False
+            return NO_INJECTABLE_FIELDS_REASON
 
         if not gate_auto_writeback_enabled(self.env):
             self.write(
@@ -242,7 +247,7 @@ class EnrichmentRun(models.Model):
                 ),
                 subtype_xmlid=SUBTYPE_NOTE,
             )
-            return True
+            return None
 
         written = self._apply_converge_writeback(proposed, audit, confidence=resp.confidence)
         self.write(
@@ -258,7 +263,7 @@ class EnrichmentRun(models.Model):
             body=(f"Gate converge applied {written} partner field(s) live (packet {audit.get('gate_packet_id')})."),
             subtype_xmlid=SUBTYPE_NOTE,
         )
-        return True
+        return None
 
     def _apply_converge_writeback(self, proposed, audit, confidence=None):
         """Backfill allowlisted partner fields (merge-not-overwrite) with provenance.
@@ -390,22 +395,22 @@ class EnrichmentRun(models.Model):
             )
 
         try:
-            if self._run_gate_converge():
+            unusable_reason = self._run_gate_converge()
+            if unusable_reason is None:
                 return
-            # Gate returned non-applicable result (non-ok / empty allowlist) — fail closed
+            # Gate returned a non-applicable result (non-ok / empty allowlist): fail
+            # closed, recording the reason Gate gave rather than a generic one.
             self._rollback_then_persist_operator_state(
                 run_id,
                 {
                     "engine_used": "gate",
                     "state": "degraded",
                     "failure_class": "unknown",
-                    "validation_issues": [
-                        "Gate converge produced no injectable allowlisted fields.",
-                    ],
+                    "validation_issues": [unusable_reason],
                     "availability_status": availability.status,
                 },
             )
-            raise UserError(_("Gate enrichment degraded: no injectable fields from converge response."))
+            raise UserError(_("Gate enrichment degraded: %s") % unusable_reason)
         except UserError:
             raise
         except GateIntegrationError as exc:

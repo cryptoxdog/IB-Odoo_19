@@ -611,6 +611,37 @@ class TestHistoricalAutopostGuard(PlasticosTestCase):
         self._mark(sale, "legacy_erp_outinv_not_a_move", model="sale.order")
         self.assertFalse(self.env["plasticos.transaction"]._historical_erp_moves(invoice))
 
+    def test_lookalike_xmlid_posts_and_a_real_prefix_stays_archived(self):
+        """A wildcard lookalike is not historical. A real prefix stays draft."""
+        tx = self._tx()
+        lookalike = self._move("out_invoice", origin="54839", invoice_date="2022-04-01")
+        archived = self._move("out_invoice", origin="54839", invoice_date="2022-04-01")
+        bill = self._move("in_invoice", origin="54839", invoice_date="2022-04-01")
+        refund = self._move("out_refund", invoice_date="2022-04-01")
+        self._mark(lookalike, "legacyXerpXoutinvX123")
+        self._mark(archived, "legacy_erp_outinv_real")
+        self._mark(bill, "legacy_erp_ininv_real")
+        self._mark(refund, "legacy_erp_ledger_real")
+        self._mark(lookalike, "legacy_erp_outinv_wrong_module", module="plasticos_accounting")
+        sale = self.env["sale.order"].create({"partner_id": self.partner.id})
+        self._mark(sale, "legacy_erp_outinv_wrong_model", model="sale.order")
+        classifier = self.env["plasticos.transaction"]
+        self.assertFalse(classifier._historical_erp_moves(lookalike))
+        self.assertFalse(lookalike._historical_source_ids())
+        self.assertEqual(classifier._historical_erp_moves(archived), archived)
+        self.assertEqual(classifier._historical_erp_moves(bill), bill)
+        self.assertEqual(classifier._historical_erp_moves(refund), refund)
+        tx.customer_invoice_id = lookalike
+        tx.vendor_bill_ids = [(4, bill.id)]
+        tx._auto_post_pending_invoices()
+        self.assertEqual(lookalike.state, "posted")
+        self.assertEqual(bill.state, "draft")
+        self.assertEqual(archived.state, "draft")
+        message = "Archived ERP invoices, vendor bills and credits cannot be posted."
+        with self.assertRaisesRegex(UserError, message):
+            archived.action_post()
+        self.assertEqual(archived.state, "draft")
+
     def test_operational_sale_origin_invoice_stays_draft_until_explicit_post(self):
         """A verified document leaves the sale-origin invoice draft. Explicit posting still posts it."""
         tag = self._isolate_invoice_rule("hist_autopost_operational")

@@ -1,6 +1,8 @@
 from odoo import api, models
 from odoo.exceptions import UserError
 
+HISTORICAL_ERP_MOVE_PREFIXES = ("legacy_erp_outinv_", "legacy_erp_ininv_", "legacy_erp_ledger_")
+
 
 class AccountMove(models.Model):
     _inherit = "account.move"
@@ -28,7 +30,8 @@ class AccountMove(models.Model):
     def _historical_source_ids(self):
         """Identify archived originals by locked native import XMLIDs, not text refs.
 
-        Reject false-positive SQL LIKE matches using a literal prefix check.
+        The name must start with one of the three historical prefixes. A SQL
+        LIKE search is not used, because underscore matches any character.
         The historical and cutover roles may never share source XMLIDs.
         """
         if not self:
@@ -41,16 +44,10 @@ class AccountMove(models.Model):
                     ("module", "=", "plasticos_transaction"),
                     ("model", "=", "account.move"),
                     ("res_id", "in", self.ids),
-                    "|",
-                    "|",
-                    ("name", "=like", "legacy_erp_outinv_%"),
-                    ("name", "=like", "legacy_erp_ininv_%"),
-                    ("name", "=like", "legacy_erp_ledger_%"),
                 ]
             )
         )
-        prefixes = ("legacy_erp_outinv_", "legacy_erp_ininv_", "legacy_erp_ledger_")
-        return {marker.res_id for marker in markers if marker.name.startswith(prefixes)}
+        return {marker.res_id for marker in markers if marker.name.startswith(HISTORICAL_ERP_MOVE_PREFIXES)}
 
     def write(self, vals):
         protected = {

@@ -41,7 +41,7 @@
     <record id="rule_rate_memory_reconciliation_company" model="ir.rule">
         <field name="name">Rate-memory reconciliation company isolation</field>
         <field name="model_id" ref="model_plasticos_rate_memory_reconciliation"/>
-        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
     </record>
     <record id="rule_logistics_request_company" model="ir.rule">
         <field name="name">Linda logistics request company isolation</field>

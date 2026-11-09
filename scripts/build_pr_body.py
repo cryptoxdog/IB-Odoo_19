@@ -40,22 +40,25 @@ def _replace_section(template: str, heading: str, body: str) -> str:
 
 
 def fill_template(template: str, *, commits: str, stat: str) -> str:
-    """Fill Summary and Changes. Leave every other section, including Test plan, as written."""
+    """Fill Summary and Changes from commit subjects. Leave Test plan as written.
+
+    ``stat`` is accepted and ignored. A diff stat is a file inventory and must
+    not appear in the pull request body.
+    """
+    del stat
     for heading in ("Summary", "Changes", "Test plan"):
         _section_body(template, heading)
-    changes = f"```\n{stat.rstrip()}\n```"
-    filled = _replace_section(template, "Summary", commits.strip())
-    return _replace_section(filled, "Changes", changes)
+    subjects = commits.strip()
+    filled = _replace_section(template, "Summary", subjects)
+    return _replace_section(filled, "Changes", subjects)
 
 
-def _fallback_body(base: str, commits: str, stat: str) -> str:
+def _fallback_body(base: str, commits: str) -> str:
     return f"""## Summary
 {commits}
 
 ## Changes
-```
-{stat}
-```
+{commits}
 
 ## Test plan
 - [ ] CI Gate (`ci.yml`) green
@@ -75,16 +78,12 @@ def build_body(base: str) -> str:
         commits = f"- {title}"
     if not commits:
         commits = f"- {title}"
-    try:
-        stat = _run("git", "diff", f"origin/{base}...HEAD", "--stat")
-    except subprocess.CalledProcessError:
-        stat = _run("git", "show", "--stat", "--oneline", "-1")
 
     if not _TEMPLATE.is_file():
-        body = _fallback_body(base, commits, stat)
+        body = _fallback_body(base, commits)
     else:
         template = _TEMPLATE.read_text(encoding="utf-8")
-        body = fill_template(template, commits=commits, stat=stat)
+        body = fill_template(template, commits=commits, stat="")
     if base != "Staging":
         note = f"Stacked on `{base}`; merge that branch's pull request into Staging first."
         body = f"{note}\n\n{body}"

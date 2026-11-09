@@ -43,11 +43,20 @@ class PlasticosRateMemory(models.Model):
 
         self._require_reconciliation_operator()
         reconciliation_model = self.env["plasticos.rate.memory.reconciliation"]
+        # sudo() justification: existence check only. A legacy row is reconciled
+        # once for the whole database, and an exact-match row is hidden outside
+        # its load's company, so a company-filtered search would miss it and the
+        # create below would hit the unique constraint. Only legacy ids the
+        # actor already holds are read back; no reconciliation field is returned.
         existing_legacy_ids = set(
-            reconciliation_model.search([("legacy_rate_memory_id", "in", self.ids)]).mapped("legacy_rate_memory_id").ids
+            reconciliation_model.sudo()  # sudo: existence check of legacy ids only (ADR-129)
+            .search([("legacy_rate_memory_id", "in", self.ids)])
+            .mapped("legacy_rate_memory_id")
+            .ids
         )
         empty_loads = self.env["plasticos.load"].browse()
         reconciliation_vals = []
+        unclassifiable = []
         for record in self:
             if record.id in existing_legacy_ids:
                 continue
@@ -55,7 +64,12 @@ class PlasticosRateMemory(models.Model):
                 disposition = "invalid_lane_key"
                 candidates = empty_loads
             else:
-                candidates, candidate_scan_truncated = legacy_lane_candidates(self.env, record)
+                candidates, candidate_scan_truncated, complete = legacy_lane_candidates(self.env, record)
+                if not complete:
+                    # ADR-129 / issue #182: a partial view must not become the
+                    # permanent global answer for this legacy row.
+                    unclassifiable.append(record.id)
+                    continue
                 if candidate_scan_truncated:
                     disposition = "candidate_scan_truncated"
                 elif len(candidates) == 1:
@@ -64,27 +78,38 @@ class PlasticosRateMemory(models.Model):
                     disposition = "multiple_candidate_matches"
                 else:
                     disposition = "no_candidate_match"
-            canonical_load = candidates if disposition == "exact_single_match" else empty_loads
-            company = getattr(canonical_load, "company_id", False) or (
-                canonical_load.sale_order_id.company_id if canonical_load and canonical_load.sale_order_id else False
-            )
-            if not company:
-                # Legacy rows have no durable company ownership.  Retain an
-                # ambiguous/no-match classification without creating an
-                # incorrectly company-scoped immutable record.
-                continue
+            if disposition == "exact_single_match":
+                company = getattr(candidates, "company_id", False) or (
+                    candidates.sale_order_id.company_id if candidates.sale_order_id else False
+                )
+                if not company:
+                    raise UserError("An exact rate-memory match requires the canonical load's company.")
+                company_id = company.id
+                canonical_load_id = candidates.id
+            else:
+                # ADR-129: a non-exact disposition has no source company. Store
+                # False so env.company cannot attribute the row to the operator.
+                company_id = False
+                canonical_load_id = False
             reconciliation_vals.append(
                 {
-                    "company_id": company.id,
+                    "company_id": company_id,
                     "legacy_rate_memory_id": record.id,
                     "carrier_id": record.carrier_id.id,
                     "lane_key": record.lane_key,
                     "legacy_rate_amount": record.rate_amount,
                     "legacy_rate_date": record.rate_date,
                     "disposition": disposition,
-                    "canonical_load_id": canonical_load.id,
+                    "canonical_load_id": canonical_load_id,
                     "candidate_count": len(candidates),
                 }
+            )
+        if unclassifiable:
+            # Fail closed for the whole batch: nothing is recorded until an
+            # operator who can read every candidate load runs it.
+            raise AccessError(
+                f"Legacy rate-memory rows {sorted(unclassifiable)} cannot be classified with your access. "
+                "Nothing was reconciled; an operator with access to every company must run it."
             )
         if reconciliation_vals:
             # One immutable classification per legacy row, created in one batch.

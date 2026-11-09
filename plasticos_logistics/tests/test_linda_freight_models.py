@@ -3,10 +3,13 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+from psycopg2.errors import UniqueViolation
+
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import tagged
+from odoo.tools import mute_logger
 
 RATE_MEMORY_RECONCILIATION = "plasticos.rate.memory.reconciliation"
 
@@ -387,6 +390,443 @@ class TestLindaFreightModels(PlasticosTestCase):
             as_logistics.write({"disposition": "no_candidate_match"})
         with self.assertRaises(UserError):
             as_logistics.unlink()
+
+    def _legacy_cache_row(self, lane_key, amount, rate_date):
+        # sudo() justification: legacy rate memory is frozen for every role (no ACL grants
+        # create); the fixture row stands in for a pre-existing cache row seeded before the freeze.
+        return (
+            self.env["plasticos.rate.memory"]
+            .sudo()
+            .with_context(plasticos_logistics_legacy_rate_memory_migration=True)
+            .create(
+                {
+                    "carrier_id": self.carrier.id,
+                    "lane_key": lane_key,
+                    "rate_amount": amount,
+                    "rate_date": rate_date,
+                }
+            )
+        )
+
+    def test_non_exact_dispositions_stay_unowned_and_rerun_adds_nothing(self):
+        """ADR-129: the four non-exact dispositions persist with an explicit empty company."""
+        load, context = self._new_load()
+        load._confirm_freight_rate(
+            rate=1000.0,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=context.fingerprint,
+        )
+        other_buyer = self.env["res.partner"].create(
+            {"name": "Linda Unowned Buyer", "is_company": True, "customer_rank": 1}
+        )
+        other_load, other_context = self._new_load(buyer=other_buyer)
+        other_load._confirm_freight_rate(
+            rate=1100.0,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=other_context.fingerprint,
+        )
+        rate_date = fields.Date.to_date(load.rate_confirmed_at)
+        rows = {
+            "invalid_lane_key": self._legacy_cache_row("nolanekey", 1.0, rate_date),
+            "no_candidate_match": self._legacy_cache_row("999999-999998", 2.0, rate_date),
+            "multiple_candidate_matches": self._legacy_cache_row("multi-lane", 3.0, rate_date),
+            "candidate_scan_truncated": self._legacy_cache_row("trunc-lane", 4.0, rate_date),
+        }
+        from odoo.addons.plasticos_logistics.services.freight_history import legacy_lane_candidates
+
+        def candidates(env, legacy_row, **kwargs):
+            if legacy_row.lane_key == "multi-lane":
+                return load | other_load, False, True
+            if legacy_row.lane_key == "trunc-lane":
+                return load, True, True
+            return legacy_lane_candidates(env, legacy_row, **kwargs)
+
+        recordset = self.env["plasticos.rate.memory"].browse([row.id for row in rows.values()])
+        with patch(
+            "odoo.addons.plasticos_logistics.services.freight_history.legacy_lane_candidates",
+            side_effect=candidates,
+        ):
+            recordset.action_reconcile_to_canonical_history()
+            recordset.action_reconcile_to_canonical_history()
+        evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "in", recordset.ids)])
+        self.assertEqual(len(evidence), 4)
+        by_disposition = {row.disposition: row for row in evidence}
+        self.assertEqual(set(by_disposition), set(rows))
+        for row in evidence:
+            self.assertFalse(row.company_id)
+            self.assertFalse(row.canonical_load_id)
+            self.assertNotEqual(row.company_id, self.env.company)
+
+    def test_exact_match_in_another_company_is_rejected_and_hidden(self):
+        """ADR-129: an exact match keeps its load company and is not visible in another company."""
+        load, context = self._new_load()
+        load._confirm_freight_rate(
+            rate=1000.0,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=context.fingerprint,
+        )
+        sale = load.sale_order_id
+        rate_date = fields.Date.to_date(load.rate_confirmed_at)
+        lane_key = f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}"
+        owned = self._legacy_cache_row(lane_key, 1000.0, rate_date)
+        owned.action_reconcile_to_canonical_history()
+        exact = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "=", owned.id)])
+        self.assertEqual(exact.company_id, load.company_id)
+        self.assertEqual(exact.canonical_load_id, load)
+        other_company = self.env["res.company"].create({"name": "Linda Other Company", "currency_id": self.currency.id})
+        mismatched = self._legacy_cache_row(lane_key, 1000.0, fields.Date.add(rate_date, days=1))
+        with self.assertRaises(ValidationError):
+            self.env[RATE_MEMORY_RECONCILIATION].create(
+                {
+                    "company_id": other_company.id,
+                    "legacy_rate_memory_id": mismatched.id,
+                    "carrier_id": mismatched.carrier_id.id,
+                    "lane_key": mismatched.lane_key,
+                    "legacy_rate_amount": mismatched.rate_amount,
+                    "legacy_rate_date": mismatched.rate_date,
+                    "disposition": "exact_single_match",
+                    "canonical_load_id": load.id,
+                    "candidate_count": 1,
+                }
+            )
+        reader = self.env["res.users"].create(
+            {
+                "name": "Linda Other Reader",
+                "login": "linda.other.reader",
+                "company_id": other_company.id,
+                "company_ids": [(6, 0, [other_company.id])],
+                "group_ids": [(6, 0, [self.env.ref("base.group_user").id])],
+            }
+        )
+        self.assertFalse(self.env[RATE_MEMORY_RECONCILIATION].with_user(reader).search([("id", "=", exact.id)]))
+        unowned = self._legacy_cache_row("nolanekey", 5.0, rate_date)
+        unowned.action_reconcile_to_canonical_history()
+        unowned_evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "=", unowned.id)])
+        self.assertFalse(unowned_evidence.company_id)
+        self.assertEqual(
+            self.env[RATE_MEMORY_RECONCILIATION].with_user(reader).search([("id", "=", unowned_evidence.id)]),
+            unowned_evidence,
+        )
+
+    def test_user_without_reconciliation_read_cannot_see_unowned_rows(self):
+        portal = self._user_with_groups("linda.no.reconciliation.read", "base.group_portal")
+        with self.assertRaises(AccessError):
+            self.env[RATE_MEMORY_RECONCILIATION].with_user(portal).search([])
+
+    # ── Issue #182 / ADR-129: one global classification per legacy row ─────────
+
+    def _company_b(self):
+        return self.env["res.company"].create({"name": "Linda Company B", "currency_id": self.currency.id})
+
+    def _logistics_user(self, login, companies):
+        groups = self.env.ref("base.group_user") | self.env.ref("plasticos_security_base.group_logistics")
+        return self.env["res.users"].create(
+            {
+                "name": login,
+                "login": login,
+                "company_id": companies[0].id,
+                "company_ids": [(6, 0, companies.ids)],
+                "group_ids": [(6, 0, groups.ids)],
+            }
+        )
+
+    def _company_a_exact_row(self, amount):
+        """A legacy row whose only matching canonical load belongs to the main company (A)."""
+        load, context = self._new_load()
+        load._confirm_freight_rate(
+            rate=amount,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=context.fingerprint,
+        )
+        sale = load.sale_order_id
+        legacy = self._legacy_cache_row(
+            f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}",
+            amount,
+            fields.Date.to_date(load.rate_confirmed_at),
+        )
+        return load, legacy
+
+    def _reconciliation_count(self, legacy):
+        # sudo() justification: the assertion is about the global row count, which
+        # company isolation would hide from the test user.
+        return self.env[RATE_MEMORY_RECONCILIATION].sudo().search_count([("legacy_rate_memory_id", "in", legacy.ids)])
+
+    def test_company_b_first_cannot_record_a_false_no_candidate_match(self):
+        """Case A: B cannot see A's matching load, so B records nothing; A's later run keeps the true match."""
+        from odoo.addons.plasticos_logistics.services.freight_history import legacy_lane_candidates
+
+        company_a = self.env.company
+        load, legacy = self._company_a_exact_row(1310.0)
+        genuine = self._legacy_cache_row("999991-999992", 1311.0, legacy.rate_date)
+        user_b = self._logistics_user("linda.company.b.first", self._company_b())
+
+        candidates, truncated, complete = legacy_lane_candidates(legacy.with_user(user_b).env, legacy)
+        self.assertFalse(complete)
+        self.assertFalse(truncated)
+        self.assertFalse(candidates, "a load outside the actor's access must not leave the candidate scan")
+
+        batch = (legacy | genuine).with_user(user_b)
+        with self.assertRaises(AccessError):
+            batch.action_reconcile_to_canonical_history()
+        # Fail closed for the whole batch: neither the false no-match nor the genuine one is stored.
+        self.assertEqual(self._reconciliation_count(legacy | genuine), 0)
+
+        user_a = self._logistics_user("linda.company.a.after", company_a)
+        legacy.with_user(user_a).action_reconcile_to_canonical_history()
+        evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "=", legacy.id)])
+        self.assertEqual(evidence.disposition, "exact_single_match")
+        self.assertEqual(evidence.canonical_load_id, load)
+        self.assertEqual(evidence.company_id, company_a)
+        self.assertEqual(evidence.candidate_count, 1)
+
+    def test_company_a_first_then_b_replays_without_duplicate_or_disclosure(self):
+        """Case B: B's replay of A's exact match adds nothing, raises nothing and shows B nothing."""
+        company_a = self.env.company
+        load, legacy = self._company_a_exact_row(1320.0)
+        user_a = self._logistics_user("linda.company.a.first", company_a)
+        legacy.with_user(user_a).action_reconcile_to_canonical_history()
+        self.assertEqual(self._reconciliation_count(legacy), 1)
+
+        user_b = self._logistics_user("linda.company.b.replay", self._company_b())
+        self.assertTrue(legacy.with_user(user_b).action_reconcile_to_canonical_history())
+        self.assertEqual(self._reconciliation_count(legacy), 1)
+        self.assertFalse(
+            self.env[RATE_MEMORY_RECONCILIATION].with_user(user_b).search([("legacy_rate_memory_id", "=", legacy.id)])
+        )
+        with self.assertRaises(AccessError):
+            load.with_user(user_b).read(["name"])
+        evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "=", legacy.id)])
+        self.assertEqual(evidence.company_id, company_a)
+        self.assertEqual(evidence.canonical_load_id, load)
+
+    def test_genuine_no_match_is_one_unowned_row_from_any_company(self):
+        """Case C: a complete search that finds nothing stores exactly one unowned no-match row."""
+        company_b = self._company_b()
+        user_b = self._logistics_user("linda.company.b.nomatch", company_b)
+        legacy = self._legacy_cache_row("999993-999994", 1330.0, fields.Date.today())
+        legacy.with_user(user_b).action_reconcile_to_canonical_history()
+        legacy.with_user(user_b).action_reconcile_to_canonical_history()
+        self.assertEqual(self._reconciliation_count(legacy), 1)
+        evidence = (
+            self.env[RATE_MEMORY_RECONCILIATION].with_user(user_b).search([("legacy_rate_memory_id", "=", legacy.id)])
+        )
+        self.assertEqual(evidence.disposition, "no_candidate_match")
+        self.assertFalse(evidence.company_id)
+        self.assertFalse(evidence.canonical_load_id)
+        self.assertEqual(evidence.candidate_count, 0)
+        user_a = self._logistics_user("linda.company.a.nomatch", self.env.company)
+        self.assertEqual(
+            self.env[RATE_MEMORY_RECONCILIATION].with_user(user_a).search([("legacy_rate_memory_id", "=", legacy.id)]),
+            evidence,
+        )
+
+    def test_repeat_reconciliation_is_idempotent_across_company_switching_and_fresh_env(self):
+        """Case D: the active-company switch never changes the stored answer or duplicates it.
+
+        A real process restart cannot run inside one test transaction; a fresh environment with
+        every cache dropped proves the replay reads only database state. The cross-process replay
+        is proven separately on the upgraded database.
+        """
+        company_a = self.env.company
+        company_b = self._company_b()
+        load, legacy = self._company_a_exact_row(1340.0)
+        operator = self._logistics_user("linda.company.ab", company_b | company_a)
+
+        only_b = legacy.with_user(operator).with_context(allowed_company_ids=[company_b.id])
+        with self.assertRaises(AccessError):
+            only_b.action_reconcile_to_canonical_history()
+        self.assertEqual(self._reconciliation_count(legacy), 0)
+
+        both = legacy.with_user(operator).with_context(allowed_company_ids=[company_a.id, company_b.id])
+        both.action_reconcile_to_canonical_history()
+        both.action_reconcile_to_canonical_history()
+        self.assertTrue(only_b.action_reconcile_to_canonical_history())
+        # Only database state survives: drop every cache and use a fresh environment.
+        self.env.invalidate_all()
+        fresh = self.env(user=operator.id, context={"allowed_company_ids": [company_b.id]})
+        self.assertTrue(fresh["plasticos.rate.memory"].browse(legacy.id).action_reconcile_to_canonical_history())
+        self.assertEqual(self._reconciliation_count(legacy), 1)
+        evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "=", legacy.id)])
+        self.assertEqual(evidence.disposition, "exact_single_match")
+        self.assertEqual(evidence.canonical_load_id, load)
+        self.assertEqual(evidence.company_id, company_a)
+
+    def _confirmed_load_in(self, company, rate, buyer=None):
+        """A rate-confirmed load whose sale order (and so company) is ``company``."""
+        main_env = self.env
+        self.env = self.env(context=dict(self.env.context, allowed_company_ids=[company.id]))
+        try:
+            load, context = self._new_load(buyer=buyer)
+            load._confirm_freight_rate(
+                rate=rate,
+                carrier=self.carrier,
+                currency=self.currency,
+                resolution_method="manual",
+                context_fingerprint=context.fingerprint,
+            )
+        finally:
+            self.env = main_env
+        self.assertEqual(load.company_id, company)
+        return load.with_env(main_env)
+
+    def test_real_classifier_records_multiple_candidate_matches_unowned(self):
+        """Two readable loads on one lane, carrier, amount and date: no stub, one unowned row."""
+        company_a = self.env.company
+        first = self._confirmed_load_in(company_a, 1390.0)
+        second = self._confirmed_load_in(company_a, 1390.0)
+        self.assertEqual(first.rate_confirmed_at.date(), second.rate_confirmed_at.date())
+        sale = first.sale_order_id
+        legacy = self._legacy_cache_row(
+            f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}",
+            1390.0,
+            fields.Date.to_date(first.rate_confirmed_at),
+        )
+        user_a = self._logistics_user("linda.real.multiple", company_a)
+        legacy.with_user(user_a).action_reconcile_to_canonical_history()
+        evidence = self.env[RATE_MEMORY_RECONCILIATION].search([("legacy_rate_memory_id", "=", legacy.id)])
+        self.assertEqual(evidence.disposition, "multiple_candidate_matches")
+        self.assertEqual(evidence.candidate_count, 2)
+        self.assertFalse(evidence.company_id)
+        self.assertFalse(evidence.canonical_load_id)
+
+    def test_real_scan_truncation_is_decided_by_every_scanned_load(self):
+        """A truncated scan counts unmatched loads too, so one the actor cannot read makes it incomplete."""
+        from odoo.addons.plasticos_logistics.services.freight_history import legacy_lane_candidates
+
+        company_a = self.env.company
+        company_b = self._company_b()
+        matching = self._confirmed_load_in(company_a, 1395.0)
+        other_buyer = self.env["res.partner"].create(
+            {"name": "Linda Company B Buyer", "is_company": True, "customer_rank": 1}
+        )
+        unmatched_b = self._confirmed_load_in(company_b, 1395.0, buyer=other_buyer)
+        sale = matching.sale_order_id
+        legacy = self._legacy_cache_row(
+            f"{sale.partner_shipping_id.id}-{sale.partner_invoice_id.id}",
+            1395.0,
+            fields.Date.to_date(matching.rate_confirmed_at),
+        )
+        self.assertEqual(fields.Date.to_date(unmatched_b.rate_confirmed_at), legacy.rate_date)
+        user_a_env = legacy.with_user(self._logistics_user("linda.real.truncated", company_a)).env
+
+        # Not truncated: only the lane match decides, and the actor can read it.
+        candidates, truncated, complete = legacy_lane_candidates(user_a_env, legacy, scan_limit=5)
+        self.assertEqual((candidates, truncated, complete), (matching.with_env(user_a_env), False, True))
+        # Truncated at one load: both scanned loads decide, and company B's is unreadable.
+        candidates, truncated, complete = legacy_lane_candidates(user_a_env, legacy, scan_limit=1)
+        self.assertEqual((bool(candidates), truncated, complete), (False, True, False))
+        # The same truncated scan is complete for an actor who can read both loads.
+        candidates, truncated, complete = legacy_lane_candidates(self.env, legacy, scan_limit=1)
+        self.assertTrue(truncated)
+        self.assertTrue(complete)
+
+    # ── ADR-129 model boundary: direct ORM creates ─────────────────────────────
+
+    def _reconciliation_vals(self, legacy, **overrides):
+        values = {
+            "legacy_rate_memory_id": legacy.id,
+            "carrier_id": legacy.carrier_id.id,
+            "lane_key": legacy.lane_key,
+            "legacy_rate_amount": legacy.rate_amount,
+            "legacy_rate_date": legacy.rate_date,
+            "disposition": "no_candidate_match",
+            "company_id": False,
+            "canonical_load_id": False,
+            "candidate_count": 0,
+        }
+        values.update(overrides)
+        return values
+
+    def test_direct_create_rejects_invalid_exact_match_ownership(self):
+        load, legacy = self._company_a_exact_row(1350.0)
+        model = self.env[RATE_MEMORY_RECONCILIATION]
+        exact = {"disposition": "exact_single_match", "candidate_count": 1}
+        companyless_load = self.env["plasticos.load"].create(
+            {
+                "pickup_partner_id": self.origin.id,
+                "delivery_partner_id": self.destination.id,
+                "reference_weight": 40000,
+                "rate_currency_id": self.currency.id,
+            }
+        )
+        self.assertFalse(companyless_load.company_id)
+        cases = {
+            "no canonical load": {"company_id": load.company_id.id},
+            "no determinable company": {"canonical_load_id": companyless_load.id},
+            "no company on the row": {"canonical_load_id": load.id},
+            "wrong company": {"company_id": self._company_b().id, "canonical_load_id": load.id},
+        }
+        for label, overrides in cases.items():
+            with self.subTest(label), self.assertRaises(ValidationError):
+                model.create(self._reconciliation_vals(legacy, **exact, **overrides))
+        self.assertEqual(self._reconciliation_count(legacy), 0)
+        accepted = model.create(
+            self._reconciliation_vals(legacy, **exact, company_id=load.company_id.id, canonical_load_id=load.id)
+        )
+        self.assertEqual(accepted.company_id, load.company_id)
+        self.assertEqual(accepted.canonical_load_id, load)
+
+    def test_direct_create_rejects_fabricated_ownership_on_non_exact_dispositions(self):
+        load, legacy = self._company_a_exact_row(1360.0)
+        model = self.env[RATE_MEMORY_RECONCILIATION]
+        for disposition in (
+            "invalid_lane_key",
+            "no_candidate_match",
+            "multiple_candidate_matches",
+            "candidate_scan_truncated",
+        ):
+            for label, overrides in (
+                ("fabricated company", {"company_id": self.env.company.id}),
+                ("canonical load", {"canonical_load_id": load.id}),
+                ("both", {"company_id": load.company_id.id, "canonical_load_id": load.id}),
+            ):
+                with self.subTest(disposition=disposition, case=label), self.assertRaises(ValidationError):
+                    model.create(self._reconciliation_vals(legacy, disposition=disposition, **overrides))
+        for disposition in ("rate_mismatch", "missing_canonical_rate"):
+            for overrides in ({}, {"company_id": load.company_id.id, "canonical_load_id": load.id}):
+                with self.subTest(disposition=disposition, linked=bool(overrides)), self.assertRaises(ValidationError):
+                    model.create(self._reconciliation_vals(legacy, disposition=disposition, **overrides))
+        self.assertEqual(self._reconciliation_count(legacy), 0)
+
+    def test_direct_create_accepts_each_unowned_disposition_and_keeps_the_boundary(self):
+        logistics_user = self._logistics_user("linda.direct.unowned", self.env.company)
+        model = self.env[RATE_MEMORY_RECONCILIATION].with_user(logistics_user)
+        rate_date = fields.Date.today()
+        created = model.browse()
+        for index, disposition in enumerate(
+            ("invalid_lane_key", "no_candidate_match", "multiple_candidate_matches", "candidate_scan_truncated")
+        ):
+            legacy = self._legacy_cache_row(f"88880{index}-88881{index}", 1370.0 + index, rate_date)
+            row = model.create(self._reconciliation_vals(legacy, disposition=disposition))
+            self.assertFalse(row.company_id)
+            self.assertFalse(row.canonical_load_id)
+            created |= row
+        self.assertEqual(len(created), 4)
+
+        fresh = self._legacy_cache_row("888890-888891", 1380.0, rate_date)
+        with self.assertRaises(ValidationError):
+            model.create(self._reconciliation_vals(fresh, legacy_rate_amount=fresh.rate_amount + 1))
+        self.assertEqual(self._reconciliation_count(fresh), 0)
+        legacy = created[0].legacy_rate_memory_id
+        with mute_logger("odoo.sql_db"), self.assertRaises(UniqueViolation):
+            model.create(self._reconciliation_vals(legacy, disposition="no_candidate_match"))
+
+        row = created[0]
+        with self.assertRaises(UserError):
+            row.write({"company_id": self.env.company.id})
+        with self.assertRaises(UserError):
+            row.unlink()
+        portal = self._user_with_groups("linda.direct.portal", "base.group_portal")
+        with self.assertRaises(AccessError):
+            self.env[RATE_MEMORY_RECONCILIATION].with_user(portal).search([("id", "=", row.id)])
 
     def test_load_provenance_and_state_bypass_is_rejected(self):
         load, _context = self._new_load()
