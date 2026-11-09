@@ -1075,26 +1075,44 @@ erp_source_guard = [ -z "$(ERP_PAYLOAD_ROOT)" ] || { echo "❌ import-erp refuse
 VANILLASOFT_CALL_FLOOR ?=
 VANILLASOFT_CONTACT_FLOOR ?=
 VANILLASOFT_REPORT_PATH ?= .l9/pr/import-vanillasoft-summary.json
-# 2026-11-07 — make import-vanillasoft has two explicit modes and no default.
-# Historical cohort (the canonical historical import): VANILLASOFT_HISTORY_CENSUS
-# names the operator's frozen 4,876-ContactID census and selects
-# import_vanillasoft_shell.history(), which fetches every planned id through
+# 2026-11-07 — make import-vanillasoft has three explicit modes and no default.
+# Repository cohort: VANILLASOFT_CONTACT_EXPORT names the tracked contact export.
+# The piped shell builds the census from that export plus the packaged crosswalk.
+# It refuses a call floor, a history census, and VANILLASOFT_HISTORY_MAX_IDS, and
+# it requires VANILLASOFT_PRODUCTION_CONFIRM=1. The ledger parent is created.
+# Historical cohort (the frozen 4,876-ContactID census): VANILLASOFT_HISTORY_CENSUS
+# selects import_vanillasoft_shell.history(), which fetches every planned id through
 # SyncOrchestrator.upsert_contact_external_id. It needs the declared census
 # SHA-256 and an append-only ledger on durable storage, takes an optional
 # session cap and failure budget, and refuses a call or contact floor: the
 # rolling window is another import, never a fallback for a missing census.
 # Rolling window (plasticos_crm_sync.services.orchestrator.run_full_import):
 # VANILLASOFT_CALL_FLOOR, an explicit ISO-8601 UTC instant, without a census.
-# Neither mode starts without its inputs; nothing is imported on a refusal.
+# No mode starts without its inputs; nothing is imported on a refusal.
+# VANILLASOFT_API_KEY is read from the environment inside the recipe and written
+# with printf %q. It is not a make variable, so make -n and the recipe never echo it.
 VANILLASOFT_HISTORY_CENSUS ?=
 VANILLASOFT_HISTORY_CENSUS_SHA256 ?=
 VANILLASOFT_HISTORY_CHECKPOINT ?=
 VANILLASOFT_HISTORY_MAX_IDS ?=
 VANILLASOFT_HISTORY_FAILURE_BUDGET ?=
 VANILLASOFT_PRODUCTION_PERMIT ?=
-VANILLASOFT_MODE = $(if $(VANILLASOFT_HISTORY_CENSUS),history,rolling)
+VANILLASOFT_CONTACT_EXPORT ?=
+VANILLASOFT_PRODUCTION_CONFIRM ?=
+VANILLASOFT_MODE = $(if $(VANILLASOFT_CONTACT_EXPORT),repository,$(if $(VANILLASOFT_HISTORY_CENSUS),history,rolling))
 VANILLASOFT_HISTORY_VARS := VANILLASOFT_HISTORY_CENSUS VANILLASOFT_HISTORY_CHECKPOINT VANILLASOFT_PRODUCTION_PERMIT
-vanillasoft_mode_guard = if [ -n "$(VANILLASOFT_HISTORY_CENSUS)" ]; then \
+vanillasoft_mode_guard = if [ -n "$(VANILLASOFT_CONTACT_EXPORT)" ]; then \
+	[ "$(VANILLASOFT_PRODUCTION_CONFIRM)" = "1" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_PRODUCTION_CONFIRM=1 is required for the repository cohort" >&2; exit 2; }; \
+	[ -z "$(VANILLASOFT_CALL_FLOOR)$(VANILLASOFT_CONTACT_FLOOR)" ] || { echo "❌ import-vanillasoft refused: the repository cohort does not accept a call or contact floor" >&2; exit 2; }; \
+	[ -z "$(VANILLASOFT_HISTORY_CENSUS)$(VANILLASOFT_HISTORY_CENSUS_SHA256)" ] || { echo "❌ import-vanillasoft refused: the repository cohort does not accept a history census" >&2; exit 2; }; \
+	[ -z "$(VANILLASOFT_HISTORY_MAX_IDS)" ] || { echo "❌ import-vanillasoft refused: the repository cohort does not accept VANILLASOFT_HISTORY_MAX_IDS" >&2; exit 2; }; \
+	[ -n "$(VANILLASOFT_HISTORY_CHECKPOINT)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CHECKPOINT must name the append-only ledger on durable operator storage" >&2; exit 2; }; \
+	[ -r "$(VANILLASOFT_CONTACT_EXPORT)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_CONTACT_EXPORT does not name a readable export file" >&2; exit 2; }; \
+	ledger_dir="$$(dirname "$(VANILLASOFT_HISTORY_CHECKPOINT)")"; mkdir -p "$$ledger_dir"; \
+	{ [ -d "$$ledger_dir" ] && [ -w "$$ledger_dir" ]; } || { echo "❌ import-vanillasoft refused: the ledger directory $$ledger_dir must exist and be writable" >&2; exit 2; }; \
+	[ -z "$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" ] || printf '%s\n' "$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" | grep -Eq '^[1-9][0-9]*$$' || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_FAILURE_BUDGET must be a positive integer" >&2; exit 2; }; \
+	[ -z "$(VANILLASOFT_PRODUCTION_PERMIT)" ] || [ -r "$(VANILLASOFT_PRODUCTION_PERMIT)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_PRODUCTION_PERMIT does not name a readable file" >&2; exit 2; }; \
+	elif [ -n "$(VANILLASOFT_HISTORY_CENSUS)" ]; then \
 	[ -z "$(VANILLASOFT_CALL_FLOOR)$(VANILLASOFT_CONTACT_FLOOR)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CENSUS selects the historical cohort; VANILLASOFT_CALL_FLOOR / VANILLASOFT_CONTACT_FLOOR belong to the rolling window and cannot be combined with it" >&2; exit 2; }; \
 	[ -r "$(VANILLASOFT_HISTORY_CENSUS)" ] || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CENSUS does not name a readable census file" >&2; exit 2; }; \
 	printf '%s\n' "$(VANILLASOFT_HISTORY_CENSUS_SHA256)" | grep -Eq '^[0-9a-fA-F]{64}$$' || { echo "❌ import-vanillasoft refused: VANILLASOFT_HISTORY_CENSUS_SHA256 must declare the census SHA-256 (64 hex characters)" >&2; exit 2; }; \
@@ -1190,46 +1208,100 @@ import-erp-test:
 		ERP_LIMIT="$(if $(LIMIT),$(LIMIT),25%)" \
 		ERP_REPORT_PATH="$(or $(REPORT_PATH),.l9/pr/import-erp-test-summary.json)"
 
-# VanillaSoft full import via the CRM sync orchestrator (credentials are
-# ir.config_parameter only; nothing secret is logged). Prefers docker, falls
-# back to the local harness, fails closed on material errors.
+# VanillaSoft import onto the Odoo.sh production database. The driver is
+# unchanged: plasticos_crm_sync/scripts/import_vanillasoft_shell.py is piped
+# into `odoo-bin shell` over SSH. Credentials stay in ir.config_parameter on
+# that database. A census, ledger, or permit is copied up for the driver to
+# open, then the ledger and summary are copied back. Docker is not used.
 import-vanillasoft:
-	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ] && [ "$$TEST_ENV_VERIFIED_CLONE" != "$(ODOO_DB_NAME)" ]; then echo "❌ test-env refused: ODOO_DB_NAME=$(ODOO_DB_NAME) is not the verified clone $$TEST_ENV_VERIFIED_CLONE" >&2; exit 2; fi
+	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ]; then echo "❌ import-vanillasoft refused: this target writes the Odoo.sh production database and does not run inside a test-env clone" >&2; exit 2; fi
 	@$(vanillasoft_mode_guard)
-	@echo "→ VanillaSoft full import on database $(ODOO_DB_NAME)…"
-	@echo "   mode: $(VANILLASOFT_MODE) — plasticos_crm_sync/scripts/import_vanillasoft_shell.py$(if $(VANILLASOFT_HISTORY_CENSUS), history(): census sha256 $(VANILLASOFT_HISTORY_CENSUS_SHA256) ledger $(VANILLASOFT_HISTORY_CHECKPOINT) max_ids $(or $(VANILLASOFT_HISTORY_MAX_IDS),all) (not the rolling window), rolling window from $(VANILLASOFT_CALL_FLOOR) (not the historical cohort))"
-	@if docker info >/dev/null 2>&1; then \
-		$(call mount_guard,$(VANILLASOFT_HISTORY_VARS),import-vanillasoft); \
-		docker compose run --rm \
-			-w $(MOUNT_ROOT) \
-			-e VANILLASOFT_HISTORY_CENSUS="$(call runtime_path,$(VANILLASOFT_HISTORY_CENSUS))" \
-			-e VANILLASOFT_HISTORY_CENSUS_SHA256="$(VANILLASOFT_HISTORY_CENSUS_SHA256)" \
-			-e VANILLASOFT_HISTORY_CHECKPOINT="$(call runtime_path,$(VANILLASOFT_HISTORY_CHECKPOINT))" \
-			-e VANILLASOFT_HISTORY_MAX_IDS="$(VANILLASOFT_HISTORY_MAX_IDS)" \
-			-e VANILLASOFT_HISTORY_FAILURE_BUDGET="$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" \
-			-e VANILLASOFT_PRODUCTION_PERMIT="$(call runtime_path,$(VANILLASOFT_PRODUCTION_PERMIT))" \
-			-e ODOO_STAGE="$(ODOO_STAGE)" \
-			-e VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" \
-			-e VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
-			-e VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
-			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
-	elif [ -n "$$TEST_ENV_VERIFIED_CLONE" ]; then \
-		echo "❌ test-env refused: $(ODOO_DB_NAME) was verified on the Docker stack and Docker is unreachable; the no-Docker harness is another server" >&2; exit 2; \
-	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
-		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
-		VANILLASOFT_HISTORY_CENSUS="$(VANILLASOFT_HISTORY_CENSUS)" VANILLASOFT_HISTORY_CENSUS_SHA256="$(VANILLASOFT_HISTORY_CENSUS_SHA256)" \
-		VANILLASOFT_HISTORY_CHECKPOINT="$(VANILLASOFT_HISTORY_CHECKPOINT)" VANILLASOFT_HISTORY_MAX_IDS="$(VANILLASOFT_HISTORY_MAX_IDS)" \
-		VANILLASOFT_HISTORY_FAILURE_BUDGET="$(VANILLASOFT_HISTORY_FAILURE_BUDGET)" VANILLASOFT_PRODUCTION_PERMIT="$(VANILLASOFT_PRODUCTION_PERMIT)" \
-		ODOO_STAGE="$(ODOO_STAGE)" \
-		VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
-		VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
-		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
-			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
-			--addons-path="$$src/odoo/addons,$(CURDIR)" \
-			< plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
-	else \
-		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
-	fi
+	@echo "→ VanillaSoft import on the Odoo.sh production database…"
+	@echo "   mode: $(VANILLASOFT_MODE) — plasticos_crm_sync/scripts/import_vanillasoft_shell.py$(if $(VANILLASOFT_CONTACT_EXPORT), repository cohort $(VANILLASOFT_CONTACT_EXPORT) ledger $(VANILLASOFT_HISTORY_CHECKPOINT) (not a call floor and not a history census),$(if $(VANILLASOFT_HISTORY_CENSUS), history(): census sha256 $(VANILLASOFT_HISTORY_CENSUS_SHA256) ledger $(VANILLASOFT_HISTORY_CHECKPOINT) max_ids $(or $(VANILLASOFT_HISTORY_MAX_IDS),all) (not the rolling window), rolling window from $(VANILLASOFT_CALL_FLOOR) (not the historical cohort)))"
+	@set -eu; \
+	ssh_target="$${ODOO_SH_PRODUCTION_SSH:-}"; \
+	if [ -z "$$ssh_target" ]; then \
+		[ -r .env.local ] || { echo "❌ import-vanillasoft refused: ODOO_SH_PRODUCTION_SSH is unset and .env.local is not readable" >&2; exit 2; }; \
+		ssh_target="$$(sed -n 's/^ODOO_SH_PRODUCTION_SSH=//p' .env.local | head -n 1 | tr -d '\r')"; \
+	fi; \
+	case "$$ssh_target" in \
+		*@*) ;; \
+		*) echo "❌ import-vanillasoft refused: ODOO_SH_PRODUCTION_SSH must be user@host" >&2; exit 2 ;; \
+	esac; \
+	case "$$ssh_target" in \
+		"ssh "*|*[[:space:]]*) echo "❌ import-vanillasoft refused: ODOO_SH_PRODUCTION_SSH must be user@host with no ssh prefix" >&2; exit 2 ;; \
+	esac; \
+	bid="$${ssh_target%%@*}"; \
+	db="cryptoxdog-ib-odoo-19-production-$$bid"; \
+	call_floor='$(VANILLASOFT_CALL_FLOOR)'; \
+	contact_floor='$(VANILLASOFT_CONTACT_FLOOR)'; \
+	sha='$(VANILLASOFT_HISTORY_CENSUS_SHA256)'; \
+	max_ids='$(VANILLASOFT_HISTORY_MAX_IDS)'; \
+	budget='$(VANILLASOFT_HISTORY_FAILURE_BUDGET)'; \
+	census_path='$(VANILLASOFT_HISTORY_CENSUS)'; \
+	export_path='$(VANILLASOFT_CONTACT_EXPORT)'; \
+	confirm='$(VANILLASOFT_PRODUCTION_CONFIRM)'; \
+	ledger_path='$(VANILLASOFT_HISTORY_CHECKPOINT)'; \
+	permit_path='$(VANILLASOFT_PRODUCTION_PERMIT)'; \
+	report_path='$(VANILLASOFT_REPORT_PATH)'; \
+	ssh_opts="-T -o BatchMode=yes -o ConnectTimeout=25 -o ServerAliveInterval=30 -o ServerAliveCountMax=720"; \
+	scp_opts="-O -o BatchMode=yes -o ConnectTimeout=25"; \
+	remote_home="$$(ssh $$ssh_opts "$$ssh_target" 'printf "HOME:%s\n" "$$HOME"' | sed -n 's/^HOME://p' | head -n 1)"; \
+	[ -n "$$remote_home" ] || { echo "❌ import-vanillasoft refused: the production home directory was not readable" >&2; exit 2; }; \
+	work="$$remote_home/data/plasticos_import/vanillasoft-$$$$"; \
+	echo "   database: $$db"; \
+	ssh $$ssh_opts "$$ssh_target" "mkdir -p '$$work' && chmod 700 '$$work'"; \
+	remote_census=""; remote_export=""; remote_ledger=""; remote_permit=""; \
+	if [ -n "$$export_path" ]; then scp $$scp_opts "$$export_path" "$$ssh_target:$$work/export.csv"; remote_export="$$work/export.csv"; fi; \
+	if [ -n "$$census_path" ]; then scp $$scp_opts "$$census_path" "$$ssh_target:$$work/census.csv"; remote_census="$$work/census.csv"; fi; \
+	if [ -n "$$ledger_path" ] && [ -f "$$ledger_path" ]; then scp $$scp_opts "$$ledger_path" "$$ssh_target:$$work/ledger.jsonl"; fi; \
+	if [ -n "$$ledger_path" ]; then remote_ledger="$$work/ledger.jsonl"; fi; \
+	if [ -n "$$permit_path" ]; then scp $$scp_opts "$$permit_path" "$$ssh_target:$$work/permit.json"; remote_permit="$$work/permit.json"; fi; \
+	remote_report="$$work/summary.json"; \
+	envfile="$$(mktemp)"; \
+	trap 'rm -f "$$envfile"' EXIT; \
+	chmod 600 "$$envfile"; \
+	{ \
+		printf 'ODOO_STAGE=%q\n' production; \
+		printf 'VANILLASOFT_API_KEY=%q\n' "$$VANILLASOFT_API_KEY"; \
+		printf 'VANILLASOFT_CONTACT_EXPORT=%q\n' "$$remote_export"; \
+		printf 'VANILLASOFT_PRODUCTION_CONFIRM=%q\n' "$$confirm"; \
+		printf 'VANILLASOFT_HISTORY_CENSUS=%q\n' "$$remote_census"; \
+		printf 'VANILLASOFT_HISTORY_CENSUS_SHA256=%q\n' "$$sha"; \
+		printf 'VANILLASOFT_HISTORY_CHECKPOINT=%q\n' "$$remote_ledger"; \
+		printf 'VANILLASOFT_HISTORY_MAX_IDS=%q\n' "$$max_ids"; \
+		printf 'VANILLASOFT_HISTORY_FAILURE_BUDGET=%q\n' "$$budget"; \
+		printf 'VANILLASOFT_PRODUCTION_PERMIT=%q\n' "$$remote_permit"; \
+		printf 'VANILLASOFT_CALL_FLOOR=%q\n' "$$call_floor"; \
+		printf 'VANILLASOFT_CONTACT_FLOOR=%q\n' "$$contact_floor"; \
+		printf 'VANILLASOFT_REPORT_PATH=%q\n' "$$remote_report"; \
+	} > "$$envfile"; \
+	scp $$scp_opts "$$envfile" "$$ssh_target:$$work/env"; \
+	ssh $$ssh_opts "$$ssh_target" "chmod 600 '$$work/env'"; \
+	if [ -n "$$export_path" ]; then \
+		printf '%s\n' \
+			'module = env["ir.module.module"].search([("name", "=", "plasticos_crm_sync")], limit=1)' \
+			'if not module:' \
+			'    raise SystemExit("plasticos_crm_sync is not available on this database")' \
+			'if module.state != "installed":' \
+			'    if module.state not in ("uninstalled", "to install"):' \
+			'        raise SystemExit("plasticos_crm_sync state is %s" % module.state)' \
+			'    module.button_immediate_install()' \
+			'env.cr.commit()' \
+		| ssh $$ssh_opts "$$ssh_target" "set -a && . '$$work/env' && set +a && exec odoo-bin shell -d '$$db' --no-http"; \
+	fi; \
+	set +e; \
+	ssh $$ssh_opts "$$ssh_target" "set -a && . '$$work/env' && set +a && exec odoo-bin shell -d '$$db' --no-http" < plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
+	status=$$?; \
+	set -e; \
+	ssh $$ssh_opts "$$ssh_target" "rm -f '$$work/env'" || true; \
+	mkdir -p "$$(dirname "$$report_path")"; \
+	copy_rc=0; \
+	scp $$scp_opts "$$ssh_target:$$remote_report" "$$report_path" || copy_rc=$$?; \
+	if [ -n "$$ledger_path" ]; then scp $$scp_opts "$$ssh_target:$$remote_ledger" "$$ledger_path" || copy_rc=$$?; fi; \
+	if [ "$$status" -ne 0 ]; then echo "→ VanillaSoft import exit $$status" >&2; exit "$$status"; fi; \
+	if [ "$$copy_rc" -ne 0 ]; then echo "❌ import-vanillasoft: the production run finished but the summary or ledger could not be copied back from $$work" >&2; exit "$$copy_rc"; fi; \
+	echo "→ VanillaSoft import exit 0"
 
 # 2026-10-17 — Enterprise Docker tests. The fingerprint-template comment above
 # is historical. make test-env, test-db, test-odoo, test-module, and
@@ -1246,9 +1318,11 @@ import-vanillasoft:
 # error, or zero tests (receipt: .l9/runtime/test-env/<db>.test-receipt.json).
 # The fixture is refused when its image, Postgres major, module roster,
 # configuration, or Enterprise checkout differs from the inputs it was admitted
-# for; it is not rebuilt. Under test_env.sh run, import-erp and
-# import-vanillasoft refuse a database other than the verified clone and their
-# no-Docker fallback; MAKEFILES and MAKEFLAGS are cleared before make starts.
+# for; it is not rebuilt. Under test_env.sh run, import-erp refuses a database
+# other than the verified clone and its no-Docker fallback. import-vanillasoft
+# writes the Odoo.sh production database over SSH and refuses when
+# TEST_ENV_VERIFIED_CLONE is set. MAKEFILES and MAKEFLAGS are cleared before
+# make starts.
 # Every other test_env.sh run (an import, shell, runtime-gate-f1) first
 # upgrades the PlasticOS roster on the clone, once per addon source digest
 # (stamped src= on the clone), reading no stdin.
