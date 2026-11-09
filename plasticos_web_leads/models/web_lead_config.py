@@ -197,18 +197,18 @@ class PlasticosWebLeadConfig(models.Model):
         help="API key for OpenAI (sk-...).",
     )
     openai_model = fields.Char(
-        string="Text Model Identifier",
+        string="OpenAI Text Model",
         default="gpt-4o",
         help="OpenAI-compatible model identifier for text normalization. The value is intentionally unrestricted so operators can change models without code changes.",
     )
     openai_vision_model = fields.Char(
-        string="Vision Model Identifier",
+        string="OpenAI Vision Model",
         default="gpt-4o",
         help="OpenAI-compatible multimodal model identifier for image analysis.",
     )
 
     openai_economic_model = fields.Char(
-        string="Economic Assessment Model Identifier",
+        string="OpenAI Economic Assessment Model",
         default="gpt-4o",
         help="OpenAI-compatible model identifier for advisory economic opportunity assessment.",
     )
@@ -221,17 +221,17 @@ class PlasticosWebLeadConfig(models.Model):
         help="API key for Anthropic (sk-ant-...).",
     )
     anthropic_model = fields.Char(
-        string="Text Model Identifier",
+        string="Anthropic Text Model",
         default="claude-sonnet-4-20250514",
         help="Anthropic model identifier for text normalization, for example a configured Claude Haiku model.",
     )
     anthropic_vision_model = fields.Char(
-        string="Vision Model Identifier",
+        string="Anthropic Vision Model",
         default="claude-sonnet-4-20250514",
         help="Anthropic multimodal model identifier used for structured image analysis.",
     )
     anthropic_economic_model = fields.Char(
-        string="Economic Assessment Model Identifier",
+        string="Anthropic Economic Assessment Model",
         default="claude-sonnet-4-20250514",
         help="Anthropic model identifier used for advisory economic opportunity assessment.",
     )
@@ -261,17 +261,17 @@ class PlasticosWebLeadConfig(models.Model):
         help="API key for Mistral AI.",
     )
     mistral_model = fields.Char(
-        string="Text Model Identifier",
+        string="Mistral Text Model",
         default="mistral-large-latest",
         help="OpenAI-compatible Mistral model identifier for text normalization.",
     )
     mistral_vision_model = fields.Char(
-        string="Vision Model Identifier",
+        string="Mistral Vision Model",
         default="mistral-large-latest",
         help="OpenAI-compatible Mistral multimodal model identifier used for image analysis.",
     )
     mistral_economic_model = fields.Char(
-        string="Economic Assessment Model Identifier",
+        string="Mistral Economic Assessment Model",
         default="mistral-large-latest",
         help="OpenAI-compatible Mistral model identifier used for advisory economic opportunity assessment.",
     )
