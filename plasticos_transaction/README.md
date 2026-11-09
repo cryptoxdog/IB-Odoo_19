@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_transaction
 component_name: Plasticos Transaction Spine
-module_version: 19.0.2.3.61
+module_version: 19.0.2.3.62
 layer: 5
 installable: true
 auto_install: true
