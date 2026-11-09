@@ -545,7 +545,7 @@ class PlasticosFreightQuote(models.Model):
     currency_id = fields.Many2one("res.currency", ondelete="restrict")
     valid_until = fields.Datetime()
     conditions = fields.Text()
-    selected = fields.Boolean(default=False, tracking=True)
+    selected = fields.Boolean(default=False)
     supersedes_quote_id = fields.Many2one("plasticos.freight.quote", ondelete="restrict")
     ranking_status = fields.Selection(RANKING_STATUS, required=True, default="not_evaluated", readonly=True)
     ranking_score = fields.Float(readonly=True)

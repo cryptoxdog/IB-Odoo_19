@@ -116,7 +116,7 @@ class PlasticosDocument(models.Model):
     verified_at = fields.Datetime()
 
     override = fields.Boolean(default=False)
-    override_reason = fields.Text()
+    override_reason = fields.Text(string="Override Reason")
     override_by = fields.Many2one(
         "res.users",
         string="Override By",
@@ -128,7 +128,7 @@ class PlasticosDocument(models.Model):
         help="When the override was recorded. Set only by the override command.",
     )
     override_reason_draft = fields.Text(
-        string="Override Reason",
+        string="Draft Override Reason",
         help="Reason typed before the override command. It is not the recorded decision.",
     )
     evidence_digest = fields.Char(

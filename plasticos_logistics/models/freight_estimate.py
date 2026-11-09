@@ -65,7 +65,6 @@ class PlasticosFreightEstimate(models.Model):
         ],
         required=True,
         default="pending",
-        tracking=True,
     )
     failure_code = fields.Char(readonly=True)
     generated_at = fields.Datetime(required=True, default=fields.Datetime.now, readonly=True)
