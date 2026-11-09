@@ -21,7 +21,6 @@ Operational models that users browse, search, and filter as **independent lists*
 | `plasticos_web_leads` | Web Leads | 10 | Triage queue, browsed independently |
 | `plasticos_matching` | Matching | 20 | Match results reviewed in bulk |
 | `plasticos_offer` | Offers | 25 | Pricing pipeline, browsed independently |
-| `plasticos_transaction` | Transactions | 30 | Full lifecycle tracking, global view needed |
 | `plasticos_partner_import` | Import Partners | 90 | Import wizard, infrequent but direct access |
 
 ### Tier 2 — Separate top-level Odoo app
@@ -30,6 +29,7 @@ Cross-cutting operational domains that serve multiple workflows and benefit from
 
 | Module | Top-level menu | Rationale |
 |--------|---------------|-----------|
+| `plasticos_transaction` | Transactions | Full lifecycle list, browsed on its own; same actions as before |
 | `plasticos_logistics` | Logistics | Loads span transactions, partners, and carriers |
 | `plasticos_documents` | Documents | Document management across all record types |
 | `plasticos_claims` | Claims | Claims workflow independent of transaction flow |
@@ -79,10 +79,11 @@ PlasticOS                          (plasticos_intake.plasticos_root_menu, seq 5)
 │   └── All Match Results
 ├── Offers                         (seq 25)
 │   └── All Offers
-├── Transactions                   (seq 30)
-│   ├── All Transactions           (seq 1)
-│   └── Import Transactions (CSV)  (seq 10)
 └── Import Partners                (seq 90)
+
+Transactions                       (separate top-level app, seq 30)
+├── All Transactions               (seq 1)
+└── Import Transactions (CSV)      (seq 10)
 
 Logistics                          (separate top-level app)
 ├── Loads

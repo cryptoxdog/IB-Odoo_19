@@ -254,10 +254,9 @@
         </field>
     </record>
 
-    <!-- Menu under PlasticOS root -->
+    <!-- Root app tile. Children stay under this menu. -->
     <menuitem id="menu_transaction_root"
               name="Transactions"
-              parent="plasticos_base.plasticos_root_menu"
               sequence="30"/>
     <menuitem id="menu_transactions_all"
               name="All Transactions"
