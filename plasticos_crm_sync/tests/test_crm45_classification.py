@@ -53,9 +53,9 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertFalse(any("blacklist" in (mail.subject or "").casefold() for mail in dnc_mails))
 
         hot = orch._upsert_lead(self.connection, self._lead("crm45-hot", lead_status_raw="2a=Qualified/HOT"))
-        self.assertEqual(hot.stage_id, self.env.ref("plasticos_crm_bridge.stage_qualified_hot"))
+        self.assertEqual(hot.stage_id, self.env.ref("crm.stage_lead2"))
         orch._upsert_lead(self.connection, self._lead("crm45-hot", lead_status_raw="5=Dead Lead"))
-        self.assertEqual(hot.stage_id, self.env.ref("plasticos_crm_bridge.stage_qualified_hot"))
+        self.assertEqual(hot.stage_id, self.env.ref("crm.stage_lead2"))
 
         won = self.env.ref("plasticos_crm_bridge.stage_active_supplier")
         hot.stage_id = won
@@ -299,7 +299,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         buyer = self.env.ref("plasticos_crm_bridge.crm_tag_buyer")
         supplier = self.env.ref("plasticos_crm_bridge.crm_tag_supplier")
         data = self._buyer_binding()
-        stage_before = self.env.ref("plasticos_crm_bridge.stage_new")
+        stage_before = self.env.ref("crm.stage_lead1")
         partner = self.env["res.partner"].create({"name": "CRM45 Foreign Model", "is_company": True})
         categories = partner.category_id.ids
 
@@ -630,6 +630,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
     def test_unapproved_statuses_do_not_move_stage_or_send_mail(self):
         self.assertEqual(len(UNAPPROVED_LEAD_STATUSES), 8)
         orch = SyncOrchestrator(self.env)
+        native_new = self.env.ref("crm.stage_lead1")
         new_stage = self.env.ref("plasticos_crm_bridge.stage_new")
         warm = self.env.ref("plasticos_crm_bridge.stage_qualified_warm")
         dead = self.env.ref("plasticos_crm_bridge.stage_dead_lead")
@@ -637,7 +638,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         queued = self.env["mail.mail"]
         before_fresh = queued.search([])
         fresh = orch._upsert_lead(self.connection, self._lead("crm45-default-new", lead_status_raw="New"))
-        self.assertEqual(fresh.stage_id, new_stage)
+        self.assertEqual(fresh.stage_id, native_new)
         fresh_mails = len(queued.search([]) - before_fresh)
         for index, raw in enumerate(UNAPPROVED_LEAD_STATUSES):
             before_created = queued.search([])
