@@ -713,6 +713,26 @@ def test_the_durable_create_closes_interrupted_runs_before_inserting_the_new_row
 # ── repeated execution keeps replay and dedup behaviour ─────────────────────
 
 
+def test_no_vanillasoft_path_writes_native_website_or_function():
+    """Issue #299: no destination is approved, so the values stay labelled source text."""
+    source = ORCHESTRATOR.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Dict):
+            keys = {key.value for key in node.keys if isinstance(key, ast.Constant)}
+            assert not {"website", "function"} & keys, ast.unparse(node)
+        if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant):
+            assert node.slice.value not in ("website", "function"), ast.unparse(node)
+
+
+def test_approved_contact_bind_does_not_write_street2():
+    tree = ast.parse(ORCHESTRATOR.read_text(encoding="utf-8"))
+    fn = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "_bind_approved_contact"
+    )
+    assert "street2" not in ast.unparse(fn)
+
+
 def test_repeating_an_incremental_run_over_the_same_page_creates_nothing_twice():
     page = _one_page([_lead("r1"), _lead("r2")], RECENT_Z)
     orch, connection, env = _harness(_Adapter(contact_passes=[page], call_passes=[[]]))
@@ -724,3 +744,13 @@ def test_repeating_an_incremental_run_over_the_same_page_creates_nothing_twice()
     assert (second.contacts_created, second.contacts_unchanged) == (0, 2)
     assert second.status == "success"
     assert len(env["crm.lead"].rows) == 2 and len(env["plasticos.crm.external.ref"].search([])) == 2
+
+
+def test_an_approved_person_keeps_website_and_title_as_contact_labelled_context():
+    from plasticos_crm_sync.adapters.vanillasoft.adapter import contact_to_canonical
+    from plasticos_crm_sync.services.orchestrator import _approved_context_lines
+
+    dto = contact_to_canonical({"contact_id": 42, "Website": "https://example.test", "title": "Buyer"})
+    lines = _approved_context_lines(dto)
+    assert "VanillaSoft ContactID 42 Website: https://example.test" in lines
+    assert "VanillaSoft ContactID 42 Title: Buyer" in lines

@@ -180,7 +180,9 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         mobile=primary_number(enabled, PRIMARY_MOBILE_NAMES)
         or _top_level_number(raw, ("mobile", "Mobile 1"), disabled),
         street=_payload_text(raw, "address", "Address", "street", "address1", "Address 1"),
-        street2=_payload_text(raw, "address_2", "Address 2", "street2"),
+        street2=_payload_text(raw, "address_2", "Address 2", "street2", "address2"),
+        website=_payload_text(raw, "Website", "website"),
+        job_title=_payload_text(raw, "title", "Title"),
         city=_payload_text(raw, "city", "City"),
         state_code=_payload_text(raw, "state", "State"),
         zip=_payload_text(raw, "zip", "Zip", "zip_code", "postal_code"),
