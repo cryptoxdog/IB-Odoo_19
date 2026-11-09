@@ -193,7 +193,7 @@ def legacy_lane_candidates(env, legacy_row, *, scan_limit=200):
     # reconciliation recorded from that partial view would be permanently
     # wrong. The search is pinned to this legacy row's carrier, amount and
     # date; the elevated records are compared by id below and never returned.
-    scanned = loads.sudo().search(
+    scanned = loads.sudo().search(  # sudo: bounded existence scan; records never returned (ADR-129)
         [
             ("carrier_id", "=", legacy_row.carrier_id.id),
             ("rate_amount", "=", legacy_row.rate_amount),

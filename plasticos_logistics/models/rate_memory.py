@@ -49,7 +49,7 @@ class PlasticosRateMemory(models.Model):
         # create below would hit the unique constraint. Only legacy ids the
         # actor already holds are read back; no reconciliation field is returned.
         existing_legacy_ids = set(
-            reconciliation_model.sudo()
+            reconciliation_model.sudo()  # sudo: existence check of legacy ids only (ADR-129)
             .search([("legacy_rate_memory_id", "in", self.ids)])
             .mapped("legacy_rate_memory_id")
             .ids

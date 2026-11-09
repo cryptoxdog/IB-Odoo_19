@@ -244,7 +244,7 @@ class PlasticosRateMemoryReconciliation(models.Model):
                 # sudo() justification: reads only the company that owns the
                 # load this row already links, so the check does not depend on
                 # whether the creating actor can see that company.
-                load_sudo = load.sudo()
+                load_sudo = load.sudo()  # sudo: reads only the linked load's company (ADR-129)
                 load_company = getattr(load_sudo, "company_id", False) or (
                     load_sudo.sale_order_id.company_id if load_sudo.sale_order_id else False
                 )
