@@ -1,96 +1,32 @@
 ---
-description: PlasticOS __manifest__.py contract rules — version format, depends layer ordering, external_dependencies. Derived from test_repo_dependency_integrity.py LAYER_ORDER and TestModuleManifest.
+description: PlasticOS __manifest__.py contract — valid manifest, resolvable dependencies, no cycles, version format 19.0.X.Y.Z.
 globs: "**/__manifest__.py"
 alwaysApply: false
 ---
 
 # Manifest Contract — PlasticOS
 
-**Authority:** `AGENTS.md` § When you modify `__manifest__.py` · enforced by `tests/test_repo_dependency_integrity.py`.
+A manifest must be valid Python. Every dependency must resolve to an Odoo addon or a `plasticos_*` module that exists. Cycles are rejected by `ci/check_circular_deps.py`.
 
-## Version Format
+Version format is `19.0.X.Y.Z`.
 
-```python
-# ✅ CORRECT — Odoo 19 format: 19.0.MAJOR.MINOR.PATCH
-"version": "19.0.1.0.0"
+Runtime version bumps and the scoped `-u` upgrade are rule `89-plasticos-odoo-version-bump`.
 
-# ❌ WRONG — missing 19.0 prefix
-"version": "1.0.0"
-```
+## No Phantom Dependencies
 
-When adding a new field or model: bump MINOR. When fixing a bug: bump PATCH. When adding a migration script: bump PATCH/MINOR and add the migration folder matching the new version.
-
-**Mandatory:** do not ask whether to bump. Runtime-affecting changes require a version bump in the same change set. After bump, upgrade **only** that module (`make update m=<module>`). Skill: `plasticos-odoo-version-bump` / rule `89-plasticos-odoo-version-bump`.
-
-## Depends Ordering (enforced by test_depends_order_respects_layers)
-
-The `depends` list **must follow this layer order** — `test_depends_order_respects_layers` will fail if a lower-layer module appears after a higher-layer one:
-
-```
-Layer 1  → base, mail, contacts, account
-Layer 2  → plasticos_base
-Layer 3  → plasticos_security_base        ← must come before plasticos_intake
-Layer 4  → plasticos_intake
-Layer 5  → plasticos_material_profile
-Layer 6  → plasticos_facility_profile
-Layer 7  → plasticos_matching
-Layer 8  → plasticos_transaction
-Layer 9  → plasticos_offer
-Layer 10 → plasticos_buyer_match_engine
-```
+`test_no_phantom_dependencies` rejects a `depends` name that is not an Odoo core addon or a `plasticos_*` module in this repo.
 
 ```python
-# ✅ CORRECT — security_base before intake
-"depends": [
-    "base_setup",
-    "plasticos_base",
-    "plasticos_security_base",   # layer 3
-    "plasticos_intake",          # layer 4
-    "plasticos_offer",           # layer 9
-]
-
-# ❌ WRONG — security_base declared after offer (layer 3 after layer 9)
-"depends": [
-    "plasticos_base",
-    "plasticos_intake",
-    "plasticos_offer",
-    "plasticos_security_base",   # ← triggers test_depends_order_respects_layers failure
-]
+# ❌ unknown module
+"depends": ["plasticos_base", "some_nonexistent_module"]
 ```
 
 ## External Python Dependencies
 
-Declare Python packages that are not part of Odoo standard:
+Declare non-Odoo packages in `external_dependencies`:
 
 ```python
-# ✅ Required for neo4j usage
 "external_dependencies": {"python": ["neo4j"]}
-
-# ✅ Multiple deps
-"external_dependencies": {"python": ["requests", "certifi"]}
 ```
 
-## No Phantom Dependencies
-
-The `depends` list must only contain **known** modules — either Odoo core addons or plasticos_* modules that actually exist in the repo. `test_no_phantom_dependencies` scans the repo and rejects unknown names.
-
-```python
-# Known Odoo addons (always safe): base, base_setup, mail, contacts, account,
-# product, purchase, sale_management, web
-
-# ❌ WRONG — "some_nonexistent_module" will fail phantom dependency test
-"depends": ["plasticos_base", "some_nonexistent_module"]
-```
-
-## Ruff Format
-
-Manifests are Python dicts. Ruff enforces formatting — always run `ruff format` after editing a manifest:
-
-```bash
-ruff format plasticos_*/__manifest__.py
-```
-
-Common issues:
-- Trailing comma in single-item list: `["neo4j",]` → `["neo4j"]` after format
-- Inconsistent quote style: mix of `"` and `'`
-- Extra blank lines inside dict
+Manifests are Python dicts. Run `ruff format` after editing one.

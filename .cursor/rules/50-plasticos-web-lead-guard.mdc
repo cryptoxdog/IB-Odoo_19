@@ -100,7 +100,6 @@ The inner assignment guarantees linkage at creation boundary. The outer write ti
 
 ## `_find_or_create_partner()` Status
 
-- `DEPRECATED (2026-02-23)`
 - Not called by main flows
 - Retained for manual/utility use
 

@@ -14,21 +14,18 @@ globs:
 ---
 # PlasticOS Equipment Type Policy
 
-**Scope:** `plasticos_facility_profile` and downstream matching/graph integrations.
+**Scope:** `plasticos_facility_profile`. Facility evidence and projections stay in Odoo. Scoring semantics stay with CEG/EIE through Gate.
 
-## Rule: equipment changes require full downstream wiring
+## Rule: equipment changes stay inside the Odoo projection
 
-Adding equipment types to `equipment_type_data.xml` without corresponding implementation changes is prohibited.
+Adding equipment types to `equipment_type_data.xml` without the Odoo projection is prohibited.
 
 ### Required steps for a new equipment type
 
 1. Add seed data in `data/equipment_type_data.xml`.
 2. Add the computed capability flag in `facility_profile.py`.
 3. Add the capability to the emitted facility packet.
-4. Wire the capability into the buyer matcher when it changes eligibility or scoring.
-5. Wire the capability into graph synchronization.
-6. Update Cypher gates or projections when applicable.
-7. Add tests proving the new type participates in the intended downstream flow.
+4. Add a test of that Odoo projection.
 
 ### Anti-pattern
 
@@ -48,17 +45,10 @@ rec.has_new_machine = "new_machine" in codes
 
 # facility_profile.py - capability packet
 "new_machine": rec.has_new_machine,
-
-# matcher.py - eligibility/scoring gate when required
-if getattr(facility, "has_new_machine", False):
-    ...
-
-# graph synchronization - persist the capability on the facility node
 ```
 
 ## Rationale
 
-- Equipment types drive the buyer-matching capability matrix.
-- Orphaned equipment creates false or invisible capabilities.
-- Data-only additions bypass integration behavior.
-- Domain review is required before equipment semantics become production matching inputs.
+- The facility packet is the Odoo projection of equipment.
+- Orphaned equipment creates a flag the packet does not emit.
+- Data-only additions skip that projection.

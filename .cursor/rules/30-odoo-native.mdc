@@ -278,6 +278,8 @@ def action_feature_disabled(self):
 
 ### Use `noupdate="1"` for Stable Reference Data
 
+`noupdate="1"` is for stable reference data that must survive an upgrade. It is not a rule for every XML record. Lifecycle detail is rule `75-plasticos-xml-data-rules`.
+
 ```xml
 <odoo noupdate="1">
     <record id="stage_active_supplier" model="crm.stage">

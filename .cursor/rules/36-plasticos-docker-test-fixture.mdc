@@ -1,6 +1,6 @@
 ---
 description: Enterprise Docker Odoo tests use only the pinned template fixture. Do not create or select another test database.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Docker test fixture

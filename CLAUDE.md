@@ -6,13 +6,11 @@
 
 ## Design Principles
 
-1. **Deterministic Seed Doctrine** — all reference data versioned in XML with `noupdate="1"`. No CSV runtime bootstrap. No hardcoded database IDs.
-2. **Layer Isolation** — 5 layers (Material → Capability → Commercial → Compliance → Transaction). Higher layers depend on lower, never reverse.
-3. **Graph Augmentation** — Neo4j for scoring/matching, Odoo for transactions. Graph failures never block Odoo.
-4. **Partner Hierarchy** — native Odoo fields (`customer_rank`, `supplier_rank`) + facility capability profiles. No custom partner booleans.
-5. **Intake-First Flow** — supplier intake drives buyer matching. Material profile → intake → match → offer → transaction.
-6. **Odoo 19 Strict** — zero deprecated patterns. `models.Constraint` not `_sql_constraints`. No `@api.one`. No `category_id` on groups.
-7. **ERP Native-Semantics First** — the historical ERP is a source, not a schema template. Direct SQL feeds the existing deterministic import pipeline. Prefer native Odoo fields and existing PlasticOS relationships; do not create source-mirroring fields. Any proposed new field requires explicit operator approval.
+1. **Seed data** — stable reference records may use `noupdate="1"`. That is not a rule for every XML record. No CSV runtime bootstrap. No hardcoded database IDs.
+2. **Partner Hierarchy** — native Odoo fields (`customer_rank`, `supplier_rank`) + facility capability profiles. No custom partner booleans.
+3. **Intake-First Flow** — supplier intake drives buyer matching. Material profile → intake → match → offer → transaction.
+4. **Odoo 19 Strict** — zero deprecated patterns. `models.Constraint` not `_sql_constraints`. No `@api.one`. No `category_id` on groups.
+5. **ERP Native-Semantics First** — the historical ERP is a source, not a schema template. Direct SQL feeds the existing deterministic import pipeline. Prefer native Odoo fields and existing PlasticOS relationships; do not create source-mirroring fields. Any proposed new field requires explicit operator approval.
 
 ## ERP Historical Import Law
 
@@ -106,7 +104,7 @@ class PlasticosMaterialProfile(models.Model):
 - Run `ruff check --fix . && ruff format .` before committing (line length = **120**, not 100)
 - Run `python3 scripts/check_module_wiring.py` before committing
 - Follow the **CI Compliance Checklist** in `AGENTS.md` — CI will reject PRs that skip these steps
-- Check `INVARIANTS.md` for full invariant list (18 invariants, all CI-enforced)
+- Check the checked-out `INVARIANTS.md` for the active invariant list
 
 ### ⚠️ Ask Before
 - Creating new modules (affects dependency graph + install order)
@@ -159,7 +157,7 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **Skill invocation tiers** → `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` (which L9 skills auto-invoke vs explicit-only)
 - **Structured Reasoning** → `@.cursor-commands/skills/l9-structured-reasoning/SKILL.md`
 - **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)
-- **System Invariants** → `INVARIANTS.md` (18 invariants with CI enforcement map)
+- **System Invariants** → `INVARIANTS.md`
 - **ADRs (canonical)** → `docs/adr/README.md` (index); Gate hub → `docs/adr/ADR-002-gate-hub-phased-autonomy.md` + `docs/adr/ADR-003-single-external-intelligence-authority.md`; convergence → ADR-009–019; phases → ADR-002 §3, ADR-016, ADR-018. `docs/roadmap/` is empty. `memory-bank/` is retired. Operational state is `workflow_state.md`. `docs/campaigns/odoo_tech_debt` was retired on 2026-11-03 (PR #355); no repository debt tracker replaces it.
 - **Intake vs material profile** → `docs/adr/ADR-004-intake-vs-material-profile-domain-split.md`, `docs/adr/ADR-005-intake-material-profile-delta-bridge.md`
 
