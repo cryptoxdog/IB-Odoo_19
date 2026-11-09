@@ -1,0 +1,457 @@
+{
+  "schema": "plasticos.planning.acceptance-contract/v1",
+  "source_revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+  "status": "DESIGN_ONLY_NO_TEST_EXECUTED",
+  "tests": [
+    {
+      "id": "DOC-V-01",
+      "owner": "FIX-DOC-WRITER",
+      "kind": "authorized native verify",
+      "fixture": "one exact revision and doc",
+      "expected": "One PlasticOS verification decision, native view projects same decision",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-V-02",
+      "owner": "FIX-DOC-WRITER",
+      "kind": "unauthorized native verify",
+      "fixture": "user without verifier role",
+      "expected": "ACL or command rejects; no verification altered",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-V-03",
+      "owner": "FIX-DOC-WRITER",
+      "kind": "version substitution",
+      "fixture": "verified old attachment then new bytes",
+      "expected": "new revision unverified until authorized verification",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-V-04",
+      "owner": "FIX-DOC-WRITER",
+      "kind": "conflicting old booleans",
+      "fixture": "native true / plasticos false historical",
+      "expected": "reconcile into exception without silent overwrite",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-V-05",
+      "owner": "FIX-DOC-WRITER",
+      "kind": "override",
+      "fixture": "manager with reason / base user",
+      "expected": "only manager can reasoned override; base user denied",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-V-06",
+      "owner": "FIX-DOC-WRITER",
+      "kind": "side effects",
+      "fixture": "verify and trigger compute",
+      "expected": "no mail, no invoice post, no carrier dispatch",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-A-01",
+      "owner": "FIX-DOC-RECENCY",
+      "kind": "multiple open transactions same partner",
+      "fixture": "same vendor, two transactions, newest ambiguous",
+      "expected": "no transaction/load link committed, one review activity",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-A-02",
+      "owner": "FIX-DOC-RECENCY",
+      "kind": "exact purchase order",
+      "fixture": "one PO and inbound source message, no SO",
+      "expected": "typed PO-scoped evidence, no invented load",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-A-03",
+      "owner": "FIX-DOC-RECENCY",
+      "kind": "partial delivery",
+      "fixture": "one document covers 1 of 3 loads",
+      "expected": "one scoped accepted association, siblings incomplete",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-A-04",
+      "owner": "FIX-DOC-RECENCY",
+      "kind": "wrong company",
+      "fixture": "same reference across two companies",
+      "expected": "cross-company match refused",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-A-05",
+      "owner": "FIX-DOC-RECENCY",
+      "kind": "same original two legitimate links",
+      "fixture": "one file, two distinct verified movements",
+      "expected": "one original, two typed evidence rows",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "DOC-A-06",
+      "owner": "FIX-DOC-RECENCY",
+      "kind": "stale reference",
+      "fixture": "booking amended after linked document",
+      "expected": "only affected active obligation requires reassessment",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "LOG-M-01",
+      "owner": "FIX-LOG-MULTILOAD",
+      "kind": "two physical outbound loads",
+      "fixture": "one SO and transaction, two real load/pickings",
+      "expected": "both loads attributable, no data loss",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "LOG-M-02",
+      "owner": "FIX-LOG-MULTILOAD",
+      "kind": "partial quantities",
+      "fixture": "three loads with actual dispatch quantities",
+      "expected": "quantity and cost sum reconcile to sources",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "LOG-M-03",
+      "owner": "FIX-LOG-MULTILOAD",
+      "kind": "legacy single load",
+      "fixture": "one old transaction with one load",
+      "expected": "compatible read and idempotent migration",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "LOG-M-04",
+      "owner": "FIX-LOG-MULTILOAD",
+      "kind": "legacy data multi load",
+      "fixture": "two loads added, old load_id consumer",
+      "expected": "old singleton projection does not choose first secretly",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "LOG-M-05",
+      "owner": "FIX-LOG-MULTILOAD",
+      "kind": "buyerless PO-only",
+      "fixture": "native PO, stock.picking, no SO or transaction",
+      "expected": "native receipt succeeds without fake buyer or PlasticOS load",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "LOG-M-06",
+      "owner": "FIX-LOG-MULTILOAD",
+      "kind": "coupled claims/docs",
+      "fixture": "claim and one BOL on second physical load",
+      "expected": "target second load, preserve first load documents and claims",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "LOG-M-07",
+      "owner": "FIX-LOG-MULTILOAD",
+      "kind": "unapproved dispatch",
+      "fixture": "stock assigned but no ready/approved carrier",
+      "expected": "no packet, no state dispatch, no false delivery",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "SEED-01",
+      "owner": "DEC-SEED",
+      "kind": "fresh install",
+      "fixture": "mixed seed XML families",
+      "expected": "IDs stable; no duplicate; policy-owned values correct",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "SEED-02",
+      "owner": "DEC-SEED",
+      "kind": "idempotent repeat upgrade",
+      "fixture": "updated groups and manually maintained tags",
+      "expected": "approved module-managed changes apply, user-owned preserved",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "SEED-03",
+      "owner": "DEC-SEED",
+      "kind": "bad binding",
+      "fixture": "existing XMLID points wrong model/name",
+      "expected": "adoption fails closed, no unintended rebinding",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "GATE-01",
+      "owner": "DEC-GATE",
+      "kind": "worker unavailable",
+      "fixture": "Gate 503 or timeout",
+      "expected": "retryable/permanent/unknown persisted; no empty success",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "GATE-02",
+      "owner": "DEC-GATE",
+      "kind": "worker genuine empty business result",
+      "fixture": "completed transport, valid empty matches",
+      "expected": "honest completed empty result allowed",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "GATE-03",
+      "owner": "DEC-GATE",
+      "kind": "registry independence",
+      "fixture": "Neo4j driver unavailable at Odoo startup",
+      "expected": "registry loads; failures surfaced on actual operation",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "GATE-04",
+      "owner": "DEC-GATE",
+      "kind": "no local fallback",
+      "fixture": "external matcher unavailable",
+      "expected": "no in-Odoo local matching, no direct EIE/CEG call",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "ACL-01",
+      "owner": "DEC-ACL",
+      "kind": "base internal user",
+      "fixture": "plain base.group_user actor",
+      "expected": "cannot delete claim, write tx line, verify docs, alter ir.model.data",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "ACL-02",
+      "owner": "DEC-ACL",
+      "kind": "claims user",
+      "fixture": "claims user/manager seeded group matrix",
+      "expected": "user create/update approved claim, not unlink; manager scoped",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "ACL-03",
+      "owner": "DEC-ACL",
+      "kind": "document upload claim",
+      "fixture": "authorized uploader with claim-tag image",
+      "expected": "preserves one file and an authorized claim-intake path",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "ACL-04",
+      "owner": "DEC-ACL",
+      "kind": "CSV transaction import",
+      "fixture": "authorized importer with one malformed line",
+      "expected": "all-or-nothing or compensating rollback; never closed no lines",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "ACL-05",
+      "owner": "DEC-ACL",
+      "kind": "cross company",
+      "fixture": "doc/claim/line of different company",
+      "expected": "no foreign record read/write/mutation",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "ACL-06",
+      "owner": "DEC-ACL",
+      "kind": "claimed recovery commission",
+      "fixture": "sales user claims potential recovery",
+      "expected": "cannot recognize own margin/commission amount",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "AI-01",
+      "owner": "AI",
+      "kind": "native AI candidate only",
+      "fixture": "untrusted scanned PDF with false Ready",
+      "expected": "candidate and conflict only; no action executed",
+      "negative_control": true,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    },
+    {
+      "id": "AI-02",
+      "owner": "AI",
+      "kind": "worker not installed",
+      "fixture": "EE AI action unavailable, operator manual intake",
+      "expected": "manual Docs evidence flow remains usable",
+      "negative_control": false,
+      "execution_status": "NOT_RUN",
+      "required_validation": "EE_RUNTIME",
+      "tested_revision": null
+    }
+  ],
+  "independent_proof": "Approval and fresh tests required; these probes do not constitute verification.",
+  "ci_green_not_sufficient": "Need actual Odoo19EE, native registry, version/migration replay and actor/group tests",
+  "checkpoint_evidence": {
+    "date": "2026-10-30",
+    "source": "PR #346 GMP-129 report",
+    "original_probes_updated_to_pass": false,
+    "isolated_logistics_on_pr346": {
+      "tests": 152,
+      "failed": 0,
+      "errors": 0
+    },
+    "full_enterprise_on_pr346": {
+      "tests": 1103,
+      "failed": 8,
+      "errors": 2
+    },
+    "remaining_proof": "Current frozen integrated Enterprise production-scope suite and exact original negative probes not all independently executed"
+  },
+  "operator_cutover_negative_probes": [
+    {
+      "id": "CUT-01",
+      "owner": "plasticos_partner_import",
+      "negative": "Unapproved Production import, wrong DB, absent target/release or source digest",
+      "expected": "REJECTS BEFORE ANY WRITE",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "CUT-02",
+      "owner": "ERP writer",
+      "negative": "Post/paid/stock event from historical import or undocumented side effects",
+      "expected": "NO UNAPPROVED EFFECT; EXACT SOURCE-STATUS RECONCILIATION",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "CUT-03",
+      "owner": "ERP identity",
+      "negative": "Inactive ERP contacts, alias-only excluded CT_ID, unsupported partner parent, duplicate replay",
+      "expected": "NO UNAPPROVED PERSON OR ALIAS; NO IDENTITY DUPLICATES",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "CUT-04",
+      "owner": "CRM sync",
+      "negative": "30-day modified-since returns partial history; old ContactID lookup fails",
+      "expected": "DOES NOT REPORT 4876 HISTORIC IMPORT COMPLETE",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "CUT-05",
+      "owner": "CRM identity",
+      "negative": "NO/PENDING crosswalk promoted; missing approved ERP marker fuzzy rebound; DNC changed",
+      "expected": "REFUSES WRONG BIND; HELD/LEAD WITH REASON; DNC PRESERVED",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "CUT-06",
+      "owner": "import pipeline",
+      "negative": "Provider timeout, failed stage, interrupted overnight job, process restart",
+      "expected": "DURABLE CHECKPOINT, NO FALSE-GREEN, SAFE RETRY ON SOURCE IDs",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "CUT-07",
+      "owner": "release / Odoo.sh",
+      "negative": "Mixed code SHAs, unverified native backup, addon upgrade fails",
+      "expected": "STOP AND RECOVER WITHOUT PROCEEDING TO IMPORT",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "CUT-08",
+      "owner": "Documents",
+      "negative": "Claims 97346 historical worksheet images imported from SQL-only ERP or exact-link importer absent",
+      "expected": "BINARY IMPORT NOT COUNTED UNTIL IMPLEMENTED AND VERIFIED",
+      "execution_status": "NOT_RUN"
+    }
+  ]
+}
