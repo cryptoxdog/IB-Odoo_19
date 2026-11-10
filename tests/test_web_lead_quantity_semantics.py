@@ -35,14 +35,57 @@ def test_explicit_mass_is_deterministic(weight, expected, source):
     assert evidence.weight_source == source
 
 
-@pytest.mark.parametrize("quantity", ["3 loads", "5 pallets", "2 gaylords", "4 bales"])
-def test_inventory_units_never_become_assumed_weight(quantity):
+@pytest.mark.parametrize(
+    ("quantity", "expected_lbs", "source"),
+    [
+        ("3 loads", 126_000.0, "unit_count:load"),
+        ("5 pallets", 9_000.0, "unit_count:pallet"),
+        ("2 gaylords", 2_000.0, "unit_count:gaylord"),
+        ("4 bales", 6_000.0, "unit_count:bale"),
+    ],
+)
+def test_stated_unit_count_becomes_mass_and_keeps_inventory(quantity, expected_lbs, source):
     evidence = normalize_quantity_evidence(quantity_text=quantity, weight_per_load_text="", frequency_text="")
 
-    assert evidence.load_weight_lbs is None
-    assert evidence.weight_source == "none"
+    assert evidence.load_weight_lbs == pytest.approx(expected_lbs)
+    assert evidence.weight_source == source
+    assert evidence.assumptions
     assert evidence.current_inventory_count_low is not None
     assert evidence.loads_per_month is None
+
+
+def test_one_truckload_uses_the_unit_table():
+    evidence = normalize_quantity_evidence(quantity_text="1 truckload", weight_per_load_text="", frequency_text="")
+
+    assert evidence.load_weight_lbs == pytest.approx(42_000.0)
+    assert evidence.weight_source == "unit_count:truckload"
+    assert evidence.assumptions
+
+
+def test_range_classifies_on_the_low_number_and_keeps_the_high_number():
+    evidence = normalize_quantity_evidence(
+        quantity_text="10,000 - 20,000 rough guess",
+        weight_per_load_text="",
+        frequency_text="",
+    )
+
+    assert evidence.load_weight_lbs == pytest.approx(10_000.0)
+    assert evidence.load_weight_lbs_high == pytest.approx(20_000.0)
+    assert evidence.weight_source == "range_lbs"
+
+
+def test_square_feet_do_not_become_pounds():
+    evidence = normalize_quantity_evidence(quantity_text="65,000 sqft", weight_per_load_text="", frequency_text="")
+
+    assert evidence.load_weight_lbs is None
+    assert evidence.weight_source == "area_not_mass"
+
+
+def test_one_hundred_short_tons_are_two_hundred_thousand_pounds():
+    evidence = normalize_quantity_evidence(quantity_text="", weight_per_load_text="100 ton", frequency_text="")
+
+    assert evidence.load_weight_lbs == pytest.approx(200_000.0)
+    assert evidence.weight_source == "explicit_tons"
 
 
 @pytest.mark.parametrize(
