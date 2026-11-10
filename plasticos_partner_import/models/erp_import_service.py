@@ -281,7 +281,9 @@ class PlasticosErpImport(models.AbstractModel):
 
     def _resolve_payment_term(self, values: dict, row, cp_id: str, report) -> None:
         """Link ``TermsCode`` to an existing payment term. Never create one."""
-        terms_code = _text(row, "TermsCode")
+        from ..erp.mapping import payment_term_name
+
+        terms_code = payment_term_name(_text(row, "TermsCode"))
         if not terms_code or "property_supplier_payment_term_id" not in self.env[RES_PARTNER]._fields:
             return
         term = self.env["account.payment.term"].search([("name", "=", terms_code)], limit=1)

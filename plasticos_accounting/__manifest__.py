@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Accounting",
-    "version": "19.0.1.6.1",
+    "version": "19.0.1.6.2",
     "summary": "Accounting seed data: payment terms, chart of accounts, incoterms",
     "license": "LGPL-3",
     "author": "Igor Beylin",

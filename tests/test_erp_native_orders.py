@@ -645,3 +645,29 @@ def test_unmatched_term_uses_the_header_due_date_and_clears_the_default_term():
     facts = {"invoice_date": "2022-03-15", "due_date": "2022-03-20"}
     assert vendor_bill_due_terms(facts, None) == {"invoice_payment_term_id": False, "invoice_date_due": "2022-03-20"}
     assert vendor_bill_due_terms({"invoice_date": "2022-03-15", "due_date": ""}, None) == {}
+
+
+def test_erp_payment_term_names_alias_onto_installed_terms():
+    from erp.mapping import PAYMENT_TERM_NAME_BY_ERP, payment_term_name
+
+    expected = {
+        "N45": "Net 45",
+        "Due on receipt": "Immediate Payment",
+        "Prepayment": "Prepaid",
+        "Net 10": "15 Days",
+        "Net 14": "15 Days",
+        "Net 20": "Net 30",
+        "N 25": "Net 30",
+        "Wire Against Docs": "Immediate Payment",
+        "Wire On Documents": "COD",
+        "50% Prepayment": "50% Down / 50% Net 30",
+        "1% 10 Net 30": "1/10 Net 30",
+        "1% Net10": "1/10 Net 30",
+    }
+    assert PAYMENT_TERM_NAME_BY_ERP == expected
+    for source, installed in expected.items():
+        assert payment_term_name(f"  {source}  ") == installed
+    assert payment_term_name("Net 30") == "Net 30"
+    assert payment_term_name("No Such Term") == "No Such Term"
+    assert payment_term_name(None) == ""
+    assert payment_term_name("  ") == ""
