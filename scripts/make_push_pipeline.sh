@@ -153,6 +153,25 @@ if [[ "${OPEN_PR}" != "1" ]]; then
   refuse "open_pr=${OPEN_PR}; publication must create or verify the PR"
 fi
 
+# The PR body comes from the org template; prove it is readable before any
+# remote ref moves, so an unreadable template never leaves a pushed branch
+# without a pull request.
+if ! bash scripts/compose_pr_body.sh check "${BASE}"; then
+  refuse "the org PR template is not readable (scripts/compose_pr_body.sh check)"
+fi
+
+# Install-smoke needs Docker and the Enterprise checkout. A Claude Code cloud
+# session (CLAUDE_CODE_REMOTE=true: mobile, web, remote desktop) has neither,
+# so there the default is to skip it and say so on the PR. Cursor and a local
+# terminal run it by default. PR_SMOKE=1 forces it anywhere; an explicit
+# PR_SMOKE_BYPASS (make pr-nosmoke reason=...) always wins.
+SMOKE_BYPASS_BY="the operator"
+operator_bypass="${PR_SMOKE_BYPASS:-}"
+if [[ -z "${operator_bypass// /}" && "${CLAUDE_CODE_REMOTE:-}" == "true" && "${PR_SMOKE:-0}" != "1" ]]; then
+  SMOKE_BYPASS_BY="default on a Claude Code cloud session"
+  export PR_SMOKE_BYPASS="no Docker or Enterprise checkout here; install-smoke runs on make pr from Cursor (PR_SMOKE=1 forces it)"
+fi
+
 echo "→ Push branch → origin/${TARGET}..."
 bash scripts/git_push_with_pr.sh "${TARGET}"
 echo ""
@@ -166,7 +185,7 @@ fi
 
 PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
 if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
-  bypass_note="Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by the operator: ${PR_SMOKE_BYPASS}"
+  bypass_note="Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by ${SMOKE_BYPASS_BY}: ${PR_SMOKE_BYPASS}"
   if ! pr_number="$(open_pr_number)" || [[ -z "${pr_number}" ]] \
     || ! gh api --method POST "repos/${GH_REPO}/issues/${pr_number}/comments" -f body="${bypass_note}" >/dev/null; then
     echo "warning: could not post the install-smoke bypass note on the PR" >&2
