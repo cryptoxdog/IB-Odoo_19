@@ -822,9 +822,11 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > `make pr` composes every pull request from ONE template: the org template
 > `Quantum-L9/.github` `.github/pull_request_template.md`, filled by the Cursor-Governance composer
-> (`ops/scripts/compose_pr_body.py`) through `scripts/compose_pr_body.sh`. The body lists every touched file first
-> (`## Files touched`). This repository keeps no local PR template and no local body builder:
-> `.github/pull_request_template.md`, `scripts/build_pr_body.py` and `tests/test_build_pr_body.py` are removed.
+> (`ops/scripts/compose_pr_body.py`) through `scripts/compose_pr_body.sh`, the same composer SSOT `make pr` uses
+> for every other L9 repo. The body lists every touched file first (`## Files touched`).
+> `.github/pull_request_template.md` is a byte copy of the org template, for PRs opened in the GitHub web page; the
+> composer reads the org template, never the local copy. The local body builder (`scripts/build_pr_body.py`) and its
+> three-heading template are removed, with `tests/test_build_pr_body.py`.
 > `scripts/make_push_pipeline.sh` proves the template is readable before any push. On an open PR, `make pr` refreshes
 > only the composer's machine-owned regions; text a person wrote is kept. `.l9/pr/pr-intent.json`
 > (`l9.pr_intent.v1`: `head`, `title`, `problem`, `reviewer_focus`) supplies the prose when `head` names HEAD;

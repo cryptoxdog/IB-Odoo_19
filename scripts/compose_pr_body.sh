@@ -2,9 +2,11 @@
 # PR title and body for `make pr`, from ONE template: the org template
 # `${PR_TEMPLATE_OWNER:-Quantum-L9}/.github` .github/pull_request_template.md,
 # filled by the Cursor-Governance composer (ops/scripts/compose_pr_body.py).
-# The template lists every file the PR touches first (## Files touched). This
-# repository keeps no local PR template and no local body builder: a second
-# template here would diverge from the one governance publishes with.
+# The template lists every file the PR touches first (## Files touched). This is
+# the same composer and template SSOT `make pr` uses for every other L9 repo.
+# .github/pull_request_template.md is a byte copy of the org template for PRs
+# opened in the GitHub web page; the composer never reads it, so a stale copy
+# cannot change what make pr writes. There is no local body builder.
 #
 # Usage:
 #   compose_pr_body.sh check   BASE                     prove the template is readable

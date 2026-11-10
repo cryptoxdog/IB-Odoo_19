@@ -1638,9 +1638,13 @@ def test_composed_open_pr_body_is_refreshed_for_the_new_range(tmp_path: Path) ->
     assert patches and all(set(call["fields"]) == {"body"} for call in patches)
 
 
-def test_no_local_pr_template_or_body_builder() -> None:
-    """A second template or builder here would diverge from the one governance publishes with."""
-    assert not (ROOT / ".github" / "pull_request_template.md").exists()
+def test_local_template_is_the_org_template_and_no_local_builder_exists() -> None:
+    """The local file is the org template for the GitHub web page; make pr never builds its own body."""
+    template = (ROOT / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
+    headings = [line for line in template.splitlines() if line.startswith("## ")]
+    assert headings[0] == "## Files touched", headings
+    assert "<!-- FILES-TOUCHED:START -->" in template and "<!-- FILES-TOUCHED:END -->" in template
+    assert "<!-- L9_PROTECTED_ROOT_PR -->" in template
     assert not (ROOT / ".github" / "PULL_REQUEST_TEMPLATE").exists()
     assert not (ROOT / "scripts" / "build_pr_body.py").exists()
     opener = (ROOT / "scripts" / "git_open_pr.sh").read_text(encoding="utf-8")
