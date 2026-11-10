@@ -43,7 +43,7 @@ class _StoredAttachment:
         self.res_model = values.get("res_model")
         self.res_id = values.get("res_id")
         self.description = values.get("description")
-        self.checksum = values.get("checksum") or hashlib.sha1(str(self.datas).encode()).hexdigest()
+        self.checksum = values.get("checksum") or hashlib.sha256(str(self.datas).encode()).hexdigest()
 
     def exists(self):
         return True
