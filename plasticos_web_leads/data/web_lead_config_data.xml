@@ -41,7 +41,7 @@
             <field name="hot_min_lbs">10000</field>
             <field name="cold_max_lbs">8000</field>
             <!-- Reject lists -->
-            <field name="reject_materials">vinyl siding|appliances|conduit|pvc pipe|pet bottles|carpet|mattress|tire</field>
+            <field name="reject_materials" eval="False"/>
             <field name="reject_sources">residential|individual|homeowner|drop-off|drop off</field>
         </record>
 
