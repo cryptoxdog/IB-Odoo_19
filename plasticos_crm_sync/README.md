@@ -3,9 +3,9 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_crm_sync
 component_name: PlasticOS CRM Sync
-module_version: 19.0.1.9.24
+module_version: 19.0.1.9.25
 installable: true
-auto_install: false
+auto_install: true
 application: false
 depends:
   - base
@@ -72,7 +72,7 @@ API-first sync from an external CRM into Odoo. VanillaSoft is the only live prov
 ## Runtime
 
 - Cron: `cron_crm_sync_all`, hourly, `active` false in `data/ir_cron_data.xml`. It calls `plasticos.crm.connection._cron_sync_all()` as `plasticos_base.user_system_cron`.
-- `auto_install` is false. Install it by name.
+- `auto_install` is true. Odoo installs it once every dependency is installed.
 
 ## Boundaries
 
