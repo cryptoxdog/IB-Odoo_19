@@ -1,0 +1,256 @@
+{
+  "schema": "plasticos.production.post-import-acceptance-cases/v1",
+  "revision": "2026-11-09",
+  "source_revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+  "status": "WORKING_NON_ADMITTED_ALL_TESTS_NOT_RUN",
+  "cases": [
+    {
+      "id": "POST-DB-01",
+      "group": "PostgreSQL",
+      "positive": "Actual Production PostgreSQL + filestore matches attachment hashes; roles/limits/backup known",
+      "negative": "Unproven second DB instantiated or attachment exists only as SQL row with missing file",
+      "owner": "Odoo.sh + DBA",
+      "predecessor": "PL-POSTGRES-VERIFY",
+      "source_ref": "E-POST-DB",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-BLOB-01",
+      "group": "Blobs",
+      "positive": "Immutable W/# source cohort and exact suffixed RefID match uniquely to transaction",
+      "negative": "P/E/B silently imported; partner/date/fuzzy match used; unmatched coerced",
+      "owner": "Documents + ERP",
+      "predecessor": "PL-DOC-BLOB-CENSUS",
+      "source_ref": "E-POST-BLOB-SCOPE",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-BLOB-02",
+      "group": "Blobs",
+      "positive": "Two different originals on same worksheet each import once with hashes",
+      "negative": "Second image overwritten, source ImageID duplicates, multi-page corrupted",
+      "owner": "Documents",
+      "predecessor": "PL-DOC-BLOB-IMPORT",
+      "source_ref": "E-POST-BLOB-SCOPE",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-BLOB-03",
+      "group": "Blobs",
+      "positive": "Census equations and replay created=0; unmatched/corrupt quarantined",
+      "negative": "Missing or ambiguous source counted as success or creates guessed transaction",
+      "owner": "Documents + data",
+      "predecessor": "PL-DOC-BLOB-RECON",
+      "source_ref": "E-POST-BLOB",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-BLOB-04",
+      "group": "Blobs",
+      "positive": "File opens with original bytes through Enterprise Documents after restore",
+      "negative": "PG row counts correct but native file missing or unreadable",
+      "owner": "Odoo.sh + Documents",
+      "predecessor": "PL-DOC-BLOB-RECON",
+      "source_ref": "E-POST-DB",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-AI-01",
+      "group": "Doc AI",
+      "positive": "Installed licensed native document AI extracts candidate with original/page evidence",
+      "negative": "AI guesses a field, overwrites verification, posts invoice, triggers matching/enrichment",
+      "owner": "Documents AI",
+      "predecessor": "PL-AI-03",
+      "source_ref": "E-POST-DOC-AI",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-AI-02",
+      "group": "Doc AI",
+      "positive": "Blurry/stale/contradictory record flags assigned manager with exact source and reason",
+      "negative": "No manager notification, unauthorized user sees review, auto-corrected truth",
+      "owner": "Documents + manager",
+      "predecessor": "PL-DOC-AI-MANAGER-QUEUE",
+      "source_ref": "E-POST-DOC-REVIEW",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-AI-03",
+      "group": "Doc AI",
+      "positive": "Manager resolves with audited original and role; repeated AI run no duplicate open case",
+      "negative": "Low confidence auto-approved, wrong company, no audit, resolved issue reopens without new evidence",
+      "owner": "Documents + manager",
+      "predecessor": "PL-DOC-AI-ACCEPT",
+      "source_ref": "E-POST-DOC-REVIEW",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-01",
+      "group": "Reports",
+      "positive": "Signed ERP AP/AR/inventory + QB TB/controls + bank statements same cutoff/sha",
+      "negative": "No report, stale bank date, currency mismatch or generic source status guessed",
+      "owner": "finance controller",
+      "predecessor": "PL-ACCT-REPORT-SOURCE-LOCK",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-02",
+      "group": "Reopen",
+      "positive": "Approved operations exception reopens selected closed historical once with reason",
+      "negative": "Unpaid invoice alone activates trade, role bypass, rerun double-reopens",
+      "owner": "plasticos_transaction",
+      "predecessor": "PL-ACCT-REOPEN-MAKE",
+      "source_ref": "E-POST-REOPEN",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-03",
+      "group": "Reopen",
+      "positive": "Make command dry-run, permit guard, source SHA and replay yields 0 extra actions",
+      "negative": "Target missing, source mismatch, partial failure silently swallowed, unrestricted Production writes",
+      "owner": "transaction CLI",
+      "predecessor": "PL-ACCT-REOPEN-MAKE",
+      "source_ref": "E-POST-REOPEN",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-04",
+      "group": "AR/AP",
+      "positive": "Partial paid customer invoice opens residual only; historical gross remains Draft",
+      "negative": "Original historical invoice posted, duplicate tax/revenue or full gross posted again",
+      "owner": "Accounting",
+      "predecessor": "PL-ACCT-OPEN-ARAP",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-05",
+      "group": "AR/AP",
+      "positive": "Vendor bill and refunds preserve signed residual and clearing per currency",
+      "negative": "Wrong sign credit, zero residual opens document, company/partner mismatch",
+      "owner": "Accounting",
+      "predecessor": "PL-ACCT-OPEN-ARAP",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-06",
+      "group": "QB TB",
+      "positive": "QB TB debits == credits and AR/AP control replaced by clearing; both clearing return zero",
+      "negative": "Direct native control amount doubled, nonzero clearing silently written off",
+      "owner": "Accounting",
+      "predecessor": "PL-ACCT-OPENING-RECON",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-07",
+      "group": "Bank",
+      "positive": "Statement balance and timing adjustments reconcile to QB cash at cutoff",
+      "negative": "Bank balance inferred from payment status or fabricated Odoo payment",
+      "owner": "Treasury",
+      "predecessor": "PL-ACCT-OPEN-BANK",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-08",
+      "group": "Inventory",
+      "positive": "ERP physical quantity/valuation accepted and QB book value tied with approved variance",
+      "negative": "Fake picking/receipt created, missing stock count treated as zero",
+      "owner": "Inventory + Accounting",
+      "predecessor": "PL-ACCT-OPEN-INVENTORY",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-09",
+      "group": "Accounting",
+      "positive": "Replay signed cutoff manifest generates zero new postings; changed report requires new permit",
+      "negative": "Mutates posted originals or changes source evidence silently",
+      "owner": "Accounting",
+      "predecessor": "PL-ACCT-OPENING-RECON",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-ACC-10",
+      "group": "Accounting",
+      "positive": "Production posting occurs only with signed human approval and matched one-writer cutoff",
+      "negative": "An import, transaction reopen, cron or Make dry-run posts to real GL",
+      "owner": "finance operator",
+      "predecessor": "PL-ACCT-PROD-AUTH",
+      "source_ref": "E-POST-ADR022",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-DR-01",
+      "group": "Recovery",
+      "positive": "Native prechange DB+filestore backup restored in isolated Odoo with original docs",
+      "negative": "Backup list screenshot only or filestore omitted",
+      "owner": "Odoo.sh",
+      "predecessor": "PL-DR-NATIVE-SAFETY",
+      "source_ref": "E-POST-DR",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-DR-02",
+      "group": "Recovery",
+      "positive": "Independent AWS cold-path actual source restore plus attachment hash and QB/AR/AP sample",
+      "negative": "Restores data rows without filestore, relies on Odoo.sh or original Mac",
+      "owner": "DR operator",
+      "predecessor": "PL-DR-RESTORE-PROOF",
+      "source_ref": "E-POST-DR-DONE",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-DR-03",
+      "group": "Recovery",
+      "positive": "Operator can retrieve 1Password pack in clean room, prove last good checkpoint",
+      "negative": "A developer local ZIP or unfinished Git PR is only copy",
+      "owner": "DR operator",
+      "predecessor": "PL-RELEASE-DR",
+      "source_ref": "E-POST-DR-DONE",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    },
+    {
+      "id": "POST-DR-04",
+      "group": "Recovery",
+      "positive": "Fresh 2h source and four schedule points separately proven where supported",
+      "negative": "Stale daily backup relabeled four times to claim 2h RPO",
+      "owner": "DR operator",
+      "predecessor": "PL-RELEASE-DR",
+      "source_ref": "E-POST-DR-DONE",
+      "execution": "NOT_RUN",
+      "independent_review": "NOT_RUN"
+    }
+  ],
+  "release_policy": {
+    "positive_receipt": "Actual tagged source/build/company/role logs and accounting/recovery evidence",
+    "negative": "A known failure blocks PASS until fixed, invalidated or explicitly dispositioned",
+    "unrun": "NOT_RUN",
+    "production_financial_cutover": "SEPARATE_HUMAN_AUTHORIZATION"
+  }
+}

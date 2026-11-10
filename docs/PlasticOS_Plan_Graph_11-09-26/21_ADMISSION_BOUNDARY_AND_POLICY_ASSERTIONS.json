@@ -1,0 +1,299 @@
+{
+  "schema": "plasticos.planning.domain-policy-assertions/v1",
+  "authority_ref": "Operator request 2026-11-09 to enrich existing non-admitted PlasticOS working plan; repository INVARIANTS.md v3.0.0 + ADR-022 + existing SM-ODOO-DR-CAMPAIGN-001 v1.3",
+  "allowed_changed_paths": [
+    "00_READ_FIRST.md",
+    "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+    "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+    "12_REQUIRED_CORRECTIONS_AND_OWNER_DECISIONS.json",
+    "15_SOURCE_BOUND_STATUS_EVIDENCE.json",
+    "16_IMPLEMENTATION_STATUS_AND_PROOF_MATRIX.json",
+    "18_GRAPH_PLACEMENT_AND_CLOSURE.md",
+    "19_OWNER_HANDOFFS_NO_IMPLEMENTATION_AUTHORITY.md",
+    "20_SUCCESSOR_VALIDATION_AND_CHANGE_REPORT.json",
+    "21_ADMISSION_BOUNDARY_AND_POLICY_ASSERTIONS.json",
+    "23_RELEASE_CHECKPOINT_2026-10-30.md",
+    "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+    "25_CHECKPOINT_VALIDATION_POLICY.json",
+    "26_OPERATOR_OVERNIGHT_CUTOVER_DECISION.md",
+    "27_OVERNIGHT_CUTOVER_EXECUTION_GRAPH.json",
+    "28_CURRENT_STAGING_RELEASE_STATUS.md",
+    "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+    "30_PRODUCTION_QUALITY_SWEEP_2026-11-09.md",
+    "MANIFEST.json",
+    "SHA256SUMS.json",
+    "VALIDATION.json",
+    "31_POST_IMPORT_BLOBS_AND_DOCUMENT_AI.md",
+    "32_ACCOUNTING_REPORTS_AND_REOPEN_MAKE.md",
+    "33_EXISTING_DISASTER_RECOVERY_POINTER.md",
+    "34_POST_IMPORT_ACCEPTANCE_CASES.json"
+  ],
+  "must_remain_unchanged": [
+    "02_STRATEGIC_GRAPH_CANDIDATES.json",
+    "04_CONSTITUTIONAL_PRESERVATION_AND_ADMISSION.md",
+    "05_BRS_OWNER_RECONCILIATION.md",
+    "06_DOCUMENTS_AI_CAPABILITY_CONTRACT.md",
+    "07_SOURCE_GAPS_AND_PROOFS.md",
+    "08_RECOMMENDED_NEXT_PLANNING_ACTION.md",
+    "09_DEFERRED_EXPORT_BRS_INDEX.json",
+    "10_PLACEMENT_AND_CONFLICT_DECISIONS.md",
+    "13_OWNER_RESOLUTION_AND_MIGRATION_DESIGNS.md",
+    "14_DOMAIN_BRS_AMENDMENT_REGISTER.md",
+    "17_INDEPENDENT_ACCEPTANCE_AND_NEGATIVE_PROBES.json",
+    "22_BOUNDED_STRATEGIC_TRAVERSAL_OVERLAY.json"
+  ],
+  "assertions": [
+    {
+      "id": "CAPABILITY-ONLY-OUTSIDE-PLAN",
+      "kind": "equals",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "pointer": "/authority_boundary",
+      "value": "EXTERNAL_TO_L9_STRATEGIC_PLAN; NO_PLAN_PRIMITIVES_OR_STRATEGIC_RELATIONS_ADMITTED_HERE"
+    },
+    {
+      "id": "CAP-NO-REPO-MUTATION",
+      "kind": "equals",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "pointer": "/status",
+      "value": "WORKING_DERIVED_NON_CANONICAL_NOT_RUNTIME_PROOF"
+    },
+    {
+      "id": "NO-EXPORT-EXECUTION",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/mvp_separation/no_export_or_shopfloor_implementation",
+      "value": true
+    },
+    {
+      "id": "NO-AUTO-MERGE",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/mvp_separation/no_auto_merge_or_deploy",
+      "value": true
+    },
+    {
+      "id": "UNIQUE-CAPABILITY-IDS",
+      "kind": "unique_field",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "pointer": "/nodes",
+      "field": "id"
+    },
+    {
+      "id": "UNIQUE-ISSUE-IDS",
+      "kind": "unique_field",
+      "file": "12_REQUIRED_CORRECTIONS_AND_OWNER_DECISIONS.json",
+      "pointer": "/items",
+      "field": "id"
+    },
+    {
+      "id": "UNIQUE-PLAN-IDS",
+      "kind": "unique_field",
+      "file": "02_STRATEGIC_GRAPH_CANDIDATES.json",
+      "pointer": "/candidate_nodes",
+      "field": "ref"
+    },
+    {
+      "id": "UNIQUE-PLAN-REL",
+      "kind": "unique_field",
+      "file": "02_STRATEGIC_GRAPH_CANDIDATES.json",
+      "pointer": "/candidate_relations",
+      "field": "ref"
+    },
+    {
+      "id": "UNIQUE-TRAVERSAL-NODES",
+      "kind": "unique_field",
+      "file": "22_BOUNDED_STRATEGIC_TRAVERSAL_OVERLAY.json",
+      "pointer": "/nodes",
+      "field": "id"
+    },
+    {
+      "id": "UNIQUE-PHASE-IDS",
+      "kind": "unique_field",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/work_items",
+      "field": "id"
+    },
+    {
+      "id": "NO-MVP-DEPENDS-EXPORT",
+      "kind": "edge_absent",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:booking",
+      "target": "cap:verification",
+      "relation": "requires_before"
+    },
+    {
+      "id": "DOC-ORIGINAL-TO-LINK",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:original",
+      "target": "cap:typed-link",
+      "relation": "source_for"
+    },
+    {
+      "id": "DOC-ASSOC-BEFORE-VERIFY",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:assoc",
+      "target": "cap:verification",
+      "relation": "requires_before"
+    },
+    {
+      "id": "PRODUCTION-BRANCH-BINDING",
+      "kind": "equals",
+      "file": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "pointer": "/production_sha",
+      "value": "02b90f199f2ae8733e3759b3d60cda85800ee486"
+    },
+    {
+      "id": "STAGING-BRANCH-BINDING",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/source_revision",
+      "value": "d6cc3c8ba04041da1844d7d0be396f4fad907be7"
+    },
+    {
+      "id": "NO-MATCHING-BASIC",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/mvp_separation/matching_and_enrichment_activation_excluded",
+      "value": true
+    },
+    {
+      "id": "NO-EXPORT-BASIC",
+      "kind": "equals",
+      "file": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "pointer": "/mvp_separation/no_export_or_shopfloor_implementation",
+      "value": true
+    },
+    {
+      "id": "ADMIN-LIVE-UNKNOWN",
+      "kind": "equals",
+      "file": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "pointer": "/implementation_status/admin_tile_live_access",
+      "value": "UNKNOWN"
+    },
+    {
+      "id": "IMPORTS-LIVE-UNKNOWN",
+      "kind": "equals",
+      "file": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "pointer": "/implementation_status/production_transactions_erp_crm_all_imported",
+      "value": "UNKNOWN"
+    },
+    {
+      "id": "NO-CANONICAL-TRANSFER",
+      "kind": "equals",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "pointer": "/authority_boundary",
+      "value": "EXTERNAL_TO_L9_STRATEGIC_PLAN; NO_PLAN_PRIMITIVES_OR_STRATEGIC_RELATIONS_ADMITTED_HERE"
+    },
+    {
+      "id": "UNIQUE-QA-GATES",
+      "kind": "unique_field",
+      "file": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "pointer": "/gates",
+      "field": "id"
+    },
+    {
+      "id": "DOC-VERIFICATION-PREVIOUS-EDGE",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:assoc",
+      "target": "cap:verification",
+      "relation": "requires_before"
+    },
+    {
+      "id": "LOAD-ADMIN-PROJECTION",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:load-many",
+      "target": "cap:admin-dashboard",
+      "relation": "projects_operational_state_to"
+    },
+    {
+      "id": "UNIQUE-POST-IMPORT-CASES",
+      "kind": "unique_field",
+      "file": "34_POST_IMPORT_ACCEPTANCE_CASES.json",
+      "pointer": "/cases",
+      "field": "id"
+    },
+    {
+      "id": "BLOB-TO-ORIGINAL-OWNER",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:worksheet-originals",
+      "target": "cap:original",
+      "relation": "creates_native_original_through"
+    },
+    {
+      "id": "AI-REVIEW-QUEUE-ROUTE",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:doc-ai-pilot",
+      "target": "cap:manager-doc-queue",
+      "relation": "routes_candidate_exceptions_to"
+    },
+    {
+      "id": "REOPEN-AFTER-SOURCE-LOCK",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:cutoff-source",
+      "target": "cap:historical-reopen",
+      "relation": "provides_operational_exception_only_to"
+    },
+    {
+      "id": "SOURCE-REPORTS-TO-ARAP",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:cutoff-source",
+      "target": "cap:opening-arap",
+      "relation": "provides_signed_residuals_to"
+    },
+    {
+      "id": "POSTGRES-FILESTORE-DR",
+      "kind": "edge_exists",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:postgres-filestore",
+      "target": "cap:dr-restore",
+      "relation": "requires_consistent_recovery_of"
+    },
+    {
+      "id": "NO-REOPEN-POSTS-ARAP",
+      "kind": "edge_absent",
+      "file": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "edges_pointer": "/edges",
+      "source": "cap:historical-reopen",
+      "target": "cap:opening-arap",
+      "relation": "auto_posts"
+    }
+  ],
+  "historical_scope_2026_10_28": {
+    "authority_ref": "User direction 2026-10-28: fix Docs writers, guessed links, singular load; resolve seed, Gate, ACL, keep PlasticOS and no Export/ops execution. Assertions validate this declared policy only, not universal truth.",
+    "allowed_changed_paths": [
+      "00_READ_FIRST.md",
+      "02_STRATEGIC_GRAPH_CANDIDATES.json",
+      "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "MANIFEST.json",
+      "VALIDATION.json"
+    ],
+    "must_remain_unchanged": [
+      "01_INVARIANTS_v3.2.0_DRAFT_r1.md",
+      "04_CONSTITUTIONAL_PRESERVATION_AND_ADMISSION.md",
+      "05_BRS_OWNER_RECONCILIATION.md",
+      "06_DOCUMENTS_AI_CAPABILITY_CONTRACT.md",
+      "07_SOURCE_GAPS_AND_PROOFS.md",
+      "08_RECOMMENDED_NEXT_PLANNING_ACTION.md",
+      "09_DEFERRED_EXPORT_BRS_INDEX.json",
+      "10_PLACEMENT_AND_CONFLICT_DECISIONS.md"
+    ]
+  }
+}

@@ -40,8 +40,8 @@ _ROLE = {
     "D": ("carrier", 0, 0),
     "X": ("buyer", 0, 1),
     "C": ("buyer", 0, 1),
-    "A": ("broker", 1, 1),
-    "P": ("broker", 1, 1),
+    "A": ("", 1, 1),
+    "P": ("", 1, 1),
 }
 _UOM_XMLID = {"L": "uom.product_uom_lb", "S": "uom.product_uom_lb", "E": "uom.product_uom_unit"}
 _INCOTERM = {"fob": "FOB", "fob supplier dock": "FOB", "pickup": "FOB", "fas": "FAS"}

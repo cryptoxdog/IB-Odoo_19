@@ -85,8 +85,8 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "Role": {
             "status": VERIFIED,
             "target_model": "res.partner",
-            "target_field": "company_role, supplier_rank, customer_rank",
-            "transformation": "COMPANY_ROLE_BY_ERP_ROLE + trade_ranks (behaviour-proven census)",
+            "target_field": "company_role_tag_ids, company_role, supplier_rank, customer_rank",
+            "transformation": "COMPANY_ROLE_TAGS_BY_ERP_ROLE; Service only beside Buyer or Supplier; Expense alone stays Carrier",
             "required": False,
             "null_behavior": "blank -> anomaly, ranks default (0,0)",
             "identity_role": "none",
@@ -140,9 +140,9 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "account.payment.term",
             "target_field": "property_supplier_payment_term_id",
-            "transformation": "lookup by name; never created",
+            "transformation": "PAYMENT_TERM_NAME_BY_ERP, then lookup by name; never created",
             "required": False,
-            "null_behavior": "blank -> unset; no match -> anomaly",
+            "null_behavior": "blank -> unset; unmapped name with no term -> anomaly",
             "identity_role": "none",
         },
         "IndustryNm": {
@@ -425,7 +425,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             ),
             "required": True,
             "null_behavior": (
-                "N, blank or unrecognised -> unresolved inactive_contact (counted in records_rejected); an earlier "
+                "N, blank or unrecognised -> omitted (skipped, not an open exception); an earlier "
                 "run's marker is removed and its person archived when no other contact marker points at it"
             ),
             "identity_role": "none",
@@ -953,7 +953,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "account.payment.term",
             "target_field": "invoice_payment_term_id",
-            "transformation": "lookup by exact name; never created; unmatched name reported once",
+            "transformation": "PAYMENT_TERM_NAME_BY_ERP, then lookup by exact name; never created; unmatched name reported once",
             "required": False,
             "null_behavior": "blank/no match -> DueDate is the due date",
             "identity_role": "none",
