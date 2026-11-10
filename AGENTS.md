@@ -831,3 +831,9 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `.l9/pr/pr-intent.json` (`l9.pr_intent.v1`) supplies title and prose when its `head` names HEAD; `.l9/pr/` is
 > gitignored. Install-smoke: a Claude Code cloud session (`CLAUDE_CODE_REMOTE=true`) skips it by default and says so
 > on the PR; Cursor and a local terminal run it; `PR_SMOKE=1` forces it; `make pr-nosmoke reason=...` still wins.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `plasticos_screen_views` (`19.0.1.0.0`, `auto_install`) turns the installed view engines on for Contacts and Web
+> Leads. It depends on `contacts`, `mail`, `web_hierarchy`, `web_map`, and `plasticos_web_leads`. Contacts gain map
+> and hierarchy. Web Leads open on the list and gain calendar, pivot, graph, map, and activity. CRM views stay in
+> `crm_enterprise`. The module is in `config/odoo_module_order.yaml` immediately after `plasticos_web_leads`.
