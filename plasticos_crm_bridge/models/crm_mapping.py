@@ -5,10 +5,10 @@
 # Wrong # are intentionally absent: those destinations are not approved, and
 # the sync must not coerce them onto WARM, Won, or Dead.
 STAGE_MAPPING = {
-    "2a=Qualified/HOT": "plasticos_crm_bridge.stage_qualified_hot",
-    "2b=Qualified/WARM": "plasticos_crm_bridge.stage_qualified_warm",
-    "3=Qualified/Resist": "plasticos_crm_bridge.stage_resistant",
-    "New": "plasticos_crm_bridge.stage_new",
+    "2a=Qualified/HOT": "crm.stage_lead2",
+    "2b=Qualified/WARM": "crm.stage_lead2",
+    "3=Qualified/Resist": "crm.stage_lead3",
+    "New": "crm.stage_lead1",
 }
 
 UNAPPROVED_LEAD_STATUSES = (

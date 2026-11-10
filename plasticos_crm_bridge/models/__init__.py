@@ -6,4 +6,5 @@ from . import facility_profile
 from . import material_profile
 from . import match_lineage
 from . import opportunity_approval
+from . import opportunity_material
 from . import web_lead
