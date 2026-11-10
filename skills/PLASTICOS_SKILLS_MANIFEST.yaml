@@ -70,6 +70,13 @@ skills:
     status: active
     invocation: auto
     description: "Mandatory PlasticOS Odoo module version bumps and scoped module upgrades. Use whenever changing plasticos_* Python, XML, data, security, hooks, or migrations; before make update / Odoo.sh deploy; when a module did not re"
+  - name: plasticos-pr-integration
+    path: skills/plasticos-pr-integration/
+    version: "1.1.0"
+    updated: "2026-11-10"
+    status: active
+    invocation: auto
+    description: "Combine named or all open pull requests into a new disposable worktree and run full install-smoke on the pinned Odoo 19 Enterprise fixture."
   - name: plasticos-pr-review-kernel
     path: skills/plasticos-pr-review-kernel/
     version: "1.1.0"

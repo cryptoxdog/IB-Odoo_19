@@ -171,6 +171,7 @@ Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skil
 | `plasticos-odoo-version-bump` | Changing plasticos_* runtime code/XML/migrations — **mandatory** version bump + scoped `-u` only | `update` |
 | `plasticos-odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix | `logs`, `update`, `test-module` |
 | `plasticos-odoo-docker-testing` | Docker install-smoke + Odoo runtime tests before Odoo.sh | `install-smoke`, `test-odoo`, `test-module` |
+| `plasticos-pr-integration` | Combine open pull requests in a disposable worktree and run full Enterprise install-smoke | `install-smoke`, `runtime-test` |
 | `plasticos-static-audit-kernel` | Broad static audit / evidence report | `audit`, `audit-quick` |
 | `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
 | `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
@@ -859,3 +860,11 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > (`res_partner="id"`), so this module does not add a second map binding. It adds the hierarchy view and lists
 > `map` on the contacts action. `web_hierarchy`, `web_map`, and `contacts_enterprise` are known Odoo addons in
 > `tests/test_repo_dependency_integrity.py`.
+
+> **2026-11-10 pull-request integration correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Combined open-PR integration in this repository is `plasticos-pr-integration` (`skills/plasticos-pr-integration/`).
+> It merges the fetched heads onto current `Staging` in a disposable worktree and runs `make install-smoke`
+> on the pinned Enterprise fixture. It does not edit the governance `l9-pr-integration-testing` pack.
+> The two runtime-test owners recorded on 2026-11-06 are unchanged: the `make pr-check` smoke stage, and
+> `make runtime-test m=<modules>` when an integration skill is invoked. Do not run `make test-module` or
+> `make test-odoo` ad hoc.
