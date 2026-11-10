@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_admin_dashboard
 component_name: PlasticOS Admin Dashboard
-module_version: 19.0.1.1.2
+module_version: 19.0.1.1.3
 layer: 3
 installable: true
 auto_install: false
