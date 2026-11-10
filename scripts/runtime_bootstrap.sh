@@ -12,8 +12,8 @@
 #   2. ./odoo-enterprise (a directory or symlink; git-ignored)
 #   3. ../odoo-enterprise, a sibling checkout. A cloud session clones each attached
 #      repository next to this one; it is linked as ./odoo-enterprise.
-#   4. a shallow clone of ODOO_ENTERPRISE_REPO (owner/name or a git URL) at
-#      ODOO_ENTERPRISE_REF (default 19.0) into ./odoo-enterprise
+#   4. a shallow clone of ODOO_ENTERPRISE_REPO (owner/name or a git URL) into
+#      ./odoo-enterprise, at ODOO_ENTERPRISE_REF when set, else its default branch
 # There is no default repository: the Enterprise source is licensed and private.
 #
 # Fixture: scripts/test_env.sh status decides. A ready template is reused. An
@@ -30,7 +30,10 @@ cd "$ROOT"
 
 LINK="./odoo-enterprise"
 SIBLING="../odoo-enterprise"
-SERIES="${ODOO_ENTERPRISE_REF:-19.0}"
+# The Odoo series this repository runs. It is a repository fact, not a branch name:
+# the private Enterprise copy may live on main.
+SERIES="19.0"
+REF="${ODOO_ENTERPRISE_REF:-}"
 
 refuse() {
   echo "❌ runtime-bootstrap: $*" >&2
@@ -43,7 +46,8 @@ is_enterprise() { [ -f "$1/web_enterprise/__manifest__.py" ]; }
 # Odoo manifests carry either a series-qualified version (19.0.1.0) or a
 # series-relative one (1.0). A qualified version must name the expected series.
 # A relative one cannot prove the series, so the checked-out git branch is
-# compared when it is known. Otherwise Odoo itself refuses incompatible modules
+# compared when it names a series (N.0); a branch such as main proves nothing
+# and is accepted. Otherwise Odoo itself refuses incompatible modules
 # when the fixture is installed.
 check_series() {
   local dir="$1" version branch
@@ -65,10 +69,10 @@ PY
     esac
   fi
   branch="$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
-  if [ -n "$branch" ] && [ "$branch" != "$SERIES" ]; then
+  if [[ "$branch" =~ ^[0-9]+\.[0-9]+$ ]] && [ "$branch" != "$SERIES" ]; then
     refuse "$dir has branch $branch checked out; this repository needs Enterprise $SERIES"
   fi
-  if [ -z "$branch" ]; then
+  if ! [[ "$branch" =~ ^[0-9]+\.[0-9]+$ ]]; then
     note "Enterprise series is not provable from $dir; the fixture install refuses incompatible modules"
   fi
 }
@@ -101,15 +105,17 @@ resolve_enterprise() {
       */*) url="https://github.com/${url%.git}.git" ;;
       *) refuse "ODOO_ENTERPRISE_REPO must be owner/name or a git URL (got '$ODOO_ENTERPRISE_REPO')" ;;
     esac
-    note "cloning Enterprise $SERIES from $url into $LINK"
-    git clone --quiet --depth 1 --branch "$SERIES" "$url" "$LINK" ||
-      refuse "could not clone $url at $SERIES. A cloud session reaches a private repository only when it is attached to the session"
-    is_enterprise "$LINK" || refuse "$url at $SERIES has no web_enterprise/__manifest__.py"
+    local where="${REF:-its default branch}"
+    note "cloning Enterprise from $url ($where) into $LINK"
+    git clone --quiet --depth 1 ${REF:+--branch "$REF"} "$url" "$LINK" ||
+      refuse "could not clone $url ($where). A cloud session reaches a private repository only when it is attached to the session"
+    is_enterprise "$LINK" || refuse "$url ($where) has no web_enterprise/__manifest__.py"
+    check_series "$LINK"
     return 0
   fi
   refuse "no Odoo Enterprise checkout. Use one of:
    - attach your private Enterprise repository to this session as a sibling named odoo-enterprise
-   - set ODOO_ENTERPRISE_REPO=<owner>/<private-repo> (branch $SERIES)
+   - set ODOO_ENTERPRISE_REPO=<owner>/<private-repo> (Enterprise $SERIES; ODOO_ENTERPRISE_REF picks a branch)
    - set ODOO_ENTERPRISE_PATH=<directory>
    One-time setup: docs/LOCAL_DEV_SETUP.md, section 'Cloud agent sessions'."
 }

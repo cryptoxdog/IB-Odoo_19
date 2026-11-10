@@ -157,15 +157,19 @@ A Claude Code cloud session has Docker but no Odoo Enterprise source, so the ins
 
 **One-time operator setup.** The Enterprise source is licensed. Keep every copy private.
 
-1. On GitHub, create a **private**, empty repository for it. Naming it `odoo-enterprise` lets sessions find it with no variable.
-2. Push your existing Enterprise 19.0 checkout (the `odoo-enterprise` folder this repo links to) to that repository as branch `19.0`:
+1. On GitHub, create a **private**, empty repository for it (for example `Quantum-L9/odoo-enterprise`). Naming it `odoo-enterprise` lets sessions find it with no variable.
+2. Push the Enterprise 19.0 source (the `odoo-enterprise` folder this repo links to, or an unzipped Enterprise 19.0 archive) to that repository's `main` branch. The folder must have `web_enterprise/__manifest__.py` at its top level:
 
    ```bash
-   cd "<your odoo-enterprise checkout>"
-   git status                      # if this is not a git repository: git init -b 19.0 && git add -A && git commit -m "Odoo Enterprise 19.0"
-   git remote add private https://github.com/<owner>/odoo-enterprise.git
-   git push private HEAD:19.0
+   cd "<the unzipped odoo-enterprise folder>"
+   ls web_enterprise/__manifest__.py   # must exist here, not one level down
+   git init -b main                    # skip if it is already a git repository
+   git add -A && git commit -m "Odoo Enterprise 19.0"
+   git remote add origin https://github.com/<owner>/odoo-enterprise.git
+   git push -u origin HEAD:main
    ```
+
+   GitHub refuses a single file over 100 MB; Enterprise source has none, but a stray archive or `.pyc` cache in the folder can. Remove those before `git add`.
 
 3. Make the repository reachable from cloud sessions, either way:
    - add it to the cloud environment's repositories, so each session clones it next to this repository as `../odoo-enterprise`; or
@@ -177,7 +181,7 @@ A Claude Code cloud session has Docker but no Odoo Enterprise source, so the ins
 |----------|---------|
 | `ODOO_ENTERPRISE_PATH` | An explicit Enterprise checkout directory; checked first |
 | `ODOO_ENTERPRISE_REPO` | `owner/name` or git URL to clone when no checkout is found |
-| `ODOO_ENTERPRISE_REF` | Branch to clone and expect; default `19.0` |
+| `ODOO_ENTERPRISE_REF` | Branch to clone; default: the repository's default branch (for example `main`). The Odoo series is always checked as 19.0 |
 
 `make runtime-bootstrap` refuses an `./odoo-enterprise` path that is not an Enterprise checkout, refuses another Odoo series, and never replaces a fixture that exists but is not admitted for the current inputs. That recovery stays `make test-env-rebuild`, an operator decision.
 

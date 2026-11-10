@@ -170,12 +170,41 @@ def test_wrong_branch_is_refused_for_a_series_relative_manifest(repo: Path) -> N
     assert "branch 18.0" in result.stderr
 
 
-def test_repo_variable_clones_the_series_branch(repo: Path, tmp_path: Path) -> None:
-    source = _enterprise(tmp_path / "source")
+def test_repo_variable_clones_the_default_branch(repo: Path, tmp_path: Path) -> None:
+    source = _enterprise(tmp_path / "source", branch="main")
     result = _run(repo, ODOO_ENTERPRISE_REPO=f"file://{source}", STUB_STATE="absent")
     assert result.returncode == 0, result.stderr
     assert (repo / "odoo-enterprise" / "web_enterprise" / "__manifest__.py").is_file()
     assert _calls(repo) == ["status", "rebuild"]
+
+
+def test_ref_variable_selects_the_clone_branch(repo: Path, tmp_path: Path) -> None:
+    source = _enterprise(tmp_path / "source", branch="main")
+    _git("branch", "19.0", cwd=source)
+    result = _run(repo, ODOO_ENTERPRISE_REPO=f"file://{source}", ODOO_ENTERPRISE_REF="19.0", STUB_STATE="ready")
+    assert result.returncode == 0, result.stderr
+    head = subprocess.run(
+        ["git", "-C", str(repo / "odoo-enterprise"), "symbolic-ref", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert head.stdout.strip() == "19.0"
+
+
+def test_cloned_wrong_series_branch_is_refused(repo: Path, tmp_path: Path) -> None:
+    source = _enterprise(tmp_path / "source", branch="18.0")
+    result = _run(repo, ODOO_ENTERPRISE_REPO=f"file://{source}")
+    assert result.returncode == 2
+    assert "branch 18.0" in result.stderr
+    assert _calls(repo) == []
+
+
+def test_main_branch_sibling_is_accepted(repo: Path) -> None:
+    _enterprise(repo.parent / "odoo-enterprise", branch="main")
+    result = _run(repo, STUB_STATE="ready")
+    assert result.returncode == 0, result.stderr
+    assert "not provable" in result.stdout
 
 
 def test_malformed_repo_variable_is_refused(repo: Path) -> None:

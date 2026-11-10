@@ -823,7 +823,7 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `make runtime-bootstrap` (`scripts/runtime_bootstrap.sh`) prepares a machine with Docker, a cloud agent
 > session included, for the Odoo Enterprise runtime gate. It binds an Enterprise checkout (`ODOO_ENTERPRISE_PATH`,
 > `./odoo-enterprise`, a sibling `../odoo-enterprise`, or a shallow clone of `ODOO_ENTERPRISE_REPO` at
-> `ODOO_ENTERPRISE_REF`, default `19.0`) and admits the pinned fixture through `scripts/test_env.sh rebuild` only
+> `ODOO_ENTERPRISE_REF`, default its default branch such as `main`; the Odoo series is checked as 19.0) and admits the pinned fixture through `scripts/test_env.sh rebuild` only
 > when that database is absent. A fixture that exists but is not admitted stays an operator decision
 > (`make test-env-rebuild`). It runs no Odoo tests, and the two runtime-test owners are unchanged. Once it
 > succeeds, `make pr` in that session runs the install-smoke and the runtime tests. Operator one-time setup (a

@@ -20,7 +20,7 @@ This cloud session has a Docker daemon (29.9.2) and reaches Docker Hub. The only
 
 | Todo | Result | Commit |
 |---|---|---|
-| T1 `scripts/runtime_bootstrap.sh` | Resolves Enterprise from `ODOO_ENTERPRISE_PATH`, `./odoo-enterprise`, a sibling `../odoo-enterprise` (linked), or a shallow clone of `ODOO_ENTERPRISE_REPO` at `ODOO_ENTERPRISE_REF` (default `19.0`). Refuses a foreign path, a wrong series, or an unreachable Docker daemon. Reads `scripts/test_env.sh status`: ready is reused, absent runs `scripts/test_env.sh rebuild`, not admitted stops and names `make test-env-rebuild`. Never sets `TEST_ENV_ALLOW_NEW_TEMPLATE`. Runs no tests. | `d9c61511` |
+| T1 `scripts/runtime_bootstrap.sh` | Resolves Enterprise from `ODOO_ENTERPRISE_PATH`, `./odoo-enterprise`, a sibling `../odoo-enterprise` (linked), or a shallow clone of `ODOO_ENTERPRISE_REPO` at `ODOO_ENTERPRISE_REF` (default: the repository's default branch, such as `main`; the Odoo series is checked as 19.0 separately). Refuses a foreign path, a wrong series, or an unreachable Docker daemon. Reads `scripts/test_env.sh status`: ready is reused, absent runs `scripts/test_env.sh rebuild`, not admitted stops and names `make test-env-rebuild`. Never sets `TEST_ENV_ALLOW_NEW_TEMPLATE`. Runs no tests. | `d9c61511` |
 | T2 `Makefile`, `docs/LOCAL_DEV_SETUP.md` | `make runtime-bootstrap` (additive). "Cloud agent sessions" section with the operator's one-time private-repository push. | `af202b19` |
 | T3 `tests/test_runtime_bootstrap.py` | 14 tests running the real script in a throwaway repository with stub `docker` and `test_env.sh`. | `d9c61511` |
 | T4 `AGENTS.md`, `.pre-commit-config.yaml` | Line 788 `=======` replaced by a blank line. `check-merge-conflict` gains `--assume-in-merge`. | `88743813` |
