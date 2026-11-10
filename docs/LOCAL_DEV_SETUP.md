@@ -175,7 +175,7 @@ A Claude Code cloud session has Docker but no Odoo Enterprise source, so the ins
    - add it to the cloud environment's repositories, so each session clones it next to this repository as `../odoo-enterprise`; or
    - set the environment variable `ODOO_ENTERPRISE_REPO=<owner>/odoo-enterprise`. The session must still be allowed to read that repository.
 
-**In each session:** run `make runtime-bootstrap` once. The first run builds the fixture database, which takes several minutes. After that, `make pr` runs the install-smoke and the runtime tests in that session the same way it does on your machine.
+**In each session:** run `make runtime-bootstrap` once. The first run builds the fixture database, which takes several minutes. After that, publish with `PR_SMOKE=1 make pr`: a cloud session skips the install-smoke by default, and `PR_SMOKE=1` makes it run the install-smoke and the runtime tests there the same way they run on your machine.
 
 | Variable | Meaning |
 |----------|---------|

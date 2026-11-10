@@ -839,9 +839,9 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `ODOO_ENTERPRISE_REF`, default its default branch such as `main`; the Odoo series is checked as 19.0) and admits the pinned fixture through `scripts/test_env.sh rebuild` only
 > when that database is absent. A fixture that exists but is not admitted stays an operator decision
 > (`make test-env-rebuild`). It runs no Odoo tests, and the two runtime-test owners are unchanged. Once it
-> succeeds, `make pr` in that session runs the install-smoke and the runtime tests. Operator one-time setup (a
-> private copy of the Enterprise 19.0 source): `docs/LOCAL_DEV_SETUP.md`, "Cloud agent sessions". A session with
-> no Enterprise checkout still publishes with `make pr-nosmoke reason=...`.
+> succeeds, `PR_SMOKE=1 make pr` in that session runs the install-smoke and the runtime tests (a cloud session
+> skips them by default, per the correction above). Operator one-time setup (a private copy of the Enterprise 19.0
+> source): `docs/LOCAL_DEV_SETUP.md`, "Cloud agent sessions".
 > `.pre-commit-config.yaml` now declares 40 hooks; the pre-push set is unchanged. The commit-stage hook
 > `readme-module-version` (`scripts/sync_readme_module_version.py`) rewrites a module README's `module_version`
 > front matter when that module's `__manifest__.py` version is staged: stage the README it names and commit

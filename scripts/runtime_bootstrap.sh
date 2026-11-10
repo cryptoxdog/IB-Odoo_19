@@ -150,4 +150,5 @@ require_docker
 resolve_enterprise
 admit_fixture
 echo "✅ Odoo Enterprise runtime is ready on this machine."
-echo "   The make pr-check smoke stage (make pr) now runs install-smoke and the Odoo runtime tests here."
+echo "   Publish with PR_SMOKE=1 make pr to run the install-smoke and the Odoo runtime tests here;"
+echo "   a cloud session skips them by default."

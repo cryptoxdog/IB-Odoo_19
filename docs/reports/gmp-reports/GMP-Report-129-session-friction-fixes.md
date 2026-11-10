@@ -60,7 +60,7 @@ This cloud session has a Docker daemon (29.9.2) and reaches Docker Hub. The only
 
 1. Create a private GitHub repository for the Enterprise source (name `odoo-enterprise` for automatic discovery) and push the existing 19.0 checkout as branch `19.0` (`docs/LOCAL_DEV_SETUP.md`, "Cloud agent sessions").
 2. Make it reachable from cloud sessions: add it to the cloud environment's repositories, or set `ODOO_ENTERPRISE_REPO`.
-3. In the next cloud session, run `make runtime-bootstrap` and record the first fixture admission.
+3. In the next cloud session, run `make runtime-bootstrap` and record the first fixture admission. Then publish with `PR_SMOKE=1 make pr`: since Staging #444, a cloud session skips the install-smoke unless `PR_SMOKE=1` is set.
 
 ## Rollback
 
