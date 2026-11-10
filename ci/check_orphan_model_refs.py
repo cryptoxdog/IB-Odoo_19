@@ -60,6 +60,7 @@ def extract_model_names_from_python(root_dir: Path) -> set[str]:
         "ir.ui.view",
         "ir.ui.menu",
         "ir.actions.act_window",
+        "ir.actions.act_window.view",
         "ir.actions.server",
         "ir.actions.report",
         "ir.actions.act_url",

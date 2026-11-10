@@ -48,6 +48,7 @@ KNOWN_ODOO_ADDONS = frozenset(
         "base_setup",
         "calendar",
         "contacts",
+        "contacts_enterprise",
         "crm",
         "documents",
         "documents_account",
@@ -65,6 +66,8 @@ KNOWN_ODOO_ADDONS = frozenset(
         "stock",
         "utm",
         "web",
+        "web_hierarchy",
+        "web_map",
         "website",
     }
 )
