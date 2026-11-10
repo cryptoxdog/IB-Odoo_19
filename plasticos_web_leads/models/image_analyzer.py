@@ -49,6 +49,7 @@ Rules:
 - Do not treat pallet, container, floor, or background colour as material colour.
 - Mixed is a valid commercial material colour.
 - Do not invent exact lot weight from an image.
+- The picture is a sample of the material; quantity_visible and quantity_notes describe the frame, not the seller's stock, and the model must not invent a lot weight.
 """
 
 

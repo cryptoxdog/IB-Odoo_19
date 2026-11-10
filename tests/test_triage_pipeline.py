@@ -287,6 +287,104 @@ class TestClassifyLead:
         assert result.decision == "hot"
         assert "reject_material" not in result.cold_gates_triggered
 
+    def test_vision_evidence_is_copied_in_order_with_every_key(self):
+        first = {
+            "quantity_notes": "one gaylord in the frame",
+            "containment": "gaylord",
+            "observed_polymer_hint": "PP",
+            "confidence": 0.91,
+            "provider": {"provider": "openai", "role": "vision_analysis"},
+        }
+        second = {
+            "commercial_color": "natural",
+            "support_unit": "pallet",
+            "cleanliness": "Clean",
+            "material_form_observed": "Pellet",
+            "call_metadata": {"id": "call-2"},
+        }
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            vision_evidence=[first, second],
+        )
+        assert result.vision_evidence == [first, second]
+        first["quantity_notes"] = "changed after the call"
+        second["call_metadata"]["id"] = "changed"
+        assert result.vision_evidence[0]["quantity_notes"] == "one gaylord in the frame"
+        assert result.vision_evidence[1]["call_metadata"]["id"] == "call-2"
+
+    def test_vision_error_wrapper_is_not_evidence(self):
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            vision_evidence=[
+                {"error": "provider timeout", "provider": "openai"},
+                {"observed_form": "Pellet", "confidence": 0.4},
+            ],
+        )
+        assert result.vision_evidence == [{"observed_form": "Pellet", "confidence": 0.4}]
+
+    def test_stated_tons_stay_when_the_photo_shows_one_gaylord(self):
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=200_000.0,
+            weight_source="explicit_tons",
+            is_commercial_hint=True,
+            vision_evidence=[
+                {
+                    "quantity_visible": False,
+                    "quantity_notes": "one gaylord in a hand",
+                    "estimated_lbs": 1_000,
+                    "containment": "gaylord",
+                    "cleanliness": "Clean",
+                }
+            ],
+        )
+        assert result.estimated_lbs == 200_000.0
+        assert result.weight_source == "explicit_tons"
+        assert result.decision == "hot"
+        assert result.vision_evidence[0]["quantity_visible"] is False
+        assert result.vision_evidence[0]["quantity_notes"] == "one gaylord in a hand"
+        assert not any("quantity" in gate or "gaylord" in gate for gate in result.cold_gates_triggered)
+
+    def test_agreed_vision_polymer_is_used_only_when_text_polymer_is_empty(self):
+        agreed = classify_lead(
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            source_type="post_industrial",
+            weight_source="explicit_lbs",
+            vision_evidence=[{"observed_polymer_hint": "PP", "confidence": 0.8}],
+        )
+        assert "polymer_confirmed:pp" in agreed.hot_qualifiers_met
+
+        conflict = classify_lead(
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            source_type="post_industrial",
+            weight_source="explicit_lbs",
+            vision_evidence=[
+                {"observed_polymer_hint": "PP"},
+                {"observed_polymer_hint": "HDPE"},
+            ],
+        )
+        assert not any(item.startswith("polymer_confirmed:") for item in conflict.hot_qualifiers_met)
+        assert [item["observed_polymer_hint"] for item in conflict.vision_evidence] == ["PP", "HDPE"]
+
+        text_wins = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            vision_evidence=[{"observed_polymer_hint": "PP", "confidence": 0.99}],
+        )
+        assert "polymer_confirmed:hdpe" in text_wins.hot_qualifiers_met
+        assert "polymer_confirmed:pp" not in text_wins.hot_qualifiers_met
+        assert text_wins.vision_evidence[0]["observed_polymer_hint"] == "PP"
+
     def test_cold_rejected_material(self):
         result = classify_lead(
             material_description="aluminum cans",
