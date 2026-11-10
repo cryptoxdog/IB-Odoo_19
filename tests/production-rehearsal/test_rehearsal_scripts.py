@@ -1063,6 +1063,13 @@ elif command.startswith("mkdir -p "):
     here(re.search(r"mkdir -p '([^']+)'", command).group(1)).mkdir(parents=True, exist_ok=True)
 elif command.startswith("rm -f "):
     here(re.search(r"rm -f '([^']+)'", command).group(1)).unlink(missing_ok=True)
+elif command.startswith("cd '") and "rmdir" in command:
+    # Success cleanup: the named files the recipe created, then rmdir (fails if anything else is left).
+    work = here(re.search(r"^cd '([^']+)'", command).group(1))
+    names = re.search(r"rm -f ([^&]+)&&", command).group(1).split()
+    for name in names:
+        (work / name).unlink(missing_ok=True)
+    work.rmdir()
 elif "odoo-bin shell" in command:
     work = re.search(r"\. '([^']+)/env'", command).group(1)
     record["work"] = work
@@ -1073,6 +1080,10 @@ elif "odoo-bin shell" in command:
     ).stdout
     env = dict(item.split("=", 1) for item in dump.split("\0") if "=" in item)
     record["env"] = {k: v for k, v in env.items() if k not in {"PWD", "SHLVL", "_"}}
+    # What the driver could open in the work dir when it started (the recipe clears it after a success).
+    record["uploaded"] = {
+        f.name: f.read_text(encoding="utf-8") for f in here(work).iterdir() if f.is_file() and f.name != "env"
+    }
     if "button_immediate_install" not in record["stdin"]:
         here(env["VANILLASOFT_REPORT_PATH"]).write_text('{"stub": "summary"}\n', encoding="utf-8")
         if env.get("VANILLASOFT_HISTORY_CHECKPOINT"):
@@ -1170,6 +1181,8 @@ class MakeProbe:
         if not docker:
             base["STUB_DOCKER_INFO_RC"] = "1"
         base.update(env or {})
+        for key in [k for k, v in base.items() if v is None]:
+            del base[key]  # env={"NAME": None} runs the recipe with NAME unset
         argv = ["make", "-s", "--no-print-directory", "-C", str(self.work), "-f", str(MAKEFILE), target]
         argv += [*args, "ODOO_DB_NAME=probe_db", f"L9_ODOO_VENV={self.venv}"]
         return subprocess.run(  # noqa: S603
@@ -1229,6 +1242,12 @@ def _vs_shell(mk) -> dict:
     return call
 
 
+def uploaded(call: dict, remote_path: str) -> str:
+    """The content of a file in the remote work dir when the driver started."""
+    assert remote_path.startswith(call["work"] + "/"), remote_path
+    return call["uploaded"][remote_path.rsplit("/", 1)[1]]
+
+
 def assert_production_only(mk, result) -> None:
     """import-vanillasoft reached Odoo.sh over SSH and started no local runtime."""
     assert f"database: {PROD_DB}" in result.stdout
@@ -1255,7 +1274,7 @@ def test_make_import_vanillasoft_history_mode_copies_every_input_to_the_producti
     call = _vs_shell(mk)
     work, env = call["work"], call["env"]
     assert env["VANILLASOFT_HISTORY_CENSUS"] == f"{work}/census.csv"
-    assert mk.remote_file(env["VANILLASOFT_HISTORY_CENSUS"]).read_text(encoding="utf-8") == CENSUS_TEXT
+    assert uploaded(call, env["VANILLASOFT_HISTORY_CENSUS"]) == CENSUS_TEXT
     assert env["VANILLASOFT_HISTORY_CENSUS_SHA256"] == SHA64
     assert env["VANILLASOFT_HISTORY_CHECKPOINT"] == f"{work}/ledger.jsonl"
     assert env["VANILLASOFT_HISTORY_MAX_IDS"] == "100"
@@ -1275,7 +1294,7 @@ def test_make_import_vanillasoft_history_copies_inputs_when_the_checkout_path_co
     result = mk.run("import-vanillasoft", *HISTORY_ARGS)
     assert result.returncode == 0, result.stderr
     call = _vs_shell(mk)
-    assert mk.remote_file(call["env"]["VANILLASOFT_HISTORY_CENSUS"]).read_text(encoding="utf-8") == CENSUS_TEXT
+    assert uploaded(call, call["env"]["VANILLASOFT_HISTORY_CENSUS"]) == CENSUS_TEXT
     ledger = mk.work / ".l9" / "runtime" / "ledger" / "history.jsonl"
     assert ledger.read_text(encoding="utf-8") == '{"stub": "ledger"}\n'
 
@@ -1316,7 +1335,7 @@ def test_make_import_vanillasoft_repository_cohort_installs_crm_sync_then_runs_t
     assert install["db"] == PROD_DB
     env = run["env"]
     assert env["VANILLASOFT_CONTACT_EXPORT"] == f"{run['work']}/export.csv"
-    assert mk.remote_file(env["VANILLASOFT_CONTACT_EXPORT"]).read_text(encoding="utf-8") == "ContactID\n1\n"
+    assert uploaded(run, env["VANILLASOFT_CONTACT_EXPORT"]) == "ContactID\n1\n"
     assert env["VANILLASOFT_PRODUCTION_CONFIRM"] == "1"
     assert env["VANILLASOFT_HISTORY_CENSUS"] == "" and env["VANILLASOFT_CALL_FLOOR"] == ""
     assert env["VANILLASOFT_HISTORY_CHECKPOINT"] == f"{run['work']}/ledger.jsonl"
@@ -1330,6 +1349,23 @@ def test_make_import_vanillasoft_fails_when_the_driver_fails_and_still_copies_th
     assert "VanillaSoft import exit 3" in result.stderr
     ledger = mk.work / ".l9" / "runtime" / "ledger" / "history.jsonl"
     assert ledger.read_text(encoding="utf-8") == '{"stub": "ledger"}\n'
+    # A failed run keeps the production work dir for diagnosis (the env file is still removed).
+    work = mk.remote_file(_vs_shell(mk)["work"])
+    assert work.is_dir() and (work / "census.csv").is_file()
+    assert not (work / "env").exists()
+
+
+def test_make_import_vanillasoft_clears_the_production_work_dir_after_success(mk):
+    result = mk.run("import-vanillasoft", *HISTORY_ARGS)
+    assert result.returncode == 0, result.stderr
+    assert not mk.remote_file(_vs_shell(mk)["work"]).exists(), "customer data must not stay on the production host"
+
+
+def test_make_import_vanillasoft_runs_without_an_api_key_in_the_environment(mk):
+    # The key may already be stored in ir.config_parameter; an unset variable must not abort `set -u`.
+    result = mk.run("import-vanillasoft", *HISTORY_ARGS, env={"VANILLASOFT_API_KEY": None})
+    assert result.returncode == 0, result.stderr
+    assert _vs_shell(mk)["env"]["VANILLASOFT_API_KEY"] == ""
 
 
 @pytest.mark.parametrize(
@@ -1338,6 +1374,7 @@ def test_make_import_vanillasoft_fails_when_the_driver_fails_and_still_copies_th
         ({"ODOO_SH_PRODUCTION_SSH": ""}, "ODOO_SH_PRODUCTION_SSH is unset and .env.local is not readable"),
         ({"ODOO_SH_PRODUCTION_SSH": "probe.odoo.invalid"}, "ODOO_SH_PRODUCTION_SSH must be user@host"),
         ({"ODOO_SH_PRODUCTION_SSH": "ssh 12345@probe.odoo.invalid"}, "with no ssh prefix"),
+        ({"ODOO_SH_PRODUCTION_SSH": "-oProxyCommand=sh@probe.odoo.invalid"}, "must not start with '-'"),
     ],
 )
 def test_make_import_vanillasoft_refuses_an_unusable_production_ssh_target(mk, env, needle):
@@ -1454,7 +1491,7 @@ def test_make_import_vanillasoft_copies_a_file_outside_the_checkout_to_the_produ
     assert "must be inside this checkout" not in result.stderr
     call = _vs_shell(mk)
     assert call["env"][var] == f"{call['work']}/{remote_name}"
-    assert mk.remote_file(call["env"][var]).read_text(encoding="utf-8").startswith(CENSUS_TEXT)
+    assert uploaded(call, call["env"][var]).startswith(CENSUS_TEXT)
     if var == "VANILLASOFT_HISTORY_CHECKPOINT":
         # An existing ledger goes up, the driver appends, and the result comes back to the same path.
         assert (outside / "f").read_text(encoding="utf-8") == CENSUS_TEXT + '{"stub": "ledger"}\n'

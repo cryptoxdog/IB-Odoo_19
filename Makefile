@@ -1232,6 +1232,7 @@ import-vanillasoft:
 	esac; \
 	case "$$ssh_target" in \
 		"ssh "*|*[[:space:]]*) echo "❌ import-vanillasoft refused: ODOO_SH_PRODUCTION_SSH must be user@host with no ssh prefix" >&2; exit 2 ;; \
+		-*) echo "❌ import-vanillasoft refused: ODOO_SH_PRODUCTION_SSH must not start with '-' (ssh would read it as an option)" >&2; exit 2 ;; \
 	esac; \
 	bid="$${ssh_target%%@*}"; \
 	db="cryptoxdog-ib-odoo-19-production-$$bid"; \
@@ -1265,7 +1266,7 @@ import-vanillasoft:
 	chmod 600 "$$envfile"; \
 	{ \
 		printf 'ODOO_STAGE=%q\n' production; \
-		printf 'VANILLASOFT_API_KEY=%q\n' "$$VANILLASOFT_API_KEY"; \
+		printf 'VANILLASOFT_API_KEY=%q\n' "$${VANILLASOFT_API_KEY:-}"; \
 		printf 'VANILLASOFT_CONTACT_EXPORT=%q\n' "$$remote_export"; \
 		printf 'VANILLASOFT_PRODUCTION_CONFIRM=%q\n' "$$confirm"; \
 		printf 'VANILLASOFT_HISTORY_CENSUS=%q\n' "$$remote_census"; \
@@ -1303,6 +1304,8 @@ import-vanillasoft:
 	if [ -n "$$ledger_path" ]; then scp $$scp_opts "$$ssh_target:$$remote_ledger" "$$ledger_path" || copy_rc=$$?; fi; \
 	if [ "$$status" -ne 0 ]; then echo "→ VanillaSoft import exit $$status" >&2; exit "$$status"; fi; \
 	if [ "$$copy_rc" -ne 0 ]; then echo "❌ import-vanillasoft: the production run finished but the summary or ledger could not be copied back from $$work" >&2; exit "$$copy_rc"; fi; \
+	ssh $$ssh_opts "$$ssh_target" "cd '$$work' && rm -f export.csv census.csv ledger.jsonl permit.json summary.json && cd .. && rmdir '$$work'" \
+		|| echo "⚠ import-vanillasoft: could not clear $$work on the production host; remove it by hand" >&2; \
 	echo "→ VanillaSoft import exit 0"
 
 # 2026-10-17 — Enterprise Docker tests. The fingerprint-template comment above
