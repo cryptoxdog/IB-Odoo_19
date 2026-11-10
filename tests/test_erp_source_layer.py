@@ -321,7 +321,7 @@ def test_complete_transactions_carry_both_parties_and_a_date(headers):
 # ---------------------------------------------------------------------------
 def test_every_counterparty_role_in_the_payload_is_mapped(index):
     codes = {(row.get("Role") or "").strip().upper() for row in index.counterparties.values()}
-    assert codes == set(mapping.COMPANY_ROLE_BY_ERP_ROLE)
+    assert codes == set(mapping.COMPANY_ROLE_TAGS_BY_ERP_ROLE)
 
 
 def test_unknown_role_is_reported_not_defaulted():
@@ -333,8 +333,24 @@ def test_unknown_role_is_reported_not_defaulted():
 def test_role_ranks_match_observed_trade_behaviour():
     assert mapping.trade_ranks("V") == (1, 0)
     assert mapping.trade_ranks("X") == (0, 1)
-    assert mapping.trade_ranks("A") == (1, 1)  # trades on both sides
+    assert mapping.trade_ranks("A") == (1, 1)  # buyer and supplier
     assert mapping.trade_ranks("D") == (0, 0)  # carrier only
+
+
+def test_role_letters_become_buyer_supplier_and_service_tags():
+    assert mapping.company_role_tags("C") == (("buyer",), None)
+    assert mapping.company_role_tags("S") == (("supplier",), None)
+    assert mapping.company_role_tags("P") == (("buyer", "supplier"), None)
+    assert mapping.company_role_tags("X") == (("buyer", "service"), None)
+    assert mapping.company_role_tags("V") == (("supplier", "service"), None)
+    assert mapping.company_role_tags("A") == (("buyer", "supplier", "service"), None)
+    assert mapping.company_role_tags("D") == (("carrier",), None)
+    assert mapping.company_role("P") == (None, None)
+    assert mapping.company_role("A") == (None, None)
+    assert mapping.company_role("D") == ("carrier", None)
+    assert mapping.company_role("X") == ("buyer", None)
+    assert mapping.company_role("V") == ("supplier", None)
+    assert "service" not in mapping.company_role_tags("D")[0]
 
 
 def test_shared_weight_uom_is_used_when_both_sides_agree():
@@ -653,11 +669,12 @@ def test_internal_mailboxes_are_dropped_by_the_mapping_not_by_editing_the_extrac
     )
 
 
-def test_placeholder_counterparty_rows_stay_in_the_extract_and_are_reported(index):
-    """Placeholder CpIDs stay in the extract. ``(INV)`` is a destination; every other placeholder stays unresolved."""
+def test_placeholder_counterparty_rows_stay_in_the_extract_and_are_omitted(index):
+    """Placeholder CpIDs stay in the extract. ``(INV)`` is a destination; every other placeholder is omitted."""
     placeholder_rows = [row for row in index.addresses.values() if (row.get("CpID") or "").startswith(("(", "{", "["))]
     assert placeholder_rows, "the frozen Address extract must keep its placeholder rows"
     reported = {v.key for v in index.violations if v.table == "Address" and v.kind == "unresolved_counterparty"}
+    omitted = {v.key for v in index.omissions if v.table == "Address"}
     linked = {address_id for ids in index.addresses_by_cp.values() for address_id in ids}
     inventory = [
         row for row in placeholder_rows if (row.get("CpID") or "").strip() == source_index.INVENTORY_COUNTERPARTY
@@ -666,17 +683,17 @@ def test_placeholder_counterparty_rows_stay_in_the_extract_and_are_reported(inde
     for row in placeholder_rows:
         address_id = row["AddressID"]
         assert address_id not in linked
+        assert address_id not in reported
         if (row.get("CpID") or "").strip() == source_index.INVENTORY_COUNTERPARTY:
-            assert address_id not in reported
             assert address_id in index.inventory_destinations
             assert index.inventory_destination_ids(row.get("CpID"), row.get("Type"))
         else:
-            assert address_id in reported
+            assert address_id in omitted
             assert address_id not in index.inventory_destinations
 
 
 def test_inventory_destination_selector_holds_zero_or_many_and_the_summary_closes():
-    """(CustID, ShipToID) matches (CpID, Type). Other placeholders stay rejected and the equation closes."""
+    """(CustID, ShipToID) matches (CpID, Type). Other placeholders are omitted and the equation closes."""
     from erp.report import ImportReport
     from erp.summary import import_run_summary
 
@@ -710,6 +727,7 @@ def test_inventory_destination_selector_holds_zero_or_many_and_the_summary_close
         if violation.table == "Address":
             report.unresolved.append(violation.as_dict())
     source_index.account_inventory_destinations(indexed, report)
+    source_index.account_omissions(indexed, report)
     summary = import_run_summary(report.as_dict())
     accounted = (
         summary["records_created"]
@@ -718,9 +736,9 @@ def test_inventory_destination_selector_holds_zero_or_many_and_the_summary_close
         + summary["records_rejected"]
     )
     assert summary["records_seen"] == accounted
-    assert summary["records_unchanged"] == 3
-    assert summary["records_rejected"] == 1
-    assert summary["final_status"] == "partial"
+    assert summary["records_unchanged"] == 4
+    assert summary["records_rejected"] == 0
+    assert summary["final_status"] == "success"
 
 
 # ---------------------------------------------------------------------------
@@ -827,8 +845,8 @@ def test_direct_database_read_executes_the_projection_scripts_with_source_fideli
     assert set(indexed.inventory_destinations) == {"402427"}
     assert indexed.inventory_destination_ids("(INV)", "[STAGING]") == ["402427"]
     address_violations = [v for v in indexed.violations if v.table == "Address"]
-    assert [v.key for v in address_violations] == ["402428"]
-    assert [v.kind for v in address_violations] == ["unresolved_counterparty"]
+    assert address_violations == []
+    assert [v.key for v in indexed.omissions if v.table == "Address"] == ["402428"]
     assert indexed.counts()["sales_reps"] == 1
 
 

@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Partner Import",
-    "version": "19.0.2.10.36",
+    "version": "19.0.2.10.38",
     "summary": "Deterministic partner import; legacy ERP CSV import UI retired (direct SQL importer: make import-erp)",
     "author": "Igor Beylin",
     "license": "LGPL-3",
