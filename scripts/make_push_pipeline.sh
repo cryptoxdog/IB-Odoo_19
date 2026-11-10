@@ -153,6 +153,33 @@ if [[ "${OPEN_PR}" != "1" ]]; then
   refuse "open_pr=${OPEN_PR}; publication must create or verify the PR"
 fi
 
+# The PR body comes from the SSOT composer and the org template (see
+# git_open_pr.sh ssot_compose). Prove the template is readable before any remote
+# ref moves, as SSOT make pr does, so a push never ends without a PR body.
+gov_resolver="${HOME}/.cursor-governance/ops/scripts/resolve_governance_paths.sh"
+[[ -f "${gov_resolver}" ]] || refuse "the SSOT composer is not available (no governance resolver at \$HOME/.cursor-governance)"
+# shellcheck disable=SC1090
+source "${gov_resolver}"
+resolve_governance_paths || refuse "governance paths did not resolve"
+gov_py="${GOV_ROOT}/.venv/bin/python"
+[[ -x "${gov_py}" ]] || gov_py="python3"
+if ! "${gov_py}" "${GOV_ROOT}/ops/scripts/compose_pr_body.py" --workspace "${ROOT}" --check-template \
+    --org-owner "${PR_TEMPLATE_OWNER:-Quantum-L9}" --repo-name "IB-Odoo_19"; then
+  refuse "the org PR template is not readable by the SSOT composer"
+fi
+
+# Install-smoke needs Docker and the Enterprise checkout. A Claude Code cloud
+# session (CLAUDE_CODE_REMOTE=true: mobile, web, remote desktop) has neither, so
+# there the default is to skip it and say so on the PR. Cursor and a local
+# terminal run it. PR_SMOKE=1 forces it anywhere; an operator reason
+# (make pr-nosmoke reason=...) always wins.
+SMOKE_BYPASS_BY="the operator"
+operator_bypass="${PR_SMOKE_BYPASS:-}"
+if [[ -z "${operator_bypass// /}" && "${CLAUDE_CODE_REMOTE:-}" == "true" && "${PR_SMOKE:-0}" != "1" ]]; then
+  export SMOKE_BYPASS_BY="default on a Claude Code cloud session"
+  export PR_SMOKE_BYPASS="no Docker or Enterprise checkout here; install-smoke runs on make pr from Cursor (PR_SMOKE=1 forces it)"
+fi
+
 echo "→ Push branch → origin/${TARGET}..."
 bash scripts/git_push_with_pr.sh "${TARGET}"
 echo ""
@@ -166,7 +193,7 @@ fi
 
 PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
 if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
-  bypass_note="Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by the operator: ${PR_SMOKE_BYPASS}"
+  bypass_note="Local Odoo install-smoke was bypassed for $(git rev-parse HEAD) by ${SMOKE_BYPASS_BY}: ${PR_SMOKE_BYPASS}"
   if ! pr_number="$(open_pr_number)" || [[ -z "${pr_number}" ]] \
     || ! gh api --method POST "repos/${GH_REPO}/issues/${pr_number}/comments" -f body="${bypass_note}" >/dev/null; then
     echo "warning: could not post the install-smoke bypass note on the PR" >&2
