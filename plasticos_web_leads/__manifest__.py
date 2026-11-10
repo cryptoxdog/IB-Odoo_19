@@ -7,7 +7,7 @@
 # ═══════════════════════════════════════════════════════════
 {
     "name": "PlasticOS Web Leads",
-    "version": "19.0.2.8.12",
+    "version": "19.0.2.8.13",
     "summary": "AI-powered triage for provider-neutral inbound web leads",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -41,6 +41,10 @@
             "plasticos_web_leads/static/src/lead_image_strip/lead_image_strip.js",
             "plasticos_web_leads/static/src/lead_image_strip/lead_image_strip.xml",
             "plasticos_web_leads/static/src/lead_image_strip/lead_image_strip.scss",
+            "plasticos_web_leads/static/src/lead_evidence/format.js",
+            "plasticos_web_leads/static/src/lead_evidence/lead_evidence.js",
+            "plasticos_web_leads/static/src/lead_evidence/lead_evidence.xml",
+            "plasticos_web_leads/static/src/lead_evidence/lead_evidence.scss",
         ],
     },
     "installable": True,

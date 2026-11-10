@@ -1,0 +1,47 @@
+.o_lead_evidence_section,
+.o_lead_evidence_card {
+    margin-bottom: 1rem;
+}
+
+.o_lead_evidence_section h4,
+.o_lead_evidence_filename {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.o_lead_evidence_rows {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: 0.35rem 1rem;
+}
+
+.o_lead_evidence_label {
+    color: var(--body-color, #212529);
+    font-weight: 600;
+}
+
+.o_lead_evidence_card {
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border-color, #dee2e6);
+}
+
+.o_lead_evidence_photo {
+    display: block;
+    max-width: 12rem;
+    max-height: 8rem;
+    margin-bottom: 0.5rem;
+    object-fit: cover;
+}
+
+.o_lead_evidence_technical,
+.o_field_widget.o_lead_triage_log {
+    font-family: ui-monospace, sfmono-regular, menlo, consolas, monospace;
+    white-space: pre-wrap;
+}
+
+.o_lead_evidence_technical {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    overflow-x: auto;
+    background: var(--o-gray-100, #f8f9fa);
+}
