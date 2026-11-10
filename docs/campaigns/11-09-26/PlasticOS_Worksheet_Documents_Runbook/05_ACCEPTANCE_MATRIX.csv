@@ -1,0 +1,25 @@
+id,gate,priority,expected,negative_or_stop,proof_source,status
+D01,G0,P0,Exact running hosted Production build and PostgreSQL database observed,Git Production SHA substituted for hosted-build receipt,Odoo.sh authenticated UI plus read-only DB,NOT_RUN
+D02,G0,P0,Native documents and documents_account installed with bridge model active,Manifest installable misreported as installed,Enterprise registry plus model read,NOT_RUN
+D03,G0,P0,Complete scoped Production transaction census export and company identity verified,Partial ACL-visible transactions called complete,Export counts and authorized operator receipt,NOT_RUN
+D04,G1,P0,Completed native Production DB and filestore manual backup with valid source timestamp,SQL-only dump or failed backup called protected,Odoo.sh Backups and private backup hash,NOT_RUN
+D05,G1,P0,Isolated Odoo 19 Enterprise restore opens representative source attachments,Missing filestore or untested restoration,Restored DB and opened file hash witness,NOT_RUN
+D06,G2,P0,Private source journal full at declared cohort ceiling and hash pinned,Partial or mixed-epoch journal accepted,Source journal raw SHA manifest,NOT_RUN
+D07,G2,P0,Decoded eligible originals SHA256 and size verified,Filename-only/row-only integrity,Private archive hashes and reconciliation report,NOT_RUN
+D08,G2,P0,Every P/E/B source retained as archive-only and never written,Excluded type imported to match worksheet,Archive-only census and negative test,NOT_RUN
+D09,G3,P0,Exact RefID suffix preserved and transaction.name unique,Shortened worksheet or partner/PO guess,Full source crosswalk + `-INV` fixture,NOT_RUN
+D10,G3,P0,Ambiguous/missing/wrong-company targets never auto-attached,Unsafe auto-created transaction or guessed company,Private exception ledger and negative Enterprise test,NOT_RUN
+D11,G4,P0,One durable source identity per ImageID and no duplicates during concurrent imports,Same ImageID yields two originals,Native DB uniqueness and concurrency test,NOT_RUN
+D12,G4,P0,Native Enterprise document original and matching ir.attachment readable,Orphan attachment or second original table,Enterprise ORM + file download,NOT_RUN
+D13,G4,P0,Every newly imported original unverified with no manager override,Import marks AI or business evidence verified,Native verification state negative test,NOT_RUN
+D14,G4,P0,No transaction order financial stock mail commission or external side effects,Any unauthorized mutation or send,Exact before-after hosted model delta,NOT_RUN
+D15,G5,P0,Disposable Enterprise import of real source batch and readback works,Synthetic tests alone presented as Enterprise proof,Enterprise test DB receipt,NOT_RUN
+D16,G5,P0,Crash restart and same-source rerun create no extra originals,Interrupted batch duplicates or loses image,Resume checkpoint and replay test,NOT_RUN
+D17,G5,P0,Corrupt ImageID 633316 quarantined with reason rather than imported,Silent skip/mislabeled as noneligible,Private image failure ledger,NOT_RUN
+D18,G6,P0,Operator signs exact manifest target batch backup and Production action,Code PR treated as Production write permit,Named approval and source-bound execution receipt,NOT_RUN
+D19,G6,P0,Small Production batch matches exact transaction and native file readback,Wrong match or broken downloaded bytes,Production UI/ORM verified samples,NOT_RUN
+D20,G7,P0,Whole eligible source cohort partitions with reconciled counts,Import success count masks unmatched/corrupt,Read-only check_cohort JSON + hosted ledger,NOT_RUN
+D21,G7,P0,Second identical run creates zero new originals and no drift,Same source image creates second native doc,Before-after replay receipt,NOT_RUN
+D22,G7,P0,Native post-import snapshot and opened original prove filestore integrity,No post-write recovery checkpoint,Odoo.sh completed backup and sampled files,NOT_RUN
+D23,G8,P1,Every remaining unmatched and integrity exception owned and archived,Exceptions silently dropped or force-matched,Exception backlog plus archive custody,NOT_RUN
+D24,G8,P1,AI manager review queued for separate later milestone only,Import invoked AI or auto-approved evidence,Explicit scope/owner handoff,NOT_RUN
