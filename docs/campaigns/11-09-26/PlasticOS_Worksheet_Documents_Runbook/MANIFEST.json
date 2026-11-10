@@ -57,14 +57,14 @@
       "sha256": "1262b60f5010fe6042ae6e4b6075f0f6e8c7363d9a111e617201efb0288c63b7"
     },
     {
-      "bytes": 12621,
+      "bytes": 12845,
       "path": "tools/reconcile_cohort.py",
-      "sha256": "235460048fa05f9a7e5a6260d5ce21aca1430a1c705b5f40912f2da0449dceae"
+      "sha256": "239838a5821596079cf4b50afcae5310265f6063193b859ec3d84099e3db1b5e"
     },
     {
-      "bytes": 4504,
+      "bytes": 5315,
       "path": "tools/test_reconcile_cohort.py",
-      "sha256": "3b89f3d85700e4ed13fc84c3ff974e7dbe12aeca70ddf505c7a274328957b79b"
+      "sha256": "41d416a39ada5a36d210823479bb9af79644d5a8af5252206528e3f5940980b8"
     }
   ],
   "operator_production_authorization": false,

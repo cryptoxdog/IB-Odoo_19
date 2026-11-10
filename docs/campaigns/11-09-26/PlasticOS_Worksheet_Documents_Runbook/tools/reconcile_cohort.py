@@ -4,6 +4,7 @@
 Inputs are operator-exported CSVs, NOT authoritative proof of live Production state.
 No SQL, Odoo API, database writes, or private file upload is performed.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -14,7 +15,20 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-JOURNAL = ("ImageID", "DocID", "RefID", "RefType", "FileExt", "BlobSize", "RawBytes", "RawSha256", "DecodedBytes", "DecodedSha256", "Status", "ImportScope")
+JOURNAL = (
+    "ImageID",
+    "DocID",
+    "RefID",
+    "RefType",
+    "FileExt",
+    "BlobSize",
+    "RawBytes",
+    "RawSha256",
+    "DecodedBytes",
+    "DecodedSha256",
+    "Status",
+    "ImportScope",
+)
 TRANSACTIONS = ("id", "name", "company_id")
 IMPORTS = ("ImageID", "odoo_document_id", "odoo_transaction_id", "status", "decoded_sha256")
 HEX = re.compile(r"[0-9a-fA-F]{64}\Z")
@@ -53,8 +67,13 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def analyze(journal_path: Path, transaction_path: Path, import_path: Path | None = None,
-            decoded_dir: Path | None = None, raw_dir: Path | None = None) -> dict:
+def analyze(
+    journal_path: Path,
+    transaction_path: Path,
+    import_path: Path | None = None,
+    decoded_dir: Path | None = None,
+    raw_dir: Path | None = None,
+) -> dict:
     journal = read_csv(journal_path, JOURNAL)
     transactions = read_csv(transaction_path, TRANSACTIONS)
     imports = read_csv(import_path, IMPORTS) if import_path else []
@@ -177,14 +196,18 @@ def analyze(journal_path: Path, transaction_path: Path, import_path: Path | None
             counted["import_failure"] += 1
             examples["import_failure"].append(image_id + ":" + result.get("reason", ""))
             continue
-        if (result["odoo_transaction_id"] != match_by_image[image_id]
-                or result["decoded_sha256"].lower() != row["DecodedSha256"].lower()):
+        if (
+            result["odoo_transaction_id"] != match_by_image[image_id]
+            or result["decoded_sha256"].lower() != row["DecodedSha256"].lower()
+        ):
             problems.append(f"imported record or digest mismatches source/crosswalk ImageID {image_id}")
         counted["successfully_imported"] += 1
 
     if set(import_by_image) - eligible_seen:
         problems.append("import ledger includes unknown or noneligible ImageIDs")
-    if counted["eligible"] != sum(counted[x] for x in ("unique_match", "missing_transaction", "ambiguous_transaction", "integrity_failure")):
+    if counted["eligible"] != sum(
+        counted[x] for x in ("unique_match", "missing_transaction", "ambiguous_transaction", "integrity_failure")
+    ):
         problems.append("source eligibility identity did not close")
     if counted["unique_match"] != sum(counted[x] for x in ("successfully_imported", "import_failure", "not_attempted")):
         problems.append("unique match import identity did not close")
@@ -214,14 +237,31 @@ def analyze(journal_path: Path, transaction_path: Path, import_path: Path | None
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--journal", type=Path, required=True, help="Private extractor journal.csv")
-    ap.add_argument("--transactions", type=Path, required=True, help="Complete authorized Odoo transaction export; id,name,company_id")
-    ap.add_argument("--imports", type=Path, help="Importer receipt CSV (ImageID,odoo_document_id,odoo_transaction_id,status,decoded_sha256,reason)")
-    ap.add_argument("--decoded-dir", type=Path, help="Private decoded originals, files named <ImageID>.<source extension>")
+    ap.add_argument(
+        "--transactions",
+        type=Path,
+        required=True,
+        help="Complete authorized Odoo transaction export; id,name,company_id",
+    )
+    ap.add_argument(
+        "--imports",
+        type=Path,
+        help="Importer receipt CSV (ImageID,odoo_document_id,odoo_transaction_id,status,decoded_sha256,reason)",
+    )
+    ap.add_argument(
+        "--decoded-dir", type=Path, help="Private decoded originals, files named <ImageID>.<source extension>"
+    )
     ap.add_argument("--raw-dir", type=Path, help="Private raw compressed originals, files named <ImageID>.bin")
     ap.add_argument("--output", type=Path, help="Private JSON receipt destination")
-    ap.add_argument("--expect-source-count", type=int, help="Exact independently confirmed full manifest count for this epoch")
+    ap.add_argument(
+        "--expect-source-count", type=int, help="Exact independently confirmed full manifest count for this epoch"
+    )
     ap.add_argument("--expect-eligible-count", type=int, help="Exact independently confirmed W/# count for this epoch")
-    ap.add_argument("--require-complete-import", action="store_true", help="Fail if any unique match was not imported successfully; requires --imports and --decoded-dir")
+    ap.add_argument(
+        "--require-complete-import",
+        action="store_true",
+        help="Fail if any unique match was not imported successfully; requires --imports and --decoded-dir",
+    )
     args = ap.parse_args()
     try:
         result = analyze(args.journal, args.transactions, args.imports, args.decoded_dir, args.raw_dir)
