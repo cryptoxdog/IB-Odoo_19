@@ -818,3 +818,19 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > (`VANILLASOFT_CONTACT_EXPORT` + `VANILLASOFT_PRODUCTION_CONFIRM=1`) is its third mode. The
 > `plasticos-branch-promotion-rehearsal` row above is superseded for VanillaSoft: the rehearsal covers
 > `import-erp` only, and `import-vanillasoft` is not rehearsed on a clone.
+
+> **2026-11-10 session-friction correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make runtime-bootstrap` (`scripts/runtime_bootstrap.sh`) prepares a machine with Docker, a cloud agent
+> session included, for the Odoo Enterprise runtime gate. It binds an Enterprise checkout (`ODOO_ENTERPRISE_PATH`,
+> `./odoo-enterprise`, a sibling `../odoo-enterprise`, or a shallow clone of `ODOO_ENTERPRISE_REPO` at
+> `ODOO_ENTERPRISE_REF`, default `19.0`) and admits the pinned fixture through `scripts/test_env.sh rebuild` only
+> when that database is absent. A fixture that exists but is not admitted stays an operator decision
+> (`make test-env-rebuild`). It runs no Odoo tests, and the two runtime-test owners are unchanged. Once it
+> succeeds, `make pr` in that session runs the install-smoke and the runtime tests. Operator one-time setup (a
+> private copy of the Enterprise 19.0 source): `docs/LOCAL_DEV_SETUP.md`, "Cloud agent sessions". A session with
+> no Enterprise checkout still publishes with `make pr-nosmoke reason=...`.
+> `.pre-commit-config.yaml` now declares 40 hooks; the pre-push set is unchanged. The commit-stage hook
+> `readme-module-version` (`scripts/sync_readme_module_version.py`) rewrites a module README's `module_version`
+> front matter when that module's `__manifest__.py` version is staged: stage the README it names and commit
+> again. `check-merge-conflict` runs with `--assume-in-merge`, so a stray conflict marker fails outside a merge
+> too; the leftover marker in this file was removed on 2026-11-10.
