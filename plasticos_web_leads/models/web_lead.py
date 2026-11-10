@@ -462,9 +462,8 @@ class PlasticosWebLead(models.Model):
                 [
                     ("res_model", "=", self._name),
                     ("res_id", "in", self.ids),
-                    ("mimetype", "=like", "image/%"),
                 ]
-            )
+            ).filtered(lambda attachment: (attachment.mimetype or "").startswith("image/"))
         grouped: dict[int, Any] = {}
         for attachment in attachments:
             grouped.setdefault(attachment.res_id, self.env["ir.attachment"])
