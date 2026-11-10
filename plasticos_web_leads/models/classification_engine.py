@@ -16,6 +16,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 from __future__ import annotations
 
+import copy
 import re
 from dataclasses import dataclass, field
 
@@ -102,6 +103,7 @@ class ClassificationResult:
       effective_hot_min_lbs : the actual threshold applied by deterministic policy
       review_required       : whether a broker must resolve uncertainty before commercial work
       review_reasons        : broker-visible uncertainty cues
+      vision_evidence       : deep copy of every successful photo analysis, in photo order
     """
 
     decision: str
@@ -115,11 +117,36 @@ class ClassificationResult:
     effective_hot_min_lbs: float = 0.0
     review_required: bool = False
     review_reasons: list[str] = field(default_factory=list)
+    vision_evidence: list[dict] = field(default_factory=list)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Main classifier
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def _successful_vision_evidence(items: list[dict] | None) -> list[dict]:
+    """Copy each successful analysis. An error wrapper is not a model emission."""
+    copied: list[dict] = []
+    for item in items or []:
+        if not isinstance(item, dict) or "error" in item:
+            continue
+        copied.append(copy.deepcopy(item))
+    return copied
+
+
+def _agreed_polymer_hint(evidence: list[dict]) -> str:
+    """Return the polymer when every photo that names one names the same one."""
+    hints = [
+        str(item.get("observed_polymer_hint")).strip()
+        for item in evidence
+        if isinstance(item.get("observed_polymer_hint"), str) and str(item.get("observed_polymer_hint")).strip()
+    ]
+    if not hints:
+        return ""
+    if any(hint.lower() != hints[0].lower() for hint in hints):
+        return ""
+    return hints[0]
 
 
 def classify_lead(
@@ -138,6 +165,7 @@ def classify_lead(
     reject_sources: list[str] | None = None,
     economic_eligible: bool | None = None,
     economic_policy_reasons: list[str] | None = None,
+    vision_evidence: list[dict] | None = None,
 ) -> ClassificationResult:
     """
     Classify a normalised lead as "hot" or "cold".
@@ -152,6 +180,7 @@ def classify_lead(
     reasons: list[str] = []
     cold_gates: list[str] = []
     hot_quals: list[str] = []
+    vision_copy = _successful_vision_evidence(vision_evidence)
 
     # Normalise inputs
     poly_lower = (polymer or "").strip().lower()
@@ -227,6 +256,7 @@ def classify_lead(
             is_commercial_source=is_commercial_hint,
             estimated_lbs=estimated_lbs,
             effective_hot_min_lbs=hot_min_lbs,
+            vision_evidence=vision_copy,
         )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -252,6 +282,7 @@ def classify_lead(
             is_commercial_source=is_commercial_hint,
             estimated_lbs=estimated_lbs,
             effective_hot_min_lbs=effective_hot_min,
+            vision_evidence=vision_copy,
         )
 
     # Weight passes — add qualifier
@@ -266,9 +297,12 @@ def classify_lead(
     # ─────────────────────────────────────────────────────────────────────────
     # HOT QUALIFIER — confirmed polymer
     # ─────────────────────────────────────────────────────────────────────────
-    if polymer and poly_lower:
-        hot_quals.append(f"polymer_confirmed:{poly_lower}")
-        reasons.append(f"Polymer identified: {polymer}.")
+    # Seller or text polymer wins. An agreed vision hint is used only when text is empty.
+    # Quantity, containment, and cleanliness on the photos do not open a cold gate.
+    qualifier_polymer = (polymer or "").strip() or _agreed_polymer_hint(vision_copy)
+    if qualifier_polymer:
+        hot_quals.append(f"polymer_confirmed:{qualifier_polymer.lower()}")
+        reasons.append(f"Polymer identified: {qualifier_polymer}.")
 
     # ─────────────────────────────────────────────────────────────────────────
     # HOT QUALIFIER — commercial source (FIX CE-04: word-boundary regex)
@@ -311,6 +345,7 @@ def classify_lead(
             effective_hot_min_lbs=effective_hot_min,
             review_required=bool(review_reasons),
             review_reasons=review_reasons,
+            vision_evidence=vision_copy,
         )
 
     # Passed weight gate but insufficient qualifiers
@@ -328,4 +363,5 @@ def classify_lead(
         is_commercial_source=is_commercial_hint,
         estimated_lbs=estimated_lbs,
         effective_hot_min_lbs=effective_hot_min,
+        vision_evidence=vision_copy,
     )

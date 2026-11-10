@@ -47,6 +47,7 @@ from .evidence_keys import (
     KEY_REVIEW_REASONS,
     KEY_REVIEW_REQUIRED,
     KEY_STATUS,
+    KEY_VISION,
 )
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
@@ -910,6 +911,7 @@ class PlasticosWebLead(models.Model):
                 cold_max_lbs=config.cold_max_lbs or 8_000,
                 economic_eligible=economic_eligibility.eligible,
                 economic_policy_reasons=list(economic_eligibility.reasons),
+                vision_evidence=vision_results,
             )
             log_lines.append(f"[CLASS] decision={result.decision}")
 
@@ -958,6 +960,7 @@ class PlasticosWebLead(models.Model):
                     KEY_ECONOMIC_ELIGIBILITY: economic_eligibility.to_dict(),
                     KEY_REVIEW_REQUIRED: bool(review_reasons),
                     KEY_REVIEW_REASONS: review_reasons,
+                    KEY_VISION: result.vision_evidence,
                 },
                 "ai_normalized": ai_data,
                 "ai_vision_results": vision_results,
@@ -1215,6 +1218,7 @@ class PlasticosWebLead(models.Model):
             cold_max_lbs=config.cold_max_lbs or 8_000,
             economic_eligible=economic.eligible,
             economic_policy_reasons=list(economic.reasons),
+            vision_evidence=list(self.ai_vision_results) if isinstance(self.ai_vision_results, list) else [],
         )
         review_reasons = list(result.review_reasons) if result.decision == "hot" else []
         if lbs > SINGLE_LOAD_REVIEW_CAP_LBS:
@@ -1229,6 +1233,7 @@ class PlasticosWebLead(models.Model):
                     KEY_ECONOMIC_ELIGIBILITY: economic.to_dict(),
                     KEY_REVIEW_REQUIRED: bool(review_reasons),
                     KEY_REVIEW_REASONS: review_reasons,
+                    KEY_VISION: result.vision_evidence,
                 },
                 "estimated_lbs_per_load": int(lbs),
                 "estimated_lbs_high": int(mass.lbs_high) if mass.lbs_high else 0,
