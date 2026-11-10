@@ -10,7 +10,9 @@ partition, and the four real omitted duplicate ids.
 
 from __future__ import annotations
 
+import csv
 import json
+import os
 import sys
 import types
 from contextlib import contextmanager
@@ -27,6 +29,8 @@ from erp import production_permit as erp_permit  # noqa: E402
 
 from plasticos_crm_sync.scripts import import_vanillasoft_shell as shell  # noqa: E402
 from plasticos_crm_sync.services import historical_cohort as cohort  # noqa: E402
+
+_REAL_VERIFY_PERMIT = cohort.verify_permit
 
 NOW = datetime(2026, 10, 30, 12, 0, tzinfo=UTC)
 DB_UUID = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"
@@ -457,6 +461,9 @@ class _Params:
         value = self.db.param(key)
         return default if value is None else value
 
+    def set_param(self, key, value):
+        self.db.pending.append(("param", key, value))
+
 
 class _Refs:
     def __init__(self, db):
@@ -542,7 +549,7 @@ class _Orchestrator:
         if behaviour == "phantom":
             self.last_lead_outcome = "created"
             return
-        model = "res.partner" if CENSUS[contact_id] == "YES" else "crm.lead"
+        model = "res.partner" if CENSUS.get(contact_id) == "YES" else "crm.lead"
         db = self.env.db
         self.last_lead_outcome = "unchanged" if model in db.models(contact_id) else "created"
         db.pending.append(("ref", contact_id, model))
@@ -846,13 +853,24 @@ HISTORY_VARS = (
 def test_make_import_vanillasoft_forwards_the_history_inputs_and_pipes_the_history_driver():
     text = MAKEFILE.read_text(encoding="utf-8")
     recipe = text.split("\nimport-vanillasoft:\n", 1)[1].split("\n\n", 1)[0]
-    assert recipe.count("< plasticos_crm_sync/scripts/import_vanillasoft_shell.py") == 2, "both runtimes, one driver"
+    assert recipe.count("< plasticos_crm_sync/scripts/import_vanillasoft_shell.py") == 1, "one production SSH runtime"
     for var in HISTORY_VARS:
-        assert recipe.count(f"{var}=") == 2, f"{var} must reach both runtimes"
+        assert recipe.count(f"{var}=") == 1, f"{var} must reach the production SSH runtime"
     assert "$(vanillasoft_mode_guard)" in recipe
     guard = text.split("\nvanillasoft_mode_guard = ", 1)[1].split("\n\n", 1)[0]
     assert "cannot be combined" in guard, "a floor beside the census is refused"
     assert "nothing falls back to the rolling window" in guard
+    assert "VANILLASOFT_PRODUCTION_CONFIRM=1 is required" in guard
+    assert "does not accept a history census" in guard
+    assert "does not accept VANILLASOFT_HISTORY_MAX_IDS" in guard
+    assert 'mkdir -p "$$ledger_dir"' in guard
+    assert "printf 'VANILLASOFT_API_KEY=%q\\n'" in recipe
+    key_lines = [line for line in recipe.splitlines() if "VANILLASOFT_API_KEY" in line]
+    assert key_lines == ["\t\tprintf 'VANILLASOFT_API_KEY=%q\\n' \"$${VANILLASOFT_API_KEY:-}\"; \\"]
+    assert 'env["ir.module.module"]' in recipe
+    assert "button_immediate_install" in recipe
+    assert 'scp_opts="-O -o BatchMode=yes -o ConnectTimeout=25"' in recipe
+    assert 'scp $$scp_opts "$$export_path"' in recipe
     for retired in ("run_import.py", "run_csv_import", "partner_import_service", "transaction_import"):
         assert retired not in recipe
 
@@ -863,10 +881,145 @@ def test_shell_main_dispatches_history_before_any_floor_and_fetches_through_the_
     tree = ast.parse(SHELL_DRIVER.read_text(encoding="utf-8"))
     functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
     first = functions["main"].body[0]
-    assert isinstance(first, ast.If) and ast.unparse(first.test) == "_env_flag(HISTORY_CENSUS_ENV)"
+    assert isinstance(first, ast.If) and ast.unparse(first.test) == (
+        "_env_flag(HISTORY_CENSUS_ENV) or _env_flag(CONTACT_EXPORT_ENV)"
+    )
     assert ast.unparse(first.body[0]) == "return history(_odoo_env())"
     calls = {ast.unparse(n.func) for n in ast.walk(functions["_fetch_one"]) if isinstance(n, ast.Call)}
     assert "orchestrator.upsert_contact_external_id" in calls
     history_src = ast.unparse(functions["history"]) + ast.unparse(functions["_history_loop"])
     assert "run_full_import" not in history_src
     assert "SyncOrchestrator" in ast.unparse(functions["history"])
+    assert "load_census" not in ast.unparse(functions["_repository_inputs"])
+    assert "load_census" in ast.unparse(functions["_history_inputs"])
+
+
+# ── repository cohort: the tracked export plus the packaged crosswalk ────────
+
+EXPORT = ROOT / "plasticos_crm_sync" / "Vanillasoft-Scrap-Management.csv"
+CROSSWALK_FILE = ROOT / "plasticos_crm_sync" / "data" / "approved_contact_crosswalk.csv"
+_API_KEY_PARAM = "plasticos_crm_sync.vs_key"
+
+
+def _contact_ids(path: Path, column: str) -> set[str]:
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        rows = csv.DictReader(handle)
+        return {row[column].strip() for row in rows if (row.get(column) or "").strip()}
+
+
+def _write_export(path: Path, contact_ids) -> None:
+    path.write_text(
+        "ContactID,Name\n" + "\n".join(f"{contact_id},site" for contact_id in contact_ids) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _partners_witness(status: str) -> str:
+    return json.dumps({"phase": "erp_partners", "database_uuid": DB_UUID, "final_status": status})
+
+
+def _repository(harness, monkeypatch, export_ids, crosswalk):
+    monkeypatch.delenv("VANILLASOFT_HISTORY_CENSUS", raising=False)
+    monkeypatch.delenv("VANILLASOFT_HISTORY_CENSUS_SHA256", raising=False)
+    monkeypatch.delenv("VANILLASOFT_PRODUCTION_PERMIT", raising=False)
+    monkeypatch.delenv("VANILLASOFT_PRODUCTION_CONFIRM", raising=False)
+    monkeypatch.delenv("ODOO_STAGE", raising=False)
+    export = harness.tmp / "export.csv"
+    _write_export(export, export_ids)
+    monkeypatch.setenv(shell.CONTACT_EXPORT_ENV, str(export))
+    approved = sys.modules["odoo.addons.plasticos_crm_sync.services.approved_identity"]
+    mapping = dict(crosswalk)
+    approved.load_crosswalk_map = lambda env, bound=mapping: bound
+    return export
+
+
+@pytest.mark.skipif(not EXPORT.is_file(), reason="the customer VanillaSoft export stays on the operator machine")
+def test_repository_cohort_is_the_export_plus_the_missing_crosswalk_ids():
+    export_ids = _contact_ids(EXPORT, "ContactID")
+    crosswalk_ids = _contact_ids(CROSSWALK_FILE, "vanillasoft_contact_id")
+    omitted = set(cohort.OMITTED_DUPLICATE_VS_IDS)
+    assert len(export_ids) == 4818
+    assert len(crosswalk_ids) == 759
+    missing = crosswalk_ids - export_ids
+    assert len(missing) == 2
+    assert omitted <= export_ids
+    assert not (omitted & crosswalk_ids)
+    census = shell.repository_census(export_ids, crosswalk_ids, omitted)
+    assert len(census) == 4820
+    yes = {contact_id for contact_id, decision in census.items() if decision == "YES"}
+    assert yes == crosswalk_ids | omitted
+    assert all(decision == "PENDING" for contact_id, decision in census.items() if contact_id not in yes)
+    cohort.verify_identity(census, {contact_id: "person" for contact_id in crosswalk_ids}, omitted)
+    steps = cohort.plan(census, omitted, (), {})
+    skipped = {contact_id for contact_id, action in steps if action == cohort.SKIP_DUPLICATE}
+    fetched = {contact_id for contact_id, action in steps if action == cohort.FETCH}
+    assert skipped == omitted
+    assert missing <= fetched
+    assert not (omitted & fetched)
+
+
+def test_repository_shell_refuses_a_failed_erp_partners_witness(harness, monkeypatch, capsys):
+    omitted = sorted(cohort.OMITTED_DUPLICATE_VS_IDS)
+    _repository(harness, monkeypatch, ["10", "11", *omitted], {"10": "person", "99": "person"})
+    harness.db.committed["params"][shell.PARTNERS_WITNESS_PARAM] = _partners_witness("failed")
+    harness.env.cron.active = True
+    assert shell.history(harness.env) == 2
+    assert "the erp_partners phase failed" in capsys.readouterr().out
+    assert _Orchestrator.calls == []
+    assert harness.env.cron.active is True
+
+
+def test_repository_shell_accepts_a_partial_erp_partners_witness(harness, monkeypatch, capsys):
+    omitted = sorted(cohort.OMITTED_DUPLICATE_VS_IDS)
+    _repository(harness, monkeypatch, ["10", "11", *omitted], {"10": "person", "99": "person"})
+    harness.db.committed["params"][shell.PARTNERS_WITNESS_PARAM] = _partners_witness("partial")
+    del harness.db.committed["params"][_API_KEY_PARAM]
+    secret = "vs-test-key-not-for-logs"
+    monkeypatch.setenv("VANILLASOFT_API_KEY", secret)
+    harness.env.cron.active = True
+    assert shell.history(harness.env) == 0
+    out = capsys.readouterr().out
+    assert secret not in out
+    assert "crm_history.admitted" in out
+    assert harness.db.committed["params"][_API_KEY_PARAM] == secret
+    assert harness.env.cron.active is False
+    assert set(_Orchestrator.calls) == {"10", "11", "99"}
+    assert not (set(_Orchestrator.calls) & cohort.OMITTED_DUPLICATE_VS_IDS)
+
+
+def test_repository_confirm_without_a_provable_release_does_not_mint_a_permit(harness, monkeypatch, capsys):
+    omitted = sorted(cohort.OMITTED_DUPLICATE_VS_IDS)
+    _repository(harness, monkeypatch, ["10", "11", *omitted], {"10": "person", "99": "person"})
+    harness.db.committed["params"][shell.PARTNERS_WITNESS_PARAM] = _partners_witness("partial")
+    monkeypatch.setenv("ODOO_STAGE", "production")
+    monkeypatch.setenv("VANILLASOFT_PRODUCTION_CONFIRM", "1")
+    monkeypatch.setattr(cohort, "release_identity", lambda path: (None, False))
+    assert shell.history(harness.env) == 2
+    out = capsys.readouterr().out
+    assert "production confirm does not mint a matching permit" in out
+    assert "crm_history.admitted" not in out
+    assert _Orchestrator.calls == []
+    assert not list(harness.tmp.glob("durable/crmhist-*.json"))
+
+
+def test_repository_confirm_mints_and_consumes_a_permit_for_the_generated_census(harness, monkeypatch, capsys):
+    omitted = sorted(cohort.OMITTED_DUPLICATE_VS_IDS)
+    export_ids = {"10", "11", *omitted}
+    crosswalk = {"10": "person", "99": "person"}
+    _repository(harness, monkeypatch, sorted(export_ids), crosswalk)
+    harness.db.committed["params"][shell.PARTNERS_WITNESS_PARAM] = _partners_witness("partial")
+    monkeypatch.setenv("ODOO_STAGE", "production")
+    monkeypatch.setenv("VANILLASOFT_PRODUCTION_CONFIRM", "1")
+    monkeypatch.setattr(cohort, "verify_permit", _REAL_VERIFY_PERMIT)
+    assert shell.history(harness.env) == 0
+    out = capsys.readouterr().out
+    assert "crm_history.admitted" in out
+    census = shell.repository_census(export_ids, set(crosswalk), set(cohort.OMITTED_DUPLICATE_VS_IDS))
+    fingerprint = cohort.sha256_text(shell.census_text(census))
+    permit_path = Path(os.environ["VANILLASOFT_PRODUCTION_PERMIT"])
+    permit = json.loads(permit_path.read_text(encoding="utf-8"))
+    assert permit["source_fingerprint"] == fingerprint
+    assert permit["phase"] == "crm_history"
+    assert permit["database_uuid"] == DB_UUID
+    assert harness.db.committed["params"][cohort.consumed_key(permit["permit_id"])]
+    assert not (set(_Orchestrator.calls) & cohort.OMITTED_DUPLICATE_VS_IDS)
