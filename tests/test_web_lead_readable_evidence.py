@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -133,7 +134,10 @@ def test_technical_view_redacts_secrets_and_starts_closed():
     assert "t-out" in template
     assert "technical: false" in component
     assert "Show technical data" in component
-    assert '"version": "19.0.2.8.13"' in manifest
+    # The evidence widget shipped in 19.0.2.8.13. Later stacked changes bump the version again, so the
+    # guard is "at least", not an exact string that every later bump breaks.
+    version = ast.literal_eval(manifest)["version"]
+    assert tuple(int(part) for part in version.split(".")) >= (19, 0, 2, 8, 13), version
     for asset in (
         "lead_evidence/format.js",
         "lead_evidence/lead_evidence.js",
