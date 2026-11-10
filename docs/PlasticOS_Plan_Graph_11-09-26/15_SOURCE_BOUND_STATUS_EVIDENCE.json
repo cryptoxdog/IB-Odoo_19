@@ -1,0 +1,706 @@
+{
+  "schema": "plasticos.planning.source-evidence/v1",
+  "status": "REVISION_BOUND_GITHUB_SOURCE_OBSERVED_PRODUCTION_RUNTIME_NOT_INSPECTED",
+  "current_source_epoch": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+  "records": [
+    {
+      "id": "E-DOC-VERIFY",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents/models/document.py",
+      "line_range_or_section": "20-25,89-180,199-228",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents/models/document.py",
+      "fact": "Separate verified state and action_verify; cron can mark verified false",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-DOC-NATIVE-VERIFY",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents_native/models/document_native.py",
+      "line_range_or_section": "82-144",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents_native/models/document_native.py",
+      "fact": "Independent verified status and action_verify/action_override",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-DOC-AUTOLINK",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents_native/models/document_native.py",
+      "line_range_or_section": "149-180",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents_native/models/document_native.py",
+      "fact": "Partner recency newest open transaction writes authoritative links",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-DOC-ORIGINAL",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents_native/models/document_native.py",
+      "line_range_or_section": "1-115",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents_native/models/document_native.py",
+      "fact": "Native Documents subclass and one plasticos_doc_id compatibility reference",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-DOC-POLYLINK",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents/models/document.py",
+      "line_range_or_section": "9-85,135-163",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents/models/document.py",
+      "fact": "One polymorphic res_model/res_id plus transaction_id and load_id; not full typed many-link proof",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-DOC-NATIVE-SINGLE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents_native/models/document_native.py",
+      "line_range_or_section": "34-55,105-116",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents_native/models/document_native.py",
+      "fact": "Native single load_id/transaction_id and plasticos_doc_id pointers",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-DOC-COMPLIANCE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents/models/document.py",
+      "line_range_or_section": "89-132,166-230",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents/models/document.py",
+      "fact": "Computation triggers and verification expiry; side-effect safety requires integration test",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-DOC-ASSOC-BRS",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents/business_rules/BRS-POS-02-native-documents-originals-and-intake.md",
+      "line_range_or_section": "48-73",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents/business_rules/BRS-POS-02-native-documents-originals-and-intake.md",
+      "fact": "BRS-POS-02-R005-007 forbid recency proof and require versioned original",
+      "class": "REQUIREMENT_SOURCE_PRESENT_NOT_RUNTIME"
+    },
+    {
+      "id": "E-DOC-SOURCE-BRS",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents/business_rules/BRS-POS-03-evidence-classification-attribution-and-verification.md",
+      "line_range_or_section": "1-110",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents/business_rules/BRS-POS-03-evidence-classification-attribution-and-verification.md",
+      "fact": "Document verification, per-operation checks and nonposting ownership",
+      "class": "REQUIREMENT_SOURCE_PRESENT_NOT_RUNTIME"
+    },
+    {
+      "id": "E-LOG-TX-LINK",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_logistics/models/transaction_inherit.py",
+      "line_range_or_section": "1-72",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_logistics/models/transaction_inherit.py",
+      "fact": "Many2one load field, unique constraint and supplier+buyer assignment",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-LOG-LOAD",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_logistics/models/load.py",
+      "line_range_or_section": "37-47,252-300",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_logistics/models/load.py",
+      "fact": "Load sale_order_id and company related, first eligible transaction auto-link",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-CLAIM-LOAD",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_claims/models/claim.py",
+      "line_range_or_section": "16-39",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_claims/models/claim.py",
+      "fact": "Claims load_id stored related to transaction_id.load_id",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-LOG-BRS",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_logistics/business_rules/SUPERSESSION.md",
+      "line_range_or_section": "1-93",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_logistics/business_rules/SUPERSESSION.md",
+      "fact": "Independent orders/PO-only / no fabricated load; native Documents/Linda boundary",
+      "class": "REQUIREMENT_SOURCE_PRESENT_NOT_RUNTIME"
+    },
+    {
+      "id": "E-SEED-INV",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "INVARIANTS.md",
+      "line_range_or_section": "79-100",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/INVARIANTS.md",
+      "fact": "v2.2 blanket XML noupdate=1 seed doctrine",
+      "class": "ADMITTED_REPO_LAW"
+    },
+    {
+      "id": "E-SEED-REAL",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents/security/security.xml",
+      "line_range_or_section": "1-36",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents/security/security.xml",
+      "fact": "Current Odoo groups noupdate=0 (and CRM tag adoption uses function XML/migration)",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-GATE-LEGACY",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "INVARIANTS.md",
+      "line_range_or_section": "101-121",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/INVARIANTS.md",
+      "fact": "v2.2 graph failure empty return wording",
+      "class": "ADMITTED_REPO_LAW_CONFLICTED_BY_ADR"
+    },
+    {
+      "id": "E-GATE-ADR",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "docs/adr/ADR-013-fail-closed-gate-transport.md",
+      "line_range_or_section": "1-65",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/docs/adr/ADR-013-fail-closed-gate-transport.md",
+      "fact": "Accepted typed failure/run audit/operator-visible fail closed",
+      "class": "ACCEPTED_ADR"
+    },
+    {
+      "id": "E-ACL-DOC",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_documents/security/ir.model.access.csv",
+      "line_range_or_section": "1-13",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_documents/security/ir.model.access.csv",
+      "fact": "Four broad full-CRUD base.group_user document rows",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-ACL-CLAIM",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_claims/security/ir.model.access.csv",
+      "line_range_or_section": "1-7",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_claims/security/ir.model.access.csv",
+      "fact": "Claim full CRUD base.group_user",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-ACL-TX",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_transaction/security/ir.model.access.csv",
+      "line_range_or_section": "1-13",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_transaction/security/ir.model.access.csv",
+      "fact": "Transaction line and header broad CRUD base.group_user",
+      "class": "SOURCE_STATIC_OBSERVED"
+    },
+    {
+      "id": "E-ACL-BRIEF",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "docs/reports/evidence/pr303-cursor-handoff/security-acl-brief.md",
+      "line_range_or_section": "1-160",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/docs/reports/evidence/pr303-cursor-handoff/security-acl-brief.md",
+      "fact": "Historical operator Decision C, workflow and role risk, source static findings",
+      "class": "PRIOR_EVIDENCE_HISTORICAL_NOT_FRESH_RUNTIME"
+    },
+    {
+      "id": "E-AI-BRS",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "path": "plasticos_logistics/business_rules/NATIVE_DOCUMENTS_INTEROP.md",
+      "line_range_or_section": "1-65",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/04bd0594a7c9dcad53d9c45fc65276d76817c112/plasticos_logistics/business_rules/NATIVE_DOCUMENTS_INTEROP.md",
+      "fact": "Proposed native AI candidates, Documents/Linda/no double send",
+      "class": "REQUIREMENT_SOURCE_PRESENT_NOT_RUNTIME"
+    },
+    {
+      "id": "E-DONOR-EXPORT",
+      "repository": "USER_UPLOADED_DONOR",
+      "sha": "SHA256:6219ba942616b40d5850908807947d7a857232366ac3137f5a27136fc40cdea4",
+      "path": "/mnt/data/RecycleOS_Operational_Expansion_v2.0.0(1).zip",
+      "line_range_or_section": "donor manifest",
+      "url": "PRIVATE_ATTACHMENT_NO_REMOTE_URL",
+      "fact": "111 deferred BRS source IDs and 111 NOT_RUN acceptance cases",
+      "class": "USER_PROVIDED_PRIVATE_DONOR_DO_NOT_PUBLISH"
+    },
+    {
+      "id": "E-CP-PR-322",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "PR or repo comparison / doc",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/322",
+      "fact": "PR 322 merged; single verification writer and exact associations, but integration test failures remain",
+      "class": "MERGED_PR_METADATA"
+    },
+    {
+      "id": "E-CP-PR-339",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "PR or repo comparison / doc",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/339",
+      "fact": "PR 339 merged; domestic transaction-to-many-load and downstream migrations",
+      "class": "MERGED_PR_METADATA"
+    },
+    {
+      "id": "E-CP-PR-346",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "PR or repo comparison / doc",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/346",
+      "fact": "PR 346 open with CI pass. GMP-129 reports 152 passing module EE tests; 1103 full suite with 8 failed and 2 errors",
+      "class": "PR_SOURCE_REPORTED_TEST_RESULT"
+    },
+    {
+      "id": "E-CP-PR-345",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "PR or repo comparison / doc",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/345",
+      "fact": "PR 345 open; generated repo index refresh, non-runtime",
+      "class": "OPEN_PR_METADATA"
+    },
+    {
+      "id": "E-CP-BRANCH-COMPARE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "PR or repo comparison / doc",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/compare/Production...Staging",
+      "fact": "Production at 3318fa64 and Staging 42556d2 diverge by 356 Staging-only commits and one Production-only historical merge commit",
+      "class": "GITHUB_COMPARE_OBSERVED"
+    },
+    {
+      "id": "E-CP-DR-CONTRACT",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "PR or repo comparison / doc",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/campaigns/SM_Odoo_AWS_DR_v1.3_FINAL/contracts/06_ADVERSARIAL_REVIEW_AND_CLOSEOUT.md",
+      "fact": "DR closeout contract requires actual native and independent restore. Documentation is not live success proof",
+      "class": "SOURCE_CONTRACT_ONLY"
+    },
+    {
+      "id": "E-CP-GOLIVE-SOURCE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "PR or repo comparison / doc",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/campaigns/Document%20Blob%20Imports/ERP-DOCUMENT-RECOVERY-001/12_GO_LIVE_SOURCE_CHAIN.md",
+      "fact": "Go-live ERP source needs a new dated backup; document blobs are outside erp_SM backup",
+      "class": "SOURCE_CONTRACT_ONLY"
+    },
+    {
+      "id": "E-ERP-PROD-REFUSAL",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "plasticos_partner_import/scripts/validate_partner_layer.py",
+      "line_range_or_section": "check_database",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/plasticos_partner_import/scripts/validate_partner_layer.py",
+      "fact": "Applied ERP import rejects ODOO_STAGE=production and production-like DB names, requires declared ERP_TARGET_DB; no approved Production adapter observed.",
+      "class": "OBSERVED_CURRENT_SOURCE_AND_DOCUMENTED_CONTRACT"
+    },
+    {
+      "id": "E-ERP-FULL-NATIVE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "docs/adr/ADR-021-erp-sql-crm-api-import.md",
+      "line_range_or_section": "Amendments 2026-10-24",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/adr/ADR-021-erp-sql-crm-api-import.md",
+      "fact": "Full ERP runs partner stages then writes native SO/PO/draft account.move through transaction extension; SO confirmation compiles PlasticOS transaction; older README statements are superseded.",
+      "class": "OBSERVED_CURRENT_SOURCE_AND_DOCUMENTED_CONTRACT"
+    },
+    {
+      "id": "E-ERP-MAKE-LOCAL",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "Makefile",
+      "line_range_or_section": "import-erp target",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/Makefile",
+      "fact": "Canonical Makefile entrypoint selects local Docker or venv Odoo shell; no verified Odoo.sh Production execution channel.",
+      "class": "OBSERVED_CURRENT_SOURCE_AND_DOCUMENTED_CONTRACT"
+    },
+    {
+      "id": "E-CRM-HIST-4876",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/CURSOR_EXECUTION_CONTRACT.md",
+      "line_range_or_section": "what changed v2.1-v2.2",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/campaigns/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/CURSOR_EXECUTION_CONTRACT.md",
+      "fact": "Historical 4876-ID per-contact CRM cohort prepared for owned EE clone, not make import-vanillasoft, and disallows Production writes.",
+      "class": "OBSERVED_CURRENT_SOURCE_AND_DOCUMENTED_CONTRACT"
+    },
+    {
+      "id": "E-ERP-DOC-BLOBS",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a",
+      "path": "docs/campaigns/Document Blob Imports/ERP-DOCUMENT-RECOVERY-001/11_IMPORT_SCOPE.md",
+      "line_range_or_section": "Test and import scope",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a/docs/campaigns/Document%20Blob%20Imports/ERP-DOCUMENT-RECOVERY-001/11_IMPORT_SCOPE.md",
+      "fact": "Original worksheet-image importer expressly NOT IMPLEMENTED; binary documents are separate from erp_SM SQL source.",
+      "class": "OBSERVED_CURRENT_SOURCE_AND_DOCUMENTED_CONTRACT"
+    },
+    {
+      "id": "E-RELEASE-349",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+      "path": "plasticos_partner_import/erp/production_permit.py; plasticos_crm_sync/services/historical_cohort.py",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/349",
+      "fact": "PR #349 merged Production permit, Odoo.sh ERP runner and historical VanillaSoft cohort source; no live execution implied",
+      "class": "GITHUB_MERGE_AND_SOURCE_OBSERVED"
+    },
+    {
+      "id": "E-RELEASE-350",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+      "path": "plasticos_crm_sync/services/orchestrator.py",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/350",
+      "fact": "PR #350 merged CRM material mapping fixes; no live CRM import proven",
+      "class": "GITHUB_MERGE_AND_SOURCE_OBSERVED"
+    },
+    {
+      "id": "E-RELEASE-351",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+      "path": "plasticos_transaction/models/transaction.py; plasticos_semantic_kernel/tests/",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/351",
+      "fact": "OdooLS ownership remediation PR #351 merged; CI Gate succeeded on PR head 498f88d, no current full EE runtime verdict inferred",
+      "class": "GITHUB_MERGE_CI_OBSERVED"
+    },
+    {
+      "id": "E-RELEASE-346",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+      "path": "plasticos_transaction/models/transaction.py",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/346",
+      "fact": "PR #346 merged multi-load concurrency guard; old 10 red EE tests on PR head do not establish fresh Staging result",
+      "class": "GITHUB_MERGE_OBSERVED"
+    },
+    {
+      "id": "E-RELEASE-352",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "a8808638d3af69876c3c6ed4056c71e3056cf2ea",
+      "path": "docs/reports/repo-index/",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/352",
+      "fact": "Repository index-only PR #352 open; not automatically a functional promotion blocker",
+      "class": "GITHUB_PR_OPEN_OBSERVED"
+    },
+    {
+      "id": "E-OPERATOR-REHEARSAL-20261030",
+      "repository": "operator-report",
+      "sha": "NOT_SUPPLIED",
+      "path": "user instruction 2026-10-30",
+      "url": "",
+      "fact": "Operator reports rehearsal was completed; tested SHA/environment/PASS receipt not supplied; do not reopen as unsatisfied rehearsal requirement",
+      "class": "OPERATOR_REPORT_NO_RECEIPT"
+    },
+    {
+      "id": "E-20261109-PRODUCTION-BRANCH",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+      "path": "Production branch",
+      "line_range_or_section": "",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/408",
+      "fact": "Production code branch is at 729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56; PR #408 merged Staging b5b6056f01639212e722ccdec5b964b36deee9f5 into Production on 2026-11-08. This is repository merge evidence, not Odoo.sh deployment or data evidence.",
+      "class": "GITHUB_BRANCH_AND_PR_MERGE_OBSERVED"
+    },
+    {
+      "id": "E-20261109-STAGING-BRANCH",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "Staging branch",
+      "line_range_or_section": "",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/418",
+      "fact": "Staging source head bdc222246fbfb647e8e008046b759eecd60a2028 includes post-promotion code that may not yet be in Production. PR #418 is open at the snapshot.",
+      "class": "GITHUB_BRANCH_SNAPSHOT"
+    },
+    {
+      "id": "E-20261109-INV3",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "INVARIANTS.md",
+      "line_range_or_section": "1-20, 192-237",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/bdc222246fbfb647e8e008046b759eecd60a2028/INVARIANTS.md",
+      "fact": "Active repository constitutional INVARIANTS.md is v3.0.0, admitted 2026-11-08, replacing v2.2.0 and disallowing universal noupdate doctrine and local match fallback.",
+      "class": "GITHUB_SOURCE_OBSERVED"
+    },
+    {
+      "id": "E-20261109-DOC-SINGLE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "plasticos_documents_native/models/document_native.py",
+      "line_range_or_section": "402-480",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/bdc222246fbfb647e8e008046b759eecd60a2028/plasticos_documents_native/models/document_native.py",
+      "fact": "Native Documents verification and overrides delegate to plasticos.document exact business decision; partner-recency _auto_link_partner does not assign an authoritative target.",
+      "class": "GITHUB_SOURCE_OBSERVED"
+    },
+    {
+      "id": "E-20261109-MULTILOAD",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "plasticos_logistics/models/transaction_inherit.py",
+      "line_range_or_section": "1-105",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/bdc222246fbfb647e8e008046b759eecd60a2028/plasticos_logistics/models/transaction_inherit.py",
+      "fact": "Transactions have load_ids one-to-many, loads store one transaction_id, and load membership/locking guards exist. This is implementation evidence only.",
+      "class": "GITHUB_SOURCE_OBSERVED"
+    },
+    {
+      "id": "E-20261109-ADMIN-MENU",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+      "path": "plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+      "line_range_or_section": "last menu entries",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+      "fact": "Admin root menu, Command Center, and Rep Performance menu entries require group_system_admin. The module is installable, auto_install False, application False; actual install/user group/visible tile not inspected.",
+      "class": "GITHUB_SOURCE_OBSERVED_NOT_HOSTED"
+    },
+    {
+      "id": "E-20261109-ADMIN-MANIFEST",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+      "path": "plasticos_admin_dashboard/__manifest__.py",
+      "line_range_or_section": "full module manifest",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_admin_dashboard/__manifest__.py",
+      "fact": "Admin module exists in Production source but is not auto-installed (auto_install False).",
+      "class": "GITHUB_SOURCE_OBSERVED_NOT_HOSTED"
+    },
+    {
+      "id": "E-20261109-ADMIN-LOAD-EXCLUSION",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+      "path": "plasticos_logistics/models/load_dashboard.py",
+      "line_range_or_section": "init SQL VIEW WHERE l.state != closed OR l.write_date >= month_start",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_logistics/models/load_dashboard.py",
+      "fact": "The SQL VIEW for plasticos.load.dashboard retains nonclosed loads or loads changed since the start of current month; older closed loads are absent. The Logistics menu also defaults to active filter, so existing dashboard is not literally all historical loads.",
+      "class": "GITHUB_SOURCE_PROVEN_SCOPE_LIMITATION"
+    },
+    {
+      "id": "E-20261109-LOAD-MENU",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+      "path": "plasticos_admin_dashboard/models/admin_dashboard.py",
+      "line_range_or_section": "500-508",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56/plasticos_admin_dashboard/models/admin_dashboard.py",
+      "fact": "Admin dashboard action_open_logistics_dashboard opens plasticos.load.dashboard; Logistics Dashboard menu has active default filter and drill-through actions.",
+      "class": "GITHUB_SOURCE_OBSERVED_NOT_HOSTED"
+    },
+    {
+      "id": "E-20261109-CRM-OPPORTUNITY",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "plasticos_crm_bridge/models/crm_lead.py",
+      "line_range_or_section": "approved lot and match commands",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/384",
+      "fact": "PR #384 merged a Partner/Material Profile-first native Opportunity approved-lot flow. Its Gate matching capability is not part of the user-authorized core Production QA.",
+      "class": "GITHUB_MERGED_PR_SOURCE_OBSERVED"
+    },
+    {
+      "id": "E-20261109-REHEARSAL",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "workflow_state.md",
+      "line_range_or_section": "Unproven acceptance and Evidence tables",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/bdc222246fbfb647e8e008046b759eecd60a2028/workflow_state.md",
+      "fact": "Nov 8 revision f8733d2 rehearsal had seven gates reported passed, including 10% ERP slice and rolling 250 VanillaSoft references; full 4,876 cohort and unresolved ERP source population remain unproved by this receipt.",
+      "class": "REPOSITORY_RECORDED_REVISION_BOUND_TEST_NOT_FULL_PROD"
+    },
+    {
+      "id": "E-20261109-PR414",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "PR #414",
+      "line_range_or_section": "PR body",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/414",
+      "fact": "PR #414 merged 2026-11-09 with Same As Last copying whole draft deal and VanillaSoft fields; source reported 2,796 local pure tests passed, Enterprise runtime not run in PR publish container. Post-#408 Staging change not independently shown hosted in Production.",
+      "class": "GITHUB_MERGED_PR_BODY_NOT_HOSTED_TEST"
+    },
+    {
+      "id": "E-20261109-GATE-CORRECT",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "PR #415 and #416",
+      "line_range_or_section": "PR bodies",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/pull/415",
+      "fact": "PRs #415 and #416 merged to Staging with typed Gate failure reasons. Current Production inclusion and live SDK behavior require separate check.",
+      "class": "GITHUB_MERGED_PR_BODY_ONLY"
+    },
+    {
+      "id": "E-20261109-IMPORT-ISSUES",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "path": "GitHub issues",
+      "line_range_or_section": "open issue states",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/issues/353",
+      "fact": "Open #353 vendor-credit provenance, #354 zero-weight/amount line terms and #217 runtime crypto vulnerability remain unresolved as of snapshot; #307 stayed open despite PR #413 merge and needs disposition, not automatic refactoring.",
+      "class": "GITHUB_ISSUE_STATES"
+    },
+    {
+      "id": "E-20261109-USER-GOAL",
+      "repository": "operator",
+      "sha": "NOT_APPLICABLE",
+      "path": "user instruction 2026-11-09",
+      "line_range_or_section": "current conversation",
+      "url": "",
+      "fact": "Operator targets a fully imported, code-clean-enough-for-testing Production, Admin access, web-lead/logistics/Documents core QA, exhaustive UI click-through and then Export. No claim of existing data or hosted access.",
+      "class": "OPERATOR_INTENT_NOT_OPERATIONAL_RECEIPT"
+    },
+    {
+      "id": "E-POST-DB",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "ARCHITECTURE.md",
+      "line_range_or_section": "Odoo.sh PostgreSQL + filestore",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/ARCHITECTURE.md",
+      "fact": "PostgreSQL SELECT 1 health and filestore are existing Odoo runtime components; no proof another PostgreSQL service is needed or that hosted attachment hashes pass.",
+      "class": "SOURCE_SEARCH_OBSERVED_NOT_HOSTED"
+    },
+    {
+      "id": "E-POST-BLOB",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "docs/reports/evidence/blob-matching-to-transactions/BRIEF.md",
+      "line_range_or_section": "Exact worksheet blob matcher",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/docs/reports/evidence/blob-matching-to-transactions/BRIEF.md",
+      "fact": "Nov 4 historical match census: 97,346 W/# eligible, 91,442 exact match images to 7,641 worksheets, 5,903 unmatched, 1 corrupt, 0 imported; image join counts were not rederived Nov 4. This is test database data, not production.",
+      "class": "READ_ONLY_HISTORICAL_REPORT"
+    },
+    {
+      "id": "E-POST-BLOB-SCOPE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "docs/campaigns/_Document Blob Imports/ERP-DOCUMENT-RECOVERY-001/11_IMPORT_SCOPE.md",
+      "line_range_or_section": "Locked document import scope",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/docs/campaigns/_Document%20Blob%20Imports/ERP-DOCUMENT-RECOVERY-001/11_IMPORT_SCOPE.md",
+      "fact": "Source erp_Documents + erp_SM, W/# all eligible, P/E/B excluded, exact full worksheet RefID to one plasticos.transaction.name, native originals unverified, no accounting/stock/mail effects.",
+      "class": "EXISTING_OWNER_CONTRACT"
+    },
+    {
+      "id": "E-POST-BLOB-STATUS",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "docs/campaigns/_Document Blob Imports/ERP-DOCUMENT-RECOVERY-001/09_OPERATOR_HANDOFF.md",
+      "line_range_or_section": "ERP doc importer not yet proved",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/docs/campaigns/_Document%20Blob%20Imports/ERP-DOCUMENT-RECOVERY-001/09_OPERATOR_HANDOFF.md",
+      "fact": "October 28 evidence says extract ongoing and importer not implemented; status may be superseded by later code, so reconfirm before acting.",
+      "class": "DATED_HISTORICAL_HANDOFF"
+    },
+    {
+      "id": "E-POST-DOC-AI",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "plasticos_documents_native/models/document_native.py",
+      "line_range_or_section": "Native documents review field",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/plasticos_documents_native/models/document_native.py",
+      "fact": "verification_review_required and conflict_snapshot already exist on native Documents; not evidence of installed document AI or a manager work queue.",
+      "class": "INSPECTED_SOURCE"
+    },
+    {
+      "id": "E-POST-DOC-REVIEW",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "plasticos_documents_native/views/document_native_views.xml",
+      "line_range_or_section": "Manager verification widget",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/plasticos_documents_native/views/document_native_views.xml",
+      "fact": "Native form shows verification conflict warning, but a user-level manager-profile/assigned-work-queue action has not been observed.",
+      "class": "INSPECTED_SOURCE_LIMITED"
+    },
+    {
+      "id": "E-POST-REOPEN",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "plasticos_transaction/models/transaction.py",
+      "line_range_or_section": "Operational-only historical reopen",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/plasticos_transaction/models/transaction.py",
+      "fact": "action_reopen_historical requires one Closed historical transaction, Manager role, reason and writes state active; no financial move/posting in method; Makefile has import-erp/import-vanillasoft but no reopen-erp-transactions target at inspected HEAD.",
+      "class": "INSPECTED_SOURCE"
+    },
+    {
+      "id": "E-POST-ADR022",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "docs/adr/ADR-022-erp-historical-closure-and-accounting-opening-balances.md",
+      "line_range_or_section": "Historical closure and finance cutoff",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/docs/adr/ADR-022-erp-historical-closure-and-accounting-opening-balances.md",
+      "fact": "ADR-022: QuickBooks controls opening GL; ERP open-item reports residual candidates; bank statements separate; original gross historical docs stay Draft; separate AR/AP clearing must zero, no automatic operational reopen from unpaid items.",
+      "class": "OPERATOR_APPROVED_ADR_IN_REPO"
+    },
+    {
+      "id": "E-POST-DR",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/README.md",
+      "line_range_or_section": "Locked disaster recovery campaign v1.3",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/README.md",
+      "fact": "SM-ODOO-DR-CAMPAIGN-001 exists under docs/campaigns/future-add-ons; operator locked 00-06 including native Odoo.sh and independent AWS DB+filestore recovery, actual production runtime not evidenced.",
+      "class": "EXISTING_OPERATOR_LOCKED_PLAN"
+    },
+    {
+      "id": "E-POST-DR-DONE",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/coordination/DEFINITION_OF_DONE.md",
+      "line_range_or_section": "Independent recovery acceptance boundary",
+      "url": "https://github.com/cryptoxdog/IB-Odoo_19/blob/d6cc3c8ba04041da1844d7d0be396f4fad907be7/docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/coordination/DEFINITION_OF_DONE.md",
+      "fact": "True DONE requires source/rights, native restore, AWS custody, independent restore, schedule/freshness, 1Password, operator rehearsal and exact receipts; provider block is not PASS.",
+      "class": "EXISTING_OPERATOR_LOCKED_PLAN"
+    },
+    {
+      "id": "E-POST-USER-EXTENSION",
+      "repository": "operator",
+      "sha": "NOT_APPLICABLE",
+      "path": "user instruction 2026-11-09",
+      "line_range_or_section": "Operator post-import intent",
+      "url": "",
+      "fact": "After imports: verify PostgreSQL, import worksheet blobs, pilot document AI with manager flagged review, report-driven operational reopens and accounting AR/AP/inventory/QB/bank cutoff, repeatable make command, then DR per repo plan.",
+      "class": "OPERATOR_INTENT_NOT_RUNTIME_PROOF"
+    },
+    {
+      "id": "E-POST-BRANCHES",
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "path": "branches/Staging and branches/Production",
+      "line_range_or_section": "GitHub branch snapshot",
+      "url": "",
+      "fact": "Staging d6cc3c8ba04041da1844d7d0be396f4fad907be7, Production 02b90f199f2ae8733e3759b3d60cda85800ee486 at 2026-11-09 source lookup; no Odoo.sh hosted confirmation.",
+      "class": "GITHUB_BRANCH_OBSERVATION"
+    }
+  ],
+  "no_proof_claims": [
+    "Enterprise installation of every module",
+    "new successful EE validation of proposed fixes",
+    "production rollout",
+    "operator approved ACL matrix",
+    "strategic plan admission",
+    "GitHub Production branch merge does not prove the Odoo.sh build loaded or that its addons were upgraded.",
+    "Full ERP, CRM and transaction populations imported and reconciled on Production: NOT VERIFIED.",
+    "Admin tile visibility, user access, Command Center navigation and zero-data dashboards: NOT VERIFIED LIVE.",
+    "Automation behavior and exhaustive click testing: NOT RUN; no live external sends, postings, or real-stock effects authorized by plan update.",
+    "Cannot infer installed/authorized PostgreSQL attachment access or Production image import from test source counts",
+    "Cannot infer manager document AI queue from a conflict Boolean on individual document",
+    "Reopening historical transaction state does NOT by itself post residual opening AR/AP",
+    "Cannot claim actual bank, QB or ERP statement cutoff balances without signed source files",
+    "DR v1.3 exists in docs but no runtime restore/independent 2h RPO accepted by this plan"
+  ],
+  "checkpoint_source_epoch": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+  "operator_cutover": {
+    "source_epoch": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+    "source_verified": "GITHUB_REPO_MERGES_ONLY",
+    "hosted_production_data_and_tools": "NOT_VERIFIED",
+    "no_live_deploy_or_import": true,
+    "rehearsal": "COMPLETED_OPERATOR_REPORTED"
+  },
+  "source_epochs": {
+    "staging_sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+    "production_sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+    "production_promoted_from": "b5b6056f01639212e722ccdec5b964b36deee9f5",
+    "code_promotion_pr": 408,
+    "as_of": "2026-11-09",
+    "observed_through": "GITHUB_CONNECTOR_READ_ONLY"
+  }
+}

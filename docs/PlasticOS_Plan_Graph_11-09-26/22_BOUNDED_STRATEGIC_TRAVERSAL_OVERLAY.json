@@ -1,0 +1,227 @@
+{
+  "schema": "plasticos.planning.bounded-strategic-traversal-overlay/v1",
+  "status": "DERIVED_NON_ADMITTED_WORKING_GRAPH_NOT_L9_STRATEGIC_PLAN_GRAPH",
+  "source_plan": "Quantum-L9/l9-wip PR31@ae237562a1390e53636629881565fe96ee6ec81c; source working not proven latest",
+  "global_semantics": "Quantum-L9/.github@3dcdeaae355b6de08562993f705084d7a3714bfd",
+  "nodes": [
+    {
+      "id": "TAR-POS-DOC",
+      "kind": "strategic_target",
+      "statement": "PlasticOS MVP demonstrates single-writer native document originals, attributable exact evidence links, and side-effect-free operation-specific compliance gates on installed Odoo 19 Enterprise.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "TAR-POS-AI",
+      "kind": "strategic_target",
+      "statement": "Native Documents AI and existing inference consumers, where available, produce source-bound candidates, contradictions and suggested next actions without acquiring domain write authority; manual evidence paths remain usable.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "TAR-POS-FUTURE",
+      "kind": "strategic_target",
+      "statement": "Architecture has reviewed contracts that could later support buyer-optional partial movements, many-to-many booking allocations, and revision-safe evidence without committing to Export or warehouse/shop-floor implementation.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "C-POS-FOUNDATION",
+      "kind": "strategic_commitment",
+      "statement": "Prioritize PlasticOS Odoo MVP and native-first Documents, invariant reconciliation and AI evidence safety; defer Export and physical operations implementations until separate approved stage and source proof.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "H-POS-NATIVE",
+      "kind": "strategic_hypothesis",
+      "statement": "Reusing existing native Odoo and PlasticOS single-writer boundaries for document evidence and AI-proposed actions reduces MVP risk while preserving optional Export and physical operations extensibility.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "TAR-POS-VERIFY",
+      "kind": "strategic_target",
+      "statement": "One source-authoritative PlasticOS Documents verification decision governs both native and business evidence surfaces; native bridge acts only as projection/delegation.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "TAR-POS-EXACT",
+      "kind": "strategic_target",
+      "statement": "Document association only follows verified typed business identities and revisions, never partner recency; ambiguous originals stay unmatched and reviewable.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "TAR-POS-MULTILOAD",
+      "kind": "strategic_target",
+      "statement": "PlasticOS has a compatibility-proven one commercial transaction to many physical loads and partial quantities design for authorized domestic fulfillment; no buyer fiction or unapproved operations/export launch.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "TAR-POS-ACCESS",
+      "kind": "strategic_target",
+      "statement": "Effective Odoo model, field and company ACLs enforce approved least-privilege roles while document intake, claim workflow and transaction import remain usable.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "TAR-POS-LAW",
+      "kind": "strategic_target",
+      "statement": "Admit a no-loss PlasticOS invariants successor that resolves seed lifecycle, external intelligence failure semantics and effective access without weakening existing guards.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "C-POS-REPAIR",
+      "kind": "strategic_commitment",
+      "statement": "Close the three known Documents/Logistics correctness defects and constitutional contradictions through owner-approved bounded repairs with independent negative tests; keep Export and shop-floor implementation parked.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "H-POS-TRUTH",
+      "kind": "strategic_hypothesis",
+      "statement": "Eliminating competing fact writers, guessed links and silently narrowed movement cardinality improves trustworthy domestic operation and lowers later expansion migration risk.",
+      "origin": "NEW_WORKING_CANDIDATE"
+    },
+    {
+      "id": "G-02",
+      "kind": "strategic_goal",
+      "statement": "Operate Scrap Management more profitably by discovering, converting and fulfilling better recycling transactions.",
+      "origin": "HISTORICAL_WORKING_PLAN_REF_NOT_CANONICAL_ADMISSION"
+    },
+    {
+      "id": "TAR-01",
+      "kind": "strategic_target",
+      "statement": "Odoo 19 sufficiently operational: historical data imported; web lead triage; logistics; enrichment and buyer matching usable even if imperfect. Historical working-plan intent, not current delivery proof.",
+      "origin": "HISTORICAL_WORKING_PLAN_REF_NOT_CANONICAL_ADMISSION"
+    },
+    {
+      "id": "TAR-10",
+      "kind": "strategic_target",
+      "statement": "Complete safe independently verified Odoo Staging-to-Production promotion when separately authorized, with rollback and smoke evidence.",
+      "origin": "HISTORICAL_WORKING_PLAN_REF_NOT_CANONICAL_ADMISSION"
+    },
+    {
+      "id": "C-02",
+      "kind": "strategic_commitment",
+      "statement": "Prioritize existing ERP integration, facility-profile enrichment, CEG validation and measurable economics without replacement architecture.",
+      "origin": "HISTORICAL_WORKING_PLAN_REF_NOT_CANONICAL_ADMISSION"
+    },
+    {
+      "id": "C-03",
+      "kind": "strategic_commitment",
+      "statement": "Keep human send/commit checkpoints until graduated by source-owned business policy and actual proof.",
+      "origin": "HISTORICAL_WORKING_PLAN_REF_NOT_CANONICAL_ADMISSION"
+    }
+  ],
+  "edges": [
+    {
+      "id": "PLREL-01",
+      "source": "TAR-POS-DOC",
+      "target": "TAR-01",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-02",
+      "source": "TAR-POS-AI",
+      "target": "TAR-POS-DOC",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-03",
+      "source": "TAR-POS-FUTURE",
+      "target": "G-02",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-04",
+      "source": "C-POS-FOUNDATION",
+      "target": "TAR-01",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-05",
+      "source": "C-POS-FOUNDATION",
+      "target": "TAR-10",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-06",
+      "source": "C-POS-FOUNDATION",
+      "target": "TAR-POS-DOC",
+      "relation": "enables",
+      "hypothesis_ref": "H-POS-NATIVE"
+    },
+    {
+      "id": "PLREL-07",
+      "source": "TAR-POS-DOC",
+      "target": "TAR-POS-AI",
+      "relation": "enables",
+      "hypothesis_ref": "H-POS-NATIVE"
+    },
+    {
+      "id": "PLREL-08",
+      "source": "TAR-POS-VERIFY",
+      "target": "TAR-POS-DOC",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-09",
+      "source": "TAR-POS-EXACT",
+      "target": "TAR-POS-DOC",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-10",
+      "source": "TAR-POS-MULTILOAD",
+      "target": "TAR-POS-FUTURE",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-11",
+      "source": "TAR-POS-MULTILOAD",
+      "target": "G-02",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-12",
+      "source": "TAR-POS-ACCESS",
+      "target": "TAR-01",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-13",
+      "source": "TAR-POS-LAW",
+      "target": "TAR-01",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-14",
+      "source": "C-POS-REPAIR",
+      "target": "TAR-POS-DOC",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-15",
+      "source": "C-POS-REPAIR",
+      "target": "TAR-POS-MULTILOAD",
+      "relation": "advances"
+    },
+    {
+      "id": "PLREL-16",
+      "source": "TAR-POS-VERIFY",
+      "target": "TAR-POS-DOC",
+      "relation": "enables",
+      "hypothesis_ref": "H-POS-TRUTH"
+    },
+    {
+      "id": "PLREL-17",
+      "source": "TAR-POS-EXACT",
+      "target": "TAR-POS-DOC",
+      "relation": "enables",
+      "hypothesis_ref": "H-POS-TRUTH"
+    },
+    {
+      "id": "PLREL-18",
+      "source": "TAR-POS-LAW",
+      "target": "TAR-POS-VERIFY",
+      "relation": "enables",
+      "hypothesis_ref": "H-POS-TRUTH"
+    }
+  ],
+  "external_capability_graph": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+  "boundary": "No capability ownership or implementation state in these nodes; refs do not admit strategy or transfer semantic authority."
+}
