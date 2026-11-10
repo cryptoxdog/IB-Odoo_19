@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Stacked publication base. `name` refuses a protected destination before any
-# network call. `prove` walks at most two open parent PRs and requires that
-# walk to end at Staging. The new pull request is the third. Callers export
-# GH_REPO before `prove`. HEAD must contain the immediate parent.
+# network call. `prove` walks every open parent pull request until the chain
+# ends at Staging. There is no depth cap. A loop, a missing parent, Production,
+# or main still refuses. Callers export GH_REPO before `prove`. HEAD must
+# contain the immediate parent.
 # Usage: pr_stack_parent.sh name <base>
 #        pr_stack_parent.sh prove <base>
 set -euo pipefail
@@ -41,7 +42,9 @@ check_prove() {
   fi
   branch="${base}"
   seen="${base}"
-  for hop in 1 2; do
+  hop=0
+  while true; do
+    hop=$((hop + 1))
     raw="$(gh api --method GET "repos/${GH_REPO}/pulls" -f state=open -f head="${GH_REPO%%/*}:${branch}")" \
       || refuse "cannot look up the parent pull request for ${branch}"
     if ! next="$(python3 - "${raw}" "${GH_REPO}" "${branch}" "${hop}" "${seen}" <<'PY'
@@ -88,9 +91,6 @@ if base_ref == "Staging":
     sys.exit(0)
 if not base_ref or base_ref in seen:
     print(f"stacked parent chain loops at {base_ref or branch}")
-    sys.exit(1)
-if hop >= 2:
-    print("stacked parent chain does not reach Staging within three pull requests")
     sys.exit(1)
 print(base_ref)
 PY

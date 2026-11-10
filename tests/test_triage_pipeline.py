@@ -273,6 +273,20 @@ class TestClassifyLead:
         assert result.decision == "cold"
         assert "is_commercial_source:false" in result.cold_gates_triggered
 
+    def test_empty_reject_list_keeps_conduit_and_mattress_film_hot(self):
+        result = classify_lead(
+            polymer="PVC",
+            material_description="PVC electrical conduit and mattress film",
+            estimated_lbs=42_000.0,
+            source_type="post_industrial",
+            is_plastic_hint=True,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            reject_materials=[],
+        )
+        assert result.decision == "hot"
+        assert "reject_material" not in result.cold_gates_triggered
+
     def test_cold_rejected_material(self):
         result = classify_lead(
             material_description="aluminum cans",
