@@ -30,6 +30,7 @@ from ..adapters.base import (
     packet_to_dict,
 )
 from ..adapters.registry import get_adapter
+from ..zip_place import resolve_pickup
 from . import ai_normalizer, image_analyzer
 from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
 from .classification_engine import classify_lead
@@ -345,6 +346,21 @@ class PlasticosWebLead(models.Model):
     contact_name = fields.Char(string="Contact Name")
     contact_email = fields.Char(string="Contact Email")
     contact_phone = fields.Char(string="Contact Phone")
+    pickup_postal_code = fields.Char(
+        string="ZIP",
+        index=True,
+        help="Pickup ZIP as the seller submitted it. Location is derived from these digits.",
+    )
+    pickup_location_text = fields.Char(
+        string="Seller Location",
+        help="The seller's own location words. They are kept and are not turned into Location.",
+    )
+    pickup_place = fields.Char(
+        string="Location",
+        readonly=True,
+        index=True,
+        help="Preferred city and state for the pickup ZIP, for example Charlotte, NC.",
+    )
     material_description = fields.Text(string="Material Description")
     quantity_text = fields.Char(
         string="Quantity (Form Input)",
@@ -707,6 +723,10 @@ class PlasticosWebLead(models.Model):
         image_urls = [item.source_url for item in packet.attachments if item.content_type.startswith("image/")]
         contaminants = packet.contaminants_text.strip()
         negative_contaminant_values = {"", "no", "none", "n/a", "na", "clean"}
+        postal_code, location_text, location = resolve_pickup(
+            packet.pickup_postal_code,
+            packet.pickup_location_text,
+        )
         vals = {
             "lead_id": str(lead_id),
             "source": "web_lead",
@@ -720,6 +740,9 @@ class PlasticosWebLead(models.Model):
             "contact_name": packet.contact_name,
             "contact_email": packet.contact_email,
             "contact_phone": packet.contact_phone,
+            "pickup_postal_code": postal_code or False,
+            "pickup_location_text": location_text or False,
+            "pickup_place": location or False,
             "material_description": packet.material_description,
             "quantity_text": packet.weight_per_load_text or packet.quantity_text,
             "has_contaminants": contaminants.lower() not in negative_contaminant_values,
