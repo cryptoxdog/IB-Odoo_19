@@ -859,6 +859,27 @@ def test_stacked_base_on_a_stacked_parent_opens_after_prove(tmp_path: Path) -> N
     assert heads.index("cryptoxdog:feat/parent") < heads.index("cryptoxdog:feat/grand")
 
 
+def test_stacked_chain_of_any_length_opens_when_it_reaches_staging(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    parent = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    _plant_parent(repo, parent)
+    _commit(repo, "feat: child")
+    pulls = [("feat/parent", "feat/s1")]
+    pulls.extend((f"feat/s{i}", f"feat/s{i + 1}") for i in range(1, 5))
+    pulls.append(("feat/s5", "Staging"))
+    _set_gh_state(
+        tmp_path,
+        pulls=[_rest_pr(400 + i, head, parent, base=base) for i, (head, base) in enumerate(pulls)],
+    )
+    proc = _run(repo, tmp_path, "fix/example", "feat/parent", "1", "0")
+    output = proc.stdout + proc.stderr
+    assert proc.returncode == 0, output
+    created = [pr for pr in _gh_state(tmp_path)["pulls"] if pr["head"]["ref"] == "fix/example"]
+    assert len(created) == 1, _gh_state(tmp_path)
+    assert created[0]["base"]["ref"] == "feat/parent"
+    assert "\npush\n" in f"\n{_seq(seq)}\n"
+
+
 def test_stacked_parent_in_another_repository_refuses(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     parent = subprocess.check_output([REAL_GIT, "rev-parse", "HEAD"], cwd=repo, text=True).strip()
@@ -889,10 +910,10 @@ def test_stacked_parent_in_another_repository_refuses(tmp_path: Path) -> None:
         ),
         (
             [("feat/parent", "feat/s1"), *[(f"feat/s{i}", f"feat/s{i + 1}") for i in range(1, 6)]],
-            "stacked parent chain does not reach Staging within three pull requests",
+            "stacked parent feat/s6 has no open PR",
         ),
     ],
-    ids=["reaches-production", "loop", "broken-chain", "too-deep"],
+    ids=["reaches-production", "loop", "broken-chain", "chain-ends-without-staging"],
 )
 def test_stacked_chain_that_does_not_reach_staging_refuses(
     tmp_path: Path, pulls: list[tuple[str, str]], message: str
