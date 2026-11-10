@@ -151,6 +151,36 @@ Running Odoo locally is separate from editor setup:
 
 Editor autocomplete works with only the **Odoo source clone** at `~/dev/odoo-19`; you do not need Docker on the laptop for Pylance.
 
+### Cloud agent sessions
+
+A Claude Code cloud session has Docker but no Odoo Enterprise source, so the install-smoke and the Odoo runtime tests in the `make pr-check` smoke stage cannot run there until the Enterprise code is reachable. `make runtime-bootstrap` (`scripts/runtime_bootstrap.sh`) binds an Enterprise checkout and admits the pinned fixture from `config/test_env_fixture.conf`. It runs no tests. The two runtime-test owners do not change.
+
+**One-time operator setup.** The Enterprise source is licensed. Keep every copy private.
+
+1. On GitHub, create a **private**, empty repository for it. Naming it `odoo-enterprise` lets sessions find it with no variable.
+2. Push your existing Enterprise 19.0 checkout (the `odoo-enterprise` folder this repo links to) to that repository as branch `19.0`:
+
+   ```bash
+   cd "<your odoo-enterprise checkout>"
+   git status                      # if this is not a git repository: git init -b 19.0 && git add -A && git commit -m "Odoo Enterprise 19.0"
+   git remote add private https://github.com/<owner>/odoo-enterprise.git
+   git push private HEAD:19.0
+   ```
+
+3. Make the repository reachable from cloud sessions, either way:
+   - add it to the cloud environment's repositories, so each session clones it next to this repository as `../odoo-enterprise`; or
+   - set the environment variable `ODOO_ENTERPRISE_REPO=<owner>/odoo-enterprise`. The session must still be allowed to read that repository.
+
+**In each session:** run `make runtime-bootstrap` once. The first run builds the fixture database, which takes several minutes. After that, `make pr` runs the install-smoke and the runtime tests in that session the same way it does on your machine.
+
+| Variable | Meaning |
+|----------|---------|
+| `ODOO_ENTERPRISE_PATH` | An explicit Enterprise checkout directory; checked first |
+| `ODOO_ENTERPRISE_REPO` | `owner/name` or git URL to clone when no checkout is found |
+| `ODOO_ENTERPRISE_REF` | Branch to clone and expect; default `19.0` |
+
+`make runtime-bootstrap` refuses an `./odoo-enterprise` path that is not an Enterprise checkout, refuses another Odoo series, and never replaces a fixture that exists but is not admitted for the current inputs. That recovery stays `make test-env-rebuild`, an operator decision.
+
 ---
 
 ## 7. Two-machine parity checklist
