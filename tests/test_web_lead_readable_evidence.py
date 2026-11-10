@@ -90,8 +90,8 @@ def test_technical_view_redacts_secrets_and_starts_closed():
     for key in ("source_url", "api_key", "adminlink", "token", "useragent", "ipaddress"):
         assert key in formatter
     assert "t-att-href" not in template
-    assert "t-out" not in template
-    assert "t-esc" in template
+    assert "t-esc" not in template
+    assert "t-out" in template
     assert "technical: false" in component
     assert "Show technical data" in component
     assert '"version": "19.0.2.8.13"' in manifest
