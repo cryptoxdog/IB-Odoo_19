@@ -66,6 +66,10 @@ repos:
         stages: [pre-commit, pre-push]
 
       - id: check-merge-conflict
+        # --assume-in-merge: without it the hook checks only while a merge is in
+        # progress, so a marker committed later (AGENTS.md line 788, removed
+        # 2026-11-10) passed every commit and CI.
+        args: [--assume-in-merge]
         stages: [pre-commit, pre-push]
 
   # Commit message validation (conventional commits: feat:, fix:, docs:, etc.)

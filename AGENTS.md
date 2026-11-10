@@ -785,7 +785,7 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `make runtime-test` dispatches to the unchanged `test-module` / `test-odoo` recipes. Agents do not run
 > `make test-module` or `make test-odoo` ad hoc; the lines above that list them as commands are superseded.
 > `tests/test_runtime_test_ownership.py` enforces this.
-=======
+
 > **2026-11-05 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > the Audit Baselines table above is superseded on both rows. `ci/baselines/odoo_audit_baseline.json` has no
 > entries: `scripts/audit/odoo_audit.py` resolves `@api.depends` fields from its AST model index (a class belongs
