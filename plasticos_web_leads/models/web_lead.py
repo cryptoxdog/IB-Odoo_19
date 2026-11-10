@@ -51,7 +51,7 @@ from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
-from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, replay_stored_mass
+from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, WEIGHT_SOURCE_AREA, replay_stored_mass
 
 _logger = logging.getLogger(__name__)
 
@@ -1040,9 +1040,9 @@ class PlasticosWebLead(models.Model):
 
         # ── Weight fallback cascade ────────────────────────────────────
         if quantity_evidence is not None:
-            if quantity_evidence.weight_source == "area_not_mass":
+            if quantity_evidence.weight_source == WEIGHT_SOURCE_AREA:
                 lbs = 0
-                lbs_source = "area_not_mass"
+                lbs_source = WEIGHT_SOURCE_AREA
             else:
                 lbs = quantity_evidence.load_weight_lbs or 0
                 lbs_source = quantity_evidence.weight_source

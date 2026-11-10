@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 
-from .triage_helpers import SellerMass, parse_seller_mass
+from .triage_helpers import WEIGHT_SOURCE_AREA, SellerMass, parse_seller_mass
 
 _WEEKLY_TO_MONTHLY = 52.0 / 12.0
 _EVERY_OTHER_WEEK_TO_MONTHLY = 26.0 / 12.0
@@ -161,10 +161,10 @@ def normalize_quantity_evidence(
     field_mass = _weight_from_weight_field(per_load) if per_load else SellerMass(None, None, "none")
     quantity_mass = parse_seller_mass(quantity) if quantity else SellerMass(None, None, "none")
     cadence_count, cadence_period, loads_per_month = _cadence(f"{quantity} {frequency}")
-    if field_mass.source == "area_not_mass" or field_mass.lbs:
+    if field_mass.source == WEIGHT_SOURCE_AREA or field_mass.lbs:
         chosen = field_mass
         weight_source_text = per_load or None
-    elif quantity_mass.source == "area_not_mass":
+    elif quantity_mass.source == WEIGHT_SOURCE_AREA:
         chosen = quantity_mass
         weight_source_text = quantity or None
     elif quantity_mass.source.startswith("unit_count:") and cadence_period:
@@ -172,7 +172,7 @@ def normalize_quantity_evidence(
         weight_source_text = None
     else:
         chosen = quantity_mass
-        weight_source_text = quantity if chosen.lbs is not None or chosen.source == "area_not_mass" else None
+        weight_source_text = quantity if chosen.lbs is not None or chosen.source == WEIGHT_SOURCE_AREA else None
 
     load_weight = chosen.lbs
     weight_source = chosen.source

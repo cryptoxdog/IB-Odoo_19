@@ -146,6 +146,8 @@ _TAIL_UNITS: tuple[tuple[re.Pattern[str], float, str], ...] = (
 
 # Above this, the number is stored and flagged. It is not deleted.
 SINGLE_LOAD_REVIEW_CAP_LBS = 200_000.0
+# Area text is a weight-source tag, not a selection value.
+WEIGHT_SOURCE_AREA = "area_not_mass"
 
 
 def _strip_commas(s: str) -> float:
@@ -209,7 +211,7 @@ def parse_seller_mass(raw: str | None) -> SellerMass:
             high_lbs = high if high > low else None
             return SellerMass(low, high_lbs, "range_lbs", _range_assumption("range_lbs", high_lbs))
         if has_area and not unit:
-            return SellerMass(None, None, "area_not_mass")
+            return SellerMass(None, None, WEIGHT_SOURCE_AREA)
 
     for pattern, multiplier, tag in _COMPILED_MASS:
         match = pattern.search(text)
@@ -219,7 +221,7 @@ def parse_seller_mass(raw: str | None) -> SellerMass:
                 return SellerMass(round(quantity * multiplier, 2), None, tag)
 
     if has_area:
-        return SellerMass(None, None, "area_not_mass")
+        return SellerMass(None, None, WEIGHT_SOURCE_AREA)
 
     for pattern, unit_key in _COMPILED_UNITS:
         match = pattern.search(text)
@@ -260,7 +262,7 @@ def parse_explicit_weight_lbs(raw: str | None) -> tuple[float | None, str]:
 def replay_stored_mass(*, quantity_text: str | None, estimated_lbs: float | None = None) -> SellerMass:
     """Re-read stored seller text. Area text discards a previously stored pound figure."""
     parsed = parse_seller_mass(quantity_text)
-    if parsed.source == "area_not_mass":
+    if parsed.source == WEIGHT_SOURCE_AREA:
         return parsed
     if parsed.lbs:
         return parsed
