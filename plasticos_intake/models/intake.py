@@ -381,8 +381,20 @@ class PlasticosIntake(models.Model):
         "Lost = deal lost. Expired = no activity timeout.",
     )
 
-    lat = fields.Float(string="Latitude")
-    lon = fields.Float(string="Longitude")
+    lat = fields.Float(string="Latitude", digits=(10, 7))
+    lon = fields.Float(string="Longitude", digits=(10, 7))
+    source_street = fields.Char(
+        string="Source Street",
+        help="Street copied from the intake's origin. Empty until a source supplies one.",
+    )
+    source_city = fields.Char(
+        string="Source City",
+        help="City copied from the intake's origin. A web-lead pickup place is stored here.",
+    )
+    source_zip = fields.Char(
+        string="Source ZIP",
+        help="Postal code copied from the intake's origin.",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Material Images (from web lead attachments)
@@ -475,7 +487,9 @@ class PlasticosIntake(models.Model):
                         "Please ensure the sequence 'plasticos.intake' is configured."
                     )
                 vals["name"] = sequence
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        records._seed_zero_snapshot_from_location()
+        return records
 
     @api.depends("partner_id", "pending_company_name")
     def _compute_company_display(self):
@@ -571,10 +585,11 @@ class PlasticosIntake(models.Model):
             self.quantity_per_load_lbs = int(mp.quantity_per_load_lbs)
         if mp.loads_per_month:
             self.loads_per_month = mp.loads_per_month
-        if mp.lat:
-            self.lat = mp.lat
-        if mp.lon:
-            self.lon = mp.lon
+        if not self.lat and not self.lon:
+            if mp.lat:
+                self.lat = mp.lat
+            if mp.lon:
+                self.lon = mp.lon
         self.origin_process_type = mp.origin_process_type or self.origin_process_type
         self.filler_type_id = mp.filler_type_id.id if mp.filler_type_id else self.filler_type_id
         self.filler_pct = mp.filler_pct or self.filler_pct
@@ -596,7 +611,48 @@ class PlasticosIntake(models.Model):
             self._sync_preferred_contact()
         if "lead_source_id" in vals or "partner_id" in vals:
             self._sync_lead_source()
+        if {"facility_id", "partner_id"} & set(vals) and not self.env.context.get("plasticos_intake_origin_seed"):
+            self._seed_zero_snapshot_from_location()
         return res
+
+    def _seed_zero_snapshot_from_location(self):
+        """Fill a zero coordinate snapshot, and blank source address, from the location."""
+        from odoo.addons.plasticos_intake.source_origin import seed_blank_snapshot
+
+        for rec in self:
+            location = rec.facility_id or rec.partner_id
+            if not location:
+                continue
+            updates = seed_blank_snapshot(
+                rec.lat,
+                rec.lon,
+                rec.source_street,
+                rec.source_city,
+                rec.source_zip,
+                location.partner_latitude,
+                location.partner_longitude,
+                location.street,
+                location.city,
+                location.zip,
+            )
+            if updates:
+                rec.with_context(plasticos_intake_origin_seed=True).write(updates)
+
+    @api.model
+    def _fill_zero_snapshots_for_locations(self, locations):
+        """After a location is geocoded, copy its coordinates onto intakes still at zero."""
+        if not locations:
+            return
+        intakes = self.search(
+            [
+                ("lat", "=", 0),
+                ("lon", "=", 0),
+                "|",
+                ("facility_id", "in", locations.ids),
+                ("partner_id", "in", locations.ids),
+            ]
+        )
+        intakes._seed_zero_snapshot_from_location()
 
     def _sync_preferred_contact(self):
         """Batch-write preferred_contact_id on facilities when contact changes.
@@ -792,10 +848,30 @@ class PlasticosIntake(models.Model):
         if not profile_partner:
             return
 
+        from odoo.addons.plasticos_intake.source_origin import location_updates_from_intake
+
+        location_updates = location_updates_from_intake(
+            profile_partner.partner_latitude,
+            profile_partner.partner_longitude,
+            self.lat,
+            self.lon,
+            profile_partner.street,
+            profile_partner.city,
+            profile_partner.zip,
+            self.source_street,
+            self.source_city,
+            self.source_zip,
+        )
+        if location_updates:
+            profile_partner.write(location_updates)
+
         profile_vals = build_material_profile_vals_from_intake(self)
         profile_vals["partner_id"] = profile_partner.id
         if self.packaging_type_id:
             profile_vals["packaging_type_id"] = self.packaging_type_id.id
+        if MaterialProfile._fields["lat"].related:
+            profile_vals.pop("lat", None)
+            profile_vals.pop("lon", None)
 
         profile = MaterialProfile.create(profile_vals)
         self.write({"material_profile_id": profile.id})

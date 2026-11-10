@@ -183,8 +183,29 @@ class PlasticosOpportunityMaterial(models.Model):
             vals[name] = related.id if related else False
         for name in SCALAR_FIELDS:
             vals[name] = profile[name]
+        intake = opportunity.source_intake_id
+        from odoo.addons.plasticos_intake.source_origin import downstream_coordinates
+
+        lat, lon = downstream_coordinates(
+            profile.lat,
+            profile.lon,
+            intake.lat if intake else 0.0,
+            intake.lon if intake else 0.0,
+        )
+        vals["lat"] = lat
+        vals["lon"] = lon
         material = self.create(vals)
         material._copy_profile_images(profile)
+        if intake:
+            address = {}
+            if not opportunity.street and intake.source_street:
+                address["street"] = intake.source_street
+            if not opportunity.city and intake.source_city:
+                address["city"] = intake.source_city
+            if not opportunity.zip and intake.source_zip:
+                address["zip"] = intake.source_zip
+            if address:
+                opportunity.write(address)
         return material
 
     def _copy_profile_images(self, profile):

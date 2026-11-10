@@ -200,6 +200,18 @@ class PlasticosOpportunityApproval(models.Model):
                 snapshot["facility_partner_id"] = facility_profile.partner_id.id
         if source_intake:
             snapshot["intake_id"] = source_intake.id
+            from odoo.addons.plasticos_intake.source_origin import downstream_coordinates
+
+            lat, lon = downstream_coordinates(
+                snapshot.get("lat") or 0.0,
+                snapshot.get("lon") or 0.0,
+                source_intake.lat,
+                source_intake.lon,
+            )
+            if lat:
+                snapshot["lat"] = lat
+            if lon:
+                snapshot["lon"] = lon
         return snapshot
 
     @api.model
