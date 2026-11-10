@@ -240,6 +240,15 @@ class PlasticosWebLead(models.Model):
         tracking=True,
         help="When the seller submitted the form. The list sorts on this date.",
     )
+    assigned_user_id = fields.Many2one(
+        "res.users",
+        string="Assigned To",
+        tracking=True,
+        index=True,
+        ondelete="set null",
+        domain=[("share", "=", False)],
+        help="Queue assignee until an opportunity exists. The opportunity salesperson is the commercial owner after that.",
+    )
     source = fields.Selection(
         [
             ("web_lead", "Web Lead"),
@@ -1344,6 +1353,7 @@ class PlasticosWebLead(models.Model):
             "contamination_notes": (
                 merged.get("contaminants_noted") or merged.get("contamination_notes") or self.contaminant_notes or False
             ),
+            "assigned_user_id": self.assigned_user_id.id or False,
         }
 
         return self.env["plasticos.intake"].create(intake_vals)
