@@ -13,7 +13,7 @@ class TestScreenViews(TransactionCase):
         modes = action.view_mode.split(",")
         self.assertIn("map", modes)
         self.assertIn("hierarchy", modes)
-        map_arch = self.env.ref("plasticos_screen_views.view_res_partner_map").arch
+        map_arch = self.env.ref("contacts_enterprise.res_partner_view_map").arch
         hierarchy_arch = self.env.ref("plasticos_screen_views.view_res_partner_hierarchy").arch
         self.assertIn('res_partner="id"', map_arch)
         self.assertIn('child_field="child_ids"', hierarchy_arch)

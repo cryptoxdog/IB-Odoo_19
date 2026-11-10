@@ -10,6 +10,7 @@
         "mail",
         "web_hierarchy",
         "web_map",
+        "contacts_enterprise",
         "plasticos_web_leads",
     ],
     "data": [
