@@ -38,6 +38,47 @@
                         class="btn btn-secondary"
                         title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) Gate result of the current lot. Re-running creates nothing new."
                         invisible="not active or type != 'opportunity' or not match_run_ids"/>
+                <button name="action_submit_release"
+                        type="object"
+                        string="Submit"
+                        class="btn btn-primary"
+                        title="PlasticOS: Creates one draft purchase order at the accepted offer price, one draft sale order at the buyer price, and one draft transaction."
+                        invisible="type != 'opportunity' or not stage_id.is_won or release_sale_order_id"
+                        groups="plasticos_security_base.group_operations_manager"/>
+            </xpath>
+
+            <xpath expr="//div[@name='button_box']" position="after">
+                <group string="Opportunity Material" invisible="type != 'opportunity' or not opportunity_material_ids">
+                    <field name="opportunity_material_ids" nolabel="1" colspan="2">
+                        <list create="false" delete="false" editable="bottom">
+                            <field name="polymer_id"/>
+                            <field name="material_grade_id"/>
+                            <field name="form_id"/>
+                            <field name="color_id"/>
+                            <field name="packaging_type_id"/>
+                            <field name="source_type_id"/>
+                            <field name="filler_type_id"/>
+                            <field name="material_attribute_ids" widget="many2many_tags"/>
+                            <field name="melt_flow_index"/>
+                            <field name="density"/>
+                            <field name="moisture_percent"/>
+                            <field name="contamination_percent"/>
+                            <field name="filler_pct"/>
+                            <field name="quantity_per_load_lbs"/>
+                            <field name="loads_per_month"/>
+                            <field name="freeform_notes"/>
+                            <field name="image_attachment_ids" widget="many2many_binary"/>
+                        </list>
+                    </field>
+                </group>
+                <group string="Admin Release" invisible="type != 'opportunity' or not stage_id.is_won" groups="plasticos_security_base.group_operations_manager">
+                    <field name="release_buyer_company_id"/>
+                    <field name="release_buyer_facility_id"/>
+                    <field name="release_buyer_price"/>
+                    <field name="release_purchase_order_id" readonly="1"/>
+                    <field name="release_sale_order_id" readonly="1"/>
+                    <field name="release_transaction_id" readonly="1"/>
+                </group>
             </xpath>
 
             <!-- ═══ Smart Buttons ═══ -->
@@ -282,6 +323,18 @@
 
             </xpath>
 
+        </field>
+    </record>
+
+    <record id="crm_lead_hide_new_quotation" model="ir.ui.view">
+        <field name="name">crm.lead.hide.new.quotation</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="sale_crm.crm_case_form_view_oppor"/>
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_sale_quotations_new']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
         </field>
     </record>
 

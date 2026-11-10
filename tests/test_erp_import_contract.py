@@ -644,6 +644,7 @@ def _contact_run(rows, existing_company=None, earlier=None, roles=None):
         contact_roles={f"R{ct}": {"RoleNm": role} for ct, role in (roles or {}).items()},
         addresses={},
         addresses_by_cp={},
+        omitted_contact_ids=set(),
     )
     report = ImportReport()
     service._import_contacts(index, report, {"C1": company.id}, dry_run=False)
@@ -668,9 +669,8 @@ def test_mixed_alias_group_imports_only_the_active_ct_id():
     assert person.phone_line_ids == [], "an inactive alias contributes no number"
     assert markers.names() == ["legacy_erp_contact_1001"], "no XMLID for the inactive alias"
     assert report.counts["contacts"]["rejected"] == 0
-    assert report.unresolved == [
-        {"table": "Contact", "kind": "inactive_contact", "key": "1002", "detail": "not imported: IsActive is inactive"}
-    ], "an inactive CT_ID is an unresolved row the summary explains, not an anomaly"
+    assert report.counts["contacts"]["skipped"] == 1
+    assert report.unresolved == [], "an inactive CT_ID is omitted, not an open exception"
 
 
 @pytest.mark.parametrize("flag", ["N", "", None, "X", "maybe"])
@@ -684,13 +684,8 @@ def test_a_group_with_no_explicitly_active_row_creates_no_person(flag):
     )
     assert people == [] and markers.rows == []
     assert (company.email, company.phone) == (False, False), "an ineligible row writes no channel on the company"
-    assert report.counts["contacts"] == {"created": 0, "updated": 0, "skipped": 0, "rejected": 0}
-    assert [(u["kind"], u["key"]) for u in report.unresolved] == [
-        ("inactive_contact", "2001"),
-        ("inactive_contact", "2002"),
-        ("inactive_contact", "2003"),
-    ]
-    assert all(u["detail"].startswith("not imported: IsActive") for u in report.unresolved)
+    assert report.counts["contacts"] == {"created": 0, "updated": 0, "skipped": 3, "rejected": 0}
+    assert report.unresolved == []
 
 
 def test_contact_fields_land_on_the_documented_targets():
@@ -762,7 +757,8 @@ def test_an_earlier_inactive_alias_marker_is_removed_and_the_active_person_kept(
     assert markers.names() == ["legacy_erp_contact_5002"], "the excluded CT_ID no longer resolves"
     (person,) = people
     assert person.active is True, "an active alias still names the person"
-    assert [u["key"] for u in report.unresolved] == ["5001"]
+    assert report.unresolved == []
+    assert report.counts["contacts"]["skipped"] == 1
 
 
 def test_an_earlier_person_of_only_inactive_ct_ids_is_archived_not_deleted():
@@ -779,7 +775,8 @@ def test_an_earlier_person_of_only_inactive_ct_ids_is_archived_not_deleted():
     service._import_contacts(index, replay, {"C1": 1}, dry_run=False)
     assert markers.names() == ["legacy_erp_contact_6003"]
     assert len(partners.rows) == 3, "the replay creates and deletes nothing"
-    assert [u["key"] for u in replay.unresolved] == ["6001", "6002"]
+    assert replay.unresolved == []
+    assert replay.counts["contacts"]["skipped"] == 2
 
 
 def test_company_phone_and_email_are_filled_independently_preferring_the_primary():

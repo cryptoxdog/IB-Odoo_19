@@ -1,0 +1,1123 @@
+{
+  "schema": "plasticos.planning.deferred-bundle-rule-index/v1",
+  "status": "DEFERRED_NOT_ADMITTED_NOT_IMPLEMENTED",
+  "source_archive_sha256": "6219ba942616b40d5850908807947d7a857232366ac3137f5a27136fc40cdea4",
+  "source_registry_sha256": "f384646bef7e095fa46f86d272726cdbe24632c235c19074e69d2c5bf0636e09",
+  "source_cases_sha256": "e0a233e1826b4a33190249a244991dce05edb932b81180ccc99715b6d3c85fae",
+  "owner": "future_plasticos_export_BRS_source_not_current_implementation_owner",
+  "rule_count": 111,
+  "acceptance_count": 111,
+  "rules": [
+    {
+      "id": "BRS-EXP-01-R001",
+      "chapter": "BRS-EXP-01",
+      "title": "Thin export scope",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export",
+      "acceptance_id": "AC-EXP-01-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-01-R002",
+      "chapter": "BRS-EXP-01",
+      "title": "Single authoritative fact owner",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "existing native and domain owners",
+      "acceptance_id": "AC-EXP-01-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-01-R003",
+      "chapter": "BRS-EXP-01",
+      "title": "Exact associations without mandatory early buyer",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Export binding; native commercial owners",
+      "acceptance_id": "AC-EXP-01-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-01-R004",
+      "chapter": "BRS-EXP-01",
+      "title": "Evidence proposals are not unauthorized business transitions",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native state owner; authorized tool command",
+      "acceptance_id": "AC-EXP-01-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-01-R005",
+      "chapter": "BRS-EXP-01",
+      "title": "Capability proof and deployment independence",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Odoo deployment/license owner",
+      "acceptance_id": "AC-EXP-01-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-02-R001",
+      "chapter": "BRS-EXP-02",
+      "title": "Booking-to-order and shipment cardinality independent",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export booking association; native commercial and Logistics identities",
+      "acceptance_id": "AC-EXP-02-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-02-R002",
+      "chapter": "BRS-EXP-02",
+      "title": "Six first-class booking values",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export for gaps only",
+      "acceptance_id": "AC-EXP-02-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-02-R003",
+      "chapter": "BRS-EXP-02",
+      "title": "ERD and cargo cutoff semantics",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export schedule context",
+      "acceptance_id": "AC-EXP-02-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-02-R004",
+      "chapter": "BRS-EXP-02",
+      "title": "Schedule source, revisions and time zones",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export schedule context + native document provenance",
+      "acceptance_id": "AC-EXP-02-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-02-R005",
+      "chapter": "BRS-EXP-02",
+      "title": "Operational readiness is a projection",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export view/exception projection",
+      "acceptance_id": "AC-EXP-02-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-02-R006",
+      "chapter": "BRS-EXP-02",
+      "title": "Commercial label is not a legal Incoterm",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native Odoo order/contract + export display",
+      "acceptance_id": "AC-EXP-02-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-03-R001",
+      "chapter": "BRS-EXP-03",
+      "title": "Native intake, AI-proposed extraction and exact document attribution",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native Documents intake; plasticos_documents exact evidence link",
+      "acceptance_id": "AC-EXP-03-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-03-R002",
+      "chapter": "BRS-EXP-03",
+      "title": "Applicability belongs to export, verdict to Documents",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "export applicability / `plasticos_documents` verification",
+      "acceptance_id": "AC-EXP-03-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-03-R003",
+      "chapter": "BRS-EXP-03",
+      "title": "No duplicate verification action",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "`plasticos_documents`",
+      "acceptance_id": "AC-EXP-03-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-03-R004",
+      "chapter": "BRS-EXP-03",
+      "title": "Native export-specific reports",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export QWeb layout / native source values",
+      "acceptance_id": "AC-EXP-03-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-03-R005",
+      "chapter": "BRS-EXP-03",
+      "title": "Linda owns external sends",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "`plasticos_logistics` / Linda using native Odoo Mail",
+      "acceptance_id": "AC-EXP-03-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-03-R006",
+      "chapter": "BRS-EXP-03",
+      "title": "Missing documents use existing activity owners",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "`plasticos_documents`/native Activity; Linda external reminders",
+      "acceptance_id": "AC-EXP-03-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-03-R007",
+      "chapter": "BRS-EXP-03",
+      "title": "Correct document type and actual obligation",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "export applicability / document type owner",
+      "acceptance_id": "AC-EXP-03-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-04-R001",
+      "chapter": "BRS-EXP-04",
+      "title": "FOB buyer pickup as industry operation",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "commercial order + `plasticos_logistics`",
+      "acceptance_id": "AC-EXP-04-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-04-R002",
+      "chapter": "BRS-EXP-04",
+      "title": "FAS inland freight-included delivery",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "commercial order + `plasticos_logistics`",
+      "acceptance_id": "AC-EXP-04-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-04-R003",
+      "chapter": "BRS-EXP-04",
+      "title": "Physical handoff and commercial allocation are independent",
+      "status": "DESIGN",
+      "phase": "P1",
+      "source_owner": "Logistics and native Stock; Documents verification; Export projection",
+      "acceptance_id": "AC-EXP-04-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-04-R004",
+      "chapter": "BRS-EXP-04",
+      "title": "ERD-to-cutoff dispatch visibility",
+      "status": "DESIGN",
+      "phase": "P1",
+      "source_owner": "export schedule view + Linda",
+      "acceptance_id": "AC-EXP-04-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-04-R005",
+      "chapter": "BRS-EXP-04",
+      "title": "Native documents and simple views first",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "`plasticos_export` views/report layout",
+      "acceptance_id": "AC-EXP-04-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-05-R001",
+      "chapter": "BRS-EXP-05",
+      "title": "In-transit sale reuses original shipment and evidence",
+      "status": "LOCKED",
+      "phase": "P2",
+      "source_owner": "native commercial sale and inventory owner; Export link/projection",
+      "acceptance_id": "AC-EXP-05-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-05-R002",
+      "chapter": "BRS-EXP-05",
+      "title": "Freight-inclusive price/role semantics",
+      "status": "LOCKED",
+      "phase": "P2",
+      "source_owner": "native commercial order + `plasticos_logistics`",
+      "acceptance_id": "AC-EXP-05-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-05-R003",
+      "chapter": "BRS-EXP-05",
+      "title": "Ocean milestones are sourced facts",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "`plasticos_export` contextual projection / third-party evidence",
+      "acceptance_id": "AC-EXP-05-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-05-R004",
+      "chapter": "BRS-EXP-05",
+      "title": "Ocean B/L, shipping instructions and VGM",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "native Documents + document compliance + export applicability",
+      "acceptance_id": "AC-EXP-05-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-05-R005",
+      "chapter": "BRS-EXP-05",
+      "title": "Applicable regulated filings and filing actors",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "external filing authority + native Documents evidence",
+      "acceptance_id": "AC-EXP-05-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-05-R006",
+      "chapter": "BRS-EXP-05",
+      "title": "Phase 2 operations remain native-first",
+      "status": "LOCKED",
+      "phase": "P2",
+      "source_owner": "native Odoo + Linda + Documents",
+      "acceptance_id": "AC-EXP-05-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-06-R001",
+      "chapter": "BRS-EXP-06",
+      "title": "Audience/confidentiality and company isolation",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native Odoo ACLs + Documents/Linda owners",
+      "acceptance_id": "AC-EXP-06-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-06-R002",
+      "chapter": "BRS-EXP-06",
+      "title": "Unknown and contradictory evidence remains visible",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "export projections with source owner decisions",
+      "acceptance_id": "AC-EXP-06-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-06-R003",
+      "chapter": "BRS-EXP-06",
+      "title": "Order, shipment, evidence and transaction states remain scoped",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native commercial/state owners; Export read-only projection",
+      "acceptance_id": "AC-EXP-06-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-06-R004",
+      "chapter": "BRS-EXP-06",
+      "title": "Minimality and acceptance gate",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "product owner/repository implementation owner",
+      "acceptance_id": "AC-EXP-06-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-06-R005",
+      "chapter": "BRS-EXP-06",
+      "title": "Safe change and activation boundaries",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "operator + live owner of each capability",
+      "acceptance_id": "AC-EXP-06-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R001",
+      "chapter": "BRS-EXP-07",
+      "title": "Equipment vocabulary differentiates road trailers from ocean containers",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Logistics transport equipment classification; Export uses scoped choices",
+      "acceptance_id": "AC-EXP-07-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R002",
+      "chapter": "BRS-EXP-07",
+      "title": "Supported domestic trailer choices",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "Logistics transport equipment; Export references for terminal drayage if applicable",
+      "acceptance_id": "AC-EXP-07-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R003",
+      "chapter": "BRS-EXP-07",
+      "title": "Supported ocean container choices with a preference, not a hard constraint",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Export booking presentation; shared logistics equipment semantics",
+      "acceptance_id": "AC-EXP-07-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R004",
+      "chapter": "BRS-EXP-07",
+      "title": "Booking equipment count and per-week physical units",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Export reservation; Logistics actual movements; native Stock cargo",
+      "acceptance_id": "AC-EXP-07-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R005",
+      "chapter": "BRS-EXP-07",
+      "title": "Reuse only the correct equipment owner and native records",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Logistics transport master/native shipping record; Export only booking-specific fields",
+      "acceptance_id": "AC-EXP-07-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R006",
+      "chapter": "BRS-EXP-07",
+      "title": "Do not infer payload, capacity or VGM from nominal equipment name",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Physical weight: native Odoo Stock and verified scale evidence; Export displays source facts",
+      "acceptance_id": "AC-EXP-07-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R007",
+      "chapter": "BRS-EXP-07",
+      "title": "Equipment discrepancy and booking amendment are explicit",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Export booking contextual exception; Documents evidence; Logistics physical movements",
+      "acceptance_id": "AC-EXP-07-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-07-R008",
+      "chapter": "BRS-EXP-07",
+      "title": "Reports and loading must use exact units without duplicate inventory",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Export views/QWeb; native Stock physical movement; Documents evidence/verification",
+      "acceptance_id": "AC-EXP-07-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R001",
+      "chapter": "BRS-EXP-08",
+      "title": "Buyer optional before a genuine sale",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native Purchase/Stock + permitted Logistics movement authority",
+      "acceptance_id": "AC-EXP-08-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R002",
+      "chapter": "BRS-EXP-08",
+      "title": "One large customer commitment with smaller supply orders",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native `sale.order`/`purchase.order` lines",
+      "acceptance_id": "AC-EXP-08-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R003",
+      "chapter": "BRS-EXP-08",
+      "title": "Partial purchase fulfillment without PO duplication",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native Odoo Purchase and Stock receipt/picking owner",
+      "acceptance_id": "AC-EXP-08-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R004",
+      "chapter": "BRS-EXP-08",
+      "title": "Partial sales fulfillment and reserved allocation",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native Odoo Sales and Stock delivery/move lines",
+      "acceptance_id": "AC-EXP-08-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R005",
+      "chapter": "BRS-EXP-08",
+      "title": "Independent booking per execution and container cardinality",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Export booking and Logistics exact shipment links",
+      "acceptance_id": "AC-EXP-08-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R006",
+      "chapter": "BRS-EXP-08",
+      "title": "Fulfillment allocation is traceable without second quantity ledger",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "native Stock/Purchase/Sales actual lines; Export typed linkage",
+      "acceptance_id": "AC-EXP-08-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R007",
+      "chapter": "BRS-EXP-08",
+      "title": "Late buyer assignment and on-water resale",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native commercial owner; stock custody; Export historic association",
+      "acceptance_id": "AC-EXP-08-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-08-R008",
+      "chapter": "BRS-EXP-08",
+      "title": "Movement eligibility by purpose, not a universal buyer predicate",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Logistics and native authorization owner, not Export",
+      "acceptance_id": "AC-EXP-08-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R001",
+      "chapter": "BRS-EXP-09",
+      "title": "Use Odoo native AI Documents before custom extraction",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native Odoo Documents AI, installed capability verified",
+      "acceptance_id": "AC-EXP-09-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R002",
+      "chapter": "BRS-EXP-09",
+      "title": "Typed field extraction with source-level provenance",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native AI candidate intake; export booking field owner",
+      "acceptance_id": "AC-EXP-09-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R003",
+      "chapter": "BRS-EXP-09",
+      "title": "Exact company-and-booking match, never latest partner",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "PlasticOS Documents exact link and Export booking lookup",
+      "acceptance_id": "AC-EXP-09-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R004",
+      "chapter": "BRS-EXP-09",
+      "title": "Ambiguity, conflicting originals and correction review",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Documents verification owner; authorized export booking reviewer",
+      "acceptance_id": "AC-EXP-09-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R005",
+      "chapter": "BRS-EXP-09",
+      "title": "Version-safe, idempotent apply",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Export booking owner; native Documents original/version keeper",
+      "acceptance_id": "AC-EXP-09-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R006",
+      "chapter": "BRS-EXP-09",
+      "title": "Apply structured values only through approved owner interface",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Export booking/record owner; Documents extraction producer",
+      "acceptance_id": "AC-EXP-09-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R007",
+      "chapter": "BRS-EXP-09",
+      "title": "Transaction/load state changes only via validated commands",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "native state transition owner (Transaction/Logistics/Stock/Accounting)",
+      "acceptance_id": "AC-EXP-09-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-09-R008",
+      "chapter": "BRS-EXP-09",
+      "title": "Source-scoped status and human review observability",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "native Documents, Export exception presentation, Odoo Activities",
+      "acceptance_id": "AC-EXP-09-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R001",
+      "chapter": "BRS-EXP-10",
+      "title": "Current booking requirements are revision-bound Logistics input",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "Export current booking view; Logistics decision/dispatch owner",
+      "acceptance_id": "AC-EXP-10-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R002",
+      "chapter": "BRS-EXP-10",
+      "title": "Independent supplier PO issue and later booking delivery",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "native Purchase report + Export booking QWeb + Linda sending owner",
+      "acceptance_id": "AC-EXP-10-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R003",
+      "chapter": "BRS-EXP-10",
+      "title": "Carrier packet: booking and drayage Work Order, audience-safe",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "Logistics QWeb and authorized Linda sender; Export booking PDF source",
+      "acceptance_id": "AC-EXP-10-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R004",
+      "chapter": "BRS-EXP-10",
+      "title": "Material amendments protect pending commitments and mail",
+      "status": "DESIGN",
+      "phase": "P1",
+      "source_owner": "Logistics/Linda transition and Odoo Mail, Export provides booking version",
+      "acceptance_id": "AC-EXP-10-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R005",
+      "chapter": "BRS-EXP-10",
+      "title": "ERD and cutoff are terminal constraints, not supplier pickup dates",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "Export time values; Logistics pickup feasibility/appointments",
+      "acceptance_id": "AC-EXP-10-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R006",
+      "chapter": "BRS-EXP-10",
+      "title": "Equipment-aware freight context and explicit commitments",
+      "status": "DESIGN",
+      "phase": "P1",
+      "source_owner": "Logistics freight context/booking owner",
+      "acceptance_id": "AC-EXP-10-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R007",
+      "chapter": "BRS-EXP-10",
+      "title": "Terminal and voyage milestones have distinct evidence",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Logistics delivery tracking + native Documents proof; Export display",
+      "acceptance_id": "AC-EXP-10-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-10-R008",
+      "chapter": "BRS-EXP-10",
+      "title": "Movement authorization not tied to buyer visibility",
+      "status": "DESIGN",
+      "phase": "P1",
+      "source_owner": "Logistics/Linda audience and buyer-optional movement policy",
+      "acceptance_id": "AC-EXP-10-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R001",
+      "chapter": "BRS-EXP-11",
+      "title": "Interpret the whole business correspondence package",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Native Mail/Documents intake; AI extraction",
+      "acceptance_id": "AC-EXP-11-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R002",
+      "chapter": "BRS-EXP-11",
+      "title": "Recognize document and message function, not just keywords",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Native Documents classification; plasticos_documents verification",
+      "acceptance_id": "AC-EXP-11-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R003",
+      "chapter": "BRS-EXP-11",
+      "title": "Resolve booking-versus-PO-versus-physical load identities",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_documents exact association; Export booking context",
+      "acceptance_id": "AC-EXP-11-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R004",
+      "chapter": "BRS-EXP-11",
+      "title": "Extract original booking attributes and missing-field truth",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "Native AI extraction; Export target schema",
+      "acceptance_id": "AC-EXP-11-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R005",
+      "chapter": "BRS-EXP-11",
+      "title": "Capture roll reasons, classifications, capacity and continuity",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Export booking history and supplier/carrier evidence",
+      "acceptance_id": "AC-EXP-11-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R006",
+      "chapter": "BRS-EXP-11",
+      "title": "Maintain field-level current value, version, and approval",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Export booking context; Documents verification",
+      "acceptance_id": "AC-EXP-11-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R007",
+      "chapter": "BRS-EXP-11",
+      "title": "Use PO-level terms as constraints without copying financial values",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "Native Purchase, Documents evidence; Export/Logistics read",
+      "acceptance_id": "AC-EXP-11-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R008",
+      "chapter": "BRS-EXP-11",
+      "title": "Cross-check physical documents, not guessed shipping completion",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "plasticos_documents evidence; native Stock/Logistics movement owners",
+      "acceptance_id": "AC-EXP-11-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R009",
+      "chapter": "BRS-EXP-11",
+      "title": "Track externally hosted photos and document completeness honestly",
+      "status": "LOCKED",
+      "phase": "P1",
+      "source_owner": "Native Documents original/linked assets; plasticos_documents requirement verdict",
+      "acceptance_id": "AC-EXP-11-009",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R010",
+      "chapter": "BRS-EXP-11",
+      "title": "Guard shipment state changes and order balances",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "Native Purchase/Sale/Stock and Logistics/Transaction guarded commands",
+      "acceptance_id": "AC-EXP-11-010",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R011",
+      "chapter": "BRS-EXP-11",
+      "title": "Propagate only a verified material change to the right consumers",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Export publishes revisions; Logistics/Linda owns schedule/mail",
+      "acceptance_id": "AC-EXP-11-011",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-11-R012",
+      "chapter": "BRS-EXP-11",
+      "title": "Offer a coordinator-style exception and audit view",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "Export sourced view + native Activity; Documents and Logistics originals",
+      "acceptance_id": "AC-EXP-11-012",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R001",
+      "chapter": "BRS-EXP-12",
+      "title": "FindTEU Phase 2 tracking adapter",
+      "status": "LOCKED",
+      "phase": "P2",
+      "source_owner": "plasticos_export integration boundary; provider is external evidence producer",
+      "acceptance_id": "AC-EXP-12-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R002",
+      "chapter": "BRS-EXP-12",
+      "title": "Exact container identity and optional booking-number tracking",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "plasticos_export typed mapping; native Odoo shipping identity remains canonical",
+      "acceptance_id": "AC-EXP-12-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R003",
+      "chapter": "BRS-EXP-12",
+      "title": "Carrier observation is not commercial or stock authority",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "plasticos_export evidence projection with Logistics/Stock/Docs retained",
+      "acceptance_id": "AC-EXP-12-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R004",
+      "chapter": "BRS-EXP-12",
+      "title": "Rolls, replay, reversals and provider discrepancies",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "plasticos_export booking reconciliation; Logistics authorizes affected actions",
+      "acceptance_id": "AC-EXP-12-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R005",
+      "chapter": "BRS-EXP-12",
+      "title": "FindTEU tenancy, credentials, outages and coverage gate",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "platform integration/security owner; Export is a consumer",
+      "acceptance_id": "AC-EXP-12-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R006",
+      "chapter": "BRS-EXP-12",
+      "title": "AESDirect Phase 2 EEI filing support, not autonomous filing",
+      "status": "LOCKED",
+      "phase": "P2",
+      "source_owner": "authorized USPPI/agent/filer and applicable regulator; Export filing context only",
+      "acceptance_id": "AC-EXP-12-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R007",
+      "chapter": "BRS-EXP-12",
+      "title": "Validate and assemble filing data from existing business sources",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "native Odoo Sale/Purchase/Stock and authorized compliance reviewer; Export orchestration",
+      "acceptance_id": "AC-EXP-12-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R008",
+      "chapter": "BRS-EXP-12",
+      "title": "Official AESDirect portal, WebLink or supported bulk handoff",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "authorized filer; connector only prepares supported handoff",
+      "acceptance_id": "AC-EXP-12-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R009",
+      "chapter": "BRS-EXP-12",
+      "title": "Official response, ITN or exemption evidence and errors",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "authorized filing authority + native Documents/PlasticOS verification",
+      "acceptance_id": "AC-EXP-12-009",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-12-R010",
+      "chapter": "BRS-EXP-12",
+      "title": "Amendments, cancellations, access control and certification boundary",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "authorized filer and platform security; Export only coordinates evidence",
+      "acceptance_id": "AC-EXP-12-010",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R001",
+      "chapter": "BRS-EXP-13",
+      "title": "Primary booking identity and existing six critical fields",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R002",
+      "chapter": "BRS-EXP-13",
+      "title": "Additional independent deadline types and timezone",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R003",
+      "chapter": "BRS-EXP-13",
+      "title": "Carrier, forwarder, vessel, voyage and transport milestones",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R004",
+      "chapter": "BRS-EXP-13",
+      "title": "Port versus receipt, delivery and terminal locations",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R005",
+      "chapter": "BRS-EXP-13",
+      "title": "Equipment quantity and multiple independent container identities",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R006",
+      "chapter": "BRS-EXP-13",
+      "title": "Contract references and cargo constraints",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R007",
+      "chapter": "BRS-EXP-13",
+      "title": "Optional commercial group and current booking status",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R008",
+      "chapter": "BRS-EXP-13",
+      "title": "AI extraction fills only exact authoritative targets",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_documents + native Odoo AI/Document owners; Export consumes validated candidates",
+      "acceptance_id": "AC-EXP-13-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R009",
+      "chapter": "BRS-EXP-13",
+      "title": "Native-first ergonomic booking form and tabs",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-009",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-13-R010",
+      "chapter": "BRS-EXP-13",
+      "title": "Carrier document and operator-generated booking distinction",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-13-010",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R001",
+      "chapter": "BRS-EXP-14",
+      "title": "Native Odoo reporting foundation only",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-001",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R002",
+      "chapter": "BRS-EXP-14",
+      "title": "Container-grain master report",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-002",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R003",
+      "chapter": "BRS-EXP-14",
+      "title": "Booking-grain summary with drill-down",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-003",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R004",
+      "chapter": "BRS-EXP-14",
+      "title": "Search, filters and stable saved views",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-004",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R005",
+      "chapter": "BRS-EXP-14",
+      "title": "Convenient interactive list and export",
+      "status": "LOCKED",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-005",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R006",
+      "chapter": "BRS-EXP-14",
+      "title": "Report column provenance and business-owner mapping",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-006",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R007",
+      "chapter": "BRS-EXP-14",
+      "title": "Date semantics, time zones and cutoff risk",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-007",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R008",
+      "chapter": "BRS-EXP-14",
+      "title": "Weight, equipment tare, VGM and units",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-008",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R009",
+      "chapter": "BRS-EXP-14",
+      "title": "Native pivots and useful operating metrics",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-009",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R010",
+      "chapter": "BRS-EXP-14",
+      "title": "Audience-safe QWeb and source-linked revisions",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-010",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R011",
+      "chapter": "BRS-EXP-14",
+      "title": "Source workbook as conformance fixture, not production authority",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-011",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R012",
+      "chapter": "BRS-EXP-14",
+      "title": "Access control and reproducible report scope",
+      "status": "DESIGN",
+      "phase": "BOTH",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-012",
+      "acceptance_status": "NOT_RUN"
+    },
+    {
+      "id": "BRS-EXP-14-R013",
+      "chapter": "BRS-EXP-14",
+      "title": "Phase 2 provider evidence is additive",
+      "status": "DESIGN",
+      "phase": "P2",
+      "source_owner": "plasticos_export; native Odoo owns shared commercial and logistics facts",
+      "acceptance_id": "AC-EXP-14-013",
+      "acceptance_status": "NOT_RUN"
+    }
+  ],
+  "admission": "Read-only donor citation index. Interpret exact content in private donor source. No rule copied into currently admitted Logistics/Documents BRS."
+}

@@ -1,0 +1,236 @@
+{
+  "schema": "plasticos.planning.bundle-manifest/v2",
+  "title": "PlasticOS Post-Import Documents, Accounting and Disaster Recovery Working Graph v5.1",
+  "created": "2026-11-09",
+  "status": "WORKING_NON_ADMITTED_SOURCE_GROUNDED_NOT_PRODUCTION_PROVEN",
+  "source_sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+  "predecessor_zip_sha256": "f3f5dfb1d4e145ddb6d97f5d19ba25ce816d64bcfe7bf6e1b28d6c0faebf7818",
+  "files": [
+    {
+      "path": "00_READ_FIRST.md",
+      "bytes": 7586,
+      "sha256": "480b0a0f68ae594fa3db2c812fca6f225d600fd754a763ffc61d8651ad205186"
+    },
+    {
+      "path": "02_STRATEGIC_GRAPH_CANDIDATES.json",
+      "bytes": 10565,
+      "sha256": "978301513631275dcae3be1b0eb4017febc754581d639d8cb3d132c9e9c6dece"
+    },
+    {
+      "path": "03_DOMAIN_PHASE_AND_DEPENDENCY_VIEW.json",
+      "bytes": 66745,
+      "sha256": "24d9aae0709e52a249b79b028aaf6661a8c07f741ce652fc06a4960104337735"
+    },
+    {
+      "path": "04_CONSTITUTIONAL_PRESERVATION_AND_ADMISSION.md",
+      "bytes": 4996,
+      "sha256": "21fff81d0207f5305b5ef7c1bc5a7a7d9ed563b1435e8e9ebb63372b8675e4ef"
+    },
+    {
+      "path": "05_BRS_OWNER_RECONCILIATION.md",
+      "bytes": 6301,
+      "sha256": "2d339ff5e5e6863bc48580400ec53a739e4d8a17d7f1b1fa7b6755b4c53ab699"
+    },
+    {
+      "path": "06_DOCUMENTS_AI_CAPABILITY_CONTRACT.md",
+      "bytes": 5372,
+      "sha256": "c54eaf1ab85191fe953492df1a05bf05e482f035951c067081e14fea65f259f8"
+    },
+    {
+      "path": "07_SOURCE_GAPS_AND_PROOFS.md",
+      "bytes": 3370,
+      "sha256": "e32e9fdb423a8e3d7daa69538f5a1d74fdf0e921d3835d3980f2ed09a6e9ad04"
+    },
+    {
+      "path": "08_RECOMMENDED_NEXT_PLANNING_ACTION.md",
+      "bytes": 2400,
+      "sha256": "ab0ab536ac21dd688a522797678f10cd7d389abfe36abec06ecd06f15e291a2f"
+    },
+    {
+      "path": "09_DEFERRED_EXPORT_BRS_INDEX.json",
+      "bytes": 40196,
+      "sha256": "70d4474e5d7c908875df3233dfd984aa49f2c93496a036b245ce64c4e8a6e53e"
+    },
+    {
+      "path": "10_PLACEMENT_AND_CONFLICT_DECISIONS.md",
+      "bytes": 2965,
+      "sha256": "4917d2b5893a166ba4d2bdb9d68f7993311b84e8c946b983b60f9093bc8d353b"
+    },
+    {
+      "path": "11_CAPABILITY_OWNERSHIP_AND_IMPLEMENTATION_GRAPH.json",
+      "bytes": 40933,
+      "sha256": "77f3bcd27f71303cdc81d0bfb710766c3e83289fe6f6150095c85fb59484274d"
+    },
+    {
+      "path": "12_REQUIRED_CORRECTIONS_AND_OWNER_DECISIONS.json",
+      "bytes": 23453,
+      "sha256": "5525e0c1557ae5150d5fffa47cb5122f5745fb21ca753fae54dde2efd16a1538"
+    },
+    {
+      "path": "13_OWNER_RESOLUTION_AND_MIGRATION_DESIGNS.md",
+      "bytes": 14740,
+      "sha256": "cab0ea9f24fa7c4cfac8665528a46ff30538dfe9287977ca3eaa466128b1c578"
+    },
+    {
+      "path": "14_DOMAIN_BRS_AMENDMENT_REGISTER.md",
+      "bytes": 4194,
+      "sha256": "f7b64633dafc9c4277b2a4bdf295072a687fa2a13056d8c9974b124ea3daff8c"
+    },
+    {
+      "path": "15_SOURCE_BOUND_STATUS_EVIDENCE.json",
+      "bytes": 40695,
+      "sha256": "eca2fb56d90ed291fcfb0f31a23abf9431bf743d4c57c264958af41e1db9ad44"
+    },
+    {
+      "path": "16_IMPLEMENTATION_STATUS_AND_PROOF_MATRIX.json",
+      "bytes": 27222,
+      "sha256": "f07e05a4cc2ea9f2d332db56c07e2690f44fd63ceee1a1454d3ca9fa93e73c1d"
+    },
+    {
+      "path": "17_INDEPENDENT_ACCEPTANCE_AND_NEGATIVE_PROBES.json",
+      "bytes": 15975,
+      "sha256": "812a743ec872ece92a1f74a8dc7aff945c70ceb4823daf270cdbff51c014dfa3"
+    },
+    {
+      "path": "18_GRAPH_PLACEMENT_AND_CLOSURE.md",
+      "bytes": 3809,
+      "sha256": "3290a5a3d02bdcd7c58fd49e8c1f128da24b33456d724a0d76ccdd4339210128"
+    },
+    {
+      "path": "19_OWNER_HANDOFFS_NO_IMPLEMENTATION_AUTHORITY.md",
+      "bytes": 2993,
+      "sha256": "e2cffb5442442f91b7463311e60d5b461050d96289f479c07134cdf4698670a3"
+    },
+    {
+      "path": "20_SUCCESSOR_VALIDATION_AND_CHANGE_REPORT.json",
+      "bytes": 11428,
+      "sha256": "cc81cf7d61b7432d1bbfff02bd9513dc44c8d896e6f8cabb9f94921284596b02"
+    },
+    {
+      "path": "21_ADMISSION_BOUNDARY_AND_POLICY_ASSERTIONS.json",
+      "bytes": 10332,
+      "sha256": "171ce2cfb6dc5039268590e802dbd7f3b87ddf8b6e79eedab1251846e30c3a94"
+    },
+    {
+      "path": "22_BOUNDED_STRATEGIC_TRAVERSAL_OVERLAY.json",
+      "bytes": 8621,
+      "sha256": "aff4ac080b7e80b116f63a301af2569c19d1b7e6676d3016128e6780f7e1e38e"
+    },
+    {
+      "path": "23_RELEASE_CHECKPOINT_2026-10-30.md",
+      "bytes": 1617,
+      "sha256": "e90bba186734763af03f7f5dd83cc370484801edc8e53f882d6c82ab70c632e6"
+    },
+    {
+      "path": "24_RELEASE_GATE_GRAPH_2026-10-30.json",
+      "bytes": 16700,
+      "sha256": "b8d5204ea4227ebfae43242b0b726a156384c12558eb6126d5f93b492881c380"
+    },
+    {
+      "path": "25_CHECKPOINT_VALIDATION_POLICY.json",
+      "bytes": 8437,
+      "sha256": "425c883d434e757ea31c2cdc705e81aac5f2300c616155741f24bfe36fa8066f"
+    },
+    {
+      "path": "26_OPERATOR_OVERNIGHT_CUTOVER_DECISION.md",
+      "bytes": 1810,
+      "sha256": "594705f4a5984d193170c4342d01c8ee2544bbb7f7ed7a04aad83b1ff7525a0c"
+    },
+    {
+      "path": "27_OVERNIGHT_CUTOVER_EXECUTION_GRAPH.json",
+      "bytes": 3501,
+      "sha256": "5c46dc8ae9734f6f8a46fbdd254d9ad44e9806f595e203ba080a2aab1aa4b91e"
+    },
+    {
+      "path": "28_CURRENT_STAGING_RELEASE_STATUS.md",
+      "bytes": 1632,
+      "sha256": "70ebfbc5b507f804731fac2aca7caef5dbe89ac37e2bf95ed433604906d5c518"
+    },
+    {
+      "path": "29_RELEASE_SOURCE_BINDING_AND_NEXT_PROOFS.json",
+      "bytes": 4944,
+      "sha256": "4ae315cec4f32a70b7a934e6a7a71ad954abef1576759cce49d6d895516b0840"
+    },
+    {
+      "path": "30_PRODUCTION_QUALITY_SWEEP_2026-11-09.md",
+      "bytes": 9499,
+      "sha256": "22310ca7a4bbf6c5e3940f3ff9a6dd74d73965e330d3d078a65ab7ae12c74fc5"
+    },
+    {
+      "path": "31_POST_IMPORT_BLOBS_AND_DOCUMENT_AI.md",
+      "bytes": 6155,
+      "sha256": "eafeb0e21e6683c78b10e32b9df186a286218424bfeceaf831171cd03a57de0c"
+    },
+    {
+      "path": "32_ACCOUNTING_REPORTS_AND_REOPEN_MAKE.md",
+      "bytes": 6913,
+      "sha256": "08aa9be9741b0ac36238f53afd1018e00ab21a5454a32e3f606ac0dcd4c4d52f"
+    },
+    {
+      "path": "33_EXISTING_DISASTER_RECOVERY_POINTER.md",
+      "bytes": 4020,
+      "sha256": "6a6b808e3899b2850e0862c29ee030251ad4f9e13ee5ad052cf97a208edfbb1a"
+    },
+    {
+      "path": "34_POST_IMPORT_ACCEPTANCE_CASES.json",
+      "bytes": 10329,
+      "sha256": "9def4b71dc763004ccfb576417d4da42924a7508caf4bd274dbb883e5f4d6891"
+    },
+    {
+      "path": "VALIDATION.json",
+      "bytes": 6578,
+      "sha256": "38b17b2fb5b47547705fe35eb56db0bf0eb74f36ffaad93812a8049c90cba263"
+    }
+  ],
+  "provenance": [
+    "previous foundation architecture pack",
+    "operator issue list 2026-10-28",
+    "current source Odoo Staging exact revision",
+    "global L9 strategic-model/source references",
+    "October 30 v4.0 exact file archive predecessor",
+    "GitHub Production branch PR #408",
+    "Staging latest inspected branch",
+    "operator 2026-11-09 test-ready core + UI + Export-next decision"
+  ],
+  "no_source_repository_mutation": true,
+  "checkpoint_predecessor_zip_sha256": "5b7413cd401fd41d24c0f3207044632f6ce9630eac3dfbeec98a023949b0f62c",
+  "missing_predecessor_members_declared_but_absent": {
+    "01B_INVARIANTS_v3.3.0_DRAFT_r1.md": {
+      "path": "01B_INVARIANTS_v3.3.0_DRAFT_r1.md",
+      "bytes": 31029,
+      "sha256": "a046110131b2fd884c3e098bc19aa12376484d00e8cf3abea209915bb83cdad4"
+    },
+    "01_INVARIANTS_v3.2.0_DRAFT_r1.md": {
+      "path": "01_INVARIANTS_v3.2.0_DRAFT_r1.md",
+      "bytes": 28327,
+      "sha256": "800500857a2edbd19ad55fd05835f590f10f0962de050f7b736298e4ed7882b9"
+    }
+  },
+  "file_set_scope": "ACTUAL_EMBEDDED_ONLY",
+  "operator_cutover_predecessor_zip_sha256": "7de0db365491bea8dfd05676657cff018a5ed94c71b09fa666bb156a05843e99",
+  "operator_cutover_source": "USER_MESSAGE_2026_10_30",
+  "predecessor_active_zip_sha256": "93ec8a87feb739fa841ccff32507aaea685f4dfdafca6933ec1cfe8fab5f4f75",
+  "revision": "v5.1-working-post-import-accounting-dr",
+  "graph_update_provenance": [
+    "operator_report_rehearsal_done_2026_10_30",
+    "operator_report_remediation_done_2026_10_30",
+    "GitHub_PR_351_merged",
+    "GitHub_PR_349_merged",
+    "GitHub_PR_350_merged",
+    "GitHub_PR_352_open",
+    "current_release_compare_388_1"
+  ],
+  "production_sha": "02b90f199f2ae8733e3759b3d60cda85800ee486",
+  "actual_predecessor_member_count": 33,
+  "historical_missing_drafts_not_embedded": [
+    "01_INVARIANTS_v3.2.0_DRAFT_r1.md",
+    "01B_INVARIANTS_v3.3.0_DRAFT_r1.md"
+  ],
+  "operator_enrichment": {
+    "new_source_bound_docs": 4,
+    "work_items": 70,
+    "capabilities": 35,
+    "DR_pointer_only": "docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/README.md",
+    "runtime": "NOT_RUN"
+  }
+}

@@ -29,6 +29,10 @@ class SaleOrder(models.Model):
         created historical transaction starts Closed. Source status is
         provenance only. Live sales retain the normal sequence and name and
         are activated.
+
+        An order that already has ``transaction_id`` is left alone: submit sets
+        that link on the draft sale order, and confirmation must not compile a
+        second transaction. The ``import_mode`` path is unchanged.
         """
         res = super().action_confirm()
         if self.env.context.get("import_mode"):

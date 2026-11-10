@@ -38,7 +38,7 @@ class PlasticosWebLeadCRM(models.Model):
 
         ref = self.env.ref
         source = self.lead_source_id or ref("plasticos_crm_bridge.utm_source_web_lead", raise_if_not_found=False)
-        stage = ref("plasticos_crm_bridge.stage_new", raise_if_not_found=False)
+        stage = ref("crm.stage_lead1", raise_if_not_found=False)
 
         vals = {
             "name": " — ".join(filter(None, [self.company_name, self.material_description])) or "Web Lead",
