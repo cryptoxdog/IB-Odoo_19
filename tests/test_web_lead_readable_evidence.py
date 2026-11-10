@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import defusedxml.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "plasticos_web_leads"
