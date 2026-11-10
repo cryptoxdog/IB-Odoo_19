@@ -1,5 +1,16 @@
-from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
+from odoo import Command, api, fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
+
+# Flag name to plasticos.equipment.type code. Inverse links only these codes.
+_EQUIPMENT_FLAG_CODES = (
+    ("has_horizontal_baler", "horizontal_baler"),
+    ("has_downstroke_baler", "downstroke_baler"),
+    ("has_shredder", "shredder"),
+    ("has_granulator", "granulator"),
+    ("has_wash_line", "wash_line"),
+    ("has_extruder", "extruder"),
+    ("has_sorting_line", "sorting_line"),
+)
 
 
 def _get_form_selection(self):
@@ -52,23 +63,28 @@ class PlasticosFacilityProfile(models.Model):
     # ── Equipment (computed Boolean flags for matcher compatibility) ──
     has_horizontal_baler = fields.Boolean(
         compute="_compute_equipment_flags",
+        inverse="_inverse_equipment_flags",
         store=True,
         index=True,
     )
     has_downstroke_baler = fields.Boolean(
         compute="_compute_equipment_flags",
+        inverse="_inverse_equipment_flags",
         store=True,
     )
     has_shredder = fields.Boolean(
         compute="_compute_equipment_flags",
+        inverse="_inverse_equipment_flags",
         store=True,
     )
     has_granulator = fields.Boolean(
         compute="_compute_equipment_flags",
+        inverse="_inverse_equipment_flags",
         store=True,
     )
     has_wash_line = fields.Boolean(
         compute="_compute_equipment_flags",
+        inverse="_inverse_equipment_flags",
         store=True,
         index=True,
     )
@@ -76,10 +92,12 @@ class PlasticosFacilityProfile(models.Model):
         string="Has Extruder",
         help="Facility has extrusion equipment (can process regrind/flake → pellet).",
         compute="_compute_equipment_flags",
+        inverse="_inverse_equipment_flags",
         store=True,
     )
     has_sorting_line = fields.Boolean(
         compute="_compute_equipment_flags",
+        inverse="_inverse_equipment_flags",
         store=True,
     )
 
@@ -288,6 +306,25 @@ class PlasticosFacilityProfile(models.Model):
             rec.has_extruder = "extruder" in codes
             rec.has_sorting_line = "sorting_line" in codes
 
+    def _inverse_equipment_flags(self):
+        """Link or unlink only the equipment type that matches each edited flag."""
+        codes = [code for _flag, code in _EQUIPMENT_FLAG_CODES]
+        by_code = {row.code: row for row in self.env["plasticos.equipment.type"].search([("code", "in", codes)])}
+        for rec in self:
+            current = rec.equipment_type_ids
+            commands = []
+            for flag, code in _EQUIPMENT_FLAG_CODES:
+                equip = by_code.get(code)
+                if not equip:
+                    continue
+                linked = equip in current
+                if rec[flag] and not linked:
+                    commands.append(Command.link(equip.id))
+                elif not rec[flag] and linked:
+                    commands.append(Command.unlink(equip.id))
+            if commands:
+                rec.equipment_type_ids = commands
+
     # ═════════════════════════════════════════════════════════
     # Computed Fields
     # ═════════════════════════════════════════════════════════
@@ -379,6 +416,17 @@ class PlasticosFacilityProfile(models.Model):
             "type": "ir.actions.act_window",
             "res_model": "res.partner",
             "res_id": self.partner_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
+    def action_open_profile_form(self):
+        """Open this facility profile in a full form view."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "plasticos.facility.profile",
+            "res_id": self.id,
             "view_mode": "form",
             "target": "current",
         }

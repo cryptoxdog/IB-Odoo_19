@@ -1,0 +1,522 @@
+{
+  "schema": "plasticos.planning.remediation-and-policy-decisions/v1",
+  "status": "REMEDIATIONS_SOURCE_UPGRADED_PENDING_PRODUCTION_QA",
+  "source_sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+  "items": [
+    {
+      "id": "FIX-DOC-WRITER",
+      "kind": "CONFIRMED_SOURCE_CORRECTNESS_DEFECT",
+      "priority": "P0_DOCUMENTS_SAFETY",
+      "semantic_owner": "plasticos_documents",
+      "execution_owner": "plasticos_documents + plasticos_documents_native",
+      "observed": "Both native documents.document and PlasticOS plasticos.document define independent verified/verified_by/verified_at and action_verify; native has independent action_override",
+      "source_refs": [
+        "E-DOC-VERIFY",
+        "E-DOC-NATIVE-VERIFY",
+        "E-20261109-DOC-SINGLE"
+      ],
+      "governing": [
+        "POS-INV-02",
+        "POS-INV-07",
+        "BRS-POS-03-R004"
+      ],
+      "desired_resolution": "plasticos_documents owns one typed, revision-aware decision and manager override. Native bridge action delegates to the same access-checked decision or displays a derived, read-only projection; original stays in native Documents.",
+      "forbidden": [
+        "retain two editable verified fields that can disagree",
+        "copy a boolean on attachment receipt",
+        "drop historical approvals without reconciliation"
+      ],
+      "acceptance": [
+        "Only one owner action can establish verified decision",
+        "native and business UI read exactly same decision/revision",
+        "old verified values reconciled with explicit exception queue",
+        "unauthorized and stale revision both reject",
+        "no external send or invoice post"
+      ],
+      "status": "CODE_MERGED_PR322_CURRENT_PROD_RUNTIME_UNVERIFIED",
+      "owner_admission": "BRS_DESIGN_SOURCE_PRESENT_PR_APPROVAL_UNVERIFIED",
+      "decision": "OWNER_SEAM_PROPOSED",
+      "baseline_status_2026_10_28": "REMEDIATION_REQUIRED_NOT_STARTED",
+      "checkpoint_prs": [
+        322
+      ],
+      "checkpoint_as_of": "2026-10-30",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "FIX-DOC-RECENCY",
+      "kind": "CONFIRMED_SOURCE_CORRECTNESS_DEFECT",
+      "priority": "P0_DOCUMENTS_SAFETY",
+      "semantic_owner": "plasticos_documents",
+      "execution_owner": "plasticos_documents_native proposal path + plasticos_documents acceptance",
+      "observed": "_auto_link_partner uses partner_id, open transaction status, create_date desc, limit=1 then writes transaction_id/load_id.",
+      "source_refs": [
+        "E-DOC-AUTOLINK",
+        "E-DOC-ASSOC-BRS",
+        "E-20261109-DOC-SINGLE"
+      ],
+      "governing": [
+        "POS-INV-06",
+        "BRS-POS-02-R006",
+        "BRS-POS-03-R002"
+      ],
+      "desired_resolution": "Disable automatic authoritative writes by newest partner. Candidate links may be derived from exact company, source document, party, PO/SO/transaction/picking/load identity, reference, source revision and covered quantity; ambiguous cases remain in Inbox with one activity. Owner validates link and scoped coverage.",
+      "forbidden": [
+        "partner-only/latest-order selection",
+        "auto-linking wrong company",
+        "one document proving all loads by default",
+        "creating fake sale/transaction/load to make attachment valid"
+      ],
+      "acceptance": [
+        "Two open transactions for same partner stay unmatched",
+        "exact validated reference links one or multiple evidence rows to one original",
+        "PO-only reference remains attached to native PO/picking",
+        "stale source revision blocks current approval",
+        "company and ACL prevent cross-tenant matching"
+      ],
+      "status": "CODE_MERGED_PR322_CURRENT_PROD_RUNTIME_UNVERIFIED",
+      "owner_admission": "DOCUMENTS_OWNS_ACCEPTANCE_NATIVE_OWNS_INGEST",
+      "decision": "OWNER_SEAM_PROPOSED",
+      "baseline_status_2026_10_28": "REMEDIATION_REQUIRED_NOT_STARTED",
+      "checkpoint_prs": [
+        322
+      ],
+      "checkpoint_as_of": "2026-10-30",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "FIX-LOG-MULTILOAD",
+      "kind": "CONFIRMED_SOURCE_MODEL_LIMITATION",
+      "priority": "P1_REQUIRED_FOUNDATION_NOT_EXPORT_ACTIVATION",
+      "semantic_owner": "plasticos_logistics + native Purchase/Sales/Stock lifecycle",
+      "execution_owner": "plasticos_logistics with coupled consumer migrations",
+      "observed": "plasticos.transaction.load_id is Many2one with unique constraint; load creates from sale_order_id and links first eligible transaction with no load_id; buyer required for assignment; load company derived from SO; claims.load_id is related via transaction.load_id.",
+      "source_refs": [
+        "E-LOG-TX-LINK",
+        "E-LOG-LOAD",
+        "E-CLAIM-LOAD",
+        "E-20261109-MULTILOAD"
+      ],
+      "governing": [
+        "POS-INV-10",
+        "POS-INV-11",
+        "POS-INV-21",
+        "BRS-01-R001",
+        "BRS-07-R047"
+      ],
+      "desired_resolution": "Model one commercial transaction to zero..many physical load records, actual allocations and amounts by native ownership/fulfillment. A physical load may map to only one transaction unless its identity is explicitly different from grouped booking/partial allocation. Preserve legacy single-load read contracts only where unambiguous; multi-load must not silently select first. Native PO-only receipts remain PO/picking scoped and may legitimately have no buyer/transaction/load.",
+      "forbidden": [
+        "drop unique constraint without data migration/consumers",
+        "auto-make SO or buyer for PO-only",
+        "replace existing many-to-one silently",
+        "retrofit Export booking objects now",
+        "multiply historic claims/chargebacks"
+      ],
+      "acceptance": [
+        "Two different loads of one real SO/transaction both link and keep quantities",
+        "partial fulfillment total is not double counted",
+        "existing single-load transaction replays unchanged",
+        "related claims/docs/dispatch view all related load identities",
+        "PO-only native stock receipt succeeds with no buyer",
+        "company/ownership boundaries hold"
+      ],
+      "status": "CODE_MERGED_MANYLOAD_CURRENT_PROD_RUNTIME_UNVERIFIED",
+      "owner_admission": "SCHEMA_MIGRATION_OWNER_APPROVAL_REQUIRED",
+      "decision": "BOUNDED_MIGRATION_DESIGN_REQUIRED",
+      "baseline_status_2026_10_28": "ARCHITECTURE_REPAIR_REQUIRED_CODE_NOT_STARTED",
+      "checkpoint_prs": [
+        339,
+        346
+      ],
+      "checkpoint_as_of": "2026-10-30",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "DEC-SEED",
+      "kind": "CONSTITUTIONAL_SEED_POLICY_CONFLICT",
+      "priority": "P1_ADMISSION",
+      "semantic_owner": "PlasticOS invariant owner + Odoo module seed owner",
+      "execution_owner": "per module data/migration owner",
+      "observed": "INVARIANTS.md v2.2 clause 4 says all reference data versioned XML noupdate=1; repo includes correct-intended noupdate=0 group changes and role-tag adoption functions/migrations.",
+      "source_refs": [
+        "E-SEED-INV",
+        "E-SEED-REAL",
+        "E-20261109-INV3"
+      ],
+      "governing": [
+        "INVARIANTS-v2.2.0-04",
+        "POS-INV-19"
+      ],
+      "desired_resolution": "Declare seed ownership/lifecycle class: immutable/manual-maintained noupdate=1; upgrade-owned configuration/security noupdate=0; guarded adoption/migration for existing IDs and user modifications. Preserve external ID + deterministic replay and safe rollback. Remove universal noupdate law only by approved constitutional successor.",
+      "forbidden": [
+        "blind noupdate=1 on all XML",
+        "force overwrite user-maintained rows",
+        "reseed duplicate tags",
+        "silently weaken deterministic XML/external-ID law"
+      ],
+      "acceptance": [
+        "fresh install stable external IDs",
+        "repeat upgrade idempotent",
+        "manual row preserved under no-update policy",
+        "upgrade-managed group updates safely",
+        "drift checker and seed tests align"
+      ],
+      "status": "V3_INVARIANT_ADMITTED_GLOBAL_RULE_RESOLVED_PER_FAMILY_DETAILS_AS_NEEDED",
+      "owner_admission": "REQUIRES_CONSTITUTIONAL_APPROVAL",
+      "decision": "PER_FAMILY_SEED_LIFECYCLE_PROPOSED",
+      "checkpoint_as_of": "2026-10-30",
+      "checkpoint_note": "No current policy/admission closure evidenced.",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "DEC-GATE",
+      "kind": "SUPERSEDED_INVARIANT_INTERPRETATION",
+      "priority": "P1_ADMISSION",
+      "semantic_owner": "Accepted ADR-003-single + ADR-013; PlasticOS invariant owner for narrative amendment",
+      "execution_owner": "plasticos_gate consumer",
+      "observed": "v2.2 invariant 5 says graph failures return empty results, but accepted ADR-013 requires classified retryable/permanent/unknown, persisted run evidence, user-visible failure and no silent empty success.",
+      "source_refs": [
+        "E-GATE-LEGACY",
+        "E-GATE-ADR",
+        "E-20261109-INV3"
+      ],
+      "governing": [
+        "ADR-003-single-external-intelligence-authority.md",
+        "ADR-013-fail-closed-gate-transport.md",
+        "POS-INV-17",
+        "POS-INV-18"
+      ],
+      "desired_resolution": "Use accepted ADR-013 now: safe Odoo registry/startup independent of Neo4j, but runtime match/converge failure becomes typed durable degraded/failed outcome, never empty success or local matcher authority; repair constitutional wording in admitted next revision.",
+      "forbidden": [
+        "treat unavailable result as zero matches with success",
+        "restore local matching/enrichment",
+        "bypass Gate",
+        "use transport failure to mutate Odoo CRM"
+      ],
+      "acceptance": [
+        "Gate 503/timeout -> typed failure and run audit",
+        "empty successful result only for a genuinely completed empty business result",
+        "Odoo registry boots without Gate",
+        "no local algorithm fallback",
+        "no allowlist writeback on noncomplete run"
+      ],
+      "status": "V3_ADMITTED_SOURCE_GATE_FAIL_CLOSED_LIVE_PROOF_PENDING",
+      "owner_admission": "ADR_ACCEPTED_V22_NARRATIVE_STALE",
+      "decision": "NO_NEW_DOMAIN_CHOICE_REQUIRED",
+      "checkpoint_as_of": "2026-10-30",
+      "checkpoint_note": "No current policy/admission closure evidenced.",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "DEC-ACL",
+      "kind": "REQUIRES_OPERATOR_ROLE_POLICY",
+      "priority": "P0_SECURITY_POLICY",
+      "semantic_owner": "PlasticOS security owner + business owners (claims/accounting/documents/logistics)",
+      "execution_owner": "plasticos_security_base + affected domain ACL owners",
+      "observed": "Full CRUD base.group_user grants observed on Documents (document/tag/rule/matrix), Claims, transaction.line; previous PR303 Brief C shows violations and workflows that would break from plain removal.",
+      "source_refs": [
+        "E-ACL-DOC",
+        "E-ACL-CLAIM",
+        "E-ACL-TX",
+        "E-ACL-BRIEF",
+        "E-20261109-INV3"
+      ],
+      "governing": [
+        "POS-INV-05",
+        "INVARIANTS-v2.2.0-08"
+      ],
+      "desired_resolution": "Approve actor-to-model CRUD matrix and scoped business commands. Internal baseline has no claim deletion, financial-line mutation, document verification or metadata administrative writes. Claims users can create/edit authorized cases without delete; manager approve/override per company. Document intake remains possible; verifier/override separate. Transaction line imports restricted to approved roles with all-or-nothing transaction and negative tests.",
+      "forbidden": [
+        "remove access rows without migration and workflow tests",
+        "global sudo for importer/upload",
+        "assume record rules negate additive ACL",
+        "give commission earners power to rewrite recognized recoveries",
+        "ignore metadata/product exposures"
+      ],
+      "acceptance": [
+        "effective ORM rights under base user, sales, logistics, QC, claims, docs user/manager and accountant",
+        "document upload with claim evidence does not fail or overprivilege",
+        "authorized import creates complete transaction+lines or rolls back",
+        "wrong company access blocked for read/write",
+        "safe admin/repair metadata path",
+        "commission claims cannot self-alter recognized recovery"
+      ],
+      "status": "POLICY_AND_EFFECTIVE_RUNTIME_ACCESS_UNVERIFIED",
+      "owner_admission": "OPERATOR_ROLE_POLICY_UNAPPROVED",
+      "decision": "PRESERVE_WF_PROPOSED_MINIMUM_LEAST_PRIVILEGE",
+      "checkpoint_as_of": "2026-10-30",
+      "checkpoint_note": "No current policy/admission closure evidenced.",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "FIX-ADMIN-LOAD-COVERAGE",
+      "kind": "OBSERVED_QUERY_SCOPE_CONTRADICTION",
+      "priority": "P1_UI_ACCEPTANCE",
+      "semantic_owner": "plasticos_logistics",
+      "execution_owner": "plasticos_logistics load_dashboard model/view",
+      "observed": "SQL view excludes older closed loads and one menu action defaults active-only; operator expects a full snapshot of ALL loads from Admin drill-through",
+      "source_refs": [
+        "E-20261109-ADMIN-LOAD-EXCLUSION"
+      ],
+      "governing": [
+        "POS-INV-05",
+        "POS-INV-20"
+      ],
+      "desired_resolution": "Decide literal all-load scope; if yes, minimally change existing owner SQL view/search filtering and prove history, no extra dashboard",
+      "forbidden": [
+        "claim complete list from filtered SQL",
+        "add second dashboard as workaround",
+        "leak other-company loads"
+      ],
+      "acceptance": [
+        "all historical and current loads visible to authorized admin with explicit filters and no company leak",
+        "no dashboard performance regression"
+      ],
+      "status": "REQUIRES_SCOPED_OWNER_FIX_OR_SCOPE_DECISION",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "PROOF-PROD-IMPORT-COMPLETE",
+      "kind": "MISSING_HOSTED_ACCEPTANCE_EVIDENCE",
+      "priority": "P0_TEST_READY",
+      "semantic_owner": "ERP/CRM import domain owners",
+      "execution_owner": "Production operations/read-only census",
+      "observed": "GitHub merge and limited rehearsal prove source capability only; exact full Production import is not observed",
+      "source_refs": [
+        "E-20261109-REHEARSAL",
+        "E-20261109-PRODUCTION-BRANCH"
+      ],
+      "governing": [
+        "POS-INV-04",
+        "POS-INV-20"
+      ],
+      "desired_resolution": "Read-only Production source-to-target completeness and discrepancy reconciliation",
+      "forbidden": [
+        "equate 10% rehearsal with full import",
+        "post archived financial records",
+        "guess missing partner identities"
+      ],
+      "acceptance": [
+        "source manifest all eligible records accounted for",
+        "Production row counts, identities and replay receipt",
+        "business owner accepts documented exclusions"
+      ],
+      "status": "AWAITING_READ_ONLY_PRODUCTION_CENSUS",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "PROOF-DOCUMENT-SOURCE-AND-IMPORT",
+      "kind": "NEW_OPERATOR_ACCEPTANCE_GAP",
+      "priority": "P0_POST_IMPORT",
+      "semantic_owner": "ERP source + native Documents",
+      "execution_owner": "ERP source + native Documents",
+      "observed": "Historical W/# eligible 97,346, 91,442 exact matches, 5,903 unmatched and 1 corrupt, but zero imported on Nov 4 read-only brief.",
+      "source_refs": [
+        "E-POST-BLOB",
+        "E-POST-REOPEN",
+        "E-POST-ADR022",
+        "E-POST-DR"
+      ],
+      "governing": [
+        "POS-INV-04",
+        "POS-INV-20"
+      ],
+      "desired_resolution": "Freeze current source journal, build unique-match-only importer, full reconciliation and replay 0",
+      "forbidden": [
+        "no source or report hash",
+        "silent auto-posting or wrong-company attachment",
+        "fictional live acceptance",
+        "duplicate source owner"
+      ],
+      "acceptance": [
+        "PL-DOC-BLOB-CENSUS",
+        "PL-DOC-BLOB-RECON"
+      ],
+      "status": "PLANNED_NEEDS_OWNER_RUNTIME_EVIDENCE",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "PROOF-DOC-AI-MANAGER-VIEW",
+      "kind": "NEW_OPERATOR_ACCEPTANCE_GAP",
+      "priority": "P1_MANAGER_WORKFLOW",
+      "semantic_owner": "Documents + existing manager UI",
+      "execution_owner": "Documents + existing manager UI",
+      "observed": "Verification_review_required field exists; full AI flag to assigned manager profile not verified.",
+      "source_refs": [
+        "E-POST-BLOB",
+        "E-POST-REOPEN",
+        "E-POST-ADR022",
+        "E-POST-DR"
+      ],
+      "governing": [
+        "POS-INV-04",
+        "POS-INV-20"
+      ],
+      "desired_resolution": "Use installed native AI candidate output and existing reviewed source; evidence-linked role-scoped manager queue with no auto-verification",
+      "forbidden": [
+        "no source or report hash",
+        "silent auto-posting or wrong-company attachment",
+        "fictional live acceptance",
+        "duplicate source owner"
+      ],
+      "acceptance": [
+        "PL-DOC-AI-ACCEPT"
+      ],
+      "status": "PLANNED_NEEDS_OWNER_RUNTIME_EVIDENCE",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "FIX-REOPEN-IS-NOT-ARAP",
+      "kind": "NEW_OPERATOR_ACCEPTANCE_GAP",
+      "priority": "P0_FINANCE_SAFETY",
+      "semantic_owner": "Transaction + Accounting",
+      "execution_owner": "Transaction + Accounting",
+      "observed": "Current action_reopen_historical changes state to active only; ADR-022 forbids inferring financial balance or operational reopen from unpaid invoices.",
+      "source_refs": [
+        "E-POST-BLOB",
+        "E-POST-REOPEN",
+        "E-POST-ADR022",
+        "E-POST-DR"
+      ],
+      "governing": [
+        "POS-INV-04",
+        "POS-INV-20"
+      ],
+      "desired_resolution": "Add guarded make reopen-erp-transactions for approved open-operations register; independently post signed residual-only AR/AP opening items via native accounting cutoff",
+      "forbidden": [
+        "no source or report hash",
+        "silent auto-posting or wrong-company attachment",
+        "fictional live acceptance",
+        "duplicate source owner"
+      ],
+      "acceptance": [
+        "PL-ACCT-REOPEN-MAKE",
+        "PL-ACCT-OPENING-RECON"
+      ],
+      "status": "PLANNED_NEEDS_OWNER_RUNTIME_EVIDENCE",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "PROOF-OPENING-SOURCE-TIEOUT",
+      "kind": "NEW_OPERATOR_ACCEPTANCE_GAP",
+      "priority": "P0_FINANCE_SAFETY",
+      "semantic_owner": "Finance controller",
+      "execution_owner": "Finance controller",
+      "observed": "ERP AR/AP/transaction/inventory, signed QB TB/controls and bank statements are separate sources; live as-of report inputs not supplied.",
+      "source_refs": [
+        "E-POST-BLOB",
+        "E-POST-REOPEN",
+        "E-POST-ADR022",
+        "E-POST-DR"
+      ],
+      "governing": [
+        "POS-INV-04",
+        "POS-INV-20"
+      ],
+      "desired_resolution": "Single signed cutoff; AR/AP net controls tie, separate clearing zero, bank/inventory proven, no duplicate history",
+      "forbidden": [
+        "no source or report hash",
+        "silent auto-posting or wrong-company attachment",
+        "fictional live acceptance",
+        "duplicate source owner"
+      ],
+      "acceptance": [
+        "PL-ACCT-REPORT-SOURCE-LOCK",
+        "PL-ACCT-OPENING-RECON"
+      ],
+      "status": "PLANNED_NEEDS_OWNER_RUNTIME_EVIDENCE",
+      "as_of": "2026-11-09"
+    },
+    {
+      "id": "PROOF-DR-RESTORE",
+      "kind": "NEW_OPERATOR_ACCEPTANCE_GAP",
+      "priority": "P1_OPERABILITY",
+      "semantic_owner": "SM-ODOO-DR-CAMPAIGN-001",
+      "execution_owner": "SM-ODOO-DR-CAMPAIGN-001",
+      "observed": "Existing DR plan v1.3 locked; actual runtime AWS/Object Lock/restore/custody receipts not verified.",
+      "source_refs": [
+        "E-POST-BLOB",
+        "E-POST-REOPEN",
+        "E-POST-ADR022",
+        "E-POST-DR"
+      ],
+      "governing": [
+        "POS-INV-04",
+        "POS-INV-20"
+      ],
+      "desired_resolution": "Reference only original 00-06 contract train; native prechange checkpoint plus independent restored database/filestore and operator custody",
+      "forbidden": [
+        "no source or report hash",
+        "silent auto-posting or wrong-company attachment",
+        "fictional live acceptance",
+        "duplicate source owner"
+      ],
+      "acceptance": [
+        "PL-DR-RESTORE-PROOF",
+        "PL-RELEASE-DR"
+      ],
+      "status": "PLANNED_NEEDS_OWNER_RUNTIME_EVIDENCE",
+      "as_of": "2026-11-09"
+    }
+  ],
+  "current_checkpoint_source_sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+  "operator_cutover_decisions": [
+    {
+      "id": "DEC-RELEASE-ORDER-2026-10-30",
+      "type": "OPERATOR_DIRECTION",
+      "status": "DECIDED_NOT_EXECUTED",
+      "decision": "Promote code first after full Enterprise code closure; no production-like migration rehearsal; ERP then CRM overnight; AWS DR and broad business acceptance after promotion",
+      "evidence": "current operator instruction"
+    },
+    {
+      "id": "DEC-IMPORT-PROD-GUARD-2026-10-30",
+      "type": "REQUIRES_CODE_AND_RUNNER_CHANGE",
+      "status": "UNIMPLEMENTED",
+      "owner": "plasticos_partner_import + hosted release runner",
+      "source": "plasticos_partner_import/scripts/validate_partner_layer.py::check_database; Makefile import-erp",
+      "resolution": "Authorized narrow Production import entrypoint with exact release, target and source identity; no bypass; negative/proof and receipt"
+    },
+    {
+      "id": "DEC-CRM-HISTORY-RUNNER-2026-10-30",
+      "type": "REQUIRES_RUNTIME_ADAPTATION",
+      "status": "UNVERIFIED_FOR_PRODUCTION",
+      "owner": "plasticos_crm_sync",
+      "source": "2026-10-21 cohort contract v2.2",
+      "resolution": "Preserve per-ID API reader, crosswalk decisions, credential safety and checkpoint records; adapt clone-only harness to supported Production environment"
+    },
+    {
+      "id": "DEC-ERP-DOC-BLOBS-2026-10-30",
+      "type": "SCOPE_EXCEPTION",
+      "status": "IMPLEMENTATION_NOT_VERIFIED",
+      "owner": "Documents recovery",
+      "resolution": "Separate importer for historical worksheet images; must not silently claim overnight all data complete"
+    },
+    {
+      "id": "DEC-RELEASE-STATUS-UPDATE-2026-10-30",
+      "type": "OPERATOR_REPORT_AND_GITHUB_EVIDENCE",
+      "status": "REPORT_RECONCILED_NOT_DEPLOYED",
+      "decision": "Rehearsal and OdooLS remediation completed; accepted merge evidence #351. Do not conflate with AWS DR, hosted import or business activation.",
+      "evidence": "User message and GitHub merged PR #351; rehearsal receipt not provided."
+    }
+  ],
+  "current_completion_delta": {
+    "rehearsal": "COMPLETE_OPERATOR_REPORTED",
+    "odools_66_ownership": "MERGED_PR_351",
+    "production_ERP_CRM_IMPORT_CODE": "MERGED_PR_349",
+    "production_deployment": "NOT_OBSERVED",
+    "other_six_domain_findings": "UNCHANGED_UNLESS_RECHECKED_AT_CURRENT_SOURCE"
+  },
+  "production_qa_priority": [
+    "PROOF-PROD-IMPORT-COMPLETE",
+    "FIX-ADMIN-LOAD-COVERAGE",
+    "FIX-DOC-WRITER",
+    "FIX-DOC-RECENCY",
+    "FIX-LOG-MULTILOAD"
+  ],
+  "new_enrichment_policy": {
+    "financial_cutover": "EXPLICIT_SEPARATE_ACCOUNTANT_OPERATOR_AUTHORIZATION",
+    "historical_archives": "NEVER_AUTOMATICALLY_POST_GROSS",
+    "reopen_command": "REPORT_GATED_OPERATIONAL_ONLY",
+    "dr": "CITE_EXISTING_OPERATOR_LOCKED_V1_3"
+  }
+}

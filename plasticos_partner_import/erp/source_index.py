@@ -21,6 +21,9 @@ ids are never identity. They are business data.
 Foreign keys are validated, not assumed. The export intentionally carries only
 active counterparties, so children whose ``CpID`` was never exported are
 reported as *unresolved* rather than being attached to an invented parent.
+Placeholder ids (``(INV)``, ``(OTHER)``, ``{C}``, and the same shapes), contacts
+with a blank company id, and role rows for a contact that is not a partner are
+omitted: they are not unresolved and they are not imported.
 """
 
 from __future__ import annotations
@@ -36,6 +39,7 @@ __all__ = [
     "IdentityViolation",
     "SourceIndex",
     "account_inventory_destinations",
+    "account_omissions",
     "build_source_index",
     "payables_batch_census",
 ]
@@ -68,6 +72,15 @@ class IdentityViolation:
 
     def as_dict(self) -> dict[str, str]:
         return {"table": self.table, "kind": self.kind, "key": self.key, "detail": self.detail}
+
+
+def _is_placeholder_cpid(cp_id: str) -> bool:
+    """True for system buckets such as ``(INV)``, ``(OTHER)``, and ``{C}``."""
+    return bool(cp_id) and cp_id[0] in "({["
+
+
+def _omit(index: SourceIndex, table: str, key: str, detail: str) -> None:
+    index.omissions.append(IdentityViolation(table, "omitted", key, detail))
 
 
 def _key(row: dict[str, str | None], column: str) -> str:
@@ -122,6 +135,11 @@ class SourceIndex:
     payables_batch_violations: list[IdentityViolation] = field(default_factory=list)
 
     violations: list[IdentityViolation] = field(default_factory=list)
+    # Rows the operator excluded from the partner book: placeholder ids,
+    # contacts with no company, and role rows that have no partner to receive
+    # them. Counted as skipped, never as an open exception.
+    omissions: list[IdentityViolation] = field(default_factory=list)
+    omitted_contact_ids: set[str] = field(default_factory=set)
 
     # -- ordered identity accessors (deterministic iteration order) ----------
     def counterparty_ids(self) -> list[str]:
@@ -231,9 +249,12 @@ def _link_sales_reps(payload: SourcePayload, index: SourceIndex, *, counterparti
     for position, row in enumerate(rows, start=2):
         cp_id = _key(row, "CpID")
         rep = _key(row, "ReferrerNo")
-        if not cp_id:
-            index.violations.append(
-                IdentityViolation("SalesReps", "missing_parent_key", f"line {position}", "blank CpID")
+        if not cp_id or (counterparties_loaded and _is_placeholder_cpid(cp_id)):
+            _omit(
+                index,
+                "SalesReps",
+                f"line {position}" if not cp_id else f"{cp_id}/{rep}",
+                "blank CpID" if not cp_id else f"placeholder CpID={cp_id}",
             )
             continue
         if counterparties_loaded and cp_id not in index.counterparties:
@@ -263,6 +284,22 @@ def _index_by_pk(payload: SourcePayload, table: str) -> dict[str, dict[str, str 
     return indexed
 
 
+def account_omissions(index: SourceIndex, report) -> None:
+    """Count excluded placeholder and non-partner rows as skipped.
+
+    They stay in the source payload so the extract is unchanged. They do not
+    become partners and they do not enter the open-exception ledger.
+    """
+    bucket = {
+        "Address": "locations",
+        "Contact": "contacts",
+        "ContactRoleAssignment": "contact_roles",
+        "SalesReps": "salespersons",
+    }
+    for omission in index.omissions:
+        report.skip(bucket[omission.table])
+
+
 def account_inventory_destinations(index: SourceIndex, report) -> None:
     """Count each ``(INV)`` address once, without creating a partner for it.
 
@@ -288,8 +325,8 @@ def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_
     for address_id in sorted(index.addresses):
         row = index.addresses[address_id]
         cp_id = _key(row, "CpID")
-        if not cp_id:
-            index.violations.append(IdentityViolation("Address", "missing_parent_key", address_id, "blank CpID"))
+        if not cp_id or (counterparties_loaded and _is_placeholder_cpid(cp_id) and cp_id != INVENTORY_COUNTERPARTY):
+            _omit(index, "Address", address_id, "blank CpID" if not cp_id else f"placeholder CpID={cp_id}")
             continue
         if cp_id == INVENTORY_COUNTERPARTY:
             index.inventory_destinations[address_id] = row
@@ -312,8 +349,9 @@ def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_
     contacts: dict[str, list[str]] = defaultdict(list)
     for contact_id in sorted(index.contacts):
         cp_id = _key(index.contacts[contact_id], "CpID")
-        if not cp_id:
-            index.violations.append(IdentityViolation("Contact", "missing_parent_key", contact_id, "blank CpID"))
+        if not cp_id or (counterparties_loaded and _is_placeholder_cpid(cp_id)):
+            index.omitted_contact_ids.add(contact_id)
+            _omit(index, "Contact", contact_id, "blank CpID" if not cp_id else f"placeholder CpID={cp_id}")
             continue
         if counterparties_loaded and cp_id not in index.counterparties:
             index.violations.append(
@@ -331,19 +369,13 @@ def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_
     roles: dict[str, list[str]] = defaultdict(list)
     for role_id in sorted(index.contact_roles):
         contact_id = _key(index.contact_roles[role_id], "CT_ID")
-        if not contact_id:
-            index.violations.append(
-                IdentityViolation("ContactRoleAssignment", "missing_parent_key", role_id, "blank CT_ID")
-            )
-            continue
-        if contacts_loaded and contact_id not in index.contacts:
-            index.violations.append(
-                IdentityViolation(
-                    "ContactRoleAssignment",
-                    "unresolved_contact",
-                    role_id,
-                    f"CT_ID={contact_id} not in exported contacts",
-                )
+        if (
+            not contact_id
+            or contact_id in index.omitted_contact_ids
+            or (contacts_loaded and contact_id not in index.contacts)
+        ):
+            _omit(
+                index, "ContactRoleAssignment", role_id, "blank CT_ID" if not contact_id else "contact is not a partner"
             )
             continue
         roles[contact_id].append(role_id)
