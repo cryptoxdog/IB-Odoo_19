@@ -1578,6 +1578,7 @@ def test_cloud_session_skips_smoke_by_default_and_says_so(tmp_path: Path) -> Non
     text = _seq(seq)
     assert "smoke --resolve" not in text and "smoke --recheck" not in text, text
     assert "\npush\n" in text
+    assert "install-smoke BYPASSED by default on a Claude Code cloud session" in proc.stderr
     [comment] = _gh_state(tmp_path)["comments"]
     assert comment["body"].startswith(
         f"Local Odoo install-smoke was bypassed for {_head(repo)} by default on a Claude Code cloud session: "

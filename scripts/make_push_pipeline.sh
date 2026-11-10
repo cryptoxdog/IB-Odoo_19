@@ -168,7 +168,7 @@ fi
 SMOKE_BYPASS_BY="the operator"
 operator_bypass="${PR_SMOKE_BYPASS:-}"
 if [[ -z "${operator_bypass// /}" && "${CLAUDE_CODE_REMOTE:-}" == "true" && "${PR_SMOKE:-0}" != "1" ]]; then
-  SMOKE_BYPASS_BY="default on a Claude Code cloud session"
+  export SMOKE_BYPASS_BY="default on a Claude Code cloud session"
   export PR_SMOKE_BYPASS="no Docker or Enterprise checkout here; install-smoke runs on make pr from Cursor (PR_SMOKE=1 forces it)"
 fi
 
