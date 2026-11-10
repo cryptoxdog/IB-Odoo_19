@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Facility Profile",
-    "version": "19.0.5.4.6",
+    "version": "19.0.5.4.9",
     "summary": "Facility capability profiles — equipment, tolerances, BCP fields, company_role, and templates",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -25,6 +25,11 @@
         "views/facility_profile_ux.xml",
         "views/partner_ux.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "plasticos_facility_profile/static/src/location_dialog_save.js",
+        ],
+    },
     "installable": True,
     "auto_install": True,
     "application": False,

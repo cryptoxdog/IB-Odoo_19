@@ -11,6 +11,7 @@
                 <field name="is_private"
                        groups="plasticos_security_base.group_system_admin,plasticos_security_base.group_operations_manager"
                        widget="boolean_toggle"
+                       readonly="1"
                        help="When enabled, only you and System Administrators can see this contact."/>
             </xpath>
         </field>

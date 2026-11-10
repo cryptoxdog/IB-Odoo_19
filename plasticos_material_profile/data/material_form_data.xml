@@ -15,6 +15,7 @@
       <field name="code">BALES</field>
       <field name="description">Compressed bales of material (common for scrap).</field>
       <field name="sequence">5</field>
+      <field name="active" eval="False"/>
     </record>
     <record id="form_film" model="plasticos.material.form">
       <field name="name">Film</field>

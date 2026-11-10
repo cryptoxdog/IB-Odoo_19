@@ -1,0 +1,31 @@
+.o_material_profile_lines .o_list_record_open_form_view button {
+    position: relative;
+    font-size: 0;
+    line-height: 0;
+}
+
+.o_material_profile_lines .o_list_record_open_form_view button::before {
+    content: "\f08e";
+    font-family: FontAwesome;
+    font-size: 14px;
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+}
+
+.o_material_profile_lines .o_list_record_open_form_view button:hover::after {
+    content: "Open Full Profile";
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    z-index: 5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #212529;
+    color: #fff;
+    font-family: sans-serif;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1.2;
+    white-space: nowrap;
+}
