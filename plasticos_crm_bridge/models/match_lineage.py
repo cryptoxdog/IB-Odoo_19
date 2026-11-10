@@ -3,8 +3,8 @@
 Matching does not depend on CRM Bridge, so the lineage fields live here:
 ``plasticos.match.run.opportunity_id`` / ``approval_id`` and
 ``plasticos.offer.match_result_id``. Offer acceptance records one explicit
-commercial winner per opportunity and hands a draft native sale order to the
-existing transaction compiler.
+commercial winner per opportunity and marks that opportunity Won. It creates
+no purchase order, sale order, or transaction.
 """
 
 from __future__ import annotations
@@ -112,7 +112,10 @@ class PlasticosOfferMatchLineage(models.Model):
                 raise ValidationError(_("Offer supplier must be the supplier of its Gate match run."))
 
     def action_accept(self):
-        """Accept: one explicit commercial winner per opportunity, then one draft native sale order."""
+        """Accept: one explicit commercial winner per opportunity, then the native Won stage.
+
+        No purchase order, sale order, or transaction is created here.
+        """
         opportunity_by_offer = {rec.id: rec.opportunity_id for rec in self}
         opportunities = self.env["crm.lead"].union(*[opp for opp in opportunity_by_offer.values() if opp])
         if opportunities:
@@ -135,23 +138,21 @@ class PlasticosOfferMatchLineage(models.Model):
                 # Two offers accepted in one call for one opportunity is also two winners.
                 winner_by_opportunity[opportunity.id] = rec
         res = super().action_accept()
+        won = self.env["crm.lead"]
         for rec in self:
             opportunity = rec._plasticos_opportunity()
             if not opportunity:
                 continue
-            approval = rec._plasticos_approval()
-            order = self.env["sale.order"]._plasticos_draft_order_for_offer(
-                rec, opportunity.id, approval.material_profile_id
-            )
+            won |= opportunity
             opportunity.message_post(
                 body=_(
-                    "Commercial winner recorded: offer %(offer)s to %(buyer)s. Draft sale order %(order)s awaits "
-                    "confirmation; confirmation compiles the transaction.",
+                    "Commercial winner recorded: offer %(offer)s to %(buyer)s. The opportunity is Won and waiting "
+                    "for admin submit. No order was created.",
                     offer=rec.name,
                     buyer=rec.buyer_id.name,
-                    order=order.name,
                 ),
                 message_type="notification",
                 subtype_xmlid="mail.mt_note",
             )
+        won._plasticos_mark_won()
         return res

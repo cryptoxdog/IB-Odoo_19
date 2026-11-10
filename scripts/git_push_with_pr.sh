@@ -141,7 +141,7 @@ SMOKE_BYPASS=0
 PR_SMOKE_BYPASS="${PR_SMOKE_BYPASS:-}"
 if [[ -n "${PR_SMOKE_BYPASS// /}" ]]; then
   SMOKE_BYPASS=1
-  echo "⚠️  install-smoke BYPASSED by operator: ${PR_SMOKE_BYPASS}" >&2
+  echo "⚠️  install-smoke BYPASSED by ${SMOKE_BYPASS_BY:-operator}: ${PR_SMOKE_BYPASS}" >&2
 else
   case "${PR_CHECK_SKIP_SMOKE:-0}" in
     1|true|True|yes) refuse "PR_CHECK_SKIP_SMOKE is set (use make pr-nosmoke reason=...)" ;;

@@ -103,7 +103,7 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
         report.skip("transactions")
         report.skip("transaction_lines", len(index.detail_ids(number)))
         _exclude_worksheet_payables(index, context, number, "diagnostic_limit")
-    _quarantine_outside_universe(index, context, report, numbers)
+    _quarantine_outside_universe(importer, index, report, context, partner_by_cp, numbers, dry_run)
     report.census = _census(index, context)
     reconciliation = report.census["payables_reconciliation"]
     if not reconciliation["closes"]:
@@ -1002,7 +1002,6 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         NOT_REALIZED,
         PREPAY_OMITTED,
         UNBILLABLE,
-        vendor_bill_header_facts,
     )
 
     material = context["material_account"]
@@ -1086,44 +1085,20 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             else:
                 _quarantine(context, report, row, number, f"{reason}; not counted", UNBILLABLE)
             continue
-        facts = vendor_bill_header_facts(row, index.payables_batches.get(batch) if batch else None)
-        invoice_date = facts["invoice_date"]
-        if not invoice_date:
-            report.anomaly("Payables", payable_id, "no source invoice date; vendor bill left undated")
-        if gl_acct == FREIGHT_GL:
-            lines = [
-                Command.create(
-                    {
-                        "name": " ".join(
-                            part for part in ("Inland Freight", (row.get("InvoiceNo") or "").strip()) if part
-                        ),
-                        "quantity": 1.0,
-                        "price_unit": abs(amount),
-                        "account_id": account.id,
-                        "tax_ids": [Command.clear()],
-                        "is_imported": True,
-                    }
-                )
-            ]
-        else:
-            lines = _vendor_bill_lines(importer, context, index, account, number, amount, row)
-        move = _move(
+        _write_purchase_bill(
             importer,
-            f"legacy_erp_ininv_{_token(payable_id)}",
-            {
-                "move_type": "in_refund" if amount < 0 else "in_invoice",
-                "partner_id": partner_id,
-                "journal_id": journal.id,
-                "invoice_date": invoice_date or False,
-                "invoice_origin": number,
-                "ref": facts["ref"],
-                "invoice_line_ids": lines,
-                **_vendor_due_terms(importer, context, report, batch, facts),
-            },
+            index,
+            report,
+            context,
+            number,
+            row,
+            amount,
+            account,
+            partner_id,
+            f"gl_{gl_acct}_billed",
+            documents,
+            gl_acct == FREIGHT_GL,
         )
-        documents["freight_bills" if gl_acct == FREIGHT_GL else "bills"].append(move.id)
-        context["billed_payables"].append((number, payable_id))
-        _count_expense(context, f"gl_{gl_acct}_billed", number, amount)
     if not unbilled_freight_rows:
         return
     unbilled_freight = sum(_qty(row.get("Amount")) for row, _reason in unbilled_freight_rows)
@@ -1165,7 +1140,10 @@ def _vendor_due_terms(importer, context, report, batch: str, facts: dict) -> dic
 
 
 def _payment_term(env, context, report, batch: str, name: str):
-    """Existing ``account.payment.term`` named exactly ``name``. An unmatched name is reported once."""
+    """Existing ``account.payment.term`` for an ERP term name. An unmatched name is reported once."""
+    from odoo.addons.plasticos_partner_import.erp.mapping import payment_term_name  # noqa: PLC0415
+
+    name = payment_term_name(name)
     if not name:
         return None
     cache = context.setdefault("payment_term_cache", {})
@@ -1193,8 +1171,64 @@ def _quarantine_worksheet_payables(index, context, report, number: str, reason: 
         _quarantine(context, report, row, number, reason, NOT_REALIZED)
 
 
-def _quarantine_outside_universe(index, context, report, numbers) -> None:
-    """Payables whose ``BuySellNo`` is no worksheet with lines: reported one by one, never silently skipped."""
+def _write_purchase_bill(
+    importer, index, report, context, number, row, amount, account, partner_id, bucket, documents, freight: bool
+) -> None:
+    """One draft vendor bill or credit. A negative amount is a vendor credit.
+
+    Material bills and blank-account bills are this same document. Freight is
+    the one named exception: its line is freight, not material.
+    """
+    from odoo.addons.plasticos_partner_import.erp.native_orders import vendor_bill_header_facts  # noqa: PLC0415
+
+    payable_id = (row.get("PayableID") or "").strip()
+    batch = (row.get("APBatchNo") or "").strip()
+    facts = vendor_bill_header_facts(row, index.payables_batches.get(batch) if batch else None)
+    invoice_date = facts["invoice_date"]
+    if not invoice_date:
+        report.anomaly("Payables", payable_id, "no source invoice date; vendor bill left undated")
+    if freight:
+        lines = [
+            Command.create(
+                {
+                    "name": " ".join(part for part in ("Inland Freight", (row.get("InvoiceNo") or "").strip()) if part),
+                    "quantity": 1.0,
+                    "price_unit": abs(amount),
+                    "account_id": account.id,
+                    "tax_ids": [Command.clear()],
+                    "is_imported": True,
+                }
+            )
+        ]
+    else:
+        lines = _vendor_bill_lines(importer, context, index, account, number, amount, row)
+    move = _move(
+        importer,
+        f"legacy_erp_ininv_{_token(payable_id)}",
+        {
+            "move_type": "in_refund" if amount < 0 else "in_invoice",
+            "partner_id": partner_id,
+            "journal_id": context["purchase_journal"].id,
+            "invoice_date": invoice_date or False,
+            "invoice_origin": number,
+            "ref": facts["ref"],
+            "invoice_line_ids": lines,
+            **_vendor_due_terms(importer, context, report, batch, facts),
+        },
+    )
+    if documents is not None:
+        documents["freight_bills" if freight else "bills"].append(move.id)
+    context["billed_payables"].append((number, payable_id))
+    _count_expense(context, bucket, number, amount)
+
+
+def _quarantine_outside_universe(importer, index, report, context, partner_by_cp, numbers, dry_run: bool) -> None:
+    """Payables whose ``BuySellNo`` is no worksheet with lines.
+
+    A blank account code with a vendor and an amount is written as a normal
+    purchase bill. A negative amount is a vendor credit. Every other row is
+    reported and not written.
+    """
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         FREIGHT_GL,
         MATERIAL_GL,
@@ -1202,15 +1236,45 @@ def _quarantine_outside_universe(index, context, report, numbers) -> None:
         outside_universe_payables,
     )
 
+    material = context["material_account"]
+    journal = context["purchase_journal"]
     for key, row in outside_universe_payables(index, numbers):
         gl_acct = (row.get("GLAcct") or "").strip()
+        amount = _qty(row.get("Amount"))
+        partner_id = _partner_id(importer, partner_by_cp, row.get("CpID"))
+        payable_id = (row.get("PayableID") or "").strip()
+        if (
+            not gl_acct
+            and key
+            and not dry_run
+            and material is not None
+            and journal
+            and partner_id
+            and payable_id
+            and amount
+        ):
+            _write_purchase_bill(
+                importer,
+                index,
+                report,
+                context,
+                key,
+                row,
+                amount,
+                material,
+                partner_id,
+                f"gl_{MATERIAL_GL}_billed",
+                None,
+                False,
+            )
+            continue
         if not key:
             reason = "blank BuySellNo; the bill names no worksheet"
         else:
             reason = f"BuySellNo {key!r} is not a worksheet with lines; no transaction to attach the bill to"
         if gl_acct in (MATERIAL_GL, FREIGHT_GL):
             reason += f" (GL {gl_acct} has a native account; realizing it standalone is an operator decision)"
-        _count_expense(context, "outside_worksheet_universe_not_realized", key, _qty(row.get("Amount")))
+        _count_expense(context, "outside_worksheet_universe_not_realized", key, amount)
         _quarantine(context, report, row, key, reason, NOT_REALIZED)
 
 

@@ -23,7 +23,7 @@ from .ai_client import call_json_with_retry
 from .evidence_keys import KEY_ATTACHMENTS, KEY_RAW_PAYLOAD, scrub_attachment_rows
 from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
 from .quantity_normalizer import QuantityEvidence
-from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
+from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, coerce_bool, parse_weight_lbs, safe_float
 
 _logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ Rules:
 # ─────────────────────────────────────────────────────────────────────────────
 # Validation bounds
 # ─────────────────────────────────────────────────────────────────────────────
-_LBS_MAX = 200_000.0  # single-load max plausible lbs
+_LBS_MAX = SINGLE_LOAD_REVIEW_CAP_LBS  # above this, store the number and flag it
 _LBS_MIN = 1.0  # anything below 1 lb is noise
 _LOADS_MAX = 365.0  # max loads/month (daily = 30, weekly = 52/yr ≈ 4.3/mo)
 
@@ -100,7 +100,7 @@ def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
     Sanitise and clamp AI-extracted field values. (FIX AN-01, AN-02)
 
     Rules applied per field:
-      estimated_lbs_per_load  — must be (_LBS_MIN, _LBS_MAX]; outside → null
+      estimated_lbs_per_load  — below _LBS_MIN → null; above _LBS_MAX is kept and flagged
       loads_per_month         — must be ≥ 0; negative → null
       confidence              — clamped to [0.0, 1.0]
       is_plastic              — coerced via coerce_bool()
@@ -114,11 +114,13 @@ def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
     lbs_raw = out.get("estimated_lbs_per_load")
     if lbs_raw is not None:
         lbs = safe_float(lbs_raw)
-        if lbs < _LBS_MIN or lbs > _LBS_MAX:
-            _logger.debug("validate_ai_output: clamping estimated_lbs_per_load %s → null", lbs_raw)
+        if lbs < _LBS_MIN:
+            _logger.debug("validate_ai_output: dropping estimated_lbs_per_load %s below 1 lb", lbs_raw)
             out["estimated_lbs_per_load"] = None
         else:
-            out["estimated_lbs_per_load"] = int(lbs)  # store as integer lbs
+            out["estimated_lbs_per_load"] = int(lbs)
+            if lbs > _LBS_MAX:
+                out["weight_above_review_cap"] = True
 
     # ── loads_per_month ───────────────────────────────────────────────────
     loads_raw = out.get("loads_per_month")

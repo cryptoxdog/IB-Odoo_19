@@ -809,3 +809,25 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `ci.yml` `pure-python-tests` still runs `pytest tests/` and stays the merge verdict.
 > `make test` remains the manual suite. The two pre-push contract hooks
 > (`phantom-enum-values`, `manifest-contract`) are unchanged.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make import-vanillasoft` writes only the Odoo.sh production database (operator decision 2026-11-10, PR #424).
+> It pipes `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` into `odoo-bin shell` over SSH
+> (`ODOO_SH_PRODUCTION_SSH` or `.env.local`), runs under bash, and refuses inside a test-env clone
+> (`TEST_ENV_VERIFIED_CLONE`). It has no Docker or local-runner path. The repository cohort
+> (`VANILLASOFT_CONTACT_EXPORT` + `VANILLASOFT_PRODUCTION_CONFIRM=1`) is its third mode. The
+> `plasticos-branch-promotion-rehearsal` row above is superseded for VanillaSoft: the rehearsal covers
+> `import-erp` only, and `import-vanillasoft` is not rehearsed on a clone.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr` composes every pull request with the SSOT injector, the Cursor-Governance composer
+> (`ops/scripts/compose_pr_body.py`) that SSOT `make pr` runs for every L9 repository. `scripts/git_open_pr.sh`
+> calls it directly (`ssot_compose`) with the flags `open_pr_after_gate.sh` passes. The only difference is the template
+> owner: `Quantum-L9` instead of the repo owner, because `cryptoxdog` has no `.github` template (`PR_TEMPLATE_OWNER`
+> overrides). The body lists every touched file first (`## Files touched`). `.github/pull_request_template.md` is a
+> byte copy of the `Quantum-L9/.github` template for PRs opened in the GitHub web page; the composer never reads it.
+> The local body builder `scripts/build_pr_body.py` and its test are removed. `make_push_pipeline.sh` proves the org
+> template is readable before any push. On an open PR, `make pr` refreshes only the composer's machine-owned regions.
+> `.l9/pr/pr-intent.json` (`l9.pr_intent.v1`) supplies title and prose when its `head` names HEAD; `.l9/pr/` is
+> gitignored. Install-smoke: a Claude Code cloud session (`CLAUDE_CODE_REMOTE=true`) skips it by default and says so
+> on the PR; Cursor and a local terminal run it; `PR_SMOKE=1` forces it; `make pr-nosmoke reason=...` still wins.

@@ -46,6 +46,7 @@ __all__ = [
     "parse_bool",
     "parse_date",
     "parse_decimal",
+    "payment_term_name",
     "trade_ranks",
     "unit_type",
     "weight_uom",
@@ -236,6 +237,36 @@ def trade_ranks(raw_role: str | None) -> tuple[int, int]:
     """
     tags, _anomaly = company_role_tags(raw_role)
     return (1 if "supplier" in tags else 0, 1 if "buyer" in tags else 0)
+
+
+# ERP TermsCode / APTerms wording that is not the installed account.payment.term
+# name. A name absent from this map is looked up as written. Nothing here
+# creates a term.
+PAYMENT_TERM_NAME_BY_ERP: dict[str, str] = {
+    "N45": "Net 45",
+    "Due on receipt": "Immediate Payment",
+    "Prepayment": "Prepaid",
+    "Net 10": "15 Days",
+    "Net 14": "15 Days",
+    "Net 20": "Net 30",
+    "N 25": "Net 30",
+    "Wire Against Docs": "Immediate Payment",
+    "Wire On Documents": "COD",
+    "50% Prepayment": "50% Down / 50% Net 30",
+    "1% 10 Net 30": "1/10 Net 30",
+    "1% Net10": "1/10 Net 30",
+}
+
+
+def payment_term_name(raw: str | None) -> str:
+    """ERP term text -> the installed ``account.payment.term`` name.
+
+    A blank stays blank. A wording with no alias is returned unchanged, so a
+    term that already uses the ERP text still matches and an unknown wording
+    still fails the lookup.
+    """
+    text = _clean(raw)
+    return PAYMENT_TERM_NAME_BY_ERP.get(text, text)
 
 
 _KIND_BASES = ("INVOICE", "REMIT", "PRIMARY", "PICKUP", "DELIVERY", "WAREHOUSE")

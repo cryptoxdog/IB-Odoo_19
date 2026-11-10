@@ -487,6 +487,37 @@ class PlasticosAdminKpi(models.Model):
         self.write({"last_refresh": fields.Datetime.now()})
         return True
 
+    def action_open_pending_approval(self):
+        """Won opportunities with an accepted offer and no sale order. No count badge."""
+        Lead = self.env["crm.lead"]
+        offered = (
+            self.env["plasticos.offer"]
+            .search(
+                [
+                    ("state", "=", "accepted"),
+                    ("opportunity_id.type", "=", "opportunity"),
+                    ("opportunity_id.stage_id.is_won", "=", True),
+                ]
+            )
+            .opportunity_id
+        )
+        ordered = Lead.browse()
+        if offered and "opportunity_id" in self.env["sale.order"]._fields:
+            ordered = (
+                self.env["sale.order"]
+                .search([("opportunity_id", "in", offered.ids), ("state", "!=", "cancel")])
+                .opportunity_id
+            )
+        pending = offered - ordered
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Pending approval",
+            "res_model": "crm.lead",
+            "view_mode": "list,form",
+            "domain": [("id", "in", pending.ids)],
+            "target": "current",
+        }
+
     def action_open_sales_dashboard(self):
         """Jump to Sales Pipeline Dashboard (filtered to open deals)."""
         return {
