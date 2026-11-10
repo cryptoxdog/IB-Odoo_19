@@ -1,7 +1,7 @@
 import re
 
-from odoo import _, api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo import Command, _, api, fields, models
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 class CrmLeadPlastOS(models.Model):
@@ -72,6 +72,51 @@ class CrmLeadPlastOS(models.Model):
         index=True,
         ondelete="set null",
         help="Facility profile this lead resolved to. Several leads may share one verified facility.",
+    )
+    opportunity_material_ids = fields.One2many(
+        "plasticos.opportunity.material",
+        "opportunity_id",
+        string="Material Copy",
+        help="The opportunity's own material sheet. Editing it does not write the live profile.",
+    )
+    release_buyer_company_id = fields.Many2one(
+        "res.partner",
+        string="Buyer Company",
+        ondelete="restrict",
+        domain=[("is_company", "=", True)],
+        help="Buyer company Arthur selects before submit. The sale order is priced for this buyer.",
+    )
+    release_buyer_facility_id = fields.Many2one(
+        "res.partner",
+        string="Buyer Facility",
+        ondelete="restrict",
+        help="Facility the draft sale order is issued to.",
+    )
+    release_buyer_price = fields.Float(
+        string="Buyer Price",
+        digits=(10, 4),
+        help="Arthur's price per pound. This is the sale-order price.",
+    )
+    release_purchase_order_id = fields.Many2one(
+        "purchase.order",
+        string="Release Purchase Order",
+        copy=False,
+        ondelete="set null",
+        help="Draft purchase order created by submit, at the accepted offer price.",
+    )
+    release_sale_order_id = fields.Many2one(
+        "sale.order",
+        string="Release Sale Order",
+        copy=False,
+        ondelete="set null",
+        help="Draft sale order created by submit, at Arthur's price.",
+    )
+    release_transaction_id = fields.Many2one(
+        "plasticos.transaction",
+        string="Release Transaction",
+        copy=False,
+        ondelete="set null",
+        help="Draft transaction created by submit. Confirming the sale order does not create another.",
     )
     commercial_image_count = fields.Integer(
         string="Commercial Images",
@@ -465,10 +510,7 @@ class CrmLeadPlastOS(models.Model):
     def _move_to_active_supplier_stage(self):
         """Move a converted CRM lead to the configured supplier stage."""
         self.ensure_one()
-        won_stage = self.env.ref(
-            "plasticos_crm_bridge.stage_active_supplier",
-            raise_if_not_found=False,
-        )
+        won_stage = self.env.ref("crm.stage_lead4", raise_if_not_found=False)
         if won_stage:
             self.stage_id = won_stage
 
@@ -618,6 +660,154 @@ class CrmLeadPlastOS(models.Model):
         if self.vanillasoft_id:
             return "vanillasoft"
         return "manual"
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        leads = super().create(vals_list)
+        leads._plasticos_ensure_opportunity_material()
+        return leads
+
+    def write(self, vals):
+        res = super().write(vals)
+        if "material_profile_id" in vals:
+            self._plasticos_ensure_opportunity_material()
+        return res
+
+    def _plasticos_ensure_opportunity_material(self):
+        """Copy the linked profile once. A later profile change does not recopy."""
+        Material = self.env["plasticos.opportunity.material"]
+        for lead in self:
+            if lead.type != "opportunity" or lead.opportunity_material_ids or not lead.material_profile_id:
+                continue
+            Material.copy_from_profile(lead, lead.material_profile_id)
+
+    def _plasticos_mark_won(self):
+        """Move to the native Won stage. Creates no order."""
+        won = self.env.ref("crm.stage_lead4", raise_if_not_found=False)
+        if won:
+            self.filtered(lambda lead: lead.stage_id != won).write({"stage_id": won.id})
+
+    def _plasticos_accepted_offer(self):
+        self.ensure_one()
+        return self.env["plasticos.offer"].search(
+            [("state", "=", "accepted"), ("opportunity_id", "=", self.id)],
+            limit=1,
+        )
+
+    def action_submit_release(self):
+        """Create one draft purchase order, one draft sale order, and one draft transaction.
+
+        A second call returns those same three records. Nothing is confirmed,
+        activated, or sent.
+        """
+        self.ensure_one()
+        if not (self.env.is_superuser() or self.env.user.has_group("plasticos_security_base.group_operations_manager")):
+            raise AccessError(_("Only an Operations Manager can submit a release."))
+        links = (self.release_purchase_order_id, self.release_sale_order_id, self.release_transaction_id)
+        if all(links):
+            return True
+        if any(links):
+            raise UserError(
+                _(
+                    "This opportunity has a partial release (purchase %(po)s, sale %(so)s, transaction %(tx)s). "
+                    "Submit creates all three together; resolve the existing records before submitting again.",
+                    po=self.release_purchase_order_id.name or "-",
+                    so=self.release_sale_order_id.name or "-",
+                    tx=self.release_transaction_id.name or "-",
+                )
+            )
+        if self.type != "opportunity" or not self.stage_id.is_won:
+            raise UserError(_("Submit is available on a won opportunity."))
+        if not self.release_buyer_company_id or not self.release_buyer_facility_id:
+            raise UserError(_("Select the buyer company and the buyer facility before submit."))
+        if not self.release_buyer_price:
+            raise UserError(_("Enter Arthur's buyer price before submit."))
+        offer = self._plasticos_accepted_offer()
+        if not offer:
+            raise UserError(_("Accept an offer before submit."))
+        material = self.opportunity_material_ids[:1]
+        if not material:
+            raise UserError(_("The opportunity has no material copy to sell."))
+        if self.env["sale.order"].search_count(
+            [
+                ("opportunity_id", "=", self.id),
+                ("state", "!=", "cancel"),
+                ("id", "!=", self.release_sale_order_id.id or 0),
+            ]
+        ):
+            raise UserError(_("This opportunity already has a sale order."))
+        product = material._sell_product()
+        purchase_spec = material._line_specification("purchase.order.line")
+        sale_spec = material._line_specification("sale.order.line")
+        label = material.display_name or product.display_name
+        qty = offer.quantity_lbs or 0.0
+        purchase = self.env["purchase.order"].create(
+            {
+                "partner_id": self.partner_id.id,
+                "origin": offer.name,
+                "order_line": [
+                    Command.create(
+                        {
+                            "product_id": product.id,
+                            "name": label,
+                            "product_qty": qty,
+                            "price_unit": offer.price_per_lb or 0.0,
+                            **purchase_spec,
+                        }
+                    )
+                ],
+            }
+        )
+        sale = self.env["sale.order"].create(
+            {
+                "partner_id": self.release_buyer_facility_id.id,
+                "opportunity_id": self.id,
+                "origin": offer.name,
+                "order_line": [
+                    Command.create(
+                        {
+                            "product_id": product.id,
+                            "name": label,
+                            "product_uom_qty": qty,
+                            "price_unit": self.release_buyer_price,
+                            **sale_spec,
+                        }
+                    )
+                ],
+            }
+        )
+        transaction = self.env["plasticos.transaction"].create(
+            {
+                "sale_order_id": sale.id,
+                "purchase_order_ids": [Command.link(purchase.id)],
+                "buyer_id": self.release_buyer_company_id.id,
+                "supplier_id": self.partner_id.id,
+                "user_id": self.user_id.id or self.env.uid,
+                "product_id": product.id,
+            }
+        )
+        sale.transaction_id = transaction.id
+        self.write(
+            {
+                "release_purchase_order_id": purchase.id,
+                "release_sale_order_id": sale.id,
+                "release_transaction_id": transaction.id,
+            }
+        )
+        self.message_post(
+            body=_(
+                "Submitted %(offer)s. Draft purchase %(po)s at the offer price, draft sale %(so)s at %(price)s/lb, "
+                "and draft transaction %(tx)s. Nothing is confirmed.",
+                offer=offer.name,
+                po=purchase.name,
+                so=sale.name,
+                price=self.release_buyer_price,
+                tx=transaction.name,
+            ),
+            message_type="notification",
+            subtype_xmlid="mail.mt_note",
+        )
+        return True
 
     def _plasticos_bind_opportunity_material(self):
         """Bind the one existing material profile of the verified partner; create nothing.

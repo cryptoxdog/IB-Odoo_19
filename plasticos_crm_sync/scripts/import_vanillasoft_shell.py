@@ -20,6 +20,17 @@ for, beside the counters: ``partial`` with a scope note means the declared
 scope completed with a named limitation (an unproven census, a clamped
 watermark, orphaned calls), never an implied full history.
 
+Repository-cohort mode (``VANILLASOFT_CONTACT_EXPORT`` set) builds the census
+in this shell from the export plus the server crosswalk. Crosswalk ids and the
+four omitted duplicates are YES; every other id is PENDING. It does not call
+``load_census``. A same-database ``erp_partners`` witness whose ``final_status``
+is not ``failed`` replaces the commercial-phase refusal. An empty API-key
+parameter is filled from ``VANILLASOFT_API_KEY`` and the value is never printed.
+An active incremental cron is deactivated before the fetch.
+``VANILLASOFT_PRODUCTION_CONFIRM=1`` with no permit file writes a one-use
+``crm_history`` permit bound to the observed database, the release SHA, and the
+generated census SHA-256, expiring inside 24 hours, then consumes it.
+
 History mode (``VANILLASOFT_HISTORY_CENSUS`` set) replaces the full import
 with the frozen 4,876-ContactID cohort, fetched one id at a time through
 ``SyncOrchestrator.upsert_contact_external_id``:
@@ -46,6 +57,7 @@ notifications. Exit codes: 0 session completed (read the HISTORY VERDICT),
 stopped on a rejected credential.
 """
 
+import csv
 import json
 import logging
 import os
@@ -54,6 +66,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HISTORY_CENSUS_ENV = "VANILLASOFT_HISTORY_CENSUS"
+CONTACT_EXPORT_ENV = "VANILLASOFT_CONTACT_EXPORT"
+CONFIRM_ENV = "VANILLASOFT_PRODUCTION_CONFIRM"
+PARTNERS_WITNESS_PARAM = "plasticos_partner_import.production_phase1_witness"
+PARTNERS_PHASE = "erp_partners"
 PRODUCTION_STAGE = "production"
 PRODUCTION_NAME_MARKERS = ("production", "prod")
 DEFAULT_FAILURE_BUDGET = 25
@@ -76,7 +92,7 @@ def _odoo_env():
 
 
 def main() -> int:
-    if _env_flag(HISTORY_CENSUS_ENV):
+    if _env_flag(HISTORY_CENSUS_ENV) or _env_flag(CONTACT_EXPORT_ENV):
         return history(_odoo_env())
     # The floor is checked before the Odoo environment is touched: the refusal
     # is about the operator's request, not the database, and it must hold in
@@ -179,7 +195,7 @@ class _SignalCapture(logging.Handler):
 
 def _audit(event: str, **fields) -> None:
     record = {"event": f"crm_history.{event}", **fields}
-    print("VANILLASOFT_HISTORY_AUDIT " + json.dumps(record, sort_keys=True, default=str))
+    print("VANILLASOFT_HISTORY_AUDIT " + json.dumps(record, sort_keys=True, default=str), flush=True)
 
 
 def _refuse(reason: str) -> int:
@@ -264,7 +280,7 @@ def _observed(env, cohort):
     )
 
 
-def _verified_permit(env, cohort, observed, census_sha256: str):
+def _verified_permit(env, cohort, observed, census_sha256: str, *, commercial: bool = True):
     """``None`` off production. On a production target, the verified permit or ``PermitRefused``."""
     path = _env_flag(cohort.PERMIT_ENV)
     production = observed.odoo_stage == PRODUCTION_STAGE or any(
@@ -276,7 +292,8 @@ def _verified_permit(env, cohort, observed, census_sha256: str):
         raise cohort.PermitRefused([f"production target: {cohort.PERMIT_ENV} must name a one-use permit"])
     permit = cohort.load_permit(path)
     cohort.verify_permit(permit, observed, fingerprint=census_sha256)
-    cohort.check_erp_completion(_param(env, cohort.ERP_PHASE2_WITNESS_PARAM), observed)
+    if commercial:
+        cohort.check_erp_completion(_param(env, cohort.ERP_PHASE2_WITNESS_PARAM), observed)
     return permit
 
 
@@ -383,14 +400,209 @@ def _history_loop(env, cohort, orchestrator, connection, inputs, ledger, importe
                 _audit("stopped", reason="consecutive failure budget", budget=inputs.budget)
                 return STOP_BUDGET
             if fetched % 25 == 0:
-                print(f"progress fetched={fetched} durable={len(imported)}/{cohort.COHORT}")
+                print(f"progress fetched={fetched} durable={len(imported)}/{cohort.COHORT}", flush=True)
     finally:
         logger.removeHandler(capture)
     return ""
 
 
+def repository_census(export_ids: set[str], crosswalk_ids: set[str], omitted: set[str]) -> dict[str, str]:
+    """YES is the crosswalk plus the omitted duplicates. Every other named id is PENDING."""
+    yes = set(crosswalk_ids) | set(omitted)
+    universe = set(export_ids) | set(crosswalk_ids) | set(omitted)
+    return {contact_id: ("YES" if contact_id in yes else "PENDING") for contact_id in universe}
+
+
+def census_text(census: dict[str, str]) -> str:
+    """Canonical ``vanillasoft_contact_id,decision`` text, sorted by numeric ContactID."""
+    lines = ["vanillasoft_contact_id,decision"]
+    for contact_id in sorted(census, key=int):
+        lines.append(f"{contact_id},{census[contact_id]}")
+    return "\n".join(lines) + "\n"
+
+
+def _export_contact_ids(path: Path) -> set[str]:
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.reader(handle)
+        try:
+            header = next(reader)
+        except StopIteration as exc:
+            raise ValueError("export is empty") from exc
+        try:
+            index = header.index("ContactID")
+        except ValueError as exc:
+            raise ValueError("export has no ContactID column") from exc
+        found: set[str] = set()
+        for row in reader:
+            if len(row) <= index:
+                continue
+            contact_id = row[index].strip()
+            if not contact_id:
+                continue
+            if not contact_id.isdigit():
+                raise ValueError(f"export ContactID {contact_id!r} is not numeric")
+            found.add(contact_id)
+    if not found:
+        raise ValueError("export names no ContactID")
+    return found
+
+
+def _repository_inputs(cohort, crosswalk: dict) -> _HistoryInputs:
+    if _env_flag("VANILLASOFT_CALL_FLOOR") or _env_flag("VANILLASOFT_CONTACT_FLOOR"):
+        raise cohort.CohortError("the repository cohort does not accept a call or contact floor")
+    if _env_flag("VANILLASOFT_HISTORY_MAX_IDS"):
+        raise cohort.CohortError("the repository cohort does not accept VANILLASOFT_HISTORY_MAX_IDS")
+    checkpoint = _env_flag("VANILLASOFT_HISTORY_CHECKPOINT")
+    if not checkpoint:
+        raise cohort.CohortError("VANILLASOFT_HISTORY_CHECKPOINT is not set; name a ledger on durable operator storage")
+    export_path = Path(_env_flag(CONTACT_EXPORT_ENV))
+    if not export_path.is_file():
+        raise cohort.CohortError("the export file named by VANILLASOFT_CONTACT_EXPORT is missing")
+    census = repository_census(_export_contact_ids(export_path), set(crosswalk), set(cohort.OMITTED_DUPLICATE_VS_IDS))
+    return _HistoryInputs(
+        census=census,
+        sha256=cohort.sha256_text(census_text(census)),
+        checkpoint=checkpoint,
+        report=_env_flag("VANILLASOFT_REPORT_PATH") or f"{checkpoint}.report.json",
+        max_ids=None,
+        budget=_positive_int("VANILLASOFT_HISTORY_FAILURE_BUDGET", DEFAULT_FAILURE_BUDGET),
+    )
+
+
+def _bind_api_key(env) -> None:
+    """Fill an empty API-key parameter from the environment. The value is never printed."""
+    from odoo.addons.plasticos_crm_sync.models.crm_connection import ICP_VS_KEY_PARAM  # noqa: PLC0415
+
+    icp = env["ir.config_parameter"].sudo()  # settings write: the API key parameter is admin-only
+    if (icp.get_param(ICP_VS_KEY_PARAM) or "").strip():
+        return
+    key = _env_flag("VANILLASOFT_API_KEY")
+    if key:
+        icp.set_param(ICP_VS_KEY_PARAM, key)
+
+
+def _require_partners_witness(env, cohort, observed) -> None:
+    """The partner phase on this database. ``partial`` is accepted; ``failed`` is not."""
+    raw = _param(env, PARTNERS_WITNESS_PARAM)
+    if not raw:
+        raise cohort.PermitRefused(["no committed erp_partners phase on this database"])
+    try:
+        witness = json.loads(raw)
+    except ValueError:
+        raise cohort.PermitRefused(["erp_partners witness is not readable JSON"]) from None
+    reasons = []
+    if witness.get("phase") != PARTNERS_PHASE:
+        reasons.append("erp_partners witness names another phase")
+    if witness.get("database_uuid") != observed.database_uuid:
+        reasons.append("erp_partners witness belongs to another database")
+    if witness.get("final_status") == "failed":
+        reasons.append("the erp_partners phase failed")
+    if reasons:
+        raise cohort.PermitRefused(reasons)
+
+
+def _mint_confirm_permit(cohort, observed, fingerprint: str, checkpoint: str) -> None:
+    """Write a one-use permit when confirm is set and no permit file was named."""
+    if _env_flag(CONFIRM_ENV) != "1" or _env_flag(cohort.PERMIT_ENV):
+        return
+    from datetime import UTC, datetime, timedelta  # noqa: PLC0415
+
+    if observed.odoo_stage != PRODUCTION_STAGE or not observed.release_sha or not observed.release_clean:
+        raise cohort.PermitRefused(["production confirm does not mint a matching permit"])
+    now = datetime.now(UTC)
+    stamp = now.strftime("%Y%m%d%H%M%S")
+    permit_id = f"crmhist-{fingerprint[:16]}-{stamp}"
+    document = {
+        "permit_id": permit_id,
+        "phase": cohort.PERMIT_PHASE,
+        "database_name": observed.database_name,
+        "database_uuid": observed.database_uuid,
+        "odoo_stage": PRODUCTION_STAGE,
+        "release_sha": observed.release_sha,
+        "source_fingerprint": fingerprint,
+        "expires_at": (now + timedelta(hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "approved_by": "VANILLASOFT_PRODUCTION_CONFIRM",
+    }
+    path = Path(checkpoint).parent / f"{permit_id}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(document), encoding="utf-8")
+    os.environ[cohort.PERMIT_ENV] = str(path)
+
+
+def _repository_history(env) -> int:
+    """Import the export-plus-crosswalk cohort. The frozen 4,876 census is a different mode."""
+    from odoo.addons.plasticos_crm_sync.services import historical_cohort as cohort  # noqa: PLC0415
+    from odoo.addons.plasticos_crm_sync.services.approved_identity import load_crosswalk_map  # noqa: PLC0415
+    from odoo.addons.plasticos_crm_sync.services.orchestrator import (  # noqa: PLC0415
+        SyncOrchestrator,
+        advisory_lock_key,
+    )
+
+    crosswalk = load_crosswalk_map(env) or {}
+    try:
+        inputs = _repository_inputs(cohort, crosswalk)
+        cohort.verify_identity(inputs.census, crosswalk, cohort.OMITTED_DUPLICATE_VS_IDS)
+    except (ValueError, OSError) as exc:
+        return _refuse(str(exc))
+    _bind_api_key(env)
+    problem = _endpoint_problem(env)
+    if problem:
+        return _refuse(problem)
+    if not _param(env, cohort.ERP_READY_PARAM):
+        return _refuse("ERP contacts are not imported on this database; YES ContactIDs have no person to bind")
+    observed = _observed(env, cohort)
+    cron = env.ref(CRM_CRON_XMLID, raise_if_not_found=False)
+    try:
+        _require_partners_witness(env, cohort, observed)
+        _mint_confirm_permit(cohort, observed, inputs.sha256, inputs.checkpoint)
+        permit = _verified_permit(env, cohort, observed, inputs.sha256, commercial=False)
+    except cohort.PermitRefused as refused:
+        _audit("refused", reasons=list(refused.reasons), observed=observed.__dict__)
+        env.cr.rollback()
+        print("PRECHECK FAILED: production permit refused")
+        print("Nothing was imported.")
+        return 2
+    try:
+        ledger = cohort.Ledger(inputs.checkpoint, census_sha256=inputs.sha256, database_uuid=observed.database_uuid)
+    except (cohort.CohortError, OSError) as exc:
+        return _refuse(str(exc))
+    _audit("ledger", rows=len(ledger.rows), torn_tail=ledger.torn_tail)
+    if cron and cron.active:
+        cron.active = False
+
+    quiet = env(context={**env.context, **NO_SEND_CONTEXT})
+    connection = quiet["plasticos.crm.connection"].get_or_create_vanillasoft_connection()
+    orchestrator = SyncOrchestrator(quiet)
+    orchestrator.error_rows = []
+    lock_key = advisory_lock_key(connection.id)
+    if not orchestrator._try_advisory_lock(lock_key):
+        env.cr.rollback()
+        return _refuse("another CRM sync or history run holds this connection's lock")
+    try:
+        if permit is not None:
+            try:
+                _consume(env, cohort, permit, observed)
+            except cohort.PermitRefused as refused:
+                _audit("refused", reasons=list(refused.reasons))
+                print("PRECHECK FAILED: production permit refused")
+                print("Nothing was imported.")
+                return 2
+        else:
+            env.cr.commit()
+        _audit("admitted", database=observed.database_name, permit=bool(permit), census_sha256=inputs.sha256)
+        imported = _durable_ids(env, inputs.census)
+        stop = _history_loop(quiet, cohort, orchestrator, connection, inputs, ledger, imported)
+    finally:
+        orchestrator._advisory_unlock(lock_key)
+    return _history_verdict(env, cohort, inputs, ledger, stop)
+
+
 def history(env) -> int:
     """Import the frozen census one ContactID at a time. See the module docstring."""
+    if _env_flag(CONTACT_EXPORT_ENV):
+        if _env_flag(HISTORY_CENSUS_ENV):
+            return _refuse("VANILLASOFT_CONTACT_EXPORT cannot be combined with VANILLASOFT_HISTORY_CENSUS")
+        return _repository_history(env)
     from odoo.addons.plasticos_crm_sync.services import historical_cohort as cohort  # noqa: PLC0415
     from odoo.addons.plasticos_crm_sync.services.approved_identity import load_crosswalk_map  # noqa: PLC0415
     from odoo.addons.plasticos_crm_sync.services.orchestrator import (  # noqa: PLC0415

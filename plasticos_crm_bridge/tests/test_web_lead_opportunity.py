@@ -41,7 +41,7 @@ class TestWebLeadOpportunity(TransactionCase):
         cls.env["plasticos.web.lead.config"].sudo().get_config().write(
             {"ai_enabled": False, "vision_enabled": False, "hot_intake_reviewer_id": cls.env.ref("base.user_admin").id}
         )
-        cls.stage_new = cls.env.ref("plasticos_crm_bridge.stage_new")
+        cls.stage_new = cls.env.ref("crm.stage_lead1")
         cls.web_source = cls.env.ref("plasticos_crm_bridge.utm_source_web_lead")
 
     def _admit(self, external_id, **kwargs):

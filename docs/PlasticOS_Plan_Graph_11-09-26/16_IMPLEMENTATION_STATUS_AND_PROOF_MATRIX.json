@@ -1,0 +1,651 @@
+{
+  "schema": "plasticos.planning.implementation-proof-register/v1",
+  "scope": "EXTERNAL_DERIVED_CAPABILITY_VIEW_NOT_CANONICAL_STRATEGY",
+  "repo": "cryptoxdog/IB-Odoo_19",
+  "source_sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+  "snapshot": "GITHUB_CURRENT_2026_11_09_NO_LIVE_ODOO_ACCESS",
+  "rows": [
+    {
+      "capability_id": "cap:original",
+      "semantic_owner": "Odoo Enterprise Documents",
+      "writer": "documents.document + ir.attachment",
+      "observed_source_state": "SOURCE_PRESENT_INSTALLED_UNVERIFIED",
+      "revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "evidence_refs": [
+        "E-DOC-ORIGINAL"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_THIS_RUN",
+      "integration": "UNKNOWN_NOT_CURRENT_RECHECK",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "NOT_RELEASE_PROVEN"
+    },
+    {
+      "capability_id": "cap:verification",
+      "semantic_owner": "plasticos_documents",
+      "writer": "plasticos.document verification policy",
+      "observed_source_state": "SOURCE_MERGED_PR322_SINGLE_DELEGATING_WRITER_PROD_RUNTIME_UNVERIFIED",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-DOC-VERIFY",
+        "E-DOC-NATIVE-VERIFY",
+        "E-20261109-DOC-SINGLE"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "OWNER_DESIGN_PROPOSED_NOT_ADMITTED",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING",
+      "pre_checkpoint_source_state": "CONFLICTING_DUAL_RUNTIME_WRITERS_IN_SOURCE",
+      "checkpoint_evidence": [
+        "PR #322"
+      ]
+    },
+    {
+      "capability_id": "cap:assoc",
+      "semantic_owner": "plasticos_documents",
+      "writer": "plasticos_documents evidence association owner",
+      "observed_source_state": "SOURCE_NO_PARTNER_RECENCY_AUTHORITY_PROD_RUNTIME_UNVERIFIED",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-DOC-AUTOLINK",
+        "E-DOC-ASSOC-BRS",
+        "E-20261109-DOC-SINGLE"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "OWNER_DESIGN_PROPOSED_NOT_ADMITTED",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING",
+      "pre_checkpoint_source_state": "UNSAFE_PARTNER_RECENCY_WRITER_IN_SOURCE",
+      "checkpoint_evidence": [
+        "PR #322"
+      ]
+    },
+    {
+      "capability_id": "cap:typed-link",
+      "semantic_owner": "plasticos_documents",
+      "writer": "plasticos_documents verified link policy",
+      "observed_source_state": "SOURCE_EXACT_TYPED_ASSOCIATION_PRESENT_PROD_RUNTIME_UNVERIFIED",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-DOC-POLYLINK",
+        "E-DOC-NATIVE-SINGLE"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING",
+      "pre_checkpoint_source_state": "PARTIAL_MODEL_SOURCE_PRESENT_CARDINALITY_GAP",
+      "checkpoint_evidence": [
+        "PR #322"
+      ]
+    },
+    {
+      "capability_id": "cap:compliance",
+      "semantic_owner": "plasticos_documents",
+      "writer": "plasticos_documents read-only compliance assessor",
+      "observed_source_state": "CODE_PRESENT_OPERATION_SPECIFIC_PRODUCTION_QA_PENDING",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-DOC-COMPLIANCE",
+        "E-DOC-SOURCE-BRS"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING"
+    },
+    {
+      "capability_id": "cap:commercial",
+      "semantic_owner": "Odoo Purchase and Sales",
+      "writer": "purchase.order and sale.order",
+      "observed_source_state": "SOURCE_PRESENT_INTEGRATION_UNVERIFIED",
+      "revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "evidence_refs": [
+        "E-LOG-BRS"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_THIS_RUN",
+      "integration": "UNKNOWN_NOT_CURRENT_RECHECK",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "NOT_RELEASE_PROVEN"
+    },
+    {
+      "capability_id": "cap:stock",
+      "semantic_owner": "Odoo Inventory",
+      "writer": "stock.picking / stock.move / stock.quant",
+      "observed_source_state": "SOURCE_PRESENT_INTEGRATION_UNVERIFIED",
+      "revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "evidence_refs": [
+        "E-LOG-LOAD",
+        "E-LOG-BRS"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_THIS_RUN",
+      "integration": "UNKNOWN_NOT_CURRENT_RECHECK",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "NOT_RELEASE_PROVEN"
+    },
+    {
+      "capability_id": "cap:load-many",
+      "semantic_owner": "plasticos_logistics with native commercial/Stock constraints",
+      "writer": "plasticos_logistics relationship/allocation owner",
+      "observed_source_state": "SOURCE_ONE_TRANSACTION_MANY_LOADS_PRESENT_PROD_RUNTIME_UNVERIFIED",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-LOG-TX-LINK",
+        "E-LOG-LOAD",
+        "E-CLAIM-LOAD",
+        "E-RELEASE-346",
+        "E-20261109-MULTILOAD"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "SCHEMA_AND_MIGRATION_APPROVAL_REQUIRED",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING",
+      "pre_checkpoint_source_state": "ONE_TO_ONE_LEGACY_LINK_CONSTRAINT_IN_SOURCE",
+      "checkpoint_evidence": [
+        "PR #339/#346"
+      ]
+    },
+    {
+      "capability_id": "cap:po-only",
+      "semantic_owner": "Odoo Purchase + Stock",
+      "writer": "purchase.order / stock.picking",
+      "observed_source_state": "EXISTING_NATIVE_LIFECYCLE_TO_VERIFY",
+      "revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "evidence_refs": [
+        "E-LOG-TX-LINK",
+        "E-LOG-BRS"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_THIS_RUN",
+      "integration": "UNKNOWN_NOT_CURRENT_RECHECK",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "NOT_RELEASE_PROVEN"
+    },
+    {
+      "capability_id": "cap:log-mail",
+      "semantic_owner": "plasticos_logistics",
+      "writer": "authorized Linda Odoo Mail intent",
+      "observed_source_state": "SOURCE_PRESENT_PRODUCTION_AUTOMATION_QA_PENDING",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-LOG-BRS"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING"
+    },
+    {
+      "capability_id": "cap:seed",
+      "semantic_owner": "PlasticOS invariants + native Odoo lifecycle",
+      "writer": "module data XML + migration owners",
+      "observed_source_state": "INVARIANT_V3_ADMITTED_PER_FAMILY_LIFECYCLE_ONLY",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-SEED-INV",
+        "E-SEED-REAL"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "PROPOSED_PER_FAMILY_RULE_REQUIRES_APPROVAL",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING"
+    },
+    {
+      "capability_id": "cap:gate",
+      "semantic_owner": "Gate Odoo consumer + accepted ADR-013",
+      "writer": "plasticos_gate run-state consumer",
+      "observed_source_state": "INVARIANT_V3_ADMITTED_FAILURE_SEAM_SOURCE_PRESENT_RUNTIME_UNVERIFIED",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-GATE-LEGACY",
+        "E-GATE-ADR",
+        "E-20261109-INV3"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "ADR_ACCEPTED_INVARIANT_SUPERSESSION_PENDING",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING"
+    },
+    {
+      "capability_id": "cap:acl",
+      "semantic_owner": "PlasticOS security domain + native Odoo security",
+      "writer": "native ir.model.access / ir.rule + guarded domain commands",
+      "observed_source_state": "BROAD_SOURCE_GRANTS_AND_ACTUAL_ROLE_PROOF_OPEN",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-ACL-DOC",
+        "E-ACL-CLAIM",
+        "E-ACL-TX",
+        "E-ACL-BRIEF",
+        "E-RELEASE-351"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "OPERATOR_ROLE_POLICY_REQUIRED",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING",
+      "pre_checkpoint_source_state": "BROAD_INTERNAL_GROUP_CROSSMODEL_RIGHTS_IN_SOURCE",
+      "checkpoint_evidence": [
+        "PR #346 full Enterprise report"
+      ]
+    },
+    {
+      "capability_id": "cap:ai-candidates",
+      "semantic_owner": "EIE/CEG for external inference; native Odoo Docs AI only if present",
+      "writer": "no authoritative writer for AI candidates",
+      "observed_source_state": "DESIGN_SPECIFIED_NOT_ACTIVE",
+      "revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "evidence_refs": [
+        "E-AI-BRS"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_THIS_RUN",
+      "integration": "UNKNOWN_NOT_CURRENT_RECHECK",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "ENTITLEMENT_AND_HUMAN_ACTION_POLICY_PENDING",
+      "release_status": "NOT_RELEASE_PROVEN"
+    },
+    {
+      "capability_id": "cap:ai-gate",
+      "semantic_owner": "each relevant domain owner",
+      "writer": "verified Documents/Linda/Commercial/Stock/Accounting commands",
+      "observed_source_state": "DESIGN_SPECIFIED_NOT_ACTIVE",
+      "revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "evidence_refs": [
+        "E-AI-BRS",
+        "E-GATE-ADR"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_THIS_RUN",
+      "integration": "UNKNOWN_NOT_CURRENT_RECHECK",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "NOT_RELEASE_PROVEN"
+    },
+    {
+      "capability_id": "cap:finance",
+      "semantic_owner": "Odoo Accounting plus explicitly retained external settlement scope",
+      "writer": "native account.move action after authorization",
+      "observed_source_state": "HISTORICAL_DRAFT_ARCHIVE_AND_QB_CUTOFF_SEPARATE",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-DOC-COMPLIANCE"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "NOT_APPLICABLE",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING"
+    },
+    {
+      "capability_id": "cap:booking",
+      "semantic_owner": "future Export BRS, Linda transport owner",
+      "writer": "NONE_AUTHORIZED",
+      "observed_source_state": "NEXT_AFTER_PRODUCTION_CORE_QA_EXPORT_NOT_STARTED",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-DONOR-EXPORT"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_IN_THIS_UPDATE",
+      "integration": "PRODUCTION_INTERACTIVE_PROOF_PENDING",
+      "production_deployment": "GITHUB_PRODUCTION_BRANCH_EXISTS_HOSTED_RUNTIME_NOT_VERIFIED",
+      "operator_admission": "SEPARATE_EXPORT_ADMISSION_REQUIRED",
+      "release_status": "SOURCE_IMPLEMENTED_PRODUCTION_PROOF_PENDING"
+    },
+    {
+      "capability_id": "cap:shopfloor",
+      "semantic_owner": "native Stock/MRP plus future domain adapter",
+      "writer": "NONE_AUTHORIZED",
+      "observed_source_state": "PARKED",
+      "revision": "04bd0594a7c9dcad53d9c45fc65276d76817c112",
+      "evidence_refs": [
+        "E-DONOR-EXPORT"
+      ],
+      "enterprise_fixture": "NOT_EXECUTED_THIS_RUN",
+      "integration": "UNKNOWN_NOT_CURRENT_RECHECK",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "SEPARATE_OPERATIONS_ADMISSION_REQUIRED",
+      "release_status": "NOT_RELEASE_PROVEN"
+    },
+    {
+      "capability_id": "cap:historical-ingest",
+      "semantic_owner": "plasticos_partner_import + plasticos_crm_sync",
+      "writer": "SQL SourceIndex -> ORM / provider API -> approved crosswalk",
+      "observed_source_state": "SOURCE_PRESENT_FULL_PROD_IMPORT_UNVERIFIED",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-20261109-REHEARSAL"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "SOURCE_ONLY"
+    },
+    {
+      "capability_id": "cap:web-lead-triage",
+      "semantic_owner": "plasticos_web_leads + plasticos_crm_bridge",
+      "writer": "Odoo web-lead controller and CRM domain methods",
+      "observed_source_state": "SOURCE_PRESENT_PROD_QA_NOT_RUN",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-20261109-CRM-OPPORTUNITY"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "SOURCE_ONLY"
+    },
+    {
+      "capability_id": "cap:crm-opportunity",
+      "semantic_owner": "plasticos_crm_bridge",
+      "writer": "crm.lead and its approved lot/actions",
+      "observed_source_state": "MERGED_PR384_ADVANCED_GATE_NOT_IN_BASIC_QA",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-20261109-CRM-OPPORTUNITY"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "SOURCE_ONLY"
+    },
+    {
+      "capability_id": "cap:admin-dashboard",
+      "semantic_owner": "plasticos_admin_dashboard / plasticos_logistics (load projection)",
+      "writer": "read-only KPI aggregate / logistics SQL view",
+      "observed_source_state": "SOURCE_PRESENT_MODULE_MANUAL_INSTALL_LIVE_ACCESS_UNKNOWN",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-20261109-ADMIN-MENU",
+        "E-20261109-ADMIN-LOAD-EXCLUSION"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "SOURCE_ONLY"
+    },
+    {
+      "capability_id": "cap:logistics-automation",
+      "semantic_owner": "plasticos_logistics + native Odoo Mail",
+      "writer": "owner-scoped requests and Odoo mail queue",
+      "observed_source_state": "SOURCE_PRESENT_QA_NOT_RUN",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-20261109-PR414"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "SOURCE_ONLY"
+    },
+    {
+      "capability_id": "cap:document-automation",
+      "semantic_owner": "plasticos_documents / plasticos_documents_native",
+      "writer": "one PlasticOS evidence writer / native documents original",
+      "observed_source_state": "SOURCE_PRESENT_QA_NOT_RUN",
+      "revision": "bdc222246fbfb647e8e008046b759eecd60a2028",
+      "evidence_refs": [
+        "E-20261109-DOC-SINGLE"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "UNKNOWN",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "SOURCE_ONLY"
+    },
+    {
+      "capability_id": "cap:postgres-filestore",
+      "semantic_owner": "Odoo.sh / native Odoo attachment storage",
+      "writer": "existing Odoo DB+filestore, not a new blob writer",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-DB"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:worksheet-originals",
+      "semantic_owner": "plasticos_documents_native + ERP source mapping",
+      "writer": "native documents.document / ir.attachment",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-BLOB"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:doc-ai-pilot",
+      "semantic_owner": "Odoo Documents / AI module with installed EE capability",
+      "writer": "candidate-only extraction, never verified decision writer",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-DOC-AI"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:manager-doc-queue",
+      "semantic_owner": "plasticos_documents + existing authorized manager UI",
+      "writer": "existing review/activity owner, one verification writer",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-DOC-REVIEW"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:cutoff-source",
+      "semantic_owner": "finance controller with source owners",
+      "writer": "immutable external source manifest and approval",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-ADR022"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:historical-reopen",
+      "semantic_owner": "plasticos_transaction",
+      "writer": "action_reopen_historical manager command",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-REOPEN"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:opening-arap",
+      "semantic_owner": "plasticos_accounting / native Odoo Accounting",
+      "writer": "distinct cutoff account.move with AR/AP clearing",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-ADR022"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:opening-tb",
+      "semantic_owner": "plasticos_accounting / native Odoo Accounting",
+      "writer": "native opening journal, company-specific",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-ADR022"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:opening-bank",
+      "semantic_owner": "native Odoo Accounting + treasury",
+      "writer": "bank statement / native bank reconciliation",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-ADR022"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:opening-inventory",
+      "semantic_owner": "native Odoo Stock + finance",
+      "writer": "approved stock owner/valuation owner",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-ADR022"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    },
+    {
+      "capability_id": "cap:dr-restore",
+      "semantic_owner": "existing DR campaign SM-ODOO-DR-CAMPAIGN-001",
+      "writer": "original DR operators and recovery custody, not business writer",
+      "observed_source_state": "OWNER_DESIGN_OR_SOURCE_FOUND_NOT_RUNTIME_ACCEPTED",
+      "revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+      "evidence_refs": [
+        "E-POST-DR"
+      ],
+      "enterprise_fixture": "NOT_RUN",
+      "integration": "NOT_RUN",
+      "production_deployment": "NOT_VERIFIED",
+      "operator_admission": "NOT_CLAIMED",
+      "release_status": "UNPROVEN"
+    }
+  ],
+  "semantic_truth_rule": "BRS/ADR source is requirement. Source code is implementation presence. Tests must bind tested head; production proof requires actual runtime evidence.",
+  "not_run": [
+    "Odoo 19 Enterprise native Documents permissions and installer",
+    "New multi-load migration",
+    "Actual ACL seeded role effective tests",
+    "Live Gate fallback failure",
+    "Live AI action",
+    "Production activation"
+  ],
+  "checkpoint_test_receipt": {
+    "source": "PR #346 checked-in GMP-129 report, not independent test execution",
+    "tested_branch": "26f97308885a638c45d957ef9767b5e1dd00ed4c",
+    "full_enterprise": {
+      "count": 1103,
+      "failed": 8,
+      "errors": 2
+    },
+    "isolated_logistics": {
+      "count": 152,
+      "failed": 0,
+      "errors": 0
+    },
+    "final_staging_full_suite": "NOT_RUN_BY_THIS_CHECKPOINT"
+  },
+  "operator_cutover_proof": {
+    "production_ERP_import_guard": "CODE_MERGED_PR_349_HOSTED_UNVERIFIED",
+    "hosted_ERP_import_execution": "UNKNOWN_NOT_PROVED",
+    "historical_4876_CRM_runner": "CODE_MERGED_PR_349_HOSTED_UNVERIFIED",
+    "source_freshness": "NOT_PROVED",
+    "historical_ERP_complete_with_replay": "NOT_PROVED",
+    "production_code_promotion": "NOT_OBSERVED",
+    "production_ERP_CRM_import": "NOT_OBSERVED",
+    "binary_documents_importer": "DEFERRED_BY_OPERATOR",
+    "aws_dr_and_business_acceptance": "DEFERRED_POST_PROMOTION",
+    "migration_rehearsal": "COMPLETE_OPERATOR_REPORTED_RECEIPT_UNLINKED",
+    "constrained_native_rollback_point": "REQUIRED_BEFORE_LIVE_CHANGE"
+  },
+  "release_delta": {
+    "pr_349": "PRODUCTION_IMPORT_SEAM_MERGED",
+    "pr_350": "CRM_MATERIALS_FIX_MERGED",
+    "pr_351": "ODOOLS_OWNER_REMEDIATION_MERGED",
+    "pr_352": "OPEN_REPO_INDEX_ONLY",
+    "full_enterprise_current_head": "NOT_VERIFIED",
+    "promotion": "NOT_OBSERVED"
+  },
+  "current_production_proof_matrix": {
+    "production_github_branch": "OBSERVED_729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+    "odoo_sh_deploy": "NOT_VERIFIED",
+    "admin_tile_visible": "NOT_VERIFIED",
+    "admin_menu_defined": "OBSERVED_SOURCE",
+    "all_loads_in_dashboard": "SOURCE_SQL_SCOPE_GAP",
+    "erp_crm_contact_imports_full": "NOT_VERIFIED",
+    "web_lead_qualification": "NOT_RUN",
+    "logistics_automation": "NOT_RUN",
+    "document_automation": "NOT_RUN",
+    "full_button_inventory": "NOT_RUN",
+    "matching_enrichment": "DEFERRED",
+    "export": "NEXT_NOT_STARTED"
+  },
+  "extended_production_proof_matrix": {
+    "postgres_filestore": "NOT_VERIFIED",
+    "eligible_worksheet_image_census": "HISTORICAL_TEST_DB_ONLY",
+    "worksheet_originals_imported": "NO_WRITE_IN_HISTORICAL_REPORT; CURRENT_UNKNOWN",
+    "document_ai_installed": "NOT_VERIFIED",
+    "manager_document_exception_queue": "NOT_VERIFIED",
+    "erp_ap_ar_inventory_reports": "SOURCE_CUTOFF_NOT_RECEIVED",
+    "bank_opening_statements": "NOT_RECEIVED",
+    "quickbooks_trial_balance": "NOT_RECEIVED",
+    "reopen_erp_make_target": "NOT_PRESENT_AT_INSPECTED_STAGING_SHA",
+    "historical_reopen_operational_method": "SOURCE_PRESENT_FINANCIAL_OPENING_NOT_CONTAINED",
+    "opening_arap_cloned_rehearsal": "NOT_RUN",
+    "financial_cutover_production": "NOT_AUTHORIZED",
+    "native_prechange_backup": "NOT_VERIFIED",
+    "independent_dr_restoration": "NOT_RUN",
+    "full_dr_campaign": "NOT_DONE_UNVERIFIED"
+  }
+}

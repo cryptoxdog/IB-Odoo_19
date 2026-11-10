@@ -1,3 +1,4 @@
+from . import company_role_tag
 from . import equipment_type
 from . import facility_profile
 from . import facility_template

@@ -661,6 +661,7 @@ class TestErpWorksheetImport(TransactionCase):
         index.payables_by_buysell["58001"] = [_payable("8580011", "58001", VENDOR, "400", "50100", "INV-58001")]
         # Outside the universe: a free-text reference and a blank one.
         index.payables_by_buysell["51694 / 4714"] = [_payable("500868", "51694 / 4714", VENDOR, "168.72", "", "4714")]
+        index.payables_by_buysell["52948INV"] = [_payable("500869", "52948INV", VENDOR, "-40", "", "AP-OFFSET")]
         index.payables_by_buysell[""] = [_payable("999001", "", VENDOR, "12.5", "50100", "NOREF")]
         report = self._run(index)
 
@@ -671,12 +672,20 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(rolled["disposition"], "not_realized")
         self.assertEqual(rolled["reason"], "worksheet rolled back (ValueError); no document of it exists")
         self.assertFalse(self._marked("account.move", "legacy_erp_ininv_8580011"))
-        outside = quarantine["500868"]
-        self.assertEqual(outside["worksheet"], "51694 / 4714")
-        self.assertEqual(
-            outside["reason"],
-            "BuySellNo '51694 / 4714' is not a worksheet with lines; no transaction to attach the bill to",
-        )
+        self.assertNotIn("500868", quarantine)
+        self.assertNotIn("500869", quarantine)
+        blank_bill = self._marked("account.move", "legacy_erp_ininv_500868")
+        credit = self._marked("account.move", "legacy_erp_ininv_500869")
+        self.assertEqual(blank_bill.move_type, "in_invoice")
+        self.assertEqual(credit.move_type, "in_refund")
+        self.assertEqual(blank_bill.state, "draft")
+        self.assertEqual(blank_bill.invoice_origin, "51694 / 4714")
+        self.assertEqual(credit.invoice_origin, "52948INV")
+        self.assertEqual(blank_bill.partner_id, self.vendor)
+        self.assertEqual(set(blank_bill.invoice_line_ids.account_id.ids), {self.material.id})
+        self.assertEqual(set(credit.invoice_line_ids.account_id.ids), {self.material.id})
+        self.assertAlmostEqual(blank_bill.amount_total, 168.72, places=2)
+        self.assertAlmostEqual(credit.amount_total, 40.0, places=2)
         blank = quarantine["999001"]
         self.assertEqual(blank["worksheet"], "")
         self.assertEqual(
@@ -687,12 +696,12 @@ class TestErpWorksheetImport(TransactionCase):
         payables = report.census["payables"]
         self.assertEqual(payables["worksheet_rolled_back_not_realized"], {"rows": 1, "worksheets": 1, "amount": 400.0})
         self.assertEqual(
-            payables["outside_worksheet_universe_not_realized"], {"rows": 2, "worksheets": 2, "amount": 181.22}
+            payables["outside_worksheet_universe_not_realized"], {"rows": 1, "worksheets": 1, "amount": 12.5}
         )
         reconciliation = report.census["payables_reconciliation"]
-        self.assertEqual(reconciliation["rows_seen"], 8 + 1 + 2)
-        self.assertEqual(reconciliation["billed_rows"], 5)
-        self.assertEqual(reconciliation["quarantined_rows"], 6)
+        self.assertEqual(reconciliation["rows_seen"], 8 + 1 + 3)
+        self.assertEqual(reconciliation["billed_rows"], 7)
+        self.assertEqual(reconciliation["quarantined_rows"], 5)
         self.assertTrue(reconciliation["closes"])
         self.assertEqual(report.census["payables_unselected"], {"rows": 0, "amount": 0.0})
         before = self._snapshot()
@@ -751,7 +760,7 @@ class TestErpWorksheetImport(TransactionCase):
         return {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
 
     def test_empty_order_graph_quarantines_every_payable_and_still_reconciles(self):
-        """A source with no order header writes nothing, skips every worksheet, and reports every bill."""
+        """No order header writes no worksheet. A blank-account bill with a vendor is still a bill."""
         index = self._index()
         self._add_line(index, "9900", "x", _line("14000", "60900", "9900", "9901", "1000", "500", "1000", "400"))
         index.order_lines.clear()
@@ -762,10 +771,12 @@ class TestErpWorksheetImport(TransactionCase):
         report = self._run(index)
 
         self.assertEqual(report.counts["transactions"], {"created": 0, "updated": 0, "skipped": 1, "rejected": 0})
-        self.assertFalse(self._marked("account.move", "legacy_erp_ininv_"))
+        blank_bill = self._marked("account.move", "legacy_erp_ininv_500868")
+        self.assertEqual(blank_bill.move_type, "in_invoice")
+        self.assertEqual(set(blank_bill.invoice_line_ids.account_id.ids), {self.material.id})
         self.assertFalse(self._marked("sale.order", "legacy_erp_so_"))
         quarantine = self._quarantine_by_id(report)
-        self.assertEqual(sorted(quarantine), ["500868", "8609001", "8609002", "8609003", "8609004"])
+        self.assertEqual(sorted(quarantine), ["8609001", "8609002", "8609003", "8609004"])
         for payable_id in ("8609001", "8609002", "8609003", "8609004"):
             self.assertEqual(quarantine[payable_id]["disposition"], "not_realized")
             self.assertEqual(
@@ -776,8 +787,8 @@ class TestErpWorksheetImport(TransactionCase):
         )
         reconciliation = report.census["payables_reconciliation"]
         self.assertEqual(reconciliation["source_rows"], 5)
-        self.assertEqual(reconciliation["quarantined_rows"], 5)
-        self.assertEqual((reconciliation["billed_rows"], reconciliation["excluded_rows"]), (0, 0))
+        self.assertEqual(reconciliation["quarantined_rows"], 4)
+        self.assertEqual((reconciliation["billed_rows"], reconciliation["excluded_rows"]), (1, 0))
         self.assertEqual(reconciliation["missing_rows"], [])
         self.assertTrue(reconciliation["closes"])
         self.assertNotIn("reconciliation", {item["key"] for item in report.anomalies})

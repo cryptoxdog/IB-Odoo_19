@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_crm_bridge
 component_name: PlastOS CRM Bridge
-module_version: 19.0.3.4.23
+module_version: 19.0.3.4.24
 layer: 3
 installable: true
 auto_install: true
@@ -18,6 +18,7 @@ depends:
   - plasticos_material_profile
   - plasticos_facility_profile
   - plasticos_transaction
+  - sale_crm
   - plasticos_logistics
   - plasticos_intake
 models_owned:
