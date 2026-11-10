@@ -7,7 +7,7 @@
     "unit_tests": 6,
     "unit_tests_pass": true
   },
-  "manifest_sha256": "648dfad639073e2095aacea84995ea17dd1c08624d3e8ad6d870cb0488079543",
+  "manifest_sha256": "23f6206f4c3e69136bffc297f88a037e1407078b3b2bbd4abb4c15045ddb22c6",
   "not_proved": [
     "live hosted Odoo.sh Production source",
     "PostgreSQL and filestore access",

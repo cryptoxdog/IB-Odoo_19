@@ -27,7 +27,7 @@ The Mac copy is a Windows App folder redirect, not a second extract.
 |---|---|
 | `/Users/ib-mac/Odoo-ERP-Files/journal.csv` | Journal already copied. 21 MB. Server timestamp preserved as 2026-10-28 16:20. |
 | `/Users/ib-mac/Odoo-ERP-Files/decoded/` | Opened originals, copying now. Files sit directly in this folder: `<ImageID>.<ext>`. |
-| `/Users/ib-mac/Odoo-ERP-Files/cieTrade_SM_2026-10-03.bak` | October 3 ERP backup, 97,973,248 bytes. Not the document images. |
+| the only `.bak` in `/Users/ib-mac/Odoo-ERP-Files` | October 3 ERP backup, 97,973,248 bytes. Not the document images. |
 
 `/Users/ib-mac/Odoo-BAK-Files` does not exist. `\\tsclient\Odoo-BAK-Files` is a dead redirect. The live redirect is IB-PC (`remote.papersolve.com:3402`), Folders, name `Odoo-ERP-Files`, path `/Users/ib-mac/Odoo-ERP-Files`, Read-only off. Inside the session that share is `\\tsclient\Odoo-ERP-Files`.
 
@@ -52,7 +52,7 @@ It has no `ImportScope` column. `tools/reconcile_cohort.py` rejects a journal th
 When both the journal and `decoded/` are stable, the read-only check is:
 
 ```sh
-python3 docs/campaigns/PlasticOS_Worksheet_Documents_Runbook/tools/reconcile_cohort.py \
+python3 docs/campaigns/11-09-26/PlasticOS_Worksheet_Documents_Runbook/tools/reconcile_cohort.py \
   --journal /Users/ib-mac/Odoo-ERP-Files/journal.csv \
   --transactions <private Production export id,name,company_id> \
   --decoded-dir /Users/ib-mac/Odoo-ERP-Files/decoded \
