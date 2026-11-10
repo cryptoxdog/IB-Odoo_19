@@ -18,6 +18,7 @@ depends:
   - plasticos_material_profile
   - plasticos_facility_profile
   - plasticos_transaction
+  - sale_crm
   - plasticos_logistics
   - plasticos_intake
 models_owned:

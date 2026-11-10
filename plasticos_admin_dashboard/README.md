@@ -17,6 +17,7 @@ depends:
   - plasticos_commission
   - plasticos_web_leads
   - plasticos_security_base
+  - plasticos_crm_bridge
 models_owned:
   - plasticos.admin.kpi
   - plasticos.rep.performance
