@@ -153,6 +153,42 @@ ensure_protected_root_stamp() {
     -f body="$(printf '%s\n\n%s\n' "${body}" "${stamp}")" >/dev/null
 }
 
+# The range moved, so the machine-owned regions of a composed body (Files
+# touched, Changes by intent, Evidence, Protected-root) are stale. Recompose
+# those regions only; prose a person wrote, ticked gates and the title stay.
+# A body the composer did not write is "unmanaged" and left as it is. Advisory:
+# a refresh failure never fails a publication that has already pushed.
+refresh_composed_body() {
+  local number="$1" scratch status
+  scratch="$(git rev-parse --show-toplevel)/.l9/pr"
+  mkdir -p "${scratch}"
+  if ! gh api "repos/${GH_REPO}/pulls/${number}" --jq '.body // ""' >"${scratch}/open-pr-body.md"; then
+    echo "   warning: could not read the open PR body; it was not refreshed" >&2
+    return 0
+  fi
+  rm -f "${scratch}/pr-body-refresh.json"
+  if ! bash scripts/compose_pr_body.sh refresh "${BASE}" "${scratch}/open-pr-body.md" \
+      "${scratch}/pr-body-refresh.json" >"${scratch}/pr-body.md"; then
+    echo "   warning: the composer could not refresh the PR body; it keeps its previous text" >&2
+    return 0
+  fi
+  status="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' \
+    "${scratch}/pr-body-refresh.json" 2>/dev/null || echo unknown)"
+  case "${status}" in
+    updated|migrated)
+      if gh api --method PATCH "repos/${GH_REPO}/pulls/${number}" \
+          -f body="$(cat "${scratch}/pr-body.md")" >/dev/null; then
+        echo "   body refreshed (${status}): Files touched and the other machine-owned regions match this range"
+      else
+        echo "   warning: could not PATCH the refreshed PR body" >&2
+      fi
+      ;;
+    unchanged) echo "   body unchanged: its machine-owned regions already match this range" ;;
+    unmanaged) echo "   body has no machine-owned regions and was not composed here; left as written" ;;
+    *) echo "   warning: PR body refresh status unreadable (${status}); not refreshed" >&2 ;;
+  esac
+}
+
 if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
   # GitHub updates an open PR's head asynchronously after the push; re-read
   # a few times before declaring the SHA wrong. Every other mismatch (base,
@@ -168,6 +204,7 @@ if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
   PR_URL="${PROOF#*$'\t'}"
   echo "✅ Open PR #${PR_NUM} → ${BASE}: ${PR_URL}"
   echo "   head ${LOCAL_SHA}"
+  refresh_composed_body "${PR_NUM}"
   ensure_protected_root_stamp "${PR_NUM}"
   bash scripts/apply_pr_kernel_metadata.sh "${PR_NUM}" || true
   echo "   Merge is a separate human decision. This command does not merge."
@@ -184,8 +221,15 @@ if [[ "${AHEAD}" == "0" ]]; then
   exit 1
 fi
 
-TITLE="$(git log -1 --pretty=%s)"
-BODY="$(python3 scripts/build_pr_body.py "${BASE}")"
+# One template, one composer (scripts/compose_pr_body.sh): the org template
+# with every touched file listed first. No local builder, no local template.
+if ! TITLE="$(bash scripts/compose_pr_body.sh title "${BASE}")" || [[ -z "${TITLE}" ]]; then
+  TITLE="$(git log -1 --pretty=%s)"
+fi
+if ! BODY="$(bash scripts/compose_pr_body.sh body "${BASE}")" || [[ -z "${BODY}" ]]; then
+  echo "could not compose the PR body from the org template (scripts/compose_pr_body.sh)"
+  exit 1
+fi
 STAMP="<!-- L9_PROTECTED_ROOT_PR -->"
 if ! printf '%s' "${BODY}" | grep -qF "${STAMP}"; then
   BODY="${BODY}"$'\n\n'"${STAMP}"

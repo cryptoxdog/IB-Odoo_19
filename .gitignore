@@ -86,3 +86,5 @@ extended_audit_report.json
 
 # Customer VanillaSoft export. Local Gate 7 input only; not published.
 plasticos_crm_sync/Vanillasoft-Scrap-Management.csv
+# make pr composer scratch and the author's pr-intent.json (scripts/compose_pr_body.sh)
+.l9/pr/

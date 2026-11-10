@@ -13,7 +13,7 @@
     "applies_to": "additive_only files only"
   },
   "pr_template": {
-    "path": ".github/pull_request_template.md",
+    "path": "Quantum-L9/.github:.github/pull_request_template.md",
     "stamp": "<!-- L9_PROTECTED_ROOT_PR -->",
     "required_when": "any additive_only protected_files path is in the PR diff"
   },
