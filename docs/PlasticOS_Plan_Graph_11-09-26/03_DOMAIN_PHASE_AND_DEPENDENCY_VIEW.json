@@ -1,0 +1,1403 @@
+{
+  "schema": "plasticos.planning.domain-phase-closure/v1",
+  "status": "WORKING_NON_ADMITTED_ADDITIVE_POST_IMPORT_ACCEPTANCE_NOT_RUNTIME_PROVEN",
+  "revision_date": "2026-11-09",
+  "source_repo": "cryptoxdog/IB-Odoo_19",
+  "source_revision": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+  "lanes": [
+    {
+      "id": "MVP",
+      "title": "MVP priority; no Export/operations prerequisites",
+      "priority": 0,
+      "activation": "Existing separately authorized change process only"
+    },
+    {
+      "id": "ARCH",
+      "title": "Invariant/architecture/source contract design now, zero runtime implementation",
+      "priority": 1,
+      "activation": "PLANNING_ONLY"
+    },
+    {
+      "id": "DEFERRED",
+      "title": "Export and physical operations implementation parked",
+      "priority": 9,
+      "activation": "REQUIRES_SEPARATE_OPERATOR_AUTHORIZATION"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "PL-MVP-01",
+      "lane": "MVP",
+      "title": "Target code-clean-enough Production build for hands-on QA. Confirm hosted startup + addon list, not bug-free certification or final financial go-live.",
+      "owner": "PlasticOS core / release",
+      "status": "GITHUB_PRODUCTION_CODE_PROMOTED_TESTABLE_ENV_UNKNOWN",
+      "predecessors": [
+        "PL-RELEASE-MIGRATION"
+      ],
+      "not_blocked_by": [
+        "PL-ARCH-07",
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "conditional_safety_gate": "Source-bound final Enterprise tests, branch integration and Odoo.sh prechange checkpoint. Rehearsal and OdooLS cleanup already completed (operator report / merged PR).",
+      "checkpoint_prior_status": "TO_PROVE",
+      "checkpoint_note": "Data import remains a distinct post-promotion gate. Independent AWS DR and broad business acceptance are deferred.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-ARCH-01",
+      "lane": "ARCH",
+      "title": "INVARIANTS.md v3.0.0 admitted 2026-11-08, not the old draft v3.2/3.3 campaign.",
+      "owner": "PlasticOS architecture/invariants",
+      "status": "CONSTITUTION_V3_ADMITTED",
+      "predecessors": [],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-ARCH-02",
+      "lane": "ARCH",
+      "title": "PR #322 one verification writer in source, with native bridge delegation; verify live actor and history handling.",
+      "owner": "plasticos_documents + native bridge",
+      "status": "SOURCE_IMPLEMENTED_ENTERPRISE_QA_PENDING",
+      "predecessors": [],
+      "checkpoint_prior_status": "DESIGN_PROOF_PENDING",
+      "checkpoint_note": "PR #322 merged; historical design remains. Current integrated Enterprise single-writer proof still outstanding.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-ARCH-03",
+      "lane": "ARCH",
+      "title": "Native partner recency no longer writes authoritative document association; exact typed association in source.",
+      "owner": "plasticos_documents",
+      "status": "SOURCE_IMPLEMENTED_ENTERPRISE_QA_PENDING",
+      "predecessors": [
+        "PL-ARCH-02"
+      ],
+      "checkpoint_prior_status": "DESIGN_PROOF_PENDING",
+      "checkpoint_note": "PR #322 merged exact association; exact-current behavior and migration tests still require replay.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-ARCH-04",
+      "lane": "ARCH",
+      "title": "Define side-effect-free per-operation compliance and financial/stock non-effects",
+      "owner": "plasticos_documents",
+      "status": "DESIGN_PROOF_PENDING",
+      "predecessors": [
+        "PL-ARCH-02"
+      ]
+    },
+    {
+      "id": "PL-AI-01",
+      "lane": "ARCH",
+      "title": "Inspect installed native Enterprise Documents AI and Mail capabilities/ACL/entitlements, without activation",
+      "owner": "plasticos_documents_native",
+      "status": "UNKNOWN_NEEDS_SOURCE_PROOF",
+      "predecessors": []
+    },
+    {
+      "id": "PL-AI-02",
+      "lane": "ARCH",
+      "title": "Define source-cited extract/contradiction/next-action candidates and owner-owned action gate",
+      "owner": "Docs evidence owner + native AI consumer",
+      "status": "PROPOSED_ONLY",
+      "predecessors": [
+        "PL-ARCH-03"
+      ]
+    },
+    {
+      "id": "PL-AI-03",
+      "lane": "MVP",
+      "title": "Enable and test document-only native AI candidate extraction on existing/imported originals; no autonomous verification, posting or external matching",
+      "owner": "Documents native / approved operator",
+      "status": "PLANNED_INSTALLED_CAPABILITY_AND_SAFE_SANDBOX_PROOF_MISSING",
+      "predecessors": [
+        "PL-AI-01",
+        "PL-AI-02",
+        "PL-PROD-DOC-QA",
+        "PL-RELEASE-DOC-BLOBS"
+      ],
+      "wake_trigger": "separately approved feature entitlement, validation, deployment and action policy",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "cap:gate"
+      ],
+      "acceptance": [
+        "Real Odoo 19 Enterprise AI capability, entitlement, actions and permissions inventoried, not assumed",
+        "Use already-existing documents as well as newly imported originals, preserve image/hash/provenance",
+        "Extraction yields source-cited suggestions; low-confidence, contradictory, corrupt or incomplete cases flag a manager instead of changing business truth",
+        "Deterministic action authorization and company/role segregation tested, no external CEG/EIE activation or automated invoice/stock/mail"
+      ]
+    },
+    {
+      "id": "PL-ARCH-05",
+      "lane": "ARCH",
+      "title": "Update Linda/Documents BRS owner crosswalk for revision-aware candidate mail and single sender",
+      "owner": "plasticos_logistics BRS + Documents BRS",
+      "status": "PROPOSED_ONLY",
+      "predecessors": [
+        "PL-ARCH-03"
+      ]
+    },
+    {
+      "id": "PL-ARCH-06",
+      "lane": "ARCH",
+      "title": "Native transaction.load_ids 1:N exists; verify on current Production with claim/document/quantity cases.",
+      "owner": "native Sales/Purchase/Stock + Logistics BRS",
+      "status": "SOURCE_IMPLEMENTED_ENTERPRISE_QA_PENDING",
+      "predecessors": [],
+      "mandatory_design_before_multi_load_activation": true,
+      "checkpoint_prior_status": "ARCHITECTURE_DRAFT_ONLY",
+      "checkpoint_note": "Domestic multi-load implemented by merged #339; historical migration and downstream consumers remain release proofs, Export still parked.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-ARCH-07",
+      "lane": "ARCH",
+      "title": "Preserve deferred Export BRS 111 and 111 NOT_RUN cases as reference with owner-placement matrix",
+      "owner": "export BRS future owner",
+      "status": "CAPTURED_SOURCE_NOT_ADMITTED",
+      "predecessors": [
+        "PL-ARCH-06"
+      ],
+      "activation": "NO_IMPLEMENTATION"
+    },
+    {
+      "id": "PL-FUT-01",
+      "lane": "DEFERRED",
+      "title": "Build Export as next separately authorized module after Production core test acceptance; unify existing domestic Logistics, documents, Sales/Purchase, stock and Linda, do not duplicate their writers.",
+      "owner": "future plasticos_export",
+      "status": "NEXT_AFTER_PRODUCTION_CORE_QA_NOT_STARTED",
+      "predecessors": [
+        "PL-PROD-EXTENDED-ACCEPT",
+        "PL-ARCH-07"
+      ],
+      "wake_trigger": "explicit new Export milestone, validated owned interfaces and funded capacity",
+      "current_evidence_epoch": "2026-11-09",
+      "not_blocked_by": [
+        "PL-AI-01",
+        "PL-AI-02",
+        "PL-AI-03",
+        "PL-FUT-02",
+        "PL-DEC-SEED",
+        "PL-ADMIT-INV"
+      ],
+      "activation": "AFTER_OPERATOR_ACCEPTS_CORE_QA_AND_SEPARATELY_AUTHORIZES_EXPORT",
+      "checkpoint_note": "Operator has now placed post-import documents, accountant-approved rehearsal and independent restore proof before Export kickoff. Actual live GL writer cutover and blocked 2-hour DR optimization remain separate authority gates; no unauthorized activation."
+    },
+    {
+      "id": "PL-FUT-02",
+      "lane": "DEFERRED",
+      "title": "Warehouse/shop-floor mobile scan, scale integrations, conversion genealogy and equipment workflows",
+      "owner": "future PlasticOS native Stock/MRP adapters",
+      "status": "PARKED",
+      "predecessors": [
+        "PL-ARCH-06"
+      ],
+      "wake_trigger": "explicit new operations milestone, native gap proof and hardware feasibility"
+    },
+    {
+      "id": "PL-MVP-02",
+      "lane": "MVP",
+      "title": "Existing Documents/manual verification/compliance operational proof before activation",
+      "owner": "Documents domain",
+      "status": "PARTIAL_ENTERPRISE_PROOF",
+      "predecessors": [
+        "PL-ARCH-02",
+        "PL-ARCH-04",
+        "PL-READY-ACL",
+        "PL-READY-DOC"
+      ],
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "meaning": "Verified manual/Docs flow only after high-risk Documents and ACL remediation, with operator-approved delivery scope.",
+      "checkpoint_prior_status": "TO_PROVE",
+      "checkpoint_note": "Document owner PR #322 is merged, but expiry/cron and full operational workflow acceptance need final EE run."
+    },
+    {
+      "id": "PL-FIX-DOC-WRITER",
+      "lane": "MVP",
+      "title": "Delegation implemented, retain negative actor/revision proof.",
+      "owner": "plasticos_documents",
+      "status": "CODE_MERGED_PR322_LIVE_PROOF_PENDING",
+      "predecessors": [
+        "PL-ARCH-02"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "checkpoint_prior_status": "SOURCE_OBSERVED_DEFECT",
+      "checkpoint_note": "PR #322 merged 2026-10-29 at f205eb8d; doc-expiry cron test now fails on PR #346 suite; do not call globally verified.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-FIX-DOC-MATCH",
+      "lane": "MVP",
+      "title": "No authoritative partner-recency guessing, require exact evidence.",
+      "owner": "plasticos_documents",
+      "status": "CODE_MERGED_PR322_LIVE_PROOF_PENDING",
+      "predecessors": [
+        "PL-ARCH-03"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "checkpoint_prior_status": "SOURCE_OBSERVED_DEFECT",
+      "checkpoint_note": "PR #322 merged 2026-10-29; verify exact association on final frozen EE build.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-FIX-DOC-COMPLIANCE",
+      "lane": "MVP",
+      "title": "Ensure document compliance/proof is operation-scoped, side-effect free and safe across two surfaces",
+      "owner": "plasticos_documents",
+      "status": "REMEDIATION_REQUIRED_NOT_STARTED",
+      "predecessors": [
+        "PL-FIX-DOC-WRITER",
+        "PL-FIX-DOC-MATCH"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-FIX-LOG-CARDINALITY",
+      "lane": "MVP",
+      "title": "Multi-load architecture in source, Production runtime test pending.",
+      "owner": "plasticos_logistics",
+      "status": "CODE_MERGED_MULTILOAD_LIVE_PROOF_PENDING",
+      "predecessors": [
+        "PL-ARCH-06"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "checkpoint_prior_status": "SOURCE_OBSERVED_DEFECT",
+      "checkpoint_note": "PR #339 merged 2026-10-29, replacing singular load model. PR #346 remains open for membership/milestone concurrency; removed load_id consumer still fails.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-DEC-SEED",
+      "lane": "ARCH",
+      "title": "INVARIANTS.md v3 rejects blanket noupdate; exact seed-family lifecycle decisions remain owned implementation details only if live need arises.",
+      "owner": "PlasticOS constitutional owner",
+      "status": "V3_ADMITTED_NO_UNIVERSAL_RULE",
+      "predecessors": [],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-DEC-GATE",
+      "lane": "ARCH",
+      "title": "POS-INV-17/18 and ADR-013 govern typed failure; separate live integration proof remains.",
+      "owner": "PlasticOS constitutional owner",
+      "status": "V3_ADMITTED_FAIL_CLOSED_SOURCE_IMPLEMENTED",
+      "predecessors": [],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-DEC-ACL",
+      "lane": "ARCH",
+      "title": "Approve least-privilege role-by-model CRUD+company policy and workflow-preserving permissions, then remediate in separate bounded campaign",
+      "owner": "PlasticOS security owner",
+      "status": "OPERATOR_POLICY_REQUIRED",
+      "predecessors": [],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true
+    },
+    {
+      "id": "PL-FIX-ACL",
+      "lane": "MVP",
+      "title": "Remediate effective broad access, especially claims, document verification and transaction-line mutation; prove real actor rights and workflows",
+      "owner": "PlasticOS security owner",
+      "status": "REMEDIATION_REQUIRED_NOT_STARTED",
+      "predecessors": [
+        "PL-DEC-ACL"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "checkpoint_prior_status": "REMEDIATION_REQUIRED_NOT_STARTED",
+      "checkpoint_note": "Known failures in transaction-line and claims ACLs remain; do not waive based on baseline classification."
+    },
+    {
+      "id": "PL-ADMIT-INV",
+      "lane": "ARCH",
+      "title": "Canonical INVARIANTS.md v3.0.0 admitted; do not revive historic draft v3.3 or its 23-ID admission as current campaign.",
+      "owner": "PlasticOS invariant owner",
+      "status": "V3_ADMITTED_NO_RE_ADMISSION_PENDING",
+      "predecessors": [
+        "PL-ARCH-01",
+        "PL-DEC-SEED",
+        "PL-DEC-GATE",
+        "PL-DEC-ACL"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-READY-DOC",
+      "lane": "MVP",
+      "title": "Exercise current versions in real Odoo 19 EE with distinct verification/compliance and no side effects.",
+      "owner": "Documents owner + independent reviewer",
+      "status": "CODE_PRESENT_PRODUCTION_SMOKE_NOT_RUN",
+      "predecessors": [
+        "PL-FIX-DOC-WRITER",
+        "PL-FIX-DOC-MATCH",
+        "PL-FIX-DOC-COMPLIANCE"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "checkpoint_prior_status": "NOT_RUN",
+      "checkpoint_note": "Merged #322 exists; #346 full Enterprise reports TestCronInDomain expired-document AccessError. Original acceptance probes not independently replayed.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-READY-LOG",
+      "lane": "MVP",
+      "title": "Exercise zero, one, two loads, split quantities, attached documents, claims and PO-only path.",
+      "owner": "Logistics + Stock native owner",
+      "status": "CODE_PRESENT_PRODUCTION_SMOKE_NOT_RUN",
+      "predecessors": [
+        "PL-FIX-LOG-CARDINALITY"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "checkpoint_prior_status": "NOT_RUN",
+      "checkpoint_note": "PR #346 module run reports 152/152 logistics tests passing, but overall Enterprise suite fails and #346 is unmerged; scale-ticket legacy load_id test fails.",
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-READY-ACL",
+      "lane": "MVP",
+      "title": "Independently measure effective ACLs with actual seeded group implication; preserve upload, claims and import commands",
+      "owner": "security owner + independent reviewer",
+      "status": "NOT_VERIFIED_ON_CURRENT_SOURCE",
+      "predecessors": [
+        "PL-FIX-ACL"
+      ],
+      "execution_authority": "NOT_GRANTED_THIS_PACK",
+      "no_export_or_shopfloor_work": true,
+      "checkpoint_prior_status": "NOT_RUN",
+      "checkpoint_note": "Three ACL Enterprise failures remain from known pre-existing seven; least-privilege matrix/operator approval not proven."
+    },
+    {
+      "id": "PL-RELEASE-BASE",
+      "lane": "MVP",
+      "title": "PR #408 merged Staging b5b6056f0163 into Production. Latest Staging bdc222246fbf now differs from Production 729d3ab0b7cd; do not assume post-promotion PRs are deployed.",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "GITHUB_PRODUCTION_PROMOTION_MERGED",
+      "predecessors": [
+        "PL-RELEASE-SCOPE"
+      ],
+      "release_acceptance": "Production@3318fa646a9f33aed55b9ea8f8596316e30684da; Staging@42556d2e5e7434be43f2ff7f89e66b1c8ee6c15a; merge-base dc107f69. Explicit merge/rebase decision; no force push.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-SCOPE",
+      "lane": "MVP",
+      "title": "Freeze minimum test-ready Production: transactions, eligible ERP + CRM contact/history, Admin dashboard, web-lead qualification, logistics automation and document automation. Matching/enrichment disabled, Export next after QA.",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "OPERATOR_CORE_QA_SCOPE_DEFINED",
+      "predecessors": [],
+      "release_acceptance": "Authorized module/feature/actor matrix; avoid Export, warehouse/shop-floor, live optional AI, unintended SMTP/cron activation.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-PR346",
+      "lane": "MVP",
+      "title": "PR #346 multi-load guard merged, no longer open",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "MERGED_STAGING_COMPLETE",
+      "predecessors": [],
+      "release_acceptance": "PR #346 head 26f97308885a638c45d957ef9767b5e1dd00ed4c; CI static/pure Python passed; targeted EE logistics 152 pass; full EE suite not green.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ]
+    },
+    {
+      "id": "PL-RELEASE-EE",
+      "lane": "MVP",
+      "title": "Check exact hosted Production build, Odoo 19 EE registry/upgrade, logs, enabled addon versions and critical permissions; pure Python CI and GitHub merge alone are not the required proof.",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "PRODUCTION_CURRENT_ADDON_RUNTIME_PROOF_REQUIRED",
+      "predecessors": [
+        "PL-RELEASE-MIGRATION"
+      ],
+      "release_acceptance": "At PR #346: 1103 tests, 8 fails, 2 errors. Seven baseline failures; three additional must be checked against clean same-fixture Staging.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-MIGRATION",
+      "lane": "MVP",
+      "title": "Production active Odoo.sh build and exact addon upgrades must be verified with logs; Admin module is not auto-installed.",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "HOSTED_PRODUCTION_UPGRADE_NOT_VERIFIED",
+      "predecessors": [
+        "PL-RELEASE-CUTOVER"
+      ],
+      "release_acceptance": "Exact promoted release SHA and hosted addon roster; module upgrade, post-migrate and startup logs verified, no background business side effects. Stop on schema/upgrade error and use native restore point. No production clone rehearsal.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-DATA",
+      "lane": "MVP",
+      "title": "Read-only prove full authorized ERP companies/partners/transactions/history and VanillaSoft approved CRM contacts loaded on Production; preserve exclusions, source counts, crosswalk/replay. A 10% rehearsal is not full import.",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "PRODUCTION_FULL_ELIGIBLE_IMPORT_UNVERIFIED",
+      "predecessors": [
+        "PL-RELEASE-MIGRATION",
+        "PL-RELEASE-IMPORT-AUTH",
+        "PL-RELEASE-SOURCES"
+      ],
+      "release_acceptance": "ERP active-partner five stages then full native SO/PO/draft account.move load; only SO-compiled PlasticOS transactions. Historic 4,876 VanillaSoft ContactID cohort from API using verified 763/18/4095 policy; open exceptions and actual live delta recorded, no fabricated complete results. No undocumented file-binary importer.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-DR",
+      "lane": "MVP",
+      "title": "Complete separately locked Odoo.sh + independent AWS DR campaign v1.3, including fresh checkpoints, operator custody and final recovery rehearsal",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "EXISTING_OPERATOR_LOCKED_PLAN_IDENTIFIED_RUNTIME_CONTRACTS_NOT_VERIFIED",
+      "predecessors": [
+        "PL-DR-RESTORE-PROOF"
+      ],
+      "release_acceptance": "Operator defers independent AWS DR/restore campaign until after promotion. Retain available native Odoo.sh pre-change recovery checkpoint for the deployment itself.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "external_owner_reference": "docs/campaigns/future-add-ons/SM_Odoo_AWS_DR_v1.3_FINAL/README.md",
+      "acceptance": [
+        "Consume existing contracts 00,01,02,03,05-baseline,04,05-refresh,06 without rewriting or relaxing them",
+        "Obtain actual source rights, consistent DB+filestore checkpoints, complete independent restore and 1Password custody",
+        "Do not claim two-hour RPO from four calendar starts or a provider-unsupported source mechanism",
+        "Actual PASS/FAIL/BLOCKED_EXTERNAL receipts remain under original DR campaign owner"
+      ]
+    },
+    {
+      "id": "PL-RELEASE-CUTOVER",
+      "lane": "MVP",
+      "title": "GitHub PR #408 is merged and Production branch exists. Verify actual Odoo.sh Production build, addon install and dependency registry; no claim of running DB state.",
+      "owner": "PlasticOS release / exact semantic owner",
+      "status": "GITHUB_PRODUCTION_CODE_MERGED_ODOO_SH_UNKNOWN",
+      "predecessors": [
+        "PL-RELEASE-BASE",
+        "PL-RELEASE-SCOPE",
+        "PL-RELEASE-IMPORT-AUTH"
+      ],
+      "release_acceptance": "Exactly pinned release commit, supported GitHub/Odoo.sh branch integration, host identity and Enterprise entitlement verified; guard-safe production ERP/CRM importer code shipped but no imports run before addon upgrade; outbound mail/pays/stock automation controlled; native Odoo.sh pre-change restore point retained. No rehearsal/AWS DR/broad acceptance prerequisite.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-IMPORT-AUTH",
+      "lane": "MVP",
+      "title": "PR #349 import capability was included in promoted Staging history; verify actual active code, environment permits and imported rows before claiming success.",
+      "owner": "plasticos_partner_import + plasticos_crm_sync + release runner",
+      "status": "IMPORT_IMPLEMENTATION_MERGED_PROD_RUNNING_UNVERIFIED",
+      "predecessors": [],
+      "release_acceptance": "Do not bypass explicit production refusal in validate_partner_layer.check_database. Add reviewed, explicit target identity/authorization path and hosted Odoo.sh-compatible runner; prove negative tests wrong DB, missing approval, production source mismatch, side effects, partial failure, resume and idempotent replay. Rebind old clone-only 4876-ID runner; preserve full-cohort API semantics.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-SOURCES",
+      "lane": "MVP",
+      "title": "Bind actual frozen ERP SQL extracts, CRM API cohort and permits to Production-only execution receipts; no rerun just to satisfy documentation.",
+      "owner": "ERP source owner + CRM sync + release operator",
+      "status": "PRODUCTION_SOURCE_MANIFEST_NOT_REVERIFIED",
+      "predecessors": [
+        "PL-RELEASE-SCOPE"
+      ],
+      "release_acceptance": "Same-night or explicitly dated erp_SM .bak restored read-only with projection checks; company/contact source status; no frozen regression grids. Verify VanillaSoft API credentials, per-ID history access, 4,876 ID census/crosswalk digests, current additions/deletions, import target and storage path; no live data writes.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-RECONCILE",
+      "lane": "MVP",
+      "title": "Exact source-to-Production counts and financial identities, unresolved disposition register, imported archived drafts. No new posting, settlement or live mail.",
+      "owner": "ERP import + CRM sync + accounting owner",
+      "status": "PRODUCTION_IMPORT_CENSUS_NOT_VERIFIED",
+      "predecessors": [
+        "PL-RELEASE-DATA"
+      ],
+      "release_acceptance": "Every source row has exact created/updated/unchanged/excluded/rejected/held/failed disposition with reason. Check SO/PO/AM/transaction identity, status/dates, amounts, payables, active-only ERP contacts, crosswalk matches/holds, CRM calls/custom fields and zero duplicate refs. Exceptions remain OPEN, do not report all imported if some remain.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-DOC-BLOBS",
+      "lane": "MVP",
+      "title": "Prove signed worksheet-original import and source-to-Odoo reconciliation, not merely an extractor or source attachment inventory",
+      "owner": "ERP Documents recovery + plasticos_documents_native",
+      "status": "NOT_IMPORTED_ON_OBSERVED_REPORT_EVIDENCE",
+      "predecessors": [
+        "PL-DOC-BLOB-RECON"
+      ],
+      "release_acceptance": "2026-10-28 owner pack says image importer not implemented. Do not miscount document blobs as ERP SQL success. Requires source ImageID/sha256 and exact worksheet RefID to unique PlasticOS transaction, no guessed association, preserves unverified state; separately authorized implementation and import.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-FUT-02",
+        "PL-AI-03"
+      ],
+      "acceptance": [
+        "Exact W/# source identity and full RefID mapped once to unique transaction",
+        "Decoded originals stored in Enterprise Documents/filestore without touching invoices/stock/email",
+        "All eligible blobs accounted for as imported, missing, ambiguous, corrupt or failed; replay adds zero originals"
+      ]
+    },
+    {
+      "id": "PL-RELEASE-BUSINESS-ACCEPT",
+      "lane": "MVP",
+      "title": "Real user acceptance of active Production core features and full installed-app UI sweep; no tolerance for blocking crashes, data corruption, wrong-company exposure or unintended outbound effects.",
+      "owner": "operator and business leads",
+      "status": "ACTIVE_AFTER_CORE_QA_AND_BUTTON_SWEEP",
+      "predecessors": [
+        "PL-PROD-UI-SWEEP"
+      ],
+      "release_acceptance": "Operator defers broad functional business acceptance; verify after deployment. Do not claim running business processes are accepted based on code startup.",
+      "not_blocked_by": [
+        "PL-FUT-01",
+        "PL-AI-03",
+        "PL-FUT-02"
+      ],
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-REHEARSAL",
+      "lane": "MVP",
+      "title": "Nov 8 seven-gate rehearsal accepted for its tested SHA and limited slice; no requirement to repeat simply for planning.",
+      "owner": "Release operator",
+      "status": "EXACT_HEAD_REHEARSAL_PASSED_NOT_FULL_IMPORT",
+      "predecessors": [],
+      "evidence_class": "OPERATOR_REPORT",
+      "no_rehearsal_rerun_required": true,
+      "current_evidence_epoch": "2026-11-09"
+    },
+    {
+      "id": "PL-RELEASE-ODOOLS",
+      "lane": "MVP",
+      "title": "OdooLS 66 ownership remediation merged to Staging PR #351",
+      "owner": "PlasticOS addon ownership / CI",
+      "status": "MERGED_STAGING_COMPLETE",
+      "predecessors": [],
+      "evidence_class": "GITHUB_MERGE_AND_CI",
+      "production_deployment": "NOT_VERIFIED"
+    },
+    {
+      "id": "PL-PROD-IMPORT-CENSUS",
+      "lane": "MVP",
+      "title": "Prove Production transactions, eligible ERP rows, and CRM contact/history import completeness",
+      "owner": "ERP/CRM importer owners + business operator",
+      "status": "NOT_VERIFIED_LIVE_PRODUCTION",
+      "predecessors": [
+        "PL-RELEASE-RECONCILE"
+      ],
+      "evidence_class": "SOURCE_COUNTS_VS_HOSTED_DB",
+      "acceptance": [
+        "Every eligible source row has an explicit imported/excluded/rejected disposition with no silent drops",
+        "Correct source identities and historical closed/draft protection",
+        "CRM cohort full historical+delta validated, including not automatically upgrading rolling-window evidence into complete history",
+        "Replays do not create duplicates; no accounting posting side effect"
+      ]
+    },
+    {
+      "id": "PL-PROD-ADMIN-ACCESS",
+      "lane": "MVP",
+      "title": "Confirm Production Admin tile, admin group permissions, Command Center and dashboard drill-throughs",
+      "owner": "plasticos_admin_dashboard + security_base + operator",
+      "status": "MENU_IN_CODE_NOT_INSTALLED_OR_ACCESS_TESTED",
+      "predecessors": [
+        "PL-RELEASE-MIGRATION"
+      ],
+      "evidence_class": "HOSTED_UI_ACCOUNT_TEST",
+      "acceptance": [
+        "Required module is installed (not auto_install) and Admin is visible to authorized admin",
+        "Admin opens Command Center without RPC, access or registry error",
+        "RevOps KPIs, refresh, Sales Dashboard, Logistics Dashboard and Rep Performance open",
+        "Zero actual live activity displays valid empty state, not broken data views",
+        "Unauthorised user cannot open admin-only data"
+      ]
+    },
+    {
+      "id": "PL-PROD-LOAD-SNAPSHOT",
+      "lane": "MVP",
+      "title": "Resolve whether Admin logistics view must show all historical loads and prove exact visibility",
+      "owner": "plasticos_logistics load_dashboard model + UX",
+      "status": "SOURCE_FILTER_EXCLUDES_OLD_CLOSED_LOADS",
+      "predecessors": [
+        "PL-PROD-ADMIN-ACCESS"
+      ],
+      "evidence_class": "VERIFIED_CODE_GAP_ACTUAL_UI_PENDING",
+      "acceptance": [
+        "Explicitly resolve scope: if all loads means literally all, include old closed loads without a new parallel dashboard",
+        "Prove dashboard list includes historical, active, exception and multi-load records with accurate filters",
+        "Preserve role-based company isolation; no unbounded-performance regression",
+        "No hidden default active filter that falsely implies a complete listing"
+      ]
+    },
+    {
+      "id": "PL-PROD-TEST-BASE",
+      "lane": "MVP",
+      "title": "Accept test-ready Production build with imported data, functional Admin access and bounded smoke baseline",
+      "owner": "release operator + Odoo.sh",
+      "status": "OPERATOR_TARGET_NOT_INDEPENDENTLY_VERIFIED",
+      "predecessors": [
+        "PL-MVP-01",
+        "PL-RELEASE-EE",
+        "PL-PROD-IMPORT-CENSUS",
+        "PL-PROD-ADMIN-ACCESS"
+      ],
+      "evidence_class": "HOSTED_RECEIPTS_REQUIRED",
+      "acceptance": [
+        "Production build identity and addon registry upgrade observed",
+        "Full intended ERP/CRM/contact/transaction import census and reconciliation accepted",
+        "Admin tile and basic navigation accessible",
+        "No blocker crashes or unintended live side effects; bug-free is not claimed"
+      ]
+    },
+    {
+      "id": "PL-PROD-WEBLEAD-QA",
+      "lane": "MVP",
+      "title": "Exercise native web-lead qualification without enabling external matching or enrichment",
+      "owner": "plasticos_web_leads + plasticos_crm_bridge",
+      "status": "PRODUCTION_QA_NOT_RUN",
+      "predecessors": [
+        "PL-PROD-TEST-BASE"
+      ],
+      "evidence_class": "HOSTED_INTERACTIVE_PROBE",
+      "acceptance": [
+        "Valid/invalid webhook authorization tested",
+        "HOT qualification routes into expected native Opportunity and profile without duplicate partner or phantom facility",
+        "Non-HOT/review routes correctly and keeps provenance",
+        "Replay, failure visibility and review escalation work",
+        "No CEG/EIE match/scoring or enrichment activation"
+      ]
+    },
+    {
+      "id": "PL-PROD-LOGISTICS-QA",
+      "lane": "MVP",
+      "title": "Exercise loads, freight governance and Linda logistics automation under safe test-side-effect controls",
+      "owner": "plasticos_logistics + native Odoo Mail",
+      "status": "PRODUCTION_QA_NOT_RUN",
+      "predecessors": [
+        "PL-PROD-TEST-BASE"
+      ],
+      "evidence_class": "HOSTED_INTERACTIVE_PROBE",
+      "acceptance": [
+        "Single deal with multiple loads, draft/cancel/reopen and dispatch prerequisites",
+        "Same As Last draft copy creates exact load and order structure without confirming/booking",
+        "Rate memory and ambiguous case do not invent company or freight",
+        "Cron/reminder/issue outcomes visible, test mode prevents real external sends",
+        "No unauthorized stock, order, payment or external provider effects"
+      ]
+    },
+    {
+      "id": "PL-PROD-DOC-QA",
+      "lane": "MVP",
+      "title": "Exercise native document capture, exact association, verification, requests and expiry/compliance automation",
+      "owner": "plasticos_documents + plasticos_documents_native",
+      "status": "PRODUCTION_QA_NOT_RUN",
+      "predecessors": [
+        "PL-PROD-TEST-BASE"
+      ],
+      "evidence_class": "HOSTED_INTERACTIVE_PROBE",
+      "acceptance": [
+        "Native original upload and duplicate/revision handling",
+        "Exact typed association, no partner-recency guessed assignment",
+        "Single writer verify/manager override and permission denial",
+        "Document requests, expiration, reminders and per-operation compliance",
+        "No automatic invoice posting, live email or stock state from compliance read"
+      ]
+    },
+    {
+      "id": "PL-PROD-CORE-SMOKE",
+      "lane": "MVP",
+      "title": "Accept basic Production web-lead, logistics, document automations and transactions without advanced intelligence",
+      "owner": "operator/functional QA",
+      "status": "TESTS_NOT_RUN",
+      "predecessors": [
+        "PL-PROD-WEBLEAD-QA",
+        "PL-PROD-LOGISTICS-QA",
+        "PL-PROD-DOC-QA"
+      ],
+      "evidence_class": "INTEGRATED_CORE_ACCEPTANCE",
+      "acceptance": [
+        "All P0 scenarios pass on a pinned Production build or each failure is explicitly fixed or blocks acceptance",
+        "Matching/enrichment remain dormant; native web-lead triage is in scope",
+        "No silent data loss, incorrect permissions, duplicate external send or financial effect"
+      ]
+    },
+    {
+      "id": "PL-PROD-UI-SWEEP",
+      "lane": "MVP",
+      "title": "Kick every active menu, screen, form, button, action and empty state; eliminate real bloat before Export",
+      "owner": "operator + functional QA",
+      "status": "TESTS_NOT_RUN",
+      "predecessors": [
+        "PL-PROD-CORE-SMOKE",
+        "PL-PROD-LOAD-SNAPSHOT"
+      ],
+      "evidence_class": "INTERACTIVE_UI_CENSUS",
+      "acceptance": [
+        "Enumerate all installed user-facing menus and actions, not phantom uninstalled addons",
+        "Click every permitted action with tagged reversible test records and record PASS/FAIL/SKIP with reason",
+        "Exercise permissions, company boundaries, navigation and zero-live-data dashboards",
+        "Fix every in-scope crash or broken core path and track remaining nonblocking bugs",
+        "Remove duplicated or unneeded UI only when owner-verified, no speculative refactor or feature creep"
+      ]
+    },
+    {
+      "id": "PL-POSTGRES-VERIFY",
+      "lane": "MVP",
+      "title": "Verify actual Odoo.sh PostgreSQL database, filestore, access rights and original/attachment storage; provision only a proven missing service",
+      "owner": "Odoo.sh + DBA + Documents",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-PROD-IMPORT-CENSUS"
+      ],
+      "evidence_class": "HOSTED_DATABASE_AND_FILESTORE_RECEIPT",
+      "acceptance": [
+        "Identify Odoo.sh Production DB/schema and filestore version, installed Enterprise Documents capability, safe operator read access and any separate source PostgreSQL requirement",
+        "Demonstrate database-to-filestore attachment read/hash closure, current snapshots and space/retention; do not create shadow Postgres or change operational document authority without evidence",
+        "Keep source SQL Server erp_Documents/erp_SM distinct from target Odoo PostgreSQL and its filestore; capture current immutable source IDs"
+      ]
+    },
+    {
+      "id": "PL-DOC-BLOB-CENSUS",
+      "lane": "MVP",
+      "title": "Pin eligible ERP worksheet image cohort and immutable extract journal; reconcile exact RefID to imported transactions",
+      "owner": "ERP document recovery + data importer",
+      "status": "HISTORICAL_CENSUS_PRESENT_NEW_SOURCE_NOT_VERIFIED",
+      "predecessors": [
+        "PL-POSTGRES-VERIFY"
+      ],
+      "evidence_class": "FROZEN_SOURCE_AND_TARGET_CENSUS",
+      "acceptance": [
+        "Reverify latest authorized erp_Documents extraction and signed ImageID/DocID/RefType/RefID/size/SHA-256 manifest; historical 97,346 eligible is a snapshot, not a live count",
+        "W and # eligible only; exact full worksheet RefID including suffixes matches unique plasticos.transaction.name; P/E/B remain archived outside Odoo",
+        "Report unique/missing/ambiguous, integrity failure, corrupt GZIP and cross-company cases; do not fabricate a target for 5,903 historical unmatched blobs"
+      ]
+    },
+    {
+      "id": "PL-DOC-BLOB-IMPORTER",
+      "lane": "MVP",
+      "title": "Implement smallest deterministic, dry-run-first, idempotent worksheet-original importer at existing native Documents owner",
+      "owner": "plasticos_documents_native + ERP source importer",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-DOC-BLOB-CENSUS"
+      ],
+      "evidence_class": "IMPLEMENTATION_AND_EE_TESTS_REQUIRED",
+      "acceptance": [
+        "Single original per ImageID, source hashes, provenance, one exact typed transaction link, no alternative original store or auto-verification",
+        "Protect Odoo filestore, safe chunking/checkpoint resume, failed row ledger, no duplicate on replay, no write for unmatched/ambiguous/corrupt",
+        "Pass disposable Odoo 19 Enterprise tests with two images per worksheet, suffixes, duplicates, wrong company, bad gzip and blocked side effects",
+        "Use governed publication path; never assume an unimplemented make target exists"
+      ]
+    },
+    {
+      "id": "PL-DOC-BLOB-IMPORT",
+      "lane": "MVP",
+      "title": "Run authorized document-original import with prechange backup and observed batch receipts",
+      "owner": "authorized Production operator + Documents owner",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-DOC-BLOB-IMPORTER",
+        "PL-DR-NATIVE-SAFETY"
+      ],
+      "evidence_class": "AUTHORIZED_PRODUCTION_IMPORT_RECEIPT",
+      "acceptance": [
+        "Preview and approve exact source epoch/Production database, import only eligible and uniquely matched originals after disposable Enterprise rehearsal",
+        "Capture counts, batch journals and hashes without leaking customer documents into Git or ZIP",
+        "Imported originals start unverified and do not mutate transaction state, AR/AP, stock, email, attachments of another company"
+      ]
+    },
+    {
+      "id": "PL-DOC-BLOB-RECON",
+      "lane": "MVP",
+      "title": "Reconcile every eligible worksheet image and complete Odoo attachment integrity/visibility proof",
+      "owner": "Documents + ERP source data owner",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-DOC-BLOB-IMPORT"
+      ],
+      "evidence_class": "FULL_SOURCE_TO_ODOO_DOCUMENT_CENSUS",
+      "acceptance": [
+        "eligible = unique-match + missing-transaction + ambiguous-transaction + integrity-failure",
+        "unique-match = successfully-imported + import-failure",
+        "Every imported ImageID appears exactly once on its rightful transaction, original SHA/size works after download and duplicate replay creates zero records",
+        "Missing historical worksheets, P/E/B and corrupt source are explicitly dispositioned rather than silently called imported"
+      ]
+    },
+    {
+      "id": "PL-DOC-AI-MANAGER-QUEUE",
+      "lane": "MVP",
+      "title": "Surface AI/verification/association exceptions in the actual assigned manager profile or action queue, with direct evidence drill-through",
+      "owner": "plasticos_documents + plasticos_documents_native + existing manager UI",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-AI-03"
+      ],
+      "evidence_class": "REAL_MANAGER_LOGIN_ROLE_EE_UI_TEST",
+      "acceptance": [
+        "Discover existing Odoo review views, activities and manager group before changing UI; use closest current owner and no second verification writer",
+        "Low-confidence, contradictory extraction, unlinked original, source mismatch, missing required document, bad hash and historical verification conflict create attributable review cases",
+        "Assigned company manager can see count, status, reason, source file, transaction/load, confidence and review/override actions from their own dashboard or profile",
+        "A normal user cannot view or resolve other-company review items; manager resolution is audited, idempotent and does not grant automatic posting/stock/email authority"
+      ]
+    },
+    {
+      "id": "PL-DOC-AI-ACCEPT",
+      "lane": "MVP",
+      "title": "Accept document AI pilot on existing and imported evidence, including flagged manager exception closure",
+      "owner": "Documents AI owner + manager",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-DOC-AI-MANAGER-QUEUE",
+        "PL-DOC-BLOB-RECON"
+      ],
+      "evidence_class": "DOC_AI_EE_AND_MANAGER_ROLE_RECEIPT",
+      "acceptance": [
+        "Sample known good PDFs/images, blurry originals, multi-page docs, conflicting amount/date, wrong transaction and low-confidence extraction",
+        "Manager review queue correctly shows each flagged case, correct assignee/company and exact original; reject/retry/override preserves evidence and audit",
+        "Native AI extraction is candidate evidence only; human approval where required, no autonomous verification or finance mutation",
+        "Any provider/Enterprise licensing or native action unsupported is BLOCKED, not reported as passing"
+      ]
+    },
+    {
+      "id": "PL-ACCT-REPORT-SOURCE-LOCK",
+      "lane": "MVP",
+      "title": "Lock one accountant-approved accounting cutoff and provenance for ERP ledger, inventory, QuickBooks and bank statements",
+      "owner": "finance controller + ERP report owner + bank + QuickBooks",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-PROD-IMPORT-CENSUS"
+      ],
+      "evidence_class": "SIGNED_REPORTS_HASHES_AND_ACCOUNTANT_APPROVAL",
+      "acceptance": [
+        "ERP: transaction details, AP open-item ledger incl credits/partials, AR open-item ledger incl credits/partials, inventory quantity/valuation reports",
+        "Bank: statement-derived balance by account at cutoff with outstanding deposits/checks and reconciling items",
+        "QuickBooks: signed trial balance, AR/AP controls/aging and remaining GL accounts at the same cutoff; preserve source report hashes, entities, currency, time zone",
+        "Identify ERP vs QB discrepancy, post-cutoff changes, missing account mapping, missing credits and FX as hard exceptions; no guessed close status"
+      ]
+    },
+    {
+      "id": "PL-ACCT-REOPEN-CONTRACT",
+      "lane": "MVP",
+      "title": "Separate operational historical reopens from native accounting residual opening under ADR-022",
+      "owner": "plasticos_transaction + finance controller",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-ACCT-REPORT-SOURCE-LOCK"
+      ],
+      "evidence_class": "CROSS_DOMAIN_CONTRACT_AND_TEST_SPEC",
+      "acceptance": [
+        "A source-backed approved open-operations exception register, not outstanding AR/AP alone, authorizes one historical transaction reopening with company, scope, owner, reason and remaining physical duty",
+        "Existing Manager action_reopen_historical changes state closed->active only; it does not create/post invoices or change AR/AP and replay must retain its approved state",
+        "Accountant-approved AR/AP opening is separate residual-only native account.move documents under ADR-022, never gross historical archival posting"
+      ]
+    },
+    {
+      "id": "PL-ACCT-REOPEN-MAKE",
+      "lane": "MVP",
+      "title": "Build repeatable make reopen-erp-transactions using approved exception report and deterministic preview/reconcile/test workflow",
+      "owner": "plasticos_transaction CLI/Makefile + authorized operator",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-ACCT-REOPEN-CONTRACT"
+      ],
+      "evidence_class": "MAKE_TARGET_STATIC_UNIT_EE_AND_OPERATOR_RECEIPTS",
+      "acceptance": [
+        "make reopen-erp-transactions target is PLANNED, not present in inspected Makefile; implement CLI at existing service owner, not an independent batch writer",
+        "Dry-run default; explicit Production database/source SHA/cutoff/permit and manager authority; batch selection only from approved operational exceptions; record each source transaction identity/reason",
+        "Transaction atomicity/resume, immutable journal, duplicate/replay=0, same approved reopen cannot be undone by ERP import replay; unrelated historical transactions stay closed",
+        "Negative tests: unauthorized role, no source report, wrong company, non-historical, canceled, stale cutoff, duplicate, partial batch failure and missing permit all fail closed",
+        "No automatic gross invoice posting, AR/AP activation, stock/dispatch, emails or commission payout"
+      ]
+    },
+    {
+      "id": "PL-ACCT-OPEN-ARAP",
+      "lane": "MVP",
+      "title": "Rehearse residual-only native Odoo customer/vendor invoice, bill, credit/refund openings at signed cutoff",
+      "owner": "plasticos_accounting / native account.move",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-ACCT-REPORT-SOURCE-LOCK",
+        "PL-DR-NATIVE-SAFETY"
+      ],
+      "evidence_class": "ACCOUNTING_ENTERPRISE_CUTOFF_CLONE_REHEARSAL",
+      "acceptance": [
+        "Each ERP open item signed residual, source identity, due date, company, partner and currency mapped to distinct opening invoice/bill/credit; zero balance creates none",
+        "Historical full-gross imported archival invoices/bills remain Draft and never contribute a second opening AR/AP amount",
+        "No posting on Production without accountant-approved cutoff/permit; first disposable Enterprise proof includes partial paid items, credits, refunds, FX and replay zero"
+      ]
+    },
+    {
+      "id": "PL-ACCT-OPEN-QB",
+      "lane": "MVP",
+      "title": "Prepare and rehearse QuickBooks remaining opening GL using signed QB trial balance and distinct AR/AP clearing",
+      "owner": "plasticos_accounting + finance controller",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-ACCT-REPORT-SOURCE-LOCK",
+        "PL-DR-NATIVE-SAFETY"
+      ],
+      "evidence_class": "ACCOUNTING_TRIAL_BALANCE_REHEARSAL",
+      "acceptance": [
+        "Map every signed QB TB account and current-year P&L policy to approved company chart with debits=credits",
+        "Replace QB AR/AP control lines with separate AR and AP clearing accounts, no duplicate native control postings, no duplicate historical revenue or expense",
+        "Record signed FX, suspense/rounding and closing-equity policies; reject unmatched accounts and unapproved journal mapping"
+      ]
+    },
+    {
+      "id": "PL-ACCT-OPEN-BANK",
+      "lane": "MVP",
+      "title": "Rehearse opening bank balances from bank statements, not from inferred transaction invoice state",
+      "owner": "native Odoo Accounting + treasury",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-ACCT-REPORT-SOURCE-LOCK",
+        "PL-DR-NATIVE-SAFETY"
+      ],
+      "evidence_class": "BANK_STATEMENT_AND_QB_CASH_RECONCILIATION",
+      "acceptance": [
+        "Statement balances at the cutoff tie to each company bank account, correct currency and documented outstanding checks/deposits",
+        "Reconcile bank statement timing differences and QB cash ledger balance without double-posting or fabricated historical payments",
+        "No production payment initiation or bank-sync activation during test; retain source statement hashes"
+      ]
+    },
+    {
+      "id": "PL-ACCT-OPEN-INVENTORY",
+      "lane": "MVP",
+      "title": "Reconcile ERP inventory quantities and valuation against Odoo Stock and QB controls before stock-accounting activation",
+      "owner": "native Odoo Stock + inventory owner + finance",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-ACCT-REPORT-SOURCE-LOCK",
+        "PL-DR-NATIVE-SAFETY"
+      ],
+      "evidence_class": "INVENTORY_QTY_VALUE_AND_FINANCE_TIEOUT",
+      "acceptance": [
+        "ERP inventory report is the source quantity/lot/ownership/warehouse evidence, with zero and out-of-scope counts dispositioned",
+        "Reconcile physical counts, inventory value and QB valuation/control by company and item; distinguish accounting value from current physical receipt",
+        "No fabricated receipts, pickings, warehouse movements, scrapping or Odoo stock valuation postings merely to balance books"
+      ]
+    },
+    {
+      "id": "PL-ACCT-OPENING-RECON",
+      "lane": "MVP",
+      "title": "Prove complete opening balance arithmetic and residual/signed controls on disposable Odoo 19 EE clone",
+      "owner": "finance controller + accounting implementation owner",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-ACCT-OPEN-ARAP",
+        "PL-ACCT-OPEN-QB",
+        "PL-ACCT-OPEN-BANK",
+        "PL-ACCT-OPEN-INVENTORY"
+      ],
+      "evidence_class": "ACCOUNTANT_REVIEWED_ISOLATED_EE_RECEIPT",
+      "acceptance": [
+        "ERP net AR/AP open-item residuals equal signed QB control accounts by company/currency; AR clearing=0 and AP clearing=0 after trial balance plus opening items",
+        "Total signed Odoo opening TB balanced; bank reconciles to statements/QB with explained timing; inventory to ERP/QB with approved variances",
+        "Original closed transactions and archival bills remain intact, no duplicate posted gross invoices, commission or payments; frozen report replay creates zero entries",
+        "Explicit status REVIEWED_NOT_POSTED is different from posted Production financial writer handoff"
+      ]
+    },
+    {
+      "id": "PL-ACCT-PROD-AUTH",
+      "lane": "MVP",
+      "title": "Separately authorize and execute real Production accounting cutover only after signoff and prechange backup",
+      "owner": "finance controller + named human operator",
+      "status": "NOT_AUTHORIZED_OR_POSTED_BY_THIS_PLAN",
+      "predecessors": [
+        "PL-ACCT-OPENING-RECON",
+        "PL-ACCT-REOPEN-MAKE"
+      ],
+      "evidence_class": "EXPLICIT_OPERATOR_AUTH_AND_PRODUCTION_LEDGER_RECEIPT",
+      "acceptance": [
+        "Signed one-writer cutover, QB vs ERP reconciliations, Odoo snapshot and rollback, import permit, allowed company/journal/period and balancing proof",
+        "No production general-ledger posting merely because code is promoted or historical transactions are reopened",
+        "Retest native AR/AP aging, credit signs, clearing exactly zero, bank statement reconcile, opening inventory and trial balance on live system after authorized entry"
+      ]
+    },
+    {
+      "id": "PL-DR-NATIVE-SAFETY",
+      "lane": "MVP",
+      "title": "Take and verify supported point-in-time Odoo.sh Production DB+filestore backup before bulk blobs or any financial posting",
+      "owner": "Odoo.sh operations / native DR contract 01",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-POSTGRES-VERIFY"
+      ],
+      "evidence_class": "NATIVE_BACKUP_AND_ISOLATED_RESTORE_RECEIPT",
+      "acceptance": [
+        "Check native backup age, capture supported new checkpoint and independently verify isolated DB+filestore restore before irreversible bulk writes",
+        "Do not claim native backup alone is independent AWS ransomware recovery",
+        "Preserve source and required Odoo Enterprise licensing/dependency rights; no real outbound messages from restore"
+      ]
+    },
+    {
+      "id": "PL-DR-BASELINE",
+      "lane": "MVP",
+      "title": "Apply existing DR 00-03 and 05-baseline to imported Production DB+filestore without rewriting operator-locked plan",
+      "owner": "SM-ODOO-DR-CAMPAIGN-001 owner",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-DOC-BLOB-RECON",
+        "PL-DR-NATIVE-SAFETY"
+      ],
+      "evidence_class": "EXISTING_DR_CONTRACTS_00_01_02_03_05_BASE_RECEIPTS",
+      "acceptance": [
+        "Reference DR v1.3 README and locked policy; verify source permissions/backup mechanism, independent AWS vault/keys and versioned S3 complete checkpoint",
+        "Independently restore exact DB plus filestore with sample original SHA-256 including imported worksheet docs and account record references",
+        "Independently retrieve first real operator 1Password recovery pack after the baseline proof; no secrets or archives in Git/this plan ZIP"
+      ]
+    },
+    {
+      "id": "PL-DR-RESTORE-PROOF",
+      "lane": "MVP",
+      "title": "Repeat isolated DR restore verification after account-opening rehearsal and document AI cases, with current runtime closure",
+      "owner": "SM-ODOO-DR-CAMPAIGN-001 owner",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-DR-BASELINE",
+        "PL-ACCT-OPENING-RECON",
+        "PL-DOC-AI-ACCEPT"
+      ],
+      "evidence_class": "INDEPENDENT_POST_IMPORT_FULL_RESTORE_RECEIPT",
+      "acceptance": [
+        "Complete PostgreSQL tables, filestore, installed custom/Enterprise version, attachment originals and manager review evidence survive one coherent restore",
+        "Prove exact source timestamp, write/delete/attachment relational integrity and no outbound emails/stock moves/posting in isolated recovery",
+        "If financial entry is authorized later, refresh recovery checkpoint and perform a separate post-cutover restore probe",
+        "Record restored count/hash and elapsed RTO/RPO observations, not inferred SLA achievement"
+      ]
+    },
+    {
+      "id": "PL-PROD-EXTENDED-ACCEPT",
+      "lane": "MVP",
+      "title": "Approve enriched post-import Production QA before Export: attachments, document AI manager queue, accounting rehearsal and recovery proof",
+      "owner": "operator + Documents manager + finance + DR owner",
+      "status": "NOT_RUN_PLANNED",
+      "predecessors": [
+        "PL-RELEASE-BUSINESS-ACCEPT",
+        "PL-DOC-AI-ACCEPT",
+        "PL-ACCT-OPENING-RECON",
+        "PL-ACCT-REOPEN-MAKE",
+        "PL-DR-RESTORE-PROOF"
+      ],
+      "evidence_class": "CROSS_OWNER_RELEASE_PROOF",
+      "acceptance": [
+        "Review one consolidated ledger of complete import/rejected cohorts, exact original attachments, manager AI edge-case queue, report-driven reopening repeatability and reconciled accounting rehearsal",
+        "Independent restored DB+filestore opens and yields representative transactions, documents and reports",
+        "Dispositions for P0/P1 bugs and stale source/permissions; no claim of live accounting posting, commercial handover or complete DR 2-hour optimization without corresponding receipts",
+        "Export implementation remains a separately authorized next activity, never a retroactive production fix"
+      ]
+    }
+  ],
+  "invariants": {
+    "no_export_or_physical_operations_execution_now": true,
+    "ai_is_optional_for_manual_document_flow": true,
+    "current_mvp_not_depends_on_export": true,
+    "no_duplicate_document_or_mail_writer": true
+  },
+  "revision": "v5.1-working-post-import-accounting-document-ai-dr",
+  "status_taxonomy": [
+    "ARCHITECTURE_DRAFT_ONLY",
+    "DESIGN_RESOLVED_AWAITING_ADMISSION",
+    "MERGED_STAGING_FOLLOWUP_OPEN",
+    "MERGED_STAGING_RUNTIME_NOT_RELEASE_PROVEN",
+    "NOT_RUN",
+    "NOT_VERIFIED_ON_CURRENT_SOURCE",
+    "OPEN_PR_REVIEW_GATE",
+    "OPERATOR_POLICY_REQUIRED",
+    "PARKED",
+    "PARTIAL_ENTERPRISE_PROOF",
+    "RELEASE_BLOCKED",
+    "REMEDIATION_REQUIRED_NOT_STARTED",
+    "SOURCE_OBSERVED_DEFECT",
+    "PENDING_PROMOTION",
+    "PROPOSED_ONLY",
+    "SOURCE_IMPLEMENTED_STAGING_PROOF_PENDING",
+    "DESIGN_PROOF_PENDING",
+    "UNKNOWN_NEEDS_SOURCE_PROOF",
+    "CAPTURED_SOURCE_NOT_ADMITTED",
+    "RELEASE_INTEGRATION_DECISION_REQUIRED",
+    "FINAL_RELEASE_ROSTER_PENDING",
+    "MERGED_STAGING_COMPLETE",
+    "CURRENT_REVISION_FINAL_ENTERPRISE_PROOF_REQUIRED",
+    "PRODUCTION_UPGRADE_AFTER_PROMOTION_NOT_RUN",
+    "OVERNIGHT_IMPORT_PENDING",
+    "DEFERRED_POST_PROMOTION",
+    "PROMOTION_NOT_EXECUTED",
+    "IMPLEMENTED_MERGED_STAGING_HOSTED_UNVERIFIED",
+    "LIVE_SOURCE_PREFLIGHT_UNVERIFIED",
+    "POST_IMPORT_ACCEPTANCE_PENDING",
+    "DEFERRED_POST_CUTOVER_NO_BLOCKER",
+    "COMPLETE_OPERATOR_REPORTED_RECEIPT_UNLINKED",
+    "GITHUB_PRODUCTION_CODE_PROMOTED_TESTABLE_ENV_UNKNOWN",
+    "CONSTITUTION_V3_ADMITTED",
+    "SOURCE_IMPLEMENTED_ENTERPRISE_QA_PENDING",
+    "NEXT_AFTER_PRODUCTION_CORE_QA_NOT_STARTED",
+    "CODE_MERGED_PR322_LIVE_PROOF_PENDING",
+    "CODE_MERGED_MULTILOAD_LIVE_PROOF_PENDING",
+    "V3_ADMITTED_NO_UNIVERSAL_RULE",
+    "V3_ADMITTED_FAIL_CLOSED_SOURCE_IMPLEMENTED",
+    "V3_ADMITTED_NO_RE_ADMISSION_PENDING",
+    "CODE_PRESENT_PRODUCTION_SMOKE_NOT_RUN",
+    "GITHUB_PRODUCTION_PROMOTION_MERGED",
+    "OPERATOR_CORE_QA_SCOPE_DEFINED",
+    "PRODUCTION_CURRENT_ADDON_RUNTIME_PROOF_REQUIRED",
+    "HOSTED_PRODUCTION_UPGRADE_NOT_VERIFIED",
+    "PRODUCTION_FULL_ELIGIBLE_IMPORT_UNVERIFIED",
+    "GITHUB_PRODUCTION_CODE_MERGED_ODOO_SH_UNKNOWN",
+    "IMPORT_IMPLEMENTATION_MERGED_PROD_RUNNING_UNVERIFIED",
+    "PRODUCTION_SOURCE_MANIFEST_NOT_REVERIFIED",
+    "PRODUCTION_IMPORT_CENSUS_NOT_VERIFIED",
+    "ACTIVE_AFTER_CORE_QA_AND_BUTTON_SWEEP",
+    "EXACT_HEAD_REHEARSAL_PASSED_NOT_FULL_IMPORT",
+    "NOT_VERIFIED_LIVE_PRODUCTION",
+    "MENU_IN_CODE_NOT_INSTALLED_OR_ACCESS_TESTED",
+    "SOURCE_FILTER_EXCLUDES_OLD_CLOSED_LOADS",
+    "OPERATOR_TARGET_NOT_INDEPENDENTLY_VERIFIED",
+    "PRODUCTION_QA_NOT_RUN",
+    "TESTS_NOT_RUN"
+  ],
+  "mvp_separation": {
+    "release_rule": "Final current-branch Enterprise/release verification and controlled Odoo.sh promotion; already-completed rehearsal and OdooLS remediation not prerequisites to redo.",
+    "multi_load_gate": "PL-READY-LOG required before any multi-load / buyer-optional PlasticOS movement is used; native PO-only stock receipt remains independently valid",
+    "no_export_or_shopfloor_implementation": true,
+    "no_auto_merge_or_deploy": true,
+    "cutover_order": [
+      "PL-RELEASE-CUTOVER",
+      "PL-RELEASE-MIGRATION",
+      "PL-RELEASE-DATA",
+      "PL-RELEASE-RECONCILE"
+    ],
+    "matching_and_enrichment_activation_excluded": true,
+    "export_next_after_core_testing_not_current_blocker": true,
+    "test_ready_is_not_full_financial_go_live": true
+  },
+  "checkpoint_provenance": {
+    "as_of": "2026-10-30",
+    "staging_sha": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+    "production_sha": "3318fa646a9f33aed55b9ea8f8596316e30684da",
+    "source": "GITHUB_CONNECTOR_2026_10_30_PR_349_350_351_352_AND_OPERATOR_REHEARSAL_REPORT",
+    "no_live_odoo_access": true,
+    "operator_go_no_go": "NOT_GRANTED"
+  },
+  "operator_cutover_decision": {
+    "as_of": "2026-11-09",
+    "production_source_pr": "#408 merged, code branch not Odoo.sh proof",
+    "hosted_production": "UNKNOWN",
+    "production_data_import": "UNKNOWN",
+    "business_acceptance": "CORE_FEATURE_QA_THEN_BUTTON_SWEEP",
+    "technical_predeployment_gates": "HISTORICAL_COMPLETED_GITHUB_MERGE_DO_NOT_REOPEN",
+    "postdeployment_order": [
+      "PL-RELEASE-MIGRATION",
+      "PL-RELEASE-DATA",
+      "PL-RELEASE-RECONCILE"
+    ],
+    "docs_binary": "SEPARATELY_DEFERRED_NOT_PART_OF_CORE_ELIGIBLE_ERP_CRM_HISTORY",
+    "no_production_run": "NOT_OBSERVED_IN_THIS_PLAN_REVISION",
+    "rehearsal_further_execution_required": false,
+    "matching_enrichment": "NOT_ENABLED_AS_PART_OF_BASIC_QA",
+    "export": "NEXT_AFTER_QA_AND_SEPARATE_APPROVAL",
+    "aws_dr": "POST_PROMOTION_SEPARATE_INDEPENDENT_CAMPAIGN"
+  },
+  "operator_current_checkpoint": {
+    "as_of": "2026-11-09",
+    "production_git_sha": "729d3ab0b7cd7a0cb1058528e7c0e28cdcc08b56",
+    "staging_sha": "bdc222246fbfb647e8e008046b759eecd60a2028",
+    "promotion_git_pr_408": "MERGED_2026_11_08",
+    "odoo_sh_deployment": "UNKNOWN",
+    "production_import_full": "UNKNOWN",
+    "admin_login": "UNKNOWN",
+    "operator_target": "TEST_READY_PRODUCTION_WITH_ELIGIBLE_ERP_AND_CRM_DATA_AND_TRANSACTION_HISTORY",
+    "next": "WEBLEAD_LOGISTICS_DOCUMENTS_SMOKE_THEN_EVERY_BUTTON_THEN_EXPORT",
+    "scope_excluded": "NO_MATCHING_NO_ENRICHMENT_NO_EXPORT_BUILD_UNTIL_QA_ACCEPTED"
+  },
+  "production_source_revision": "02b90f199f2ae8733e3759b3d60cda85800ee486",
+  "prior_checkpoint_2026_10_30": {
+    "source_sha": "fba54b28168d870e9b0f67a196e10e7f7a36ac08",
+    "rehearsal": "COMPLETE_OPERATOR_REPORTED_RECEIPT_UNLINKED",
+    "odools": "MERGED_STAGING_PR_351",
+    "import_code": "MERGED_STAGING_PR_349",
+    "production_promotion": "NOT_VERIFIED",
+    "go_live_import": "NOT_VERIFIED"
+  },
+  "operator_release_sequence": [
+    "PL-RELEASE-CUTOVER",
+    "PL-RELEASE-MIGRATION",
+    "PL-RELEASE-DATA",
+    "PL-RELEASE-RECONCILE",
+    "PL-PROD-IMPORT-CENSUS",
+    "PL-PROD-ADMIN-ACCESS",
+    "PL-PROD-TEST-BASE",
+    "PL-PROD-CORE-SMOKE",
+    "PL-PROD-UI-SWEEP",
+    "PL-RELEASE-BUSINESS-ACCEPT",
+    "PL-POSTGRES-VERIFY",
+    "PL-DR-NATIVE-SAFETY",
+    "PL-DOC-BLOB-CENSUS",
+    "PL-DOC-BLOB-IMPORTER",
+    "PL-DOC-BLOB-IMPORT",
+    "PL-DOC-BLOB-RECON",
+    "PL-AI-03",
+    "PL-DOC-AI-MANAGER-QUEUE",
+    "PL-DOC-AI-ACCEPT",
+    "PL-ACCT-REPORT-SOURCE-LOCK",
+    "PL-ACCT-REOPEN-CONTRACT",
+    "PL-ACCT-REOPEN-MAKE",
+    "PL-ACCT-OPEN-ARAP",
+    "PL-ACCT-OPEN-QB",
+    "PL-ACCT-OPEN-BANK",
+    "PL-ACCT-OPEN-INVENTORY",
+    "PL-ACCT-OPENING-RECON",
+    "PL-DR-BASELINE",
+    "PL-DR-RESTORE-PROOF",
+    "PL-PROD-EXTENDED-ACCEPT",
+    "PL-FUT-01"
+  ],
+  "independent_smoke_lanes": [
+    "PL-PROD-WEBLEAD-QA",
+    "PL-PROD-LOGISTICS-QA",
+    "PL-PROD-DOC-QA"
+  ],
+  "production_test_target": {
+    "date": "2026-11-09",
+    "criterion": "Installable, imported, navigable and functionally testable core Production, not bug-free or financial cutover",
+    "facts_not_yet_observed": [
+      "hosted app module list",
+      "complete Production ERP+CRM imports",
+      "admin signed-in tile",
+      "interactive automations",
+      "full load visibility"
+    ],
+    "deferred": [
+      "External CEG matching",
+      "EIE enrichment",
+      "general-purpose agent activation beyond limited authorized document AI",
+      "Export implementation until accepted readiness",
+      "shop floor and hardware operations"
+    ],
+    "additional_acceptance": [
+      "PostgreSQL and filestore read-only inventory",
+      "Source-verified worksheet original import and reconciliation",
+      "existing-document native AI pilot and assigned-manager review queue",
+      "ERP open-item reports + QuickBooks/bank/inventory source cutoff",
+      "repeatable report-gated historical reopen command",
+      "native residual-only AR/AP opening entry reconciliation",
+      "safe post-change DR restore per existing v1.3 contract"
+    ]
+  },
+  "operator_cutover_decision_historical_2026_10_30": {
+    "as_of": "2026-10-30",
+    "prior_rehearsal": "COMPLETE_OPERATOR_REPORTED_RECEIPT_UNKNOWN",
+    "aws_dr": "POST_PROMOTION",
+    "business_acceptance": "POST_PROMOTION",
+    "technical_predeployment_gates": [
+      "PL-RELEASE-BASE",
+      "PL-RELEASE-SCOPE",
+      "PL-RELEASE-EE",
+      "PL-RELEASE-IMPORT-AUTH"
+    ],
+    "postdeployment_order": [
+      "PL-RELEASE-MIGRATION",
+      "PL-RELEASE-DATA",
+      "PL-RELEASE-RECONCILE"
+    ],
+    "docs_binary": "SEPARATE_NOT_IMPLEMENTED",
+    "no_production_run": true,
+    "rehearsal_further_execution_required": false,
+    "odools_remediation": "MERGED_PR_351"
+  },
+  "source_recheck": {
+    "date": "2026-11-09",
+    "staging_sha": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+    "production_sha": "02b90f199f2ae8733e3759b3d60cda85800ee486",
+    "scope": "New post-import source owners only; predecessor PR classifications remain historical until full fresh census",
+    "runtime": "NOT_VERIFIED"
+  },
+  "parallel_lanes_post_import": {
+    "documents": [
+      "PL-POSTGRES-VERIFY",
+      "PL-DR-NATIVE-SAFETY",
+      "PL-DOC-BLOB-CENSUS",
+      "PL-DOC-BLOB-IMPORTER",
+      "PL-DOC-BLOB-IMPORT",
+      "PL-DOC-BLOB-RECON",
+      "PL-AI-03",
+      "PL-DOC-AI-MANAGER-QUEUE",
+      "PL-DOC-AI-ACCEPT"
+    ],
+    "finance": [
+      "PL-ACCT-REPORT-SOURCE-LOCK",
+      "PL-ACCT-REOPEN-CONTRACT",
+      "PL-ACCT-REOPEN-MAKE",
+      "PL-ACCT-OPEN-ARAP",
+      "PL-ACCT-OPEN-QB",
+      "PL-ACCT-OPEN-BANK",
+      "PL-ACCT-OPEN-INVENTORY",
+      "PL-ACCT-OPENING-RECON",
+      "PL-ACCT-PROD-AUTH"
+    ],
+    "recovery": [
+      "PL-DR-NATIVE-SAFETY",
+      "PL-DR-BASELINE",
+      "PL-DR-RESTORE-PROOF",
+      "PL-RELEASE-DR"
+    ],
+    "nonblocking_note": "Operator cutover to live financial writer (PL-ACCT-PROD-AUTH) requires separate signed authorization; full DR RPO optimization PL-RELEASE-DR may be provider blocked but cannot be called complete. Export depends on audited restore proof, not a false full DR claim."
+  }
+}

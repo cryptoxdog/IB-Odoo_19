@@ -11,8 +11,8 @@ Two hard rules govern this module:
   CSV service defaulted unknown weight UOMs to ``"L"`` — that is exactly the
   behaviour these functions replace.)
 * **Existing fields first.** Every target named here already exists on
-  ``res.partner`` or on the deal header and line models. This import adds no
-  field to any model.
+  ``res.partner`` or on the deal header and line models. This module adds no
+  field.
 """
 
 from __future__ import annotations
@@ -25,7 +25,8 @@ __all__ = [
     "INTERNAL_MAILBOX_DOMAINS",
     "ODOO_ADDRESS_TYPE",
     "PRIMARY_CONTACT_ROLE",
-    "COMPANY_ROLE_BY_ERP_ROLE",
+    "COMPANY_ROLE_TAGS_BY_ERP_ROLE",
+    "COMPANY_ROLE_TAG_XMLID",
     "SALES_REP_LOGINS",
     "SALES_REP_NAMES",
     "SALES_REP_REASSIGNED",
@@ -33,6 +34,7 @@ __all__ = [
     "WEIGHT_UOM",
     "address_kind",
     "company_role",
+    "company_role_tags",
     "external_emails",
     "sales_rep_code",
     "is_kind_only_label",
@@ -50,45 +52,47 @@ __all__ = [
 ]
 
 # ---------------------------------------------------------------------------
-# CounterParty.Role -> res.partner.company_role
+# CounterParty.Role -> company role tags
 # ---------------------------------------------------------------------------
-# Semantics proven by behaviour on the tracked payload rather than by letter:
-# every counterparty was cross-referenced against the material-supplier set
-# (Payables with no delivery leg), the buyer set (ReceiptBatch.CPID), and the
-# freight set (WksDelivery.VendorID).
+# The source stores one character and no legend. The letter meanings used here:
 #
-#   V  543  material supplier 330, buyer 0            -> supplier
-#   S  137  material supplier  61, buyer 0            -> supplier
-#   D  160  freight/delivery only, never material     -> carrier
-#   X  111  buyer 70, material supplier 0             -> buyer
-#   C   30  buyer 16, material supplier 0             -> buyer
-#   A  262  supplier 173, buyer 176, freight 175      -> broker (dual-sided)
-#   P   47  supplier  29, buyer  28, freight  24      -> broker (dual-sided)
+#   C  Customer
+#   S  Supplier
+#   P  Customer and Supplier
+#   X  Customer and Expense
+#   D  Expense
+#   V  Supplier and Expense
+#   A  Customer, Supplier, and Expense
 #
-# ``A``/``P`` trade on both sides, which single-valued ``company_role`` cannot
-# express; ``broker`` is the existing selection member for a dual-sided
-# counterparty. The multi-role truth is carried by Odoo's native
-# ``supplier_rank`` / ``customer_rank`` (see :func:`trade_ranks`), which is the
-# repository's designated mechanism for this (CLAUDE.md, "Partner Hierarchy").
-COMPANY_ROLE_BY_ERP_ROLE: dict[str, str] = {
-    "V": "supplier",
-    "S": "supplier",
-    "D": "carrier",
-    "X": "buyer",
-    "C": "buyer",
-    "A": "broker",
-    "P": "broker",
+# A company that only has Expense stays Carrier. Service ("Service Provider")
+# is added only when Expense is combined with Buyer, Supplier, or both.
+# A company that is both a buyer and a supplier gets both tags. The import
+# does not write the Broker badge for that letter.
+COMPANY_ROLE_TAGS_BY_ERP_ROLE: dict[str, tuple[str, ...]] = {
+    "C": ("buyer",),
+    "S": ("supplier",),
+    "P": ("buyer", "supplier"),
+    "X": ("buyer", "service"),
+    "D": ("carrier",),
+    "V": ("supplier", "service"),
+    "A": ("buyer", "supplier", "service"),
 }
 
-# supplier_rank / customer_rank seeded from the same evidence.
-_RANKS_BY_ROLE: dict[str, tuple[int, int]] = {
-    "V": (1, 0),
-    "S": (1, 0),
-    "D": (0, 0),
-    "X": (0, 1),
-    "C": (0, 1),
-    "A": (1, 1),
-    "P": (1, 1),
+COMPANY_ROLE_TAG_XMLID: dict[str, str] = {
+    "buyer": "plasticos_facility_profile.company_role_buyer",
+    "supplier": "plasticos_facility_profile.company_role_supplier",
+    "carrier": "plasticos_facility_profile.company_role_carrier",
+    "service": "plasticos_facility_profile.company_role_service",
+}
+
+# Single company_role badge when the letter still has one trade side.
+# Buyer+Supplier has no single badge. Service does not change the side.
+_SELECTION_BY_TAGS: dict[tuple[str, ...], str] = {
+    ("buyer",): "buyer",
+    ("supplier",): "supplier",
+    ("carrier",): "carrier",
+    ("buyer", "service"): "buyer",
+    ("supplier", "service"): "supplier",
 }
 
 # ---------------------------------------------------------------------------
@@ -195,24 +199,43 @@ def parse_date(value: str | None) -> datetime | None:
     return None
 
 
-def company_role(raw_role: str | None) -> tuple[str | None, str | None]:
-    """``CounterParty.Role`` -> ``res.partner.company_role``.
+def company_role_tags(raw_role: str | None) -> tuple[tuple[str, ...], str | None]:
+    """``CounterParty.Role`` -> company role tag keys.
 
-    Returns ``(role, anomaly)``. An unknown code maps to nothing and is
+    Returns ``(tags, anomaly)``. An unknown code maps to no tags and is
     reported, so a new ERP role code surfaces instead of being absorbed.
+    Expense alone is ``carrier``. ``service`` is present only beside buyer,
+    supplier, or both.
     """
     code = _clean(raw_role).upper()
     if not code:
-        return None, "blank CounterParty.Role"
-    mapped = COMPANY_ROLE_BY_ERP_ROLE.get(code)
-    if mapped is None:
-        return None, f"unmapped CounterParty.Role {code!r}"
-    return mapped, None
+        return (), "blank CounterParty.Role"
+    tags = COMPANY_ROLE_TAGS_BY_ERP_ROLE.get(code)
+    if tags is None:
+        return (), f"unmapped CounterParty.Role {code!r}"
+    return tags, None
+
+
+def company_role(raw_role: str | None) -> tuple[str | None, str | None]:
+    """``CounterParty.Role`` -> the single ``company_role`` badge, when one exists.
+
+    Buyer+Supplier letters return ``(None, None)``: those companies carry both
+    tags and no Broker badge. An unknown code is still reported.
+    """
+    tags, anomaly = company_role_tags(raw_role)
+    if anomaly:
+        return None, anomaly
+    return _SELECTION_BY_TAGS.get(tags), None
 
 
 def trade_ranks(raw_role: str | None) -> tuple[int, int]:
-    """``CounterParty.Role`` -> native ``(supplier_rank, customer_rank)``."""
-    return _RANKS_BY_ROLE.get(_clean(raw_role).upper(), (0, 0))
+    """``CounterParty.Role`` -> native ``(supplier_rank, customer_rank)``.
+
+    Service and Carrier do not set a rank. Buyer sets customer rank, Supplier
+    sets supplier rank, and a company that is both sets both.
+    """
+    tags, _anomaly = company_role_tags(raw_role)
+    return (1 if "supplier" in tags else 0, 1 if "buyer" in tags else 0)
 
 
 _KIND_BASES = ("INVOICE", "REMIT", "PRIMARY", "PICKUP", "DELIVERY", "WAREHOUSE")
