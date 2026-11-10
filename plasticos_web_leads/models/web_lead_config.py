@@ -312,7 +312,7 @@ class PlasticosWebLeadConfig(models.Model):
 
     reject_materials = fields.Text(
         string="Rejected Materials",
-        default="vinyl siding|appliances|conduit|pvc pipe|pet bottles|carpet|mattress|tire",
+        default="",
         help="Pipe-delimited list of material keywords that trigger auto-COLD.",
     )
     reject_sources = fields.Text(

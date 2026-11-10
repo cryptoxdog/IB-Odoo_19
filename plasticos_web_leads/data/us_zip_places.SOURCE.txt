@@ -1,0 +1,8 @@
+Census Bureau 2020 ZCTA-to-place relationship, public domain.
+File: tab20_zcta520_place20_natl.txt
+URL: https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_place20_natl.txt
+Vintage: last-modified 2021-12-09.
+
+One row per ZIP Code Tabulation Area. The place is the census place with the largest land overlap. The class suffix is removed. The state is the USPS abbreviation for that place. A ZCTA with no named place is omitted.
+
+Anchor required by the resolver: 28277 = Charlotte, NC.

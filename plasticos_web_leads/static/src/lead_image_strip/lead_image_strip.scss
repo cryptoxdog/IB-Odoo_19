@@ -1,0 +1,24 @@
+.o_lead_image_thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 1px solid var(--o-border-color, #ced4da);
+    background: #fff;
+}
+
+.o_lead_image_viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(0, 0, 0, 0.72);
+
+    img {
+        max-width: 80vw;
+        max-height: 80vh;
+    }
+}

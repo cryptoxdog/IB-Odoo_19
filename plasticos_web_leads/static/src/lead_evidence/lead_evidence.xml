@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="plasticos_web_leads.LeadEvidence">
+        <div class="o_lead_evidence">
+            <t t-foreach="presentation.sections" t-as="section" t-key="section.id">
+                <section class="o_lead_evidence_section">
+                    <h4 t-if="section.title" t-out="section.title"/>
+                    <div t-if="section.rows.length" class="o_lead_evidence_rows">
+                        <t t-foreach="section.rows" t-as="evidenceRow" t-key="evidenceRow_index">
+                            <span class="o_lead_evidence_label" t-out="evidenceRow.label"/>
+                            <span class="o_lead_evidence_value" t-out="evidenceRow.value"/>
+                        </t>
+                    </div>
+                    <ul t-if="section.bullets.length">
+                        <li t-foreach="section.bullets" t-as="bullet" t-key="bullet_index" t-out="bullet"/>
+                    </ul>
+                </section>
+            </t>
+            <t t-foreach="presentation.cards" t-as="card" t-key="card.id">
+                <article class="o_lead_evidence_card">
+                    <img t-if="card.imageUrl" t-att-src="card.imageUrl" alt="Lead photo" class="o_lead_evidence_photo"/>
+                    <div class="o_lead_evidence_filename" t-out="card.filename"/>
+                    <div class="o_lead_evidence_rows">
+                        <t t-foreach="card.rows" t-as="evidenceRow" t-key="evidenceRow_index">
+                            <span class="o_lead_evidence_label" t-out="evidenceRow.label"/>
+                            <span class="o_lead_evidence_value" t-out="evidenceRow.value"/>
+                        </t>
+                    </div>
+                </article>
+            </t>
+            <button type="button" class="btn btn-link p-0" t-on-click="toggleTechnical" t-out="technicalLabel"/>
+            <pre t-if="state.technical" class="o_lead_evidence_technical" t-out="presentation.technical"/>
+        </div>
+    </t>
+</templates>

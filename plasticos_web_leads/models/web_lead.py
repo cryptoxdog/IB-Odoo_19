@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from typing import Any
 
 import psycopg2
@@ -29,6 +30,7 @@ from ..adapters.base import (
     packet_to_dict,
 )
 from ..adapters.registry import get_adapter
+from ..zip_place import resolve_pickup
 from . import ai_normalizer, image_analyzer
 from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
 from .classification_engine import classify_lead
@@ -45,11 +47,13 @@ from .evidence_keys import (
     KEY_REVIEW_REASONS,
     KEY_REVIEW_REQUIRED,
     KEY_STATUS,
+    KEY_VISION,
 )
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
+from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, WEIGHT_SOURCE_AREA, replay_stored_mass
 
 _logger = logging.getLogger(__name__)
 
@@ -211,13 +215,13 @@ class PlasticosWebLead(models.Model):
            c. _merge_ai_and_vision() — weight fallback cascade here
            d. classify_lead() — deterministic HOT/COLD
            e. HOT → _create_intake() + notify admin
-           f. Attach images (async-safe: skip on COLD to avoid blocking)
+           f. Submitted photos are already stored, on HOT and on COLD
     """
 
     _name = "plasticos.web.lead"
     _description = "Web Lead"
     _inherit = ["mail.thread"]
-    _order = "create_date desc"
+    _order = "submitted_at desc, id desc"
     _rec_name = "lead_id"
 
     # ═══════════════════════════════════════════════════════════
@@ -229,6 +233,12 @@ class PlasticosWebLead(models.Model):
         index=True,
         tracking=True,
         help="Unique lead identifier (e.g. WL123 or CG-abc123).",
+    )
+    submitted_at = fields.Datetime(
+        string="Submitted",
+        index=True,
+        tracking=True,
+        help="When the seller submitted the form. The list sorts on this date.",
     )
     source = fields.Selection(
         [
@@ -337,12 +347,37 @@ class PlasticosWebLead(models.Model):
     contact_name = fields.Char(string="Contact Name")
     contact_email = fields.Char(string="Contact Email")
     contact_phone = fields.Char(string="Contact Phone")
+    pickup_postal_code = fields.Char(
+        string="ZIP",
+        index=True,
+        help="Pickup ZIP as the seller submitted it. Location is derived from these digits.",
+    )
+    pickup_location_text = fields.Char(
+        string="Seller Location",
+        help="The seller's own location words. They are kept and are not turned into Location.",
+    )
+    pickup_place = fields.Char(
+        string="Location",
+        readonly=True,
+        index=True,
+        help="Preferred city and state for the pickup ZIP, for example Charlotte, NC.",
+    )
     material_description = fields.Text(string="Material Description")
     quantity_text = fields.Char(
         string="Quantity (Form Input)",
         help="Raw quantity text from the form — unprocessed, for display only.",
     )
     estimated_lbs_per_load = fields.Integer(string="Est. Lbs/Load")
+    estimated_lbs_high = fields.Integer(
+        string="Est. Lbs High",
+        help="High end of a seller weight range. Empty when the seller stated one weight.",
+    )
+    lead_image_ids = fields.Many2many(
+        "ir.attachment",
+        string="Lead Images",
+        compute="_compute_lead_image_ids",
+        help="Image files already stored on this lead. A cold decision does not remove them.",
+    )
     estimated_loads_per_month = fields.Integer(string="Est. Loads/Month")
     frequency = fields.Char(string="Frequency")
     has_contaminants = fields.Boolean(string="Has Contaminants")
@@ -434,6 +469,24 @@ class PlasticosWebLead(models.Model):
     def _compute_review_snapshot_count(self):
         for record in self:
             record.review_snapshot_count = len(record.review_snapshot_ids)
+
+    @api.depends("write_date")
+    def _compute_lead_image_ids(self):
+        """Image attachments already linked to the lead. This field stores nothing of its own."""
+        attachments = self.env["ir.attachment"]
+        if self.ids:
+            attachments = attachments.search(
+                [
+                    ("res_model", "=", self._name),
+                    ("res_id", "in", self.ids),
+                ]
+            ).filtered(lambda attachment: (attachment.mimetype or "").startswith("image/"))
+        grouped: dict[int, Any] = {}
+        for attachment in attachments:
+            grouped.setdefault(attachment.res_id, self.env["ir.attachment"])
+            grouped[attachment.res_id] |= attachment
+        for lead in self:
+            lead.lead_image_ids = grouped.get(lead.id, self.env["ir.attachment"])
 
     # ═══════════════════════════════════════════════════════════
     # Constraints
@@ -671,6 +724,10 @@ class PlasticosWebLead(models.Model):
         image_urls = [item.source_url for item in packet.attachments if item.content_type.startswith("image/")]
         contaminants = packet.contaminants_text.strip()
         negative_contaminant_values = {"", "no", "none", "n/a", "na", "clean"}
+        postal_code, location_text, location = resolve_pickup(
+            packet.pickup_postal_code,
+            packet.pickup_location_text,
+        )
         vals = {
             "lead_id": str(lead_id),
             "source": "web_lead",
@@ -684,18 +741,24 @@ class PlasticosWebLead(models.Model):
             "contact_name": packet.contact_name,
             "contact_email": packet.contact_email,
             "contact_phone": packet.contact_phone,
+            "pickup_postal_code": postal_code or False,
+            "pickup_location_text": location_text or False,
+            "pickup_place": location or False,
             "material_description": packet.material_description,
             "quantity_text": packet.weight_per_load_text or packet.quantity_text,
             "has_contaminants": contaminants.lower() not in negative_contaminant_values,
             "contaminant_notes": contaminants or False,
             "image_urls": image_urls,
             "state": "received",
+            "submitted_at": self._coerce_submitted_at(packet.submitted_at) or False,
         }
         lead, created = self._create_or_replay(vals)
         if not created:
             self._assert_equivalent_packet_replay(lead, packet)
             return lead
         _logger.info("Web lead %s created from provider packet %s.", lead.lead_id, packet.provider)
+        if not lead.submitted_at:
+            lead.write({"submitted_at": lead.create_date})
         lead._run_triage_pipeline(packet=packet)
         return lead
 
@@ -722,7 +785,7 @@ class PlasticosWebLead(models.Model):
           [CLASS]  4. Deterministic HOT/COLD classification
           [WRITE]  5. Persist classification result
           [HOT]    6. Create intake + notify admin
-          [IMG]    7. Attach images (HOT only — skip blocking download for COLD)
+          [IMG]    7. Submitted images are stored before this decision, HOT or COLD
 
         ``packet`` is the in-memory admission packet and the only carrier of
         signed attachment URLs. A later re-triage has no packet: it reuses prior
@@ -848,10 +911,15 @@ class PlasticosWebLead(models.Model):
                 cold_max_lbs=config.cold_max_lbs or 8_000,
                 economic_eligible=economic_eligibility.eligible,
                 economic_policy_reasons=list(economic_eligibility.reasons),
+                vision_evidence=vision_results,
             )
             log_lines.append(f"[CLASS] decision={result.decision}")
 
             review_reasons = list(result.review_reasons) if result.decision == "hot" else []
+            if float(merged.get("estimated_lbs") or 0) > SINGLE_LOAD_REVIEW_CAP_LBS or ai_data.get(
+                "weight_above_review_cap"
+            ):
+                review_reasons.append("Weight is above the single-load review cap.")
             economic_assessment = None
             if evidence_bundle is not None:
                 economic_provider_spec = (
@@ -892,11 +960,13 @@ class PlasticosWebLead(models.Model):
                     KEY_ECONOMIC_ELIGIBILITY: economic_eligibility.to_dict(),
                     KEY_REVIEW_REQUIRED: bool(review_reasons),
                     KEY_REVIEW_REASONS: review_reasons,
+                    KEY_VISION: result.vision_evidence,
                 },
                 "ai_normalized": ai_data,
                 "ai_vision_results": vision_results,
                 "ai_analysis": merged,
                 "estimated_lbs_per_load": int(merged.get("estimated_lbs") or 0),
+                "estimated_lbs_high": int(merged["estimated_lbs_high"]) if merged.get("estimated_lbs_high") else 0,
                 "estimated_loads_per_month": int(merged.get("loads_per_month") or 0),
                 "frequency": merged.get("frequency", ""),
                 "review_status": "clarification_required" if review_reasons else "pending",
@@ -918,10 +988,8 @@ class PlasticosWebLead(models.Model):
                 if callable(synchronize_images):
                     synchronize_images()
             else:
-                log_lines.append("[COLD] Archiving lead.")
+                log_lines.append("[COLD] Archiving lead. Stored photos stay on the lead.")
                 self.write({"state": "skipped"})
-                if not is_packet_path and self.image_urls:
-                    log_lines.append("[IMG] SKIPPED legacy image download for COLD lead.")
 
         except Exception as exc:
             _logger.exception("Triage pipeline error for lead %s", self.lead_id)
@@ -954,9 +1022,9 @@ class PlasticosWebLead(models.Model):
           3. WhatIsTheQuantity × _LBS_PER_PALLET_ASSUMPTION (unit count fallback)
           4. 0 (classification will gate on cold_max_lbs)
 
-        Canonical Packet path uses deterministic QuantityEvidence first, permits an
-        explicit AI per-load mass only as fallback, and never turns a unit count
-        into pounds.
+        Canonical packet path uses the one seller-mass reading first. An area
+        quantity stays area, including when an earlier model call stored that
+        area number as pounds. A stated unit count uses the unit weight table.
         """
         merged: dict[str, Any] = {}
 
@@ -997,13 +1065,18 @@ class PlasticosWebLead(models.Model):
 
         # ── Weight fallback cascade ────────────────────────────────────
         if quantity_evidence is not None:
-            lbs = quantity_evidence.load_weight_lbs or 0
-            lbs_source = quantity_evidence.weight_source
-            if not lbs:
-                ai_lbs = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
-                if ai_lbs > 0:
-                    lbs = ai_lbs
-                    lbs_source = "ai_text"
+            if quantity_evidence.weight_source == WEIGHT_SOURCE_AREA:
+                lbs = 0
+                lbs_source = WEIGHT_SOURCE_AREA
+            else:
+                lbs = quantity_evidence.load_weight_lbs or 0
+                lbs_source = quantity_evidence.weight_source
+                if not lbs:
+                    ai_lbs = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
+                    if ai_lbs > 0:
+                        lbs = ai_lbs
+                        lbs_source = "ai_text"
+            merged["estimated_lbs_high"] = quantity_evidence.load_weight_lbs_high
             merged["loads_per_month"] = (
                 quantity_evidence.loads_per_month
                 if quantity_evidence.loads_per_month is not None
@@ -1059,6 +1132,125 @@ class PlasticosWebLead(models.Model):
         return merged
 
     # ═══════════════════════════════════════════════════════════
+    # Stored evidence replay
+    # ═══════════════════════════════════════════════════════════
+
+    @api.model
+    def _coerce_submitted_at(self, value: Any) -> str | bool:
+        """Return a naive UTC datetime string, or False when the seller date is missing."""
+        if not value:
+            return False
+        if isinstance(value, datetime):
+            parsed = value
+        else:
+            text = str(value).strip()
+            if not text:
+                return False
+            try:
+                parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            except ValueError:
+                return False
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(UTC).replace(tzinfo=None)
+        return fields.Datetime.to_string(parsed)
+
+    @api.model
+    def _submitted_at_from_payload(self, raw_payload: Any, canonical_payload: Any = None) -> str | bool:
+        """Seller submission time from the raw Cognito entry, then the stored packet."""
+        raw = raw_payload if isinstance(raw_payload, dict) else {}
+        entry = raw.get("Entry")
+        if isinstance(entry, dict):
+            coerced = self._coerce_submitted_at(entry.get("DateSubmitted"))
+            if coerced:
+                return coerced
+        canonical = canonical_payload if isinstance(canonical_payload, dict) else {}
+        return self._coerce_submitted_at(canonical.get("submitted_at"))
+
+    def _reclassify_stored_leads(self):
+        """Replay stored evidence for leads that never received an intake."""
+        leads = self if self else self.env["plasticos.web.lead"]
+        if not self:
+            leads = leads.search(
+                [
+                    ("state", "in", ("received", "skipped", "error")),
+                    ("intake_id", "=", False),
+                ]
+            )
+        for lead in leads:
+            lead._reclassify_from_stored_evidence()
+
+    def _reclassify_from_stored_evidence(self):
+        """Call ``classify_lead`` on stored text and model output. No new model call."""
+        self.ensure_one()
+        if self.intake_id or self.state not in ("received", "skipped", "error"):
+            return
+        mass = replay_stored_mass(
+            quantity_text=self.quantity_text,
+            estimated_lbs=self.estimated_lbs_per_load,
+        )
+        lbs = float(mass.lbs or 0)
+        analysis = dict(self.ai_analysis) if isinstance(self.ai_analysis, dict) else {}
+        normalized = self.ai_normalized if isinstance(self.ai_normalized, dict) else {}
+        raw_polymer = str(analysis.get("polymer") or normalized.get("polymer") or "").strip()
+        polymer = _POLYMER_NORMALIZE.get(raw_polymer.lower(), raw_polymer or None) if raw_polymer else None
+        config = self.env["plasticos.web.lead.config"].get_config()
+        economic = evaluate_economic_eligibility(
+            estimated_lbs=lbs,
+            standard_hot_min_lbs=config.hot_min_lbs or 10_000,
+            reusable_item_hot_min_lbs=config.reusable_item_hot_min_lbs or 8_000,
+            polymer_code=polymer,
+            form_code=analysis.get("form"),
+            material_grade_code=analysis.get("material_grade"),
+            reusable_item_policy_codes=config.get_reusable_item_policy_codes(),
+        )
+        result = classify_lead(
+            polymer=polymer,
+            material_description=self.material_description,
+            estimated_lbs=lbs,
+            source_description=str(analysis.get("source_description") or ""),
+            source_type=analysis.get("source_type"),
+            is_plastic_hint=analysis.get("is_plastic"),
+            is_commercial_hint=analysis.get("is_commercial_source"),
+            weight_source=mass.source,
+            reject_materials=config.get_reject_materials(),
+            reject_sources=config.get_reject_sources(),
+            hot_min_lbs=economic.applicable_hot_min_lbs,
+            cold_max_lbs=config.cold_max_lbs or 8_000,
+            economic_eligible=economic.eligible,
+            economic_policy_reasons=list(economic.reasons),
+            vision_evidence=list(self.ai_vision_results) if isinstance(self.ai_vision_results, list) else [],
+        )
+        review_reasons = list(result.review_reasons) if result.decision == "hot" else []
+        if lbs > SINGLE_LOAD_REVIEW_CAP_LBS:
+            review_reasons.append("Weight is above the single-load review cap.")
+        self.write(
+            {
+                "decision": result.decision,
+                "decision_reasons": {
+                    KEY_REASONS: result.reasons,
+                    "cold_gates": result.cold_gates_triggered,
+                    KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
+                    KEY_ECONOMIC_ELIGIBILITY: economic.to_dict(),
+                    KEY_REVIEW_REQUIRED: bool(review_reasons),
+                    KEY_REVIEW_REASONS: review_reasons,
+                    KEY_VISION: result.vision_evidence,
+                },
+                "estimated_lbs_per_load": int(lbs),
+                "estimated_lbs_high": int(mass.lbs_high) if mass.lbs_high else 0,
+                "review_status": "clarification_required" if review_reasons else self.review_status,
+                "review_required_reason": "\n".join(sorted(set(review_reasons))) or False,
+                "state": "skipped" if result.decision != "hot" else self.state,
+            }
+        )
+        if result.decision != "hot":
+            return
+        merged = dict(analysis)
+        merged["polymer"] = polymer
+        merged["estimated_lbs"] = lbs
+        merged["loads_per_month"] = self.estimated_loads_per_month or analysis.get("loads_per_month") or 0
+        self.with_context(skip_hot_notify=True)._process_hot_lead_triage(merged, config)
+
+    # ═══════════════════════════════════════════════════════════
     # HOT Lead Processing
     # ═══════════════════════════════════════════════════════════
 
@@ -1074,7 +1266,8 @@ class PlasticosWebLead(models.Model):
         intake = self.intake_id or self._create_intake(merged, config)
         if not self.intake_id:
             self.write({"intake_id": intake.id, "state": "intake_created"})
-            self._notify_admin_hot_intake(intake, config)
+            if not self.env.context.get("skip_hot_notify"):
+                self._notify_admin_hot_intake(intake, config)
         self._ensure_crm_lead_for_hot_intake()
         _logger.info(
             "HOT lead %s → intake %s (CRM tracking ensured; broker review pending)",

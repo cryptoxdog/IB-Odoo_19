@@ -1379,3 +1379,14 @@ runtime-test:
 	  all) echo "→ runtime tests: whole roster (make test-odoo)"; $(MAKE) --no-print-directory test-odoo ;; \
 	  *) echo "→ runtime tests: $$mods (make test-module)"; $(MAKE) --no-print-directory test-module m="$$mods" ;; \
 	esac
+
+# 2026-11-10 — make runtime-bootstrap prepares a machine with Docker, a cloud
+# agent session included, for the Odoo Enterprise runtime gate. It binds an
+# Enterprise checkout (ODOO_ENTERPRISE_PATH, ./odoo-enterprise, a sibling
+# ../odoo-enterprise, or ODOO_ENTERPRISE_REPO) and admits the pinned fixture
+# from config/test_env_fixture.conf when that database is absent. It runs no
+# Odoo tests: the runtime-test owners above are unchanged.
+# Setup: docs/LOCAL_DEV_SETUP.md, "Cloud agent sessions".
+.PHONY: runtime-bootstrap
+runtime-bootstrap:
+	bash scripts/runtime_bootstrap.sh

@@ -126,7 +126,7 @@
                     </group>
                     <group string="Reject Lists">
                         <field name="reject_materials" widget="text"
-                               placeholder="vinyl siding|appliances|conduit|pvc pipe"/>
+                               placeholder="pipe-delimited keywords"/>
                         <field name="reject_sources" widget="text"
                                placeholder="residential|individual|homeowner|drop-off"/>
                     </group>

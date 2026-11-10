@@ -114,6 +114,7 @@ default_install_order:
   - plasticos_enrichment          # Gate shell (auto_install); no local IE
   - plasticos_geolocalize
   - plasticos_web_leads
+  - plasticos_screen_views        # after web_leads; map and hierarchy engines
   - plasticos_security_base       # after web_leads + logistics (depends both)
   - plasticos_commission
   - plasticos_crm_bridge          # after security_base

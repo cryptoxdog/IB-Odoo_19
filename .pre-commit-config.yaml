@@ -66,6 +66,10 @@ repos:
         stages: [pre-commit, pre-push]
 
       - id: check-merge-conflict
+        # --assume-in-merge: without it the hook checks only while a merge is in
+        # progress, so a marker committed later (AGENTS.md line 788, removed
+        # 2026-11-10) passed every commit and CI.
+        args: [--assume-in-merge]
         stages: [pre-commit, pre-push]
 
   # Commit message validation (conventional commits: feat:, fix:, docs:, etc.)
@@ -102,6 +106,17 @@ repos:
         entry: python3 ci/check_no_local_intelligence.py
         language: system
         pass_filenames: false
+        stages: [pre-commit]
+
+      # A staged manifest version bump rewrites that module's README
+      # module_version front matter (scripts/sync_readme_module_version.py), so
+      # tests/test_module_readme_batch_pipeline.py no longer turns CI red after
+      # a bump. Re-stage the README the hook names and commit again.
+      - id: readme-module-version
+        name: README module_version matches the manifest
+        entry: python3 scripts/sync_readme_module_version.py
+        language: system
+        files: ^plasticos_[^/]+/__manifest__\.py$
         stages: [pre-commit]
 
       - id: module-wiring

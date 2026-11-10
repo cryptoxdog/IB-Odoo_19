@@ -785,7 +785,7 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `make runtime-test` dispatches to the unchanged `test-module` / `test-odoo` recipes. Agents do not run
 > `make test-module` or `make test-odoo` ad hoc; the lines above that list them as commands are superseded.
 > `tests/test_runtime_test_ownership.py` enforces this.
-=======
+
 > **2026-11-05 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
 > the Audit Baselines table above is superseded on both rows. `ci/baselines/odoo_audit_baseline.json` has no
 > entries: `scripts/audit/odoo_audit.py` resolves `@api.depends` fields from its AST model index (a class belongs
@@ -818,3 +818,44 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > (`VANILLASOFT_CONTACT_EXPORT` + `VANILLASOFT_PRODUCTION_CONFIRM=1`) is its third mode. The
 > `plasticos-branch-promotion-rehearsal` row above is superseded for VanillaSoft: the rehearsal covers
 > `import-erp` only, and `import-vanillasoft` is not rehearsed on a clone.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make pr` composes every pull request with the SSOT injector, the Cursor-Governance composer
+> (`ops/scripts/compose_pr_body.py`) that SSOT `make pr` runs for every L9 repository. `scripts/git_open_pr.sh`
+> calls it directly (`ssot_compose`) with the flags `open_pr_after_gate.sh` passes. The only difference is the template
+> owner: `Quantum-L9` instead of the repo owner, because `cryptoxdog` has no `.github` template (`PR_TEMPLATE_OWNER`
+> overrides). The body lists every touched file first (`## Files touched`). `.github/pull_request_template.md` is a
+> byte copy of the `Quantum-L9/.github` template for PRs opened in the GitHub web page; the composer never reads it.
+> The local body builder `scripts/build_pr_body.py` and its test are removed. `make_push_pipeline.sh` proves the org
+> template is readable before any push. On an open PR, `make pr` refreshes only the composer's machine-owned regions.
+> `.l9/pr/pr-intent.json` (`l9.pr_intent.v1`) supplies title and prose when its `head` names HEAD; `.l9/pr/` is
+> gitignored. Install-smoke: a Claude Code cloud session (`CLAUDE_CODE_REMOTE=true`) skips it by default and says so
+> on the PR; Cursor and a local terminal run it; `PR_SMOKE=1` forces it; `make pr-nosmoke reason=...` still wins.
+
+> **2026-11-10 session-friction correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make runtime-bootstrap` (`scripts/runtime_bootstrap.sh`) prepares a machine with Docker, a cloud agent
+> session included, for the Odoo Enterprise runtime gate. It binds an Enterprise checkout (`ODOO_ENTERPRISE_PATH`,
+> `./odoo-enterprise`, a sibling `../odoo-enterprise`, or a shallow clone of `ODOO_ENTERPRISE_REPO` at
+> `ODOO_ENTERPRISE_REF`, default its default branch such as `main`; the Odoo series is checked as 19.0) and admits the pinned fixture through `scripts/test_env.sh rebuild` only
+> when that database is absent. A fixture that exists but is not admitted stays an operator decision
+> (`make test-env-rebuild`). It runs no Odoo tests, and the two runtime-test owners are unchanged. Once it
+> succeeds, `PR_SMOKE=1 make pr` in that session runs the install-smoke and the runtime tests (a cloud session
+> skips them by default, per the correction above). Operator one-time setup (a private copy of the Enterprise 19.0
+> source): `docs/LOCAL_DEV_SETUP.md`, "Cloud agent sessions".
+> `.pre-commit-config.yaml` now declares 40 hooks; the pre-push set is unchanged. The commit-stage hook
+> `readme-module-version` (`scripts/sync_readme_module_version.py`) rewrites a module README's `module_version`
+> front matter when that module's `__manifest__.py` version is staged: stage the README it names and commit
+> again. `check-merge-conflict` runs with `--assume-in-merge`, so a stray conflict marker fails outside a merge
+> too; the leftover marker in this file was removed on 2026-11-10.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `plasticos_screen_views` (`19.0.1.0.0`, `auto_install`) turns the installed view engines on for Contacts and Web
+> Leads. It depends on `contacts`, `mail`, `web_hierarchy`, `web_map`, and `plasticos_web_leads`. Contacts gain map
+> and hierarchy. Web Leads open on the list and gain calendar, pivot, graph, map, and activity. CRM views stay in
+> `crm_enterprise`. The module is in `config/odoo_module_order.yaml` immediately after `plasticos_web_leads`.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `plasticos_screen_views` also depends on `contacts_enterprise`. That module already pins the Contacts map
+> (`res_partner="id"`), so this module does not add a second map binding. It adds the hierarchy view and lists
+> `map` on the contacts action. `web_hierarchy`, `web_map`, and `contacts_enterprise` are known Odoo addons in
+> `tests/test_repo_dependency_integrity.py`.

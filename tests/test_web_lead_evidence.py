@@ -43,7 +43,7 @@ class _StoredAttachment:
         self.res_model = values.get("res_model")
         self.res_id = values.get("res_id")
         self.description = values.get("description")
-        self.checksum = values.get("checksum") or hashlib.sha1(str(self.datas).encode()).hexdigest()
+        self.checksum = values.get("checksum") or hashlib.sha256(str(self.datas).encode()).hexdigest()
 
     def exists(self):
         return True
@@ -433,7 +433,7 @@ def test_successful_attachment_evidence_is_reused_without_redownload():
 
 
 def test_reconciliation_preserves_seller_vision_conflict_and_unknown_weight():
-    quantity = normalize_quantity_evidence(quantity_text="3 loads", weight_per_load_text="", frequency_text="")
+    quantity = normalize_quantity_evidence(quantity_text="loose scrap", weight_per_load_text="", frequency_text="")
     bundle = reconcile_evidence(
         canonical_payload={"contaminants_text": "none", "material_description": "HDPE regrind"},
         quantity=quantity,

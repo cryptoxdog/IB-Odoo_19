@@ -1,0 +1,83 @@
+{
+  "as_of": "2026-11-09",
+  "files": [
+    {
+      "bytes": 4216,
+      "path": "00_RESUME_HERE.md",
+      "sha256": "af39d9adee4e28028d8fca938491e38d091b086198262fcb824b2675838cba32"
+    },
+    {
+      "bytes": 12731,
+      "path": "01_OPERATOR_GATES.md",
+      "sha256": "b1378a487b1e6f1f4e34e4b698bce5a77eb37e6b820af3ea66ff289976b0749d"
+    },
+    {
+      "bytes": 7884,
+      "path": "02_EXACT_MATCH_AND_IMPORT_CONTRACT.md",
+      "sha256": "b9f82c33f3a7f46b1429bf393bbee4ced0aaa442146e503d91be9b03c03b705e"
+    },
+    {
+      "bytes": 5963,
+      "path": "03_SOURCE_LOCK_AND_POINTERS.md",
+      "sha256": "7f130a69a6a0e4678fe9167921e519352b03a33ec598b068f7f2bc71c227e992"
+    },
+    {
+      "bytes": 6475,
+      "path": "04_AGENT_CONTRACT.md",
+      "sha256": "44a2cef863c7040f4ed4969285a0f0991db22863d24ec8062cc38200afc230d4"
+    },
+    {
+      "bytes": 4118,
+      "path": "05_ACCEPTANCE_MATRIX.csv",
+      "sha256": "72f70fc5b7b3c37c50bc1022e8ca3e1056e80bc6915abbf78d13bc17aa2ce226"
+    },
+    {
+      "bytes": 6132,
+      "path": "README.md",
+      "sha256": "1ef9f3388d055bdfec1262c4f97a9c7ce7780ca4e35f68709743682485109454"
+    },
+    {
+      "bytes": 438,
+      "path": "fixtures/README.md",
+      "sha256": "de986eef9e369235521ab0181598c60b0400c2994c46946947e690be57b02a59"
+    },
+    {
+      "bytes": 2632,
+      "path": "receipts/receipt.template.json",
+      "sha256": "fda6438d51544aab0cbb0cfc7c0228b313563f54782f2039c963d9b955bcc1f1"
+    },
+    {
+      "bytes": 16778,
+      "path": "tools/__pycache__/reconcile_cohort.cpython-313.pyc",
+      "sha256": "1085104b1f5f696b7b59ef33de920b53634b66dcd5af9d20e63d81cd50b36cc6"
+    },
+    {
+      "bytes": 8731,
+      "path": "tools/__pycache__/test_reconcile_cohort.cpython-313.pyc",
+      "sha256": "1262b60f5010fe6042ae6e4b6075f0f6e8c7363d9a111e617201efb0288c63b7"
+    },
+    {
+      "bytes": 12845,
+      "path": "tools/reconcile_cohort.py",
+      "sha256": "239838a5821596079cf4b50afcae5310265f6063193b859ec3d84099e3db1b5e"
+    },
+    {
+      "bytes": 5315,
+      "path": "tools/test_reconcile_cohort.py",
+      "sha256": "41d416a39ada5a36d210823479bb9af79644d5a8af5252206528e3f5940980b8"
+    }
+  ],
+  "operator_production_authorization": false,
+  "predecessor_plan_graph_zip_sha256": "0298a878b86d1c867cba2f2dff6e65b822817ac6a8f00b5f86dc6af9d4167fee",
+  "repository": "cryptoxdog/IB-Odoo_19",
+  "schema": "plasticos.worksheet-documents-runbook-manifest/v1",
+  "source_data_included": false,
+  "source_observation": {
+    "Production_Git": "02b90f199f2ae8733e3759b3d60cda85800ee486",
+    "Staging": "d6cc3c8ba04041da1844d7d0be396f4fad907be7",
+    "hosted_production": "NOT_OBSERVED"
+  },
+  "state": "MAC_COPY_IN_PROGRESS_NOT_PRODUCTION_EVIDENCE",
+  "version": "1.0.0",
+  "resume": "00_RESUME_HERE.md"
+}

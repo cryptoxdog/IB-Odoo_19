@@ -174,6 +174,27 @@ class TestParseWeightLbs:
         assert lbs == 0.0
         assert src == "none"
 
+    def test_range_uses_the_low_number(self):
+        mass = _th.parse_seller_mass("10,000 - 20,000 rough guess")
+        assert mass.lbs == pytest.approx(10_000.0)
+        assert mass.lbs_high == pytest.approx(20_000.0)
+        assert mass.source == "range_lbs"
+
+    def test_square_feet_are_not_pounds(self):
+        lbs, src = parse_weight_lbs("65,000 sqft")
+        assert lbs == 0.0
+        assert src == "area_not_mass"
+
+    def test_replay_drops_stored_pounds_when_the_text_is_area(self):
+        mass = _th.replay_stored_mass(quantity_text="65,000 sqft", estimated_lbs=65_000)
+        assert mass.lbs is None
+        assert mass.source == "area_not_mass"
+
+    def test_replay_keeps_parsed_tons(self):
+        mass = _th.replay_stored_mass(quantity_text="100 ton", estimated_lbs=0)
+        assert mass.lbs == pytest.approx(200_000.0)
+        assert mass.source == "explicit_tons"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # safe_int / safe_float / coerce_bool
@@ -252,6 +273,118 @@ class TestClassifyLead:
         assert result.decision == "cold"
         assert "is_commercial_source:false" in result.cold_gates_triggered
 
+    def test_empty_reject_list_keeps_conduit_and_mattress_film_hot(self):
+        result = classify_lead(
+            polymer="PVC",
+            material_description="PVC electrical conduit and mattress film",
+            estimated_lbs=42_000.0,
+            source_type="post_industrial",
+            is_plastic_hint=True,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            reject_materials=[],
+        )
+        assert result.decision == "hot"
+        assert "reject_material" not in result.cold_gates_triggered
+
+    def test_vision_evidence_is_copied_in_order_with_every_key(self):
+        first = {
+            "quantity_notes": "one gaylord in the frame",
+            "containment": "gaylord",
+            "observed_polymer_hint": "PP",
+            "confidence": 0.91,
+            "provider": {"provider": "openai", "role": "vision_analysis"},
+        }
+        second = {
+            "commercial_color": "natural",
+            "support_unit": "pallet",
+            "cleanliness": "Clean",
+            "material_form_observed": "Pellet",
+            "call_metadata": {"id": "call-2"},
+        }
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            vision_evidence=[first, second],
+        )
+        assert result.vision_evidence == [first, second]
+        first["quantity_notes"] = "changed after the call"
+        second["call_metadata"]["id"] = "changed"
+        assert result.vision_evidence[0]["quantity_notes"] == "one gaylord in the frame"
+        assert result.vision_evidence[1]["call_metadata"]["id"] == "call-2"
+
+    def test_vision_error_wrapper_is_not_evidence(self):
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            vision_evidence=[
+                {"error": "provider timeout", "provider": "openai"},
+                {"observed_form": "Pellet", "confidence": 0.4},
+            ],
+        )
+        assert result.vision_evidence == [{"observed_form": "Pellet", "confidence": 0.4}]
+
+    def test_stated_tons_stay_when_the_photo_shows_one_gaylord(self):
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=200_000.0,
+            weight_source="explicit_tons",
+            is_commercial_hint=True,
+            vision_evidence=[
+                {
+                    "quantity_visible": False,
+                    "quantity_notes": "one gaylord in a hand",
+                    "estimated_lbs": 1_000,
+                    "containment": "gaylord",
+                    "cleanliness": "Clean",
+                }
+            ],
+        )
+        assert result.estimated_lbs == 200_000.0
+        assert result.weight_source == "explicit_tons"
+        assert result.decision == "hot"
+        assert result.vision_evidence[0]["quantity_visible"] is False
+        assert result.vision_evidence[0]["quantity_notes"] == "one gaylord in a hand"
+        assert not any("quantity" in gate or "gaylord" in gate for gate in result.cold_gates_triggered)
+
+    def test_agreed_vision_polymer_is_used_only_when_text_polymer_is_empty(self):
+        agreed = classify_lead(
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            source_type="post_industrial",
+            weight_source="explicit_lbs",
+            vision_evidence=[{"observed_polymer_hint": "PP", "confidence": 0.8}],
+        )
+        assert "polymer_confirmed:pp" in agreed.hot_qualifiers_met
+
+        conflict = classify_lead(
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            source_type="post_industrial",
+            weight_source="explicit_lbs",
+            vision_evidence=[
+                {"observed_polymer_hint": "PP"},
+                {"observed_polymer_hint": "HDPE"},
+            ],
+        )
+        assert not any(item.startswith("polymer_confirmed:") for item in conflict.hot_qualifiers_met)
+        assert [item["observed_polymer_hint"] for item in conflict.vision_evidence] == ["PP", "HDPE"]
+
+        text_wins = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            vision_evidence=[{"observed_polymer_hint": "PP", "confidence": 0.99}],
+        )
+        assert "polymer_confirmed:hdpe" in text_wins.hot_qualifiers_met
+        assert "polymer_confirmed:pp" not in text_wins.hot_qualifiers_met
+        assert text_wins.vision_evidence[0]["observed_polymer_hint"] == "PP"
+
     def test_cold_rejected_material(self):
         result = classify_lead(
             material_description="aluminum cans",
@@ -281,6 +414,34 @@ class TestClassifyLead:
         )
         assert result.decision == "cold"
         assert "weight:unknown" in result.cold_gates_triggered
+
+    def test_positive_pounds_with_a_missing_source_are_usable(self):
+        for source in ("none", "ai_text"):
+            result = classify_lead(
+                polymer="PP",
+                estimated_lbs=200_000.0,
+                weight_source=source,
+            )
+            assert "weight:unknown" not in result.cold_gates_triggered
+            assert result.decision == "hot"
+
+    def test_area_source_is_not_a_pound_figure(self):
+        result = classify_lead(
+            polymer="PP",
+            estimated_lbs=65_000.0,
+            weight_source="area_not_mass",
+        )
+        assert result.decision == "cold"
+        assert "weight:unknown" in result.cold_gates_triggered
+
+    def test_stored_seven_thousand_two_hundred_stays_cold(self):
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=7_200.0,
+            weight_source="stored_lbs",
+        )
+        assert result.decision == "cold"
+        assert "weight:below_cold_floor" in result.cold_gates_triggered
 
     def test_cold_weight_below_floor(self):
         result = classify_lead(
@@ -492,9 +653,10 @@ class TestPromptDataMinimization:
 
 
 class TestValidateAiOutput:
-    def test_clamps_lbs_above_max(self):
-        result = validate_ai_output({"estimated_lbs_per_load": 999_999})
-        assert result["estimated_lbs_per_load"] is None
+    def test_weight_above_review_cap_is_kept(self):
+        result = validate_ai_output({"estimated_lbs_per_load": 220_462})
+        assert result["estimated_lbs_per_load"] == 220_462
+        assert result["weight_above_review_cap"] is True
 
     def test_clamps_lbs_below_min(self):
         result = validate_ai_output({"estimated_lbs_per_load": 0.5})
