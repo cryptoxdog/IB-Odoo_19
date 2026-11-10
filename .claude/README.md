@@ -68,7 +68,7 @@ Repo SSOT under `skills/` (not an Odoo addon — like `scripts/` / `tools/`). Di
 | **plasticos-pr-review-kernel** | `skills/plasticos-pr-review-kernel/` | `PR_REVIEW_MODE`, `REVIEW PR #N` — preloaded on code-reviewer |
 | **plasticos-repo-review-kernel** | `skills/plasticos-repo-review-kernel/` | Repo-wide readiness, go-live / pack review |
 | **plasticos-final-touches** | `skills/plasticos-final-touches/` | `FINAL_TOUCHES_MODE` — 10 pre-go-live gates |
-| **plasticos-branch-promotion-rehearsal** | `skills/plasticos-branch-promotion-rehearsal/` | Staging → Production rehearsal: `make import-erp LIMIT=10%` + `make import-vanillasoft` at 10% of the census |
+| **plasticos-branch-promotion-rehearsal** | `skills/plasticos-branch-promotion-rehearsal/` | Staging → Production rehearsal: `make import-erp LIMIT=10%` (`make import-vanillasoft` is production-only, not rehearsed) |
 | **plasticos-prompt-pack** | `skills/plasticos-prompt-pack/` | Prompt-pack router (`AUDIT_MODE`, context primer, architecture chain) |
 
 ## Adapters

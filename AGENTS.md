@@ -809,3 +809,12 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `ci.yml` `pure-python-tests` still runs `pytest tests/` and stays the merge verdict.
 > `make test` remains the manual suite. The two pre-push contract hooks
 > (`phantom-enum-values`, `manifest-contract`) are unchanged.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make import-vanillasoft` writes only the Odoo.sh production database (operator decision 2026-11-10, PR #424).
+> It pipes `plasticos_crm_sync/scripts/import_vanillasoft_shell.py` into `odoo-bin shell` over SSH
+> (`ODOO_SH_PRODUCTION_SSH` or `.env.local`), runs under bash, and refuses inside a test-env clone
+> (`TEST_ENV_VERIFIED_CLONE`). It has no Docker or local-runner path. The repository cohort
+> (`VANILLASOFT_CONTACT_EXPORT` + `VANILLASOFT_PRODUCTION_CONFIRM=1`) is its third mode. The
+> `plasticos-branch-promotion-rehearsal` row above is superseded for VanillaSoft: the rehearsal covers
+> `import-erp` only, and `import-vanillasoft` is not rehearsed on a clone.

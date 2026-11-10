@@ -855,6 +855,22 @@ VANILLASOFT = [
     "VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z",
     "VANILLASOFT_CONTACT_FLOOR=2020-01-01T00:00:00Z",
 ]
+# 2026-11-10 (operator decision): import-vanillasoft writes only the Odoo.sh
+# production database over SSH and refuses inside a verified clone, so the
+# guarded-import contract below is proven on import-erp, the import that still
+# runs on the clone. VANILLASOFT stays the form test_env.sh admits before make
+# refuses it.
+VS_CLONE_REFUSAL = (
+    "import-vanillasoft refused: this target writes the Odoo.sh production database "
+    "and does not run inside a test-env clone"
+)
+ERP_IMPORT = [
+    "make",
+    "import-erp",
+    "ODOO_DB_NAME=odoo_test_a",
+    "ERP_SQL_SERVER=erp-host.invalid",
+    "ERP_SQL_DATABASE=erp_probe",
+]
 
 
 def test_guarded_import_cannot_be_redirected_by_an_injected_makefile(tmp_path):
@@ -862,7 +878,7 @@ def test_guarded_import_cannot_be_redirected_by_an_injected_makefile(tmp_path):
     injected = tmp_path / "inject.mk"
     injected.write_text("override ODOO_DB_NAME = odoo\n")
     probe = subprocess.run(
-        ["make", "-n", "import-vanillasoft", "ODOO_DB_NAME=odoo_test_a", "VANILLASOFT_CALL_FLOOR=x"],
+        ["make", "-n", *ERP_IMPORT[1:]],
         capture_output=True,
         text=True,
         cwd=ROOT,
@@ -880,7 +896,7 @@ def test_guarded_import_cannot_be_redirected_by_an_injected_makefile(tmp_path):
         "run",
         "odoo_test_a",
         "--",
-        *VANILLASOFT,
+        *ERP_IMPORT,
         **base,
         MAKEFILES=str(injected),
         MAKEFLAGS="ODOO_DB_NAME=odoo",
@@ -929,7 +945,7 @@ def test_guarded_make_starts_with_the_clone_marker_and_without_make_environment(
 
 
 def _make_import(
-    tmp_path: Path, target: str, *args: str, docker_up: bool
+    tmp_path: Path, target: str, *args: str, docker_up: bool, **env: str
 ) -> tuple[subprocess.CompletedProcess, str, Path]:
     bindir = tmp_path / "bin"
     bindir.mkdir()
@@ -939,6 +955,10 @@ def _make_import(
         f'echo " $* " >> "{log}"\n' + ("" if docker_up else '[ "$1" = info ] && exit 1\n') + "exit 0\n"
     )
     (bindir / "docker").chmod(0o755)
+    # Any SSH or SCP to the production host is recorded, never sent.
+    for tool in ("ssh", "scp"):
+        (bindir / tool).write_text(f'#!/usr/bin/env bash\necho "{tool} $*" >> "{tmp_path / "net.log"}"\nexit 0\n')
+        (bindir / tool).chmod(0o755)
     venv = tmp_path / "venv" / "bin"
     venv.mkdir(parents=True)
     ran = tmp_path / "odoo.log"
@@ -948,6 +968,7 @@ def _make_import(
         **os.environ,
         "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}",
         "TEST_ENV_VERIFIED_CLONE": "odoo_test_a",
+        **env,
     }
     result = subprocess.run(
         ["make", target, *args, f"L9_ODOO_VENV={venv.parent}"],
@@ -963,7 +984,6 @@ def _make_import(
 @pytest.mark.parametrize(
     ("target", "args"),
     [
-        ("import-vanillasoft", ["VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z"]),
         ("import-erp", ["ERP_DRY=1"]),
     ],
 )
@@ -978,7 +998,6 @@ def test_import_recipe_refuses_a_database_other_than_the_verified_clone(tmp_path
 @pytest.mark.parametrize(
     ("target", "args"),
     [
-        ("import-vanillasoft", ["VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z"]),
         ("import-erp", ["ERP_DRY=1"]),
     ],
 )
@@ -987,6 +1006,27 @@ def test_import_recipe_refuses_the_no_docker_fallback_for_a_verified_clone(tmp_p
     assert result.returncode != 0
     assert "the no-Docker harness is another server" in result.stderr
     assert not ran.exists(), ran.read_text()
+
+
+@pytest.mark.parametrize("db", ["odoo_test_a", "odoo"])
+@pytest.mark.parametrize("docker_up", [True, False])
+@pytest.mark.parametrize("args", [[], ["VANILLASOFT_CALL_FLOOR=2020-01-01T00:00:00Z"]])
+def test_import_vanillasoft_refuses_any_verified_clone_before_its_mode_guard(tmp_path, db, docker_up, args):
+    """import-vanillasoft writes only Odoo.sh production; inside a verified clone it refuses first."""
+    result, calls, ran = _make_import(
+        tmp_path,
+        "import-vanillasoft",
+        f"ODOO_DB_NAME={db}",
+        *args,
+        docker_up=docker_up,
+        ODOO_SH_PRODUCTION_SSH="12345@probe.odoo.invalid",
+    )
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert VS_CLONE_REFUSAL in result.stderr
+    assert "no mode selected" not in result.stderr
+    assert calls == ""
+    assert not ran.exists()
+    assert not (tmp_path / "net.log").exists(), (tmp_path / "net.log").read_text()
 
 
 @pytest.mark.parametrize(
@@ -1068,7 +1108,7 @@ def test_guarded_import_runs_on_a_clone_upgraded_to_the_source_on_disk(tmp_path)
     """An import loads current code; the clone's PlasticOS schema is upgraded first, once per source."""
     base = _enterprise(tmp_path)
     source = _source(tmp_path, **base)
-    result = _owned_clone_run(tmp_path, *VANILLASOFT)
+    result = _owned_clone_run(tmp_path, *ERP_IMPORT)
     assert result.returncode == 0, result.stderr
     log = (tmp_path / "stub.log").read_text()
     upgrades = _upgrade_calls(tmp_path)
@@ -1082,9 +1122,17 @@ def test_guarded_import_runs_on_a_clone_upgraded_to_the_source_on_disk(tmp_path)
 def test_clone_already_upgraded_for_this_source_is_not_upgraded_again(tmp_path):
     base = _enterprise(tmp_path)
     source = _source(tmp_path, **base)
-    result = _owned_clone_run(tmp_path, *VANILLASOFT, clone_extra=f" src={source}")
+    result = _owned_clone_run(tmp_path, *ERP_IMPORT, clone_extra=f" src={source}")
     assert result.returncode == 0, result.stderr
     assert _upgrade_calls(tmp_path) == []
+
+
+def test_guarded_run_of_import_vanillasoft_is_refused_by_its_recipe(tmp_path):
+    """test_env.sh admits the form, then the recipe refuses: no Odoo shell runs on the clone or anywhere."""
+    result = _owned_clone_run(tmp_path, *VANILLASOFT)
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert VS_CLONE_REFUSAL in result.stderr
+    assert " shell " not in (tmp_path / "stub.log").read_text()
 
 
 def test_failed_upgrade_stops_the_import(tmp_path):
