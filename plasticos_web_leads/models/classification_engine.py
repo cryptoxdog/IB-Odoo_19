@@ -198,9 +198,10 @@ def classify_lead(
             break
 
     # ─────────────────────────────────────────────────────────────────────────
-    # COLD GATE 5 — Weight unknown (FIX CE-05: distinct from below-floor gate)
+    # COLD GATE 5 — Weight unknown. A positive pound figure is usable even when
+    # the source tag was omitted. Area text is never a pound figure.
     # ─────────────────────────────────────────────────────────────────────────
-    if estimated_lbs == 0 or weight_source == "none":
+    if weight_source == "area_not_mass" or estimated_lbs <= 0:
         cold_gates.append("weight:unknown")
         reasons.append("No usable weight information — cannot qualify as HOT.")
 

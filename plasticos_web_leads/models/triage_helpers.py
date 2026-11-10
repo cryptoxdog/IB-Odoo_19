@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Unit-to-weight conversion table (lbs per unit)
@@ -122,6 +123,30 @@ _UNIT_PATTERNS: list[tuple[str, str]] = [
 _COMPILED_MASS = [(re.compile(p, re.I), mult, tag) for p, mult, tag in _MASS_PATTERNS]
 _COMPILED_UNITS = [(re.compile(p, re.I), unit) for p, unit in _UNIT_PATTERNS]
 
+# A seller range. The low number is the classified weight. The high number is kept.
+_RANGE_RE = re.compile(
+    r"([\d,]+(?:\.\d+)?)\s*(?:-|–|—|\bto\b)\s*([\d,]+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+_AREA_RE = re.compile(
+    r"\b(?:sq\.?\s*ft|sqft|square\s+feet|square\s+foot|ft\s*(?:\^?\s*2|²)|"
+    r"sq\.?\s*m|sqm|square\s+met(?:er|re)s?|m\s*(?:\^?\s*2|²))\b",
+    re.IGNORECASE,
+)
+_COUNT_TAIL_RE = re.compile(
+    r"^\s*(?:super\s*sacks?|truckloads?|containers?|gaylords?|pallets?|bales?|drums?|totes?|loads?)\b",
+    re.IGNORECASE,
+)
+_TAIL_UNITS: tuple[tuple[re.Pattern[str], float, str], ...] = (
+    (re.compile(r"^\s*(?:metric\s+tons?|metric\s+tonnes?|tonnes?)\b", re.I), 2204.623, "explicit_metric_tons"),
+    (re.compile(r"^\s*(?:short\s+)?tons?\b", re.I), 2000.0, "explicit_tons"),
+    (re.compile(r"^\s*(?:lbs?|pounds?)\b", re.I), 1.0, "explicit_lbs"),
+    (re.compile(r"^\s*(?:kgs?|kilograms?)\b", re.I), 2.205, "explicit_kg"),
+)
+
+# Above this, the number is stored and flagged. It is not deleted.
+SINGLE_LOAD_REVIEW_CAP_LBS = 200_000.0
+
 
 def _strip_commas(s: str) -> float:
     """Remove thousands-separator commas and coerce to float. (FIX WL-02)"""
@@ -132,72 +157,117 @@ def _strip_commas(s: str) -> float:
         return 0.0
 
 
-def parse_weight_lbs(raw: str | None) -> tuple[float, str]:
-    """
-    Parse a free-text quantity string into (lbs: float, source_tag: str).
+@dataclass(frozen=True)
+class SellerMass:
+    """One seller mass reading. ``lbs`` is the classified weight. ``lbs_high`` is a range top."""
 
-    source_tag values (for audit trail):
-      "none"                  — no parseable weight found
-      "explicit_lbs"          — number + lbs/lb/pounds keyword
-      "explicit_tons"         — number + ton/tons keyword
-      "explicit_metric_tons"  — number + metric ton/tonne keyword
-      "explicit_kg"           — number + kg/kilogram keyword
-      "unit_count:<unit>"     — inferred from container count × weight
-      "bare_number:lbs_assumed" — bare large number, assumed lbs
-    """
-    if not raw:
-        return 0.0, "none"
-
-    text = str(raw).strip()
-
-    # Priority 1 — explicit mass units
-    for pattern, multiplier, tag in _COMPILED_MASS:
-        m = pattern.search(text)
-        if m:
-            qty = _strip_commas(m.group(1))  # FIX WL-02: strip commas
-            if qty > 0:
-                return round(qty * multiplier, 2), tag
-
-    # Priority 2 — unit counts (FIX WL-03: uses safe_float not int())
-    for pattern, unit_key in _COMPILED_UNITS:
-        m = pattern.search(text)
-        if m:
-            raw_qty = m.group(1).strip().lower()
-            qty = _WORD_NUMBERS.get(raw_qty, None)
-            if qty is None:
-                qty = safe_float(raw_qty)
-            if qty and qty > 0:
-                lbs_per_unit = UNIT_WEIGHTS_LBS.get(unit_key, 0.0)
-                return round(qty * lbs_per_unit, 2), f"unit_count:{unit_key}"
-
-    # Priority 3 — bare large number (≥ 1000), assume lbs (FIX WL-05)
-    bare = _RE_COMMA_NUM.search(text)
-    if bare:
-        val = _strip_commas(bare.group())
-        if val >= 1000.0:
-            return val, "bare_number:lbs_assumed"
-
-    return 0.0, "none"
+    lbs: float | None
+    lbs_high: float | None
+    source: str
+    assumptions: tuple[str, ...] = ()
 
 
-def parse_explicit_weight_lbs(raw: str | None) -> tuple[float | None, str]:
-    """Parse only seller-stated mass; never infer mass from unit counts.
+def _unit_after(text: str, end: int) -> tuple[float, str] | None:
+    tail = text[end:]
+    for pattern, multiplier, tag in _TAIL_UNITS:
+        if pattern.match(tail):
+            return multiplier, tag
+    return None
 
-    The legacy ``parse_weight_lbs`` deliberately supports unit-count and bare
-    number assumptions for older lead paths. Canonical packet ingestion must
-    keep inventory counts and unsupported bare numbers separate from mass.
+
+def _range_assumption(source: str, high: float | None) -> tuple[str, ...]:
+    notes: list[str] = []
+    if high is not None:
+        notes.append("Classified on the low end of the seller range.")
+    if source.startswith("unit_count:"):
+        notes.append(f"Converted a stated {source.split(':', 1)[1]} count with the unit weight table.")
+    return tuple(notes)
+
+
+def parse_seller_mass(raw: str | None) -> SellerMass:
+    """Parse seller text into one mass reading.
+
+    Explicit mass, a numeric range, and a stated unit count all resolve here.
+    Square feet and square meters stay area. They never become pounds.
     """
     if raw is None or not str(raw).strip():
-        return None, "none"
+        return SellerMass(None, None, "none")
 
     text = str(raw).strip()
+    has_area = _AREA_RE.search(text) is not None
+
+    range_match = _RANGE_RE.search(text)
+    if range_match and _COUNT_TAIL_RE.match(text[range_match.end() :]) is None:
+        low = _strip_commas(range_match.group(1))
+        high = _strip_commas(range_match.group(2))
+        unit = _unit_after(text, range_match.end())
+        if unit and low > 0:
+            multiplier, tag = unit
+            high_lbs = round(high * multiplier, 2) if high > low else None
+            return SellerMass(round(low * multiplier, 2), high_lbs, tag, _range_assumption(tag, high_lbs))
+        if not unit and not has_area and low > 0 and high >= low:
+            high_lbs = high if high > low else None
+            return SellerMass(low, high_lbs, "range_lbs", _range_assumption("range_lbs", high_lbs))
+        if has_area and not unit:
+            return SellerMass(None, None, "area_not_mass")
+
     for pattern, multiplier, tag in _COMPILED_MASS:
         match = pattern.search(text)
         if match:
             quantity = _strip_commas(match.group(1))
-            if quantity >= 0:
-                return round(quantity * multiplier, 2), tag
-    return None, "none"
+            if quantity > 0:
+                return SellerMass(round(quantity * multiplier, 2), None, tag)
+
+    if has_area:
+        return SellerMass(None, None, "area_not_mass")
+
+    for pattern, unit_key in _COMPILED_UNITS:
+        match = pattern.search(text)
+        if not match:
+            continue
+        raw_qty = match.group(1).strip().lower()
+        quantity = _WORD_NUMBERS.get(raw_qty)
+        if quantity is None:
+            quantity = safe_float(raw_qty)
+        if quantity and quantity > 0:
+            source = f"unit_count:{unit_key}"
+            lbs = round(quantity * UNIT_WEIGHTS_LBS.get(unit_key, 0.0), 2)
+            return SellerMass(lbs, None, source, _range_assumption(source, None))
+
+    bare = _RE_COMMA_NUM.search(text)
+    if bare and not has_area:
+        value = _strip_commas(bare.group())
+        if value >= 1000.0:
+            return SellerMass(value, None, "bare_number:lbs_assumed")
+
+    return SellerMass(None, None, "none")
+
+
+def parse_weight_lbs(raw: str | None) -> tuple[float, str]:
+    """Parse seller text into ``(lbs, source)``. A missing mass is ``(0.0, source)``."""
+    mass = parse_seller_mass(raw)
+    if mass.lbs is None:
+        return 0.0, "none" if mass.source == "none" else mass.source
+    return mass.lbs, mass.source
+
+
+def parse_explicit_weight_lbs(raw: str | None) -> tuple[float | None, str]:
+    """Return the same mass reading as ``parse_seller_mass``, without the range top."""
+    mass = parse_seller_mass(raw)
+    return mass.lbs, mass.source
+
+
+def replay_stored_mass(*, quantity_text: str | None, estimated_lbs: float | None = None) -> SellerMass:
+    """Re-read stored seller text. Area text discards a previously stored pound figure."""
+    parsed = parse_seller_mass(quantity_text)
+    if parsed.source == "area_not_mass":
+        return parsed
+    if parsed.lbs:
+        return parsed
+    stored = float(estimated_lbs or 0)
+    if stored > 0:
+        return SellerMass(stored, None, "stored_lbs")
+    return parsed
 
 
 # ─────────────────────────────────────────────────────────────────────────────

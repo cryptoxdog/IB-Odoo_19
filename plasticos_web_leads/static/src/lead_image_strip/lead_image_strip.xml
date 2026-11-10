@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="plasticos_web_leads.LeadImageStrip">
+        <div class="o_lead_image_strip d-flex flex-wrap gap-2">
+            <t t-foreach="images" t-as="image" t-key="image.id">
+                <img
+                    t-att-src="image.url"
+                    class="o_lead_image_thumb"
+                    alt="Lead photo"
+                    t-on-click="() => this.openAt(image_index)"
+                />
+            </t>
+        </div>
+        <div t-if="state.open and current" class="o_lead_image_viewer" t-on-click="close">
+            <button type="button" class="btn btn-light" t-on-click="previous" t-if="images.length &gt; 1">Previous</button>
+            <img t-att-src="current.url" alt="Lead photo"/>
+            <button type="button" class="btn btn-light" t-on-click="next" t-if="images.length &gt; 1">Next</button>
+        </div>
+    </t>
+</templates>

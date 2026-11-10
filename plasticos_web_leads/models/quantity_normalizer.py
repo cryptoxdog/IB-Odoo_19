@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 
-from .triage_helpers import parse_explicit_weight_lbs
+from .triage_helpers import SellerMass, parse_seller_mass
 
 _WEEKLY_TO_MONTHLY = 52.0 / 12.0
 _EVERY_OTHER_WEEK_TO_MONTHLY = 26.0 / 12.0
@@ -66,6 +66,7 @@ class QuantityEvidence:
     supply_mode: str
     assumptions: tuple[str, ...]
     clarification_requests: tuple[str, ...]
+    load_weight_lbs_high: float | None = None
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-safe representation for evidence persistence."""
@@ -134,17 +135,16 @@ def _inventory(text: str, cadence_period: str | None) -> tuple[float | None, str
     return float(match.group(1)), match.group(2).lower().rstrip("s")
 
 
-def _weight_from_weight_field(raw: str) -> tuple[float | None, str]:
-    explicit_weight, explicit_source = parse_explicit_weight_lbs(raw)
-    if explicit_weight is not None:
-        return explicit_weight, explicit_source
-
+def _weight_from_weight_field(raw: str) -> SellerMass:
+    """A dedicated weight box that is only a number is already pounds."""
     token = raw.replace(",", "").strip()
     try:
         numeric = float(token)
     except ValueError:
-        return None, "none"
-    return numeric, "weight_per_load_field_lbs"
+        return parse_seller_mass(raw)
+    if numeric < 0:
+        return SellerMass(None, None, "none")
+    return SellerMass(numeric, None, "weight_per_load_field_lbs")
 
 
 def normalize_quantity_evidence(
@@ -153,18 +153,29 @@ def normalize_quantity_evidence(
     weight_per_load_text: str | None,
     frequency_text: str | None,
 ) -> QuantityEvidence:
-    """Normalize explicit seller evidence without unit-count-to-mass assumptions."""
+    """Normalize seller quantity text through the one mass parser."""
     quantity = (quantity_text or "").strip()
     per_load = (weight_per_load_text or "").strip()
     frequency = (frequency_text or "").strip()
 
-    load_weight, weight_source = _weight_from_weight_field(per_load) if per_load else (None, "none")
-    weight_source_text = per_load or None
-    if load_weight is None:
-        load_weight, weight_source = parse_explicit_weight_lbs(quantity)
-        weight_source_text = quantity if load_weight is not None else None
-
+    field_mass = _weight_from_weight_field(per_load) if per_load else SellerMass(None, None, "none")
+    quantity_mass = parse_seller_mass(quantity) if quantity else SellerMass(None, None, "none")
     cadence_count, cadence_period, loads_per_month = _cadence(f"{quantity} {frequency}")
+    if field_mass.source == "area_not_mass" or field_mass.lbs:
+        chosen = field_mass
+        weight_source_text = per_load or None
+    elif quantity_mass.source == "area_not_mass":
+        chosen = quantity_mass
+        weight_source_text = quantity or None
+    elif quantity_mass.source.startswith("unit_count:") and cadence_period:
+        chosen = SellerMass(None, None, "none")
+        weight_source_text = None
+    else:
+        chosen = quantity_mass
+        weight_source_text = quantity if chosen.lbs is not None or chosen.source == "area_not_mass" else None
+
+    load_weight = chosen.lbs
+    weight_source = chosen.source
     inventory_count, inventory_unit = _inventory(quantity, cadence_period)
     supply_mode = _supply_mode(quantity, frequency)
 
@@ -186,6 +197,7 @@ def normalize_quantity_evidence(
         cadence_period=cadence_period,
         loads_per_month=loads_per_month,
         supply_mode=supply_mode,
-        assumptions=(),
+        assumptions=chosen.assumptions,
         clarification_requests=tuple(clarifications),
+        load_weight_lbs_high=chosen.lbs_high,
     )
