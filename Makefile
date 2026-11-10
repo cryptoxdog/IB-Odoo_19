@@ -1213,6 +1213,8 @@ import-erp-test:
 # into `odoo-bin shell` over SSH. Credentials stay in ir.config_parameter on
 # that database. A census, ledger, or permit is copied up for the driver to
 # open, then the ledger and summary are copied back. Docker is not used.
+# The recipe writes its env file with printf %q, a bash builtin; /bin/sh is dash on Linux.
+import-vanillasoft: SHELL := /bin/bash
 import-vanillasoft:
 	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ]; then echo "❌ import-vanillasoft refused: this target writes the Odoo.sh production database and does not run inside a test-env clone" >&2; exit 2; fi
 	@$(vanillasoft_mode_guard)
