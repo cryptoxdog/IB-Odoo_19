@@ -866,7 +866,7 @@ def test_make_import_vanillasoft_forwards_the_history_inputs_and_pipes_the_histo
     assert 'mkdir -p "$$ledger_dir"' in guard
     assert "printf 'VANILLASOFT_API_KEY=%q\\n'" in recipe
     key_lines = [line for line in recipe.splitlines() if "VANILLASOFT_API_KEY" in line]
-    assert key_lines == ["\t\tprintf 'VANILLASOFT_API_KEY=%q\\n' \"$$VANILLASOFT_API_KEY\"; \\"]
+    assert key_lines == ["\t\tprintf 'VANILLASOFT_API_KEY=%q\\n' \"$${VANILLASOFT_API_KEY:-}\"; \\"]
     assert 'env["ir.module.module"]' in recipe
     assert "button_immediate_install" in recipe
     assert 'scp_opts="-O -o BatchMode=yes -o ConnectTimeout=25"' in recipe
