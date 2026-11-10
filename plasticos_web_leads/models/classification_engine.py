@@ -19,6 +19,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .triage_helpers import WEIGHT_SOURCE_AREA
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Default reject lists (overridable via classify_lead kwargs)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -198,9 +200,10 @@ def classify_lead(
             break
 
     # ─────────────────────────────────────────────────────────────────────────
-    # COLD GATE 5 — Weight unknown (FIX CE-05: distinct from below-floor gate)
+    # COLD GATE 5 — Weight unknown. A positive pound figure is usable even when
+    # the source tag was omitted. Area text is never a pound figure.
     # ─────────────────────────────────────────────────────────────────────────
-    if estimated_lbs == 0 or weight_source == "none":
+    if weight_source == WEIGHT_SOURCE_AREA or estimated_lbs <= 0:
         cold_gates.append("weight:unknown")
         reasons.append("No usable weight information — cannot qualify as HOT.")
 
