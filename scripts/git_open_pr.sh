@@ -66,6 +66,85 @@ if [[ "${TARGET}" == "${BASE}" ]]; then
   exit 1
 fi
 
+# The SSOT injector: the Cursor-Governance composer (ops/scripts/compose_pr_body.py)
+# that SSOT make pr runs for every L9 repository, called with the same flags
+# open_pr_after_gate.sh passes. It fills the Quantum-L9/.github PR template at an
+# exact commit (Files touched first). The one difference: SSOT make pr names the
+# repo's owner as the template owner, and cryptoxdog has no .github template, so
+# the owner here is Quantum-L9 (PR_TEMPLATE_OWNER overrides). Odoo builds no body
+# of its own; .github/pull_request_template.md is the org template's byte copy for
+# the GitHub web page, and the composer never reads it.
+ssot_compose() {
+  local resolver="${HOME}/.cursor-governance/ops/scripts/resolve_governance_paths.sh"
+  local root py touched
+  if [[ ! -f "${resolver}" ]]; then
+    echo "the SSOT composer is not available (no governance resolver at \$HOME/.cursor-governance)" >&2
+    return 1
+  fi
+  # shellcheck disable=SC1090
+  source "${resolver}"
+  resolve_governance_paths || return 1
+  py="${GOV_ROOT}/.venv/bin/python"
+  [[ -x "${py}" ]] || py="python3"
+  root="$(git rev-parse --show-toplevel)"
+  mkdir -p "${root}/.l9/pr"
+  local args=(--workspace "${root}" --pr-base "origin/${BASE}"
+    --org-owner "${PR_TEMPLATE_OWNER:-Quantum-L9}" --repo-name "IB-Odoo_19")
+  [[ -f "${root}/.l9/pr/pr-intent.json" ]] && args+=(--intent-file "${root}/.l9/pr/pr-intent.json")
+  if [[ "${1:-}" != "--print-title" ]]; then
+    # Protected-root, measured as open_pr_after_gate.sh measures it: a measured
+    # empty list is an answer, an unmeasured range is said to be unmeasured.
+    if [[ -f "${root}/ops/config/root-file-protection.json" && -f "${GOV_ROOT}/ops/scripts/validate_root_file_protection.py" ]]; then
+      if touched="$("${py}" "${GOV_ROOT}/ops/scripts/validate_root_file_protection.py" --list-touched-additive-only \
+          --base "origin/${BASE}" --head HEAD --repo "${root}" 2>/dev/null)"; then
+        if [[ -n "${touched}" ]]; then
+          printf '%s\n' "${touched}" > "${root}/.l9/pr/additive-only.txt"
+          args+=(--additive-only-file "${root}/.l9/pr/additive-only.txt")
+        fi
+      else
+        args+=(--additive-only-unmeasured)
+      fi
+    fi
+  fi
+  "${py}" "${GOV_ROOT}/ops/scripts/compose_pr_body.py" "${args[@]}" "$@"
+}
+
+# The range moved, so the machine-owned regions of a composed body (Files
+# touched, Changes by intent, Evidence, Protected-root) are stale. Recompose
+# those regions only, as SSOT make pr does; text a person wrote, ticked gates
+# and the title stay. A body the composer did not write is "unmanaged" and left
+# alone. Advisory: a refresh failure never fails a publication already pushed.
+refresh_composed_body() {
+  local number="$1" scratch status
+  scratch="$(git rev-parse --show-toplevel)/.l9/pr"
+  mkdir -p "${scratch}"
+  if ! gh api "repos/${GH_REPO}/pulls/${number}" --jq '.body // ""' >"${scratch}/open-pr-body.md"; then
+    echo "   warning: could not read the open PR body; it was not refreshed" >&2
+    return 0
+  fi
+  rm -f "${scratch}/pr-body-refresh.json"
+  if ! ssot_compose --refresh-body "${scratch}/open-pr-body.md" \
+      --status-file "${scratch}/pr-body-refresh.json" >"${scratch}/pr-body.md"; then
+    echo "   warning: the composer could not refresh the PR body; it keeps its previous text" >&2
+    return 0
+  fi
+  status="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' \
+    "${scratch}/pr-body-refresh.json" 2>/dev/null || echo unknown)"
+  case "${status}" in
+    updated|migrated)
+      if gh api --method PATCH "repos/${GH_REPO}/pulls/${number}" \
+          -f body="$(cat "${scratch}/pr-body.md")" >/dev/null; then
+        echo "   body refreshed (${status}): Files touched and the other machine-owned regions match this range"
+      else
+        echo "   warning: could not PATCH the refreshed PR body" >&2
+      fi
+      ;;
+    unchanged) echo "   body unchanged: its machine-owned regions already match this range" ;;
+    unmanaged) echo "   body has no machine-owned regions and was not composed by make pr; left as written" ;;
+    *) echo "   warning: PR body refresh status unreadable (${status}); not refreshed" >&2 ;;
+  esac
+}
+
 # The open PR for TARGET → BASE as one JSON object, or "null".
 list_open_pr() {
   local raw
@@ -168,6 +247,7 @@ if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
   PR_URL="${PROOF#*$'\t'}"
   echo "✅ Open PR #${PR_NUM} → ${BASE}: ${PR_URL}"
   echo "   head ${LOCAL_SHA}"
+  refresh_composed_body "${PR_NUM}"
   ensure_protected_root_stamp "${PR_NUM}"
   bash scripts/apply_pr_kernel_metadata.sh "${PR_NUM}" || true
   echo "   Merge is a separate human decision. This command does not merge."
@@ -184,8 +264,27 @@ if [[ "${AHEAD}" == "0" ]]; then
   exit 1
 fi
 
-TITLE="$(git log -1 --pretty=%s)"
-BODY="$(python3 scripts/build_pr_body.py "${BASE}")"
+if ! TITLE="$(ssot_compose --print-title)" || [[ -z "${TITLE}" ]]; then
+  TITLE="$(git log -1 --pretty=%s)"
+fi
+if ! BODY="$(ssot_compose --handoff "$(git rev-parse --show-toplevel)/.l9/pr/pr-body-completion.json")" \
+    || [[ -z "${BODY}" ]]; then
+  echo "could not compose the PR body with the SSOT composer; the branch is pushed but no PR was opened"
+  exit 1
+fi
+if [[ "${BASE}" != "Staging" ]]; then
+  # A stacked PR merges after its parent. Say so under the file list, outside
+  # every machine-owned region, so a refresh keeps it.
+  BODY="$(STACK_NOTE="Stacked on \`${BASE}\`; merge that branch's pull request into Staging first." python3 -c '
+import os, sys
+body, note, end = sys.stdin.read(), os.environ["STACK_NOTE"], "<!-- FILES-TOUCHED:END -->"
+if end in body:
+    head, tail = body.split(end, 1)
+    sys.stdout.write(f"{head}{end}\n\n{note}\n{tail}")
+else:
+    sys.stdout.write(f"{note}\n\n{body}")
+' <<<"${BODY}")"
+fi
 STAMP="<!-- L9_PROTECTED_ROOT_PR -->"
 if ! printf '%s' "${BODY}" | grep -qF "${STAMP}"; then
   BODY="${BODY}"$'\n\n'"${STAMP}"

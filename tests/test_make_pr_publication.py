@@ -27,6 +27,55 @@ PRODUCTION_SCRIPTS = (
     "pr_stack_parent.sh",
 )
 
+# The governance composer, as the fixture governance tree serves it. It answers
+# the modes scripts/git_open_pr.sh and make_push_pipeline.sh use and logs each call, so a test
+# can tell which template owner was asked and whether the proof ran pre-push.
+FAKE_COMPOSER = r"""
+import json
+import os
+import subprocess
+import sys
+
+argv = sys.argv[1:]
+with open(os.environ["FAKE_COMPOSER_LOG"], "a", encoding="utf-8") as handle:
+    handle.write(json.dumps(argv) + "\n")
+
+
+def arg(flag):
+    return argv[argv.index(flag) + 1] if flag in argv else None
+
+
+if "--check-template" in argv:
+    if os.environ.get("FAKE_TEMPLATE_RC", "0") != "0":
+        print("ERROR: org template unreadable", file=sys.stderr)
+        sys.exit(2)
+    print(f"TEMPLATE_OK {arg('--org-owner')}/.github@fixture")
+    sys.exit(0)
+if "--print-title" in argv:
+    title = os.environ.get("FAKE_COMPOSER_TITLE") or subprocess.check_output(
+        ["git", "log", "-1", "--format=%s"], text=True
+    ).strip()
+    print(title)
+    sys.exit(0)
+base = arg("--pr-base")
+files = subprocess.check_output(["git", "diff", "--name-only", f"{base}...HEAD"], text=True).split()
+composed = (
+    "<!-- L9_PROTECTED_ROOT_PR -->\n\n## Files touched\n\n<!-- FILES-TOUCHED:START -->\n"
+    + f"**{len(files)} files**\n\n"
+    + "".join(f"- `{name}`\n" for name in files)
+    + "<!-- FILES-TOUCHED:END -->\n\n## Problem\n"
+)
+refresh = arg("--refresh-body")
+if refresh:
+    live = open(refresh, encoding="utf-8").read()
+    status = "updated" if "FILES-TOUCHED:START" in live else "unmanaged"
+    with open(arg("--status-file"), "w", encoding="utf-8") as handle:
+        json.dump({"status": status}, handle)
+    print(composed if status == "updated" else live, end="")
+    sys.exit(0)
+print(composed, end="")
+"""
+
 # A REST-only `gh`, shaped like a cloud session: `gh auth status`, `gh pr ...`,
 # `gh label ...` and `gh api graphql` are refused (HTTP 403). `gh api` answers
 # only the REST routes the ceremony uses, with GitHub's method, field and
@@ -233,6 +282,7 @@ def _plant_l4_provider(tmp_path: Path) -> None:
     scripts.mkdir(parents=True)
     autonomy.mkdir(parents=True)
     (autonomy / "l4_local.py").write_text("# fixture provider\n", encoding="utf-8")
+    (scripts / "compose_pr_body.py").write_text(FAKE_COMPOSER, encoding="utf-8")
     gov_root = str(gov.resolve())
     _write(
         scripts / "resolve_governance_paths.sh",
@@ -263,7 +313,7 @@ def _init_repo(tmp_path: Path, branch: str = "fix/example") -> tuple[Path, Path]
     subprocess.run([REAL_GIT, "init", "-b", branch], cwd=repo, check=True, capture_output=True)
     scripts = repo / "scripts"
     scripts.mkdir()
-    for name in (*PRODUCTION_SCRIPTS, "git_push_with_pr.sh", "build_pr_body.py", "pr_labels_from_commit.py"):
+    for name in (*PRODUCTION_SCRIPTS, "git_push_with_pr.sh", "pr_labels_from_commit.py"):
         shutil.copy(ROOT / "scripts" / name, scripts / name)
     _write(
         scripts / "install_smoke.sh",
@@ -448,6 +498,11 @@ def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
     env.pop("SKIP", None)
     env.pop("GH_REPO", None)
     env.pop("GH_HOST", None)
+    # Surface-neutral by default (a Cursor or local terminal): a test that
+    # models a Claude Code cloud session sets CLAUDE_CODE_REMOTE itself.
+    for surface_knob in ("CLAUDE_CODE_REMOTE", "PR_SMOKE", "PR_SMOKE_BYPASS", "PR_TEMPLATE_OWNER"):
+        env.pop(surface_knob, None)
+    env["FAKE_COMPOSER_LOG"] = str(tmp_path / "composer.log")
     env["FAKE_GH_STATE"] = str(tmp_path / "gh-state.json")
     env["FAKE_GH_LOG"] = str(tmp_path / "seq.log")
     env["FAKE_GH_CALLS"] = str(tmp_path / "gh-calls.jsonl")
@@ -1467,3 +1522,133 @@ def test_real_gitleaks_rejects_a_seeded_secret(tmp_path: Path) -> None:
         check=False,
     )
     assert proc.returncode == 2, proc.stdout + proc.stderr
+
+
+def _composer_calls(tmp_path: Path) -> list[list[str]]:
+    log = tmp_path / "composer.log"
+    if not log.exists():
+        return []
+    return [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line]
+
+
+def test_new_pr_body_is_the_org_template_with_files_touched_first(tmp_path: Path) -> None:
+    """One template, one composer: the body lists every touched file before anything else."""
+    repo, _seq_path = _init_repo(tmp_path)
+    _behind_staging(repo)
+    _commit(repo, "fix: composed body")
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", FAKE_COMPOSER_TITLE="fix: title from the composer")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    create = next(call for call in _gh_calls(tmp_path) if call["method"] == "POST" and call["path"].endswith("/pulls"))
+    body = create["fields"]["body"]
+    headings = [line for line in body.splitlines() if line.startswith("## ")]
+    assert headings[0] == "## Files touched", body
+    assert "- `change.txt`" in body
+    assert body.count("<!-- L9_PROTECTED_ROOT_PR -->") == 1
+    assert create["fields"]["title"] == "fix: title from the composer"
+    calls = _composer_calls(tmp_path)
+    assert calls and all(call[call.index("--org-owner") + 1] == "Quantum-L9" for call in calls)
+    assert any("--check-template" in call for call in calls), "the template is proven before the push"
+    composed = [call for call in calls if "--check-template" not in call]
+    assert composed and all(call[call.index("--pr-base") + 1] == "origin/Staging" for call in composed)
+
+
+def test_template_owner_is_overridable(tmp_path: Path) -> None:
+    repo, _seq_path = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", PR_TEMPLATE_OWNER="cryptoxdog")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert {call[call.index("--org-owner") + 1] for call in _composer_calls(tmp_path)} == {"cryptoxdog"}
+
+
+def test_unreadable_template_refuses_before_push(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    _behind_staging(repo)
+    _commit(repo, "fix: no template")
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", FAKE_TEMPLATE_RC="1")
+    assert proc.returncode != 0
+    assert "the org PR template is not readable" in proc.stderr
+    _assert_no_push(seq)
+    assert not [call for call in _gh_calls(tmp_path) if call["method"] == "POST"]
+
+
+def test_cloud_session_skips_smoke_by_default_and_says_so(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", CLAUDE_CODE_REMOTE="true")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = _seq(seq)
+    assert "smoke --resolve" not in text and "smoke --recheck" not in text, text
+    assert "\npush\n" in text
+    assert "install-smoke BYPASSED by default on a Claude Code cloud session" in proc.stderr
+    [comment] = _gh_state(tmp_path)["comments"]
+    assert comment["body"].startswith(
+        f"Local Odoo install-smoke was bypassed for {_head(repo)} by default on a Claude Code cloud session: "
+    )
+
+
+def test_cloud_session_runs_smoke_when_forced(tmp_path: Path) -> None:
+    repo, seq = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", CLAUDE_CODE_REMOTE="true", PR_SMOKE="1")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "smoke --resolve" in _seq(seq)
+    assert "comments" not in _gh_state(tmp_path)
+
+
+def test_local_surface_runs_smoke_by_default(tmp_path: Path) -> None:
+    """Cursor and a local terminal carry no CLAUDE_CODE_REMOTE: install-smoke runs."""
+    repo, seq = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "smoke --resolve" in _seq(seq)
+    assert "comments" not in _gh_state(tmp_path)
+
+
+def test_operator_reason_wins_over_the_cloud_default(tmp_path: Path) -> None:
+    repo, _seq_path = _init_repo(tmp_path)
+    _seed_open_pr(tmp_path, repo)
+    proc = _run(
+        repo,
+        tmp_path,
+        "fix/example",
+        "Staging",
+        "1",
+        "0",
+        CLAUDE_CODE_REMOTE="true",
+        PR_SMOKE_BYPASS="docs-only change",
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    [comment] = _gh_state(tmp_path)["comments"]
+    assert comment["body"].endswith("by the operator: docs-only change")
+
+
+def test_composed_open_pr_body_is_refreshed_for_the_new_range(tmp_path: Path) -> None:
+    repo, _seq_path = _init_repo(tmp_path)
+    _behind_staging(repo)
+    _commit(repo, "fix: refresh me")
+    stale = "## Files touched\n\n<!-- FILES-TOUCHED:START -->\n**0 files**\n<!-- FILES-TOUCHED:END -->\n"
+    _seed_open_pr(tmp_path, repo, body=stale)
+    proc = _open_pr(repo, tmp_path)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "body refreshed (updated)" in proc.stdout
+    body = _gh_state(tmp_path)["pulls"][0]["body"]
+    assert "- `change.txt`" in body
+    assert body.count("<!-- L9_PROTECTED_ROOT_PR -->") == 1
+    patches = [call for call in _gh_calls(tmp_path) if call["method"] == "PATCH"]
+    assert patches and all(set(call["fields"]) == {"body"} for call in patches)
+
+
+def test_local_template_is_the_org_template_and_no_local_builder_exists() -> None:
+    """The local file is the org template for the GitHub web page; make pr never builds its own body."""
+    template = (ROOT / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
+    headings = [line for line in template.splitlines() if line.startswith("## ")]
+    assert headings[0] == "## Files touched", headings
+    assert "<!-- FILES-TOUCHED:START -->" in template and "<!-- FILES-TOUCHED:END -->" in template
+    assert "<!-- L9_PROTECTED_ROOT_PR -->" in template
+    assert not (ROOT / ".github" / "PULL_REQUEST_TEMPLATE").exists()
+    assert not (ROOT / "scripts" / "build_pr_body.py").exists()
+    assert not (ROOT / "scripts" / "compose_pr_body.sh").exists(), "no wrapper: git_open_pr.sh calls the SSOT composer"
+    opener = (ROOT / "scripts" / "git_open_pr.sh").read_text(encoding="utf-8")
+    assert '"${GOV_ROOT}/ops/scripts/compose_pr_body.py"' in opener
+    assert "build_pr_body" not in opener
