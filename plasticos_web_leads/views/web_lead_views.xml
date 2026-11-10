@@ -114,14 +114,13 @@
                             <field name="contact_email" widget="email"/>
                             <field name="contact_phone" widget="phone"/>
                             <field name="pickup_postal_code"/>
-                            <field name="pickup_location_text"/>
                         </group>
                     </group>
 
                     <!-- Material -->
                     <group string="Material">
+                        <field name="material_description" colspan="2"/>
                         <group>
-                            <field name="material_description"/>
                             <field name="quantity_text" string="Quantity"/>
                             <field name="has_contaminants"/>
                             <field name="contaminant_notes"
