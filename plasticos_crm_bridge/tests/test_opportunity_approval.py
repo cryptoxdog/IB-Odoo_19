@@ -12,8 +12,8 @@ Proves (plan V1–V4 properties, CRM Bridge owns the lineage):
     when none is linked; a later profile edit does not rewrite the lot;
   * reviewed results create idempotent unsent drafts with typed lineage;
   * terms freeze once sent; exactly one commercial winner per opportunity;
-  * acceptance creates one draft ``sale.order`` bound by native
-    ``opportunity_id``; confirmation compiles one transaction; no Won flag.
+  * acceptance marks the native Won stage and creates no purchase order,
+    sale order, or transaction. Admin submit creates the drafts.
 """
 
 from __future__ import annotations
@@ -387,9 +387,8 @@ class TestOpportunityApproval(PlasticosTestCase):
 
     # ── V4: native sale.order via opportunity_id → existing transaction compiler ──
 
-    def test_acceptance_creates_one_draft_sale_order_and_confirmation_compiles_one_transaction(self):
+    def test_acceptance_marks_won_and_creates_no_orders(self):
         SaleOrder = self.env["sale.order"]
-        self.assertIn("opportunity_id", SaleOrder._fields, "sale.order.opportunity_id (sale_crm) is the order binding")
         opportunity, _run = self._reviewed_run()
         opportunity.action_create_offers_from_results()
         offer = self.Offer.search([("match_result_id.match_run_id.opportunity_id", "=", opportunity.id)], order="id")[
@@ -397,34 +396,19 @@ class TestOpportunityApproval(PlasticosTestCase):
         ]
         offer.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
         offer.action_send()
-        stage_before = opportunity.stage_id
         orders_before = SaleOrder.search_count([("opportunity_id", "=", opportunity.id)])
+        purchases_before = self.env["purchase.order"].search_count([("origin", "=", offer.name)])
+        transactions_before = self.env["plasticos.transaction"].search_count(
+            [("sale_order_id.opportunity_id", "=", opportunity.id)]
+        )
 
         offer.action_accept()
 
-        orders = SaleOrder.search([("opportunity_id", "=", opportunity.id)])
-        self.assertEqual(len(orders) - orders_before, 1)
-        order = orders.filtered(lambda so: so.origin == offer.name)
-        self.assertEqual(len(order), 1)
-        self.assertEqual(order.state, "draft")
-        self.assertEqual(order.partner_id, offer.buyer_id)
-        self.assertEqual(len(order.order_line), 1)
-        self.assertEqual(order.order_line.price_unit, 0.12)
-        self.assertEqual(order.order_line.product_uom_qty, 40000)
-        self.assertFalse(order.transaction_id, "acceptance compiles nothing; confirmation does")
-        self.assertEqual(opportunity.stage_id, stage_before)
-        self.assertFalse(opportunity.stage_id.is_won, "no Won flag from acceptance alone")
-        # Reuse: a second hand-off for the same accepted offer finds the same draft.
-        again = SaleOrder._plasticos_draft_order_for_offer(offer, opportunity.id, self.profile)
-        self.assertEqual(again, order)
-
-        order.action_confirm()
-        self.assertEqual(order.state, "sale")
-        self.assertTrue(order.transaction_id)
+        self.assertEqual(SaleOrder.search_count([("opportunity_id", "=", opportunity.id)]), orders_before)
+        self.assertEqual(self.env["purchase.order"].search_count([("origin", "=", offer.name)]), purchases_before)
         self.assertEqual(
-            self.env["plasticos.transaction"].search_count([("sale_order_id", "=", order.id)]),
-            1,
-            "confirmation compiles exactly one transaction",
+            self.env["plasticos.transaction"].search_count([("sale_order_id.opportunity_id", "=", opportunity.id)]),
+            transactions_before,
         )
-        self.assertEqual(offer.transaction_id, order.transaction_id)
-        self.assertEqual(self.env["purchase.order"].search_count([("origin", "=", offer.name)]), 0)
+        self.assertEqual(opportunity.stage_id, self.env.ref("crm.stage_lead4"))
+        self.assertTrue(opportunity.stage_id.is_won)
