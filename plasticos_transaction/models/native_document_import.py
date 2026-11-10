@@ -1254,7 +1254,18 @@ def _quarantine_outside_universe(importer, index, report, context, partner_by_cp
             and amount
         ):
             _write_purchase_bill(
-                importer, index, report, context, key, row, amount, material, partner_id, "gl_50100_billed", None, False
+                importer,
+                index,
+                report,
+                context,
+                key,
+                row,
+                amount,
+                material,
+                partner_id,
+                f"gl_{MATERIAL_GL}_billed",
+                None,
+                False,
             )
             continue
         if not key:
