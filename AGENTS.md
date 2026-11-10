@@ -837,3 +837,9 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > Leads. It depends on `contacts`, `mail`, `web_hierarchy`, `web_map`, and `plasticos_web_leads`. Contacts gain map
 > and hierarchy. Web Leads open on the list and gain calendar, pivot, graph, map, and activity. CRM views stay in
 > `crm_enterprise`. The module is in `config/odoo_module_order.yaml` immediately after `plasticos_web_leads`.
+
+> **2026-11-10 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `plasticos_screen_views` also depends on `contacts_enterprise`. That module already pins the Contacts map
+> (`res_partner="id"`), so this module does not add a second map binding. It adds the hierarchy view and lists
+> `map` on the contacts action. `web_hierarchy`, `web_map`, and `contacts_enterprise` are known Odoo addons in
+> `tests/test_repo_dependency_integrity.py`.
