@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_enrichment
 component_name: PlastOS Buyer CRM Enrichment Engine
-module_version: 19.0.2.5.8
+module_version: 19.0.2.5.9
 layer: 2
 installable: true
 auto_install: true

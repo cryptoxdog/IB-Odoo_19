@@ -46,11 +46,6 @@
                 </button>
             </xpath>
 
-            <!-- ── Facility Profile tab: visibility gate ─────────────────── -->
-            <xpath expr="//page[@name='facility_profile']" position="attributes">
-                <attribute name="invisible">not is_facility</attribute>
-            </xpath>
-
             <!-- ── Personal Intel — inline field for person contacts ──────── -->
             <xpath expr="//div[hasclass('o_address_format')]" position="after">
                 <field name="personal_intel"

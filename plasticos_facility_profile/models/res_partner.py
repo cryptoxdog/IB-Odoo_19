@@ -425,6 +425,37 @@ class ResPartner(models.Model):
             if source:
                 partner.user_id = source
 
+    property_supplier_payment_term_id = fields.Many2one(
+        compute="_compute_supplier_payment_term_id",
+        store=True,
+        readonly=False,
+        recursive=True,
+    )
+
+    def _supplier_payment_term_from_parent(self):
+        """The parent's vendor term, or the parent's parent when the parent has none."""
+        self.ensure_one()
+        parent = self.parent_id
+        if parent.property_supplier_payment_term_id:
+            return parent.property_supplier_payment_term_id
+        if parent.parent_id.property_supplier_payment_term_id:
+            return parent.parent_id.property_supplier_payment_term_id
+        return self.env["account.payment.term"]
+
+    @api.depends(
+        "parent_id",
+        "parent_id.property_supplier_payment_term_id",
+        "parent_id.parent_id.property_supplier_payment_term_id",
+    )
+    def _compute_supplier_payment_term_id(self):
+        """A child takes the company vendor term. An empty ancestor term is left alone."""
+        for partner in self:
+            if not partner.parent_id:
+                continue
+            source = partner._supplier_payment_term_from_parent()
+            if source:
+                partner.property_supplier_payment_term_id = source
+
     @api.depends("phone_line_ids.label", "phone_line_ids.number")
     def _compute_mobile(self):
         for partner in self:
