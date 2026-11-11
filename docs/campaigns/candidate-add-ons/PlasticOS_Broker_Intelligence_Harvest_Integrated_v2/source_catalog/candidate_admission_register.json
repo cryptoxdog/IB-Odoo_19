@@ -1,0 +1,1077 @@
+{
+  "schema": "broker-candidate-admission-register/v1",
+  "repo": "cryptoxdog/IB-Odoo_19",
+  "staging_sha": "c2c72bc36d6201d4114531a8f666c411db612f64",
+  "open_pr_count_observed": 0,
+  "source_zip_sha256": "2c0220acdc45c95ffe184da4e3b13dee58ec426a3b6d571aeae97bc02277062a",
+  "loaded_as_draft": {
+    "capability": 18,
+    "rejection": 12,
+    "coaching": 20,
+    "inspection": 32,
+    "sequence": 12,
+    "technical": 12
+  },
+  "candidates": [
+    {
+      "id": "BI-CAP-01",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:1",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 1,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-02",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:3",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 2,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-03",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:4",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 3,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-04",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:5",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 4,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-05",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:6",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 5,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-06",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:7",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 6,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-07",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 7,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-08",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:9",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 8,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-09",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:10",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 9,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-10",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:12",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 10,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-11",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:13",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 11,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-12",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:14",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 12,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-13",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:15",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 13,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-14",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:16",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 14,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-15",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:17",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 15,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-16",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:18",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 16,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-17",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:19",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 17,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-CAP-18",
+      "kind": "capability",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:20",
+      "original_asset": "candidates/18_broker_capabilities.jsonl",
+      "original_row": 18,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-01",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:1",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 1,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-02",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:2",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 2,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-03",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:3",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 3,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-04",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:4",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 4,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-05",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:5",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 5,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-06",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:6",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 6,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-07",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:7",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 7,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-08",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 8,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-09",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:9",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 9,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-10",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:10",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 10,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-11",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:11",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 11,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-REJ-12",
+      "kind": "rejection",
+      "source_file": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "source_sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d",
+      "selector": "record_ordinal_1based:12",
+      "original_asset": "candidates/12_rejection_meanings.jsonl",
+      "original_row": 12,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-01",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[0]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 1,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-02",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[1]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 2,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-03",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[2]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 3,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-04",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[3]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 4,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-05",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[4]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 5,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-06",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[5]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 6,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-07",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[6]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 7,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-08",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[7]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 8,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-09",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[8]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 9,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-10",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[9]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 10,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-11",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[10]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 11,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-12",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[11]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 12,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-13",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[12]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 13,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-14",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[13]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 14,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-15",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[14]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 15,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-16",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[15]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 16,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-17",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[16]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 17,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-18",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[17]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 18,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-19",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[18]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 19,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-COACH-PATTERN-20",
+      "kind": "coaching",
+      "source_file": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "source_sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6",
+      "selector": "COACH_SAMPLES[19]",
+      "original_asset": "candidates/20_unique_coaching_patterns.jsonl",
+      "original_row": 20,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-01",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:4",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 1,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-02",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:1",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 2,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-03",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:2",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 3,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-04",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:2",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 4,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-05",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 5,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-06",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:9",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 6,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-07",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:12",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 7,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-08",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 8,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-09",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 9,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-10",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:4",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 10,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-11",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:32",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 11,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-12",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:32",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 12,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-13",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:3",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 13,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-14",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:22",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 14,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-15",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:11",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 15,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-16",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:11",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 16,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-17",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:3",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 17,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-18",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:23",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 18,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-19",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:1",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 19,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-20",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:7",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 20,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-21",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:21",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 21,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-22",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 22,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-23",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 23,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-24",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:4",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 24,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-25",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:6",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 25,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-26",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:11",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 26,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-27",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:14",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 27,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-28",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:14",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 28,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-29",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:26",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 29,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-30",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:2",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 30,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-31",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:1",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 31,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-INSPECT-32",
+      "kind": "inspection",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:5",
+      "original_asset": "candidates/material_inspection_requirements.jsonl",
+      "original_row": 32,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-01",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:1",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 1,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-02",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:4",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 2,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-03",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:1",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 3,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-04",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:5",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 4,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-05",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:3",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 5,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-06",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:16",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 6,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-07",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:9",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 7,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-08",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:12",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 8,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-09",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:15",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 9,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-10",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:8",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 10,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-11",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:7",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 11,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-SEQ-12",
+      "kind": "sequence",
+      "source_file": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "source_sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae",
+      "selector": "record_ordinal_1based:12",
+      "original_asset": "candidates/proposed_decision_sequences.jsonl",
+      "original_row": 12,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-01",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "metadata",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 1,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-02",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "material_grades",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 2,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-03",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "product_scrap_mapping",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 3,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-04",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "source_quality_tiers",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 4,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-05",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "recycling_rules",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 5,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-06",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "contamination_profiles",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 6,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-07",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "buyer_profiles",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 7,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-08",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "quality_indicators",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 8,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-09",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "inference_rules",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 9,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-10",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "standards",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 10,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-11",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "processing_guidance",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 11,
+      "initial_disposition": "draft_not_approved"
+    },
+    {
+      "id": "BI-PPKB-12",
+      "kind": "technical",
+      "source_file": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "source_sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9",
+      "selector": "market_intelligence",
+      "original_asset": "comparisons/pp_kb_crosswalk.jsonl",
+      "original_row": 12,
+      "initial_disposition": "draft_not_approved"
+    }
+  ]
+}

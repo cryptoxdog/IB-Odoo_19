@@ -1,0 +1,32 @@
+{
+  "alternative_mack_revision": "d9933baaf517750779e592181d9d5ef4abdc3485",
+  "base_revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7",
+  "beneficiary": "https://github.com/cryptoxdog/IB-Odoo_19",
+  "counts": {
+    "all_csv_rows": 699,
+    "all_yaml_groups": 168,
+    "candidate_sequences": 12,
+    "capabilities": 18,
+    "coach_distinct_patterns": 20,
+    "coach_source_rows": 56,
+    "corrected_dataset_rows": 229,
+    "evaluation_cases": 18,
+    "inspection_concerns": 32,
+    "media_index_items": 116,
+    "namespace_conflict_aliases": 28,
+    "pp_kb_sections": 12,
+    "rejection_code_meanings": 12,
+    "source_scenarios": 867
+  },
+  "date": "2026-11-11",
+  "decisions": {
+    "core_no_autoadmit": true,
+    "formal_L9_HarvestIR_note": "The installed L9 intelligence-harvest IR targets only Quantum-L9/.github. This deliverable is an explicitly domain-local PlasticOS candidate pack; it does not claim native L9 HarvestIR validation or global semantic admission.",
+    "no_live_classification_change": true,
+    "no_new_matching_algorithm": true,
+    "no_pr": true,
+    "no_repo_mutation": true
+  },
+  "schema": "plasticos-broker-semantic-harvest/v1.0-candidate",
+  "status": "CANDIDATE_READ_ONLY"
+}

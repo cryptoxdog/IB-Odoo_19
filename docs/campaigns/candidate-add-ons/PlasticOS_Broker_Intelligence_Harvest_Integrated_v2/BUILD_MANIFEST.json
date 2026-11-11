@@ -1,0 +1,579 @@
+{
+  "addon_roots": [
+    "plasticos_broker_intelligence",
+    "plasticos_broker_intelligence_mack",
+    "plasticos_broker_intelligence_web_leads",
+    "plasticos_broker_intelligence_rejections"
+  ],
+  "baseline_package_sha256": "649389e7b3fe163067e68beff6fa48d6518d0fed27f9482b171468eac79fe183",
+  "branch": "Staging",
+  "created_utc": "2026-11-11T22:12:05.297340+00:00",
+  "draft_knowledge_seed_records": 106,
+  "files": [
+    {
+      "bytes": 13698,
+      "path": "ARCHITECTURE_ALIGNMENT_REPORT.yaml",
+      "sha256": "f1247ac835c02e4d4200a50a12d9f1329c40d1677e966735e0c6cbc7f8c79251"
+    },
+    {
+      "bytes": 3634,
+      "path": "BUILD_RECEIPT.md",
+      "sha256": "97f3047c1948a496811c9f6497edba2ba1608d1693bfe20f9f0dbe1adc112deb"
+    },
+    {
+      "bytes": 3986,
+      "path": "CHANGE_SUMMARY.md",
+      "sha256": "aea7f5384ac3d34e58f78ae396b5fcee54faf905c2545c7999bfedc546c02423"
+    },
+    {
+      "bytes": 6060,
+      "path": "FILETREE.md",
+      "sha256": "977eccc6f454692409d8eefefcdb1ea99e746363c25247cac8c43434e0500545"
+    },
+    {
+      "bytes": 4479,
+      "path": "HARVEST_INTEGRATION_REPORT.md",
+      "sha256": "760e186151caab5b80e7b7bf384b2f9aa867930e2736f3920ec2681290f3df9e"
+    },
+    {
+      "bytes": 7638,
+      "path": "IMPROVEMENT_REPORT.yaml",
+      "sha256": "e96306776d1013e8cb6e34b43d231fc54502c268a5853d90c281071d634b4137"
+    },
+    {
+      "bytes": 5341,
+      "path": "PROVENANCE_MAP.yaml",
+      "sha256": "642e13862c257d6a943e269ba36ee528141b45518e9ddffd02a4627df392a4f0"
+    },
+    {
+      "bytes": 1721,
+      "path": "README.md",
+      "sha256": "16c0a6d8c91c9453fca4130f76b8a7cea49aed68be874e5458c71ea51a18ebec"
+    },
+    {
+      "bytes": 12246,
+      "path": "README_INSTALL.md",
+      "sha256": "77b5ce853b236a10650b1fa67b2154a741a4bd9dc4176571e7b683e4a9084077"
+    },
+    {
+      "bytes": 1926,
+      "path": "REGRESSION_GUARD.md",
+      "sha256": "81f6628c9c6f94ec340f4286f4907e97726daf1dc0bdd6e8fe1476715e6b9c64"
+    },
+    {
+      "bytes": 3421,
+      "path": "UNKNOWN_REGISTER.md",
+      "sha256": "02004035db2e7766d9ca6c13aa5b661baafa38f89423bb6f58cdf0e6a80772b8"
+    },
+    {
+      "bytes": 10183,
+      "path": "VALIDATION_REPORT.md",
+      "sha256": "ec429c73eb52f00ff4f71e56d9735088965534f116613a6679bd20a28a12a5b2"
+    },
+    {
+      "bytes": 43,
+      "path": "plasticos_broker_intelligence/__init__.py",
+      "sha256": "d17369c444e015d571143130d373bca0bdcdb534a4df07be1c4656dac3cacc85"
+    },
+    {
+      "bytes": 764,
+      "path": "plasticos_broker_intelligence/__manifest__.py",
+      "sha256": "e866a63a09f2bb63b4bab52b1d7dbf6399fa30e5ef2ca4159826a050daaacda2"
+    },
+    {
+      "bytes": 104009,
+      "path": "plasticos_broker_intelligence/data/knowledge_drafts.xml",
+      "sha256": "9645b2249829d916f30b2cda6082d51c75f197c16fe544f61877fedaaf67fd15"
+    },
+    {
+      "bytes": 124,
+      "path": "plasticos_broker_intelligence/models/__init__.py",
+      "sha256": "23004f90bc93580f00d2ab1b3efea6165e596ecfdaa0f305fb334d6eb6ea0a95"
+    },
+    {
+      "bytes": 7612,
+      "path": "plasticos_broker_intelligence/models/advice_service.py",
+      "sha256": "1cd8e044c899e43c11e3e460ae86cbd406677119fc22b5660756f121a02d19d7"
+    },
+    {
+      "bytes": 2559,
+      "path": "plasticos_broker_intelligence/models/audit.py",
+      "sha256": "17ce4262911c05a5e093d286dfcb0b10f2ab13034f3364eab8143937dd01a045"
+    },
+    {
+      "bytes": 8052,
+      "path": "plasticos_broker_intelligence/models/feedback.py",
+      "sha256": "ebe546d3eba06f3f793f82f81a704fc169c36bcee5ec3ce35c24dccd607a23b1"
+    },
+    {
+      "bytes": 605,
+      "path": "plasticos_broker_intelligence/models/intake_advice.py",
+      "sha256": "b6ad4d19742a4ebddfd82d7b272256bc27d31843e6a372b6be66d889e338197f"
+    },
+    {
+      "bytes": 15175,
+      "path": "plasticos_broker_intelligence/models/knowledge.py",
+      "sha256": "ea900e0dde14c001547e8bf54bb76f1102f8026b3f7abbee5ecc34bf8c3b3fcb"
+    },
+    {
+      "bytes": 210,
+      "path": "plasticos_broker_intelligence/security/groups.xml",
+      "sha256": "67e8db39e5a705866d689087ff4c7646c1222c33b06ceb8784ffac2b30306758"
+    },
+    {
+      "bytes": 909,
+      "path": "plasticos_broker_intelligence/security/ir.model.access.csv",
+      "sha256": "bf1afc6cec30f78dc4652e2f3eec8003e18280b1926c2bd9a5e2c8564c48a480"
+    },
+    {
+      "bytes": 1154,
+      "path": "plasticos_broker_intelligence/security/record_rules.xml",
+      "sha256": "98a954082ae2c0c2ad63b9c447e7029b4d305c48af2606ff2ac5673d71d8742e"
+    },
+    {
+      "bytes": 0,
+      "path": "plasticos_broker_intelligence/services/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 3262,
+      "path": "plasticos_broker_intelligence/services/evidence.py",
+      "sha256": "d3ad639b3bbda6cefacf084b6327e96f845618295dd1417345ee8913387ad635"
+    },
+    {
+      "bytes": 6961,
+      "path": "plasticos_broker_intelligence/services/reasoning.py",
+      "sha256": "d5a2cd492229d9df89cba00f35e5a045b6a8378cb636a75d28b5f72c77fa507a"
+    },
+    {
+      "bytes": 29,
+      "path": "plasticos_broker_intelligence/tests/__init__.py",
+      "sha256": "23b5b8ef2020e0f55916998490fcc3f4b1a08de8250148a4095599a57e66744c"
+    },
+    {
+      "bytes": 4729,
+      "path": "plasticos_broker_intelligence/tests/test_knowledge.py",
+      "sha256": "98cc60dc27af2f476dd449f28c6bfce0034de03f26cf558b89df9e3690b53732"
+    },
+    {
+      "bytes": 703,
+      "path": "plasticos_broker_intelligence/views/advice_wizard_views.xml",
+      "sha256": "8b135ace6bb78a2900c532fde335c521ea186dedc351c79cc8fb5ba03ed0ac51"
+    },
+    {
+      "bytes": 504,
+      "path": "plasticos_broker_intelligence/views/intake_advice_views.xml",
+      "sha256": "02ba9b5dc04afcfec85c23dbea0ce6bc7fb2fd7795166533c604a07de01a1206"
+    },
+    {
+      "bytes": 4055,
+      "path": "plasticos_broker_intelligence/views/knowledge_views.xml",
+      "sha256": "87aa6cacd40b1466db6750108dc247c6acc2e0a8fb575118db2467e13dc32246"
+    },
+    {
+      "bytes": 1850,
+      "path": "plasticos_broker_intelligence/views/observation_views.xml",
+      "sha256": "ac4414ef015f261f01208521e3b4485e881a3d910ed6b6de3cbddd4f7733ddb1"
+    },
+    {
+      "bytes": 551,
+      "path": "plasticos_broker_intelligence/views/retire_wizard_views.xml",
+      "sha256": "c8a9a1fd40b0b9a39fd5b2b9ad42b6a42340417a0d451c1c5655f608a6f26326"
+    },
+    {
+      "bytes": 56,
+      "path": "plasticos_broker_intelligence/wizards/__init__.py",
+      "sha256": "da779f88f3e2cf45a50e8082d5857037a760c5786539c7a9d1c4901eae62a6c5"
+    },
+    {
+      "bytes": 1203,
+      "path": "plasticos_broker_intelligence/wizards/advice_wizard.py",
+      "sha256": "0c9c3619d3bd234c0565c02463451b3a0aaf43230d8cdf0ac725dfb722f620c9"
+    },
+    {
+      "bytes": 500,
+      "path": "plasticos_broker_intelligence/wizards/retire_wizard.py",
+      "sha256": "a35908832bd4856c0a27bdf3a317207d2113cc510f487597f13a87174ff09973"
+    },
+    {
+      "bytes": 43,
+      "path": "plasticos_broker_intelligence_mack/__init__.py",
+      "sha256": "d17369c444e015d571143130d373bca0bdcdb534a4df07be1c4656dac3cacc85"
+    },
+    {
+      "bytes": 654,
+      "path": "plasticos_broker_intelligence_mack/__manifest__.py",
+      "sha256": "93a818bf211577cd4968cd0e654185182e6a51646e216edcf6d09a62691959aa"
+    },
+    {
+      "bytes": 53,
+      "path": "plasticos_broker_intelligence_mack/models/__init__.py",
+      "sha256": "681962d57885ed7100693f63b77d00c812f69efe2126ddc6776428c1471ed7f3"
+    },
+    {
+      "bytes": 6062,
+      "path": "plasticos_broker_intelligence_mack/models/consultation.py",
+      "sha256": "e1d479957173cc1b55714714ed832e9e7fc847f3462bc7531762bfc2d63a3db6"
+    },
+    {
+      "bytes": 533,
+      "path": "plasticos_broker_intelligence_mack/models/intake_mack.py",
+      "sha256": "5e6bf790a861c144f8044e45079945091164729c35d8d5db70b3086750e5eb4b"
+    },
+    {
+      "bytes": 322,
+      "path": "plasticos_broker_intelligence_mack/security/ir.model.access.csv",
+      "sha256": "df32f05df40b9567e4ebb0cb5916bb2d8690079dadc143ca9f1d2bc787771abe"
+    },
+    {
+      "bytes": 430,
+      "path": "plasticos_broker_intelligence_mack/security/record_rules.xml",
+      "sha256": "9389d06ccf1ef3b624184a389d4a87ec70c84f5fa388935b7eda0359c4b2be9b"
+    },
+    {
+      "bytes": 32,
+      "path": "plasticos_broker_intelligence_mack/tests/__init__.py",
+      "sha256": "339ef5fbe086490461edc848e5a623cc3d213b991504820b05dcd077eb4a25ab"
+    },
+    {
+      "bytes": 1062,
+      "path": "plasticos_broker_intelligence_mack/tests/test_consultation.py",
+      "sha256": "e351b7c9b125c4c2c7b76008425428b57c4fe92f5b0c09d11dc0e196ab8fe9fc"
+    },
+    {
+      "bytes": 1599,
+      "path": "plasticos_broker_intelligence_mack/views/consultation_views.xml",
+      "sha256": "03ea24334878dbcb0de8ff2088e63066623ab1dcfac7c7b92fbeded8f93d07e9"
+    },
+    {
+      "bytes": 750,
+      "path": "plasticos_broker_intelligence_mack/views/consultation_wizard_views.xml",
+      "sha256": "6c8e390dd1003e61b1ed63194a5c86f2e180d44aefc0d4b2ff48fdf5d302794e"
+    },
+    {
+      "bytes": 497,
+      "path": "plasticos_broker_intelligence_mack/views/intake_mack_views.xml",
+      "sha256": "e0910b328c5020596f4e6333a903afad83b2e28f921a5a94b8f3ff44e8268d40"
+    },
+    {
+      "bytes": 34,
+      "path": "plasticos_broker_intelligence_mack/wizards/__init__.py",
+      "sha256": "0ea3b640d0129e662509512643c959d84fb70d6c9139802ae26fb2deb83fdb4e"
+    },
+    {
+      "bytes": 1450,
+      "path": "plasticos_broker_intelligence_mack/wizards/consultation_wizard.py",
+      "sha256": "1a663a55bab38f2204587bff59ad60679677b704dfe332582490d391c6dba0f0"
+    },
+    {
+      "bytes": 43,
+      "path": "plasticos_broker_intelligence_rejections/__init__.py",
+      "sha256": "d17369c444e015d571143130d373bca0bdcdb534a4df07be1c4656dac3cacc85"
+    },
+    {
+      "bytes": 644,
+      "path": "plasticos_broker_intelligence_rejections/__manifest__.py",
+      "sha256": "6e75e674b474e9d48b73bb28263cfbd044b05cfddcf386e4a6b660b76e8061c3"
+    },
+    {
+      "bytes": 54,
+      "path": "plasticos_broker_intelligence_rejections/models/__init__.py",
+      "sha256": "587106b55cd9c103537233631c5190811456637ec349b799c76f52ad242959ea"
+    },
+    {
+      "bytes": 548,
+      "path": "plasticos_broker_intelligence_rejections/models/match_advice.py",
+      "sha256": "26c5c2a72da0afcae5ef34296cefe2d2b05009cd35770c2a603fca73cab69d72"
+    },
+    {
+      "bytes": 541,
+      "path": "plasticos_broker_intelligence_rejections/models/offer_advice.py",
+      "sha256": "bc9547d19ecbfac6d6fa3625a36983a3cff1b9c637c774689f122f67808b1578"
+    },
+    {
+      "bytes": 196,
+      "path": "plasticos_broker_intelligence_rejections/security/ir.model.access.csv",
+      "sha256": "08a3b1fc00c88d4d9d2781fbe91f79820d31bd28c3ec5eaa41d4c32cd69ce69d"
+    },
+    {
+      "bytes": 0,
+      "path": "plasticos_broker_intelligence_rejections/services/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 2539,
+      "path": "plasticos_broker_intelligence_rejections/services/rejection.py",
+      "sha256": "600ba4c3e2c0825206fa62bf18c1f73f49c335d65eadf1ea0db7cff65a767e0e"
+    },
+    {
+      "bytes": 29,
+      "path": "plasticos_broker_intelligence_rejections/tests/__init__.py",
+      "sha256": "dc86ba736e5eede1965490e3271068d14c0e657967fc0081779e4b2c6543fdf3"
+    },
+    {
+      "bytes": 626,
+      "path": "plasticos_broker_intelligence_rejections/tests/test_rejection.py",
+      "sha256": "98783e4bc811fcde14719d53418b55fec5cacc9a3778d8b491a3651eadfb5c75"
+    },
+    {
+      "bytes": 519,
+      "path": "plasticos_broker_intelligence_rejections/views/match_rejection_views.xml",
+      "sha256": "206f726055fbbdae95f3758d00af204e3802c5b1a38ca76d24d58af3cc282eaa"
+    },
+    {
+      "bytes": 495,
+      "path": "plasticos_broker_intelligence_rejections/views/offer_rejection_views.xml",
+      "sha256": "c89e4a61baab2439141e07bd1ec78a55a42699ad5672f156494cb7f5d9bc202d"
+    },
+    {
+      "bytes": 928,
+      "path": "plasticos_broker_intelligence_rejections/views/rejection_wizard_views.xml",
+      "sha256": "44c58dcf1052b3d5d237ca95a382fc0f438b3c2b0005176a350ebd6262eb327c"
+    },
+    {
+      "bytes": 31,
+      "path": "plasticos_broker_intelligence_rejections/wizards/__init__.py",
+      "sha256": "b46cc23519c267e4958f5afffa30e7f521ffe16ff51939babd1497b716e92d2a"
+    },
+    {
+      "bytes": 5205,
+      "path": "plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py",
+      "sha256": "70e50c992ce5f0399c5dc994e90dfeedebfdd6073b941ea056282f7aaa5d28f3"
+    },
+    {
+      "bytes": 21,
+      "path": "plasticos_broker_intelligence_web_leads/__init__.py",
+      "sha256": "5fd10918e1361ad65b4b41bcd8fb525e659267f47c8c4334ae52530e58908e9e"
+    },
+    {
+      "bytes": 463,
+      "path": "plasticos_broker_intelligence_web_leads/__manifest__.py",
+      "sha256": "ba6b47f8b8466b8fc7f5881cb7b98a877db750e0e05047ee6c0839e348fa12f5"
+    },
+    {
+      "bytes": 30,
+      "path": "plasticos_broker_intelligence_web_leads/models/__init__.py",
+      "sha256": "1fe0ca0591923874ba18e75de9ab7c885bd6b158d808d827af9fda273e14d578"
+    },
+    {
+      "bytes": 2168,
+      "path": "plasticos_broker_intelligence_web_leads/models/web_lead_advice.py",
+      "sha256": "bf0183a4a74b9b28b371bc789d935e7baf73b8701da01d1c956e9156cd6ffb62"
+    },
+    {
+      "bytes": 0,
+      "path": "plasticos_broker_intelligence_web_leads/services/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 679,
+      "path": "plasticos_broker_intelligence_web_leads/services/shadow.py",
+      "sha256": "9ebbce4060b0a071a6485780bf8172b2cee26170448ec5e4638a5abcabd03721"
+    },
+    {
+      "bytes": 26,
+      "path": "plasticos_broker_intelligence_web_leads/tests/__init__.py",
+      "sha256": "18967168b039c050f8b57cace33581bf1eb333f0bd43ddd45b39e53a454ece57"
+    },
+    {
+      "bytes": 694,
+      "path": "plasticos_broker_intelligence_web_leads/tests/test_shadow.py",
+      "sha256": "ce11f50106749e2e136d87dadecefd8c9873b94359ef81a9c097d93eee12b180"
+    },
+    {
+      "bytes": 491,
+      "path": "plasticos_broker_intelligence_web_leads/views/web_lead_advice_views.xml",
+      "sha256": "71972ebb7519dab2a0e46455f48dd15b28572b312d9ee4d1ff62e9ba5464eb37"
+    },
+    {
+      "bytes": 47858,
+      "path": "source_catalog/candidate_admission_register.json",
+      "sha256": "22d55fab358460a100e4529cc5bc2219893e85aa4f80039ff881ae8b4d720dda"
+    },
+    {
+      "bytes": 50644,
+      "path": "source_catalog/semantic_harvest_v1/Dev Pack - PlasticOS Broker Intelligence.md",
+      "sha256": "19eb36a78c66053bb884230a570cad9fed399a50d9ca8e8d44b7cb6533207f14"
+    },
+    {
+      "bytes": 3273,
+      "path": "source_catalog/semantic_harvest_v1/EVALUATION_AND_VALUE.md",
+      "sha256": "ee68a79841c943cce399fab5d32077b83e5b2b19b141576e11dd07561f399ece"
+    },
+    {
+      "bytes": 2377,
+      "path": "source_catalog/semantic_harvest_v1/FILE_MANIFEST.sha256",
+      "sha256": "aeca757d723f7d332fbb648725baca727ab8dcb7a6d7d447b6a9e12332c5ccff"
+    },
+    {
+      "bytes": 1211,
+      "path": "source_catalog/semantic_harvest_v1/HARVEST_COVERAGE.json",
+      "sha256": "da766d841cd98351e60530fc837c559944507f8b84a2275847ef435287038c82"
+    },
+    {
+      "bytes": 4758,
+      "path": "source_catalog/semantic_harvest_v1/README.md",
+      "sha256": "9835fdb6693da217737132b65c22e52904ad22f4dd6bb7bf53f0fc44591d7023"
+    },
+    {
+      "bytes": 7459,
+      "path": "source_catalog/semantic_harvest_v1/REPO_PLACEMENT.md",
+      "sha256": "a6b218707cbca866e5391e8c8ce1a8ea600cbaf52b4f0d04dabde4f425c699f0"
+    },
+    {
+      "bytes": 3537,
+      "path": "source_catalog/semantic_harvest_v1/REVIEW_QUEUE.md",
+      "sha256": "81c1900bf82f0aa0bcfb4ca268d67f662ecd6524845258aaebbf27937cf8d56a"
+    },
+    {
+      "bytes": 30039,
+      "path": "source_catalog/semantic_harvest_v1/SEMANTIC_AUDIT.md",
+      "sha256": "8a306dce0dbffb08e6886c1e27165e7930f80275998d5699a5a8ed87b2402e7a"
+    },
+    {
+      "bytes": 1877,
+      "path": "source_catalog/semantic_harvest_v1/VALIDATION_RECEIPT.md",
+      "sha256": "3469742eabc0989a4098005636227529fd6a98979fd902d4ab9e62ae9f514daf"
+    },
+    {
+      "bytes": 18284,
+      "path": "source_catalog/semantic_harvest_v1/candidates/12_rejection_meanings.jsonl",
+      "sha256": "f516d20017257813122d9e40fd53cf754d44dea1bde7634c3a352db5f132747d"
+    },
+    {
+      "bytes": 34793,
+      "path": "source_catalog/semantic_harvest_v1/candidates/18_broker_capabilities.jsonl",
+      "sha256": "1aba69487bf22869132e1a0ff02f225b929518ecab20452f8a616d1b0c13626d"
+    },
+    {
+      "bytes": 12342,
+      "path": "source_catalog/semantic_harvest_v1/candidates/20_unique_coaching_patterns.jsonl",
+      "sha256": "04f0664d04bedd77e88aa675c24727e55f1f8a157137d8ee737e69f21efd1251"
+    },
+    {
+      "bytes": 52822,
+      "path": "source_catalog/semantic_harvest_v1/candidates/56_coaching_scenarios.jsonl",
+      "sha256": "c718874f6a6c419e3ba3a445c480d3c725a5b1ee3c9af74d5d983509567ef755"
+    },
+    {
+      "bytes": 46824,
+      "path": "source_catalog/semantic_harvest_v1/candidates/material_inspection_requirements.jsonl",
+      "sha256": "9849c0701e3234dbf3506e1b258823a1708bb29d0aa745842da507d1e3cc196e"
+    },
+    {
+      "bytes": 19734,
+      "path": "source_catalog/semantic_harvest_v1/candidates/proposed_decision_sequences.jsonl",
+      "sha256": "5b71935e6e2d7214b1fb174b40ed879ad68460720923754ccc054526fa55d036"
+    },
+    {
+      "bytes": 3417,
+      "path": "source_catalog/semantic_harvest_v1/comparisons/owner_comparison.json",
+      "sha256": "45582917dd784cf3f63a6810d7ffd4e26642cbd75b96dca8290c662943a95fa0"
+    },
+    {
+      "bytes": 8047,
+      "path": "source_catalog/semantic_harvest_v1/comparisons/pp_kb_crosswalk.jsonl",
+      "sha256": "e7a81c9c20fd9cf23bbe6f766d0ff539829227a179dd54fd6e44d6b0e282c7b9"
+    },
+    {
+      "bytes": 5736,
+      "path": "source_catalog/semantic_harvest_v1/comparisons/rejection_namespace_conflicts.jsonl",
+      "sha256": "030165f363c4fa0f32ff96e70ffb10aa25002d01cdc5abcc6d7df40e08d767c5"
+    },
+    {
+      "bytes": 4709,
+      "path": "source_catalog/semantic_harvest_v1/evaluation/adversarial_acceptance_cases.jsonl",
+      "sha256": "5fc94c9fad688fa4abc7e1199c0fdeda1814b5c6cd95c21615c0459f39da5f4f"
+    },
+    {
+      "bytes": 33060,
+      "path": "source_catalog/semantic_harvest_v1/evidence/media_reference_inventory.jsonl",
+      "sha256": "72b8d2a53cc2577d70cc6e943dcfb226ae8abf4f5286ddc6c7f32e6e386ff35e"
+    },
+    {
+      "bytes": 32341,
+      "path": "source_catalog/semantic_harvest_v1/evidence/rejection_extension_examples.jsonl",
+      "sha256": "a4d34559647dde59531ac85d70487c9acb54e7278c39d592ff248cad5567d884"
+    },
+    {
+      "bytes": 8736,
+      "path": "source_catalog/semantic_harvest_v1/evidence/repository_authority_register.json",
+      "sha256": "1412b7bf856c43c23e7144301cd7ab2d25c8ffb9a9d8a7b00902a904c99e9f85"
+    },
+    {
+      "bytes": 4358,
+      "path": "source_catalog/semantic_harvest_v1/evidence/source_identity.json",
+      "sha256": "62312cc943581d0a0c6796efad390679572e9cde8069135c380dc85784355622"
+    },
+    {
+      "bytes": 611980,
+      "path": "source_catalog/semantic_harvest_v1/evidence/source_scenario_index.jsonl",
+      "sha256": "f5b688bbc468d49b915583935110383579702d3d6954ee582b04d71499aff6b1"
+    },
+    {
+      "bytes": 2040,
+      "path": "source_catalog/semantic_harvest_v1/tools/test_validator.py",
+      "sha256": "02192d4cffc3d03a4a8d73189e0a94c4db2ad93e65e8b89e0af47762b7a5af9f"
+    },
+    {
+      "bytes": 9031,
+      "path": "source_catalog/semantic_harvest_v1/tools/validate_pack.py",
+      "sha256": "d8bc694a22fc48ccb5bd74531b6f09739738b32422e66f8a4e339a7eb660a9df"
+    },
+    {
+      "bytes": 9495,
+      "path": "tests_offline/test_broker_advice.py",
+      "sha256": "3c3e9dd98a70e8daa5ef06add27d2a0338d247b73eec5db360021962b6d19d62"
+    },
+    {
+      "bytes": 3622,
+      "path": "tests_offline/test_harvest_source.py",
+      "sha256": "ffa01e9e6b6bde476c56a7357e53648bc227ee3e2267d6e7d9a68fe7ec4719bc"
+    },
+    {
+      "bytes": 9160,
+      "path": "tests_offline/test_review_safety.py",
+      "sha256": "6b9f49dc937773712ec52e93e78c59d39962b6855d6749e13e376333a0468746"
+    },
+    {
+      "bytes": 2459,
+      "path": "tests_offline/test_unverified_values.py",
+      "sha256": "b66cabaa93e0416d896d5b06fe0e753bd07b2ef649810700041724009c365925"
+    },
+    {
+      "bytes": 6266,
+      "path": "tools/build_release.py",
+      "sha256": "26976eae077a67ed051998a6a38a73eb38a0e5b0a977024984a56b569d9dc886"
+    },
+    {
+      "bytes": 8244,
+      "path": "tools/validate_package.py",
+      "sha256": "763e003b4dae5766818b6576c61397b11117dc9f283b0e55d5a7a7941d38423f"
+    }
+  ],
+  "improvement_kernel_sha256": "dc6cbd25ffb3be5be681db984afeeda6e33d78929bb64854f23c6cb94a6ffab3",
+  "input_leverage_revised_pack_sha256": "972ddcc80169306a8dd3441687de59542539b9504c3ae26bf8c4d2a945f9d96f",
+  "input_revised_pack_sha256": "8175afa06619aadd2ad41ffb2bd0db0f30eea7d6920ded33f8cce99c137b3e66",
+  "manifest_self_hash_excluded_to_avoid_recursion": true,
+  "odoo_enterprise_registry": "NOT_RUN",
+  "offline_unittest_observed": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "status": "PASS",
+    "tests": 49
+  },
+  "open_pr_count_observed_at_original_inspection": 0,
+  "open_pr_numbers_at_alignment_inspection": [
+    471
+  ],
+  "recursive_alignment_kernel_sha256": "ce9f7d2face6e7007c27313cbc885a5d11df85335877851e60ddb87b84adb639",
+  "recursive_leverage_kernel_sha256": "f7fe111189a2884cff8ab77ebc7828d0e949bc90f4b569a8026a2f4a899bd75e",
+  "repo": "cryptoxdog/IB-Odoo_19",
+  "schema": "plasticos-broker-intelligence-build/v2",
+  "source_zip_sha256": "2c0220acdc45c95ffe184da4e3b13dee58ec426a3b6d571aeae97bc02277062a",
+  "staging_sha": "d25da3236887c924c8a0164b00c1198f1804a2ea",
+  "standalone_v1_available": false,
+  "status": "offline-source-validated-only",
+  "unchanged_code_owner_since": "c2c72bc36d6201d4114531a8f666c411db612f64"
+}
