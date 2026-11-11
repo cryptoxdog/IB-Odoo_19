@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Offer",
-    "version": "19.0.1.1.4",
+    "version": "19.0.1.2.0",
     "summary": "Offer lifecycle management — from match to deal",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -19,6 +19,7 @@
         "views/intake_offers_bridge_views.xml",
         "views/offer_bulk_action_wizard_views.xml",
         "views/offer_ux.xml",
+        "views/offer_mail_compose_views.xml",
     ],
     "post_init_hook": "post_init_hook",
     "installable": True,

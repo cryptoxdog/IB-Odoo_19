@@ -20,6 +20,7 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
@@ -314,15 +315,18 @@ class TestOfferActions(PlasticosTestCase):
             "intake_id": self.intake.id,
             "supplier_id": self.supplier.id,
             "buyer_id": self.partner.id,
+            "price_per_lb": 0.12,
+            "quantity_lbs": 40000,
         }
         vals.update(kw)
         return self.Offer.create(vals)
 
     def test_action_send_sets_sent(self):
+        """Send Offer opens the native composer; only the submitted email marks the offer Sent."""
         offer = self._make_offer()
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-            self.assertEqual(offer.state, "sent")
+        send_offer_email(offer)
+        self.assertEqual(offer.state, "sent")
+        self.assertTrue(offer.sent_message_id)
 
     def test_action_accept(self):
         offer = self._make_offer(state="sent")
@@ -374,7 +378,7 @@ class TestOfferActions(PlasticosTestCase):
             expired.action_reset_to_draft()
         offer = self._make_offer(state="rejected")
         offer.action_reset_to_draft()
-        offer.action_send()
+        send_offer_email(offer)
         self.assertEqual(offer.state, "sent")
 
     def test_action_view_intake(self):

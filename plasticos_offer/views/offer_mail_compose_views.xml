@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Send Offer marks the offer Sent when the email is submitted. A scheduled
+         send would record Sent before dispatch, so the schedule picker is hidden
+         for offer emails (the server refuses scheduling for them as well). Other
+         composers keep the native behavior. -->
+    <record id="mail_compose_message_offer_no_schedule" model="ir.ui.view">
+        <field name="name">mail.compose.message.form.plasticos.offer</field>
+        <field name="model">mail.compose.message</field>
+        <field name="inherit_id" ref="mail.email_compose_message_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//footer/field[@name='scheduled_date']" position="attributes">
+                <attribute name="invisible">composition_batch or composition_mode != 'comment' or model == 'plasticos.offer'</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

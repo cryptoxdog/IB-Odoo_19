@@ -14,6 +14,7 @@ creating cross-module relationships. These tests validate:
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.tests.common import tagged
 
 
@@ -55,7 +56,7 @@ class TestOfferBridge(PlasticosTestCase):
         is what creates a transaction.
         """
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         tx_before = self.env["plasticos.transaction"].search_count([])
         so_before = self.env["sale.order"].search_count([])
         offer.action_accept()
@@ -71,7 +72,7 @@ class TestOfferBridge(PlasticosTestCase):
         Replaces test_transaction_links_back_to_offer.
         """
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         self.assertFalse(offer.transaction_id)
         self.assertNotIn("offer_id", self.env["plasticos.transaction"]._fields)

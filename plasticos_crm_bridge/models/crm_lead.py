@@ -188,6 +188,11 @@ class CrmLeadPlastOS(models.Model):
         "opportunity_id",
         string="Gate Match Runs",
     )
+    offer_count = fields.Integer(
+        string="Offers",
+        compute="_compute_offer_count",
+        help="Offers on this opportunity, from Gate results or from manually selected buyers.",
+    )
     # One native opportunity per originating intake. Partial: manual lots and
     # historical leads without a source intake are never collapsed.
     _unique_opportunity_per_source_intake = models.UniqueIndex(
@@ -225,6 +230,17 @@ class CrmLeadPlastOS(models.Model):
         from .crm_tag_adoption import adopt_role_tag  # noqa: PLC0415
 
         return adopt_role_tag(self.env, name, xmlid)
+
+    def _compute_offer_count(self):
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = self.env["plasticos.offer"]._read_group(
+                [("opportunity_id", "in", stored_ids)], ["opportunity_id"], ["__count"]
+            )
+            counts = {opportunity.id: count for opportunity, count in rows}
+        for rec in self:
+            rec.offer_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     @api.depends("web_lead_ids")
     def _compute_web_lead_count(self):
@@ -783,6 +799,45 @@ class CrmLeadPlastOS(models.Model):
             "target": "current",
         }
 
+    # ── Manual buyer selection (no Gate) ─────────────────────
+
+    def _plasticos_manual_offer_material(self):
+        """The opportunity-owned material row a manual offer is drafted from, after validating the source."""
+        self.ensure_one()
+        if self.type != "opportunity":
+            raise UserError(_("Buyers are selected on an opportunity. Convert the lead to an opportunity first."))
+        if not self.active or self.stage_id.is_won:
+            raise UserError(
+                _("Opportunity %s is closed. Buyers can only be selected on an open opportunity.") % self.name
+            )
+        if not self.partner_id:
+            raise UserError(_("Link the supplier on opportunity %s before selecting buyers.") % self.name)
+        material = self.opportunity_material_ids[:1]
+        if not material or material.opportunity_id != self:
+            raise UserError(
+                _(
+                    "Opportunity %s has no material sheet. Select its Material Profile so the material is copied "
+                    "onto the opportunity, then select buyers.",
+                    self.name,
+                )
+            )
+        return material
+
+    def action_select_offer_buyers(self):
+        """Open the buyer selection dialog. Nothing is created until the broker generates drafts."""
+        self.ensure_one()
+        self.check_access("write")
+        self._plasticos_manual_offer_material()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Select Buyers"),
+            "res_model": "plasticos.offer.buyer.selection.wizard",
+            "view_mode": "form",
+            "views": [(False, "form")],
+            "target": "new",
+            "context": {"default_opportunity_id": self.id},
+        }
+
     # ── Partners-first native Opportunity matching command ──────
 
     @api.model
@@ -958,6 +1013,7 @@ class CrmLeadPlastOS(models.Model):
         material = self.opportunity_material_ids[:1]
         if not material:
             raise UserError(_("The opportunity has no material copy to sell."))
+        offer._plasticos_check_release_material(material)
         if self.env["sale.order"].search_count(
             [
                 ("opportunity_id", "=", self.id),

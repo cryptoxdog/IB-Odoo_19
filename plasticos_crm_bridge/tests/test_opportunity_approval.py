@@ -31,6 +31,7 @@ from odoo.addons.plasticos_gate.services.gate_config import (
     GateAvailabilityVerdict,
     GateCapability,
 )
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import tagged
 
@@ -378,7 +379,7 @@ class TestOpportunityApproval(PlasticosTestCase):
         opportunity.action_create_offers_from_results()
         offer = self.Offer.search([("match_result_id.match_run_id.opportunity_id", "=", opportunity.id)])[:1]
         offer.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
-        offer.action_send()
+        send_offer_email(offer)
         with self.assertRaisesRegex(UserError, "immutable"):
             offer.write({"price_per_lb": 0.20})
         offer.write({"response_notes": "buyer replied"})
@@ -429,7 +430,7 @@ class TestOpportunityApproval(PlasticosTestCase):
         opportunity.action_create_offers_from_results()
         offers = self.Offer.search([("match_result_id.match_run_id.opportunity_id", "=", opportunity.id)], order="id")
         offers.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
-        offers.action_send()
+        send_offer_email(offers)
         first, second = offers[0], offers[1]
         first.action_accept()
         self.assertEqual(first.state, "accepted")
@@ -447,7 +448,7 @@ class TestOpportunityApproval(PlasticosTestCase):
             :1
         ]
         offer.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
-        offer.action_send()
+        send_offer_email(offer)
         orders_before = SaleOrder.search_count([("opportunity_id", "=", opportunity.id)])
         purchases_before = self.env["purchase.order"].search_count([("origin", "=", offer.name)])
         transactions_before = self.env["plasticos.transaction"].search_count(

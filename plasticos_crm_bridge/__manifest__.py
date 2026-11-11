@@ -1,6 +1,6 @@
 {
     "name": "PlastOS CRM Bridge",
-    "version": "19.0.3.5.4",
+    "version": "19.0.3.6.0",
     "author": "Igor Beylin",
     "summary": "CRM integration for plastics brokerage workflow",
     "depends": [
@@ -26,6 +26,7 @@
         "data/lead_source_data.xml",
         "views/crm_lead_views.xml",
         "views/crm_facility_ownership_views.xml",
+        "views/offer_buyer_selection_wizard_views.xml",
         # material_profile_views.xml deferred: CE local DB missing quantity_per_load_lbs on profile form
     ],
     "category": "PlastOS",

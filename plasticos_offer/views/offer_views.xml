@@ -56,10 +56,14 @@
                   decoration-danger="state == 'rejected'"
                   decoration-muted="state in ('expired','cancelled')">
                 <field name="intake_id" optional="show"/>
-                <field name="polymer"/>
-                <field name="form"/>
+                <field name="name" optional="show"/>
+                <field name="material_summary" optional="show"/>
+                <field name="polymer" optional="hide"/>
+                <field name="form" optional="hide"/>
                 <field name="supplier_id"/>
                 <field name="buyer_id"/>
+                <field name="recipient_count" optional="show"/>
+                <field name="material_image_count" optional="show"/>
                 <field name="price_per_lb"/>
                 <field name="quantity_lbs" sum="Total Quantity"/>
                 <field name="delivery_terms" optional="show"/>
@@ -190,7 +194,9 @@
             <form>
                 <header>
                     <button name="action_send" type="object"
-                            string="Send" class="btn-primary"
+                            string="Send Offer" class="btn-primary"
+                            icon="fa-envelope"
+                            title="Opens the email composer with the buyer contacts, offer text and pictures. The offer becomes Sent only when the email is sent."
                             invisible="state != 'draft'"/>
                     <button name="action_mark_responded" type="object"
                             string="Mark Responded" class="btn-primary"
@@ -216,13 +222,22 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box"/>
+                    <div class="alert alert-warning" role="alert" name="unpriced_warning"
+                         invisible="state != 'draft' or price_per_lb &gt; 0">
+                        No buyer price yet. Enter the buyer price per lb before sending; the supplier cost is never copied here.
+                    </div>
                     <group>
                         <group string="Origin" name="origin">
-                            <field name="intake_id" placeholder="None — offer from a native opportunity's Gate result"/>
+                            <field name="intake_id" invisible="not intake_id"/>
                         </group>
-                        <group string="Parties">
+                        <group string="Parties" name="parties">
                             <field name="supplier_id"/>
                             <field name="buyer_id"/>
+                            <field name="recipient_partner_ids"
+                                   widget="many2many_tags"
+                                   domain="[('id', 'child_of', buyer_id)]"
+                                   readonly="state != 'draft'"
+                                   options="{'no_create': True}"/>
                         </group>
                     </group>
 
@@ -269,13 +284,34 @@
                             </group>
                         </page>
 
-                        <page string="Material">
+                        <page string="Material" name="material">
                             <group>
                                 <group>
-                                    <field name="polymer"/>
-                                    <field name="form"/>
+                                    <field name="material_summary" readonly="state != 'draft'"/>
+                                    <field name="polymer" invisible="not polymer"/>
+                                    <field name="form" invisible="not form"/>
                                 </group>
                             </group>
+                            <group string="Buyer-facing description">
+                                <field name="material_description" nolabel="1" colspan="2"
+                                       readonly="state != 'draft'"
+                                       placeholder="Material description sent to the buyer."/>
+                            </group>
+                            <group string="Pictures for the email">
+                                <field name="material_image_ids" nolabel="1" colspan="2"
+                                       widget="many2many_binary"
+                                       readonly="state != 'draft'"/>
+                            </group>
+                        </page>
+
+                        <page string="Email" name="email" invisible="state == 'draft'">
+                            <group>
+                                <field name="sent_date"/>
+                                <field name="sent_message_id"/>
+                            </group>
+                            <p class="text-muted">
+                                Sent means the email was accepted by Odoo Mail. Delivery to the recipient is shown on the message in the chatter.
+                            </p>
                         </page>
                     </notebook>
                 </sheet>

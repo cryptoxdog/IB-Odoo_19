@@ -16,6 +16,7 @@ from odoo.addons.plasticos_crm_bridge.tests.test_opportunity_approval import (
     _eligible,
     _fake_gate_result,
 )
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
 
@@ -95,7 +96,7 @@ class TestOpportunityRelease(PlasticosTestCase):
             limit=1,
         )
         offer.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         return opportunity, offer
 

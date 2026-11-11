@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Manual buyer selection. "Add a line" on the contacts list opens the native
+         Contacts search with its filters, favorites, tags and location fields;
+         several contacts can be selected at once, across pages. -->
+    <record id="view_offer_buyer_selection_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.offer.buyer.selection.wizard.form</field>
+        <field name="model">plasticos.offer.buyer.selection.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Buyers">
+                <field name="opportunity_id" invisible="1" force_save="1"/>
+                <field name="supplier_partner_id" invisible="1"/>
+                <div class="alert alert-info" role="alert">
+                    Pick buyer companies or their contacts. Contacts of one company share one draft offer and
+                    receive its email. Drafts are only prepared here: nothing is sent and Gate is not used.
+                </div>
+                <field name="contact_ids"
+                       widget="many2many"
+                       domain="[('active', '=', True), ('id', 'not child_of', supplier_partner_id)]"
+                       options="{'no_create': True}">
+                    <list>
+                        <field name="display_name" string="Contact"/>
+                        <field name="commercial_partner_id" string="Buyer Company"/>
+                        <field name="email"/>
+                        <field name="phone" optional="show"/>
+                        <field name="city" optional="show"/>
+                        <field name="state_id" optional="show"/>
+                        <field name="country_id" optional="hide"/>
+                        <field name="category_id" widget="many2many_tags" optional="show"/>
+                    </list>
+                </field>
+                <group>
+                    <group>
+                        <field name="buyer_count"/>
+                        <field name="contact_count"/>
+                    </group>
+                </group>
+                <group string="Draft offers to generate" invisible="buyer_count == 0">
+                    <field name="selected_buyer_summary" nolabel="1" colspan="2"/>
+                </group>
+                <footer>
+                    <button name="action_generate_draft_offers" type="object"
+                            string="Generate Draft Offers" class="btn-primary"
+                            invisible="buyer_count == 0"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

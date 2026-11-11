@@ -20,6 +20,7 @@ from datetime import timedelta
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
@@ -91,7 +92,7 @@ class TestOfferStateMachine(PlasticosTestCase):
         offer = self._make_offer()
         self.assertEqual(offer.state, "draft")
 
-        offer.action_send()
+        send_offer_email(offer)
         self.assertEqual(offer.state, "sent")
 
         offer.action_mark_responded()
@@ -106,7 +107,7 @@ class TestOfferStateMachine(PlasticosTestCase):
         """Accept directly from sent (no response step)."""
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         self.assertEqual(offer.state, "accepted")
 
@@ -120,7 +121,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_accept_from_rejected_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_reject()
         with self.assertRaises(UserError):
             offer.action_accept()
@@ -142,7 +143,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_send_from_sent_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         with self.assertRaises(UserError):
             offer.action_send()
 
@@ -157,7 +158,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_reject_from_accepted_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         with self.assertRaises(UserError):
             offer.action_reject()
@@ -179,7 +180,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_cancel_from_accepted_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         with self.assertRaises(UserError):
             offer.action_cancel()
@@ -194,7 +195,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_reset_from_rejected_succeeds(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_reject()
         offer.action_reset_to_draft()
         self.assertEqual(offer.state, "draft")

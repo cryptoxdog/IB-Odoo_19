@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_offer
 component_name: PlasticOS Offer
-module_version: 19.0.1.1.4
+module_version: 19.0.1.2.0
 layer: 3
 installable: true
 auto_install: true
