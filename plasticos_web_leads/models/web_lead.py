@@ -1498,6 +1498,7 @@ class PlasticosWebLead(models.Model):
         # Serialize approvals of one lead. Odoo cursors run at REPEATABLE READ:
         # a concurrent approval that committed first raises a serialization
         # failure here, and the request retry then sees the approved state.
+        # justification: atomic row lock; the ORM has no SELECT ... FOR UPDATE.
         self.env.cr.execute("SELECT id FROM plasticos_web_lead WHERE id = %s FOR UPDATE", [self.id])
         self.invalidate_recordset(["review_status", "review_snapshot_ids"])
         if self.review_status == REVIEW_STATUS_APPROVED and self.review_snapshot_ids:
