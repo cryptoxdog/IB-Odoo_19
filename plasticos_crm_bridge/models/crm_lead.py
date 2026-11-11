@@ -485,6 +485,10 @@ class CrmLeadPlastOS(models.Model):
         self._reject_foreign_material_profile(partner)
         if self.material_profile_id:
             intake_vals.update(self._intake_snapshot_from_material_profile(self.material_profile_id))
+        from odoo.addons.plasticos_intake.source_origin import crm_lead_source_address
+
+        for key, value in crm_lead_source_address(self.street, self.city, self.zip).items():
+            intake_vals.setdefault(key, value)
         intake = self.env["plasticos.intake"].create(intake_vals)
         self.source_intake_id = intake
         self._propagate_available_commercial_images(material_profile=intake.material_profile_id or False)
