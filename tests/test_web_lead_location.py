@@ -19,6 +19,7 @@ _SPEC.loader.exec_module(place)
 _LIST_ORDER = (
     "submitted_at",
     "lead_id",
+    "assigned_user_id",
     "company_name",
     "contact_name",
     "contact_phone",
