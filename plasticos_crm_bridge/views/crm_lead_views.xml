@@ -49,7 +49,7 @@
                         type="object"
                         string="Submit"
                         class="btn btn-primary"
-                        title="PlasticOS: Creates one draft purchase order at the accepted offer price, one draft sale order at the buyer price, and one draft transaction."
+                        title="PlasticOS: Creates one draft purchase order at the opportunity's supplier Offer Price, one draft sale order at the buyer price, and one draft transaction."
                         invisible="type != 'opportunity' or not stage_id.is_won or release_sale_order_id"
                         groups="plasticos_security_base.group_operations_manager"/>
             </xpath>

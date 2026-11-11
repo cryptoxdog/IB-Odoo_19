@@ -321,6 +321,9 @@ class TestManualOffers(PlasticosTestCase):
         self.assertEqual(loser.state, "sent")
         self.assertFalse(self.env["sale.order"].search_count([("opportunity_id", "=", opportunity.id)]))
 
+        final_supplier_price = 0.0815
+        opportunity.offer_buy_price = final_supplier_price
+        self.assertEqual(opportunity.opportunity_material_ids.buy_price_per_lb, final_supplier_price)
         opportunity.write(
             {
                 "release_buyer_company_id": self.buyer_a.id,
@@ -329,6 +332,8 @@ class TestManualOffers(PlasticosTestCase):
             }
         )
         opportunity.action_submit_release()
+        self.assertEqual(opportunity.release_purchase_order_id.order_line.price_unit, final_supplier_price)
+        self.assertEqual(opportunity.release_sale_order_id.order_line.price_unit, 0.25)
         self.assertTrue(opportunity.release_sale_order_id)
         self.assertEqual(opportunity.release_sale_order_id.order_line.product_uom_qty, winner.quantity_lbs)
         opportunity.action_submit_release()

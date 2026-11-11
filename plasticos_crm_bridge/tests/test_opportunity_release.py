@@ -67,6 +67,7 @@ class TestOpportunityRelease(PlasticosTestCase):
                 "material_profile_id": self.profile.id,
             }
         )
+        opportunity.offer_buy_price = 0.09
         holder = SimpleNamespace(savepoint=None)
 
         def fake_commit(lead):
@@ -106,6 +107,8 @@ class TestOpportunityRelease(PlasticosTestCase):
         self.assertFalse(self.env["sale.order"].search([("opportunity_id", "=", opportunity.id)]))
         self.assertFalse(self.env["purchase.order"].search([("origin", "=", offer.name)]))
 
+        # The supplier price stays editable after Won: the final agreement prices the purchase.
+        opportunity.offer_buy_price = 0.10
         opportunity.write(
             {
                 "release_buyer_company_id": self.buyer.id,
@@ -119,7 +122,8 @@ class TestOpportunityRelease(PlasticosTestCase):
         transaction = opportunity.release_transaction_id
         self.assertEqual(purchase.state, "draft")
         self.assertEqual(purchase.partner_id, self.supplier)
-        self.assertEqual(purchase.order_line.price_unit, 0.12)
+        self.assertEqual(purchase.order_line.price_unit, 0.10, "the opportunity's supplier price at submit")
+        self.assertNotEqual(purchase.order_line.price_unit, offer.price_per_lb, "never the buyer-facing offer price")
         self.assertEqual(purchase.order_line.product_qty, 40000)
         self.assertFalse(purchase.order_line.material_profile_id)
         self.assertEqual(purchase.order_line.form_id, self.form)

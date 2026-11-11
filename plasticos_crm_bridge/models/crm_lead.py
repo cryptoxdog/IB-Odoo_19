@@ -155,7 +155,7 @@ class CrmLeadPlastOS(models.Model):
         string="Release Purchase Order",
         copy=False,
         ondelete="set null",
-        help="Draft purchase order created by submit, at the accepted offer price.",
+        help="Draft purchase order created by submit, at the opportunity's supplier Offer Price.",
     )
     release_sale_order_id = fields.Many2one(
         "sale.order",
@@ -1014,6 +1014,12 @@ class CrmLeadPlastOS(models.Model):
         if not material:
             raise UserError(_("The opportunity has no material copy to sell."))
         offer._plasticos_check_release_material(material)
+        # The purchase price is the opportunity's supplier price (Offer Price on the
+        # material sheet), read at submit: it stays editable until the final agreement.
+        # The accepted offer's price_per_lb is the buyer-facing price, not the cost.
+        supplier_price = material.buy_price_per_lb or 0.0
+        if supplier_price <= 0:
+            raise UserError(_("Enter the supplier Offer Price on the opportunity before submit."))
         if self.env["sale.order"].search_count(
             [
                 ("opportunity_id", "=", self.id),
@@ -1037,7 +1043,7 @@ class CrmLeadPlastOS(models.Model):
                             "product_id": product.id,
                             "name": label,
                             "product_qty": qty,
-                            "price_unit": offer.price_per_lb or 0.0,
+                            "price_unit": supplier_price,
                             **purchase_spec,
                         }
                     )
@@ -1082,10 +1088,11 @@ class CrmLeadPlastOS(models.Model):
         )
         self.message_post(
             body=_(
-                "Submitted %(offer)s. Draft purchase %(po)s at the offer price, draft sale %(so)s at %(price)s/lb, "
+                "Submitted %(offer)s. Draft purchase %(po)s at the supplier price %(cost)s/lb, draft sale %(so)s at %(price)s/lb, "
                 "and draft transaction %(tx)s. Nothing is confirmed.",
                 offer=offer.name,
                 po=purchase.name,
+                cost=supplier_price,
                 so=sale.name,
                 price=self.release_buyer_price,
                 tx=transaction.name,
