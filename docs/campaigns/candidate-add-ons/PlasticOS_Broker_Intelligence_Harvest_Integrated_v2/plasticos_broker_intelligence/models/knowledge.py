@@ -243,19 +243,22 @@ class BrokerKnowledge(models.Model):
 
     def action_approve(self):
         self._require_reviewer()
+        company_keys = [(item.stable_key, item.company_id.id or False) for item in self]
+        approved = self.search(
+            [
+                ("stable_key", "in", list({key for key, _company in company_keys})),
+                ("state", "=", "approved"),
+                ("company_id", "in", list({company for _key, company in company_keys})),
+            ]
+        )
+        existing_by = {(row.stable_key, row.company_id.id or False): row for row in approved}
         for item in self:
             # The partial unique index is the final concurrent-approval guard.
             self.env.cr.execute("SELECT id FROM plasticos_broker_knowledge WHERE id = %s FOR UPDATE", [item.id])
             item.invalidate_recordset(["state"])
             item._check_admission()
-            existing = self.search(
-                [
-                    ("stable_key", "=", item.stable_key),
-                    ("state", "=", "approved"),
-                    ("company_id", "=", item.company_id.id or False),
-                ],
-                limit=1,
-            )
+            company = item.company_id.id or False
+            existing = existing_by.get((item.stable_key, company))
             if existing:
                 raise UserError("Retire the currently approved revision before approving its successor.")
             now = fields.Datetime.now()
@@ -269,6 +272,7 @@ class BrokerKnowledge(models.Model):
             self.env["plasticos.broker.review.event"]._append_from_knowledge(
                 knowledge=item, event="approved", reason=item.review_rationale
             )
+            existing_by[(item.stable_key, company)] = item
         return True
 
     def action_retire(self):

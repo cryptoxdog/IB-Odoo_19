@@ -28,7 +28,11 @@ class BrokerWebLeadAdvice(models.Model):
     def _qualification_signals(self, merged, evidence_bundle, eligibility, config):
         """Off = byte-equivalent parent dict. Shadow cannot alter any live final routing."""
         base = super()._qualification_signals(merged, evidence_bundle, eligibility, config)
-        mode = self.env["ir.config_parameter"].sudo().get_param(_SETTING, "off")
+        mode = (
+            self.env["ir.config_parameter"]
+            .sudo()  # sudo: read the off/shadow switch without a settings manager
+            .get_param(_SETTING, "off")
+        )
         if not can_inject(mode, config.get_qualification_mode()):
             return base
         try:

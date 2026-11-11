@@ -96,9 +96,9 @@
       "sha256": "1cd8e044c899e43c11e3e460ae86cbd406677119fc22b5660756f121a02d19d7"
     },
     {
-      "bytes": 2463,
+      "bytes": 2559,
       "path": "plasticos_broker_intelligence/models/audit.py",
-      "sha256": "3c781e3aa20613cedcdd393edaefebd4511d232320f3601b1a1afc3cf4cce5c7"
+      "sha256": "17ce4262911c05a5e093d286dfcb0b10f2ab13034f3364eab8143937dd01a045"
     },
     {
       "bytes": 8052,
@@ -111,9 +111,9 @@
       "sha256": "b6ad4d19742a4ebddfd82d7b272256bc27d31843e6a372b6be66d889e338197f"
     },
     {
-      "bytes": 14816,
+      "bytes": 15175,
       "path": "plasticos_broker_intelligence/models/knowledge.py",
-      "sha256": "c7820c637d65862c4184dee7ac4eea8339d49340527fcbc8292a754b2be3352a"
+      "sha256": "ea900e0dde14c001547e8bf54bb76f1102f8026b3f7abbee5ecc34bf8c3b3fcb"
     },
     {
       "bytes": 210,
@@ -356,9 +356,9 @@
       "sha256": "1fe0ca0591923874ba18e75de9ab7c885bd6b158d808d827af9fda273e14d578"
     },
     {
-      "bytes": 2055,
+      "bytes": 2168,
       "path": "plasticos_broker_intelligence_web_leads/models/web_lead_advice.py",
-      "sha256": "4a77cb47bdc1540ccd8a3734a7cc3feb441f672f60f03cb11e53674ff6dd5dcc"
+      "sha256": "bf0183a4a74b9b28b371bc789d935e7baf73b8701da01d1c956e9156cd6ffb62"
     },
     {
       "bytes": 0,

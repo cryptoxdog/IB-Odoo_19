@@ -41,7 +41,8 @@ class BrokerReviewEvent(models.Model):
         }
         # Only this owner may bypass the direct-create guard; the original actor
         # is captured before sudo and is never supplied by an untrusted caller.
-        return super(BrokerReviewEvent, self.sudo()).create([values])
+        elevated = self.sudo()  # sudo: owner writes the captured actor, not a caller-supplied one
+        return super(BrokerReviewEvent, elevated).create([values])
 
     def write(self, vals):
         raise UserError("Review events are immutable.")
