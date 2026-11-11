@@ -501,14 +501,25 @@ class TestWebLeadActions(PlasticosTestCase):
         lead.action_retry_processing()
         self.assertNotEqual(lead.state, "error")
 
+    def _verified(self, **kw):
+        # Manual promotion requires a broker rationale and a verified per-load weight
+        # (ADR-016 2026-11-11): an intake is never created from an invented quantity.
+        return self._make_web_lead(review_notes="Broker verified by phone.", estimated_lbs_per_load=40000, **kw)
+
     def test_action_force_create_intake(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_create_intake()
         self.assertTrue(lead.intake_id)
         self.assertEqual(lead.state, "intake_created")
 
+    def test_action_force_create_intake_without_verified_weight_raises(self):
+        lead = self._make_web_lead(decision="cold", review_notes="Broker verified by phone.")
+        with self.assertRaises(UserError):
+            lead.action_force_create_intake()
+        self.assertFalse(lead.intake_id)
+
     def test_action_force_create_intake_already_exists_raises(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_create_intake()
         with self.assertRaises(UserError):
             lead.action_force_create_intake()
@@ -525,13 +536,13 @@ class TestWebLeadActions(PlasticosTestCase):
             lead.action_retry_triage()
 
     def test_action_force_hot(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_hot()
         self.assertEqual(lead.decision, "hot")
         self.assertTrue(lead.intake_id)
 
     def test_action_view_intake(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_create_intake()
         result = lead.action_view_intake()
         self.assertEqual(result["res_model"], "plasticos.intake")
