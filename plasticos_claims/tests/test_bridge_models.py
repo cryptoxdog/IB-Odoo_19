@@ -78,7 +78,7 @@ class TestOfferBridge(PlasticosTestCase):
         self.assertNotIn("offer_id", self.env["plasticos.transaction"]._fields)
 
     def test_offer_reject_no_transaction(self):
-        offer = self._make_offer(state="sent")
+        offer = send_offer_email(self._make_offer())
         if hasattr(offer, "action_reject"):
             offer.action_reject()
             if hasattr(offer, "transaction_id"):

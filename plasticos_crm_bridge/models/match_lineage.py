@@ -204,8 +204,25 @@ class PlasticosOfferMatchLineage(models.Model):
                 )
             )
 
+    def _plasticos_is_manual_offer(self):
+        """Drafted from buyers the broker selected on an opportunity, not from a Gate result."""
+        self.ensure_one()
+        return bool(self.opportunity_id and not self.match_result_id)
+
+    def _plasticos_requires_send_evidence(self):
+        return super()._plasticos_requires_send_evidence() or self._plasticos_is_manual_offer()
+
+    def _plasticos_keeps_sent_history(self):
+        # An emailed manual offer is communicated history: a revised proposal is a new offer.
+        return super()._plasticos_keeps_sent_history() or (
+            self._plasticos_is_manual_offer() and bool(self.sent_message_id)
+        )
+
     def action_reset_to_draft(self):
-        """A manual offer reset to Draft may not become a second active draft for its buyer."""
+        """An emailed manual offer never returns to Draft; an unsent one may not become a second draft."""
+        for rec in self:
+            # Same refusal as the write guard, raised before any other check.
+            rec._plasticos_check_state_transition({"state": "draft"})
         manual = self.filtered(lambda offer: offer.opportunity_id and not offer.match_result_id)
         if manual:
             # One query for the whole batch; pairs are compared in memory.

@@ -287,6 +287,27 @@ class TestOfferManualSend(PlasticosTestCase):
             offer.write({"state": "sent"})
         self.assertEqual(offer.state, "draft")
 
+    # ── Lifecycle cannot be bypassed through the ORM ─────────
+
+    def test_offer_cannot_be_created_in_a_communicated_state(self):
+        for state in ("sent", "responded", "accepted"):
+            with self.assertRaisesRegex(UserError, "created as Draft"):
+                self._offer(state=state)
+            with self.assertRaisesRegex(UserError, "created as Draft"):
+                self.Offer.with_context(default_state=state).create(
+                    {"supplier_id": self.supplier.id, "buyer_id": self.buyer.id}
+                )
+
+    def test_draft_cannot_jump_to_responded_or_accepted(self):
+        offer = self._offer()
+        with self.assertRaisesRegex(UserError, "Responded after it was sent"):
+            offer.write({"state": "responded"})
+        with self.assertRaisesRegex(UserError, "accepted after it was sent"):
+            offer.write({"state": "accepted"})
+        with self.assertRaises(UserError):
+            offer.action_accept()
+        self.assertEqual(offer.state, "draft")
+
     def test_existing_chatter_message_is_not_send_evidence(self):
         offer = self._offer()
         offer.message_post(body="Internal note", message_type="comment", subtype_xmlid="mail.mt_note")

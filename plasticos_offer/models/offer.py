@@ -11,6 +11,11 @@ RES_PARTNER = "res.partner"
 IR_ATTACHMENT = "ir.attachment"
 MAIL_MESSAGE = "mail.message"
 
+# States that only exist after a real send. An offer is never created in them,
+# and reaches them only through the lifecycle: Sent by the email composer,
+# Responded from Sent, Accepted from Sent or Responded.
+COMMUNICATED_STATES = ("sent", "responded", "accepted")
+
 # Context key the Send Offer composer carries. Only a composer opened by
 # ``action_send`` and submitted through native Odoo Mail moves an offer to Sent.
 OFFER_SEND_CONTEXT = "plasticos_offer_send"
@@ -352,6 +357,17 @@ class PlasticosOffer(models.Model):
                     )
                 vals["name"] = sequence
         records = super().create(vals_list)
+        # Checked after defaults are applied, so a default_state context cannot bypass it.
+        communicated = records.filtered(lambda rec: rec.state in COMMUNICATED_STATES)
+        if communicated:
+            raise UserError(
+                _(
+                    "An offer is created as Draft. It becomes Sent only when its email is sent with Send Offer "
+                    "(refused: %(names)s in %(states)s).",
+                    names=", ".join(communicated.mapped("name")),
+                    states=", ".join(sorted(set(communicated.mapped("state")))),
+                )
+            )
         for rec in records:
             if rec.intake_id:
                 rec.copy_images_from("plasticos.intake", rec.intake_id.id)
@@ -426,15 +442,32 @@ class PlasticosOffer(models.Model):
             notifications.search_count([("mail_message_id", "=", message.id), ("notification_type", "=", "email")])
         )
 
-    def _plasticos_check_sent_evidence(self, vals):
-        """Sent is reachable only with the native Odoo Mail email submitted for this offer."""
-        if vals.get("state") != "sent":
+    def _plasticos_requires_send_evidence(self):
+        """True when acceptance needs the stored email of a real send. Bridges decide per offer."""
+        self.ensure_one()
+        return False
+
+    def _plasticos_keeps_sent_history(self):
+        """True when an emailed offer may never return to Draft. Bridges decide per offer."""
+        self.ensure_one()
+        return False
+
+    def _plasticos_check_state_transition(self, vals):
+        """Every write of ``state`` follows the lifecycle; a raw ORM write cannot skip a step.
+
+        - Sent: only from Draft, with the native Odoo Mail email submitted for this offer.
+        - Responded: only from Sent (or Responded).
+        - Accepted: only from Sent or Responded; when the offer requires it, only after a real send.
+        - Draft: never for an offer that keeps its sent history.
+        """
+        target = vals.get("state")
+        if not target:
             return
         message = self.env[MAIL_MESSAGE].browse(vals.get("sent_message_id") or [])
         for rec in self:
-            if rec.state == "sent":
+            if rec.state == target:
                 continue
-            if not rec._plasticos_is_offer_email(message):
+            if target == "sent" and not (rec.state == "draft" and rec._plasticos_is_offer_email(message)):
                 raise UserError(
                     _(
                         "Offer %(offer)s can only become Sent by sending its email with Send Offer. "
@@ -442,10 +475,27 @@ class PlasticosOffer(models.Model):
                         offer=rec.name,
                     )
                 )
+            if target == "responded" and rec.state != "sent":
+                raise UserError(_("Offer %(offer)s can only be marked Responded after it was sent.", offer=rec.name))
+            if target == "accepted":
+                if rec.state not in ("sent", "responded"):
+                    raise UserError(_("Offer %(offer)s can only be accepted after it was sent.", offer=rec.name))
+                if rec._plasticos_requires_send_evidence() and not rec.sent_message_id:
+                    raise UserError(
+                        _("Offer %(offer)s has no sent email on record and cannot be accepted.", offer=rec.name)
+                    )
+            if target == "draft" and rec._plasticos_keeps_sent_history():
+                raise UserError(
+                    _(
+                        "Offer %(offer)s was emailed to the buyer and keeps its terms, recipients and pictures as "
+                        "sent. Select the buyer again on the opportunity to make a new offer.",
+                        offer=rec.name,
+                    )
+                )
 
     def write(self, vals):
         """Guard against modifying closed offers (except state changes) and against term rewrites after draft."""
-        self._plasticos_check_sent_evidence(vals)
+        self._plasticos_check_state_transition(vals)
         closed_states = ("accepted", "rejected", "expired", "cancelled")
         if "state" not in vals:
             for rec in self:

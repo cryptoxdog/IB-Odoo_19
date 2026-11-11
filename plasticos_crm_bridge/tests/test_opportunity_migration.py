@@ -17,6 +17,7 @@ from psycopg2.errors import UniqueViolation
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_matching.models.match_run import RECEIPT_WRITE_CONTEXT
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.tests.common import tagged
 from odoo.tools import mute_logger
 
@@ -143,11 +144,19 @@ class TestOpportunityMigration(PlasticosTestCase):
         )
         offers = self.Offer.create(
             [
-                {"supplier_id": self.supplier.id, "buyer_id": result.buyer_partner_id.id, "match_result_id": result.id}
+                {
+                    "supplier_id": self.supplier.id,
+                    "buyer_id": result.buyer_partner_id.id,
+                    "match_result_id": result.id,
+                    "price_per_lb": 0.12,
+                    "quantity_lbs": 40000,
+                }
                 for result in results
             ]
         )
         self.assertEqual(set(offers.mapped("opportunity_id").ids), {opportunity.id})
+        # Both offers are really sent first: Accepted is reachable only from Sent.
+        send_offer_email(offers)
         # Bypass the readable pre-check on purpose: the index must hold on its own.
         offers[0].write({"state": "accepted"})
         with mute_logger("odoo.sql_db"), self.assertRaises(UniqueViolation):

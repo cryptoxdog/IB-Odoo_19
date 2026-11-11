@@ -2,6 +2,7 @@ import re
 
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import float_compare
 
 # Fields the location reach-person reads. A later People-list change refreshes
 # an open opportunity's contact, email, job, and phone.
@@ -979,6 +980,52 @@ class CrmLeadPlastOS(models.Model):
             limit=1,
         )
 
+    def _plasticos_check_manual_release_terms(self, offer):
+        """The release of a manual offer sells exactly what the buyer accepted, or nothing is created.
+
+        Buyer company is the offer's buyer, the facility belongs to that company,
+        and the sale price is the accepted buyer price. A Gate offer is not checked here.
+        """
+        self.ensure_one()
+        buyer = offer.buyer_id
+        if self.release_buyer_company_id != buyer:
+            raise UserError(
+                _(
+                    "Offer %(offer)s was accepted by %(buyer)s; the release buyer company is %(company)s.",
+                    offer=offer.name,
+                    buyer=buyer.display_name,
+                    company=self.release_buyer_company_id.display_name,
+                )
+            )
+        facility = self.release_buyer_facility_id
+        node = facility
+        while node and node != buyer:
+            node = node.parent_id
+        if not node:
+            raise UserError(
+                _(
+                    "Buyer facility %(facility)s does not belong to %(buyer)s, who accepted offer %(offer)s.",
+                    facility=facility.display_name,
+                    buyer=buyer.display_name,
+                    offer=offer.name,
+                )
+            )
+        # Compared at the finer of the currency's decimals and the stored per-lb precision:
+        # cent rounding alone would accept a different per-lb price.
+        currency = offer.currency_id or self.env.company.currency_id
+        stored_digits = self._fields["release_buyer_price"].get_digits(self.env)
+        digits = max(currency.decimal_places, stored_digits[1] if stored_digits else 0)
+        if float_compare(self.release_buyer_price, offer.price_per_lb, precision_digits=digits) != 0:
+            raise UserError(
+                _(
+                    "The buyer price %(price)s/lb differs from %(accepted)s/lb accepted in offer %(offer)s. "
+                    "A changed price is a new offer.",
+                    price=self.release_buyer_price,
+                    accepted=offer.price_per_lb,
+                    offer=offer.name,
+                )
+            )
+
     def action_submit_release(self):
         """Create one draft purchase order, one draft sale order, and one draft transaction.
 
@@ -1014,6 +1061,8 @@ class CrmLeadPlastOS(models.Model):
         if not material:
             raise UserError(_("The opportunity has no material copy to sell."))
         offer._plasticos_check_release_material(material)
+        if not offer.match_result_id:
+            self._plasticos_check_manual_release_terms(offer)
         # The purchase price is the opportunity's supplier price (Offer Price on the
         # material sheet), read at submit: it stays editable until the final agreement.
         # The accepted offer's price_per_lb is the buyer-facing price, not the cost.

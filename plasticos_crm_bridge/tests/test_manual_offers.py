@@ -324,16 +324,20 @@ class TestManualOffers(PlasticosTestCase):
         final_supplier_price = 0.0815
         opportunity.offer_buy_price = final_supplier_price
         self.assertEqual(opportunity.opportunity_material_ids.buy_price_per_lb, final_supplier_price)
+        plant = self.env["res.partner"].create(
+            {"name": "Buyer A Plant", "is_company": True, "parent_id": self.buyer_a.id, "customer_rank": 1}
+        )
         opportunity.write(
             {
                 "release_buyer_company_id": self.buyer_a.id,
-                "release_buyer_facility_id": self.buyer_a.id,
-                "release_buyer_price": 0.25,
+                "release_buyer_facility_id": plant.id,
+                "release_buyer_price": 0.21,
             }
         )
         opportunity.action_submit_release()
         self.assertEqual(opportunity.release_purchase_order_id.order_line.price_unit, final_supplier_price)
-        self.assertEqual(opportunity.release_sale_order_id.order_line.price_unit, 0.25)
+        self.assertEqual(opportunity.release_sale_order_id.order_line.price_unit, winner.price_per_lb)
+        self.assertEqual(opportunity.release_sale_order_id.partner_id, plant)
         self.assertTrue(opportunity.release_sale_order_id)
         self.assertEqual(opportunity.release_sale_order_id.order_line.product_uom_qty, winner.quantity_lbs)
         opportunity.action_submit_release()
@@ -351,7 +355,7 @@ class TestManualOffers(PlasticosTestCase):
             {
                 "release_buyer_company_id": self.buyer_a.id,
                 "release_buyer_facility_id": self.buyer_a.id,
-                "release_buyer_price": 0.25,
+                "release_buyer_price": 0.21,
             }
         )
         with self.assertRaisesRegex(UserError, "material changed"):
@@ -359,12 +363,93 @@ class TestManualOffers(PlasticosTestCase):
         self.assertFalse(opportunity.release_purchase_order_id)
         self.assertFalse(opportunity.release_sale_order_id)
 
-    def test_reset_manual_offer_cannot_duplicate_an_active_draft(self):
+    # ── Release sells exactly what the buyer accepted (R1) ──
+
+    def _accepted_manual_offer(self):
+        opportunity = self._opportunity()
+        offer = self._generate(opportunity, self.alice)
+        offer.write({"price_per_lb": 0.21})
+        send_offer_email(offer)
+        offer.action_accept()
+        return opportunity, offer
+
+    def _assert_release_refused(self, opportunity, offer, vals, pattern):
+        opportunity.write(vals)
+        with self.assertRaisesRegex(UserError, pattern):
+            opportunity.action_submit_release()
+        self.assertFalse(opportunity.release_purchase_order_id)
+        self.assertFalse(opportunity.release_sale_order_id)
+        self.assertFalse(opportunity.release_transaction_id)
+        self.assertFalse(self.env["sale.order"].search_count([("opportunity_id", "=", opportunity.id)]))
+        self.assertFalse(self.env["purchase.order"].search_count([("origin", "=", offer.name)]))
+
+    def test_release_refuses_a_buyer_other_than_the_accepted_one(self):
+        opportunity, offer = self._accepted_manual_offer()
+        self._assert_release_refused(
+            opportunity,
+            offer,
+            {
+                "release_buyer_company_id": self.buyer_b.id,
+                "release_buyer_facility_id": self.buyer_b.id,
+                "release_buyer_price": 0.21,
+            },
+            "was accepted by",
+        )
+
+    def test_release_refuses_a_facility_outside_the_accepted_buyer(self):
+        opportunity, offer = self._accepted_manual_offer()
+        self._assert_release_refused(
+            opportunity,
+            offer,
+            {
+                "release_buyer_company_id": self.buyer_a.id,
+                "release_buyer_facility_id": self.buyer_b.id,
+                "release_buyer_price": 0.21,
+            },
+            "does not belong to",
+        )
+
+    def test_release_refuses_a_price_other_than_the_accepted_one(self):
+        opportunity, offer = self._accepted_manual_offer()
+        self._assert_release_refused(
+            opportunity,
+            offer,
+            {
+                "release_buyer_company_id": self.buyer_a.id,
+                "release_buyer_facility_id": self.buyer_a.id,
+                "release_buyer_price": 0.2101,
+            },
+            "differs from",
+        )
+
+    # ── Communicated history is kept (R3) ───────────────────
+
+    def test_emailed_manual_offer_cannot_be_rewritten_through_reset(self):
         opportunity = self._opportunity()
         first = self._generate(opportunity, self.alice)
         first.write({"price_per_lb": 0.21})
         send_offer_email(first)
+        message = first.sent_message_id
+        sent = (first.price_per_lb, first.recipient_partner_ids, first.material_description, message.attachment_ids)
         first.action_reject()
+        with self.assertRaisesRegex(UserError, "was emailed to the buyer"):
+            first.action_reset_to_draft()
+        with self.assertRaisesRegex(UserError, "was emailed to the buyer"):
+            first.write({"state": "draft"})
+        self.assertEqual(first.state, "rejected")
+        self.assertEqual(first.sent_message_id, message)
+        self.assertEqual(
+            (first.price_per_lb, first.recipient_partner_ids, first.material_description, message.attachment_ids),
+            sent,
+        )
+        revised = self._generate(opportunity, self.alice)
+        self.assertNotEqual(revised, first, "a revised proposal is a new offer")
+        self.assertEqual(revised.state, "draft")
+
+    def test_unsent_manual_offer_reset_cannot_duplicate_an_active_draft(self):
+        opportunity = self._opportunity()
+        first = self._generate(opportunity, self.alice)
+        first.action_cancel()
         self._generate(opportunity, self.alice)
         with self.assertRaisesRegex(UserError, "already has a draft offer"):
             first.action_reset_to_draft()

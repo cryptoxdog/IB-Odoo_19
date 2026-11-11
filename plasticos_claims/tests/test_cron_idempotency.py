@@ -31,8 +31,13 @@ class TestCronInDomain(PlasticosTestCase):
     """One in-domain record per live cron, then the cron's own second-call guard."""
 
     def test_offer_expire_in_domain(self):
+        from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email  # noqa: PLC0415
+
         offer_model = self.env["plasticos.offer"]
-        past = fields.Date.today() - timedelta(days=1)
+        # An offer is Sent only by emailing it, and an expired offer cannot be emailed: the
+        # past-due offer is sent while valid today, and the cron runs as if today were tomorrow.
+        past = fields.Date.today()
+        cron_day = past + timedelta(days=1)
         supplier = self.env["res.partner"].create({"name": "Cron Supplier", "is_company": True})
         buyer = self.env["res.partner"].create({"name": "Cron Buyer", "is_company": True})
         intake = self._create_intake(partner=supplier)
@@ -42,16 +47,18 @@ class TestCronInDomain(PlasticosTestCase):
                 "intake_id": intake.id,
                 "supplier_id": supplier.id,
                 "buyer_id": buyer.id,
+                "price_per_lb": 0.12,
+                "quantity_lbs": 40000,
                 "valid_until": past,
-                "state": "sent",
             }
         )
+        send_offer_email(past_offer)
         future_offer = offer_model.create(
             {
                 "intake_id": intake.id,
                 "supplier_id": supplier.id,
                 "buyer_id": buyer.id,
-                "valid_until": fields.Date.today() + timedelta(days=1),
+                "valid_until": cron_day + timedelta(days=1),
                 "state": "draft",
             }
         )
@@ -67,12 +74,14 @@ class TestCronInDomain(PlasticosTestCase):
             ]
         )
         self.assertLess(ahead, 500, f"plasticos.offer sort prefix already has {ahead} rows; limit is 500")
-        offer_model.cron_expire_offers()
+        with patch.object(fields.Date, "today", return_value=cron_day):
+            offer_model.cron_expire_offers()
         past_offer.invalidate_recordset()
         future_offer.invalidate_recordset()
         self.assertEqual(past_offer.state, "expired")
         self.assertEqual(future_offer.state, "draft")
-        offer_model.cron_expire_offers()
+        with patch.object(fields.Date, "today", return_value=cron_day):
+            offer_model.cron_expire_offers()
         past_offer.invalidate_recordset()
         future_offer.invalidate_recordset()
         self.assertEqual(past_offer.state, "expired")
