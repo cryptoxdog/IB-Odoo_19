@@ -53,7 +53,7 @@ Why ed25519:
 
 ### Generating the key pair (operator workstation only)
 
-Generate the keys outside every repository and every agent session. The private half lives **only** in Infisical project `cursor-governance` under the name `ODOO_GATE_SIGNING_KEY`. That name is new; section 6 covers registering it. Only the public half is printed.
+Generate the keys outside every repository and every agent session. The private half goes only into the secret store that feeds the Odoo production process. Which store that is depends on open question 1 in §5. It never goes into a repository, an `ir.config_parameter`, a ticket or chat. Only the public half is printed.
 
 ```bash
 umask 077
@@ -67,7 +67,7 @@ raw_pub = k.public_key().public_bytes(s.Encoding.Raw, s.PublicFormat.Raw)
 pathlib.Path("odoo_gate_signing_key.b64").write_text(base64.b64encode(raw_priv).decode())
 print("public (base64, safe to share):", base64.b64encode(raw_pub).decode())
 PY
-# Store the contents of odoo_gate_signing_key.b64 in Infisical as ODOO_GATE_SIGNING_KEY,
+# Store the contents of odoo_gate_signing_key.b64 in the Odoo runtime's secret store,
 # then delete the file:  shred -u odoo_gate_signing_key.b64
 ```
 
@@ -118,7 +118,7 @@ Read by Gate_SDK `get_gate_client_config_from_env` (`gate/config.py:185`), which
 |---|---|---|
 | `GATE_URL` | Gate's public `https://` base URL | Required. Operator supplies it. |
 | `L9_NODE_NAME` | `odoo` | Overridden to `odoo` anyway (`gate_config.py:338`). Set it for clarity. |
-| `L9_SIGNING_KEY` | Secret `ODOO_GATE_SIGNING_KEY` from Infisical (base64 ed25519 seed) | Never in the repository, a ticket, or chat |
+| `L9_SIGNING_KEY` | Odoo's private key (base64 ed25519 seed) from the Odoo runtime's secret store | Never in the repository, a ticket, or chat |
 | `L9_SIGNING_KEY_ID` | `odoo-scrapmanagement-v1` | Must equal Gate's map keys in §2a |
 | `L9_SIGNING_ALGORITHM` | `ed25519` | **Required.** Without it Odoo cannot sign (see §1) |
 | `L9_VERIFYING_KEYS_JSON` | `{"<Gate key id>": "<Gate public key>"}` | **Gate's** key, not Odoo's. The Gate operator supplies the id and public half. In staging and prod Gate signs with ed25519. |
@@ -128,7 +128,7 @@ Read by Gate_SDK `get_gate_client_config_from_env` (`gate/config.py:185`), which
 
 ## 3. Order of application
 
-1. **Keys.** Generate Odoo's key pair (§1). Store the private half in Infisical. Hand the public half and the key id to the Gate operator, and get Gate's key id and public key in return.
+1. **Keys.** Generate Odoo's key pair (§1). Store the private half in the Odoo runtime's secret store. Hand the public half and the key id to the Gate operator, and get Gate's key id and public key in return.
 2. **Gate policy.** In **one** Gate deploy, add Odoo's verifying key and its caller policy (§2a). Smoke check G.
 3. **Odoo tenant.** Set `plasticos.gate.org_id = scrapmanagement`. Keep `plasticos.gate.enrichment_enabled = 0`.
 4. **Odoo environment.** Set the seven §2c variables on the Odoo process and restart it. Smoke check O1.
@@ -197,5 +197,4 @@ Expected failures and what they mean:
 | This runbook | `docs/GATE_ODOO_WIRING.md` | This PR |
 | `L9_SIGNING_ALGORITHM` passed through to the Odoo container. All three services in `docker-compose.yml` (around lines 70–76, 108–114, 149–155) list every `L9_*` variable except the algorithm, so a local stack cannot sign. Proposed line after each `L9_SIGNING_KEY_ID:` entry: `L9_SIGNING_ALGORITHM: ${L9_SIGNING_ALGORITHM:-}` | `docker-compose.yml` (protected file) | **Proposed, awaiting explicit operator approval** |
 | `L9_SIGNING_ALGORITHM=ed25519` after `L9_SIGNING_KEY_ID=` in the Gate block | `.env.example:64` (protected file) | **Proposed, awaiting explicit operator approval** |
-| Register `ODOO_GATE_SIGNING_KEY` in `root_env_keys` | Cursor-Governance `ops/secrets/infisical-cursor-governance.yaml` | Separate Cursor-Governance PR |
 | Odoo consumer caller policy documented next to the `odoo-e2e` example | Constellation.Gate `deploy/README_DEPLOY.md` | Gate repository; not attachable from this session |
