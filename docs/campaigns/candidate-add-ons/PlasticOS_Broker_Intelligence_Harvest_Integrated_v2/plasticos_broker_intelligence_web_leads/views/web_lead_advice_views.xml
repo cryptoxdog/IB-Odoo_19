@@ -1,0 +1,10 @@
+<odoo>
+  <record id="view_web_lead_broker_advice" model="ir.ui.view">
+    <field name="name">plasticos.web.lead.form.broker.advice</field>
+    <field name="model">plasticos.web.lead</field>
+    <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_form"/>
+    <field name="arch" type="xml"><xpath expr="//form/header" position="inside">
+      <button name="action_broker_advice" type="object" string="Broker Advice" class="btn-secondary"/>
+    </xpath></field>
+  </record>
+</odoo>

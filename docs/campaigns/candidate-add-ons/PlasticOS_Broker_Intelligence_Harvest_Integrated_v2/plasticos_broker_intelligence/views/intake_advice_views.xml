@@ -1,0 +1,10 @@
+<odoo>
+  <record id="view_broker_intake_advice_button" model="ir.ui.view">
+    <field name="name">plasticos.intake.form.broker.advice.button</field>
+    <field name="model">plasticos.intake</field>
+    <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
+    <field name="arch" type="xml"><xpath expr="//form/header" position="inside">
+      <button name="action_broker_advice" string="Broker Advice" type="object" class="btn-secondary"/>
+    </xpath></field>
+  </record>
+</odoo>

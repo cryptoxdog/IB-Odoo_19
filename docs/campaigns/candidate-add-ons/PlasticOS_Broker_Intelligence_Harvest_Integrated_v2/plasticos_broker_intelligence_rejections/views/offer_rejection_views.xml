@@ -1,0 +1,10 @@
+<odoo>
+  <record id="view_offer_broker_rejection" model="ir.ui.view">
+    <field name="name">plasticos.offer.form.broker.rejection</field>
+    <field name="model">plasticos.offer</field>
+    <field name="inherit_id" ref="plasticos_offer.view_offer_form"/>
+    <field name="arch" type="xml"><xpath expr="//form/header" position="inside">
+      <button name="action_broker_rejection_advice" type="object" string="Explain Rejection" class="btn-secondary"/>
+    </xpath></field>
+  </record>
+</odoo>

@@ -1,0 +1,10 @@
+<odoo>
+  <record id="view_intake_mack_broker" model="ir.ui.view">
+    <field name="name">plasticos.intake.form.mack.broker</field>
+    <field name="model">plasticos.intake</field>
+    <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
+    <field name="arch" type="xml"><xpath expr="//form/header" position="inside">
+      <button name="action_mack_broker_advice" type="object" string="Mack: Broker Advice" class="btn-secondary"/>
+    </xpath></field>
+  </record>
+</odoo>

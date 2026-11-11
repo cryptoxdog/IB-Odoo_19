@@ -1,0 +1,20 @@
+<odoo>
+  <record id="rule_broker_knowledge_company" model="ir.rule">
+    <field name="name">Broker knowledge: authorized company or global</field>
+    <field name="model_id" ref="model_plasticos_broker_knowledge"/>
+    <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+  </record>
+  <record id="rule_broker_audit_company" model="ir.rule">
+    <field name="name">Broker admission events: authorized company</field>
+    <field name="model_id" ref="model_plasticos_broker_review_event"/>
+    <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+  </record>
+  <record id="rule_broker_feedback_company" model="ir.rule">
+    <field name="name">Broker feedback: original actor in authorized company</field>
+    <field name="model_id" ref="model_plasticos_broker_feedback"/>
+    <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    <field name="domain_force">[('actor_id', '=', user.id), ('company_id', 'in', company_ids)]</field>
+  </record>
+</odoo>

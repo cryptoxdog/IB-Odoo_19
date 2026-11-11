@@ -1,0 +1,116 @@
+{
+  "archive_text_members": [
+    {
+      "bytes": 16971,
+      "member": "PlasticOS-Tuning (LLM)/generate_300_training_pairs.py",
+      "sha256": "2fded1e36ec4aef8934139610e1301edea74ff8b19aebf4a414199a23b1f3311"
+    },
+    {
+      "bytes": 20983,
+      "member": "PlasticOS-Tuning (LLM)/create_perfect_300.py",
+      "sha256": "3bbd3965affbd512bb20cb3c373fd372129b831e5fe1757d714e3b303c06f7e9"
+    },
+    {
+      "bytes": 72712,
+      "member": "PlasticOS-Tuning (LLM)/perfect_300_training_dataset.csv",
+      "sha256": "49ca15ac001bd0fcef03413d764f488ea8a0a710a5199221e3f8d2cc33ead927"
+    },
+    {
+      "bytes": 70791,
+      "member": "PlasticOS-Tuning (LLM)/final_300_unique_pairs.py",
+      "sha256": "8ff9118a9d5730f43065f238229daf985821bd49b7e57dade4566d222066809d"
+    },
+    {
+      "bytes": 3657,
+      "member": "PlasticOS-Tuning (LLM)/rejection-code-library-v0_1.jsonl",
+      "sha256": "6d114806096938097b977e19be0915f44586d834f1086a4202742e77bf2ab42d"
+    },
+    {
+      "bytes": 12222,
+      "member": "PlasticOS-Tuning (LLM)/quality_check.py",
+      "sha256": "d9f71af6a044cdd6dbb3902b83cd8ff77e151c4c899667b550d8d37d8ca70307"
+    },
+    {
+      "bytes": 57168,
+      "member": "PlasticOS-Tuning (LLM)/scrap_plastic_broker_training_dataset_corrected.csv",
+      "sha256": "7b7cfd223f30738daf18ed94d0bee79cc56c458598d961b1b224d6d43a3578ae"
+    },
+    {
+      "bytes": 27090,
+      "member": "PlasticOS-Tuning (LLM)/create_final_dataset.py",
+      "sha256": "78ec08f7122a7f9c70da160b4115670ec2f9103ace8b5853fad236983c47ebd8"
+    },
+    {
+      "bytes": 44907,
+      "member": "PlasticOS-Tuning (LLM)/ultimate_scrap_broker_training_dataset.csv",
+      "sha256": "af127e50d971d17474fa43fa607480140d5137f1775180302ee59fff6bbf5b0c"
+    },
+    {
+      "bytes": 16480,
+      "member": "PlasticOS-Tuning (LLM)/rejection_code_extensions.jsonl",
+      "sha256": "93eaae07a0c36247a8d0bbba16612d2230c21fe49e0f848ed3434e32ab2c0ecf"
+    },
+    {
+      "bytes": 19376,
+      "member": "PlasticOS-Tuning (LLM)/final_quality_check.py",
+      "sha256": "6b40163910615c6d5a61cebc0a5d744a815b1d4dfc9816104317c770d795005f"
+    },
+    {
+      "bytes": 5235,
+      "member": "PlasticOS-Tuning (LLM)/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "sha256": "a56f664eaea700158e7fca403a076cb108636a7d95a04427bcacd5020b913381"
+    },
+    {
+      "bytes": 8204,
+      "member": "PlasticOS-Tuning (LLM)/scrapgpt_trainset_v1_full.yaml",
+      "sha256": "1dac42233c384a93a2750064bc819bacf13779b9d4e4090dfca7b040fcaefead"
+    },
+    {
+      "bytes": 33078,
+      "member": "PlasticOS-Tuning (LLM)/Training Data-Set/scrapgpt_trainset_v1_grouped_real_FIXED.yaml",
+      "sha256": "37262a3ffe4eb43f33a82c8eb01b813b321f4c3d5e2af6a6065dbc6fcac774c6"
+    }
+  ],
+  "beneficiary_snapshot": {
+    "Development_revision_for_mack": "d9933baaf517750779e592181d9d5ef4abdc3485",
+    "Staging_revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7",
+    "repository": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "verification": "GitHub connector read; exact source read, git blob SHA; no local rehash"
+  },
+  "csv_rows": {
+    "perfect_300_training_dataset.csv": 300,
+    "scrap_plastic_broker_training_dataset_corrected.csv": 229,
+    "ultimate_scrap_broker_training_dataset.csv": 170
+  },
+  "foundational_boundary": "No automatic semantic admission, repo mutation, Odoo install, LLM training, code publication, scoring or external communication.",
+  "malformed_extension_lines": [
+    {
+      "error": "JSONDecodeError",
+      "line": 60,
+      "member": "PlasticOS-Tuning (LLM)/rejection_code_extensions.jsonl"
+    },
+    {
+      "error": "JSONDecodeError",
+      "line": 61,
+      "member": "PlasticOS-Tuning (LLM)/rejection_code_extensions.jsonl"
+    }
+  ],
+  "media_bytes_not_embedded": 85644937,
+  "media_total": 116,
+  "original_zip": {
+    "CRC_check": "PASS",
+    "bytes": 84623116,
+    "filename": "PlasticOS-Tuning (LLM) 2.zip",
+    "sha256": "2e539d32265c611ad1d2a70d7184696f2952b4568175014a518f5715a54dd853"
+  },
+  "secondary_addon_snapshot": {
+    "filename": "PlasticOS_Broker_Intelligence_Standalone_Odoo19_v1.zip",
+    "note": "source comparison only; never installed",
+    "sha256": "efddf4dc53aae0e6c2e322e9cfa4cab61ad1db333a15e410138c67f7b105436b"
+  },
+  "yaml_group_counts": {
+    "COACH_SAMPLES": 56,
+    "QUOTE_SAMPLES": 56,
+    "REJECT_SAMPLES": 56
+  }
+}
