@@ -826,6 +826,21 @@ class PlasticosMaterialProfile(models.Model):
                 self.id,
             )
 
+    def action_remove_profile(self):
+        """Delete this profile, or archive it when an approved lot still points at it."""
+        self.ensure_one()
+        self.check_access("read")
+        self.partner_id.check_access("read")
+        approval_model = "plasticos.opportunity.approval"
+        referenced = approval_model in self.env and self.env[approval_model].search_count(
+            [("material_profile_id", "=", self.id)]
+        )
+        if referenced:
+            self.write({"active": False})
+        else:
+            self.unlink()
+        return True
+
     def action_email_images(self):
         """Open email composer with material images pre-attached."""
         self.ensure_one()
