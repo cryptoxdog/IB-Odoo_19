@@ -62,6 +62,20 @@ This cloud session has a Docker daemon (29.9.2) and reaches Docker Hub. The only
 2. Make it reachable from cloud sessions: add it to the cloud environment's repositories, or set `ODOO_ENTERPRISE_REPO`.
 3. In the next cloud session, run `make runtime-bootstrap` and record the first fixture admission. Then publish with `PR_SMOKE=1 make pr`: since Staging #444, a cloud session skips the install-smoke unless `PR_SMOKE=1` is set.
 
+## Follow-up (2026-11-11): first cloud admission
+
+The operator pushed the Enterprise 19.0 source to the private `Quantum-L9/odoo-enterprise` (`main`, 757 modules) and attached it to the session as the sibling `../odoo-enterprise`.
+
+| Step | Result |
+|---|---|
+| First `make runtime-bootstrap` | The project image build failed: `pip` could not clone `Gate_SDK` ("server certificate verification failed"). Build containers do not trust the session HTTPS proxy CA. |
+| Fix | `scripts/runtime_bootstrap.sh` gains `trust_proxy_ca`: when `/root/.ccr/ca-bundle.crt` (or `RUNTIME_BOOTSTRAP_PROXY_CA`) exists, it rebuilds the `Dockerfile` base image (`odoo:19`) locally with the CA trusted, under the same tag, labelled with the CA digest. A matching label is reused. No CA file: no change. `Dockerfile` and `docker-compose.yml` are untouched. |
+| `tests/test_runtime_bootstrap.py` | 5 new tests (no CA, rebuild, reuse, failed rebuild, unreadable `FROM`); every test pins `RUNTIME_BOOTSTRAP_PROXY_CA` so a real cloud CA file never leaks in. 47 passed with `tests/test_runtime_test_ownership.py`. |
+| Live, base reset to the registry `odoo:19` | The script rebuilt the base. The fixture from the earlier hand-made shim then read "not admitted", correctly, and `make test-env-rebuild` re-admitted it: 69 modules, `installed=172`, `plasticos_accounts=58/58`, fingerprint `07ed95a3be40f364`. |
+| Live rerun | 2 s: "base image odoo:19 already trusts the session proxy CA", fixture reused. |
+
+The "Not established" item about an Enterprise fixture admission in a cloud session is now established. Docker bind mounts work in this sandbox; the admission ran through them.
+
 ## Rollback
 
 Revert the PR. The bootstrap, the Makefile target, the hook and the docs are additive. The `AGENTS.md` change is one line.
