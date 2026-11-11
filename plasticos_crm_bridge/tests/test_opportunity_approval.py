@@ -22,6 +22,8 @@ import os
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from lxml import etree
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_crm_bridge.models.opportunity_approval import APPROVAL_MINT_CONTEXT
 from odoo.addons.plasticos_gate.services.gate_config import (
@@ -311,6 +313,17 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertEqual(second_run.approval_id.snapshot["contamination_pct"], 4.0)
         self.assertEqual(first_run.approval_id, first_lot, "the earlier run keeps its own lot")
 
+    def test_matching_chatter_carries_no_lot_or_snapshot_terms(self):
+        opportunity = self._opportunity()
+        messages_before = opportunity.message_ids
+        run, _sent = self._match(opportunity)
+        posted = opportunity.message_ids - messages_before
+        bodies = " ".join(message.body or "" for message in posted)
+        self.assertIn("Matching completed: 1 eligible buyer(s) found.", bodies)
+        for term in ("lot", "Lot", "snapshot", "Snapshot", run.approval_id.snapshot_digest[:12]):
+            self.assertNotIn(term, bodies, f"chatter exposes technical evidence term {term!r}")
+        self.assertTrue(run.approval_id, "the lot is still recorded as backend evidence")
+
     def test_commercial_views_show_no_lot_interaction(self):
         opportunity_form = self.Lead.get_views([(False, "form")])["views"]["form"]["arch"]
         self.assertNotIn("approval_ids", opportunity_form)
@@ -318,6 +331,11 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertNotIn("snapshot_digest", opportunity_form)
         self.assertNotIn("Approved Lots", opportunity_form)
         self.assertIn("match_run_ids", opportunity_form, "Gate match runs stay visible")
+        form = etree.fromstring(opportunity_form)
+        for name in ("action_match_opportunity", "action_create_offers_from_results", "action_view_match_runs"):
+            for button in form.xpath(f"//button[@name='{name}']"):
+                title = button.get("title") or ""
+                self.assertNotRegex(title, r"(?i)\blots?\b|snapshot", f"{name} tooltip names a lot or snapshot")
         run_views = self.Run.get_views([(False, "list"), (False, "form")])["views"]
         for view_type in ("list", "form"):
             arch = run_views[view_type]["arch"]

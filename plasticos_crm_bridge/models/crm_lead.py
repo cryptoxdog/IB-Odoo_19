@@ -1061,17 +1061,21 @@ class CrmLeadPlastOS(models.Model):
     def _plasticos_require_lot_inputs(self):
         self.ensure_one()
         if self.type != "opportunity":
-            raise UserError(_("Only a native CRM opportunity can approve a lot. Convert the lead first."))
+            raise UserError(_("Only a native CRM opportunity can be matched. Convert the lead first."))
         if not self.partner_id:
-            raise UserError(_("Link the verified Partner before approving a lot. No partner is created here."))
+            raise UserError(_("Link the verified Partner before matching. No partner is created here."))
         if not self.material_profile_id:
-            raise UserError(_("Select the approved Material Profile before approving a lot."))
+            raise UserError(_("Select the approved Material Profile before matching."))
         self._reject_foreign_material_profile(self.partner_id)
 
     def action_approve_lot(self):
-        """Mint one immutable approved lot from the current Partner, Material Profile and optional Facility."""
+        """Mint one immutable approved lot from the current Partner, Material Profile and optional Facility.
+
+        The lot is backend evidence only: it posts nothing to the chatter. Its
+        provenance lives on the ``plasticos.opportunity.approval`` record.
+        """
         self._plasticos_require_lot_inputs()
-        approval = self.env["plasticos.opportunity.approval"].mint(
+        return self.env["plasticos.opportunity.approval"].mint(
             self,
             source=self._plasticos_opportunity_source(),
             partner=self.partner_id,
@@ -1079,20 +1083,6 @@ class CrmLeadPlastOS(models.Model):
             facility_profile=self.facility_profile_id or None,
             source_intake=self.source_intake_id or None,
         )
-        self.message_post(
-            body=_(
-                "Approved lot %(lot)s (%(lot_source)s): %(partner)s / %(profile)s%(facility)s. Snapshot %(digest)s.",
-                lot=approval.id,
-                lot_source=approval.source,
-                partner=approval.partner_id.name,
-                profile=approval.material_profile_id.display_name,
-                facility=(" / " + approval.facility_profile_id.display_name) if approval.facility_profile_id else "",
-                digest=(approval.snapshot_digest or "")[:12],
-            ),
-            message_type="notification",
-            subtype_xmlid="mail.mt_note",
-        )
-        return approval
 
     def _plasticos_ensure_lot_durable(self):
         """Commit the approved lot before the orchestrator may roll the request back.
@@ -1143,10 +1133,7 @@ class CrmLeadPlastOS(models.Model):
             runs |= run
             rec.message_post(
                 body=_(
-                    "Gate match run %(run)s on lot %(lot)s returned %(count)s eligible buyer(s). "
-                    "Review the results, then create offers.",
-                    run=run.id,
-                    lot=approval.id,
+                    "Matching completed: %(count)s eligible buyer(s) found. Review the results, then create offers.",
                     count=len(matches),
                 ),
                 message_type="notification",
@@ -1193,7 +1180,9 @@ class CrmLeadPlastOS(models.Model):
         for rec in self:
             run = rec._plasticos_current_run()
             if not run:
-                raise UserError(_("Opportunity %s has no successful Gate match run on its current lot.") % rec.name)
+                raise UserError(
+                    _("Opportunity %s has no successful Gate match yet. Run Match via Gate first.") % rec.name
+                )
             reviewed = run.result_ids.filtered(lambda result: result.state == "accepted")
             if not reviewed:
                 raise UserError(_("No reviewed (accepted) match result on run %s. Review the results first.") % run.id)

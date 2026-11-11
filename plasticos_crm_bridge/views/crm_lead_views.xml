@@ -30,13 +30,13 @@
                         type="object"
                         string="Match via Gate"
                         class="btn btn-primary"
-                        title="PlasticOS: Approves an immutable lot from the linked Partner and Material Profile (Facility optional) and runs the Gate match. HOT, manual and VanillaSoft opportunities all use this command."
+                        title="PlasticOS: Matches the linked Partner and Material Profile (Facility optional) to eligible buyers through Gate. HOT, manual and VanillaSoft opportunities all use this command."
                         invisible="not active or type != 'opportunity' or not partner_id or not material_profile_id"/>
                 <button name="action_create_offers_from_results"
                         type="object"
                         string="Create Offers"
                         class="btn btn-secondary"
-                        title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) Gate result of the current lot. Re-running creates nothing new."
+                        title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) result of the latest Gate match. Re-running creates nothing new."
                         invisible="not active or type != 'opportunity' or not match_run_ids"/>
                 <button name="action_submit_release"
                         type="object"
@@ -96,7 +96,7 @@
                         class="oe_stat_button"
                         icon="fa-random"
                         invisible="not match_run_ids"
-                        title="Gate match runs on this opportunity's approved lots.">
+                        title="Gate match runs on this opportunity.">
                     <span class="o_stat_text">Gate Runs</span>
                 </button>
 
