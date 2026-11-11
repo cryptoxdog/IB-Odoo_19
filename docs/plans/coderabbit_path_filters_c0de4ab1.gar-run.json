@@ -1,0 +1,70 @@
+{
+  "schema": "l9.gar_plan_run.v1",
+  "run_id": "gar-plan-run",
+  "governing_cause": "IB-Odoo_19 .coderabbit.yaml reviews.path_filters (lines 56-80) mixes four include patterns with exclusions. CodeRabbit treats any include as an allowlist and exclusions always win, so the only allowlisted files (four tests/ modules) are also excluded by !tests/**; every PR file is skipped (PR #467: 'excluded by none and included by none'). Separately auto_review.base_branches (lines 235-238) names main/master/develop, which do not exist; Production promotion PRs are never auto-reviewed.",
+  "intervention": "Edit only .coderabbit.yaml: make path_filters exclusions-only (build caches, vendor odoo-enterprise, archives, and the frozen ERP data grids bulk/meta/diagnostics plus docs CSV ledgers and the root ERP test CSV), dropping the four include lines and the three test exclusions and the blanket !*.csv that hid security ACL CSVs; set base_branches to Production. No other file changes.",
+  "evidence_paths": [
+    ".coderabbit.yaml",
+    "plasticos_partner_import/erp_extracted_data/README.md",
+    "AGENTS.md"
+  ],
+  "load_order": [
+    {
+      "path": "catalogs/REASON_CODES.yaml",
+      "sha256": "89a082eb95f53f910a3a787398deedfa9305200b40f323e6d808dcb0ed672fbe"
+    },
+    {
+      "path": "runtime/EVALUATOR_REGISTRY.yaml",
+      "sha256": "639817f7680544fb5de905d23cfcd3d3b271f97c7710ff66264bb1cc11f7aafa"
+    },
+    {
+      "path": "contracts/EPISTEMIC_DISCIPLINE.yaml",
+      "sha256": "3aa8270db8f7d1cea4f751f39ec3c65bdf61aecbb6be4742a7a7e97bd782e48e"
+    },
+    {
+      "path": "contracts/L9_ARCHITECTURE_PROFILE.yaml",
+      "sha256": "e294baa756bcabc3bc76128c462eff7a949e25bacebe9e27bc41c66bdf4c0a38"
+    },
+    {
+      "path": "integrations/REASONING_FOURSOME_BINDING.yaml",
+      "sha256": "07052ae4f57bd64f9ceb68d3d73a5a118c55a773bd76cc91d1fa0e3c7bb89df7"
+    },
+    {
+      "path": "contracts/ARCHITECTURAL_INTEGRITY.yaml",
+      "sha256": "9ca1adb56b9a4ce310715d672bd8b28dd922c23c22d93a99f70bafd7e2143477"
+    },
+    {
+      "path": "contracts/OBJECTIVE_DERIVATION.yaml",
+      "sha256": "b170d9f5b7847e06fbf576ef2b6ddc38cc7f032ccbff1b98c2779d7d893f7cbe"
+    },
+    {
+      "path": "contracts/OUTCOME_OWNERSHIP.yaml",
+      "sha256": "205f1fae2469a5595e87e0a03779cbf34632ca0f0a6227fe73e6c3b20c752397"
+    },
+    {
+      "path": "contracts/CONVERGENCE.yaml",
+      "sha256": "a0a07e2d6b252070ff7a1762956383215e482562692e8ac43fc7bd0a02db1404"
+    },
+    {
+      "path": "kernels/ARCHITECT_KERNEL.yaml",
+      "sha256": "319801fd911e12bbdd0e83755b3b8dd2375033239d7cfa28fea5f11b04104390"
+    },
+    {
+      "path": "catalogs/KILL_PATTERNS.yaml",
+      "sha256": "ff0ab0c7f60a185b53109183581785b505e2db7439cfb74d36ef1ab7e486b92f"
+    },
+    {
+      "path": "runtime/RUN_STATE.yaml",
+      "sha256": "14bd0ffde3f3506253f0f564a9a38551c77929929d6780cc34715657a3aa4101"
+    },
+    {
+      "path": "integrations/L9_RUNTIME_BINDING.yaml",
+      "sha256": "820796f69885714b845d8bbad45ff9c0ab05c86c7d10384442060527ee0bfae3"
+    },
+    {
+      "path": "runtime/STATE_MACHINE.yaml",
+      "sha256": "fd629918e9a866eb8e92c059faf54131e7abf9c71ea02ffe6235524ecf854574"
+    }
+  ],
+  "load_order_digest": "8bc6a752ae96ec791f04d493648a67511eabadca0b0a2ab51d425f3ad965accc"
+}

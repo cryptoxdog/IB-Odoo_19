@@ -1,0 +1,220 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "plan",
+  "title": "CodeRabbit reviews no IB-Odoo_19 file: path_filters allowlist and dead base branches",
+  "objective": "Make CodeRabbit review the files it is meant to review in cryptoxdog/IB-Odoo_19. .coderabbit.yaml reviews.path_filters carries four include patterns, which CodeRabbit treats as an allowlist; those four files are also excluded by !tests/**, so every PR file is skipped. Rewrite path_filters as exclusions only, keep the intended exclusions narrow, and point auto_review.base_branches at the real promotion branch Production.",
+  "success_criteria": [
+    ".coderabbit.yaml reviews.path_filters contains no pattern without a leading ! (V1)",
+    "a Python file, a docs/*.md file, a tests/test_*.py file and a security/ir.model.access.csv are not matched by any exclusion, while plasticos_partner_import/erp_extracted_data/bulk/*.csv and odoo-enterprise/** are (V2)",
+    "plasticos_partner_import/erp_extracted_data/*.sql projection scripts stay reviewable (V2)",
+    "auto_review.base_branches is exactly [Production] (V1)",
+    "the file parses as YAML and validates against https://coderabbit.ai/integrations/schema.v2.json (V3)",
+    "on the published PR, CodeRabbit no longer reports 'Review skipped due to path filters' for .coderabbit.yaml (V5)"
+  ],
+  "scope": {
+    "in": [
+      ".coderabbit.yaml: reviews.path_filters and reviews.auto_review.base_branches"
+    ],
+    "out": [
+      "every other .coderabbit.yaml key (profile, tools, path_instructions, labeling)",
+      "CodeRabbit seat assignment (billing, operator)",
+      "Quantum-L9/coderabbit central config and the Quantum-L9/.github seeder renderer: separate repository, handed to its own session",
+      "docker-compose.yml / .env.example L9_SIGNING_ALGORITHM: deferred by the operator"
+    ]
+  },
+  "code_in_scope": false,
+  "pre_validation": [
+    {
+      "id": "P1",
+      "command_or_action": "Read .coderabbit.yaml lines 56-80 and 235-238 on origin/Staging 64896c7; read CodeRabbit docs 'How path filters combine' via Context7 /websites/coderabbit_ai",
+      "pass_criteria": "four include lines present; docs state includes restrict scope and exclusions win",
+      "status": "passed"
+    },
+    {
+      "id": "P2",
+      "command_or_action": "git ls-files '*.csv' and ls plasticos_partner_import/erp_extracted_data",
+      "pass_criteria": "the data grids are bulk/meta/diagnostics CSVs; the projection .sql scripts sit beside them and must stay reviewable; 25 security ACL CSVs exist",
+      "status": "passed"
+    }
+  ],
+  "todos": [
+    {
+      "id": "T1",
+      "task": "Replace the reviews.path_filters list with exclusions only: **/.venv/**, **/.mypy_cache/**, **/.pytest_cache/**, **/.ruff_cache/**, **/__pycache__/**, **/*.pyc, **/node_modules/**, odoo-enterprise/**, **/*.zip, plasticos_partner_import/erp_extracted_data/bulk/**, plasticos_partner_import/erp_extracted_data/meta/**, plasticos_partner_import/erp_extracted_data/diagnostics/**, docs/**/*.csv, ERP.WksDetail.Test.csv, each with a leading !. Drop the four include lines, the three test exclusions and the blanket !*.csv. Keep a comment stating that a pattern without ! turns the list into an allowlist.",
+      "files": [
+        ".coderabbit.yaml"
+      ],
+      "effort": "S",
+      "risk": "low",
+      "dependencies": [],
+      "operation": "Replace",
+      "anchor": "reviews.path_filters (lines 56-80)",
+      "layer": "assurance",
+      "leverage_rank": 1,
+      "shared_root_cause": "include patterns used as exceptions turned the filter list into an empty allowlist"
+    },
+    {
+      "id": "T2",
+      "task": "Set reviews.auto_review.base_branches to [Production] (Staging is the default branch and is reviewed without being listed).",
+      "files": [
+        ".coderabbit.yaml"
+      ],
+      "effort": "S",
+      "risk": "low",
+      "dependencies": [],
+      "operation": "Replace",
+      "anchor": "reviews.auto_review.base_branches (lines 235-238)",
+      "layer": "assurance",
+      "leverage_rank": 2,
+      "shared_root_cause": "configuration copied from a template with main/master/develop branch names"
+    }
+  ],
+  "critical_path": [
+    "T1",
+    "T2"
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "outcome": "CodeRabbit sees every reviewable file on Staging and Production PRs",
+      "unlocks": "summaries and walkthroughs on every PR now; line review once seats are assigned"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "C1",
+      "after": "T2",
+      "evidence_required": "V2 prints the expected reviewed/excluded verdict for every sample path",
+      "no_go_action": "stop; adjust the exclusion patterns before publishing"
+    }
+  ],
+  "doc_root_surface_impact": [
+    {
+      "surface": "AGENTS.md / CLAUDE.md / README",
+      "action": "n_a",
+      "reason": "reviewer-bot configuration only; no documented repository contract names CodeRabbit filters"
+    }
+  ],
+  "stress_test": {
+    "disconfirming_questions": [
+      "Does CodeRabbit match a bare pattern such as *.zip at every depth? (use **/ prefixes so depth does not matter)",
+      "Do the projection .sql scripts live under the excluded bulk/meta/diagnostics folders? (no: they sit in erp_extracted_data/ itself)",
+      "Is Staging reviewed without being listed in base_branches? (CodeRabbit reviews the default branch; Staging is the default)"
+    ],
+    "assumed_false_ifs": [
+      "If CodeRabbit glob matching differed from fnmatch-style ** semantics, V2 would not predict its verdict; V5 on the live PR is the final witness"
+    ],
+    "blast_radius": "CodeRabbit review scope on cryptoxdog/IB-Odoo_19 only; no runtime, CI gate or Odoo code changes",
+    "rollback": "revert the single commit"
+  },
+  "leverage": {
+    "ranked_todo_ids": [
+      "T1",
+      "T2"
+    ],
+    "shared_causes": [
+      "include patterns misused as exceptions"
+    ],
+    "deletions_or_consolidations": [
+      "removes four include lines, three test exclusions and the blanket CSV exclusion"
+    ]
+  },
+  "risks": [
+    {
+      "risk": "large data CSVs outside the listed folders get reviewed and spend review budget",
+      "mitigation": "remaining non-security CSVs are small Odoo seed data and business-rule tables that are legitimately reviewable"
+    },
+    {
+      "risk": "the organization has no free CodeRabbit seats, so only a summary is produced",
+      "mitigation": "reported to the operator; out of scope for configuration"
+    },
+    {
+      "risk": "CodeRabbit glob semantics may differ from Python full_match for edge patterns",
+      "mitigation": "every pattern uses an explicit **/ or a fixed repo-relative prefix; V5 reads the live PR verdict"
+    }
+  ],
+  "unknowns": [],
+  "final_validation": [
+    {
+      "id": "V1",
+      "command": "python3 -c \"import yaml;c=yaml.safe_load(open('.coderabbit.yaml'));pf=c['reviews']['path_filters'];assert pf and all(p.startswith('!') for p in pf),pf;assert c['reviews']['auto_review']['base_branches']==['Production']\"",
+      "pass_criteria": "exits 0",
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "command": "python3 -c \"import yaml,pathlib;pf=[x[1:] for x in yaml.safe_load(open('.coderabbit.yaml'))['reviews']['path_filters']];ex=lambda s:any(pathlib.PurePath(s).full_match(g) for g in pf);keep=['plasticos_gate/services/gate_config.py','docs/GATE_ODOO_WIRING.md','tests/test_odoo19_compat.py','plasticos_gate/security/ir.model.access.csv','plasticos_partner_import/erp_extracted_data/10_counterparty.sql'];drop=['plasticos_partner_import/erp_extracted_data/bulk/x.csv','odoo-enterprise/a/b.py','x/__pycache__/y.pyc','ERP.WksDetail.Test.csv'];assert not any(map(ex,keep)),[k for k in keep if ex(k)];assert all(map(ex,drop)),[k for k in drop if not ex(k)]\"",
+      "pass_criteria": "exits 0 (Python 3.13 PurePath.full_match approximates CodeRabbit glob matching; V5 is the live witness)",
+      "status": "pending"
+    },
+    {
+      "id": "V3",
+      "command": "curl -sSL https://coderabbit.ai/integrations/schema.v2.json -o $SCRATCH/cr_schema.json && $GOV/.venv/bin/python -c \"import json,yaml,jsonschema;jsonschema.validate(yaml.safe_load(open('.coderabbit.yaml')),json.load(open('$SCRATCH/cr_schema.json')))\"",
+      "pass_criteria": "exits 0; the same command on the pre-change file is the baseline (any pre-existing schema error is reported, not hidden)",
+      "status": "pending"
+    },
+    {
+      "id": "V4",
+      "command": ".pre-commit-config.yaml hooks through make pr (check-yaml, trailing-whitespace, end-of-file-fixer)",
+      "pass_criteria": "all hooks pass",
+      "status": "pending"
+    },
+    {
+      "id": "V5",
+      "command": "after make pr: read the CodeRabbit comment on the new PR",
+      "pass_criteria": "no 'Review skipped due to path filters' for .coderabbit.yaml",
+      "status": "pending"
+    }
+  ],
+  "convergence": {
+    "status": "partial",
+    "remaining_unknown_ids": [],
+    "next_skill": "l9-ynp",
+    "stop_reason": "plan validated; implementation not yet run"
+  },
+  "gmp_handoff": {
+    "may_modify": [
+      ".coderabbit.yaml"
+    ],
+    "must_not_modify": [
+      "docker-compose.yml",
+      ".env.example",
+      "any plasticos_* addon file"
+    ],
+    "preserved_contracts": [
+      "all other .coderabbit.yaml settings unchanged"
+    ],
+    "validation_commands": [
+      "V1",
+      "V2",
+      "V3"
+    ]
+  },
+  "depth": "standard",
+  "checklist": [
+    "rewrite filters",
+    "fix base branches",
+    "validate",
+    "publish"
+  ],
+  "estimate": "1 small PR",
+  "owner": "igor_beylin",
+  "execution_envelope": {
+    "network": {
+      "mode": "named_services_only",
+      "allowed_services": [
+        "coderabbit.ai schema download"
+      ]
+    },
+    "secrets": {
+      "access": "none"
+    }
+  },
+  "complexity": {
+    "architectural_boundaries_crossed": [],
+    "external_systems_touched": [
+      "CodeRabbit"
+    ],
+    "migration_required": false
+  }
+}
