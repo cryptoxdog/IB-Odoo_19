@@ -69,17 +69,17 @@ def _signals(
     )
     if not lbs and quantity.load_weight_lbs:
         lbs, lbs_source = quantity.load_weight_lbs, quantity.weight_source
-    merged = {
-        "polymer": polymer,
-        "estimated_lbs": lbs,
-        "lbs_source": lbs_source,
-        "is_plastic": is_plastic,
-        "is_commercial_source": is_commercial,
-        "confidence": confidence,
-        "source_description": source,
-        "loads_per_month": quantity.loads_per_month,
-        "frequency": quantity.supply_mode,
-    }
+    merged = dict(
+        polymer=polymer,
+        estimated_lbs=lbs,
+        lbs_source=lbs_source,
+        is_plastic=is_plastic,
+        is_commercial_source=is_commercial,
+        confidence=confidence,
+        source_description=source,
+        loads_per_month=quantity.loads_per_month,
+        frequency=quantity.supply_mode,
+    )
     risk = detect_risk_indicators(
         polymer=polymer, material_text=material, source_text=source, reject_sources=reject_sources
     )
@@ -234,7 +234,7 @@ def _bundle(material, ai_polymer, vision):
     return reconcile_evidence(
         canonical_payload={"material_description": material, "contaminants_text": "none"},
         quantity=quantity,
-        ai_normalized={"polymer": ai_polymer},
+        ai_normalized=dict(polymer=ai_polymer),
         attachments=attachments,
     )
 
