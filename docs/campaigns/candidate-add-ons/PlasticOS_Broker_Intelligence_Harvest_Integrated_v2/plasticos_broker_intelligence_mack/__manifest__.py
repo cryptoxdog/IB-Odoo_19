@@ -5,7 +5,7 @@
     "category": "Operations",
     "author": "Scrap Management Inc.",
     "license": "LGPL-3",
-    "depends": ["plasticos_broker_intelligence", "mail"],
+    "depends": ["plasticos_broker_intelligence", "plasticos_intake", "mail"],
     "data": [
         "security/ir.model.access.csv",
         "security/record_rules.xml",
