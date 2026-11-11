@@ -105,6 +105,23 @@ _SPECS = {
     "pp/hd regrind": _spec(polymer="PP_PE", form="REGRIND", packaging_type="gaylords"),
     "strapping": _spec(polymer="PET", material_grade="STRAPPING"),
     "rigids": _spec(polymer="MRP"),
+    # Masters seeded 2026-11-11. Exact ERP phrases only; a blend stays out of this table.
+    "epe - pink": _spec(polymer="EPE"),
+    "epe - white": _spec(polymer="EPE", color="WHITE"),
+    "epp - black": _spec(polymer="EPP", color="BLACK"),
+    "mdpe clips": _spec(polymer="MDPE"),
+    "mdpe film on rolls - clear with print": _spec(polymer="MDPE", attributes=("printed",), color="CLEAR"),
+    "mdpe post industrial printed rolls": _spec(
+        polymer="MDPE", form="ROLLSTOCK", source="POST_INDUSTRIAL", attributes=("printed",)
+    ),
+    "petg bad pellets - bad melt": _spec(polymer="PETG", form="PELLETS"),
+    "petg clear rolls": _spec(polymer="PETG", form="ROLLSTOCK", color="CLEAR"),
+    "petg clear/cloudy repro pellet": _spec(polymer="PETG", form="PELLETS"),
+    "petg resin": _spec(polymer="PETG"),
+    "petg rolls - clear": _spec(polymer="PETG", form="ROLLSTOCK", color="CLEAR"),
+    "petg rolls - tinted": _spec(polymer="PETG", form="ROLLSTOCK"),
+    "petg trays": _spec(polymer="PETG", material_grade="TRAYS"),
+    "san regrind": _spec(polymer="SAN", form="REGRIND"),
 }
 
 # CRM lead phrases that are not worksheet phrases. The whole collapsed

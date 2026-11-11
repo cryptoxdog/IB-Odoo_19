@@ -257,6 +257,55 @@ class TestMaterialNormalizer(TransactionCase):
             with self.subTest(phrase=phrase):
                 self.assertEqual(normalize_material(self.env, phrase).unresolved, ("unresolved material",))
 
+    def test_new_polymer_phrases_resolve_on_the_worksheet_path(self):
+        cases = (
+            ("EPE - Pink", "EPE", False, False, False, (), False),
+            ("EPE - White", "EPE", False, False, False, (), "WHITE"),
+            ("EPP - Black", "EPP", False, False, False, (), "BLACK"),
+            ("MDPE Clips", "MDPE", False, False, False, (), False),
+            ("MDPE Film On Rolls - Clear With Print", "MDPE", False, False, False, ("printed",), "CLEAR"),
+            (
+                "MDPE Post Industrial Printed Rolls",
+                "MDPE",
+                "ROLLSTOCK",
+                False,
+                "POST_INDUSTRIAL",
+                ("printed",),
+                False,
+            ),
+            ("PETG Bad Pellets - Bad melt", "PETG", "PELLETS", False, False, (), False),
+            ("PETG Clear Rolls", "PETG", "ROLLSTOCK", False, False, (), "CLEAR"),
+            ("PETG Clear/Cloudy Repro Pellet", "PETG", "PELLETS", False, False, (), False),
+            ("PETG Resin", "PETG", False, False, False, (), False),
+            ("PETG Rolls - Clear", "PETG", "ROLLSTOCK", False, False, (), "CLEAR"),
+            ("PETG Rolls - Tinted", "PETG", "ROLLSTOCK", False, False, (), False),
+            ("PETG Trays", "PETG", False, "TRAYS", False, (), False),
+            ("SAN Regrind", "SAN", "REGRIND", False, False, (), False),
+        )
+        for phrase, polymer, form, grade, source, attributes, color in cases:
+            with self.subTest(phrase=phrase):
+                result = normalize_material(self.env, phrase)
+                self.assertFalse(result.unresolved)
+                self.assertEqual(result.polymer.code, polymer)
+                self.assertEqual(result.form.code or False, form)
+                self.assertEqual(result.material_grade.code or False, grade)
+                self.assertEqual(result.source_type.code or False, source)
+                self.assertEqual(tuple(result.attributes.mapped("code")), attributes)
+                self.assertEqual(result.color.code or False, color)
+
+        for phrase in (
+            "mixed plastic mdpe",
+            "Rejected Material - PET Clear Sheet w/ PETG Contamination",
+            "LDPE/HDPE/MDPE Purge clean, no paper, no metal",
+            "LDPE/MDPE Film Rolls and Post Industrial Bales",
+            "LDPE / MDPE Mixed Color Film",
+            "LDPE/MDPE printed rolls",
+        ):
+            with self.subTest(phrase=phrase):
+                result = normalize_material(self.env, phrase)
+                self.assertEqual(result.unresolved, ("unresolved material",))
+                self.assertFalse(result.polymer)
+
     def test_worksheet_import_still_calls_normalize_material(self):
         source = (
             Path(__file__).resolve().parents[2] / "plasticos_transaction/models/native_document_import.py"

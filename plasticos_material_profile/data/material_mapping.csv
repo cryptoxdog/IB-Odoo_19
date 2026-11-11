@@ -1138,9 +1138,9 @@ material,ecoprime natural pcr resin,EcoPrime Natural PCR Resin,erp:InvoiceDesc,1
 material,emi model rm-12-5-20 powered belt conveyor:,EMI MODEL RM-12-5-20 POWERED BELT CONVEYOR:,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,empty collapsible totes,EMPTY COLLAPSIBLE TOTES,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,engineering grades (nylon/pc/pmma),Engineering Grades (Nylon/PC/PMMA),vanillasoft:Materials,0,1,not_material,not_material,,,,,,,,,,,,not a material (2026-11-03 decision)
-material,epe - pink,EPE - Pink,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,epe - white,EPE - White,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,epp - black,EPP - Black,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
+material,epe - pink,EPE - Pink,erp:InvoiceDesc,1,0,mapped,names_one_polymer,EPE,,,,,,,,,,,
+material,epe - white,EPE - White,erp:InvoiceDesc,1,0,mapped,names_one_polymer,EPE,,,,,,,WHITE,,,,
+material,epp - black,EPP - Black,erp:InvoiceDesc,1,0,mapped,names_one_polymer,EPP,,,,,,,BLACK,,,,
 material,eps blocks,EPS Blocks,erp:InvoiceDesc,1,0,mapped,names_one_polymer,EPS,,,,,,,,,,,
 material,eps densified,EPS Densified,erp:InvoiceDesc,1,0,mapped,names_one_polymer,EPS,,DENSIFIED,,,,,,,,,
 material,eps densified patty in boxes,EPS Densified Patty in Boxes,erp:InvoiceDesc,1,0,mapped,names_one_polymer,EPS,,DENSIFIED,,,,,,,,,
@@ -1670,9 +1670,9 @@ material,loose post industrial ldpe film,Loose Post Industrial LDPE Film,erp:Inv
 material,low volume at first. 1 -2 bales a week.,low volume at first. 1 -2 bales a week.,vanillasoft:Material (LDPE),0,1,ambiguous,,,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
 material,material alternate,Material Alternate,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,matress foam,matress foam,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,,no Odoo polymer master for this material
-material,mdpe clips,MDPE Clips,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,mdpe film on rolls - clear with print,MDPE Film On Rolls - Clear With Print,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,mdpe post industrial printed rolls,MDPE Post Industrial Printed Rolls,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
+material,mdpe clips,MDPE Clips,erp:InvoiceDesc,1,0,mapped,names_one_polymer,MDPE,,,,,,,,,,,
+material,mdpe film on rolls - clear with print,MDPE Film On Rolls - Clear With Print,erp:InvoiceDesc,1,0,mapped,names_one_polymer,MDPE,,,,printed,,,CLEAR,,,,
+material,mdpe post industrial printed rolls,MDPE Post Industrial Printed Rolls,erp:InvoiceDesc,1,0,mapped,names_one_polymer,MDPE,,ROLLSTOCK,POST_INDUSTRIAL,printed,,,,,,,
 material,mentioned: pp super sacsk,mentioned: PP super sacsk,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,,,call-note text; kept as a note
 material,metal and water,Metal and Water,erp:InvoiceDesc,1,0,mapped,names_one_polymer,METAL,,,,,,,,,,,
 material,metal barn shed,Metal Barn Shed,erp:InvoiceDesc,1,0,mapped,names_one_polymer,METAL,,,,,,,,,,,
@@ -1915,13 +1915,13 @@ material,pete clear bottles,PETE Clear Bottles,erp:InvoiceDesc,1,0,unknown,,,,,,
 material,pete clear cut offs,PETE Clear Cut Offs,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,pete clear trays,PETE Clear Trays,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,pete clear w/ blue tint bottles,PETE Clear W/ Blue Tint Bottles,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,petg bad pellets - bad melt,PETG Bad Pellets - Bad melt,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,petg clear rolls,PETG Clear Rolls,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,petg clear/cloudy repro pellet,PETG Clear/Cloudy Repro Pellet,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,petg resin,PETG Resin,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,petg rolls - clear,PETG Rolls - Clear,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,petg rolls - tinted,PETG Rolls - Tinted,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,petg trays,PETG Trays,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
+material,petg bad pellets - bad melt,PETG Bad Pellets - Bad melt,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PETG,,PELLETS,,,,,,,,,
+material,petg clear rolls,PETG Clear Rolls,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PETG,,ROLLSTOCK,,,,,CLEAR,,,,
+material,petg clear/cloudy repro pellet,PETG Clear/Cloudy Repro Pellet,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PETG,,PELLETS,,,,,,,,,
+material,petg resin,PETG Resin,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PETG,,,,,,,,,,,
+material,petg rolls - clear,PETG Rolls - Clear,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PETG,,ROLLSTOCK,,,,,CLEAR,,,,
+material,petg rolls - tinted,PETG Rolls - Tinted,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PETG,,ROLLSTOCK,,,,,,,,,
+material,petg trays,PETG Trays,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PETG,TRAYS,,,,,,,,,,
 material,pi plastic,PI plastic,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,,no Odoo polymer master for this material
 material,plastic,Plastic,vanillasoft:Materials,0,1,ambiguous,,,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
 material,plastic & textile nylon,plastic & textile nylon,vanillasoft:Materials,0,1,mapped,approved_alias,NYLON,,,,,,,,,,,
@@ -2159,7 +2159,7 @@ material,royal oak recycling ohio,Royal Oak Recycling Ohio,vanillasoft:Material 
 material,rptp grade w/<eta;,Rptp Grade W/<eta;,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,runs a huge jersey and brooklyn mrf,Runs a huge Jersey and brooklyn MRF,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,,no Odoo polymer master for this material
 material,sample invoice,SAMPLE INVOICE,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,san regrind,SAN Regrind,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
+material,san regrind,SAN Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,SAN,,REGRIND,,,,,,,,,
 material,sarah denis might be new contact,Sarah Denis might be new contact,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,,no Odoo polymer master for this material
 material,saw,Saw,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,sbr rubber,SBR Rubber,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
