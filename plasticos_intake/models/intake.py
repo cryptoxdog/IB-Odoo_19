@@ -79,8 +79,12 @@ class PlasticosIntake(models.Model):
         string="Contact Person",
         tracking=True,
         index=True,
-        domain="[('is_company', '=', False), '|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
-        help="The person at the facility you are dealing with. Auto-selected from preferred contact memory.",
+        domain=(
+            "[('is_company', '=', False), '|', '|', "
+            "('parent_id', '=', facility_id), ('parent_id', '=', partner_id), "
+            "('location_partner_ids', 'in', facility_id)]"
+        ),
+        help="The person at this location. A linked person wins; otherwise one child contact, or the parent company's person.",
         ondelete="restrict",
     )
 
@@ -487,6 +491,7 @@ class PlasticosIntake(models.Model):
                         "Please ensure the sequence 'plasticos.intake' is configured."
                     )
                 vals["name"] = sequence
+            self._plasticos_assign_reach_contact(vals)
         records = super().create(vals_list)
         records._seed_zero_snapshot_from_location()
         return records
@@ -527,37 +532,36 @@ class PlasticosIntake(models.Model):
         elif len(children) == 1:
             self.facility_id = children[0].id
 
+    def _plasticos_assign_reach_contact(self, vals):
+        """Set the reached person when the caller did not pass a contact.
+
+        A facility wins over the company. ``create()`` does not run onchange,
+        so conversion and RPC creates use the same person as the form.
+        """
+        if vals.get("contact_id"):
+            return
+        partners = self.env["res.partner"]
+        facility = partners.browse(vals.get("facility_id")) if vals.get("facility_id") else partners.browse()
+        partner = partners.browse(vals.get("partner_id")) if vals.get("partner_id") else partners.browse()
+        source = facility or partner
+        if not source:
+            return
+        person = source._plasticos_reach_person()
+        if person:
+            vals["contact_id"] = person.id
+
     @api.onchange("facility_id")
     def _onchange_facility_id(self):
-        """Auto-select contact from preferred memory or single contact."""
+        """Auto-select the location's reached person, then a single material profile."""
         self.contact_id = False
         if not self.facility_id:
             return
 
-        facility = self.facility_id
+        person = self.facility_id._plasticos_reach_person()
+        if person:
+            self.contact_id = person
 
-        preferred = facility.preferred_contact_id
-        if preferred and preferred.parent_id.id == facility.id:
-            self.contact_id = preferred.id
-            return
-
-        if facility.id == self.partner_id.id:
-            preferred = facility.preferred_contact_id
-            if preferred:
-                self.contact_id = preferred.id
-                return
-
-        contacts = self.env["res.partner"].search(
-            [
-                ("parent_id", "=", facility.id),
-                ("is_company", "=", False),
-                ("type", "in", ["contact", False]),
-            ]
-        )
-        if len(contacts) == 1:
-            self.contact_id = contacts[0].id
-
-        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", self.facility_id.id)])
         if len(profiles) == 1:
             self.material_profile_id = profiles[0].id
 
