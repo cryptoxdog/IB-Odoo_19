@@ -30,13 +30,13 @@
                         type="object"
                         string="Match via Gate"
                         class="btn btn-primary"
-                        title="PlasticOS: Approves an immutable lot from the linked Partner and Material Profile (Facility optional) and runs the Gate match. HOT, manual and VanillaSoft opportunities all use this command."
+                        title="PlasticOS: Matches the linked Partner and Material Profile (Facility optional) to eligible buyers through Gate. HOT, manual and VanillaSoft opportunities all use this command."
                         invisible="not active or type != 'opportunity' or not partner_id or not material_profile_id"/>
                 <button name="action_create_offers_from_results"
                         type="object"
                         string="Create Offers"
                         class="btn btn-secondary"
-                        title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) Gate result of the current lot. Re-running creates nothing new."
+                        title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) result of the latest Gate match. Re-running creates nothing new."
                         invisible="not active or type != 'opportunity' or not match_run_ids"/>
                 <button name="action_submit_release"
                         type="object"
@@ -96,7 +96,7 @@
                         class="oe_stat_button"
                         icon="fa-random"
                         invisible="not match_run_ids"
-                        title="Gate match runs on this opportunity's approved lots.">
+                        title="Gate match runs on this opportunity.">
                     <span class="o_stat_text">Gate Runs</span>
                 </button>
 
@@ -288,28 +288,12 @@
                                placeholder="Optional — no facility evidence is sent when empty"/>
                     </group>
 
-                    <group string="Approved Lots" name="opportunity_lots" invisible="not approval_ids">
-                        <field name="approval_ids" nolabel="1" readonly="1">
-                            <list>
-                                <field name="create_date" string="Approved"/>
-                                <field name="source" widget="badge"/>
-                                <field name="partner_id"/>
-                                <field name="material_profile_id"/>
-                                <field name="facility_profile_id" optional="show"/>
-                                <field name="source_intake_id" optional="hide"/>
-                                <field name="snapshot_digest" optional="hide"/>
-                                <field name="approved_by" optional="hide"/>
-                            </list>
-                        </field>
-                    </group>
-
                     <group string="Gate Match Runs" name="opportunity_runs" invisible="not match_run_ids">
                         <field name="match_run_ids" nolabel="1" readonly="1">
                             <list decoration-danger="state in ('failed', 'degraded')"
                                   decoration-warning="state == 'retryable'"
                                   decoration-success="state == 'ok'">
                                 <field name="create_date"/>
-                                <field name="approval_id"/>
                                 <field name="state" widget="badge"/>
                                 <field name="match_count"/>
                                 <field name="request_attempt" optional="hide"/>
@@ -481,7 +465,7 @@
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         Match Run — Opportunity / Lot lineage (fields owned by CRM Bridge)
+         Match Run — Opportunity lineage (field owned by CRM Bridge)
          ═══════════════════════════════════════════════════════════════ -->
 
     <record id="match_run_opportunity_lineage_list" model="ir.ui.view">
@@ -491,7 +475,6 @@
         <field name="arch" type="xml">
             <xpath expr="//list/field[@name='intake_id']" position="after">
                 <field name="opportunity_id" optional="show"/>
-                <field name="approval_id" optional="show"/>
             </xpath>
         </field>
     </record>
@@ -503,7 +486,6 @@
         <field name="arch" type="xml">
             <xpath expr="//form//field[@name='intake_id']" position="before">
                 <field name="opportunity_id" readonly="1"/>
-                <field name="approval_id" readonly="1"/>
             </xpath>
         </field>
     </record>

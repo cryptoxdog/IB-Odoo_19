@@ -75,11 +75,10 @@
                             class="btn-secondary"
                             invisible="not intake_id"/>
                     <button name="action_approve_for_commercial_preparation"
-                            string="Approve Snapshot"
+                            string="Approve"
                             type="object"
                             class="btn-primary"
-                            invisible="decision != 'hot' or not intake_id or review_status == 'approved'"
-                            confirm="Create an immutable broker-approved snapshot for downstream commercial preparation?"/>
+                            invisible="decision != 'hot' or not intake_id or review_status == 'approved'"/>
                     <button name="action_request_clarification"
                             string="Request Clarification"
                             type="object"
@@ -141,7 +140,7 @@
                         <group>
                             <field name="lead_image_ids" widget="lead_image_strip" readonly="1"/>
                             <field name="decision"/>
-                            <field name="review_status"/>
+                            <field name="review_status" readonly="1"/>
                             <field name="review_required_reason" readonly="1"/>
                         </group>
                         <group>
@@ -155,12 +154,6 @@
                     <group string="Links" name="links">
                         <field name="partner_id"/>
                         <field name="intake_id"/>
-                        <button name="action_view_review_snapshots"
-                                type="object"
-                                class="oe_stat_button"
-                                icon="fa-shield">
-                            <field name="review_snapshot_count" string="Approved Snapshots" widget="statinfo"/>
-                        </button>
                     </group>
 
                     <!-- Technical tabs (AI, raw data, errors) -->
@@ -194,7 +187,7 @@
                         </page>
                         <page string="Broker Review" name="broker_review_page">
                             <group>
-                                <field name="review_status"/>
+                                <field name="review_status" readonly="1"/>
                                 <field name="review_notes" placeholder="Record the broker's decision rationale and required follow-up."/>
                                 <field name="review_required_reason" readonly="1"/>
                             </group>

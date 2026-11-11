@@ -22,7 +22,7 @@ import psycopg2.errorcodes
 from markupsafe import escape
 
 from odoo import api, fields, models
-from odoo.exceptions import ConcurrencyError, UserError
+from odoo.exceptions import AccessError, ConcurrencyError, UserError
 
 from ..adapters.base import (
     EVENT_SUBMITTED,
@@ -78,6 +78,15 @@ _logger = logging.getLogger(__name__)
 # Identity namespace of rejected inbound deliveries. Distinct from the packet
 # idempotency key so a later valid resubmission is admitted, not replayed.
 REJECTED_LEAD_PREFIX = "REJ-"
+
+# A lead becomes broker-approved only through
+# ``action_approve_for_commercial_preparation``, which mints the immutable
+# review snapshot in the same transaction. That action marks its status write
+# with a module-private object token; RPC clients can only send JSON values in
+# a context, so no remote caller (and no ``sudo()``) can reproduce it.
+_APPROVAL_STATUS_KEY = "plasticos_web_leads_approval_status_write"
+_APPROVAL_STATUS_TOKEN = object()
+REVIEW_STATUS_APPROVED = "approved"
 
 # ── Pallet weight assumption when no lbs given ───────────────────────────────
 _LBS_PER_PALLET_ASSUMPTION = 1_500  # conservative: typical plastic pallet
@@ -541,6 +550,29 @@ class PlasticosWebLead(models.Model):
     # CRUD Guards
     # ═══════════════════════════════════════════════════════════
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        if any(vals.get("review_status") == REVIEW_STATUS_APPROVED for vals in vals_list):
+            raise AccessError(
+                "A web lead is broker-approved only through its Approve action, which records the approval evidence."
+            )
+        return super().create(vals_list)
+
+    def _check_approval_status_write(self, vals):
+        """Refuse a transition to approved that did not come from the approval action.
+
+        Rewriting ``approved`` on a lead that is already approved (a triage
+        replay) is not a transition and stays allowed.
+        """
+        if vals.get("review_status") != REVIEW_STATUS_APPROVED:
+            return
+        if self.env.context.get(_APPROVAL_STATUS_KEY) is _APPROVAL_STATUS_TOKEN:
+            return
+        if any(rec.review_status != REVIEW_STATUS_APPROVED for rec in self):
+            raise AccessError(
+                "A web lead is broker-approved only through its Approve action, which records the approval evidence."
+            )
+
     def write(self, vals):
         """Guard against modifying processed leads.
 
@@ -562,6 +594,7 @@ class PlasticosWebLead(models.Model):
                 "mack_review_reason",
             }
         )
+        self._check_approval_status_write(vals)
         non_state_fields = set(vals.keys()) - _STATE_ONLY_FIELDS
         if non_state_fields:
             for rec in self:
@@ -1901,32 +1934,31 @@ class PlasticosWebLead(models.Model):
         return True
 
     def action_approve_for_commercial_preparation(self):
-        """Record a broker approval as an immutable server-derived snapshot.
+        """Approve the lead; the immutable review snapshot is recorded in the same transaction.
 
         The snapshot model's ``_record_broker_approval`` is the only path that
         can mint a snapshot: it derives approver, time, revision, lead/intake
         binding, payload and hash itself, so no caller can supply provenance.
+        The status write carries the module-private token, so this is the only
+        path to ``approved``. Both writes share one transaction: if either
+        fails, neither persists. The broker stays on the lead form.
         """
         self.ensure_one()
-        if self.review_status == "approved" and self.review_snapshot_ids:
-            return self.action_view_review_snapshots()
+        # Serialize approvals of one lead. Odoo cursors run at REPEATABLE READ:
+        # a concurrent approval that committed first raises a serialization
+        # failure here, and the request retry then sees the approved state.
+        # justification: atomic row lock; the ORM has no SELECT ... FOR UPDATE.
+        self.env.cr.execute("SELECT id FROM plasticos_web_lead WHERE id = %s FOR UPDATE", [self.id])
+        self.invalidate_recordset(["review_status", "review_snapshot_ids"])
+        if self.review_status == REVIEW_STATUS_APPROVED and self.review_snapshot_ids:
+            return True
 
-        snapshot = self.env["plasticos.web.lead.review.snapshot"]._record_broker_approval(self)
-        self.write({"review_status": "approved"})
-        self.message_post(
-            body=(
-                f"Broker-approved snapshot <b>{snapshot.name}</b> created by {self.env.user.display_name}. "
-                "Downstream matching or commercial preparation must use this snapshot."
-            )
+        self.env["plasticos.web.lead.review.snapshot"]._record_broker_approval(self)
+        self.with_context(**{_APPROVAL_STATUS_KEY: _APPROVAL_STATUS_TOKEN}).write(
+            {"review_status": REVIEW_STATUS_APPROVED}
         )
-        return {
-            "type": "ir.actions.act_window",
-            "name": snapshot.name,
-            "res_model": "plasticos.web.lead.review.snapshot",
-            "res_id": snapshot.id,
-            "view_mode": "form",
-            "target": "current",
-        }
+        self.message_post(body=f"Broker approved this lead for commercial preparation ({self.env.user.display_name}).")
+        return True
 
     def action_request_clarification(self):
         """Record that evidence requires seller/broker clarification before approval."""

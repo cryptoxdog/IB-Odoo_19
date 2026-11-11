@@ -305,8 +305,11 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertEqual(lead.evidence_bundle["economic_assessment"]["status"], "assessed")
         lead.write({"review_notes": "Commercial source verified against submitted form."})
 
-        action = lead.action_approve_for_commercial_preparation()
-        snapshot = self.env[action["res_model"]].browse(action["res_id"])
+        result = lead.action_approve_for_commercial_preparation()
+        # Approval keeps the broker on the lead; the evidence is recorded silently.
+        self.assertIs(result, True)
+        snapshot = lead.review_snapshot_ids
+        self.assertEqual(len(snapshot), 1)
 
         self.assertEqual(lead.review_status, "approved")
         self.assertEqual(snapshot.web_lead_id, lead)
