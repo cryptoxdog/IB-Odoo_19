@@ -416,6 +416,53 @@ class ResPartner(models.Model):
             partner.linked_person_email = email
             partner.linked_person_mobile = mobile
 
+    def _plasticos_child_contacts(self):
+        """People parented here, excluding locations and non-contact addresses."""
+        self.ensure_one()
+        return self.child_ids.filtered(lambda child: not child.is_company and child.type in ("contact", False))
+
+    def _plasticos_reach_candidates(self):
+        """People who may be reached for this partner. Empty means do not guess.
+
+        A location uses its People list. With nobody linked, one child contact
+        is that child, and several child contacts are left for the broker.
+        No child contact falls back to the parent company's people. A company
+        with no parent is chosen only when it has exactly one child contact.
+        """
+        self.ensure_one()
+        if not self.is_company:
+            return self
+        if self.parent_id:
+            if self.site_person_ids:
+                return self.site_person_ids
+            children = self._plasticos_child_contacts()
+            if len(children) == 1:
+                return children
+            if children:
+                return self.browse()
+            return self.parent_id._plasticos_child_contacts()
+        children = self._plasticos_child_contacts()
+        if len(children) == 1:
+            return children
+        return self.browse()
+
+    def _plasticos_reach_person(self):
+        """The person whose name and email follow this partner onto a lead and an intake.
+
+        ``preferred_contact_id`` wins only when it is already one of the candidates.
+        Otherwise the first candidate with an email wins, matching the location
+        header. A linked person with no email is still returned: the parent is
+        not used while anyone is linked.
+        """
+        self.ensure_one()
+        candidates = self._plasticos_reach_candidates()
+        if not candidates:
+            return self.browse()
+        preferred = self.preferred_contact_id
+        if preferred and preferred in candidates:
+            return preferred
+        return candidates.filtered("email")[:1] or candidates[:1]
+
     def _salesperson_from_parent(self):
         """The parent's salesperson, or the parent's parent when the parent has none."""
         self.ensure_one()

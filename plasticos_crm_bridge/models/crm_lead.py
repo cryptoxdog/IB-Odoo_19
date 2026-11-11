@@ -3,6 +3,46 @@ import re
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
+# Fields the location reach-person reads. A later People-list change refreshes
+# an open opportunity's contact, email, job, and phone.
+_REACH_PERSON_DEPENDS = (
+    "partner_id",
+    "partner_id.is_company",
+    "partner_id.parent_id",
+    "partner_id.email",
+    "partner_id.phone",
+    "partner_id.function",
+    "partner_id.mobile",
+    "partner_id.preferred_contact_id",
+    "partner_id.preferred_contact_id.name",
+    "partner_id.preferred_contact_id.email",
+    "partner_id.preferred_contact_id.phone",
+    "partner_id.preferred_contact_id.function",
+    "partner_id.preferred_contact_id.mobile",
+    "partner_id.site_person_ids",
+    "partner_id.site_person_ids.name",
+    "partner_id.site_person_ids.email",
+    "partner_id.site_person_ids.phone",
+    "partner_id.site_person_ids.function",
+    "partner_id.site_person_ids.mobile",
+    "partner_id.child_ids",
+    "partner_id.child_ids.is_company",
+    "partner_id.child_ids.type",
+    "partner_id.child_ids.name",
+    "partner_id.child_ids.email",
+    "partner_id.child_ids.phone",
+    "partner_id.child_ids.function",
+    "partner_id.child_ids.mobile",
+    "partner_id.parent_id.child_ids",
+    "partner_id.parent_id.child_ids.is_company",
+    "partner_id.parent_id.child_ids.type",
+    "partner_id.parent_id.child_ids.name",
+    "partner_id.parent_id.child_ids.email",
+    "partner_id.parent_id.child_ids.phone",
+    "partner_id.parent_id.child_ids.function",
+    "partner_id.parent_id.child_ids.mobile",
+)
+
 
 class CrmLeadPlastOS(models.Model):
     _inherit = "crm.lead"
@@ -352,6 +392,102 @@ class CrmLeadPlastOS(models.Model):
             if len(digits) != 10:
                 raise ValidationError("Mobile must be a 10-digit US number (e.g., 555-100-0001).")
 
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_contact_name(self):
+        """Keep a stored contact name. Fill an empty one from the location's person."""
+        kept = {lead.id: lead.contact_name for lead in self if lead.contact_name}
+        super()._compute_contact_name()
+        for lead in self:
+            if kept.get(lead.id):
+                lead.contact_name = kept[lead.id]
+                continue
+            partner = lead.partner_id
+            if not partner or not partner.is_company:
+                continue
+            person = partner._plasticos_reach_person()
+            if person.name:
+                lead.contact_name = person.name
+
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_email_from(self):
+        """Keep a stored or location email. Fill an empty one from the reached person."""
+        super()._compute_email_from()
+        for lead in self:
+            if lead.email_from or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            if person.email:
+                lead.email_from = person.email
+
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_function(self):
+        """Keep a stored job title. Fill an empty one from the reached person."""
+        super()._compute_function()
+        for lead in self:
+            if lead.function or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            if person.function:
+                lead.function = person.function
+
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_phone(self):
+        """Keep a location or stored phone. Copy the person's phone only when both are empty."""
+        super()._compute_phone()
+        for lead in self:
+            if lead.phone or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            if person.phone:
+                lead.phone = person.phone
+
+    def _get_partner_email_update(self, force_void=True):
+        """Do not write a mirrored person email back onto a location that has none."""
+        self.ensure_one()
+        mirrored = self._plasticos_mirrored_person_value("email")
+        if mirrored and self.email_from == mirrored:
+            return False
+        return super()._get_partner_email_update(force_void=force_void)
+
+    def _get_partner_phone_update(self, force_void=True):
+        """Do not write a mirrored person phone back onto a location that has none."""
+        self.ensure_one()
+        mirrored = self._plasticos_mirrored_person_value("phone")
+        if mirrored and self.phone == mirrored:
+            return False
+        return super()._get_partner_phone_update(force_void=force_void)
+
+    def _plasticos_mirrored_person_value(self, field_name):
+        """The reached person's value when the location's own field is empty."""
+        self.ensure_one()
+        partner = self.partner_id
+        if not partner or not partner.is_company or partner[field_name]:
+            return False
+        person = partner._plasticos_reach_person()
+        return person[field_name] if person else False
+
+    def _plasticos_mobile_is_us10(self, number):
+        digits = re.sub(r"\D", "", number or "")
+        if digits.startswith("1") and len(digits) == 11:
+            digits = digits[1:]
+        return len(digits) == 10
+
+    def _plasticos_fill_mobile_from_person(self):
+        """Copy a valid US mobile from the reached person when the lead has none."""
+        for lead in self:
+            if lead.mobile or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            number = person.mobile if person else False
+            if number and lead._plasticos_mobile_is_us10(number):
+                lead.mobile = number
+
+    @api.onchange("partner_id")
+    def _onchange_partner_reach_mobile(self):
+        if self.mobile or not self.partner_id:
+            return
+        self._plasticos_fill_mobile_from_person()
+
     def _find_matching_partner(self):
         """Extend Odoo's email-only matching to also try company name."""
         partner = super()._find_matching_partner()
@@ -502,6 +638,12 @@ class CrmLeadPlastOS(models.Model):
 
         for key, value in crm_lead_source_address(self.street, self.city, self.zip).items():
             intake_vals.setdefault(key, value)
+        if partner and partner.is_company and partner.parent_id:
+            intake_vals["facility_id"] = partner.id
+        if partner:
+            person = partner._plasticos_reach_person()
+            if person:
+                intake_vals["contact_id"] = person.id
         intake = self.env["plasticos.intake"].create(intake_vals)
         self.source_intake_id = intake
         self._propagate_available_commercial_images(material_profile=intake.material_profile_id or False)
@@ -748,12 +890,17 @@ class CrmLeadPlastOS(models.Model):
         leads = super().create(vals_list)
         leads._plasticos_require_offer_price()
         leads._plasticos_ensure_opportunity_material()
+        for lead, vals in zip(leads, vals_list, strict=True):
+            if not vals.get("mobile"):
+                lead._plasticos_fill_mobile_from_person()
         return leads
 
     def write(self, vals):
         res = super().write(vals)
         if "material_profile_id" in vals:
             self._plasticos_ensure_opportunity_material()
+        if "partner_id" in vals and "mobile" not in vals:
+            self.filtered(lambda lead: not lead.mobile)._plasticos_fill_mobile_from_person()
         return res
 
     def _plasticos_ensure_opportunity_material(self):
