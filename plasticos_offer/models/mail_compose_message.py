@@ -105,10 +105,9 @@ class MailComposeMessagePlasticosOffer(models.TransientModel):
             raise UserError(_("Odoo Mail did not post the email for offer %s; it stays Draft.") % offer.name)
         # Reading the notification rows of the message this user just posted is
         # evidence only; mail.notification is not readable by every internal user.
-        email_notifications = (
-            self.env["mail.notification"]
-            .sudo()
-            .search_count([("mail_message_id", "=", message.id), ("notification_type", "=", "email")])
+        notifications = self.env["mail.notification"].sudo()  # sudo: read-only check of own message
+        email_notifications = notifications.search_count(
+            [("mail_message_id", "=", message.id), ("notification_type", "=", "email")]
         )
         if not email_notifications:
             raise UserError(

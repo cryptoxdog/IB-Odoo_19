@@ -206,20 +206,25 @@ class PlasticosOfferMatchLineage(models.Model):
 
     def action_reset_to_draft(self):
         """A manual offer reset to Draft may not become a second active draft for its buyer."""
-        for rec in self.filtered(lambda offer: offer.opportunity_id and not offer.match_result_id):
-            if self.search_count(
+        manual = self.filtered(lambda offer: offer.opportunity_id and not offer.match_result_id)
+        if manual:
+            # One query for the whole batch; pairs are compared in memory.
+            drafts = self.search(
                 [
-                    ("id", "!=", rec.id),
-                    ("opportunity_id", "=", rec.opportunity_id.id),
-                    ("buyer_id", "=", rec.buyer_id.id),
+                    ("id", "not in", manual.ids),
+                    ("opportunity_id", "in", manual.opportunity_id.ids),
+                    ("buyer_id", "in", manual.buyer_id.ids),
                     ("match_result_id", "=", False),
                     ("state", "=", "draft"),
                 ]
-            ):
-                raise UserError(
-                    _("%(buyer)s already has a draft offer on this opportunity. Edit that draft instead.")
-                    % {"buyer": rec.buyer_id.display_name}
-                )
+            )
+            taken = {(draft.opportunity_id.id, draft.buyer_id.id) for draft in drafts}
+            for rec in manual:
+                if (rec.opportunity_id.id, rec.buyer_id.id) in taken:
+                    raise UserError(
+                        _("%(buyer)s already has a draft offer on this opportunity. Edit that draft instead.")
+                        % {"buyer": rec.buyer_id.display_name}
+                    )
         return super().action_reset_to_draft()
 
     @api.constrains("match_result_id", "buyer_id", "supplier_id")
