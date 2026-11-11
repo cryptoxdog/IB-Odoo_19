@@ -1,9 +1,9 @@
 {
   "schema": "recycleos.working-pack.manifest/v2",
-  "pack": "PlasticOS_Export_Blast_Radius_Plan_v2.7.5",
-  "version": "2.7.5",
+  "pack": "PlasticOS_Export_Repin_and_Strategic_Execution_Plan_v2.8",
+  "version": "2.8",
   "generated": "2026-10-29T15:23:15.171994+00:00",
-  "status": "REPOSITORY_SOURCE_PLAN_RECONCILED; S1_TARGET_UNOBSERVED; NO_CODE_AUTHORITY",
+  "status": "REPINNED_STATIC_TO_STAGING_d25da32; S1_TARGET_UNOBSERVED; NO_CODE_AUTHORITY",
   "repository_mutations": "NONE",
   "predecessor": {
     "file": "PlasticOS_Export_Source_Owner_Boundary_Corrected_v2.7.4.zip",
@@ -16,14 +16,14 @@
     "runtime": "NOT_RUN"
   },
   "invariants": {
-    "constitution": "INVARIANTS.md v2.2.0 in target repository",
+    "constitution": "INVARIANTS.md v3.0.0 in target repository (POS-INV-01..20; supersedes v2.2.0)",
     "previous_working_draft": "GOVERNANCE/ODOO_INVARIANTS_v3.4.0_DRAFT_r1.md",
     "working_draft": "GOVERNANCE/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
     "refined_candidate_invariant": "POS-INV-26",
     "prior_POS_INV_01_to_25_normative_unchanged": true,
     "BAN001_unchanged": true,
     "operator_pack_local_gate": "REPOSITORY_PLAN_RECONCILED; S1_TARGET_NOT_YET_PROVEN",
-    "constitutional_admission": "NOT_DONE"
+    "constitutional_admission": "v3.0.0 admitted; POS-INV-26 remains pack-local"
   },
   "change_census": {
     "effects": 203,
@@ -146,12 +146,12 @@
       "bytes": 1589
     },
     "00_README.md": {
-      "sha256": "4e568d5cf5b40f9d38634aae74a3558722bbaa8ab3696de7d499f5ab305562df",
-      "bytes": 2689
+      "sha256": "93b0fb06bb76dcb668f782e70e80a9a74e017e2d0cb344a9fbadc93e98b502f8",
+      "bytes": 3684
     },
     "00_ROADMAP_INDEX.md": {
-      "sha256": "1761a78a8d4a93d0e38539a213296dce6aa839caafcfafe5ee04d03bba5f5dcc",
-      "bytes": 1229
+      "sha256": "1b3d51458d983d99420e16bc5022bca33fec76dd5248f6148a00418275b34482",
+      "bytes": 1664
     },
     "01_LOCKED_DECISIONS_AND_INVARIANTS.md": {
       "sha256": "59a47215a2afd3c27b8b43260c552a6e81aa3199227e8932ecaaa5e918100433",
@@ -704,13 +704,29 @@
     "GOVERNANCE/V2_2_TO_V3_1_PRELIMINARY_MAPPING.md": {
       "sha256": "2c9a768e7b3e29e7eed111061b9396c2555e86456938acf3d543d0beca32e233",
       "bytes": 3608
+    },
+    "00W_VERSION_2_8_REPIN_AND_STRATEGIC_EXECUTION_PLAN.md": {
+      "sha256": "aeeeec594eaa0e75cf700d307f776762bc7df41ed683c2474842a9834aad3556",
+      "bytes": 2532
+    },
+    "STRATEGIC_EXECUTION_PLAN_v2.8.md": {
+      "sha256": "1e4ab32b75e3c4ee799d912208978cfa59e9eb82c59918e1cf573286d31c88f6",
+      "bytes": 12859
+    },
+    "EXPORT_BRS/INTEROP/REPIN_OVERLAY_v2.8.json": {
+      "sha256": "c9c83fa40475d35bec4a4e7e0111402b9a677283cd4489bb2be08d219de2f311",
+      "bytes": 83076
+    },
+    "EXPORT_BRS/INTEROP/tools/repin_overlay.py": {
+      "sha256": "d1c6cae51794e25b86e519181c392021f3cf5472d12c2d832a7b1f235a538416",
+      "bytes": 10601
     }
   },
   "source_revision": {
     "repository": "cryptoxdog/IB-Odoo_19",
     "branch": "Staging",
-    "head_sha": "677d734fd88615d673501d91de88734b7150ff50",
-    "prior_plan_revision": "78476ddb74861d900992f7f5ec3ec2cc2a63e8bf",
+    "head_sha": "d25da3236887c924c8a0164b00c1198f1804a2ea",
+    "prior_plan_revision": "677d734fd88615d673501d91de88734b7150ff50",
     "source_owner_meaning": "authoritative module/code surface, not human signoff",
     "enterprise": "UNOBSERVED_INSTALLED_TARGET"
   },
@@ -726,6 +742,9 @@
   },
   "active_reading_path": [
     "00_README.md",
+    "STRATEGIC_EXECUTION_PLAN_v2.8.md",
+    "EXPORT_BRS/INTEROP/REPIN_OVERLAY_v2.8.json",
+    "00W_VERSION_2_8_REPIN_AND_STRATEGIC_EXECUTION_PLAN.md",
     "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_PLAN_v2.7.5.md",
     "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json",
     "GOVERNANCE/EVIDENCE/PLAN_COMPLETION_VALIDATION_v2.7.5.json",
@@ -736,5 +755,25 @@
     "No implementation, Enterprise tests, concurrency execution, upgrade/data census or restore rehearsal was performed.",
     "Local rejection probes validate the accounting checks; they do not enforce a coding host or prove absence of every possible consumer.",
     "Canonical GAR projection validation and independent specialist conformance are not claimed."
-  ]
+  ],
+  "v2_7_5_snapshot": {
+    "pack": "PlasticOS_Export_Blast_Radius_Plan_v2.7.5",
+    "version": "2.7.5",
+    "status": "REPOSITORY_SOURCE_PLAN_RECONCILED; S1_TARGET_UNOBSERVED; NO_CODE_AUTHORITY",
+    "source_revision": {
+      "repository": "cryptoxdog/IB-Odoo_19",
+      "branch": "Staging",
+      "head_sha": "677d734fd88615d673501d91de88734b7150ff50",
+      "prior_plan_revision": "78476ddb74861d900992f7f5ec3ec2cc2a63e8bf",
+      "source_owner_meaning": "authoritative module/code surface, not human signoff",
+      "enterprise": "UNOBSERVED_INSTALLED_TARGET"
+    },
+    "active_reading_path": [
+      "00_README.md",
+      "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_PLAN_v2.7.5.md",
+      "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json",
+      "GOVERNANCE/EVIDENCE/PLAN_COMPLETION_VALIDATION_v2.7.5.json",
+      "GOVERNANCE/EVIDENCE/PLAN_COMPLETION_ASSESSMENT_v2.7.5.json"
+    ]
+  }
 }

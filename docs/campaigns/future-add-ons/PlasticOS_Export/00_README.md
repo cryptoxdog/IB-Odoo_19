@@ -1,3 +1,18 @@
+# PlasticOS Export v2.8 | Re-pinned plan and strategic execution plan
+
+**Bottom line:** v2.8 re-pins the v2.7.5 plan to `Staging@d25da3236887c924c8a0164b00c1198f1804a2ea` and adds the plan for building `plasticos_export` in gated, stacked slices without contaminating Staging. Coding is still BLOCKED: S1-TARGET is unobserved and the code grant is not given.
+
+## Start here (v2.8)
+
+1. `STRATEGIC_EXECUTION_PLAN_v2.8.md`: Gates 0–2, slices S2–S6, merge rule, BRS mirroring, scaffold checklist and open operator decisions.
+2. `EXPORT_BRS/INTEROP/REPIN_OVERLAY_v2.8.json`: re-pinned versions, migration folders, ADR, invariants, dependents and per-path drift. It overlays the v2.7.5 ledger below; every other v2.7.5 decision stands.
+3. `00W_VERSION_2_8_REPIN_AND_STRATEGIC_EXECUTION_PLAN.md`: what v2.8 changed.
+4. Then the v2.7.5 reading path below.
+
+The BRS (`EXPORT_BRS/RULES`, `EXPORT_BRS/REGISTRY`, `EXPORT_BRS/ACCEPTANCE`) remain the business authority and are preserved unchanged.
+
+---
+
 # PlasticOS Export v2.7.5 | Source-bound blast-radius plan
 
 **Bottom line:** All identified repository effects and the seven blast-radius frontiers now have selected technical dispositions at `677d734fd88615d673501d91de88734b7150ff50`. The current Documents merge has been reconciled. **Whole installed-target clearance is still BLOCKED by S1-TARGET; coding is separately unauthorized.** No human module-owner signature is required.

@@ -1,3 +1,9 @@
+# Current working-plan entry | v2.8
+
+Current source: `cryptoxdog/IB-Odoo_19/Staging@d25da3236887c924c8a0164b00c1198f1804a2ea`. Read `STRATEGIC_EXECUTION_PLAN_v2.8.md` and `EXPORT_BRS/INTEROP/REPIN_OVERLAY_v2.8.json` first; the v2.7.5 plan and ledger remain the detailed change source, overlaid by v2.8 for target, versions, migrations, ADR, invariants and dependents. S1-TARGET remains unobserved; no project code is authorized.
+
+---
+
 # Current working-plan entry | v2.7.5
 
 Current source: `cryptoxdog/IB-Odoo_19/Staging@677d734fd88615d673501d91de88734b7150ff50`. Read `EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_PLAN_v2.7.5.md` and its paired ledger first. S1-TARGET remains unobserved; no project code is authorized. Historical roadmap below preserves original ordering and scope, not older proposed implementation dispositions.
