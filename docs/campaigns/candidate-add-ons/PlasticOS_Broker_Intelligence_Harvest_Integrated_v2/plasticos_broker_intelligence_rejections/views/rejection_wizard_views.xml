@@ -1,0 +1,15 @@
+<odoo>
+  <record id="view_broker_rejection_wizard" model="ir.ui.view">
+    <field name="name">plasticos.broker.rejection.wizard.form</field>
+    <field name="model">plasticos.broker.rejection.wizard</field>
+    <field name="arch" type="xml"><form string="Broker Rejection Intelligence (Advisory Only)">
+      <group><field name="source_model" readonly="1"/><field name="source_id" readonly="1"/>
+        <field name="buyer_statement" readonly="1"/>
+        <field name="suggested_code"/><field name="explanation" readonly="1" widget="text"/>
+        <field name="observation"/><field name="evidence_ref"/></group>
+      <footer><button name="action_explain" type="object" string="Explain Without Changing State" class="btn-primary"/>
+        <button name="action_record_feedback" type="object" string="Save Candidate Feedback"/>
+        <button string="Close" special="cancel"/></footer>
+    </form></field>
+  </record>
+</odoo>

@@ -1,0 +1,68 @@
+<odoo>
+  <record id="view_broker_knowledge_list" model="ir.ui.view">
+    <field name="name">plasticos.broker.knowledge.list</field>
+    <field name="model">plasticos.broker.knowledge</field>
+    <field name="arch" type="xml">
+      <list string="Broker Knowledge" delete="0" decoration-muted="state == 'retired'">
+        <field name="stable_key" readonly="state != 'draft'"/><field name="version"/><field name="name"/>
+        <field name="category"/><field name="evidence_class"/><field name="state"/>
+        <field name="company_id" optional="hide"/><field name="reviewer_id" optional="hide"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_broker_knowledge_form" model="ir.ui.view">
+    <field name="name">plasticos.broker.knowledge.form</field>
+    <field name="model">plasticos.broker.knowledge</field>
+    <field name="arch" type="xml">
+      <form string="Broker Knowledge" delete="0">
+        <header>
+          <button name="action_approve" type="object" string="Approve Reviewed Revision"
+                  class="btn-primary" groups="plasticos_broker_intelligence.group_broker_reviewer"
+                  invisible="state != 'draft'"/>
+          <button name="action_retire" type="object" string="Retire"
+                  groups="plasticos_broker_intelligence.group_broker_reviewer" invisible="state != 'approved'"/>
+          <button name="action_new_revision" type="object" string="Create New Draft Revision"
+                  groups="plasticos_broker_intelligence.group_broker_reviewer" invisible="state == 'draft'"/>
+          <field name="state" widget="statusbar" statusbar_visible="draft,approved,retired"/>
+        </header>
+        <sheet>
+          <group>
+            <group><field name="stable_key" readonly="state != 'draft'"/><field name="version"/><field name="name"/>
+              <field name="company_id"/><field name="category"/><field name="applies_to"/>
+              <field name="topic_tags"/><field name="prerequisite_keys"/></group>
+            <group><field name="evidence_class"/><field name="review_class"/>
+              <field name="source_candidate_id"/><field name="proposed_owner"/>
+              <field name="source_file" readonly="state != 'draft'"/>
+              <field name="source_sha256" readonly="state != 'draft'"/>
+              <field name="source_selector" readonly="state != 'draft'"/>
+              <field name="reviewer_id"/><field name="reviewed_at"/></group>
+          </group>
+          <notebook>
+            <page string="Candidate Meaning"><field name="meaning"/></page>
+            <page string="Reviewer Admission">
+              <group><field name="reviewed_meaning"/><field name="workflow_scope"/>
+                <field name="evidence_requirements"/><field name="review_rationale"/>
+                <field name="review_evidence_ref"/><field name="authoritative_evidence_ref"/>
+                <field name="evidence_attachment_id"/><field name="review_evidence_file" filename="review_evidence_filename"/>
+                <field name="review_evidence_filename" invisible="1"/><field name="reviewer_attested"/>
+                <field name="retirement_reason"/></group>
+            </page>
+            <page string="Immutable Review History"><field name="audit_event_ids" readonly="1">
+              <list create="0" edit="0" delete="0">
+                <field name="event"/><field name="actor_id"/><field name="reason"/><field name="create_date"/>
+              </list>
+            </field></page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="action_broker_knowledge" model="ir.actions.act_window">
+    <field name="name">Broker Knowledge</field>
+    <field name="res_model">plasticos.broker.knowledge</field>
+    <field name="view_mode">list,form</field>
+  </record>
+  <menuitem id="menu_broker_root" name="Broker Intelligence" sequence="90" groups="base.group_user"/>
+  <menuitem id="menu_broker_knowledge" name="Knowledge Review" parent="menu_broker_root"
+            action="action_broker_knowledge" sequence="10"/>
+</odoo>

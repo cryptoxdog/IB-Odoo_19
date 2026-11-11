@@ -1,0 +1,23 @@
+{
+    "name": "PlasticOS Broker Intelligence: Core",
+    "version": "19.0.2.0.2",
+    "summary": "Reviewed broker guidance and fact-grounded advisory on material intakes",
+    "category": "Operations",
+    "author": "Scrap Management Inc.",
+    "license": "LGPL-3",
+    "depends": ["base", "mail", "plasticos_intake"],
+    "data": [
+        "security/groups.xml",
+        "security/ir.model.access.csv",
+        "security/record_rules.xml",
+        "data/knowledge_drafts.xml",
+        "views/knowledge_views.xml",
+        "views/observation_views.xml",
+        "views/advice_wizard_views.xml",
+        "views/retire_wizard_views.xml",
+        "views/intake_advice_views.xml",
+    ],
+    "installable": True,
+    "auto_install": False,
+    "application": False,
+}

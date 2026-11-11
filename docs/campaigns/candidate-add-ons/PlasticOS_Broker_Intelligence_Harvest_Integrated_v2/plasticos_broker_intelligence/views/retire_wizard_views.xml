@@ -1,0 +1,11 @@
+<odoo>
+  <record id="view_broker_retire_wizard" model="ir.ui.view">
+    <field name="name">plasticos.broker.retire.wizard.form</field>
+    <field name="model">plasticos.broker.retire.wizard</field>
+    <field name="arch" type="xml"><form string="Retire Approved Knowledge">
+      <group><field name="knowledge_id"/><field name="reason"/></group>
+      <footer><button name="action_confirm" type="object" string="Retire Revision" class="btn-primary"/>
+        <button string="Cancel" special="cancel"/></footer>
+    </form></field>
+  </record>
+</odoo>

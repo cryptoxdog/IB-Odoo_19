@@ -1,0 +1,10 @@
+<odoo>
+  <record id="view_match_broker_rejection" model="ir.ui.view">
+    <field name="name">plasticos.match.result.form.broker.rejection</field>
+    <field name="model">plasticos.match.result</field>
+    <field name="inherit_id" ref="plasticos_matching.view_match_result_form"/>
+    <field name="arch" type="xml"><xpath expr="//form/header" position="inside">
+      <button name="action_broker_rejection_advice" type="object" string="Explain Rejection" class="btn-secondary"/>
+    </xpath></field>
+  </record>
+</odoo>
