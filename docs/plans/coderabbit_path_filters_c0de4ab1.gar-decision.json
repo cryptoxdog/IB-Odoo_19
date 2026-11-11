@@ -1,0 +1,9 @@
+{
+  "governing_cause": "IB-Odoo_19 .coderabbit.yaml reviews.path_filters (lines 56-80) mixes four include patterns with exclusions. CodeRabbit treats any include as an allowlist and exclusions always win, so the only allowlisted files (four tests/ modules) are also excluded by !tests/**; every PR file is skipped (PR #467: 'excluded by none and included by none'). Separately auto_review.base_branches (lines 235-238) names main/master/develop, which do not exist; Production promotion PRs are never auto-reviewed.",
+  "intervention": "Edit only .coderabbit.yaml: make path_filters exclusions-only (build caches, vendor odoo-enterprise, archives, and the frozen ERP data grids bulk/meta/diagnostics plus docs CSV ledgers and the root ERP test CSV), dropping the four include lines and the three test exclusions and the blanket !*.csv that hid security ACL CSVs; set base_branches to Production. No other file changes.",
+  "evidence_paths": [
+    ".coderabbit.yaml",
+    "plasticos_partner_import/erp_extracted_data/README.md",
+    "AGENTS.md"
+  ]
+}

@@ -182,6 +182,9 @@ A Claude Code cloud session has Docker but no Odoo Enterprise source, so the ins
 | `ODOO_ENTERPRISE_PATH` | An explicit Enterprise checkout directory; checked first |
 | `ODOO_ENTERPRISE_REPO` | `owner/name` or git URL to clone when no checkout is found |
 | `ODOO_ENTERPRISE_REF` | Branch to clone; default: the repository's default branch (for example `main`). The Odoo series is always checked as 19.0 |
+| `RUNTIME_BOOTSTRAP_PROXY_CA` | The session proxy CA file to trust in the base image; default `/root/.ccr/ca-bundle.crt`. Absent file: the base image is left alone |
+
+A cloud session reaches the network through an HTTPS proxy with its own certificate authority, which build containers do not trust: the image's `pip` step then fails to clone its git-pinned dependencies with "server certificate verification failed". When that CA file exists (`/root/.ccr/ca-bundle.crt`, or `RUNTIME_BOOTSTRAP_PROXY_CA`), `make runtime-bootstrap` rebuilds the `Dockerfile` base image (`odoo:19`) locally with the CA trusted, under the same tag, so the unchanged `Dockerfile` builds. The local image carries the CA digest as a label and is reused while it matches. On a workstation, where no such file exists, nothing changes.
 
 `make runtime-bootstrap` refuses an `./odoo-enterprise` path that is not an Enterprise checkout, refuses another Odoo series, and never replaces a fixture that exists but is not admitted for the current inputs. That recovery stays `make test-env-rebuild`, an operator decision.
 

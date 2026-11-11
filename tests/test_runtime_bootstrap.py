@@ -8,6 +8,7 @@ clone source.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import shutil
@@ -31,6 +32,20 @@ esac
 
 STUB_DOCKER = """#!/usr/bin/env bash
 [ "${STUB_DOCKER_UP:-1}" = "1" ] || exit 1
+echo "docker $*" >> "$DOCKER_LOG"
+case "$1 $2" in
+  "image inspect")
+    case "$*" in
+      *Labels*) printf '%s\\n' "${STUB_CA_LABEL:-}" ;;
+      *Config.User*) echo odoo ;;
+    esac
+    ;;
+  "build "*)
+    for ctx; do :; done
+    cat "$ctx/Dockerfile" >> "$DOCKER_LOG"
+    [ "${STUB_BUILD_OK:-1}" = "1" ] || exit 1
+    ;;
+esac
 exit 0
 """
 
@@ -56,6 +71,7 @@ def repo(tmp_path: Path) -> Path:
     (work / "scripts").mkdir(parents=True)
     shutil.copy(SCRIPT, work / "scripts" / "runtime_bootstrap.sh")
     (work / "scripts" / "test_env.sh").write_text(STUB_TEST_ENV)
+    (work / "Dockerfile").write_text("# base\nFROM odoo:19\nUSER root\n")
     _git("init", "-q", cwd=work)
     bindir = tmp_path / "bin"
     bindir.mkdir()
@@ -71,6 +87,9 @@ def _run(repo: Path, **env: str) -> subprocess.CompletedProcess[str]:
     }
     base["PATH"] = f"{repo.parent.parent / 'bin'}{os.pathsep}{base.get('PATH', '')}"
     base["STUB_LOG"] = str(repo.parent.parent / "test_env.log")
+    base["DOCKER_LOG"] = str(repo.parent.parent / "docker.log")
+    # A cloud container carries a real session CA file; tests opt in explicitly.
+    base["RUNTIME_BOOTSTRAP_PROXY_CA"] = str(repo.parent.parent / "no-proxy-ca.crt")
     base.setdefault("STUB_STATE", "absent")
     base.update(env)
     return subprocess.run(
@@ -211,6 +230,72 @@ def test_malformed_repo_variable_is_refused(repo: Path) -> None:
     result = _run(repo, ODOO_ENTERPRISE_REPO="no-slash")
     assert result.returncode == 2
     assert "owner/name or a git URL" in result.stderr
+
+
+def _docker_log(repo: Path) -> str:
+    log = repo.parent.parent / "docker.log"
+    return log.read_text() if log.exists() else ""
+
+
+def _proxy_ca(repo: Path) -> tuple[Path, str]:
+    ca = repo.parent.parent / "proxy-ca.crt"
+    ca.write_text("-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n")
+    return ca, hashlib.sha256(ca.read_bytes()).hexdigest()
+
+
+def test_without_a_proxy_ca_the_base_image_is_untouched(repo: Path) -> None:
+    _enterprise(repo / "odoo-enterprise")
+    result = _run(repo, STUB_STATE="ready")
+    assert result.returncode == 0, result.stderr
+    log = _docker_log(repo)
+    assert "docker pull" not in log
+    assert "docker build" not in log
+
+
+def test_proxy_ca_rebuilds_the_base_image_before_the_fixture(repo: Path) -> None:
+    _enterprise(repo / "odoo-enterprise")
+    ca, digest = _proxy_ca(repo)
+    result = _run(repo, RUNTIME_BOOTSTRAP_PROXY_CA=str(ca), STUB_STATE="absent")
+    assert result.returncode == 0, result.stderr
+    log = _docker_log(repo)
+    assert "docker pull --quiet odoo:19" in log
+    assert re.search(r"^docker build --quiet -t odoo:19 \S+$", log, re.M)
+    assert "--pull" not in log.split("docker build", 1)[1].splitlines()[0]
+    assert "FROM odoo:19\nUSER root\n" in log
+    assert "RUN update-ca-certificates" in log
+    assert f"LABEL org.plasticos.session-proxy-ca={digest}" in log
+    assert log.rstrip().endswith("USER odoo")
+    assert _calls(repo) == ["status", "rebuild"]
+
+
+def test_proxy_ca_already_trusted_is_reused(repo: Path) -> None:
+    _enterprise(repo / "odoo-enterprise")
+    ca, digest = _proxy_ca(repo)
+    result = _run(repo, RUNTIME_BOOTSTRAP_PROXY_CA=str(ca), STUB_CA_LABEL=digest, STUB_STATE="ready")
+    assert result.returncode == 0, result.stderr
+    assert "already trusts the session proxy CA" in result.stdout
+    log = _docker_log(repo)
+    assert "docker pull" not in log
+    assert "docker build" not in log
+
+
+def test_failed_base_rebuild_refuses_before_the_fixture(repo: Path) -> None:
+    _enterprise(repo / "odoo-enterprise")
+    ca, _ = _proxy_ca(repo)
+    result = _run(repo, RUNTIME_BOOTSTRAP_PROXY_CA=str(ca), STUB_BUILD_OK="0")
+    assert result.returncode == 2
+    assert "could not rebuild base image odoo:19" in result.stderr
+    assert _calls(repo) == []
+
+
+def test_unreadable_from_line_refuses(repo: Path) -> None:
+    _enterprise(repo / "odoo-enterprise")
+    (repo / "Dockerfile").write_text("# no base\n")
+    ca, _ = _proxy_ca(repo)
+    result = _run(repo, RUNTIME_BOOTSTRAP_PROXY_CA=str(ca))
+    assert result.returncode == 2
+    assert "FROM line of Dockerfile" in result.stderr
+    assert _calls(repo) == []
 
 
 def test_script_respects_the_runtime_test_ownership_contract() -> None:
