@@ -48,29 +48,6 @@
             </xpath>
 
             <xpath expr="//div[@name='button_box']" position="after">
-                <group string="Opportunity Material" invisible="type != 'opportunity' or not opportunity_material_ids">
-                    <field name="opportunity_material_ids" nolabel="1" colspan="2">
-                        <list create="false" delete="false" editable="bottom">
-                            <field name="polymer_id"/>
-                            <field name="material_grade_id"/>
-                            <field name="form_id"/>
-                            <field name="color_id"/>
-                            <field name="packaging_type_id"/>
-                            <field name="source_type_id"/>
-                            <field name="filler_type_id"/>
-                            <field name="material_attribute_ids" widget="many2many_tags"/>
-                            <field name="melt_flow_index"/>
-                            <field name="density"/>
-                            <field name="moisture_percent"/>
-                            <field name="contamination_percent"/>
-                            <field name="filler_pct"/>
-                            <field name="quantity_per_load_lbs"/>
-                            <field name="loads_per_month"/>
-                            <field name="freeform_notes"/>
-                            <field name="image_attachment_ids" widget="many2many_binary"/>
-                        </list>
-                    </field>
-                </group>
                 <group string="Admin Release" invisible="type != 'opportunity' or not stage_id.is_won" groups="plasticos_security_base.group_operations_manager">
                     <field name="release_buyer_company_id"/>
                     <field name="release_buyer_facility_id"/>
@@ -172,9 +149,60 @@
                 <field name="source_id"/>
             </xpath>
 
-            <!-- ═══ OPPORTUNITY VIEW: Add mobile below phone ═══ -->
-            <xpath expr="//group[@name='opportunity_partner']//field[@name='phone']/.." position="after">
+            <!-- Contact stays on the Contacts tab. The header column is the material being offered. -->
+            <xpath expr="//page[@name='lead']//field[@name='contact_name']" position="before">
+                <xpath expr="//group[@name='opportunity_partner']/field[@name='partner_id']" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/label[@for='email_from']" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/div[field[@name='email_from']]" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/label[@for='phone']" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/div[field[@name='phone']]" position="move"/>
                 <field name="mobile" widget="phone"/>
+            </xpath>
+            <xpath expr="//group[@name='opportunity_partner']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//group[@name='opportunity_partner']" position="before">
+                <group string="Material" invisible="type != 'opportunity'">
+                    <field name="opportunity_material_ids" nolabel="1" colspan="2">
+                        <list create="false" delete="false" editable="bottom">
+                            <field name="polymer_id"/>
+                            <field name="material_grade_id"/>
+                            <field name="form_id"/>
+                            <field name="color_id"/>
+                            <field name="packaging_type_id"/>
+                            <field name="source_type_id"/>
+                            <field name="filler_type_id"/>
+                            <field name="quantity_per_load_lbs"/>
+                            <field name="loads_per_month"/>
+                            <field name="melt_flow_index"/>
+                            <field name="density"/>
+                            <field name="moisture_percent"/>
+                            <field name="contamination_percent"/>
+                            <field name="filler_pct"/>
+                            <field name="material_attribute_ids" widget="many2many_tags"/>
+                            <field name="freeform_notes"/>
+                            <field name="image_attachment_ids" widget="many2many_binary"/>
+                            <field name="buy_price_per_lb" column_invisible="1"/>
+                        </list>
+                    </field>
+                </group>
+            </xpath>
+
+            <xpath expr="//field[@name='expected_revenue']" position="before">
+                <field name="offer_weight_lbs" readonly="1" nolabel="1"/>
+                <span class="opacity-50 p-2">lbs at</span>
+                <field name="offer_buy_price" nolabel="1" class="o_input_8ch" required="material_profile_id"/>
+                <span class="opacity-50 p-2">$ /lb =</span>
+            </xpath>
+            <xpath expr="//field[@name='expected_revenue']" position="attributes">
+                <attribute name="readonly">opportunity_material_ids</attribute>
+            </xpath>
+            <xpath expr="//span[@groups='!crm.group_use_recurring_revenues']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='date_deadline']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="placeholder"/>
             </xpath>
 
             <!-- ═══ Probability widget — hide from top, show at bottom ═══ -->

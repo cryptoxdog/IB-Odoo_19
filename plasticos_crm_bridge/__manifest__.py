@@ -1,6 +1,6 @@
 {
     "name": "PlastOS CRM Bridge",
-    "version": "19.0.3.5.1",
+    "version": "19.0.3.5.2",
     "author": "Igor Beylin",
     "summary": "CRM integration for plastics brokerage workflow",
     "depends": [
