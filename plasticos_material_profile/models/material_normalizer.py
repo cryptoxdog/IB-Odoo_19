@@ -122,6 +122,16 @@ _SPECS = {
     "petg rolls - tinted": _spec(polymer="PETG", form="ROLLSTOCK"),
     "petg trays": _spec(polymer="PETG", material_grade="TRAYS"),
     "san regrind": _spec(polymer="SAN", form="REGRIND"),
+    # LD/LLD and two named grades. A second master is set only when the phrase names one seeded value.
+    "ldpe/lldpe clear repro": _spec(polymer="LDPE_LLDPE", attributes=("repro",), color="CLEAR"),
+    "lldpe/ldpe mixed color purge": _spec(polymer="LDPE_LLDPE", form="PURGE", color="MIXED"),
+    "contaminated ldpe/lldpe": _spec(polymer="LDPE_LLDPE"),
+    "ld/lldpe repro": _spec(polymer="LDPE_LLDPE", attributes=("repro",)),
+    "ldpe/lldpe blue repro": _spec(polymer="LDPE_LLDPE", attributes=("repro",), color="BLUE"),
+    "ldpe/lldpe blue/white purge": _spec(polymer="LDPE_LLDPE", form="PURGE"),
+    "ldpe/lldpe repro": _spec(polymer="LDPE_LLDPE", attributes=("repro",)),
+    "spc-a": _spec(polymer="PP", material_grade="TUBS_LIDS", source="POST_CONSUMER", packaging_type="bales"),
+    "new opti bins": _spec(polymer="HDPE", material_grade="CRATES"),
 }
 
 # CRM lead phrases that are not worksheet phrases. The whole collapsed

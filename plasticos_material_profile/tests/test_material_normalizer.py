@@ -253,7 +253,7 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertEqual(sacks.attributes.mapped("code"), ["lined"])
         self.assertEqual(sacks.packaging_type.code, "bales")
 
-        for phrase in ("hdpe / ldpe regrind", "gaylords of amazon returns", "ldpe/lldpe clear repro"):
+        for phrase in ("hdpe / ldpe regrind", "gaylords of amazon returns"):
             with self.subTest(phrase=phrase):
                 self.assertEqual(normalize_material(self.env, phrase).unresolved, ("unresolved material",))
 
@@ -305,6 +305,33 @@ class TestMaterialNormalizer(TransactionCase):
                 result = normalize_material(self.env, phrase)
                 self.assertEqual(result.unresolved, ("unresolved material",))
                 self.assertFalse(result.polymer)
+
+    def test_ld_lld_and_named_grade_phrases_resolve_on_the_worksheet_path(self):
+        cases = (
+            ("LDPE/LLDPE Clear Repro", "LDPE_LLDPE", False, False, False, ("repro",), "CLEAR", False),
+            ("LLDPE/LDPE Mixed Color Purge", "LDPE_LLDPE", "PURGE", False, False, (), "MIXED", False),
+            ("CONTAMINATED LDPE/LLDPE", "LDPE_LLDPE", False, False, False, (), False, False),
+            ("LD/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
+            ("LDPE/LLDPE Blue Repro", "LDPE_LLDPE", False, False, False, ("repro",), "BLUE", False),
+            ("LDPE/LLDPE Blue/White Purge", "LDPE_LLDPE", "PURGE", False, False, (), False, False),
+            ("LDPE/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
+            ("SPC-A", "PP", False, "TUBS_LIDS", "POST_CONSUMER", (), False, "bales"),
+            ("New OPTI Bins", "HDPE", False, "CRATES", False, (), False, False),
+        )
+        for phrase, polymer, form, grade, source, attributes, color, packaging in cases:
+            with self.subTest(phrase=phrase):
+                result = normalize_material(self.env, phrase)
+                self.assertFalse(result.unresolved)
+                self.assertEqual(result.polymer.code, polymer)
+                self.assertEqual(result.form.code or False, form)
+                self.assertEqual(result.material_grade.code or False, grade)
+                self.assertEqual(result.source_type.code or False, source)
+                self.assertEqual(tuple(result.attributes.mapped("code")), attributes)
+                self.assertEqual(result.color.code or False, color)
+                self.assertEqual(result.packaging_type.code or False, packaging)
+
+        bare = normalize_material(self.env, "buckets")
+        self.assertFalse(bare.polymer)
 
     def test_worksheet_import_still_calls_normalize_material(self):
         source = (

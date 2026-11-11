@@ -209,7 +209,7 @@ material,hdpe natural bottles,HDPE Natural Bottles,erp:InvoiceDesc,11,0,mapped,n
 material,ld/lldpe thick/stretch,LD/LLDPE Thick/Stretch,vanillasoft:Material (LDPE),0,11,mapped,approved_alias,LDPE_LLDPE,,,,,,,,,,,
 material,ldpe clear film,LDPE Clear Film,erp:InvoiceDesc,11,0,mapped,names_one_polymer,LDPE,,FILM,,,,,CLEAR,,,,
 material,ldpe grade a film,LDPE GRADE A FIlm,erp:InvoiceDesc,11,0,mapped,worksheet_phrase,LDPE,,FILM,,clean dry,A,LDPE_FILM_A,,,,bales,
-material,ldpe/lldpe clear repro,LDPE/LLDPE Clear Repro,erp:InvoiceDesc,11,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
+material,ldpe/lldpe clear repro,LDPE/LLDPE Clear Repro,erp:InvoiceDesc,11,0,mapped,names_one_polymer,LDPE_LLDPE,,,,repro,,,CLEAR,,,,
 material,pet pellet - bottle grade,PET Pellet - Bottle Grade,erp:InvoiceDesc,11,0,mapped,grade_template,PET,,PELLETS,,,,PET_PELLET_BOTTLE,,,,gaylords,
 material,pp pallet,PP Pallet,erp:InvoiceDesc,11,0,mapped,names_one_polymer,PP,,,,,,,,,,,
 material,pp repro,PP Repro,vanillasoft:Material (PP),0,11,mapped,approved_alias,PP,,,,,,,,,,,
@@ -321,7 +321,7 @@ material,igps pallets,iGPS Pallets,erp:InvoiceDesc,6,0,mapped,names_one_polymer,
 material,ld/hd blue regrind,LD/HD Blue Regrind,erp:InvoiceDesc,6,0,mapped,names_one_polymer,LDPE,,REGRIND,,,,,BLUE,,,,
 material,ldpe film downgraded,LDPE Film Downgraded,erp:InvoiceDesc,6,0,mapped,names_one_polymer,LDPE,,FILM,,,,,,,,,
 material,ldpe/hdpe grocery film,LDPE/HDPE Grocery Film,vanillasoft:Material (LDPE),0,6,ambiguous,,,,,,,,,,,,,Multiple distinct canonical resins or classes mentioned; do not choose or split without review
-material,new opti bins,New OPTI Bins,erp:InvoiceDesc,6,0,unknown,,,,,,,,,,,,,names no polymer master
+material,new opti bins,New OPTI Bins,erp:InvoiceDesc,6,0,mapped,names_one_polymer,HDPE,CRATES,,,,,,,,,,
 material,pc clear sheet scrap w/masking,PC Clear Sheet Scrap W/Masking,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PC,,SHEET,,,,,CLEAR,,,,
 material,pc color face shields,PC Color Face Shields,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PC,,,,,,,,,,,
 material,pet regrind w/ pp contamination,PET Regrind W/ PP Contamination,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PET,,REGRIND,,pp_contaminated,,,,,,,
@@ -334,7 +334,7 @@ material,pp regrind (11-22 melt),PP Regrind (11-22 Melt),erp:InvoiceDesc,6,0,map
 material,pp syringe in original boxes,PP Syringe in Original Boxes,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,,,,,,,,,,,
 material,pp uniform pallets,PP Uniform Pallets,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,PALLETS,,,,,,,,,,
 material,pvc regrind,PVC Regrind,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PVC,,REGRIND,,,,,,,,,
-material,spc-a,SPC-A,erp:InvoiceDesc,6,0,unknown,,,,,,,,,,,,,names no polymer master
+material,spc-a,SPC-A,erp:InvoiceDesc,6,0,mapped,names_one_polymer,PP,TUBS_LIDS,,POST_CONSUMER,,,,,,,bales,
 material,textile,Textile,vanillasoft:Materials,0,6,mapped,crm_code,TEXTILE,,,,,,,,,,,
 material,baled hdpe shred,Baled HDPE Shred,erp:InvoiceDesc,5,0,mapped,names_one_polymer,HDPE,,SHRED,,,,,,,,,
 material,bottles,Bottles,vanillasoft:Materials,0,5,ambiguous,,,,,,,,,,,,,Generic/blended source label; no unique canonical polymer
@@ -771,7 +771,7 @@ material,lldpe film,LLDPE Film,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LLDP
 material,lldpe rolls,LLDPE Rolls,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LLDPE,,,,,,,,,,,
 material,lldpe roto m/c 4-8mi,LLDPE ROTO M/C 4-8MI,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LLDPE,,,,,,,,,,,
 material,lldpe rotomold parts (no metal),LLDPE Rotomold Parts (No Metal),erp:InvoiceDesc,2,0,mapped,names_one_polymer,LLDPE,,PARTS,,no_metal,,,,,rotomold,,
-material,lldpe/ldpe mixed color purge,LLDPE/LDPE Mixed Color Purge,erp:InvoiceDesc,2,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
+material,lldpe/ldpe mixed color purge,LLDPE/LDPE Mixed Color Purge,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LDPE_LLDPE,,PURGE,,,,,MIXED,,,,
 material,loose occ / unbaled,Loose OCC / Unbaled,erp:InvoiceDesc,2,0,mapped,names_one_polymer,OCC,,LOOSE,,,,,,,,,
 material,masonry supplies,Masonry Supplies,erp:InvoiceDesc,2,0,unknown,,,,,,,,,,,,,names no polymer master
 material,miller coors pallets - unrunable,Miller Coors Pallets - Unrunable,erp:InvoiceDesc,2,0,mapped,names_one_polymer,PLASTIC_PALLETS,PALLETS,,,,,,,,,,
@@ -1084,7 +1084,7 @@ material,computer chips / parts,Computer Chips / Parts,erp:InvoiceDesc,1,0,unkno
 material,contaminated hdpe frac melt,CONTAMINATED HDPE FRAC MELT,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,frac_melt,,,,,,,
 material,contaminated hdpe/rigids,Contaminated HDPE/Rigids,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,,,,rigid,,,,,,,
 material,contaminated hips,Contaminated HIPS,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HIPS,,,,,,,,,,,
-material,contaminated ldpe/lldpe,CONTAMINATED LDPE/LLDPE,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
+material,contaminated ldpe/lldpe,CONTAMINATED LDPE/LLDPE,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,,,,,,,,,,
 material,contaminated trays,Contaminated Trays,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,contaminated w/metal,Contaminated W/Metal,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,contamination with grease & paper,Contamination With Grease & Paper,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
@@ -1564,7 +1564,7 @@ material,landfill material,Landfill Material,erp:InvoiceDesc,1,0,unknown,,,,,,,,
 material,ld,ld,vanillasoft:Material (LDPE),0,1,mapped,names_one_polymer,LDPE,,,,,,,,,,,
 material,ld film,LD Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,,,,,,,,,
 material,ld totes with metal,LD Totes With Metal,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,TOTES,,,with_metal,,,,,,,
-material,ld/lldpe repro,LD/LLDPE Repro,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
+material,ld/lldpe repro,LD/LLDPE Repro,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,,,repro,,,,,,,
 material,ldpe / mdpe mixed color film,LDPE / MDPE Mixed Color Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,,,,,MIXED,,,,
 material,ldpe 95% clear,LDPE 95% clear,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,,,,,,CLEAR,,,,
 material,ldpe 99% clear film,LDPE 99% Clear Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,,,,,CLEAR,,,,
@@ -1638,9 +1638,9 @@ material,ldpe white film,LDPE White Film,erp:InvoiceDesc,1,0,mapped,names_one_po
 material,ldpe white regrind,LDPE White Regrind,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,REGRIND,,,,,WHITE,,,,
 material,ldpe-rejected material,LDPE-Rejected Material,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,,,,,,,,,,
 material,ldpe/ pp pallets,LDPE/ PP Pallets,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,,,names polymers LDPE PP
-material,ldpe/lldpe blue repro,LDPE/LLDPE Blue Repro,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
-material,ldpe/lldpe blue/white purge,LDPE/LLDPE Blue/White Purge,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
-material,ldpe/lldpe repro,LDPE/LLDPE Repro,erp:InvoiceDesc,1,0,ambiguous,,,,,,,,,,,,,names polymers LDPE LLDPE
+material,ldpe/lldpe blue repro,LDPE/LLDPE Blue Repro,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,,,repro,,,BLUE,,,,
+material,ldpe/lldpe blue/white purge,LDPE/LLDPE Blue/White Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,PURGE,,,,,,,,,
+material,ldpe/lldpe repro,LDPE/LLDPE Repro,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,,,repro,,,,,,,
 material,ldpe/mdpe film rolls and post industrial,LDPE/MDPE Film Rolls and Post Industrial,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,POST_INDUSTRIAL,,,,,,,,
 material,ldpe/mdpe printed rolls,LDPE/MDPE printed rolls,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,,,printed,,,,,,,
 material,left a vm 6/6,left a vm 6/6,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,,,call-note text; kept as a note
