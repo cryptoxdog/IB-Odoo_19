@@ -376,9 +376,9 @@ class PlasticosWebLead(models.Model):
         string="Quantity (Form Input)",
         help="Raw quantity text from the form — unprocessed, for display only.",
     )
-    estimated_lbs_per_load = fields.Integer(string="Est. Lbs/Load")
+    estimated_lbs_per_load = fields.Integer(string="Lbs/Load")
     estimated_lbs_high = fields.Integer(
-        string="Est. Lbs High",
+        string="Lbs High",
         help="High end of a seller weight range. Empty when the seller stated one weight.",
     )
     lead_image_ids = fields.Many2many(
@@ -387,7 +387,7 @@ class PlasticosWebLead(models.Model):
         compute="_compute_lead_image_ids",
         help="Image files already stored on this lead. A cold decision does not remove them.",
     )
-    estimated_loads_per_month = fields.Integer(string="Est. Loads/Month")
+    estimated_loads_per_month = fields.Integer(string="Loads/Month")
     frequency = fields.Char(string="Frequency")
     has_contaminants = fields.Boolean(string="Has Contaminants")
     contaminant_notes = fields.Text(string="Contaminant Notes")
