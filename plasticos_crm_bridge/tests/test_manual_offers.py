@@ -383,6 +383,39 @@ class TestManualOffers(PlasticosTestCase):
         self.assertFalse(self.env["sale.order"].search_count([("opportunity_id", "=", opportunity.id)]))
         self.assertFalse(self.env["purchase.order"].search_count([("origin", "=", offer.name)]))
 
+    def test_accepted_offer_email_and_material_evidence_cannot_be_cleared(self):
+        opportunity, offer = self._accepted_manual_offer()
+        message, sent_date, spec_key = offer.sent_message_id, offer.sent_date, offer.material_spec_key
+        self.assertTrue(message and sent_date and spec_key)
+        attempts = (
+            {"state": "accepted", "sent_message_id": False, "material_spec_key": False},
+            {"state": "accepted", "sent_message_id": False},
+            {"state": "accepted", "material_spec_key": False},
+            {"state": "accepted", "sent_date": False},
+            {"sent_message_id": False},
+            {"material_spec_key": "forged"},
+        )
+        for vals in attempts:
+            with self.assertRaises(UserError, msg=f"refused: {vals}"):
+                offer.write(vals)
+        with self.assertRaisesRegex(UserError, "Closed offers are immutable"):
+            offer.write({"state": "accepted", "price_per_lb": 0.5})
+        self.assertEqual(
+            (offer.state, offer.sent_message_id, offer.sent_date, offer.material_spec_key),
+            ("accepted", message, sent_date, spec_key),
+        )
+        # Release still compares the frozen specification and the transaction back-link still lands.
+        opportunity.write(
+            {
+                "release_buyer_company_id": self.buyer_a.id,
+                "release_buyer_facility_id": self.buyer_a.id,
+                "release_buyer_price": 0.21,
+            }
+        )
+        opportunity.action_submit_release()
+        offer._plasticos_link_transaction(opportunity.release_transaction_id)
+        self.assertEqual(offer.transaction_id, opportunity.release_transaction_id)
+
     def test_release_refuses_a_buyer_other_than_the_accepted_one(self):
         opportunity, offer = self._accepted_manual_offer()
         self._assert_release_refused(

@@ -357,7 +357,15 @@ class PlasticosOffer(models.Model):
                     )
                 vals["name"] = sequence
         records = super().create(vals_list)
-        # Checked after defaults are applied, so a default_state context cannot bypass it.
+        # Checked after defaults are applied, so a default_* context cannot bypass it.
+        forged = records.filtered(lambda rec: any(rec[name] for name in rec._plasticos_send_evidence_fields()))
+        if forged:
+            raise UserError(
+                _(
+                    "Send evidence is written only when an offer is sent (refused: %s).",
+                    ", ".join(forged.mapped("name")),
+                )
+            )
         communicated = records.filtered(lambda rec: rec.state in COMMUNICATED_STATES)
         if communicated:
             raise UserError(
@@ -493,16 +501,56 @@ class PlasticosOffer(models.Model):
                     )
                 )
 
-    def write(self, vals):
-        """Guard against modifying closed offers (except state changes) and against term rewrites after draft."""
-        self._plasticos_check_state_transition(vals)
-        closed_states = ("accepted", "rejected", "expired", "cancelled")
-        if "state" not in vals:
-            for rec in self:
-                if rec.state in closed_states:
-                    raise UserError(
-                        f"Cannot modify offer '{rec.name}' in state '{rec.state}'. Closed offers are immutable."
+    def _plasticos_send_evidence_fields(self):
+        """Fields only the native send write may set (draft → sent). Bridges extend this tuple."""
+        return ("sent_message_id", "sent_date")
+
+    def _plasticos_post_close_fields(self):
+        """Fields a closed offer still admits, besides its unchanged state. Bridges extend this tuple."""
+        return ()
+
+    def _plasticos_value_differs(self, field_name, value):
+        self.ensure_one()
+        field = self._fields[field_name]
+        return field.convert_to_record(field.convert_to_cache(value, self), self) != self[field_name]
+
+    def _plasticos_check_send_evidence_write(self, vals):
+        """Send evidence is written once, by the send; no later write may change or clear it."""
+        touched = [name for name in self._plasticos_send_evidence_fields() if name in vals]
+        if not touched:
+            return
+        for rec in self:
+            if rec.state == "draft" and vals.get("state") == "sent":
+                continue  # the native send write; its email is checked by the state transition guard
+            changed = [name for name in touched if rec._plasticos_value_differs(name, vals[name])]
+            if changed:
+                raise UserError(
+                    _(
+                        "The sent email evidence of offer %(offer)s (%(fields)s) is written only when the offer "
+                        "is sent and cannot be changed afterwards.",
+                        offer=rec.name,
+                        fields=", ".join(changed),
                     )
+                )
+
+    def write(self, vals):
+        """Guard closed offers, the lifecycle, send evidence and sent terms.
+
+        A write that repeats the current state is an ordinary update: it gets no
+        exemption from the closed-offer rule.
+        """
+        self._plasticos_check_state_transition(vals)
+        self._plasticos_check_send_evidence_write(vals)
+        closed_states = ("accepted", "rejected", "expired", "cancelled")
+        for rec in self:
+            if rec.state not in closed_states or vals.get("state", rec.state) != rec.state:
+                continue
+            extra = set(vals) - {"state"} - set(rec._plasticos_post_close_fields())
+            if extra:
+                raise UserError(
+                    f"Cannot modify offer '{rec.name}' in state '{rec.state}'. Closed offers are immutable "
+                    f"({', '.join(sorted(extra))})."
+                )
         for rec in self:
             if rec.state == "draft":
                 continue

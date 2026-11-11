@@ -209,6 +209,10 @@ class PlasticosOfferMatchLineage(models.Model):
         self.ensure_one()
         return bool(self.opportunity_id and not self.match_result_id)
 
+    def _plasticos_send_evidence_fields(self):
+        # The material specification frozen at send is what release compares against.
+        return tuple(super()._plasticos_send_evidence_fields()) + ("material_spec_key",)
+
     def _plasticos_requires_send_evidence(self):
         return super()._plasticos_requires_send_evidence() or self._plasticos_is_manual_offer()
 

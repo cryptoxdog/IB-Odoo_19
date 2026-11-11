@@ -298,6 +298,23 @@ class TestOfferManualSend(PlasticosTestCase):
                     {"supplier_id": self.supplier.id, "buyer_id": self.buyer.id}
                 )
 
+    def test_send_evidence_is_written_only_by_the_send(self):
+        offer = self._offer()
+        stray = offer.message_ids[:1]
+        with self.assertRaisesRegex(UserError, "Send evidence is written only"):
+            self._offer(sent_date=fields.Datetime.now())
+        with self.assertRaisesRegex(UserError, "written only when the offer"):
+            offer.write({"sent_message_id": stray.id})
+        send_offer_email(offer)
+        message, sent_date = offer.sent_message_id, offer.sent_date
+        for vals in ({"sent_message_id": False}, {"sent_date": False}, {"state": "sent", "sent_message_id": False}):
+            with self.assertRaisesRegex(UserError, "written only when the offer"):
+                offer.write(vals)
+        offer.action_accept()
+        with self.assertRaisesRegex(UserError, "written only when the offer"):
+            offer.write({"state": "accepted", "sent_message_id": False})
+        self.assertEqual((offer.sent_message_id, offer.sent_date), (message, sent_date))
+
     def test_draft_cannot_jump_to_responded_or_accepted(self):
         offer = self._offer()
         with self.assertRaisesRegex(UserError, "Responded after it was sent"):
