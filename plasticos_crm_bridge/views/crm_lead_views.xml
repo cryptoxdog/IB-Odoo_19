@@ -25,6 +25,13 @@
                         data-hotkey="i"
                         title="PlasticOS: Creates a material intake record from this lead, starting the plastics brokerage pipeline (Intake &#8594; Matching &#8594; Offer &#8594; Transaction)."
                         invisible="not active or (type == 'opportunity' and not source_intake_id)"/>
+                <!-- Manual buyer selection: draft offers without Gate matching. -->
+                <button name="action_select_offer_buyers"
+                        type="object"
+                        string="Select Buyers"
+                        class="btn btn-primary"
+                        title="PlasticOS: Pick existing buyer contacts and prepare one draft offer per buyer company. Nothing is sent and Gate is not used."
+                        invisible="not active or type != 'opportunity' or stage_id.is_won"/>
                 <!-- The one Opportunity matching command: approve a frozen lot, match it through Gate. -->
                 <button name="action_match_opportunity"
                         type="object"
@@ -42,7 +49,7 @@
                         type="object"
                         string="Submit"
                         class="btn btn-primary"
-                        title="PlasticOS: Creates one draft purchase order at the accepted offer price, one draft sale order at the buyer price, and one draft transaction."
+                        title="PlasticOS: Creates one draft purchase order at the opportunity's supplier Offer Price, one draft sale order at the buyer price, and one draft transaction."
                         invisible="type != 'opportunity' or not stage_id.is_won or release_sale_order_id"
                         groups="plasticos_security_base.group_operations_manager"/>
             </xpath>
@@ -104,9 +111,11 @@
                         type="object"
                         class="oe_stat_button"
                         icon="fa-tags"
-                        invisible="not match_run_ids"
-                        title="Offers created from this opportunity's reviewed Gate results.">
-                    <span class="o_stat_text">Offers</span>
+                        invisible="offer_count == 0"
+                        title="Offers on this opportunity, from Gate results or manually selected buyers.">
+                    <field name="offer_count"
+                           string="Offers"
+                           widget="statinfo"/>
                 </button>
 
                 <button name="action_view_transactions"
@@ -500,7 +509,9 @@
         <field name="inherit_id" ref="plasticos_offer.view_offer_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group[@name='origin']/field[@name='intake_id']" position="before">
-                <field name="match_result_id" readonly="1"/>
+                <field name="opportunity_id" readonly="1"/>
+                <field name="material_source_id" readonly="1" invisible="not material_source_id"/>
+                <field name="match_result_id" readonly="1" invisible="not match_result_id"/>
             </xpath>
         </field>
     </record>
@@ -511,6 +522,7 @@
         <field name="inherit_id" ref="plasticos_offer.view_offer_list"/>
         <field name="arch" type="xml">
             <xpath expr="//list/field[@name='intake_id']" position="after">
+                <field name="opportunity_id" optional="show"/>
                 <field name="match_result_id" optional="hide"/>
             </xpath>
         </field>

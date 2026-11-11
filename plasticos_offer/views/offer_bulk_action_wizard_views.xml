@@ -10,10 +10,14 @@
                     <field name="offer_count" readonly="1"/>
                     <field name="action_type" widget="radio"/>
                 </group>
+                <div class="alert alert-info" role="alert" invisible="action_type != 'send'">
+                    Send opens the email composer of one draft offer. Select a single draft offer;
+                    an offer becomes Sent only when its email is submitted.
+                </div>
                 <group invisible="action_type != 'reject'">
                     <field name="rejection_reason" required="action_type == 'reject'"/>
                 </group>
-                <group>
+                <group invisible="action_type == 'send'">
                     <field name="notes"/>
                 </group>
                 <field name="offer_ids" invisible="1"/>

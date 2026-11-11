@@ -2,6 +2,7 @@ import re
 
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import float_compare
 
 # Fields the location reach-person reads. A later People-list change refreshes
 # an open opportunity's contact, email, job, and phone.
@@ -155,7 +156,7 @@ class CrmLeadPlastOS(models.Model):
         string="Release Purchase Order",
         copy=False,
         ondelete="set null",
-        help="Draft purchase order created by submit, at the accepted offer price.",
+        help="Draft purchase order created by submit, at the opportunity's supplier Offer Price.",
     )
     release_sale_order_id = fields.Many2one(
         "sale.order",
@@ -187,6 +188,11 @@ class CrmLeadPlastOS(models.Model):
         "plasticos.match.run",
         "opportunity_id",
         string="Gate Match Runs",
+    )
+    offer_count = fields.Integer(
+        string="Offers",
+        compute="_compute_offer_count",
+        help="Offers on this opportunity, from Gate results or from manually selected buyers.",
     )
     # One native opportunity per originating intake. Partial: manual lots and
     # historical leads without a source intake are never collapsed.
@@ -225,6 +231,17 @@ class CrmLeadPlastOS(models.Model):
         from .crm_tag_adoption import adopt_role_tag  # noqa: PLC0415
 
         return adopt_role_tag(self.env, name, xmlid)
+
+    def _compute_offer_count(self):
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = self.env["plasticos.offer"]._read_group(
+                [("opportunity_id", "in", stored_ids)], ["opportunity_id"], ["__count"]
+            )
+            counts = {opportunity.id: count for opportunity, count in rows}
+        for rec in self:
+            rec.offer_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     @api.depends("web_lead_ids")
     def _compute_web_lead_count(self):
@@ -783,6 +800,45 @@ class CrmLeadPlastOS(models.Model):
             "target": "current",
         }
 
+    # ── Manual buyer selection (no Gate) ─────────────────────
+
+    def _plasticos_manual_offer_material(self):
+        """The opportunity-owned material row a manual offer is drafted from, after validating the source."""
+        self.ensure_one()
+        if self.type != "opportunity":
+            raise UserError(_("Buyers are selected on an opportunity. Convert the lead to an opportunity first."))
+        if not self.active or self.stage_id.is_won:
+            raise UserError(
+                _("Opportunity %s is closed. Buyers can only be selected on an open opportunity.") % self.name
+            )
+        if not self.partner_id:
+            raise UserError(_("Link the supplier on opportunity %s before selecting buyers.") % self.name)
+        material = self.opportunity_material_ids[:1]
+        if not material or material.opportunity_id != self:
+            raise UserError(
+                _(
+                    "Opportunity %s has no material sheet. Select its Material Profile so the material is copied "
+                    "onto the opportunity, then select buyers.",
+                    self.name,
+                )
+            )
+        return material
+
+    def action_select_offer_buyers(self):
+        """Open the buyer selection dialog. Nothing is created until the broker generates drafts."""
+        self.ensure_one()
+        self.check_access("write")
+        self._plasticos_manual_offer_material()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Select Buyers"),
+            "res_model": "plasticos.offer.buyer.selection.wizard",
+            "view_mode": "form",
+            "views": [(False, "form")],
+            "target": "new",
+            "context": {"default_opportunity_id": self.id},
+        }
+
     # ── Partners-first native Opportunity matching command ──────
 
     @api.model
@@ -924,6 +980,52 @@ class CrmLeadPlastOS(models.Model):
             limit=1,
         )
 
+    def _plasticos_check_manual_release_terms(self, offer):
+        """The release of a manual offer sells exactly what the buyer accepted, or nothing is created.
+
+        Buyer company is the offer's buyer, the facility belongs to that company,
+        and the sale price is the accepted buyer price. A Gate offer is not checked here.
+        """
+        self.ensure_one()
+        buyer = offer.buyer_id
+        if self.release_buyer_company_id != buyer:
+            raise UserError(
+                _(
+                    "Offer %(offer)s was accepted by %(buyer)s; the release buyer company is %(company)s.",
+                    offer=offer.name,
+                    buyer=buyer.display_name,
+                    company=self.release_buyer_company_id.display_name,
+                )
+            )
+        facility = self.release_buyer_facility_id
+        node = facility
+        while node and node != buyer:
+            node = node.parent_id
+        if not node:
+            raise UserError(
+                _(
+                    "Buyer facility %(facility)s does not belong to %(buyer)s, who accepted offer %(offer)s.",
+                    facility=facility.display_name,
+                    buyer=buyer.display_name,
+                    offer=offer.name,
+                )
+            )
+        # Compared at the finer of the currency's decimals and the stored per-lb precision:
+        # cent rounding alone would accept a different per-lb price.
+        currency = offer.currency_id or self.env.company.currency_id
+        stored_digits = self._fields["release_buyer_price"].get_digits(self.env)
+        digits = max(currency.decimal_places, stored_digits[1] if stored_digits else 0)
+        if float_compare(self.release_buyer_price, offer.price_per_lb, precision_digits=digits) != 0:
+            raise UserError(
+                _(
+                    "The buyer price %(price)s/lb differs from %(accepted)s/lb accepted in offer %(offer)s. "
+                    "A changed price is a new offer.",
+                    price=self.release_buyer_price,
+                    accepted=offer.price_per_lb,
+                    offer=offer.name,
+                )
+            )
+
     def action_submit_release(self):
         """Create one draft purchase order, one draft sale order, and one draft transaction.
 
@@ -958,6 +1060,15 @@ class CrmLeadPlastOS(models.Model):
         material = self.opportunity_material_ids[:1]
         if not material:
             raise UserError(_("The opportunity has no material copy to sell."))
+        offer._plasticos_check_release_material(material)
+        if not offer.match_result_id:
+            self._plasticos_check_manual_release_terms(offer)
+        # The purchase price is the opportunity's supplier price (Offer Price on the
+        # material sheet), read at submit: it stays editable until the final agreement.
+        # The accepted offer's price_per_lb is the buyer-facing price, not the cost.
+        supplier_price = material.buy_price_per_lb or 0.0
+        if supplier_price <= 0:
+            raise UserError(_("Enter the supplier Offer Price on the opportunity before submit."))
         if self.env["sale.order"].search_count(
             [
                 ("opportunity_id", "=", self.id),
@@ -981,7 +1092,7 @@ class CrmLeadPlastOS(models.Model):
                             "product_id": product.id,
                             "name": label,
                             "product_qty": qty,
-                            "price_unit": offer.price_per_lb or 0.0,
+                            "price_unit": supplier_price,
                             **purchase_spec,
                         }
                     )
@@ -1026,10 +1137,11 @@ class CrmLeadPlastOS(models.Model):
         )
         self.message_post(
             body=_(
-                "Submitted %(offer)s. Draft purchase %(po)s at the offer price, draft sale %(so)s at %(price)s/lb, "
+                "Submitted %(offer)s. Draft purchase %(po)s at the supplier price %(cost)s/lb, draft sale %(so)s at %(price)s/lb, "
                 "and draft transaction %(tx)s. Nothing is confirmed.",
                 offer=offer.name,
                 po=purchase.name,
+                cost=supplier_price,
                 so=sale.name,
                 price=self.release_buyer_price,
                 tx=transaction.name,

@@ -670,7 +670,7 @@ class TestOfferModelContract(PlasticosTestCase):
         )
 
     def test_offer_has_action_send(self):
-        """action_send transitions offer to sent state."""
+        """action_send opens the Send Offer email composer; the submitted email marks Sent."""
         self.assertTrue(hasattr(self.Offer, "action_send"))
 
     def test_offer_has_action_reject(self):

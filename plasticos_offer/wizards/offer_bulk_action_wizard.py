@@ -1,6 +1,9 @@
 """
 Offer Bulk Action Wizard
-Allows bulk accept/reject/send for multiple offers from list view.
+Allows bulk accept/reject/cancel for multiple offers from list view.
+
+Send is not a status change: one draft offer opens its native email composer;
+several drafts are refused so each email is reviewed and sent on its own.
 """
 
 from odoo import _, api, fields, models
@@ -13,7 +16,7 @@ class OfferBulkActionWizard(models.TransientModel):
 
     action_type = fields.Selection(
         [
-            ("send", "Send Offers"),
+            ("send", "Send Offer (opens email)"),
             ("accept", "Accept Offers"),
             ("reject", "Reject Offers"),
             ("cancel", "Cancel Offers"),
@@ -74,20 +77,19 @@ class OfferBulkActionWizard(models.TransientModel):
             return self._action_cancel()
 
     def _action_send(self):
-        """Send all draft offers."""
+        """Open the email composer of exactly one draft offer; never mark several offers Sent."""
         valid_offers = self.offer_ids.filtered(lambda o: o.state == "draft")
         if not valid_offers:
             raise UserError(_("No draft offers to send."))
-
-        for offer in valid_offers:
-            offer.action_send()
-            if self.notes:
-                offer.message_post(
-                    body=_("Sent via bulk action<br/>Notes: %s") % self.notes,
-                    message_type="notification",
+        if len(valid_offers) > 1:
+            raise UserError(
+                _(
+                    "%d draft offers are selected. Each offer is emailed from its own composer so its recipients, "
+                    "text and pictures are reviewed: open each offer and use Send Offer."
                 )
-
-        return self._return_notification(_("%d offer(s) sent") % len(valid_offers))
+                % len(valid_offers)
+            )
+        return valid_offers.action_send()
 
     def _action_accept(self):
         """Accept all sent/responded offers; one commercial winner per opportunity."""

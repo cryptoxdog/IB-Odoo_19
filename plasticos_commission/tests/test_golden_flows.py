@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import tagged
@@ -90,11 +91,12 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
                 "intake_id": intake.id,
                 "supplier_id": intake.partner_id.id,
                 "buyer_id": self.buyer.id,
+                "price_per_lb": 0.2,
+                "quantity_lbs": 40000,
             }
         )
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-            self.assertIn(offer.state, ("sent", "accepted", "draft"), "Offer should be sent")
+        send_offer_email(offer)
+        self.assertEqual(offer.state, "sent", "Offer should be sent by email")
 
         # 4) Offer → transaction
         if hasattr(offer, "action_accept"):
