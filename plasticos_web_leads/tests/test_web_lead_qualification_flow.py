@@ -265,3 +265,88 @@ class TestShadowAndAssessmentRecovery(TransactionCase):
         lead = self.WebLead.create({"lead_id": "Q-RETRY-NOINTAKE", "company_name": "No Intake Co"})
         with self.assertRaises(UserError):
             lead.action_retry_economic_assessment()
+
+
+@tagged("post_install", "-at_install", "plasticos", "web_lead", "qualification")
+class TestQualificationHandoffIntegrity(TransactionCase):
+    """Review findings 1, 3, 4, and 5 on PR #464."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.WebLead = cls.env["plasticos.web.lead"]
+        cls.Activity = cls.env["mail.activity"]
+        cls.config = cls.env["plasticos.web.lead.config"].sudo().get_config()
+        cls.reviewer = cls.env.ref("base.user_admin")
+        cls.config.write(
+            {
+                "ai_enabled": False,
+                "vision_enabled": False,
+                "hot_intake_reviewer_id": cls.reviewer.id,
+                "attachment_allowed_hosts": False,
+                "qualification_mode": "live",
+            }
+        )
+        cls.read_only_user = cls.env["res.users"].create(
+            {
+                "name": "Read-only Web Lead Reviewer",
+                "login": "web-lead-read-only-reviewer",
+                "group_ids": [(6, 0, [cls.env.ref("base.group_user").id])],
+            }
+        )
+
+    def _admit(self, payload, recommend):
+        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=recommend):
+            return self.WebLead.create_from_cognito(payload)
+
+    # Finding 1
+    def test_reviewer_who_cannot_edit_web_leads_is_a_blocked_handoff(self):
+        self.assertFalse(self.WebLead.with_user(self.read_only_user).has_access("write"))
+        self.config.hot_intake_reviewer_id = self.read_only_user
+        lead = self._admit(_payload("Q-ACL-001", quantity="Two truckloads every month"), _recommend("review"))
+        self.assertEqual(lead.state, "review_pending")
+        self.assertEqual(lead.mack_review_state, "blocked")
+        self.assertIn("cannot edit web leads", lead.mack_review_reason)
+        self.assertFalse(self.Activity.search([("res_model", "=", "plasticos.web.lead"), ("res_id", "=", lead.id)]))
+
+    # Finding 3
+    def test_seller_named_polymer_reaches_the_intake_and_unknown_source_stays_empty(self):
+        lead = self._admit(
+            _payload("Q-POLY-001", material="Clean HDPE bottles, baled", weight="40000 lbs", source=""),
+            _recommend("hot"),
+        )
+        self.assertEqual(lead.decision, "hot")
+        self.assertEqual(lead.ai_analysis["polymer"], "HDPE")
+        self.assertEqual(lead.ai_analysis["polymer_source"], "seller_text")
+        self.assertEqual(lead.intake_id.polymer_id.code.upper(), "HDPE")
+        self.assertFalse(lead.intake_id.source_type_id)
+
+    # Finding 4
+    def test_retriage_assesses_broker_corrections_and_keeps_the_submission(self):
+        lead = self._admit(_payload("Q-CORR-001", quantity="Two truckloads every month"), _recommend("hot"))
+        self.assertEqual(lead.state, "review_pending")
+        submitted = dict(lead.canonical_payload)
+        lead.write({"quantity_text": "Two truckloads every month, 40,000 lbs each"})
+        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("hot")):
+            lead.action_retry_triage()
+        self.assertEqual(lead.decision, "hot")
+        self.assertEqual(lead.intake_id.quantity_per_load_lbs, 40000)
+        self.assertEqual(dict(lead.canonical_payload), submitted)
+        corrections = lead.evidence_bundle["broker_corrections"]
+        self.assertEqual(corrections["quantity_text"]["submitted"], "Two truckloads every month")
+        self.assertEqual(corrections["quantity_text"]["corrected"], "Two truckloads every month, 40,000 lbs each")
+
+    # Finding 5
+    def test_context_cannot_open_the_processed_lead_write_guard(self):
+        lead = self._admit(_payload("Q-GUARD-001", weight="40000 lbs"), _recommend("hot"))
+        self.assertEqual(lead.state, "intake_created")
+        original = dict(lead.evidence_bundle)
+        for context_key in ("web_lead_assessment_recovery",):
+            with self.assertRaises(UserError):
+                lead.with_context(**{context_key: True}).write({"evidence_bundle": {"forged": True}})
+        self.assertEqual(dict(lead.evidence_bundle), original)
+        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("review")):
+            lead.action_retry_economic_assessment()
+        self.assertEqual(lead.evidence_bundle["seller"], original["seller"])
+        self.assertEqual(lead.evidence_bundle["quantity"], original["quantity"])
+        self.assertEqual(lead.decision, "hot")

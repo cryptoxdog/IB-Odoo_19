@@ -498,7 +498,8 @@ def _present(value) -> bool:
     return True
 
 
-def _agreed_confident_polymer(vision: list[dict]) -> str:
+def agreed_confident_polymer(vision: list[dict]) -> str:
+    """The polymer every confident photo names, or empty. A low-confidence photo never confirms one."""
     confident = [
         item
         for item in vision
@@ -594,7 +595,7 @@ def build_qualification_signals(
     for indicator in list(risk_indicators or []) + list(hard_exclusions or []):
         refs[f"risk.{indicator}"] = indicator
 
-    vision_polymer = _agreed_confident_polymer(vision_rows)
+    vision_polymer = agreed_confident_polymer(vision_rows)
     # The seller's own words naming exactly one polymer are supported evidence.
     seller_polymers = sorted(
         polymers_named(
@@ -700,18 +701,24 @@ def derive_final_disposition(
         final = DISPOSITION_REVIEW if blockers else DISPOSITION_HOT
         reasons.extend(blockers)
     elif recommendation == DISPOSITION_COLD:
+        # Only deterministic negative facts count. The model's own suitability
+        # judgment is not evidence, and a citation must name one of those facts.
         negative = list(signals.get("negative_facts") or [])
-        if assessment.get("material_suitability") == MATERIAL_UNSUITABLE and (supporting or contradictory):
-            negative.append("assessment.material_suitability")
+        cited = set(supporting) | set(contradictory)
+        cited_negative = [fact for fact in negative if fact in cited]
         problems = []
-        if not (supporting or contradictory):
-            problems.append("The COLD recommendation cites no supplied evidence.")
         if not negative:
             problems.append("No direct negative evidence supports COLD; missing facts are not proof of no value.")
+        elif not cited_negative:
+            problems.append(
+                "The COLD recommendation does not cite the negative evidence that would support it ("
+                + ", ".join(negative)
+                + ")."
+            )
         if confidence < _COLD_MIN_CONFIDENCE:
             problems.append(f"COLD confidence {confidence:.2f} is below {_COLD_MIN_CONFIDENCE:.2f}.")
         final = DISPOSITION_REVIEW if problems else DISPOSITION_COLD
-        reasons.extend(problems or [f"Negative evidence: {', '.join(negative)}."])
+        reasons.extend(problems or [f"Negative evidence: {', '.join(cited_negative)}."])
     else:
         final = DISPOSITION_REVIEW
         reasons.append("The model recommended broker review.")

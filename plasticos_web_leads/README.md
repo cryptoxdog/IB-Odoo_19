@@ -63,7 +63,9 @@ Takes inbound web-form submissions from a provider, normalizes them, and qualifi
 
 ## Record guards
 
-- Once a lead's `state` is `intake_created`, `write` accepts only `state`, `error_message`, `triage_log`, the review fields (`review_status`, `review_notes`, `review_required_reason`), `review_snapshot_ids`, `crm_lead_id`, `mack_review_state`, and `mack_review_reason`. Any other field raises `UserError`, also when the same write changes `state`. `action_retry_economic_assessment` may replace `evidence_bundle` on such a lead under its own context; it never changes the disposition, the intake, or a snapshot.
+- Once a lead's `state` is `intake_created`, `write` accepts only `state`, `error_message`, `triage_log`, the review fields (`review_status`, `review_notes`, `review_required_reason`), `review_snapshot_ids`, `crm_lead_id`, `mack_review_state`, and `mack_review_reason`. Any other field raises `UserError`, also when the same write changes `state`. `action_retry_economic_assessment` replaces only the economic assessment inside `evidence_bundle` on such a lead, through the private `_write_recovered_assessment`; no context flag opens the guard, and it never changes the disposition, the intake, or a snapshot.
+- Re-Run Triage applies broker corrections made on the lead (material description, quantity text, verified Lbs/Load, loads per month, contaminant notes) to the triage input and records each in `evidence_bundle["broker_corrections"]`; `canonical_payload` stays the seller's submission.
+- A HOT, REVIEW, or recovery handoff goes only to a reviewer who can edit web leads; otherwise it is recorded as blocked with the reason.
 - Manual promotion (`action_promote_to_hot`, and the `action_force_hot` / `action_force_create_intake` aliases) requires Broker Review Notes and a verified `estimated_lbs_per_load`, and records the actor in `decision_reasons["manual_override"]`. `_create_intake` refuses a zero weight instead of storing a 1 lb placeholder.
 - `unlink` raises when `state` is `intake_created`. It checks `state`, not `intake_id`.
 

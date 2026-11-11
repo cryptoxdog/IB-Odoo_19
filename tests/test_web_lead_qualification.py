@@ -304,8 +304,27 @@ def test_cold_is_accepted_with_cited_direct_negative_evidence():
     signals = _signals(
         material="household junk", quantity_text="200 lbs", source="homeowner", is_commercial=False, confidence=0.9
     )
-    result = _final(signals, _assessed(signals, "cold", refs=["seller.material_description"]))
+    assert signals["negative_facts"] == ["ai.is_commercial_source", "quantity.load_weight_lbs"]
+    result = _final(signals, _assessed(signals, "cold", refs=["ai.is_commercial_source"]))
     assert result["final_disposition"] == "cold"
+
+
+def test_cold_citing_only_unrelated_evidence_is_review():
+    """Review finding 2: a citation must name the negative fact, not just any supplied key."""
+    signals = _signals(
+        material="household junk", quantity_text="200 lbs", source="homeowner", is_commercial=False, confidence=0.9
+    )
+    result = _final(signals, _assessed(signals, "cold", refs=["seller.material_description"]))
+    assert result["final_disposition"] == "review"
+    assert "does not cite the negative evidence" in result["reasons"][0]
+
+
+def test_model_unsuitable_judgment_alone_is_not_negative_evidence():
+    """Review finding 2: the model's own material_suitability never proves COLD."""
+    signals = _signals(material="Mixed regrind", weight="20000 lbs", is_plastic=None)
+    assert signals["negative_facts"] == []
+    record = _assessed(signals, "cold", suitability="unsuitable", refs=["seller.material_description"])
+    assert _final(signals, record)["final_disposition"] == "review"
 
 
 def test_cold_without_cited_evidence_is_review():
@@ -380,3 +399,23 @@ def test_model_inferred_mass_does_not_create_intake():
     signals = _signals(material="PP regrind", polymer="PP", lbs=40000, lbs_source="ai_text")
     assert signals["scale"]["mass_basis"] == "inferred"
     assert _final(signals, _assessed(signals, "hot"))["final_disposition"] == "review"
+
+
+# ── Text extraction contract (review finding 6) ──────────────────────────────
+
+
+def test_text_extraction_validates_every_field_the_merge_reads():
+    for _name, _attr in (("ai_client", "call_json_with_retry"), ("ai_normalizer", "validate_ai_output")):
+        _stale = sys.modules.get(f"plasticos_web_leads.models.{_name}")
+        if _stale is not None and not hasattr(_stale, _attr):
+            del sys.modules[f"plasticos_web_leads.models.{_name}"]
+    from plasticos_web_leads.models.ai_normalizer import _SYSTEM_PROMPT, validate_ai_output
+
+    for field in ("form", "color", "material_summary", "contaminants_noted", "frequency"):
+        assert f'"{field}"' in _SYSTEM_PROMPT
+    out = validate_ai_output(dict(form="  ", color=" black ", contaminants_noted="", frequency="One-Time"))
+    assert out["form"] is None
+    assert out["color"] == "black"
+    assert out["contaminants_noted"] is None
+    assert out["frequency"] == "one_time"
+    assert validate_ai_output(dict(frequency="every tuesday"))["frequency"] == "unclear"

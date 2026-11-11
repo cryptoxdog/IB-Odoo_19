@@ -92,7 +92,10 @@ class PlasticosWebLeadConfig(models.Model):
             ("ocean_recovered", "Ocean Recovered"),
         ],
         default="post_consumer",
-        help="Default source type for intakes created from web leads.",
+        help=(
+            "Retained for existing configurations. Intakes created from web leads no longer use it: "
+            "an unknown seller source stays empty instead of being recorded as this default."
+        ),
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -116,7 +119,8 @@ class PlasticosWebLeadConfig(models.Model):
         domain="[('share', '=', False), ('active', '=', True)]",
         help=(
             "Internal Odoo user who receives the HOT web-lead review activity, the "
-            "REVIEW clarification activity, and failed-lead recovery work. "
+            "REVIEW clarification activity, and failed-lead recovery work. The user "
+            "must be able to edit web leads; otherwise the handoff is recorded as blocked. "
             "When unset, Odoo records the handoff as blocked rather than routing "
             "it to the ingestion worker or an arbitrary user. ondelete='set null' "
             "is deliberate: deleting the reviewer must not cascade into deleting "
