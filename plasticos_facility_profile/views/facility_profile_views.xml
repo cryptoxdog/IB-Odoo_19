@@ -217,6 +217,10 @@
             <field name="phone"/>
             <field name="linked_person_email" string="Email"/>
             <field name="user_id" string="Salesperson" widget="many2one_avatar_user"/>
+            <button name="action_remove_location" type="object" icon="fa-trash"
+                    title="Remove location"
+                    confirm="Remove this location? A location that is still in use is archived and kept."
+                    class="btn-link text-danger p-0"/>
           </list>
         </field>
         <group string="Sites" invisible="is_company">

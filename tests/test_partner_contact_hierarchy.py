@@ -41,6 +41,9 @@ def test_material_profile_sits_above_the_notebook_at_priority_10():
     assert 'position="before"' in text
     assert "notebook[page[@name='internal_notes']]" in text
     assert 'string="Material Profile"' in text
+    assert 'delete="0"' in text
+    assert 'name="action_remove_profile"' in text
+    assert 'title="Remove material profile"' in text
 
 
 def test_locations_list_is_full_width_and_has_the_address_columns():
@@ -63,6 +66,11 @@ def test_locations_list_is_full_width_and_has_the_address_columns():
         'name="user_id" string="Salesperson"',
     ):
         assert column in columns
+    salesperson = columns.index('name="user_id" string="Salesperson"')
+    trash = columns.index('name="action_remove_location"')
+    assert salesperson < trash
+    assert 'icon="fa-trash"' in columns
+    assert 'title="Remove location"' in columns
     assert text.count('string="Payment Terms"') == 1
     assert "Supplier Payment Terms" not in text
     company_card = text.split("field[@name='vat']", 1)[1].split("</xpath>", 1)[0]
