@@ -1,0 +1,2448 @@
+{
+  "schema": "plasticos.export.repin-overlay/v1",
+  "version": "2.8",
+  "overlays": "EXPORT_BRS/INTEROP/SOURCE_BOUND_CHANGE_LEDGER_v2.7.5.json",
+  "overlay_rule": "Fields here supersede the v2.7.5 ledger's target, version, migration-path, ADR, invariant and dependent fields. Every other v2.7.5 decision stands until its slice re-census.",
+  "target": {
+    "repository": "cryptoxdog/IB-Odoo_19",
+    "branch": "Staging",
+    "v2_7_5_head_sha": "677d734fd88615d673501d91de88734b7150ff50",
+    "repin_head_sha": "d25da3236887c924c8a0164b00c1198f1804a2ea",
+    "commits_since_v2_7_5": 340,
+    "drift_policy": "FAIL_CLOSED_RECONCILE_NEW_DIFF",
+    "method": "local git objects only: git rev-parse <rev>:<path>, manifest literal_eval, ls-tree; no Odoo runtime"
+  },
+  "status": {
+    "gate_0_repin": "DONE_STATIC",
+    "gate_0_module_approval": "NOT_GRANTED",
+    "code_grant": "NOT_GRANTED",
+    "s1_target": "NOT_OBSERVED",
+    "code_entry": "BLOCKED_S1_TARGET_EVIDENCE_AND_SEPARATE_AUTHORIZATION",
+    "runtime_verification": "NOT_RUN"
+  },
+  "versions": [
+    {
+      "module": "plasticos_automation",
+      "effect_id": "RP-03-E017",
+      "v2_7_5_planned_from": "19.0.2.1.6",
+      "v2_7_5_planned_to": "19.0.2.1.7",
+      "current_at_repin": "19.0.2.1.9",
+      "plan_status": "STALE_ALREADY_PASSED",
+      "v2_8_successor": "19.0.2.1.10",
+      "rule": "successor = current manifest version with the last component +1, recomputed again at slice start (version-bump skill)"
+    },
+    {
+      "module": "plasticos_logistics",
+      "effect_id": "RP-07-E001",
+      "v2_7_5_planned_from": "19.0.1.14.5",
+      "v2_7_5_planned_to": "19.0.1.14.6",
+      "current_at_repin": "19.0.1.14.19",
+      "plan_status": "STALE_ALREADY_PASSED",
+      "v2_8_successor": "19.0.1.14.20",
+      "rule": "successor = current manifest version with the last component +1, recomputed again at slice start (version-bump skill)"
+    },
+    {
+      "module": "plasticos_documents",
+      "effect_id": "RP-07-E002",
+      "v2_7_5_planned_from": "19.0.2.1.6",
+      "v2_7_5_planned_to": "19.0.2.1.7",
+      "current_at_repin": "19.0.2.1.17",
+      "plan_status": "STALE_ALREADY_PASSED",
+      "v2_8_successor": "19.0.2.1.18",
+      "rule": "successor = current manifest version with the last component +1, recomputed again at slice start (version-bump skill)"
+    },
+    {
+      "module": "plasticos_documents_native",
+      "effect_id": "RP-07-E003",
+      "v2_7_5_planned_from": "19.0.1.2.10",
+      "v2_7_5_planned_to": "19.0.1.2.11",
+      "current_at_repin": "19.0.1.2.13",
+      "plan_status": "STALE_ALREADY_PASSED",
+      "v2_8_successor": "19.0.1.2.14",
+      "rule": "successor = current manifest version with the last component +1, recomputed again at slice start (version-bump skill)"
+    },
+    {
+      "module": "plasticos_security_base",
+      "effect_id": "RP-07-E004",
+      "v2_7_5_planned_from": "19.0.1.2.21",
+      "v2_7_5_planned_to": "19.0.1.2.22",
+      "current_at_repin": "19.0.1.2.24",
+      "plan_status": "STALE_ALREADY_PASSED",
+      "v2_8_successor": "19.0.1.2.25",
+      "rule": "successor = current manifest version with the last component +1, recomputed again at slice start (version-bump skill)"
+    },
+    {
+      "module": "plasticos_claims",
+      "effect_id": "RP-07-E005",
+      "v2_7_5_planned_from": "19.0.1.1.2",
+      "v2_7_5_planned_to": "19.0.1.1.3",
+      "current_at_repin": "19.0.1.1.6",
+      "plan_status": "STALE_ALREADY_PASSED",
+      "v2_8_successor": "19.0.1.1.7",
+      "rule": "successor = current manifest version with the last component +1, recomputed again at slice start (version-bump skill)"
+    },
+    {
+      "module": "plasticos_commission",
+      "effect_id": "RP-07-E028",
+      "v2_7_5_planned_from": "19.0.1.4.3",
+      "v2_7_5_planned_to": "19.0.1.4.4",
+      "current_at_repin": "19.0.1.4.8",
+      "plan_status": "STALE_ALREADY_PASSED",
+      "v2_8_successor": "19.0.1.4.9",
+      "rule": "successor = current manifest version with the last component +1, recomputed again at slice start (version-bump skill)"
+    }
+  ],
+  "migrations": [
+    {
+      "effect_id": "RP-07-E006",
+      "v2_7_5_path": "plasticos_logistics/migrations/19.0.1.14.6/pre-migrate.py",
+      "v2_8_path": "plasticos_logistics/migrations/19.0.1.14.20/pre-migrate.py",
+      "v2_7_5_path_state_at_repin": "OCCUPIED_BY_OTHER_WORK_NEVER_OVERWRITE",
+      "existing_migration_dirs_at_repin": [
+        "19.0.1.10.3",
+        "19.0.1.14.6",
+        "19.0.1.8.0"
+      ]
+    },
+    {
+      "effect_id": "RP-07-E007",
+      "v2_7_5_path": "plasticos_logistics/migrations/19.0.1.14.6/post-migrate.py",
+      "v2_8_path": "plasticos_logistics/migrations/19.0.1.14.20/post-migrate.py",
+      "v2_7_5_path_state_at_repin": "OCCUPIED_BY_OTHER_WORK_NEVER_OVERWRITE",
+      "existing_migration_dirs_at_repin": [
+        "19.0.1.10.3",
+        "19.0.1.14.6",
+        "19.0.1.8.0"
+      ]
+    },
+    {
+      "effect_id": "RP-07-E012",
+      "v2_7_5_path": "plasticos_security_base/migrations/19.0.1.2.22/pre-migrate.py",
+      "v2_8_path": "plasticos_security_base/migrations/19.0.1.2.25/pre-migrate.py",
+      "v2_7_5_path_state_at_repin": "FREE_BUT_SUPERSEDED",
+      "existing_migration_dirs_at_repin": [
+        "19.0.1.1.0",
+        "19.0.1.2.10",
+        "19.0.1.2.11",
+        "19.0.1.2.12",
+        "19.0.1.2.21",
+        "19.0.1.2.3",
+        "19.0.1.2.4",
+        "19.0.1.2.9"
+      ]
+    },
+    {
+      "effect_id": "RP-07-E094",
+      "v2_7_5_path": "plasticos_documents/migrations/19.0.2.1.7/pre-migrate.py",
+      "v2_8_path": "plasticos_documents/migrations/19.0.2.1.18/pre-migrate.py",
+      "v2_7_5_path_state_at_repin": "FREE_BUT_SUPERSEDED",
+      "existing_migration_dirs_at_repin": [
+        "19.0.2.1.0",
+        "19.0.2.1.4",
+        "19.0.2.1.7",
+        "19.0.2.1.8",
+        "19.0.2.1.9",
+        "19.0.2.2.0"
+      ]
+    },
+    {
+      "effect_id": "RP-07-E095",
+      "v2_7_5_path": "plasticos_documents/migrations/19.0.2.1.7/post-migrate.py",
+      "v2_8_path": "plasticos_documents/migrations/19.0.2.1.18/post-migrate.py",
+      "v2_7_5_path_state_at_repin": "OCCUPIED_BY_OTHER_WORK_NEVER_OVERWRITE",
+      "existing_migration_dirs_at_repin": [
+        "19.0.2.1.0",
+        "19.0.2.1.4",
+        "19.0.2.1.7",
+        "19.0.2.1.8",
+        "19.0.2.1.9",
+        "19.0.2.2.0"
+      ]
+    }
+  ],
+  "adr": {
+    "v2_7_5_reserved": "ADR-129-export-physical-evidence-and-owner-contracts",
+    "ADR_129_at_repin": [
+      "docs/adr/ADR-129-rate-memory-reconciliation-ownership.md"
+    ],
+    "highest_number_at_repin": 129,
+    "v2_8_reserved": "ADR-130-export-physical-evidence-and-owner-contracts",
+    "rule": "re-check the next free number when the ADR is written; never reuse an occupied number"
+  },
+  "invariants": {
+    "v2_7_5_cited": "INVARIANTS.md v2.2.0 (constitution) + POS-INV-26 pack-local draft r2",
+    "constitution_at_repin": "INVARIANTS.md v3.0.0",
+    "POS_INV_26_in_constitution": false,
+    "ids_at_repin": [
+      "POS-INV-01",
+      "POS-INV-02",
+      "POS-INV-03",
+      "POS-INV-04",
+      "POS-INV-05",
+      "POS-INV-06",
+      "POS-INV-07",
+      "POS-INV-08",
+      "POS-INV-09",
+      "POS-INV-10",
+      "POS-INV-11",
+      "POS-INV-12",
+      "POS-INV-13",
+      "POS-INV-14",
+      "POS-INV-15",
+      "POS-INV-16",
+      "POS-INV-17",
+      "POS-INV-18",
+      "POS-INV-19",
+      "POS-INV-20"
+    ],
+    "v2_7_5_ledger_citations": {
+      "POS-INV-26": 7
+    },
+    "disposition": "Cite the admitted constitution (INVARIANTS.md at the re-pin head). POS-INV-26 (whole blast radius before project code) is not admitted: it stays a pack-local gate of this campaign, enforced by PRE_CODE_RIPPLE_CLOSURE_GATE.md, not cited as constitutional law."
+  },
+  "dependency_impact": {
+    "plasticos_automation": {
+      "direct_dependents": [
+        "plasticos_security_base"
+      ],
+      "transitive_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents_native",
+        "plasticos_semantic_kernel"
+      ],
+      "installable_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents_native",
+        "plasticos_security_base",
+        "plasticos_semantic_kernel"
+      ]
+    },
+    "plasticos_claims": {
+      "direct_dependents": [
+        "plasticos_automation"
+      ],
+      "transitive_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents_native",
+        "plasticos_security_base",
+        "plasticos_semantic_kernel"
+      ],
+      "installable_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_automation",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents_native",
+        "plasticos_security_base",
+        "plasticos_semantic_kernel"
+      ]
+    },
+    "plasticos_commission": {
+      "direct_dependents": [
+        "plasticos_admin_dashboard"
+      ],
+      "transitive_dependents": [],
+      "installable_dependents": [
+        "plasticos_admin_dashboard"
+      ]
+    },
+    "plasticos_documents": {
+      "direct_dependents": [
+        "plasticos_claims",
+        "plasticos_documents_native",
+        "plasticos_security_base"
+      ],
+      "transitive_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_automation",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_semantic_kernel"
+      ],
+      "installable_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_automation",
+        "plasticos_claims",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents_native",
+        "plasticos_security_base",
+        "plasticos_semantic_kernel"
+      ]
+    },
+    "plasticos_documents_native": {
+      "direct_dependents": [],
+      "transitive_dependents": [],
+      "installable_dependents": []
+    },
+    "plasticos_logistics": {
+      "direct_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_automation",
+        "plasticos_claims",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_documents",
+        "plasticos_documents_native",
+        "plasticos_security_base"
+      ],
+      "transitive_dependents": [
+        "plasticos_crm_sync",
+        "plasticos_semantic_kernel"
+      ],
+      "installable_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_automation",
+        "plasticos_claims",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents",
+        "plasticos_documents_native",
+        "plasticos_security_base",
+        "plasticos_semantic_kernel"
+      ]
+    },
+    "plasticos_security_base": {
+      "direct_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents_native"
+      ],
+      "transitive_dependents": [
+        "plasticos_semantic_kernel"
+      ],
+      "installable_dependents": [
+        "plasticos_admin_dashboard",
+        "plasticos_commission",
+        "plasticos_crm_bridge",
+        "plasticos_crm_sync",
+        "plasticos_documents_native",
+        "plasticos_semantic_kernel"
+      ]
+    }
+  },
+  "logistics_dependent_delta": {
+    "v2_7_5_direct_logistics_dependents": [
+      "plasticos_admin_dashboard",
+      "plasticos_automation",
+      "plasticos_claims",
+      "plasticos_commission",
+      "plasticos_crm_bridge",
+      "plasticos_documents",
+      "plasticos_documents_native",
+      "plasticos_security_base"
+    ],
+    "v2_7_5_transitive_logistics_dependents": [
+      "plasticos_crm_sync"
+    ],
+    "added_direct_since_v2_7_5": [],
+    "removed_direct_since_v2_7_5": []
+  },
+  "path_drift_summary": {
+    "EDIT": {
+      "CHANGED": 47,
+      "UNCHANGED": 22
+    },
+    "NO_CHANGE": {
+      "CHANGED": 32,
+      "UNCHANGED": 32,
+      "INTERFACE_NOT_A_FILE": 7,
+      "REMOVED_SINCE_V2_7_5": 2
+    },
+    "CREATE": {
+      "ABSENT_BOTH": 38,
+      "APPEARED_SINCE_V2_7_5": 3
+    },
+    "NO_ADD": {
+      "ABSENT_BOTH": 10
+    },
+    "INDEPENDENT": {
+      "CHANGED": 2
+    },
+    "REVIEW_ONLY": {
+      "ABSENT_BOTH": 2
+    },
+    "BLOCKED": {
+      "ABSENT_BOTH": 2
+    }
+  },
+  "paths_requiring_slice_reconcile": [
+    {
+      "path": "plasticos_logistics/models/load.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/transaction_inherit.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/freight_governance.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/services/freight_history.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/freight_quote.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/rate_memory.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/freight_estimate.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_transaction/models/transaction.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/__init__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/security/record_rules.xml",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/mail_mail_inherit.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_automation/data/workflow_automations.xml",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_automation/models/stock_picking_automation.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_automation/__manifest__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_automation/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/tests/test_linda_freight_models.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/linda_request.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/linda_response.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/models/document.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/models/compliance_service.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/models/transaction_docs.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/models/midnight_recompute.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/tests/test_compliance_service.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents_native/models/document_native.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents_native/tests/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_claims/models/document_inherit.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_claims/models/claim.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_claims/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_commission/models/sales_dashboard.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_security_base/tests/test_bridge_contracts.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/models/load_dashboard.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_admin_dashboard/models/admin_dashboard.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/__manifest__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/__manifest__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents_native/__manifest__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_security_base/__manifest__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_claims/__manifest__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/tests/test_load_cardinality.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/business_rules/SUPERSESSION.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/business_rules/SUPERSESSION.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/business_rules/OWNERSHIP_AND_INTEROP.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_crm_bridge/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_crm_bridge/models/crm_lead.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_crm_sync/services/orchestrator.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_material_profile/models/material_normalizer.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_commission/__manifest__.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_admin_dashboard/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_transaction/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "scripts/check_module_wiring.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "INVARIANTS.md",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_facility_profile/__manifest__.py",
+      "file_disposition": "INDEPENDENT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_accounting/__manifest__.py",
+      "file_disposition": "INDEPENDENT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_crm_sync/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_crm_sync/tests/test_crm45_classification.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_crm_sync/tests/test_orchestrator_upsert.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_material_profile/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_material_profile/tests/test_material_normalizer.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_crm_bridge/models/material_profile.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/models/transaction_docs_bridge.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/models/load_docs_bridge.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "config/odoo_module_order.yaml",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.2.0/pre-migrate.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_logistics/business_rules/README.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/business_rules/README.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_transaction/models/native_document_import.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "scripts/test_env.sh",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "tests/test_test_env_safety.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_claims/tests/test_state_machines.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_claims/tests/test_integration_flows.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_security_base/tests/test_action_methods.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_commission/tests/test_golden_flows.py",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "AGENTS.md",
+      "file_disposition": "EDIT",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/tests/test_account_move_transaction_link.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/tests/test_exact_association.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "REMOVED_SINCE_V2_7_5"
+    },
+    {
+      "path": "plasticos_documents/tests/test_native_verification_delegation.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "REMOVED_SINCE_V2_7_5"
+    },
+    {
+      "path": "plasticos_documents/tests/test_pr322_findings.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_documents/tests/test_verification_writer.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    },
+    {
+      "path": "plasticos_transaction/tests/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "drift": "CHANGED"
+    }
+  ],
+  "create_or_no_add_conflicts": [
+    {
+      "path": "plasticos_logistics/migrations/19.0.1.14.6/pre-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "APPEARED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": "38c56373a5e1faa55659c243a79cf1660677ae30",
+      "resolution": "v2.8 re-targets this planned file to its module's successor version folder; the existing file is never overwritten"
+    },
+    {
+      "path": "plasticos_logistics/migrations/19.0.1.14.6/post-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "APPEARED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": "d7b0be03fe73af2d055136426e4b0db0d7cba2be",
+      "resolution": "v2.8 re-targets this planned file to its module's successor version folder; the existing file is never overwritten"
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.1.7/post-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Documents",
+      "drift": "APPEARED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": "b0991c1cad95ad95934643e429e7f886daf53db5",
+      "resolution": "v2.8 re-targets this planned file to its module's successor version folder; the existing file is never overwritten"
+    }
+  ],
+  "path_drift": [
+    {
+      "path": "plasticos_logistics/models/load.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "0373b591097a73d5eeb4a5b00861520782484843",
+      "blob_at_repin": "477b1196b6fe154811e2bd99ad11f9fbca413f18"
+    },
+    {
+      "path": "plasticos_logistics/models/transaction_inherit.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "c6ea52537be5ed91a500037845b3fa8918eaaafb",
+      "blob_at_repin": "64c1f76bff5afc4df2b190d33b04004529b40df0"
+    },
+    {
+      "path": "plasticos_logistics/models/freight_governance.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "87b7101a9001635bff68f30d9e769c91af88f832",
+      "blob_at_repin": "26f7fe5a45627d886b52b19bbe52aee381b7fd60"
+    },
+    {
+      "path": "plasticos_logistics/services/freight_context.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "fa09f8fe45f38c05279f4cdec0fa5e20f94d4f32",
+      "blob_at_repin": "fa09f8fe45f38c05279f4cdec0fa5e20f94d4f32"
+    },
+    {
+      "path": "plasticos_logistics/services/sal_resolver.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "990cf936085d4b4b1e8cd26da0fe342583843436",
+      "blob_at_repin": "990cf936085d4b4b1e8cd26da0fe342583843436"
+    },
+    {
+      "path": "plasticos_logistics/services/freight_history.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "4f2e7ceeb3d70fa4b906fd9d8ba49482ece90876",
+      "blob_at_repin": "f7d9d751a706ccaf648a6839e8b700c24378e6ef"
+    },
+    {
+      "path": "plasticos_logistics/models/freight_quote.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "d8c3da9ab0621a6da6141014edbd66db5179b17b",
+      "blob_at_repin": "cf52c970c62bbc43bda5ccfff277d65c0c82a893"
+    },
+    {
+      "path": "plasticos_logistics/models/rate_memory.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "c5ef4697fdbaec6bb5c9b61d460980f359a51b49",
+      "blob_at_repin": "9a60a566cd87712f5e11b2e114222a01f74d5922"
+    },
+    {
+      "path": "plasticos_logistics/models/freight_estimate.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "df04da21a01d0bc3fc6fec800965cc79ab64848d",
+      "blob_at_repin": "d05dd64c2bf5aa570c2d73c1c374968e354df68c"
+    },
+    {
+      "path": "plasticos_transaction/models/transaction.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Transaction",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "e0d7cf3790d70e1bc10bc11a862398c6b81a9f34",
+      "blob_at_repin": "2357f6bf68a5612490e3f80c46bc0fdb2c018e7b"
+    },
+    {
+      "path": "plasticos_transaction/models/transaction_line.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Transaction",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "15ad37a9228b13049348dc12f872ef4946e0b724",
+      "blob_at_repin": "15ad37a9228b13049348dc12f872ef4946e0b724"
+    },
+    {
+      "path": "plasticos_transaction/models/transaction_bridge.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Transaction",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "c158164795fe741d6ebbd0581782fcc1b2212a07",
+      "blob_at_repin": "c158164795fe741d6ebbd0581782fcc1b2212a07"
+    },
+    {
+      "path": "plasticos_logistics/models/sale_order_inherit.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "03a0c0d83733f58c4ad157b5cae1ce0686bd0829",
+      "blob_at_repin": "03a0c0d83733f58c4ad157b5cae1ce0686bd0829"
+    },
+    {
+      "path": "plasticos_logistics/models/purchase_order_inherit.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "727816decea42b8a39627447e7ba0f1f63bd3cae",
+      "blob_at_repin": "727816decea42b8a39627447e7ba0f1f63bd3cae"
+    },
+    {
+      "path": "plasticos_logistics/models/iso_journey.py",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/views/iso_journey_views.xml",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/models/__init__.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "9afb1b14ab30719a634b1eada11d47e0b3aa98e2",
+      "blob_at_repin": "a1be90c79c49f2696c0fb87991aab833259053a2"
+    },
+    {
+      "path": "plasticos_logistics/security/ir.model.access.csv",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "921a228c58ccb6e9f6645520307782daae963a64",
+      "blob_at_repin": "921a228c58ccb6e9f6645520307782daae963a64"
+    },
+    {
+      "path": "plasticos_logistics/security/record_rules.xml",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "93355818601f8836e600f11d5567e629c2f66177",
+      "blob_at_repin": "1657a0d4cd327ddf43723a05b52ab888c57a775b"
+    },
+    {
+      "path": "plasticos_logistics/data/sequence.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "b8559e9a84a724c62aa2c86e8aa97f517e3468d6",
+      "blob_at_repin": "b8559e9a84a724c62aa2c86e8aa97f517e3468d6"
+    },
+    {
+      "path": "plasticos_logistics/tests/test_iso_journey.py",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "native:stock.move.line",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Odoo",
+      "drift": "INTERFACE_NOT_A_FILE",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "native:purchase.order.line",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Odoo",
+      "drift": "INTERFACE_NOT_A_FILE",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "native:sale.order.line",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Odoo",
+      "drift": "INTERFACE_NOT_A_FILE",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "native:ir.attachment",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Odoo",
+      "drift": "INTERFACE_NOT_A_FILE",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/models/dispatch.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "5eefc5139e8509d8d9fc2c2d6f330ce51b7331a2",
+      "blob_at_repin": "5eefc5139e8509d8d9fc2c2d6f330ce51b7331a2"
+    },
+    {
+      "path": "plasticos_logistics/wizards/load_bulk_update_wizard.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "c2db24011c1554b6cac14bfb8202d931c6e20049",
+      "blob_at_repin": "c2db24011c1554b6cac14bfb8202d931c6e20049"
+    },
+    {
+      "path": "plasticos_logistics/services/state_machine.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "1f022c7bdb2a4a5af57877ac511dae9a68ee082b",
+      "blob_at_repin": "1f022c7bdb2a4a5af57877ac511dae9a68ee082b"
+    },
+    {
+      "path": "plasticos_logistics/models/mail_mail_inherit.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "d490415aa553c25295bcf291a12b70c77f5a2f2d",
+      "blob_at_repin": "783f2f7f7ddb38a02f6f3443f31c9d9470d4542b"
+    },
+    {
+      "path": "plasticos_logistics/data/cron.xml",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "18864f38cfc9cf0cf040e008816561961c151cb9",
+      "blob_at_repin": "18864f38cfc9cf0cf040e008816561961c151cb9"
+    },
+    {
+      "path": "plasticos_logistics/report/report_delivery_order.xml",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "de7e9b018dd2e9a53796f918937b823d94221fd2",
+      "blob_at_repin": "de7e9b018dd2e9a53796f918937b823d94221fd2"
+    },
+    {
+      "path": "plasticos_logistics/report/report_bol_pickup.xml",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "a3819c1027a5f7a644bb9addf551d7034175fcad",
+      "blob_at_repin": "a3819c1027a5f7a644bb9addf551d7034175fcad"
+    },
+    {
+      "path": "plasticos_logistics/report/report_bol_delivery.xml",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "a536265766b543cedb5fbe623da5e6818f090510",
+      "blob_at_repin": "a536265766b543cedb5fbe623da5e6818f090510"
+    },
+    {
+      "path": "plasticos_automation/data/email_templates.xml",
+      "file_disposition": "EDIT",
+      "owner": "Automation",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "641c29ac32696071e8112e60cfe3ef4a2f48bd78",
+      "blob_at_repin": "641c29ac32696071e8112e60cfe3ef4a2f48bd78"
+    },
+    {
+      "path": "plasticos_automation/data/workflow_automations.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Automation",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "862409b04e44f0a67f67942ff7dd49d124717f9c",
+      "blob_at_repin": "afc2003b0beec63f935b082715dddfb41b5fe879"
+    },
+    {
+      "path": "plasticos_automation/models/stock_picking_automation.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Automation",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "1b7f171e37bc335b04daa2628e29cae11c6ec874",
+      "blob_at_repin": "ee2dae0158c01fa734b2e165189990478b0f381d"
+    },
+    {
+      "path": "plasticos_automation/data/cron_trucker_followup.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Automation",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "5659b4e93296987206fd2f3995f73b6b9ed05e84",
+      "blob_at_repin": "5659b4e93296987206fd2f3995f73b6b9ed05e84"
+    },
+    {
+      "path": "plasticos_automation/tests/test_carrier_reservation_not_dispatch.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Automation",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "7dd5c74f30705e59624ae963f8fac8f46f5a4da9",
+      "blob_at_repin": "7dd5c74f30705e59624ae963f8fac8f46f5a4da9"
+    },
+    {
+      "path": "plasticos_automation/tests/test_buyerless_carrier_templates.py",
+      "file_disposition": "CREATE",
+      "owner": "Automation",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/tests/test_export_release_guards.py",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_automation/__manifest__.py",
+      "file_disposition": "EDIT",
+      "owner": "Automation",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "52c9bbf55940e12960e7851c4477ffa13408ee65",
+      "blob_at_repin": "0a9ee1ea0ad713cc14a35f8de72afa9334e50cf7"
+    },
+    {
+      "path": "plasticos_automation/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "owner": "Automation",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "4c823407749207727341901a1b62c9a3f73c4e53",
+      "blob_at_repin": "ad74260a50ce2d0c18e28112b642aa5fc7a5119e"
+    },
+    {
+      "path": "plasticos_logistics/data/linda_dispatch_ack_notice.xml",
+      "file_disposition": "CREATE",
+      "owner": "Linda",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/tests/test_linda_freight_models.py",
+      "file_disposition": "EDIT",
+      "owner": "Linda",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "fa14a736b508a8ee5809055786fcb0058d0b529b",
+      "blob_at_repin": "8820d4b50a33169e41200b5f8ea5d98fd682fd01"
+    },
+    {
+      "path": "plasticos_logistics/models/linda_request.py",
+      "file_disposition": "EDIT",
+      "owner": "Linda",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "b7b2ce95286afb80d6a968290b2233e218211a5c",
+      "blob_at_repin": "ed6aa53480f963591406a1aded5e482a3ae36fdc"
+    },
+    {
+      "path": "plasticos_logistics/models/linda_response.py",
+      "file_disposition": "EDIT",
+      "owner": "Linda",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "9910a97216fd7acbb68299490822f3cfccbc38e7",
+      "blob_at_repin": "dffb9cfdb8e3fff94b7d8c5e23ff7bcc6419e41f"
+    },
+    {
+      "path": "plasticos_logistics/data/linda_inbound_ai.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Linda",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "ae9677c4cc31a635dcd29d2409243849893eb8f8",
+      "blob_at_repin": "ae9677c4cc31a635dcd29d2409243849893eb8f8"
+    },
+    {
+      "path": "plasticos_logistics/data/linda_booking_mail_template.xml",
+      "file_disposition": "CREATE",
+      "owner": "Linda",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/data/linda_po_mail_template.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Linda",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "62991b8adc82563a2b500dc3e4b2c0d0951bf351",
+      "blob_at_repin": "62991b8adc82563a2b500dc3e4b2c0d0951bf351"
+    },
+    {
+      "path": "plasticos_logistics/data/linda_so_mail_template.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Linda",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "88dbf7004acaa6283115f4fbee7caf197dfd606c",
+      "blob_at_repin": "88dbf7004acaa6283115f4fbee7caf197dfd606c"
+    },
+    {
+      "path": "plasticos_logistics/data/linda_order_cancel_mail_templates.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Linda",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "684d9eeb0708c648bfc58c46d4699930b9217025",
+      "blob_at_repin": "684d9eeb0708c648bfc58c46d4699930b9217025"
+    },
+    {
+      "path": "plasticos_logistics/tests/test_linda_booking_source.py",
+      "file_disposition": "CREATE",
+      "owner": "Linda",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/tests/test_linda_inbound.py",
+      "file_disposition": "EDIT",
+      "owner": "Linda",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "282018c618743ce61c3abe08e2a2ac46a6f56d8e",
+      "blob_at_repin": "282018c618743ce61c3abe08e2a2ac46a6f56d8e"
+    },
+    {
+      "path": "plasticos_documents/models/document.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "8a3238d936747da700475b2b2b4e2e65daaf4c42",
+      "blob_at_repin": "db98664054f2a195746ae36c259145e7e4a8e596"
+    },
+    {
+      "path": "plasticos_documents/models/document_evidence_link.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Documents",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/models/compliance_service.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "3a27064a24d30ad03ac50b4384f5e1e081bd030c",
+      "blob_at_repin": "6dec3a28d98acf2540ac4a418702dd83ac62a7ae"
+    },
+    {
+      "path": "plasticos_documents/models/transaction_docs.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "121ad849eb4112c208a0654834419ed4fb2d907e",
+      "blob_at_repin": "681d42f3b195e4bdae40c05ee1a9eeba0a51c89b"
+    },
+    {
+      "path": "plasticos_documents/models/document_rule.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "af4037f2f16c06e2ae31fc41070c5eaf53079f24",
+      "blob_at_repin": "af4037f2f16c06e2ae31fc41070c5eaf53079f24"
+    },
+    {
+      "path": "plasticos_documents/models/document_validation_matrix.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "8d94d757a8f3cb5ea2693c2d21db396d8f5cc55b",
+      "blob_at_repin": "8d94d757a8f3cb5ea2693c2d21db396d8f5cc55b"
+    },
+    {
+      "path": "plasticos_documents/models/midnight_recompute.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "3c5c305dfdfa654bf44823576a5443e9b4804621",
+      "blob_at_repin": "bab0c8cf532984138492fae56838faff0c389e4d"
+    },
+    {
+      "path": "plasticos_documents/data/cron_missing_docs.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "e6e59d45f491d7db9f25269e8334dcede0b70c47",
+      "blob_at_repin": "e6e59d45f491d7db9f25269e8334dcede0b70c47"
+    },
+    {
+      "path": "plasticos_documents/data/cron.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "0008e64050307823006fc9837d9d1ddce267ac81",
+      "blob_at_repin": "0008e64050307823006fc9837d9d1ddce267ac81"
+    },
+    {
+      "path": "plasticos_documents/security/ir.model.access.csv",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "a9b580bf9f0b166dbadd8171aa4ef509d36282c2",
+      "blob_at_repin": "a9b580bf9f0b166dbadd8171aa4ef509d36282c2"
+    },
+    {
+      "path": "plasticos_documents/security/security.xml",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "495e2211bff553fa2cb2163f1b63d8d59d00b176",
+      "blob_at_repin": "495e2211bff553fa2cb2163f1b63d8d59d00b176"
+    },
+    {
+      "path": "plasticos_documents/views/document_views.xml",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "ce47189a2805fd88478ca78cfe336799d4acab64",
+      "blob_at_repin": "ce47189a2805fd88478ca78cfe336799d4acab64"
+    },
+    {
+      "path": "plasticos_documents/models/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "39feab4674feab632bfb5af763a02339c59c83f0",
+      "blob_at_repin": "39feab4674feab632bfb5af763a02339c59c83f0"
+    },
+    {
+      "path": "plasticos_documents/tests/test_scoped_evidence.py",
+      "file_disposition": "CREATE",
+      "owner": "Documents",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/tests/test_compliance_service.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "3ea337ad2e1736c05eb90f8be0cff7f859b47676",
+      "blob_at_repin": "d72dd04252dbe6b404e2a0acd724be424d71bf1b"
+    },
+    {
+      "path": "plasticos_documents/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "4612679fb378230a8af49826af79a2128413ce52",
+      "blob_at_repin": "f5553024ce7b82f44fa314051558dc9dd8bf7c06"
+    },
+    {
+      "path": "plasticos_documents_native/models/document_native.py",
+      "file_disposition": "EDIT",
+      "owner": "Native Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "94ec90bf2054dea9dd265cbf1b148763f854f8f8",
+      "blob_at_repin": "7426c8cbd4245f482a5891c93492eb513f1f330d"
+    },
+    {
+      "path": "plasticos_documents_native/models/document_sync.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "065a07f9f81aef1ac1f1c5d0391523b01c2e4fb7",
+      "blob_at_repin": "065a07f9f81aef1ac1f1c5d0391523b01c2e4fb7"
+    },
+    {
+      "path": "plasticos_documents_native/views/document_native_views.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "9092d47f5b2f8d691f08c78d235fe40f4f2122d4",
+      "blob_at_repin": "9092d47f5b2f8d691f08c78d235fe40f4f2122d4"
+    },
+    {
+      "path": "plasticos_documents_native/tests/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "2d23157800faf934bbca43f52c212a3751e6e026",
+      "blob_at_repin": "6e10de97f5b6ac33edbe9e26127bb758884ce115"
+    },
+    {
+      "path": "plasticos_documents_native/tests/test_native_evidence_bridge.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Native Documents",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_claims/models/document_inherit.py",
+      "file_disposition": "EDIT",
+      "owner": "Claims",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "e1b12985c389e37e8f7974b981e5644e1c8d3c27",
+      "blob_at_repin": "21cf23f603056af67740d4457392df5ffc4de137"
+    },
+    {
+      "path": "plasticos_claims/models/claim.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Claims",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "191c7eb2d6055d47203ee06ab326f174a650a969",
+      "blob_at_repin": "bc42a6a2ba1e09021b955ad5176c40250c94a2cd"
+    },
+    {
+      "path": "plasticos_claims/tests/test_document_export_evidence.py",
+      "file_disposition": "CREATE",
+      "owner": "Claims",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_claims/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "owner": "Claims",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "764ca9302b699b33cce5c2123855b7ef6c16968d",
+      "blob_at_repin": "466b1f76f25d521c72cd6640f5360bac0562586c"
+    },
+    {
+      "path": "plasticos_commission/models/sales_dashboard.py",
+      "file_disposition": "EDIT",
+      "owner": "Commission",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "97b3f5f56f42cd35a7c6c19eef29a5c728febc45",
+      "blob_at_repin": "0892a88d65bf8d393e067efc619e51f5ec079bc1"
+    },
+    {
+      "path": "plasticos_commission/tests/test_sales_dashboard_payout_access.py",
+      "file_disposition": "EDIT",
+      "owner": "Commission",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "1641ff68c148cb80acaa76d89a30e3088e312d88",
+      "blob_at_repin": "1641ff68c148cb80acaa76d89a30e3088e312d88"
+    },
+    {
+      "path": "plasticos_security_base/security/record_rules.xml",
+      "file_disposition": "EDIT",
+      "owner": "Security",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "90a73556c14d2f2b1b185cf50b27daaad9b69207",
+      "blob_at_repin": "90a73556c14d2f2b1b185cf50b27daaad9b69207"
+    },
+    {
+      "path": "plasticos_security_base/tests/test_bridge_contracts.py",
+      "file_disposition": "EDIT",
+      "owner": "Security",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "40925f92b8da6bd17ee42dcf2a624d8084471b01",
+      "blob_at_repin": "3e5f7044869ac160a46325cf2493a6ab15efdc32"
+    },
+    {
+      "path": "plasticos_security_base/security/ir.model.access.csv",
+      "file_disposition": "EDIT",
+      "owner": "Security",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "b63e9df51245882108fe0690cb2c07d50fe9b957",
+      "blob_at_repin": "b63e9df51245882108fe0690cb2c07d50fe9b957"
+    },
+    {
+      "path": "plasticos_logistics/models/load_dashboard.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "725d83e0a08d00310e28c8026a6970200a07291f",
+      "blob_at_repin": "7f33f0c9b5c7c5896d9700e826ac496676e6aa02"
+    },
+    {
+      "path": "plasticos_logistics/views/load_dashboard_views.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "b3537095791c261fd32aa6ff500c4d607f9ff15e",
+      "blob_at_repin": "b3537095791c261fd32aa6ff500c4d607f9ff15e"
+    },
+    {
+      "path": "plasticos_admin_dashboard/models/admin_dashboard.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Admin Dashboard",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "6febc57ce41e3b79a3b4997c8841d7eacda07aca",
+      "blob_at_repin": "6940c9d171b81cece0557d611cf05eff262c5cf0"
+    },
+    {
+      "path": "plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Admin Dashboard",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "12b33e2dff1d08930e48b15db49d6671931149fc",
+      "blob_at_repin": "d3c184a58f93f42960bf9db82fc8be461923f048"
+    },
+    {
+      "path": "plasticos_commission/security/record_rules.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Commission",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "ba0e3ad7d77f8a964aabc7c1a3e8d770eb0b0172",
+      "blob_at_repin": "ba0e3ad7d77f8a964aabc7c1a3e8d770eb0b0172"
+    },
+    {
+      "path": "native:spreadsheet_dashboard",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Odoo",
+      "drift": "INTERFACE_NOT_A_FILE",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/__manifest__.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "cd7f3e0264374e8b215d57fa7e2999b4aed8958d",
+      "blob_at_repin": "707b62ab078aec95df009d467577734e9810fa8a"
+    },
+    {
+      "path": "plasticos_documents/__manifest__.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "a59b7d1fc414075aa4525643f59210f06ddedc97",
+      "blob_at_repin": "5edba90b99a912251f345de7eae56683170528e9"
+    },
+    {
+      "path": "plasticos_documents_native/__manifest__.py",
+      "file_disposition": "EDIT",
+      "owner": "Native Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "a8ef91f9727bf45119d8ebfa02fb524431dbfc9b",
+      "blob_at_repin": "c3428aae83387d3f6bd7fe88e55cc5f063e9b208"
+    },
+    {
+      "path": "plasticos_security_base/__manifest__.py",
+      "file_disposition": "EDIT",
+      "owner": "Security",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "b93db83ff211572f866a097c5854ab254221b9e0",
+      "blob_at_repin": "a5668b5885462b5d2232ec533cac11c4fddf0be9"
+    },
+    {
+      "path": "plasticos_claims/__manifest__.py",
+      "file_disposition": "EDIT",
+      "owner": "Claims",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "e73279881b03fae7a1cf7d27eca114339d71bbc9",
+      "blob_at_repin": "dff921a3303609a3510ed5bb707ceb4e04617fe9"
+    },
+    {
+      "path": "plasticos_logistics/migrations/19.0.1.14.6/pre-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "APPEARED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": "38c56373a5e1faa55659c243a79cf1660677ae30"
+    },
+    {
+      "path": "plasticos_logistics/migrations/19.0.1.14.6/post-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Logistics",
+      "drift": "APPEARED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": "d7b0be03fe73af2d055136426e4b0db0d7cba2be"
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.1.3/pre-migrate.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Documents",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.1.3/post-migrate.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Documents",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents_native/migrations/19.0.1.2.6/pre-migrate.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "e1c6517be230a14410fbf422e55849444f28e590",
+      "blob_at_repin": "e1c6517be230a14410fbf422e55849444f28e590"
+    },
+    {
+      "path": "plasticos_documents_native/migrations/19.0.1.2.6/post-migrate.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Native Documents",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_security_base/migrations/19.0.1.2.22/pre-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Security",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_security_base/migrations/19.0.1.2.22/post-migrate.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Security",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/tests/__init__.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "683bc191c48503ae63071a840006c36c69f09dcf",
+      "blob_at_repin": "b4ec1cb817e6daed6388e452f2c898684cb28d5c"
+    },
+    {
+      "path": "plasticos_logistics/tests/test_load_cardinality.py",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "bf4a2ab7ec74b120cc63052af2c793f5a80ebdfd",
+      "blob_at_repin": "88bee217dc9ff0d56b2cd05a5c29da4af4dd1edd"
+    },
+    {
+      "path": "plasticos_logistics/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "a0f653930e77df380365c1ff14a4eea08fd1cca4",
+      "blob_at_repin": "a0f653930e77df380365c1ff14a4eea08fd1cca4"
+    },
+    {
+      "path": "plasticos_documents/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "cc6b6354ad8ff260009d22c3a3b0ff127998250e",
+      "blob_at_repin": "cc6b6354ad8ff260009d22c3a3b0ff127998250e"
+    },
+    {
+      "path": "plasticos_documents_native/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "0650744f6bc69b9f0b865e8c7174c813a5f5995e",
+      "blob_at_repin": "0650744f6bc69b9f0b865e8c7174c813a5f5995e"
+    },
+    {
+      "path": "plasticos_security_base/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Security",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "cc6b6354ad8ff260009d22c3a3b0ff127998250e",
+      "blob_at_repin": "cc6b6354ad8ff260009d22c3a3b0ff127998250e"
+    },
+    {
+      "path": "plasticos_logistics/business_rules/SUPERSESSION.md",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "1d1eb0062d48cabf7d8935c9a7a12b3c91af8122",
+      "blob_at_repin": "7eeec2a233529cb2925410f8b663c8106b005e58"
+    },
+    {
+      "path": "plasticos_logistics/business_rules/NATIVE_DOCUMENTS_INTEROP.md",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "079df6afe0e56f4511cb66dcb234cffc0dfe7495",
+      "blob_at_repin": "079df6afe0e56f4511cb66dcb234cffc0dfe7495"
+    },
+    {
+      "path": "plasticos_documents/business_rules/SUPERSESSION.md",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "4a8777bd33f0c522996871c2a95f6c00602c9e54",
+      "blob_at_repin": "6de6ad1c81fb97acab8ccd211ee92fbf01bb9408"
+    },
+    {
+      "path": "plasticos_documents/business_rules/OWNERSHIP_AND_INTEROP.md",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "dfdf6d0a0849218dd161b23fa8e69eccf4d0bd4d",
+      "blob_at_repin": "dec9d9d43042746d51b83e9c32683915eb17d4b6"
+    },
+    {
+      "path": "plasticos_crm_bridge/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "CRM Bridge",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "bd20ed2811e75593bbc7fda07ec4f61564cf3c9a",
+      "blob_at_repin": "1cd9a5ccf3c570d385873e69ba9e1990f952248f"
+    },
+    {
+      "path": "plasticos_crm_bridge/models/crm_lead.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "CRM Bridge",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "6c9ce528892e21e979514bacc2efeccceef2b5d9",
+      "blob_at_repin": "de32ad6b5098ea4f5c4e72b657c6113986766c5a"
+    },
+    {
+      "path": "plasticos_crm_sync/services/orchestrator.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "CRM Sync",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "70aa79279224a6646aaca1e4d484ab5bf57dff6e",
+      "blob_at_repin": "5f626d828a452b812e995d5eb266f75dd222d78d"
+    },
+    {
+      "path": "plasticos_material_profile/models/material_normalizer.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Material Profile",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "73f8f8d9f3ce771a1809a33c1d2798a6b874cd76",
+      "blob_at_repin": "d37f04b4a36495711350b97c28830f9e4e549ee5"
+    },
+    {
+      "path": "plasticos_commission/__manifest__.py",
+      "file_disposition": "EDIT",
+      "owner": "Commission",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "ad575d43d92e47a2be4bd7560ea46cc9af5e213e",
+      "blob_at_repin": "7b0b95424c3e70c63d7464578b2a54b84c5c8589"
+    },
+    {
+      "path": "plasticos_admin_dashboard/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Admin Dashboard",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "69fa36a11e8f0a4ba6ddfcedb82642b558e14604",
+      "blob_at_repin": "e80aba6c011dfb4c9eb1cb8f21cf459a48f5047e"
+    },
+    {
+      "path": "plasticos_transaction/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Transaction",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "b20d2a68fa32dcbefff95d952ce95a4ba73741b2",
+      "blob_at_repin": "1daaf2cb11d05a9b59358928410cdb5f1825c93d"
+    },
+    {
+      "path": "native:documents.document,documents_account",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Odoo",
+      "drift": "INTERFACE_NOT_A_FILE",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "native:stock.picking,mail.mail",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Native Odoo",
+      "drift": "INTERFACE_NOT_A_FILE",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "scripts/check_module_wiring.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Integration",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "00cc3bb6a8c835064a02416e5ec51a0801a0c604",
+      "blob_at_repin": "a8c0a4f31ee53fcb6ac9d094a746927526574940"
+    },
+    {
+      "path": "ci/check_circular_deps.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Integration",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "d23a8895d8d7a19d298ce8ada17d3ae1bef42aa2",
+      "blob_at_repin": "d23a8895d8d7a19d298ce8ada17d3ae1bef42aa2"
+    },
+    {
+      "path": "INVARIANTS.md",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Governance",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "c16e99c575a262ff6279f2202e5959f777b2fc6f",
+      "blob_at_repin": "449b5863528a5b039d32ceb66f92a6ee370f8fa1"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "file_disposition": "EDIT",
+      "owner": "Integration",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "927fe13c631490edb261cb05691ff4bf7e0374e0",
+      "blob_at_repin": "a033632cc2ae2636f5749278741449406294b388"
+    },
+    {
+      "path": "plasticos_facility_profile/__manifest__.py",
+      "file_disposition": "INDEPENDENT",
+      "owner": "Facility Profile",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "8735486d611aad115ed0d8d731ba26bf01c43d07",
+      "blob_at_repin": "713225521617fc5144057fbed006679da811ad9a"
+    },
+    {
+      "path": "plasticos_accounting/__manifest__.py",
+      "file_disposition": "INDEPENDENT",
+      "owner": "Accounting",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "2da94f00bbc342d6664ee36ed5e46ee42df7a642",
+      "blob_at_repin": "7fb78e7435a7a597cb42f8242520d95efbf543ca"
+    },
+    {
+      "path": "plasticos_export/__init__.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/__manifest__.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/models/__init__.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/models/booking.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/models/booking_allocation.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/models/logistics_integration.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/models/booking_revision.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/models/load_extension.py",
+      "file_disposition": "NO_ADD",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/security/ir.model.access.csv",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/security/export_record_rules.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/views/booking_views.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/views/allocation_views.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/views/shipment_views.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/views/export_analysis_views.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/views/export_menus.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/report/export_report_actions.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/report/report_booking_summary.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/report/report_container_manifest.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/tests/__init__.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/tests/test_booking_and_revision.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/tests/test_booking_allocation.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/tests/test_export_owner_handoff.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/tests/test_views_and_reports.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/tests/test_multicompany_permissions.py",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_export/controllers/",
+      "file_disposition": "NO_ADD",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "GOVERNANCE/ODOO_INVARIANTS_v3.4.0_DRAFT_r2.md",
+      "file_disposition": "REVIEW_ONLY",
+      "owner": "Governance",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "EXPORT_BRS/INTEROP/PRE_CODE_RIPPLE_CLOSURE_GATE.md",
+      "file_disposition": "REVIEW_ONLY",
+      "owner": "Integration",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_crm_sync/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "CRM Sync",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "d56275caa98f2eb37852713733eb157871339146",
+      "blob_at_repin": "f65ce96cb96258e90163320acce9b637fc2fc317"
+    },
+    {
+      "path": "plasticos_crm_sync/tests/test_crm45_classification.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "CRM Sync",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "5c4446dc5b9245359370965c0fca82ccf934f6cf",
+      "blob_at_repin": "6ccb3ca8bb42d767794cf8ab69422c4bd4043ded"
+    },
+    {
+      "path": "plasticos_crm_sync/tests/test_orchestrator_upsert.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "CRM Sync",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "73bf7440b39b08c39be7c8ca8f28a07495c07ff4",
+      "blob_at_repin": "6fb31337e500694734a541032edef65b2f2c91c0"
+    },
+    {
+      "path": "plasticos_material_profile/__manifest__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Material Profile",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "3f590b923e579c68382b1361bcdf3242a62312f6",
+      "blob_at_repin": "bfa9853966981279c8587e07dbe732b3672cf39f"
+    },
+    {
+      "path": "plasticos_material_profile/tests/test_material_normalizer.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Material Profile",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "be8d1712daeeb53a49684ea26f7f6b0ea96711a7",
+      "blob_at_repin": "328a465ba4810348fa6c094c3c2d4e14371089d2"
+    },
+    {
+      "path": "plasticos_crm_bridge/models/material_profile.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "CRM Bridge",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "318861c7d9a02da8f97532011dab2a8872d46fb2",
+      "blob_at_repin": "0293454042a059e89b1538023f1baf8eb29b1378"
+    },
+    {
+      "path": "plasticos_logistics/views/load_views.xml",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "f8c0cbc687e75aa37fa85e87f5cabfd267af02c1",
+      "blob_at_repin": "f8c0cbc687e75aa37fa85e87f5cabfd267af02c1"
+    },
+    {
+      "path": "plasticos_export/data/linda_booking_inbound.xml",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_logistics/data/linda_document_chase.xml",
+      "file_disposition": "CREATE",
+      "owner": "Linda",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/models/transaction_docs_bridge.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "e7e13d6a3aa59c2b32c90b63158950847eaef985",
+      "blob_at_repin": "a8df0dae4c1bf24c41e22cd2961e516c2eaf5aa4"
+    },
+    {
+      "path": "plasticos_documents/models/load_docs_bridge.py",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "c450da89d2d63edd09c604f9ff2c3654af9cd9d2",
+      "blob_at_repin": "5fd83f449bcb9ae296679794c06ec04ff99ebf46"
+    },
+    {
+      "path": "config/odoo_module_order.yaml",
+      "file_disposition": "EDIT",
+      "owner": "Integration",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "b50925c01c8b1a1c7161a782828139adbbede637",
+      "blob_at_repin": "252003b74ded79c228038e1a875b2e386da269ce"
+    },
+    {
+      "path": "scripts/get_odoo_module_order.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Integration",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "8b123c1bddf3930f6d663bac21c471e4dd2d371b",
+      "blob_at_repin": "8b123c1bddf3930f6d663bac21c471e4dd2d371b"
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.2.0/pre-migrate.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "18dc8acdb88ab348fe37d14ddc354268a905e646",
+      "blob_at_repin": "32964f9d9be5cabaaa12b2c310d7d0c2e3725d31"
+    },
+    {
+      "path": "plasticos_security_base/security/security_groups.xml",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Security",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "2a4e15ba19d87a4297b535751e14bade9c814b2f",
+      "blob_at_repin": "2a4e15ba19d87a4297b535751e14bade9c814b2f"
+    },
+    {
+      "path": "plasticos_logistics/business_rules/README.md",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "1d871f5a3f367d4e327d7eca0cb2bdabf808b2fd",
+      "blob_at_repin": "0884853722e6d5a4e4773cdbb102a48a816991a3"
+    },
+    {
+      "path": "plasticos_documents/business_rules/README.md",
+      "file_disposition": "EDIT",
+      "owner": "Documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "705c9d72727ed82d785d938fdeec9db75b7cc839",
+      "blob_at_repin": "8f8de3fd7c1237c37c797f04196896f76d385762"
+    },
+    {
+      "path": "plasticos_logistics/LINDA_BUILD_PLAN.md",
+      "file_disposition": "EDIT",
+      "owner": "Logistics",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "8ced7173f2959fb99e8354475d823fd1adccf54a",
+      "blob_at_repin": "8ced7173f2959fb99e8354475d823fd1adccf54a"
+    },
+    {
+      "path": "plasticos_transaction/models/native_document_import.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Transaction",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "ec403af2c4c29026cb777b0dae390a1db9c159e1",
+      "blob_at_repin": "7caaa1f9b1660e4260b779fa6c7395cbe9f49f61"
+    },
+    {
+      "path": "tests/test_freight_context_service.py",
+      "file_disposition": "EDIT",
+      "owner": "Integration",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "a73fa113d8f64bfbcdfce14f51621b3e12e87d40",
+      "blob_at_repin": "a73fa113d8f64bfbcdfce14f51621b3e12e87d40"
+    },
+    {
+      "path": "runtime:installed-Odoo19-Enterprise-registry",
+      "file_disposition": "BLOCKED",
+      "owner": "Native Odoo",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "runtime:database-configured-actions-and-upgrade-census",
+      "file_disposition": "BLOCKED",
+      "owner": "Integration",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "scripts/test_env.sh",
+      "file_disposition": "EDIT",
+      "owner": "Integration",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "0f5d2c48aace964add298f089321f98d308604ba",
+      "blob_at_repin": "426905c7fe3112452c9ac4cd3e2046d7436ba079"
+    },
+    {
+      "path": "tests/test_test_env_safety.py",
+      "file_disposition": "EDIT",
+      "owner": "Integration",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "eb1b714d7e48209656e086bb557a3f5e2abc8867",
+      "blob_at_repin": "7f0c18d258993f0b4a7f3318a2b2f78e6a81d2b4"
+    },
+    {
+      "path": "plasticos_claims/tests/test_state_machines.py",
+      "file_disposition": "EDIT",
+      "owner": "plasticos_claims",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "88612be93d328aad0f3f7fbe8694ea8128de2ae3",
+      "blob_at_repin": "d53f69b2030cac2cc0553295ea3ebff7954edd23"
+    },
+    {
+      "path": "plasticos_claims/tests/test_integration_flows.py",
+      "file_disposition": "EDIT",
+      "owner": "plasticos_claims",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "dee5c0219e51b103a6e29121d124d388e4087529",
+      "blob_at_repin": "c41bc7e93dfd1955a437ab75de0ff388d30f717c"
+    },
+    {
+      "path": "plasticos_security_base/tests/test_action_methods.py",
+      "file_disposition": "EDIT",
+      "owner": "plasticos_security_base",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "14ef047128b1d67191c0be2472aa67635c7e3534",
+      "blob_at_repin": "d88265e81d0697197292b7a5574a457ace9a33ea"
+    },
+    {
+      "path": "plasticos_commission/tests/test_golden_flows.py",
+      "file_disposition": "EDIT",
+      "owner": "plasticos_commission",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "46cefbc0c60f54658df0a9558d39313400dc12a5",
+      "blob_at_repin": "f7b837eb463c1e489fc84f0802513c90f0bb75be"
+    },
+    {
+      "path": "scripts/run-odoo-tests.sh",
+      "file_disposition": "NO_ADD",
+      "owner": "Integration",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "docs/adr/ADR-129-export-physical-evidence-and-owner-contracts.md",
+      "file_disposition": "CREATE",
+      "owner": "Integration",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "file_disposition": "EDIT",
+      "owner": "Integration",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "6591da66da3dc654778117aa11b7841d7e6a820a",
+      "blob_at_repin": "fc8a11cf713b220fc0fbf5cf64809fd973015b14"
+    },
+    {
+      "path": "AGENTS.md",
+      "file_disposition": "EDIT",
+      "owner": "Integration",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "720369421de0941c53e9edda2e3e636342beead3",
+      "blob_at_repin": "e9a549f3b94e604ed757eaf0816baf1714156109"
+    },
+    {
+      "path": "plasticos_export/README.md",
+      "file_disposition": "CREATE",
+      "owner": "Export",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.1.7/pre-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Documents",
+      "drift": "ABSENT_BOTH",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.1.7/post-migrate.py",
+      "file_disposition": "CREATE",
+      "owner": "Documents",
+      "drift": "APPEARED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": null,
+      "blob_at_repin": "b0991c1cad95ad95934643e429e7f886daf53db5"
+    },
+    {
+      "path": "plasticos_documents/migrations/19.0.2.1.4/post-migrate.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "b5ad9488be7b4d8ae1221b89302f64cf5d15b296",
+      "blob_at_repin": "b5ad9488be7b4d8ae1221b89302f64cf5d15b296"
+    },
+    {
+      "path": "plasticos_documents_native/tests/test_verification_delegation.py",
+      "file_disposition": "EDIT",
+      "owner": "Native Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "225bd36a7aebc6b750b2a7ccc90f6888cc4b6424",
+      "blob_at_repin": "225bd36a7aebc6b750b2a7ccc90f6888cc4b6424"
+    },
+    {
+      "path": "plasticos_documents_native/tests/test_native_search_parity.py",
+      "file_disposition": "EDIT",
+      "owner": "Native Documents",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "1ea0de4c6dfe47d6aeca7b58799cbc962d0452b3",
+      "blob_at_repin": "1ea0de4c6dfe47d6aeca7b58799cbc962d0452b3"
+    },
+    {
+      "path": "plasticos_documents/tests/test_account_move_transaction_link.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "plasticos_documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "29c658dc496a9cde2d8567df8875493a67d7af44",
+      "blob_at_repin": "3c8d5fc838c7dc2bb427b92729201c9f8c1835e8"
+    },
+    {
+      "path": "plasticos_documents/tests/test_exact_association.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "plasticos_documents",
+      "drift": "REMOVED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": "ad34d764c52558bc9d25125174301ddef3ac10f4",
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/tests/test_native_verification_delegation.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "plasticos_documents",
+      "drift": "REMOVED_SINCE_V2_7_5",
+      "blob_at_v2_7_5": "1535ccbc0f53eb6213d591f96d5423713b9bd2a6",
+      "blob_at_repin": null
+    },
+    {
+      "path": "plasticos_documents/tests/test_pr322_findings.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "plasticos_documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "bca2a3ba74fa727b33f8e7b09d2e88d60aa62760",
+      "blob_at_repin": "03af637d01da4bf7cc8c1b58610535dfffb12d0c"
+    },
+    {
+      "path": "plasticos_documents/tests/test_verification_writer.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "plasticos_documents",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "128b4d96b365cc3eeff3ff6c8e376a2748502138",
+      "blob_at_repin": "5906dfcf62394f798d1b49e5edb848b8446808e5"
+    },
+    {
+      "path": "plasticos_transaction/tests/test_compliance_does_not_post.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "plasticos_transaction",
+      "drift": "UNCHANGED",
+      "blob_at_v2_7_5": "23b0331963f69efc1b3e6b29067c6611455b4f74",
+      "blob_at_repin": "23b0331963f69efc1b3e6b29067c6611455b4f74"
+    },
+    {
+      "path": "plasticos_transaction/tests/__init__.py",
+      "file_disposition": "NO_CHANGE",
+      "owner": "plasticos_transaction",
+      "drift": "CHANGED",
+      "blob_at_v2_7_5": "1955aed0c6f638f4183b95dcea7f83c3ef061e52",
+      "blob_at_repin": "14c353b2df14adc3bc4599e1991046f203ac8b46"
+    }
+  ],
+  "module_order": {
+    "export_integration_modules_present": false,
+    "plasticos_export_listed": false
+  },
+  "private_originals_committed": {
+    "count": 13,
+    "paths": [
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/1728952 LOAD 1.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/64014-Email From Sherry With Booking.png",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/6509024800-LAS-SEA2-UCS.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/6509024800-RR_1.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/6509024800-R_1.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/BOOKING CONFIRMATION-64014-Email.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/BOOKING CONFIRMATION-64014.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/Email Universal BKG 6509024800 - PO 64014.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/PurchaseOrder_64014.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/PurchaseOrder_64014_Email.pdf",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/README_PRIVATE_DO_NOT_COMMIT.md",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/SOURCE_INVENTORY.json",
+      "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/Universal BKG 6509024800 - PO 64014.xlsx"
+    ],
+    "pack_instruction": "README: do not commit the private originals",
+    "action": "OPERATOR_DECISION_NOT_TAKEN_IN_V2_8"
+  }
+}
