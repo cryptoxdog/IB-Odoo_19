@@ -125,6 +125,50 @@ require_docker() {
   docker info >/dev/null 2>&1 || refuse "the Docker daemon is not reachable (docker info failed)"
 }
 
+# A cloud agent session reaches the network through an HTTPS proxy that
+# re-signs traffic with its own CA. Build containers do not trust that CA, so the
+# Dockerfile's pip step fails to clone its git-pinned dependencies ("server
+# certificate verification failed"). When the session CA file exists, the
+# Dockerfile's base image is rebuilt locally from the registry image with that CA
+# trusted, under the same tag; a build without --pull resolves FROM from the
+# local image first, so the unchanged Dockerfile builds on top of it. The local
+# tag carries the CA digest as a label and a matching label is reused, so a rerun
+# leaves the image, and the fixture fingerprint, unchanged. Without the CA file
+# (a workstation) this step does nothing.
+PROXY_CA="${RUNTIME_BOOTSTRAP_PROXY_CA:-/root/.ccr/ca-bundle.crt}"
+CA_LABEL="org.plasticos.session-proxy-ca"
+trust_proxy_ca() {
+  [ -f "$PROXY_CA" ] || return 0
+  local base digest current user ctx
+  base="$(sed -n 's/^FROM[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*/\1/p' Dockerfile 2>/dev/null | head -1)"
+  [ -n "$base" ] || refuse "cannot read the base image from the FROM line of Dockerfile"
+  digest="$(sha256sum "$PROXY_CA" | cut -c1-64)"
+  current="$(docker image inspect --format "{{ index .Config.Labels \"$CA_LABEL\" }}" "$base" 2>/dev/null || true)"
+  if [ "$current" = "$digest" ]; then
+    note "base image $base already trusts the session proxy CA"
+    return 0
+  fi
+  note "session proxy CA found; rebuilding base image $base locally with it trusted"
+  docker pull --quiet "$base" >/dev/null || refuse "could not pull base image $base"
+  user="$(docker image inspect --format '{{.Config.User}}' "$base" 2>/dev/null || true)"
+  ctx="$(mktemp -d)"
+  cp "$PROXY_CA" "$ctx/session-proxy-ca.crt"
+  cat >"$ctx/Dockerfile" <<EOF
+FROM $base
+USER root
+COPY session-proxy-ca.crt /usr/local/share/ca-certificates/session-proxy-ca.crt
+RUN update-ca-certificates >/dev/null
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+LABEL $CA_LABEL=$digest
+USER ${user:-root}
+EOF
+  if ! docker build --quiet -t "$base" "$ctx" >/dev/null; then
+    rm -rf "$ctx"
+    refuse "could not rebuild base image $base with the session proxy CA"
+  fi
+  rm -rf "$ctx"
+}
+
 admit_fixture() {
   local status state
   status="$(bash scripts/test_env.sh status)" || refuse "scripts/test_env.sh status failed"
@@ -148,6 +192,7 @@ admit_fixture() {
 
 require_docker
 resolve_enterprise
+trust_proxy_ca
 admit_fixture
 echo "✅ Odoo Enterprise runtime is ready on this machine."
 echo "   Publish with PR_SMOKE=1 make pr to run the install-smoke and the Odoo runtime tests here;"
