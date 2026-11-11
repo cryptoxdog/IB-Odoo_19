@@ -2,7 +2,7 @@ import logging
 
 from markupsafe import Markup, escape
 
-from odoo import _, api, fields, models
+from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -230,6 +230,7 @@ class PlasticosOffer(models.Model):
         tracking=True,
         index=True,
         required=True,
+        copy=False,
     )
 
     # ═════════════════════════════════════════════════════════
@@ -403,15 +404,37 @@ class PlasticosOffer(models.Model):
                 changed.append(name)
         return changed
 
+    def _plasticos_is_offer_email(self, message):
+        """``message`` is a new email to this offer's buyer that Odoo Mail queued for delivery.
+
+        A creation log, an internal note, a message to anyone outside the buyer,
+        or the message of an earlier send is not evidence.
+        """
+        self.ensure_one()
+        if not message or message.model != self._name or message.res_id != self.id:
+            return False
+        comment_subtype_id = self.env["ir.model.data"]._xmlid_to_res_id("mail.mt_comment")
+        if message.message_type != "comment" or not comment_subtype_id or message.subtype_id.id != comment_subtype_id:
+            return False
+        if self.sent_message_id and message.id <= self.sent_message_id.id:
+            return False
+        partners = message.partner_ids
+        if not partners or not all(self._plasticos_partner_in_buyer(partner) for partner in partners):
+            return False
+        notifications = self.env["mail.notification"].sudo()  # sudo: read-only check of own message
+        return bool(
+            notifications.search_count([("mail_message_id", "=", message.id), ("notification_type", "=", "email")])
+        )
+
     def _plasticos_check_sent_evidence(self, vals):
-        """Sent is reachable only with the native Odoo Mail message submitted for this offer."""
+        """Sent is reachable only with the native Odoo Mail email submitted for this offer."""
         if vals.get("state") != "sent":
             return
         message = self.env[MAIL_MESSAGE].browse(vals.get("sent_message_id") or [])
         for rec in self:
             if rec.state == "sent":
                 continue
-            if not message or message.model != self._name or message.res_id != rec.id:
+            if not rec._plasticos_is_offer_email(message):
                 raise UserError(
                     _(
                         "Offer %(offer)s can only become Sent by sending its email with Send Offer. "
@@ -623,9 +646,13 @@ class PlasticosOffer(models.Model):
         return self._plasticos_check_recipients(partners)
 
     def _plasticos_email_attachments(self):
-        """Selected material pictures plus offer-owned pictures, one per distinct content."""
+        """The pictures selected for the email, one per distinct content.
+
+        Only ``material_image_ids`` counts: a picture the broker removed there is
+        not sent, even when its attachment still belongs to the offer.
+        """
         self.ensure_one()
-        candidates = self.material_image_ids | self.image_ids
+        candidates = self.material_image_ids
         chosen = self.env[IR_ATTACHMENT]
         checksums = set()
         for attachment in candidates.sorted("id"):
@@ -780,13 +807,17 @@ class PlasticosOffer(models.Model):
                 ("mimetype", "like", "image/"),
             ]
         )
+        copies = self.env["ir.attachment"]
         for img in source_images:
-            img.copy(
+            copies |= img.copy(
                 {
                     "res_model": "plasticos.offer",
                     "res_id": self.id,
                 }
             )
+        if copies:
+            # Offered pictures are the ones selected for the offer email.
+            self.material_image_ids = [Command.link(att.id) for att in copies]
         if source_images:
             _logger.info(
                 "Copied %d image(s) from %s/%s to offer %s.",

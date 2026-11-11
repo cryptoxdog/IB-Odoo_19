@@ -46,7 +46,7 @@ class MailComposeMessagePlasticosOffer(models.TransientModel):
         # double-click is refused here; a later replay sees the committed Sent
         # state and is refused below. Either way no second email is posted.
         try:
-            offer.lock_for_update()
+            offer.lock_for_update(allow_referencing=True)
         except LockError as exc:
             raise UserError(_("Offer %s is being sent right now. No second email was sent.") % offer.name) from exc
         offer.invalidate_recordset()
@@ -73,7 +73,11 @@ class MailComposeMessagePlasticosOffer(models.TransientModel):
                 att.res_model == COMPOSER_MODEL and att.res_id in (0, self.id or 0) and att.create_uid == self.env.user
             )
         )
-        foreign = self.attachment_ids - uploads - allowed
+        # A chosen mail template's own files are copied by the native composer.
+        template_files = self.attachment_ids.filtered(
+            lambda att: self.template_id and att.res_model == "mail.template" and att.res_id == self.template_id.id
+        )
+        foreign = self.attachment_ids - uploads - template_files - allowed
         if foreign:
             raise UserError(
                 _(
@@ -84,8 +88,8 @@ class MailComposeMessagePlasticosOffer(models.TransientModel):
             )
         owned = Attachment.search([("res_model", "=", OFFER_MODEL), ("res_id", "=", offer.id)])
         by_checksum = {att.checksum: att for att in owned if att.checksum}
-        final = uploads
-        for attachment in (self.attachment_ids - uploads).sorted("id"):
+        final = uploads | template_files
+        for attachment in (self.attachment_ids - uploads - template_files).sorted("id"):
             if attachment.res_model == OFFER_MODEL and attachment.res_id == offer.id:
                 final |= attachment
                 continue
@@ -103,13 +107,7 @@ class MailComposeMessagePlasticosOffer(models.TransientModel):
         """Native Odoo Mail produced an outgoing email for this offer, or nothing is recorded."""
         if not message or message.model != OFFER_MODEL or message.res_id != offer.id:
             raise UserError(_("Odoo Mail did not post the email for offer %s; it stays Draft.") % offer.name)
-        # Reading the notification rows of the message this user just posted is
-        # evidence only; mail.notification is not readable by every internal user.
-        notifications = self.env["mail.notification"].sudo()  # sudo: read-only check of own message
-        email_notifications = notifications.search_count(
-            [("mail_message_id", "=", message.id), ("notification_type", "=", "email")]
-        )
-        if not email_notifications:
+        if not offer._plasticos_is_offer_email(message):
             raise UserError(
                 _("Odoo Mail queued no outgoing email for offer %s; it stays Draft. Check the recipients.") % offer.name
             )

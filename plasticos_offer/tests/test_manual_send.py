@@ -287,6 +287,42 @@ class TestOfferManualSend(PlasticosTestCase):
             offer.write({"state": "sent"})
         self.assertEqual(offer.state, "draft")
 
+    def test_existing_chatter_message_is_not_send_evidence(self):
+        offer = self._offer()
+        offer.message_post(body="Internal note", message_type="comment", subtype_xmlid="mail.mt_note")
+        for message in offer.message_ids:
+            with self.assertRaisesRegex(UserError, "can only become Sent"):
+                offer.write({"state": "sent", "sent_message_id": message.id})
+        self.assertEqual(offer.state, "draft")
+
+    def test_earlier_send_cannot_be_replayed_after_reset(self):
+        offer = self._offer()
+        send_offer_email(offer)
+        first_message = offer.sent_message_id
+        offer.action_reject()
+        offer.action_reset_to_draft()
+        with self.assertRaisesRegex(UserError, "can only become Sent"):
+            offer.write({"state": "sent", "sent_message_id": first_message.id})
+        send_offer_email(offer)
+        self.assertEqual(offer.state, "sent")
+        self.assertGreater(offer.sent_message_id.id, first_message.id)
+
+    def test_duplicated_sent_offer_starts_as_draft(self):
+        offer = self._offer()
+        send_offer_email(offer)
+        duplicate = offer.copy()
+        self.assertEqual(duplicate.state, "draft")
+        self.assertFalse(duplicate.sent_message_id)
+
+    def test_removed_picture_is_not_emailed(self):
+        kept = self._image("kept.png", PNG_A)
+        removed = self._image("removed.png", PNG_B, res_model="plasticos.offer")
+        offer = self._offer(material_image_ids=[Command.set((kept | removed).ids)])
+        removed.res_id = offer.id
+        offer.material_image_ids = [Command.unlink(removed.id)]
+        self.assertTrue(removed.exists(), "the widget forgets the link; the offer-owned file stays")
+        self.assertEqual(offer.action_send()["context"]["default_attachment_ids"], kept.ids)
+
     def test_body_escapes_material_text(self):
         offer = self._offer(material_description="<script>alert(1)</script>\nColor: <b>Red</b>")
         body = str(offer.action_send()["context"]["default_body"])

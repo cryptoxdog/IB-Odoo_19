@@ -8,6 +8,8 @@ them, so every assertion here also proves the manual path never calls Gate.
 from __future__ import annotations
 
 import base64
+import html
+import re
 from contextlib import contextmanager
 from unittest.mock import patch
 
@@ -121,6 +123,18 @@ class TestManualOffers(PlasticosTestCase):
         lost.action_archive()
         with self.assertRaisesRegex(UserError, "closed"):
             lost.action_select_offer_buyers()
+
+    def test_contact_picker_domain_is_valid_and_hides_the_supplier(self):
+        from odoo.tools.safe_eval import safe_eval  # noqa: PLC0415
+
+        arch = self.env.ref("plasticos_crm_bridge.view_offer_buyer_selection_wizard_form").arch
+        domain_text = re.search(r'name="contact_ids"[^>]*domain="([^"]+)"', arch, re.S).group(1)
+        domain = safe_eval(html.unescape(domain_text), {"supplier_partner_id": self.supplier.id})
+        supplier_contact = self._contact(self.supplier, "Supplier Desk Picker", "picker@supplier.example.com")
+        found = self.env["res.partner"].search(domain)
+        self.assertIn(self.alice, found)
+        self.assertNotIn(self.supplier, found)
+        self.assertNotIn(supplier_contact, found)
 
     def test_cancelled_selection_creates_nothing(self):
         opportunity = self._opportunity()

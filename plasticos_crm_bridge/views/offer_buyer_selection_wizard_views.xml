@@ -17,7 +17,7 @@
                 </div>
                 <field name="contact_ids"
                        widget="many2many"
-                       domain="[('active', '=', True), ('id', 'not child_of', supplier_partner_id)]"
+                       domain="['&amp;', ('active', '=', True), '!', ('id', 'child_of', supplier_partner_id)]"
                        options="{'no_create': True}">
                     <list>
                         <field name="display_name" string="Contact"/>
