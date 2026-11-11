@@ -62,12 +62,18 @@ KEY_TEMPERATURE = "temperature"
 KEY_VISION = "vision"
 KEY_WORKSPACE_ID = "workspace_id"
 KEY_HOT_QUALIFIERS = "hot_qualifiers"
+KEY_QUALIFICATION = "qualification"
+KEY_QUALIFICATION_SIGNALS = "qualification_signals"
+KEY_VALIDATION_ISSUES = "validation_issues"
+KEY_MANUAL_OVERRIDE = "manual_override"
 KEY_CONTENT_SHA256 = "content_sha256"
 KEY_SOURCE_URL = "source_url"
 KEY_RAW_PAYLOAD = "raw_payload"
 
 ASSESSMENT_STATUS_ASSESSED = "assessed"
 ASSESSMENT_STATUS_UNAVAILABLE = "unavailable"
+# The provider answered, but the answer failed the response contract.
+ASSESSMENT_STATUS_INVALID = "invalid"
 
 # Attachment keys that are acquisition material (signed provider URLs), never
 # durable business evidence. They are scrubbed from every payload that reaches

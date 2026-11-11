@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 
-from .triage_helpers import WEIGHT_SOURCE_AREA, SellerMass, parse_seller_mass
+from .triage_helpers import UNIT_WEIGHTS_LBS, WEIGHT_SOURCE_AREA, SellerMass, parse_seller_mass
 
 _WEEKLY_TO_MONTHLY = 52.0 / 12.0
 _EVERY_OTHER_WEEK_TO_MONTHLY = 26.0 / 12.0
@@ -14,8 +14,26 @@ _INVENTORY_PATTERN = re.compile(
     r"\b(\d+(?:\.\d+)?)\s*(loads?|pallets?|gaylords?|bales?|rolls?)\b",
     re.IGNORECASE,
 )
+_COUNT_WORDS = {
+    "one": 1.0,
+    "two": 2.0,
+    "three": 3.0,
+    "four": 4.0,
+    "five": 5.0,
+    "six": 6.0,
+    "seven": 7.0,
+    "eight": 8.0,
+    "nine": 9.0,
+    "ten": 10.0,
+    "a": 1.0,
+    "an": 1.0,
+}
+# A whole load is one of these units: a count of them is a number of loads, not one heavier load.
+_LOAD_SIZED_UNITS = frozenset({"truckload", "load", "container"})
 _CADENCE_PATTERN = re.compile(
-    r"\b(\d+(?:\.\d+)?)\s*loads?\s*(?:/|per|a|each)?\s*"
+    r"\b(\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|an?)\s*"
+    r"(?:truck\s*loads?|truckloads?|trucks?|loads?|containers?)"
+    r"(?:\s+of\s+[\w-]+(?:\s+[\w-]+)?)?\s*(?:/|per|a|an|each|every)?\s*"
     r"(week|wk|weekly|month|mo|monthly|quarterly|quarter|annually|annual|year|yr)\b",
     re.IGNORECASE,
 )
@@ -100,7 +118,8 @@ def _supply_mode(*texts: str) -> str:
 def _cadence(text: str) -> tuple[float | None, str | None, float | None]:
     match = _CADENCE_PATTERN.search(text)
     if match:
-        count = float(match.group(1))
+        token = match.group(1).lower()
+        count = _COUNT_WORDS[token] if token in _COUNT_WORDS else float(token)
         period = _normalize_period(match.group(2))
         return count, period, _monthly_count(count, period)
 
@@ -177,6 +196,22 @@ def normalize_quantity_evidence(
     load_weight = chosen.lbs
     weight_source = chosen.source
     inventory_count, inventory_unit = _inventory(quantity, cadence_period)
+    unit = chosen.source.split(":", 1)[1] if chosen.source.startswith("unit_count:") else ""
+    unit_weight = UNIT_WEIGHTS_LBS.get(unit, 0.0)
+    if unit in _LOAD_SIZED_UNITS and unit_weight and load_weight and load_weight > unit_weight:
+        # "Two truckloads" is two loads of about one truckload each, not one 84,000 lb load.
+        inventory_count = round(load_weight / unit_weight, 2)
+        inventory_unit = "load"
+        load_weight = unit_weight
+        chosen = SellerMass(
+            unit_weight,
+            None,
+            chosen.source,
+            (
+                *chosen.assumptions,
+                f"Per-load weight is one {unit} at the unit weight table; the count is inventory in loads.",
+            ),
+        )
     supply_mode = _supply_mode(quantity, frequency)
 
     clarifications: list[str] = []

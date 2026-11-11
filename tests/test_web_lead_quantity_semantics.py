@@ -38,7 +38,6 @@ def test_explicit_mass_is_deterministic(weight, expected, source):
 @pytest.mark.parametrize(
     ("quantity", "expected_lbs", "source"),
     [
-        ("3 loads", 126_000.0, "unit_count:load"),
         ("5 pallets", 9_000.0, "unit_count:pallet"),
         ("2 gaylords", 2_000.0, "unit_count:gaylord"),
         ("4 bales", 6_000.0, "unit_count:bale"),
@@ -52,6 +51,41 @@ def test_stated_unit_count_becomes_mass_and_keeps_inventory(quantity, expected_l
     assert evidence.assumptions
     assert evidence.current_inventory_count_low is not None
     assert evidence.loads_per_month is None
+
+
+@pytest.mark.parametrize(
+    ("quantity", "loads"),
+    [("3 loads", 3.0), ("two truckloads", 2.0), ("2 containers", 2.0)],
+)
+def test_a_count_of_whole_loads_is_inventory_not_one_heavier_load(quantity, loads):
+    """Plan C1: per-load mass and the number of loads stay separate facts."""
+    evidence = normalize_quantity_evidence(quantity_text=quantity, weight_per_load_text="", frequency_text="")
+    unit = evidence.weight_source.split(":", 1)[1]
+    single = normalize_quantity_evidence(quantity_text=f"1 {unit}", weight_per_load_text="", frequency_text="")
+
+    assert evidence.load_weight_lbs == pytest.approx(single.load_weight_lbs)
+    assert evidence.current_inventory_count_low == pytest.approx(loads)
+    assert evidence.current_inventory_unit == "load"
+    assert evidence.loads_per_month is None
+    assert any("inventory in loads" in note for note in evidence.assumptions)
+
+
+@pytest.mark.parametrize(
+    ("quantity", "frequency", "loads_per_month"),
+    [
+        ("Two truckloads every month", "", 2.0),
+        ("2 truckloads of HDPE every month", "", 2.0),
+        ("one load a week", "", 52.0 / 12.0),
+    ],
+)
+def test_recurring_load_counts_are_cadence_with_unknown_mass(quantity, frequency, loads_per_month):
+    """Plan C1: "two truckloads every month" is cadence; per-load mass stays unknown."""
+    evidence = normalize_quantity_evidence(quantity_text=quantity, weight_per_load_text="", frequency_text=frequency)
+
+    assert evidence.load_weight_lbs is None
+    assert evidence.loads_per_month == pytest.approx(loads_per_month)
+    assert evidence.supply_mode == "ongoing" or evidence.cadence_period
+    assert "Confirm per-load weight in pounds, kilograms, or tons." in evidence.clarification_requests
 
 
 def test_one_truckload_uses_the_unit_table():

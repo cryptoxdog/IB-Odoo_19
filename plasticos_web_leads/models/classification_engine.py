@@ -20,6 +20,8 @@ import copy
 import re
 from dataclasses import dataclass, field
 
+from .evidence_keys import ASSESSMENT_STATUS_ASSESSED
+from .evidence_reconciler import polymers_named
 from .triage_helpers import WEIGHT_SOURCE_AREA
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -365,3 +367,387 @@ def classify_lead(
         effective_hot_min_lbs=effective_hot_min,
         vision_evidence=vision_copy,
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Commercial qualification (ADR-016 2026-11-11 amendment)
+#
+# The economic LLM recommends HOT / REVIEW / COLD. Everything below is the
+# deterministic layer around that recommendation: it names the evidence the
+# model may cite, detects the few genuine hard exclusions, and validates the
+# recommendation before it controls routing. Keyword lists, thresholds, and
+# missing facts are signals here, never a COLD decision by themselves.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+QUALIFICATION_SCHEMA_VERSION = "web-lead-qualification/v1"
+KEY_QUAL_SCHEMA = "schema_version"
+
+DISPOSITION_HOT = "hot"
+DISPOSITION_REVIEW = "review"
+DISPOSITION_COLD = "cold"
+DISPOSITIONS = (DISPOSITION_HOT, DISPOSITION_REVIEW, DISPOSITION_COLD)
+
+# Who controls routing. legacy: the HOT/COLD classifier, model comments after it.
+# shadow: the classifier routes; the validated qualification is recorded beside it.
+# live: the validated qualification routes HOT / REVIEW / COLD.
+QUALIFICATION_MODE_LEGACY = "legacy"
+QUALIFICATION_MODE_SHADOW = "shadow"
+QUALIFICATION_MODE_LIVE = "live"
+QUALIFICATION_MODES = (QUALIFICATION_MODE_LEGACY, QUALIFICATION_MODE_SHADOW, QUALIFICATION_MODE_LIVE)
+
+MASS_BASIS_SELLER_STATED = "seller_stated"
+MASS_BASIS_CALCULATED = "calculated"
+MASS_BASIS_INFERRED = "inferred"
+MASS_BASIS_UNKNOWN = "unknown"
+# A HOT intake may carry a seller-stated mass, or one calculated from a seller
+# unit count with a disclosed unit weight. A model-inferred mass is not enough.
+_INTAKE_MASS_BASES = frozenset({MASS_BASIS_SELLER_STATED, MASS_BASIS_CALCULATED})
+
+# Below this text-model confidence, a negative fact is uncertain, not evidence.
+_NEGATIVE_FACT_MIN_CONFIDENCE = 0.6
+# Below this vision confidence, a polymer hint cannot confirm the polymer alone.
+_VISION_POLYMER_MIN_CONFIDENCE = 0.7
+# A COLD recommendation below this confidence goes to a human.
+_COLD_MIN_CONFIDENCE = 0.6
+
+_PLASTIC_TERMS = re.compile(
+    r"\b(?:plastics?|resins?|poly\w*|hdpe|ldpe|lldpe|pp|pet|rpet|ps|hips|eps|pvc|abs|nylon|pa\d*|pc|pbt|pom|"
+    r"acetal|pmma|acrylic|ppo|tpe|tpo|tpu|tpv|eva|pla|bopp|vinyl|frp|fiberglass[- ]reinforced)\b",
+    re.IGNORECASE,
+)
+
+MATERIAL_SUPPORTED = "supported"
+MATERIAL_UNCERTAIN = "uncertain"
+MATERIAL_UNSUITABLE = "unsuitable"
+SIGNAL_STRONG = "strong"
+_SELLER_STATED_SOURCES = frozenset({"weight_per_load_field_lbs", "range_lbs"})
+
+QUALIFICATION_REF_PREFIXES = ("seller.", "quantity.", "ai.", "vision.", "conflict.", "policy.", "risk.")
+
+
+def mass_basis(weight_source: str | None, lbs: float | None) -> str:
+    """Name how a per-load pound figure was obtained. Unknown mass stays unknown."""
+    source = (weight_source or "").strip()
+    if not lbs or lbs <= 0 or source in ("", "none", WEIGHT_SOURCE_AREA):
+        return MASS_BASIS_UNKNOWN
+    if source.startswith("explicit_") or source in _SELLER_STATED_SOURCES:
+        return MASS_BASIS_SELLER_STATED
+    if source.startswith(("unit_count:", "pallet_count", "bare_number:")):
+        # A seller count or bare number converted with a disclosed unit assumption.
+        return MASS_BASIS_CALCULATED
+    return MASS_BASIS_INFERRED
+
+
+def _keyword_hits(text: str, keywords) -> list[str]:
+    lowered = (text or "").lower()
+    hits = []
+    for keyword in keywords or ():
+        keyword = (keyword or "").strip().lower()
+        if keyword and re.search(r"\b" + re.escape(keyword) + r"\b", lowered) and keyword not in hits:
+            hits.append(keyword)
+    return hits
+
+
+def detect_risk_indicators(
+    *,
+    polymer: str | None,
+    material_text: str | None,
+    source_text: str | None,
+    reject_materials=None,
+    reject_sources=None,
+) -> list[str]:
+    """Operator reject terms as risk indicators. A hit is evidence to weigh, not a decision."""
+    material_keywords = reject_materials if reject_materials else _REJECT_MATERIALS_DEFAULT
+    source_keywords = reject_sources if reject_sources else _REJECT_SOURCES_DEFAULT
+    indicators = [
+        f"material_keyword:{hit}" for hit in _keyword_hits(f"{polymer or ''} {material_text or ''}", material_keywords)
+    ]
+    indicators.extend(f"source_keyword:{hit}" for hit in _keyword_hits(source_text or "", source_keywords))
+    return indicators
+
+
+def detect_hard_exclusions(
+    *,
+    polymer: str | None,
+    material_text: str | None,
+    is_plastic_hint: bool | None,
+    reject_materials=None,
+) -> list[str]:
+    """Return the deterministic exclusions that make a submission clearly unsuitable.
+
+    Only a nonplastic-only offer qualifies: the seller's own material words name
+    a nonplastic material, name no plastic at all, and the text model did not
+    find plastic. A composite such as fiberglass-reinforced plastic, or a
+    seller who names a polymer beside a nonplastic word, is not excluded.
+    """
+    text = f"{polymer or ''} {material_text or ''}".strip()
+    if not text or is_plastic_hint is True or _PLASTIC_TERMS.search(text):
+        return []
+    material_keywords = reject_materials if reject_materials else _REJECT_MATERIALS_DEFAULT
+    hits = _keyword_hits(text, material_keywords)
+    if not hits:
+        return []
+    return [f"nonplastic_only:{hits[0]}"]
+
+
+def _present(value) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    return True
+
+
+def _agreed_confident_polymer(vision: list[dict]) -> str:
+    confident = [
+        item
+        for item in vision
+        if isinstance(item, dict) and float(item.get("confidence") or 0.0) >= _VISION_POLYMER_MIN_CONFIDENCE
+    ]
+    return _agreed_polymer_hint(confident)
+
+
+def build_qualification_signals(
+    *,
+    seller: dict | None,
+    merged: dict | None,
+    quantity: dict | None,
+    vision: list[dict] | None,
+    conflicts: list[dict] | None,
+    clarification_requests: list[str] | None,
+    economic_eligibility: dict | None,
+    risk_indicators: list[str] | None,
+    hard_exclusions: list[str] | None,
+    cold_max_lbs: float,
+) -> dict:
+    """Build the evidence dimensions and the closed set of evidence references.
+
+    ``evidence_refs`` is the only vocabulary the commercial model may cite. A
+    reference exists only when its fact is present, so a citation always
+    points at evidence that was actually supplied.
+    """
+    seller = dict(seller or {})
+    merged = dict(merged or {})
+    quantity = dict(quantity or {})
+    vision_rows = [dict(item) for item in (vision or []) if isinstance(item, dict) and "error" not in item]
+    conflicts = [dict(item) for item in (conflicts or []) if isinstance(item, dict)]
+    refs: dict[str, object] = {}
+
+    for key in (
+        "material_description",
+        "material_composition_text",
+        "quantity_text",
+        "weight_per_load_text",
+        "frequency_text",
+        "source_description",
+        "contaminants_text",
+        "company_name",
+        "pickup_location_text",
+        "pickup_postal_code",
+    ):
+        if _present(seller.get(key)):
+            refs[f"seller.{key}"] = str(seller.get(key))[:500]
+
+    lbs = float(merged.get("estimated_lbs") or 0)
+    basis = mass_basis(merged.get("lbs_source"), lbs)
+    if lbs > 0:
+        refs["quantity.load_weight_lbs"] = dict(lbs=lbs, basis=basis, source=merged.get("lbs_source"))
+    if _present(quantity.get("loads_per_month")):
+        refs["quantity.loads_per_month"] = quantity.get("loads_per_month")
+    if _present(quantity.get("cadence_period")):
+        refs["quantity.cadence"] = {
+            "count": quantity.get("cadence_count_low"),
+            "period": quantity.get("cadence_period"),
+        }
+    if _present(quantity.get("current_inventory_count_low")):
+        refs["quantity.current_inventory"] = {
+            "count": quantity.get("current_inventory_count_low"),
+            "unit": quantity.get("current_inventory_unit"),
+        }
+    supply_mode = quantity.get("supply_mode") or merged.get("frequency") or ""
+    if supply_mode and supply_mode != "unclear":
+        refs["quantity.supply_mode"] = supply_mode
+
+    polymer = (merged.get("polymer") or "").strip()
+    for key in ("polymer", "form", "material_grade", "source_type", "is_plastic", "is_commercial_source", "color"):
+        if _present(merged.get(key)):
+            refs[f"ai.{key}"] = merged.get(key)
+    for index, item in enumerate(vision_rows):
+        refs[f"vision.{index}"] = {
+            key: item.get(key)
+            for key in (
+                "observed_form",
+                "observed_color",
+                "observed_polymer_hint",
+                "contamination_visible",
+                "contamination_notes",
+                "packaging",
+                "visual_summary",
+                "confidence",
+            )
+            if _present(item.get(key))
+        }
+    for item in conflicts:
+        refs[f"conflict.{item.get('field', 'unknown')}"] = item
+    if economic_eligibility:
+        refs["policy.economic_eligibility"] = dict(economic_eligibility)
+    for indicator in list(risk_indicators or []) + list(hard_exclusions or []):
+        refs[f"risk.{indicator}"] = indicator
+
+    vision_polymer = _agreed_confident_polymer(vision_rows)
+    # The seller's own words naming exactly one polymer are supported evidence.
+    seller_polymers = sorted(
+        polymers_named(
+            " ".join(str(seller.get(key) or "") for key in ("material_description", "material_composition_text"))
+        )
+    )
+    if hard_exclusions:
+        material_status = MATERIAL_UNSUITABLE
+    elif polymer or vision_polymer or len(seller_polymers) == 1:
+        material_status = MATERIAL_SUPPORTED
+    else:
+        material_status = MATERIAL_UNCERTAIN
+
+    text_confidence = float(merged.get("confidence") or 0.0)
+    negative_facts: list[str] = []
+    if merged.get("is_plastic") is False and text_confidence >= _NEGATIVE_FACT_MIN_CONFIDENCE:
+        negative_facts.append("ai.is_plastic")
+    if merged.get("is_commercial_source") is False and text_confidence >= _NEGATIVE_FACT_MIN_CONFIDENCE:
+        negative_facts.append("ai.is_commercial_source")
+    if basis in _INTAKE_MASS_BASES and 0 < lbs < cold_max_lbs:
+        negative_facts.append("quantity.load_weight_lbs")
+
+    loads_per_month = quantity.get("loads_per_month")
+    if loads_per_month is None:
+        loads_per_month = merged.get("loads_per_month") or None
+    return {
+        KEY_QUAL_SCHEMA: QUALIFICATION_SCHEMA_VERSION,
+        "material": {
+            "status": material_status,
+            "polymer_code": polymer or None,
+            "vision_polymer": vision_polymer or None,
+            "seller_polymers": seller_polymers,
+            "form_code": merged.get("form"),
+            "material_grade_code": merged.get("material_grade"),
+            "contamination_visible": any(item.get("contamination_visible") is True for item in vision_rows),
+        },
+        "scale": {
+            "load_weight_lbs": lbs or None,
+            "load_weight_lbs_high": merged.get("estimated_lbs_high") or None,
+            "mass_basis": basis,
+            "loads_per_month": loads_per_month,
+            "supply_mode": supply_mode or "unclear",
+            "recurring": supply_mode == "ongoing" or bool(loads_per_month),
+            "meets_policy_threshold": bool((economic_eligibility or {}).get("eligible")),
+            "below_cold_floor": "quantity.load_weight_lbs" in negative_facts,
+        },
+        "source": {
+            "is_commercial_hint": merged.get("is_commercial_source"),
+            "source_type_code": merged.get("source_type"),
+            "text_confidence": text_confidence,
+        },
+        "conflicts": sorted({str(item.get("field", "unknown")) for item in conflicts}),
+        "missing_information": sorted(set(clarification_requests or [])),
+        "risk_indicators": list(risk_indicators or []),
+        "hard_exclusions": list(hard_exclusions or []),
+        "negative_facts": negative_facts,
+        "evidence_refs": refs,
+    }
+
+
+def derive_final_disposition(
+    *,
+    assessment_record: dict | None,
+    signals: dict,
+) -> dict:
+    """Validate the model recommendation and return the disposition that routes the lead.
+
+    Order (ADR-016, 2026-11-11 amendment):
+      1. No usable assessment  → REVIEW (never a silent COLD, never a HOT).
+      2. A hard exclusion      → COLD.
+      3. Recommended HOT       → HOT only when every intake fact is valid.
+      4. Recommended COLD      → COLD only when negative evidence supports it.
+      5. Otherwise             → REVIEW.
+    Every difference between the recommendation and the final disposition is
+    recorded with its reason.
+    """
+    record = dict(assessment_record or {})
+    assessment = record.get("assessment") if isinstance(record.get("assessment"), dict) else {}
+    recommendation = assessment.get("recommended_disposition")
+    if recommendation not in DISPOSITIONS:
+        recommendation = None
+    supporting = list(assessment.get("supporting_evidence_refs") or [])
+    contradictory = list(assessment.get("contradictory_evidence_refs") or [])
+    confidence = float(assessment.get("confidence") or 0.0)
+    reasons: list[str] = []
+
+    if record.get("status") != ASSESSMENT_STATUS_ASSESSED or recommendation is None:
+        final = DISPOSITION_REVIEW
+        reasons.append(
+            "Commercial qualification is unavailable ("
+            + str(record.get("reason") or record.get("status") or "no recommendation")
+            + "); a broker must review and the assessment can be retried."
+        )
+    elif signals.get("hard_exclusions"):
+        final = DISPOSITION_COLD
+        reasons.append("Hard exclusion: " + ", ".join(signals["hard_exclusions"]) + ".")
+    elif recommendation == DISPOSITION_HOT:
+        blockers = intake_blockers(signals)
+        if assessment.get("material_suitability") == MATERIAL_UNSUITABLE:
+            blockers.append("The model judged the material unsuitable while recommending HOT.")
+        if not supporting:
+            blockers.append("The HOT recommendation cites no supplied evidence.")
+        final = DISPOSITION_REVIEW if blockers else DISPOSITION_HOT
+        reasons.extend(blockers)
+    elif recommendation == DISPOSITION_COLD:
+        negative = list(signals.get("negative_facts") or [])
+        if assessment.get("material_suitability") == MATERIAL_UNSUITABLE and (supporting or contradictory):
+            negative.append("assessment.material_suitability")
+        problems = []
+        if not (supporting or contradictory):
+            problems.append("The COLD recommendation cites no supplied evidence.")
+        if not negative:
+            problems.append("No direct negative evidence supports COLD; missing facts are not proof of no value.")
+        if confidence < _COLD_MIN_CONFIDENCE:
+            problems.append(f"COLD confidence {confidence:.2f} is below {_COLD_MIN_CONFIDENCE:.2f}.")
+        final = DISPOSITION_REVIEW if problems else DISPOSITION_COLD
+        reasons.extend(problems or [f"Negative evidence: {', '.join(negative)}."])
+    else:
+        final = DISPOSITION_REVIEW
+        reasons.append("The model recommended broker review.")
+
+    high_priority = final == DISPOSITION_REVIEW and (
+        recommendation == DISPOSITION_HOT or assessment.get("opportunity_signal") == SIGNAL_STRONG
+    )
+    return {
+        KEY_QUAL_SCHEMA: QUALIFICATION_SCHEMA_VERSION,
+        "model_recommendation": recommendation,
+        "final_disposition": final,
+        "overridden": recommendation is not None and recommendation != final,
+        "override_reasons": reasons if recommendation is not None and recommendation != final else [],
+        "reasons": reasons,
+        "review_priority": "high" if high_priority else "normal",
+        "intake_ready": not intake_blockers(signals),
+        "missing_information": sorted(
+            set(signals.get("missing_information") or []) | set(assessment.get("missing_information") or [])
+        ),
+        "recommended_clarification": list(assessment.get("recommended_clarification") or []),
+        "hard_exclusions": list(signals.get("hard_exclusions") or []),
+    }
+
+
+def intake_blockers(signals: dict) -> list[str]:
+    """Facts that must be valid before an automatic intake is created. Empty when ready."""
+    material = signals.get("material") or {}
+    scale = signals.get("scale") or {}
+    blockers: list[str] = []
+    if scale.get("mass_basis") not in _INTAKE_MASS_BASES or not scale.get("load_weight_lbs"):
+        blockers.append(
+            "Per-load weight is not stated or calculable from the seller's words; "
+            "an intake would need an invented quantity."
+        )
+    if material.get("status") != MATERIAL_SUPPORTED:
+        blockers.append("Material identity is not supported by seller, text, or confident photo evidence.")
+    if signals.get("conflicts"):
+        blockers.append("Unresolved evidence conflict: " + ", ".join(signals["conflicts"]) + ".")
+    return blockers

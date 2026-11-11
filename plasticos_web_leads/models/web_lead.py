@@ -4,8 +4,10 @@
 #          1. Receive a provider packet through the inbound adapter port
 #          2. AI normalization (1 LLM call)
 #          3. Image analysis (1 Vision call per image)
-#          4. Deterministic HOT/COLD classification
+#          4. Commercial qualification: LLM recommends HOT/REVIEW/COLD,
+#             the deterministic validator decides (ADR-016 2026-11-11)
 #          5. HOT → intake (partner deferred to buyer-match)
+#             REVIEW → assigned broker clarification work, no intake
 # ═══════════════════════════════════════════════════════════
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ from typing import Any
 
 import psycopg2
 import psycopg2.errorcodes
+from markupsafe import escape
 
 from odoo import api, fields, models
 from odoo.exceptions import ConcurrencyError, UserError
@@ -33,16 +36,30 @@ from ..adapters.registry import get_adapter
 from ..zip_place import resolve_pickup
 from . import ai_normalizer, image_analyzer
 from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
-from .classification_engine import classify_lead
+from .classification_engine import (
+    DISPOSITION_COLD,
+    DISPOSITION_HOT,
+    DISPOSITION_REVIEW,
+    QUALIFICATION_MODE_LEGACY,
+    QUALIFICATION_MODE_LIVE,
+    build_qualification_signals,
+    classify_lead,
+    derive_final_disposition,
+    detect_hard_exclusions,
+    detect_risk_indicators,
+)
 from .economic_evaluator import evaluate_economic_opportunity
 from .economic_policy import evaluate_economic_eligibility
 from .evidence_keys import (
     ASSESSMENT_STATUS_ASSESSED,
+    ASSESSMENT_STATUS_UNAVAILABLE,
     KEY_ASSESSMENT,
     KEY_DECISION,
     KEY_ECONOMIC_ASSESSMENT,
     KEY_ECONOMIC_ELIGIBILITY,
     KEY_HOT_QUALIFIERS,
+    KEY_MANUAL_OVERRIDE,
+    KEY_QUALIFICATION,
     KEY_REASONS,
     KEY_REVIEW_REASONS,
     KEY_REVIEW_REQUIRED,
@@ -90,8 +107,9 @@ _POLYMER_NORMALIZE: dict[str, str] = {
     "pmma": "PMMA",
     "ppo": "PPO",
     "tpe": "TPE",
-    "tpu": "TPE",
-    "pla": "PET",
+    "tpu": "TPU",
+    # PLA is not PET and is not in the polymer registry: keep it explicitly other.
+    "pla": "OTHER",
     "e-waste": "EWASTE",
     "ewaste": "EWASTE",
 }
@@ -204,23 +222,25 @@ class PlasticosWebLead(models.Model):
     """Stores every inbound web lead admitted through the provider port.
 
     HOT leads automatically generate a plasticos.intake record.
+    REVIEW leads keep their evidence and get an assigned broker activity; no intake.
     COLD leads are stored for reference but do not create downstream records.
 
     Pipeline (admit_inbound → create_from_packet):
       1. Project the provider payload into a provider-neutral packet
-      2. Create web.lead record (decision=cold, state=received)
+      2. Create web.lead record (decision=review, state=received: not yet classified)
       3. _run_triage_pipeline():
            a. AI normalization (LLM)
            b. Image analysis (Vision)
            c. _merge_ai_and_vision() — weight fallback cascade here
-           d. classify_lead() — deterministic HOT/COLD
-           e. HOT → _create_intake() + notify admin
+           d. classify_lead() — legacy HOT/COLD, kept for shadow comparison
+           e. commercial qualification → validated HOT/REVIEW/COLD (live mode routes on it)
+           f. HOT → _create_intake() + notify admin; REVIEW → broker activity
            f. Submitted photos are already stored, on HOT and on COLD
     """
 
     _name = "plasticos.web.lead"
     _description = "Web Lead"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "submitted_at desc, id desc"
     _rec_name = "lead_id"
 
@@ -336,16 +356,24 @@ class PlasticosWebLead(models.Model):
     decision = fields.Selection(
         [
             ("hot", "HOT"),
+            ("review", "REVIEW"),
             ("cold", "COLD"),
         ],
         required=True,
-        default="cold",  # FIX: explicit default — no missing-required crash
+        # A lead that has not been classified yet is not COLD. ``state`` tells an
+        # unprocessed lead (received / error) from a completed REVIEW (review_pending).
+        default="review",
         index=True,
         tracking=True,
+        help=(
+            "HOT: commercially compelling, an intake exists for broker review. "
+            "REVIEW: potentially valuable, a broker must clarify missing or conflicting facts. "
+            "COLD: clearly unsuitable on direct evidence."
+        ),
     )
     decision_reasons = fields.Json(
         readonly=True,
-        help="Reasons for the HOT/COLD classification.",
+        help="Reasons for the HOT/REVIEW/COLD disposition, including the model recommendation and any override.",
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -424,6 +452,7 @@ class PlasticosWebLead(models.Model):
     state = fields.Selection(
         [
             ("received", "Received"),
+            ("review_pending", "Review Pending"),
             ("intake_created", "Intake Created"),
             ("skipped", "Skipped (Cold)"),
             ("error", "Error"),
@@ -445,7 +474,8 @@ class PlasticosWebLead(models.Model):
         tracking=True,
         index=True,
         help=(
-            "Internal human-review handoff state for a HOT intake. 'Blocked' is a "
+            "Internal human-review handoff state for a HOT intake, a REVIEW lead, or a failed "
+            "lead that needs recovery. 'Blocked' is a "
             "durable, visible state meaning no eligible reviewer is configured; the "
             "handoff is never silently assigned to the ingestion worker. This field "
             "does not call Mack, matching, Gate, or any commercial operation."
@@ -532,6 +562,10 @@ class PlasticosWebLead(models.Model):
             }
         )
         non_state_fields = set(vals.keys()) - _STATE_ONLY_FIELDS
+        if self.env.context.get("web_lead_assessment_recovery"):
+            # Assessment-only recovery replaces the economic assessment inside the
+            # evidence bundle. It never rewrites seller facts or the disposition.
+            non_state_fields -= {"evidence_bundle"}
         if non_state_fields:
             for rec in self:
                 if rec.state == "intake_created":
@@ -741,7 +775,7 @@ class PlasticosWebLead(models.Model):
             "lead_id": str(lead_id),
             "source": "web_lead",
             "lead_source_id": web_lead_source.id if web_lead_source else False,
-            "decision": "cold",
+            "decision": DISPOSITION_REVIEW,
             "raw_payload": dict(packet.raw_payload),
             "provider_key": packet.provider,
             "provider_external_id": packet.provider_external_id or False,
@@ -904,7 +938,7 @@ class PlasticosWebLead(models.Model):
                 f"threshold={economic_eligibility.applicable_hot_min_lbs:,.0f}lbs"
             )
 
-            log_lines.append("[CLASS] Running deterministic classification.")
+            log_lines.append("[CLASS] Running legacy deterministic classification.")
             result = classify_lead(
                 polymer=merged.get("polymer"),
                 material_description=self.material_description,
@@ -922,55 +956,101 @@ class PlasticosWebLead(models.Model):
                 economic_policy_reasons=list(economic_eligibility.reasons),
                 vision_evidence=vision_results,
             )
-            log_lines.append(f"[CLASS] decision={result.decision}")
+            log_lines.append(f"[CLASS] legacy_decision={result.decision}")
 
-            review_reasons = list(result.review_reasons) if result.decision == "hot" else []
-            if float(merged.get("estimated_lbs") or 0) > SINGLE_LOAD_REVIEW_CAP_LBS or ai_data.get(
-                "weight_above_review_cap"
-            ):
-                review_reasons.append("Weight is above the single-load review cap.")
+            mode = config.get_qualification_mode()
             economic_assessment = None
+            qualification = None
             if evidence_bundle is not None:
                 economic_provider_spec = (
                     config.get_inference_provider("economic_evaluation") if config.ai_enabled else None
                 )
                 economic_provider = InferenceProvider(**economic_provider_spec) if economic_provider_spec else None
+                signals = None
+                if mode != QUALIFICATION_MODE_LEGACY:
+                    signals = self._qualification_signals(
+                        merged, evidence_bundle, economic_eligibility.to_dict(), config
+                    )
                 economic_assessment = evaluate_economic_opportunity(
                     provider=economic_provider,
                     canonical_payload=canonical_payload,
                     evidence_bundle=evidence_bundle,
-                    classification={
-                        KEY_DECISION: result.decision,
-                        KEY_REASONS: result.reasons,
-                        KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
-                    },
                     eligibility=economic_eligibility.to_dict(),
+                    qualification_signals=signals,
+                    # Legacy order only: the model comments on an already-final decision.
+                    classification=(
+                        {
+                            KEY_DECISION: result.decision,
+                            KEY_REASONS: result.reasons,
+                            KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
+                        }
+                        if signals is None
+                        else None
+                    ),
                 )
                 evidence_bundle[KEY_ECONOMIC_ASSESSMENT] = economic_assessment
-                if result.decision == "hot":
-                    review_reasons.extend(evidence_bundle.get("clarification_requests", []))
-                    review_reasons.extend(
-                        f"Evidence conflict: {item.get('field', 'unknown')}"
-                        for item in evidence_bundle.get("conflicts", [])
-                    )
-                    review_reasons.extend(economic_assessment.get(KEY_ASSESSMENT, {}).get("clarifications", []))
-                    if economic_assessment.get(KEY_STATUS) != ASSESSMENT_STATUS_ASSESSED:
-                        review_reasons.append(
-                            "Economic assessment is unavailable; broker review is required before commercial work."
-                        )
                 log_lines.append(f"[ECONOMIC] status={economic_assessment.get(KEY_STATUS)}")
+                if signals is not None:
+                    qualification = derive_final_disposition(assessment_record=economic_assessment, signals=signals)
+            elif mode == QUALIFICATION_MODE_LIVE:
+                # A lead without packet evidence cannot be qualified; it is never silently COLD.
+                qualification = derive_final_disposition(
+                    assessment_record=dict(status=ASSESSMENT_STATUS_UNAVAILABLE, reason="no_packet_evidence"),
+                    signals={},
+                )
+            if qualification is not None:
+                qualification["routing_mode"] = mode
+                qualification["legacy_decision"] = result.decision
+                log_lines.append(
+                    f"[QUALIFY] mode={mode} recommendation={qualification['model_recommendation']} "
+                    f"final={qualification['final_disposition']} legacy={result.decision}"
+                )
 
-            values = {
-                "decision": result.decision,
-                "decision_reasons": {
+            live = mode == QUALIFICATION_MODE_LIVE and qualification is not None
+            decision = qualification["final_disposition"] if live else result.decision
+
+            review_reasons = list(result.review_reasons) if (decision == DISPOSITION_HOT and not live) else []
+            if float(merged.get("estimated_lbs") or 0) > SINGLE_LOAD_REVIEW_CAP_LBS or ai_data.get(
+                "weight_above_review_cap"
+            ):
+                review_reasons.append("Weight is above the single-load review cap.")
+            if economic_assessment is not None and decision in (DISPOSITION_HOT, DISPOSITION_REVIEW):
+                review_reasons.extend(evidence_bundle.get("clarification_requests", []))
+                review_reasons.extend(
+                    f"Evidence conflict: {item.get('field', 'unknown')}"
+                    for item in evidence_bundle.get("conflicts", [])
+                )
+                review_reasons.extend(economic_assessment.get(KEY_ASSESSMENT, {}).get("clarifications", []))
+                if economic_assessment.get(KEY_STATUS) != ASSESSMENT_STATUS_ASSESSED:
+                    review_reasons.append(
+                        "Economic assessment is unavailable; broker review is required before commercial work."
+                    )
+            if live and decision == DISPOSITION_REVIEW:
+                if qualification["review_priority"] == "high":
+                    review_reasons.append("High priority: the commercial assessment sees a strong opportunity.")
+                review_reasons.extend(qualification["reasons"])
+                review_reasons.extend(qualification["missing_information"])
+
+            decision_reasons = {
+                KEY_REASONS: qualification["reasons"] if live else result.reasons,
+                "cold_gates": qualification["hard_exclusions"] if live else result.cold_gates_triggered,
+                KEY_HOT_QUALIFIERS: [] if live else result.hot_qualifiers_met,
+                KEY_ECONOMIC_ELIGIBILITY: economic_eligibility.to_dict(),
+                KEY_REVIEW_REQUIRED: bool(review_reasons),
+                KEY_REVIEW_REASONS: review_reasons,
+                KEY_VISION: result.vision_evidence,
+            }
+            if qualification is not None:
+                decision_reasons[KEY_QUALIFICATION] = qualification
+                decision_reasons["legacy_classification"] = {
+                    KEY_DECISION: result.decision,
                     KEY_REASONS: result.reasons,
                     "cold_gates": result.cold_gates_triggered,
                     KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
-                    KEY_ECONOMIC_ELIGIBILITY: economic_eligibility.to_dict(),
-                    KEY_REVIEW_REQUIRED: bool(review_reasons),
-                    KEY_REVIEW_REASONS: review_reasons,
-                    KEY_VISION: result.vision_evidence,
-                },
+                }
+            values = {
+                "decision": decision,
+                "decision_reasons": decision_reasons,
                 "ai_normalized": ai_data,
                 "ai_vision_results": vision_results,
                 "ai_analysis": merged,
@@ -985,7 +1065,7 @@ class PlasticosWebLead(models.Model):
                 values["evidence_bundle"] = evidence_bundle
             self.write(values)
 
-            if result.decision == "hot":
+            if decision == DISPOSITION_HOT:
                 log_lines.append("[HOT] Creating intake and scheduling human review.")
                 self._process_hot_lead_triage(merged, config)
                 if evidence_bundle is not None:
@@ -996,6 +1076,9 @@ class PlasticosWebLead(models.Model):
                 synchronize_images = getattr(crm_lead, "_propagate_available_commercial_images", None)
                 if callable(synchronize_images):
                     synchronize_images()
+            elif decision == DISPOSITION_REVIEW:
+                log_lines.append("[REVIEW] Assigning broker clarification. No intake or opportunity.")
+                self._route_review_lead(config)
             else:
                 log_lines.append("[COLD] Archiving lead. Stored photos stay on the lead.")
                 self.write({"state": "skipped"})
@@ -1004,6 +1087,18 @@ class PlasticosWebLead(models.Model):
             _logger.exception("Triage pipeline error for lead %s", self.lead_id)
             log_lines.append(f"[ERROR] {exc}")
             self.write({"state": "error", "error_message": str(exc)})
+            try:
+                with self.env.cr.savepoint():
+                    self._schedule_lead_review_activity(
+                        config,
+                        summary=f"Recover failed web lead: {self.lead_id}",
+                        note=(
+                            "<p>Web-lead processing failed. The submission and its evidence are kept.</p>"
+                            "<p><b>Action:</b> fix the cause, then use Retry Processing.</p>"
+                        ),
+                    )
+            except Exception:
+                _logger.exception("Could not queue recovery work for failed web lead %s", self.lead_id)
 
         log_lines.append(f"[RUN] {run_id} finished")
         self.write({"triage_log": "\n".join(log_lines)})
@@ -1123,10 +1218,13 @@ class PlasticosWebLead(models.Model):
                 v_color = (best_vision.get("observed_color") or "").lower().strip()
                 if v_color and not merged["color"]:
                     merged["color"] = v_color
-                if best_vision.get("contamination_visible"):
-                    merged["contamination_visible"] = True
-                    merged["contamination_notes"] = best_vision.get("contamination_notes")
                 merged["vision_summary"] = best_vision.get("visual_summary", "")
+            # One clean photo never erases contamination another photo shows.
+            dirty = [v for v in valid_vision if v.get("contamination_visible") is True]
+            if dirty:
+                merged["contamination_visible"] = True
+                notes = [str(v.get("contamination_notes") or "").strip() for v in dirty]
+                merged["contamination_notes"] = "; ".join(dict.fromkeys(note for note in notes if note)) or None
 
         # Grade and form stay in separate slots. A drum grade must not erase
         # regrind, and an AI form must not hide the item word.
@@ -1257,7 +1355,9 @@ class PlasticosWebLead(models.Model):
         merged["polymer"] = polymer
         merged["estimated_lbs"] = lbs
         merged["loads_per_month"] = self.estimated_loads_per_month or analysis.get("loads_per_month") or 0
-        self.with_context(skip_hot_notify=True)._process_hot_lead_triage(merged, config)
+        # A lead newly promoted to HOT gets exactly one reviewer handoff:
+        # _process_hot_lead_triage notifies only when it creates the intake.
+        self._process_hot_lead_triage(merged, config)
 
     # ═══════════════════════════════════════════════════════════
     # HOT Lead Processing
@@ -1317,7 +1417,13 @@ class PlasticosWebLead(models.Model):
         polymer_code = (merged.get("polymer") or "other").lower()
         form_code = (form_value or "other").lower()
         source_type_code = merged.get("source_type") or getattr(config, "default_source_type", None) or "post_consumer"
-        qty_per_load = max(merged.get("estimated_lbs", 0), 1)
+        qty_per_load = float(merged.get("estimated_lbs") or 0)
+        if qty_per_load <= 0:
+            # Never invent a quantity: an intake needs a stated or verified per-load weight.
+            raise UserError(
+                f"Lead '{self.lead_id}' has no verified per-load weight. "
+                "Record the confirmed Lbs/Load before creating an intake."
+            )
         loads_per_month = max(merged.get("loads_per_month", 0), 0)
         deal_type = _FREQ_TO_DEAL.get(merged.get("frequency", ""), "spot")
 
@@ -1438,12 +1544,245 @@ class PlasticosWebLead(models.Model):
         )
 
     def action_route_hot_review(self):
-        """Re-attempt a blocked human handoff after a reviewer has been configured."""
+        """Re-attempt a blocked human handoff after a reviewer has been configured.
+
+        A HOT lead routes its intake review; a REVIEW lead routes its
+        clarification work; a failed lead routes its recovery work.
+        """
+        config = self.env["plasticos.web.lead.config"].get_config()
+        for rec in self:
+            if rec.intake_id:
+                rec._notify_admin_hot_intake(rec.intake_id, config)
+            elif rec.state == "review_pending":
+                rec._route_review_lead(config)
+            elif rec.state == "error":
+                rec._schedule_lead_review_activity(
+                    config,
+                    summary=f"Recover failed web lead: {rec.lead_id}",
+                    note="<p>Web-lead processing failed. Fix the cause, then use Retry Processing.</p>",
+                )
+            else:
+                raise UserError("Only a HOT intake, a REVIEW lead, or a failed lead has a review handoff to route.")
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # Commercial qualification: REVIEW lifecycle
+    # ═══════════════════════════════════════════════════════════
+
+    def _qualification_signals(self, merged, evidence_bundle, eligibility, config):
+        """Deterministic evidence dimensions handed to the model and the validator."""
+        self.ensure_one()
+        bundle = evidence_bundle or {}
+        seller = bundle.get("seller") or self.canonical_payload or {}
+        material_text = " ".join(
+            str(value or "")
+            for value in (
+                seller.get("material_description"),
+                seller.get("material_composition_text"),
+                self.material_description,
+            )
+        )
+        source_text = f"{merged.get('source_description') or ''} {merged.get('source_type') or ''}"
+        risk_indicators = detect_risk_indicators(
+            polymer=merged.get("polymer"),
+            material_text=material_text,
+            source_text=source_text,
+            reject_materials=config.get_reject_materials(),
+            reject_sources=config.get_reject_sources(),
+        )
+        hard_exclusions = detect_hard_exclusions(
+            polymer=merged.get("polymer"),
+            material_text=material_text,
+            is_plastic_hint=merged.get("is_plastic"),
+            reject_materials=config.get_reject_materials(),
+        )
+        return build_qualification_signals(
+            seller=seller,
+            merged=merged,
+            quantity=bundle.get("quantity"),
+            vision=bundle.get("vision"),
+            conflicts=bundle.get("conflicts"),
+            clarification_requests=bundle.get("clarification_requests"),
+            economic_eligibility=eligibility,
+            risk_indicators=risk_indicators,
+            hard_exclusions=hard_exclusions,
+            cold_max_lbs=config.cold_max_lbs or 8_000,
+        )
+
+    def _review_activity_summary(self):
+        return f"Clarify REVIEW web lead: {self.lead_id}"
+
+    def _schedule_lead_review_activity(self, config, *, summary, note):
+        """One internal activity on this lead for the configured reviewer, or a visible blocked handoff.
+
+        Deduplicated by lead, reviewer, and purpose (the summary). The webhook
+        worker is never an implicit reviewer.
+        """
+        self.ensure_one()
+        reviewer = self._eligible_reviewer(config)
+        if reviewer is None:
+            self.write(
+                {
+                    "mack_review_state": "blocked",
+                    "mack_review_reason": "No web-lead reviewer is configured (HOT Intake Reviewer).",
+                }
+            )
+            self.message_post(
+                body=(
+                    "This web lead needs broker work, but the review handoff is blocked: configure a "
+                    "HOT Intake Reviewer in Web Lead Settings, then use Route Review."
+                )
+            )
+            _logger.warning("Web lead %s has no configured internal reviewer.", self.lead_id)
+            return False
+        existing = self.env["mail.activity"].search_count(
+            [
+                ("res_model", "=", self._name),
+                ("res_id", "=", self.id),
+                ("user_id", "=", reviewer.id),
+                ("summary", "=", summary),
+            ]
+        )
+        if not existing:
+            self.activity_schedule("mail.mail_activity_data_todo", user_id=reviewer.id, summary=summary, note=note)
+        self.write(
+            {
+                "mack_review_state": "queued",
+                "mack_review_reason": f"Internal review is assigned to {reviewer.name}.",
+            }
+        )
+        return True
+
+    def _route_review_lead(self, config):
+        """Make a REVIEW disposition actionable: queue state, clarification status, assigned work."""
+        self.ensure_one()
+        self.write({"state": "review_pending", "review_status": "clarification_required"})
+        qualification = (self.decision_reasons or {}).get(KEY_QUALIFICATION) or {}
+        questions = list(qualification.get("recommended_clarification") or []) + list(
+            qualification.get("missing_information") or []
+        )
+        items = "".join(f"<li>{escape(question)}</li>" for question in dict.fromkeys(questions))
+        priority = "High priority. " if qualification.get("review_priority") == "high" else ""
+        self._schedule_lead_review_activity(
+            config,
+            summary=self._review_activity_summary(),
+            note=(
+                f"<p>{priority}This web lead may be worth pursuing but needs facts before an intake.</p>"
+                f"<ul><li><b>Company:</b> {escape(self.company_name or 'Unknown')}</li></ul>"
+                + (f"<p><b>Ask the seller:</b></p><ul>{items}</ul>" if items else "")
+                + "<p><b>Action:</b> record the verified facts and notes, then Promote to HOT, "
+                "Re-Run Triage, or Reject After Review.</p>"
+            ),
+        )
+
+    def _close_lead_review_activities(self, feedback):
+        self.ensure_one()
+        activities = self.env["mail.activity"].search(
+            [
+                ("res_model", "=", self._name),
+                ("res_id", "=", self.id),
+                ("summary", "=", self._review_activity_summary()),
+            ]
+        )
+        if activities:
+            activities.action_feedback(feedback=feedback)
+
+    def _manual_override_record(self, decision, rationale, **extra):
+        """Actor, rationale, and time of a broker disposition change, stored in decision_reasons."""
+        self.ensure_one()
+        return dict(
+            previous_decision=self.decision,
+            decision=decision,
+            actor_id=self.env.user.id,
+            actor=self.env.user.display_name,
+            rationale=(rationale or "")[:2000],
+            at=fields.Datetime.to_string(fields.Datetime.now()),
+            **extra,
+        )
+
+    def action_promote_to_hot(self):
+        """Broker promotion of a REVIEW (or COLD) lead to HOT once its facts are verified.
+
+        Requires a rationale in Broker Review Notes and a verified per-load
+        weight. Records the actor and rationale, then reuses the one idempotent
+        HOT path, so a repeated promotion never duplicates the intake or the
+        opportunity. It does not approve a snapshot or start any commercial step.
+        """
+        config = self.env["plasticos.web.lead.config"].get_config()
+        for rec in self:
+            if rec.intake_id:
+                raise UserError("Intake already exists for this lead.")
+            if rec.state == "error":
+                raise UserError("Retry processing of a failed lead before promoting it.")
+            rationale = (rec.review_notes or "").strip()
+            if not rationale:
+                raise UserError("Record the broker rationale in Broker Review Notes before promoting to HOT.")
+            if (rec.estimated_lbs_per_load or 0) <= 0:
+                raise UserError(
+                    "Record the verified per-load weight (Lbs/Load) before promoting to HOT. "
+                    "An intake is never created from an invented quantity."
+                )
+            merged = dict(rec.ai_analysis or rec.ai_normalized or {})
+            merged["estimated_lbs"] = rec.estimated_lbs_per_load
+            merged["loads_per_month"] = rec.estimated_loads_per_month or merged.get("loads_per_month") or 0
+            reasons = dict(rec.decision_reasons or {})
+            reasons[KEY_MANUAL_OVERRIDE] = rec._manual_override_record(
+                DISPOSITION_HOT, rationale, verified_lbs_per_load=rec.estimated_lbs_per_load
+            )
+            previous = rec.decision
+            rec.write({"decision": DISPOSITION_HOT, "decision_reasons": reasons, "review_status": "pending"})
+            rec._close_lead_review_activities("Promoted to HOT by broker.")
+            rec._process_hot_lead_triage(merged, config)
+            rec.message_post(
+                body=f"{rec.env.user.display_name} promoted this lead from {previous.upper()} to HOT. "
+                f"Rationale: {rationale[:500]}"
+            )
+        return True
+
+    def action_retry_economic_assessment(self):
+        """Assessment-only recovery for a lead that already has an intake.
+
+        Re-runs the commercial assessment over stored evidence. It does not
+        re-read acquisition URLs, recreate attachments, intake, or opportunity,
+        change the disposition, or touch an approved snapshot. A lead without
+        an intake is reassessed with Re-Run Triage instead.
+        """
         config = self.env["plasticos.web.lead.config"].get_config()
         for rec in self:
             if not rec.intake_id:
-                raise UserError("Only a lead with an intake has a review handoff to route.")
-            rec._notify_admin_hot_intake(rec.intake_id, config)
+                raise UserError("Use Re-Run Triage to reassess a lead that has no intake.")
+            bundle = dict(rec.evidence_bundle or {})
+            if not bundle:
+                raise UserError("This lead has no stored evidence bundle to reassess.")
+            spec = config.get_inference_provider("economic_evaluation") if config.ai_enabled else None
+            provider = InferenceProvider(**spec) if spec else None
+            merged = dict(rec.ai_analysis or {})
+            eligibility = ((rec.decision_reasons or {}).get(KEY_ECONOMIC_ELIGIBILITY)) or {}
+            signals = rec._qualification_signals(merged, bundle, eligibility, config)
+            assessment = evaluate_economic_opportunity(
+                provider=provider,
+                canonical_payload=rec.canonical_payload,
+                evidence_bundle=bundle,
+                eligibility=eligibility,
+                qualification_signals=signals,
+            )
+            previous = bundle.get(KEY_ECONOMIC_ASSESSMENT) or {}
+            history = list(bundle.get("economic_assessment_history") or [])
+            if previous:
+                history.append(
+                    {
+                        key: previous.get(key)
+                        for key in (KEY_STATUS, "reason", "schema_version", KEY_ASSESSMENT)
+                        if key in previous
+                    }
+                )
+            bundle[KEY_ECONOMIC_ASSESSMENT] = assessment
+            bundle["economic_assessment_history"] = history[-10:]
+            rec.with_context(web_lead_assessment_recovery=True).write({"evidence_bundle": bundle})
+            rec.message_post(
+                body=f"Economic assessment re-run: status {assessment.get(KEY_STATUS)}. "
+                "Disposition, intake, and approved snapshots are unchanged."
+            )
         return True
 
     def action_approve_for_commercial_preparation(self):
@@ -1482,10 +1821,21 @@ class PlasticosWebLead(models.Model):
         return True
 
     def action_reject_after_review(self):
-        """Record a broker-reviewed rejection without deleting source evidence."""
+        """Record a broker-reviewed rejection without deleting source evidence.
+
+        A REVIEW lead leaves the queue as COLD with the broker as the actor; a
+        HOT lead keeps its intake and evidence for audit.
+        """
         self.ensure_one()
-        self.write({"review_status": "rejected"})
-        self.message_post(body="Broker rejected this lead after review; intake and evidence remain retained for audit.")
+        values = {"review_status": "rejected"}
+        if not self.intake_id and self.decision == DISPOSITION_REVIEW:
+            reasons = dict(self.decision_reasons or {})
+            reasons[KEY_MANUAL_OVERRIDE] = self._manual_override_record(DISPOSITION_COLD, self.review_notes or "")
+            values.update({"decision": DISPOSITION_COLD, "decision_reasons": reasons, "state": "skipped"})
+        self.write(values)
+        if not self.intake_id:
+            self._close_lead_review_activities("Rejected after broker review.")
+        self.message_post(body="Broker rejected this lead after review; evidence remains retained for audit.")
         return True
 
     def action_view_review_snapshots(self):
@@ -1505,10 +1855,10 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def action_retry_triage(self):
-        """Re-run the full AI triage pipeline."""
+        """Re-run the full AI triage pipeline (reassessment for a lead with no intake)."""
         for rec in self:
-            if rec.state not in ("error", "skipped", "received"):
-                raise UserError("Only errored, skipped, or received leads can be re-triaged.")
+            if rec.state not in ("error", "skipped", "received", "review_pending"):
+                raise UserError("Only errored, skipped, received, or review-pending leads can be re-triaged.")
             rec._run_triage_pipeline()
 
     def action_retry_processing(self):
@@ -1523,28 +1873,12 @@ class PlasticosWebLead(models.Model):
             rec._run_triage_pipeline()
 
     def action_force_create_intake(self):
-        """Force-create an intake from a COLD lead (manual override)."""
-        for rec in self:
-            if rec.intake_id:
-                raise UserError("Intake already exists for this lead.")
-            config = rec.env["plasticos.web.lead.config"].get_config()
-            merged = rec.ai_analysis or rec.ai_normalized or {}
-            rec._process_hot_lead_triage(merged, config)
+        """Manual intake creation. Same validated path as Promote to HOT: rationale and verified weight."""
+        return self.action_promote_to_hot()
 
     def action_force_hot(self):
-        """Manually override a COLD lead to HOT and create intake."""
-        for rec in self:
-            if rec.intake_id:
-                raise UserError("Intake already exists for this lead.")
-            config = rec.env["plasticos.web.lead.config"].get_config()
-            merged = rec.ai_analysis or rec.ai_normalized or {}
-            rec.write(
-                {
-                    "decision": "hot",
-                    "decision_reasons": {"reasons": ["Manual override by user"]},
-                }
-            )
-            rec._process_hot_lead_triage(merged, config)
+        """Manual override to HOT. Same validated path as Promote to HOT: rationale and verified weight."""
+        return self.action_promote_to_hot()
 
     # ═══════════════════════════════════════════════════════════
     # UX Smart Button Actions
