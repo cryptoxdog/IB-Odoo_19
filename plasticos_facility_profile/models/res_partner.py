@@ -558,7 +558,7 @@ class ResPartner(models.Model):
         if not self.is_company or not parent:
             raise UserError("Only a location of a company can be removed from this list.")
         referenced = self._location_is_referenced()
-        elevated = self.sudo()  # Read-checked child location; Sales, Logistics, and Accounting have no partner unlink.
+        elevated = self.sudo()  # sudo: read-checked child location; Sales, Logistics, and Accounting have no partner unlink
         if referenced:
             elevated.write({"active": False, "entity_status": "inactive"})
         else:
