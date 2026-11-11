@@ -14,7 +14,7 @@ notifications carry the delivery outcome.
 """
 
 from odoo import _, models
-from odoo.exceptions import UserError
+from odoo.exceptions import LockError, UserError
 
 from .offer import OFFER_SEND_CONTEXT
 
@@ -42,9 +42,13 @@ class MailComposeMessagePlasticosOffer(models.TransientModel):
         if not offer:
             raise UserError(_("The offer no longer exists."))
         offer.check_access("write")
-        # Serialize sends of one offer: a retried or double-clicked request waits
-        # here, then sees the committed Sent state and is refused below.
-        self.env.cr.execute("SELECT id FROM plasticos_offer WHERE id = %s FOR UPDATE", [offer.id])
+        # Serialize sends of one offer with the native row lock: a concurrent
+        # double-click is refused here; a later replay sees the committed Sent
+        # state and is refused below. Either way no second email is posted.
+        try:
+            offer.lock_for_update()
+        except LockError as exc:
+            raise UserError(_("Offer %s is being sent right now. No second email was sent.") % offer.name) from exc
         offer.invalidate_recordset()
         if offer.state != "draft":
             raise UserError(_("Offer %s was already sent. No second email was sent.") % offer.name)
