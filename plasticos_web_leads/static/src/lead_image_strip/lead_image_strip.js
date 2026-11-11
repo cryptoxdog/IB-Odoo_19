@@ -4,6 +4,8 @@ import { Component, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
+import { storedRelationIds } from "../lead_evidence/format";
+
 export class LeadImageStrip extends Component {
     static template = "plasticos_web_leads.LeadImageStrip";
     static props = { ...standardFieldProps };
@@ -14,18 +16,7 @@ export class LeadImageStrip extends Component {
 
     get images() {
         const value = this.props.record.data[this.props.name];
-        const ids = [];
-        const records = value && value.records;
-        if (Array.isArray(records)) {
-            for (const record of records) {
-                if (record.resId) {
-                    ids.push(record.resId);
-                }
-            }
-        } else if (value && Array.isArray(value.currentIds)) {
-            ids.push(...value.currentIds);
-        }
-        return ids.map((id) => ({ id, url: `/web/image/${id}` }));
+        return storedRelationIds(value).map((id) => ({ id, url: `/web/image/${id}` }));
     }
 
     get current() {
@@ -63,4 +54,8 @@ export class LeadImageStrip extends Component {
 registry.category("fields").add("lead_image_strip", {
     component: LeadImageStrip,
     supportedTypes: ["many2many"],
+    relatedFields: [
+        { name: "name", type: "char" },
+        { name: "mimetype", type: "char" },
+    ],
 });

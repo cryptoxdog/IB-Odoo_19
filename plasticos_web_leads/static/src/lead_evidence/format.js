@@ -507,15 +507,36 @@ export function formatPayload(payloadValue) {
     };
 }
 
-export function attachmentEntries(value) {
-    const records = value && value.records;
-    if (!Array.isArray(records)) {
+function positiveIds(source) {
+    if (!Array.isArray(source)) {
         return [];
     }
-    return records
-        .map((record) => ({
-            id: record.resId,
-            name: (record.data && (record.data.display_name || record.data.name)) || "",
-        }))
-        .filter((file) => file.id);
+    return source.filter((id) => Number.isInteger(id) && id > 0);
+}
+
+export function storedRelationIds(value) {
+    if (!value) {
+        return [];
+    }
+    const current = positiveIds(value.currentIds);
+    if (current.length) {
+        return current;
+    }
+    return positiveIds(value.resIds);
+}
+
+function relationRecordName(value, id) {
+    const records = value && value.records;
+    if (!Array.isArray(records)) {
+        return "";
+    }
+    const record = records.find((item) => item.resId === id);
+    return (record && record.data && (record.data.display_name || record.data.name)) || "";
+}
+
+export function attachmentEntries(value) {
+    return storedRelationIds(value).map((id) => ({
+        id,
+        name: relationRecordName(value, id),
+    }));
 }

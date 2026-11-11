@@ -284,6 +284,20 @@ def _new_documents() -> dict:
     return {"sales": [], "purchases": [], "invoice": False, "credits": [], "bills": [], "freight_bills": []}
 
 
+def _header_for_posted_number(index, number, source):
+    """One ``PO`` header whose number is the worksheet's posted order number, or ``None``.
+
+    ``WKSDetail.PPo`` is that number. Zero headers and several headers stay unresolved.
+    """
+    number = (number or "").strip()
+    if not number:
+        return None
+    matches = index.orders_by_source_number.get((source, number), [])
+    if len(matches) != 1:
+        return None
+    return index.orders.get(matches[0])
+
+
 def _realize_one(importer, index, report, partner_by_cp, context, number):
     from odoo.addons.plasticos_partner_import.erp.header_forensics import trade_date  # noqa: PLC0415
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
@@ -315,6 +329,10 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         purchase_key = (line.get("PPO_ID") or "").strip()
         sale_header, sale_reason = header_for_line(index, sale_key, "SO")
         purchase_header, purchase_reason = header_for_line(index, purchase_key, "PO")
+        # PPO_ID is the line key. When it does not resolve, the worksheet still
+        # carries the purchase-order number it was opened from (PPo).
+        if purchase_header is None:
+            purchase_header = _header_for_posted_number(index, line.get("PPo"), "PO")
         # Each side that resolves no header is recorded with its own reason, so
         # a line that still links on the other side is not a silent half-link.
         for side, key, header, reason in (
