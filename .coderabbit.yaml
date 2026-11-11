@@ -54,30 +54,28 @@ reviews:
       instructions: Apply when the PR contains changes to the plasticos_buyer_match_engine module.
 
   path_filters:
+    # Exclusions only. A pattern without a leading ! turns this list into an
+    # allowlist: CodeRabbit then reviews nothing that does not match it, and
+    # exclusions still win. Never add an include pattern as an "exception".
     # === EXCLUDE: Build artifacts and caches ===
-    - '!.git/**'
-    - '!.venv/**'
-    - '!.mypy_cache/**'
-    - '!.pytest_cache/**'
-    - '!.ruff_cache/**'
-    - '!__pycache__/**'
-    - '!*.pyc'
-    - '!node_modules/**'
+    - '!**/.venv/**'
+    - '!**/.mypy_cache/**'
+    - '!**/.pytest_cache/**'
+    - '!**/.ruff_cache/**'
+    - '!**/__pycache__/**'
+    - '!**/*.pyc'
+    - '!**/node_modules/**'
     # === EXCLUDE: Vendor/external code ===
     - '!odoo-enterprise/**'
-    # === EXCLUDE: Large data files ===
-    - '!*.csv'
-    - '!*.zip'
-    # === EXCLUDE: ALL tests (most require Odoo runtime) ===
-    - '!plasticos_*/tests/**'
-    - '!tests-odoo/**'
-    - '!tests/**'
-    # === INCLUDE: Standalone pytest tests (no Odoo runtime needed) ===
-    # These are pure Python tests that CodeRabbit CAN validate
-    - 'tests/test_repo_dependency_integrity.py'
-    - 'tests/test_process_enum_alignment.py'
-    - 'tests/test_phantom_enum_values.py'
-    - 'tests/test_odoo19_compat.py'
+    # === EXCLUDE: Archives and frozen data grids ===
+    # Security ACL CSVs and data/*.csv seed files stay reviewable.
+    # The ERP projection .sql scripts beside these folders stay reviewable.
+    - '!**/*.zip'
+    - '!plasticos_partner_import/erp_extracted_data/bulk/**'
+    - '!plasticos_partner_import/erp_extracted_data/meta/**'
+    - '!plasticos_partner_import/erp_extracted_data/diagnostics/**'
+    - '!docs/**/*.csv'
+    - '!ERP.WksDetail.Test.csv'
 
   path_instructions:
     - path: 'README.md'
@@ -233,9 +231,8 @@ reviews:
     labels: []
     drafts: false
     base_branches:
-      - main
-      - master
-      - develop
+      # Staging is the default branch and is always reviewed.
+      - Production
     auto_pause_after_reviewed_commits: 5
 
   finishing_touches:
