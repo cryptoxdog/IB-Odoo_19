@@ -3,6 +3,12 @@ import secrets
 
 from odoo import api, fields, models
 
+from .classification_engine import (
+    QUALIFICATION_MODE_LEGACY,
+    QUALIFICATION_MODE_LIVE,
+    QUALIFICATION_MODE_SHADOW,
+    QUALIFICATION_MODES,
+)
 from .evidence_keys import (
     KEY_API_KEY,
     KEY_BASE_URL,
@@ -86,7 +92,10 @@ class PlasticosWebLeadConfig(models.Model):
             ("ocean_recovered", "Ocean Recovered"),
         ],
         default="post_consumer",
-        help="Default source type for intakes created from web leads.",
+        help=(
+            "Retained for existing configurations. Intakes created from web leads no longer use it: "
+            "an unknown seller source stays empty instead of being recorded as this default."
+        ),
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -109,7 +118,9 @@ class PlasticosWebLeadConfig(models.Model):
         ondelete="set null",
         domain="[('share', '=', False), ('active', '=', True)]",
         help=(
-            "Internal Odoo user who receives the HOT web-lead review activity. "
+            "Internal Odoo user who receives the HOT web-lead review activity, the "
+            "REVIEW clarification activity, and failed-lead recovery work. The user "
+            "must be able to edit web leads; otherwise the handoff is recorded as blocked. "
             "When unset, Odoo records the handoff as blocked rather than routing "
             "it to the ingestion worker or an arbitrary user. ondelete='set null' "
             "is deliberate: deleting the reviewer must not cascade into deleting "
@@ -306,6 +317,24 @@ class PlasticosWebLeadConfig(models.Model):
         help="Pipe-delimited canonical polymer, material-form, or material-grade codes allowed to use the reusable-item threshold. This is an explicit allow-list, not a polymer-grade rule.",
     )
 
+    qualification_mode = fields.Selection(
+        [
+            (QUALIFICATION_MODE_LEGACY, "Legacy (HOT/COLD classifier routes)"),
+            (QUALIFICATION_MODE_SHADOW, "Shadow (classifier routes; qualification recorded)"),
+            (QUALIFICATION_MODE_LIVE, "Live (validated HOT/REVIEW/COLD routes)"),
+        ],
+        string="Qualification Mode",
+        default=QUALIFICATION_MODE_SHADOW,
+        required=True,
+        help=(
+            "Legacy: the HOT/COLD classifier decides and the economic model only comments. "
+            "Shadow: the classifier still decides; the commercial model's validated HOT/REVIEW/COLD "
+            "is recorded beside it for comparison and changes nothing. "
+            "Live: the validated qualification decides. REVIEW keeps the lead, assigns broker "
+            "clarification work, and creates no intake. Switching back to Legacy keeps all evidence."
+        ),
+    )
+
     # ═══════════════════════════════════════════════════════════
     # Reject Lists (pipe-delimited for easy admin editing)
     # ═══════════════════════════════════════════════════════════
@@ -364,6 +393,11 @@ class PlasticosWebLeadConfig(models.Model):
             config = self.create({"name": "Web Lead Configuration"})
             _logger.info("Created default web lead configuration.")
         return config
+
+    def get_qualification_mode(self):
+        """The configured routing authority; an unset or unknown value is shadow, never live."""
+        mode = self.qualification_mode or QUALIFICATION_MODE_SHADOW
+        return mode if mode in QUALIFICATION_MODES else QUALIFICATION_MODE_SHADOW
 
     def get_reject_materials(self):
         """Return a frozenset of lowercase reject-material patterns."""

@@ -1,8 +1,12 @@
-"""Deterministic economic eligibility policy for web-lead opportunity routing.
+"""Deterministic economic eligibility signals for web-lead qualification.
 
-This policy decides whether a lead is eligible to reach broker review.  An LLM
-can later explain or assess operational context, but cannot override a hard
-commercial, evidence, or quantity gate.
+Under ``legacy`` and ``shadow`` qualification the threshold here still feeds the
+legacy HOT/COLD classifier. Under ``live`` qualification (ADR-016, 2026-11-11
+amendment) the result is an advisory signal handed to the commercial model and
+the disposition validator: a weight below the threshold, or an unknown weight,
+is never a COLD decision by itself. A known, seller-stated or calculated weight
+below the configured cold floor is direct negative evidence the validator may
+weigh; an unknown weight is a missing fact, routed to REVIEW.
 """
 
 from __future__ import annotations

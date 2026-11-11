@@ -119,6 +119,8 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertFalse(cold.crm_lead_id)
         rep = self.env.ref("base.user_admin")
         cold.assigned_user_id = rep
+        # Promotion records a broker rationale; the 500 lb weight is the seller's own.
+        cold.review_notes = "Broker confirmed a recurring 500 lb load."
 
         cold.action_force_hot()
 

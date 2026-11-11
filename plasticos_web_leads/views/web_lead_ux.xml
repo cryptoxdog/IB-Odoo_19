@@ -60,13 +60,24 @@
                     </div>
                 </div>
 
+                <!-- REVIEW Lead Banner -->
+                <div class="alert alert-warning border-warning border-2"
+                     role="alert"
+                     invisible="state != 'review_pending'">
+                    <i class="fa fa-question-circle fa-lg" title="Review"/>
+                    <strong> REVIEW LEAD</strong>
+                    <span class="ms-1">— possibly valuable, facts are missing or conflicting. No intake yet.
+                        Record verified facts and notes, then Promote to HOT, Re-Run Triage, or Reject After Review.</span>
+                    <div class="mt-1"><field name="review_required_reason" nolabel="1" readonly="1"/></div>
+                </div>
+
                 <!-- COLD Lead Banner -->
                 <div class="alert alert-secondary"
                      role="alert"
                      invisible="decision != 'cold'">
                     <i class="fa fa-snowflake-o" title="Cold"/>
                     <strong> COLD LEAD</strong>
-                    <span class="ms-1">— AI classified this lead as low priority. Use "Force HOT" to override.</span>
+                    <span class="ms-1">— classified as unsuitable. Use "Promote to HOT" with a rationale and a verified weight to override.</span>
                 </div>
 
                 <!-- Error Banner -->
@@ -101,6 +112,7 @@
             <!-- Add HOT/COLD row decorations -->
             <xpath expr="//list" position="attributes">
                 <attribute name="decoration-success">decision == 'hot'</attribute>
+                <attribute name="decoration-warning">state == 'review_pending'</attribute>
                 <attribute name="decoration-muted">decision == 'cold'</attribute>
                 <attribute name="decoration-danger">state == 'error'</attribute>
             </xpath>

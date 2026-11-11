@@ -116,6 +116,16 @@
                         </page>
                     </notebook>
 
+                    <group string="Commercial Qualification">
+                        <group>
+                            <field name="qualification_mode"/>
+                        </group>
+                        <div class="text-muted" colspan="2">
+                            Live routes on the validated HOT / REVIEW / COLD qualification. Shadow records it
+                            beside the HOT/COLD classifier without changing any lead. Under Live, the thresholds
+                            below are advisory signals, not COLD decisions.
+                        </div>
+                    </group>
                     <group string="Classification Thresholds">
                         <group>
                             <field name="hot_min_lbs"/>

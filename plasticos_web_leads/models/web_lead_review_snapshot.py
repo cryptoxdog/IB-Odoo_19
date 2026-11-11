@@ -112,7 +112,7 @@ class PlasticosWebLeadReviewSnapshot(models.Model):
         if assessment.get(KEY_STATUS) != ASSESSMENT_STATUS_ASSESSED:
             raise UserError(
                 "A completed economic-opportunity assessment is required before broker approval. "
-                "Configure the selected economic evaluation provider and re-run triage."
+                "Configure the selected economic evaluation provider, then use Retry Assessment."
             )
 
         revision = max(lead.review_snapshot_ids.mapped("revision"), default=0) + 1
