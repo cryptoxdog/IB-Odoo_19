@@ -5,6 +5,7 @@ from odoo.exceptions import ValidationError
 
 from ..form_codes import FORM_SELECTION
 from ..process_codes import PROCESS_SELECTION
+from ..volume import monthly_volume_lbs as monthly_volume_product
 
 _logger = logging.getLogger(__name__)
 
@@ -285,8 +286,15 @@ class PlasticosMaterialProfile(models.Model):
         string="Density Max",
         help="Maximum acceptable density in g/cm³.",
     )
-    moisture_percent = fields.Float()
-    contamination_percent = fields.Float(index=True)
+    moisture_percent = fields.Float(
+        string="Moisture %",
+        help="Moisture content on a percent scale. 0.5 means 0.5% and 5 means 5%.",
+    )
+    contamination_percent = fields.Float(
+        string="Contamination %",
+        index=True,
+        help="Contamination on a percent scale. 0.5 means 0.5% and 5 means 5%. The high-contamination banner appears above 5.",
+    )
 
     # ── Volume / Supply Profile ──────────────────────────────
     quantity_per_load_lbs = fields.Float(
@@ -300,7 +308,18 @@ class PlasticosMaterialProfile(models.Model):
     avg_lot_size_lbs = fields.Float(index=True)
     min_lot_size_lbs = fields.Float()
     max_lot_size_lbs = fields.Float()
-    monthly_volume_lbs = fields.Float(index=True)
+    monthly_volume_lbs = fields.Float(
+        string="Monthly Volume Lbs",
+        compute="_compute_monthly_volume_lbs",
+        store=True,
+        index=True,
+        help="Quantity per Load (lbs) multiplied by Loads per Month.",
+    )
+
+    @api.depends("quantity_per_load_lbs", "loads_per_month")
+    def _compute_monthly_volume_lbs(self):
+        for rec in self:
+            rec.monthly_volume_lbs = monthly_volume_product(rec.quantity_per_load_lbs, rec.loads_per_month)
 
     frequency = fields.Selection(
         [
@@ -806,6 +825,21 @@ class PlasticosMaterialProfile(models.Model):
                 source_id,
                 self.id,
             )
+
+    def action_remove_profile(self):
+        """Delete this profile, or archive it when an approved lot still points at it."""
+        self.ensure_one()
+        self.check_access("read")
+        self.partner_id.check_access("read")
+        approval_model = "plasticos.opportunity.approval"
+        referenced = approval_model in self.env and self.env[approval_model].search_count(
+            [("material_profile_id", "=", self.id)]
+        )
+        if referenced:
+            self.write({"active": False})
+        else:
+            self.unlink()
+        return True
 
     def action_email_images(self):
         """Open email composer with material images pre-attached."""

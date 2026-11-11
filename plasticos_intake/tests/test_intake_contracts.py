@@ -5,7 +5,7 @@ Modules that inherit plasticos.intake:
   - plasticos_offer (intake_offers_bridge.py)
   - plasticos_matching (intake_extension.py — action_match_to_buyers override)
   - plasticos_intake_normalizer (intake_normalizer.py)
-  - plasticos_geolocalize (intake_geo.py)
+  - plasticos_geolocalize (material_profile_geo.py — profile coordinates follow the location)
   - plasticos_web_leads (web_lead_bridge.py)
   - plasticos_crm_bridge (web_lead.py — links via crm_lead_id)
 

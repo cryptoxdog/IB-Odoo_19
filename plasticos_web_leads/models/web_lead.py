@@ -1445,6 +1445,8 @@ class PlasticosWebLead(models.Model):
 
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
 
+        from odoo.addons.plasticos_intake.source_origin import web_lead_source_address
+
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
             "source_lead_id": self.id,
@@ -1461,6 +1463,9 @@ class PlasticosWebLead(models.Model):
             ),
             "assigned_user_id": self.assigned_user_id.id or False,
         }
+        intake_vals.update(
+            web_lead_source_address(self.pickup_postal_code, self.pickup_place, self.pickup_location_text)
+        )
 
         return self.env["plasticos.intake"].create(intake_vals)
 

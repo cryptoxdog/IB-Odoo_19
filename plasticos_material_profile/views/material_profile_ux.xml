@@ -2,7 +2,7 @@
 <odoo>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         MATERIAL PROFILE FORM UX — Quality Banners, Progressbar Widgets
+         MATERIAL PROFILE FORM UX — Quality Banners
          Inherits: plasticos_material_profile.view_material_profile_form
          ═══════════════════════════════════════════════════════════════════ -->
 
@@ -28,22 +28,6 @@
                     </div>
                 </div>
 
-            </xpath>
-
-            <!-- ═══ Progressbar widgets for percentage fields ═══ -->
-            <!-- NOTE: These xpaths target fields inside the Quality tab.
-                 Adjust the xpath if your form uses a different page name
-                 or field placement. Common patterns:
-                   //page[@string='Quality']//field[@name='contamination_percent']
-                   //field[@name='contamination_percent']
-            -->
-
-            <xpath expr="//field[@name='contamination_percent']" position="attributes">
-                <attribute name="widget">progressbar</attribute>
-            </xpath>
-
-            <xpath expr="//field[@name='moisture_percent']" position="attributes">
-                <attribute name="widget">progressbar</attribute>
             </xpath>
 
         </field>

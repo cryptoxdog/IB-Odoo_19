@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Geolocalize",
-    "version": "19.0.1.1.0",
+    "version": "19.0.1.1.1",
     "summary": "Auto-geocode partners on create/write + nightly backfill cron",
     "author": "Igor Beylin",
     "depends": [
@@ -8,6 +8,7 @@
         "base",
         "base_geolocalize",
         "plasticos_intake",
+        "plasticos_material_profile",
     ],
     "data": [
         "security/ir.model.access.csv",

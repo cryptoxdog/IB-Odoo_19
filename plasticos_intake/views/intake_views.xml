@@ -345,6 +345,9 @@
                                     <field name="facility_state"/>
                                 </group>
                                 <group string="Coordinates">
+                                    <field name="source_street"/>
+                                    <field name="source_city"/>
+                                    <field name="source_zip"/>
                                     <field name="lat"/>
                                     <field name="lon"/>
                                 </group>

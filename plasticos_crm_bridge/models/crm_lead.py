@@ -79,6 +79,19 @@ class CrmLeadPlastOS(models.Model):
         string="Material Copy",
         help="The opportunity's own material sheet. Editing it does not write the live profile.",
     )
+    offer_weight_lbs = fields.Float(
+        string="Weight",
+        compute="_compute_offer_sheet",
+        digits=(16, 2),
+        help="Pounds in one load, from the material sheet.",
+    )
+    offer_buy_price = fields.Float(
+        string="Offer Price",
+        compute="_compute_offer_sheet",
+        inverse="_inverse_offer_buy_price",
+        digits=(10, 4),
+        help="Supplier price per pound for this pursuit. Stored on the material line, not on the opportunity.",
+    )
     release_buyer_company_id = fields.Many2one(
         "res.partner",
         string="Buyer Company",
@@ -485,6 +498,10 @@ class CrmLeadPlastOS(models.Model):
         self._reject_foreign_material_profile(partner)
         if self.material_profile_id:
             intake_vals.update(self._intake_snapshot_from_material_profile(self.material_profile_id))
+        from odoo.addons.plasticos_intake.source_origin import crm_lead_source_address
+
+        for key, value in crm_lead_source_address(self.street, self.city, self.zip).items():
+            intake_vals.setdefault(key, value)
         intake = self.env["plasticos.intake"].create(intake_vals)
         self.source_intake_id = intake
         self._propagate_available_commercial_images(material_profile=intake.material_profile_id or False)
@@ -661,9 +678,75 @@ class CrmLeadPlastOS(models.Model):
             return "vanillasoft"
         return "manual"
 
+    @api.depends("opportunity_material_ids.quantity_per_load_lbs", "opportunity_material_ids.buy_price_per_lb")
+    def _compute_offer_sheet(self):
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            lead.offer_weight_lbs = material.quantity_per_load_lbs if material else 0.0
+            lead.offer_buy_price = material.buy_price_per_lb if material else 0.0
+
+    def _inverse_offer_buy_price(self):
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            if material and material.buy_price_per_lb != lead.offer_buy_price:
+                material.buy_price_per_lb = lead.offer_buy_price
+
+    @api.onchange("material_profile_id")
+    def _onchange_material_profile_prefill(self):
+        material_model = self.env["plasticos.opportunity.material"]
+        for lead in self:
+            if lead.type != "opportunity" or lead.opportunity_material_ids or not lead.material_profile_id:
+                continue
+            lead.opportunity_material_ids = [
+                Command.create(material_model._vals_from_profile(lead.material_profile_id, lead))
+            ]
+
+    @api.onchange("offer_buy_price", "opportunity_material_ids")
+    def _onchange_supplier_offer_revenue(self):
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            if not material:
+                continue
+            price = lead.offer_buy_price or 0.0
+            if material.buy_price_per_lb != price:
+                material.buy_price_per_lb = price
+            lead.expected_revenue = (material.quantity_per_load_lbs or 0.0) * (material.buy_price_per_lb or 0.0)
+
+    @api.model
+    def default_get(self, fields_list):
+        vals = super().default_get(fields_list)
+        profile_id = vals.get("material_profile_id") or self.env.context.get("default_material_profile_id")
+        lead_type = vals.get("type") or self.env.context.get("default_type")
+        if (
+            profile_id
+            and lead_type == "opportunity"
+            and "opportunity_material_ids" in fields_list
+            and not vals.get("opportunity_material_ids")
+        ):
+            profile = self.env["plasticos.material.profile"].browse(profile_id).exists()
+            if profile:
+                vals["opportunity_material_ids"] = [
+                    Command.create(self.env["plasticos.opportunity.material"]._vals_from_profile(profile, self))
+                ]
+        return vals
+
+    def _plasticos_require_offer_price(self):
+        """Refuse a profile-backed sheet that arrived without a supplier price.
+
+        Code that copies the profile before a broker has priced it sets
+        ``plasticos_supplier_offer_optional`` and is not checked here.
+        """
+        if self.env.context.get("plasticos_supplier_offer_optional"):
+            return
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            if lead.material_profile_id and material and material.buy_price_per_lb <= 0:
+                raise ValidationError(_("Enter the supplier offer price before saving this opportunity."))
+
     @api.model_create_multi
     def create(self, vals_list):
         leads = super().create(vals_list)
+        leads._plasticos_require_offer_price()
         leads._plasticos_ensure_opportunity_material()
         return leads
 

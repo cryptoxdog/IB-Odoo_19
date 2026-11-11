@@ -1,9 +1,20 @@
 import base64
 
 from odoo import api, fields, models, tools
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 from ..address_meaning import address_type_meaning
+
+# Commercial documents that keep a closed location in history instead of a delete.
+_LOCATION_REFERENCE_MODELS = (
+    ("sale.order", ("partner_id", "partner_invoice_id", "partner_shipping_id")),
+    ("purchase.order", ("partner_id",)),
+    ("account.move", ("partner_id",)),
+    ("stock.picking", ("partner_id",)),
+    ("crm.lead", ("partner_id",)),
+    ("plasticos.intake", ("partner_id", "facility_id")),
+    ("plasticos.opportunity.approval", ("partner_id",)),
+)
 
 
 class ResPartner(models.Model):
@@ -505,6 +516,54 @@ class ResPartner(models.Model):
     def _compute_location_child_ids(self):
         for partner in self:
             partner.location_child_ids = partner.child_ids.filtered("is_company")
+
+    def _location_reference_count(self, model_name, field_names):
+        """How many installed-model rows point at this location. No elevated read."""
+        self.ensure_one()
+        if model_name not in self.env:
+            return 0
+        model = self.env[model_name].with_context(active_test=False)
+        names = [name for name in field_names if name in model._fields]
+        if not names:
+            return 0
+        domain = [(name, "=", self.id) for name in names]
+        if len(domain) > 1:
+            domain = ["|"] * (len(domain) - 1) + domain
+        return model.search_count(domain)
+
+    def _location_is_referenced(self):
+        """True when people, profiles, or commercial documents still use this location."""
+        self.ensure_one()
+        partners = self.env["res.partner"].with_context(active_test=False)
+        if partners.search_count([("parent_id", "=", self.id)]):
+            return True
+        location = self.with_context(active_test=False)
+        if location.site_person_ids or location.material_profile_ids or location.facility_profile_ids:
+            return True
+        return any(
+            self._location_reference_count(model_name, field_names)
+            for model_name, field_names in _LOCATION_REFERENCE_MODELS
+        )
+
+    def action_remove_location(self):
+        """Delete an unused child location, or archive one that history still uses.
+
+        The row leaves the company Locations list either way. The parent company
+        itself is refused.
+        """
+        self.ensure_one()
+        self.check_access("read")
+        parent = self.parent_id
+        parent.check_access("read")
+        if not self.is_company or not parent:
+            raise UserError("Only a location of a company can be removed from this list.")
+        referenced = self._location_is_referenced()
+        elevated = self.sudo()  # sudo: caller read this child location and lacks partner unlink
+        if referenced:
+            elevated.write({"active": False, "entity_status": "inactive"})
+        else:
+            elevated.unlink()
+        return True
 
     def _avatar_get_placeholder_path(self):
         if self.is_company:
