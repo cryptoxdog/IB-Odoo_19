@@ -290,6 +290,40 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertEqual(approval.snapshot["contamination_pct"], 2.5)
         self.assertEqual(approval.snapshot_digest, digest)
 
+    # ── Silent evidence: lots are recorded by matching, never shown or asked for ──
+
+    def test_ordinary_opportunity_edit_mints_no_lot(self):
+        opportunity = self._opportunity()
+        opportunity.write({"name": "Renamed Opportunity", "description": "Seller confirmed the weight."})
+        self.assertFalse(opportunity.approval_ids, "only a matching command records a lot")
+
+    def test_new_match_after_a_profile_change_keeps_the_earlier_lot(self):
+        opportunity = self._opportunity()
+        first_run, _sent = self._match(opportunity)
+        first_lot = first_run.approval_id
+        first_digest = first_lot.snapshot_digest
+        self.profile.contamination_percent = 4.0
+        second_run, _sent = self._match(opportunity)
+        self.env.invalidate_all()
+        self.assertNotEqual(second_run.approval_id, first_lot)
+        self.assertEqual(first_lot.snapshot_digest, first_digest, "the historical lot is unchanged")
+        self.assertEqual(first_lot.snapshot["contamination_pct"], 2.5)
+        self.assertEqual(second_run.approval_id.snapshot["contamination_pct"], 4.0)
+        self.assertEqual(first_run.approval_id, first_lot, "the earlier run keeps its own lot")
+
+    def test_commercial_views_show_no_lot_interaction(self):
+        opportunity_form = self.Lead.get_views([(False, "form")])["views"]["form"]["arch"]
+        self.assertNotIn("approval_ids", opportunity_form)
+        self.assertNotIn("approval_id", opportunity_form)
+        self.assertNotIn("snapshot_digest", opportunity_form)
+        self.assertNotIn("Approved Lots", opportunity_form)
+        self.assertIn("match_run_ids", opportunity_form, "Gate match runs stay visible")
+        run_views = self.Run.get_views([(False, "list"), (False, "form")])["views"]
+        for view_type in ("list", "form"):
+            arch = run_views[view_type]["arch"]
+            self.assertNotIn("approval_id", arch, f"no technical lot reference on the match run {view_type}")
+            self.assertIn("opportunity_id", arch)
+
     # ── V3: reviewed results → idempotent unsent drafts, frozen terms, one winner ──
 
     def _reviewed_run(self):

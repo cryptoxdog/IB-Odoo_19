@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_web_leads
 component_name: PlasticOS Web Leads
-module_version: 19.0.2.10.2
+module_version: 19.0.2.10.3
 layer: 2
 installable: true
 auto_install: true
@@ -56,7 +56,7 @@ Takes inbound web-form submissions from a provider, normalizes them, and classif
 - **HOT.** `_process_hot_lead_triage` creates a `plasticos.intake` with a pending company name and no partner, sets `state` to `intake_created`, and notifies the admin. This module defines no partner-creating helper; a partner is set later on the intake or the Opportunity.
 - **CRM lead.** After a HOT intake, the lead calls `_create_crm_lead` only when that method exists. `plasticos_crm_bridge` provides it. This module does not depend on `plasticos_crm_bridge`.
 - **Internal review handoff.** `mack_review_state` (`not_queued`, `queued`, `blocked`) records the internal review handoff for a HOT intake. Its help text says the field does not call Mack, matching, Gate, or any commercial operation.
-- **Review snapshot.** `plasticos.web.lead.review.snapshot` records broker approval. Approval needs an internal user with write access, a HOT lead with an intake whose `source_lead_id` is this lead, and a completed economic assessment. Snapshots are created only through the approval path, their key fields are immutable, and they cannot be deleted.
+- **Review snapshot.** `plasticos.web.lead.review.snapshot` records broker approval. Approval needs an internal user with write access, a HOT lead with an intake whose `source_lead_id` is this lead, and a completed economic assessment. Snapshots are created only through the approval path, their key fields are immutable, and they cannot be deleted. The form's **Approve** button (`action_approve_for_commercial_preparation`) writes the snapshot and `review_status = approved` in one transaction and leaves the broker on the lead; no snapshot screen opens. `review_status` cannot be set to `approved` any other way: `create` and `write` raise `AccessError` for that transition, and the form shows the field read-only.
 - **Configuration.** `plasticos.web.lead.config` is the singleton seeded in `data/web_lead_config_data.xml`. It holds thresholds (`hot_min_lbs`, `cold_max_lbs`, `reusable_item_hot_min_lbs`), the reusable-item codes (default `PLASTIC_PALLETS`, `PALLETS`, `TOTES`, `CRATES`), the AI switches, and the per-role inference provider choices and their keys (system administrators only). `plasticos.web.lead.api.key.wizard` sets the inbound API key.
 - **Bulk actions.** `plasticos.web.lead.bulk.action.wizard` acts on many leads at once.
 
