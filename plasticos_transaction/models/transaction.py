@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -1006,11 +1006,23 @@ class PlasticosTransaction(models.Model):
                 "vendor_bill_ids",
                 "freight_bill_ids",
             }
-            if protected.intersection(vals.keys()):
+            touched = protected.intersection(vals.keys())
+            if touched == {"purchase_order_ids"} and self._import_purchase_links_only(vals):
+                touched = set()
+            if touched:
                 raise UserError("Closed transactions are immutable.")
         if rec.customer_invoice_id and "customer_invoice_id" in vals:
             if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
                 raise UserError("Customer invoice cannot be reassigned once set.")
+
+    def _import_purchase_links_only(self, vals) -> bool:
+        """A historical replay may attach purchase orders it did not have. It may not replace them."""
+        if not self.env.context.get("import_mode"):
+            return False
+        commands = vals.get("purchase_order_ids") or []
+        return bool(commands) and all(
+            isinstance(command, (list, tuple)) and command and command[0] == Command.LINK for command in commands
+        )
 
     def _linked_bill_ids(self, vals, field):
         if field not in vals:

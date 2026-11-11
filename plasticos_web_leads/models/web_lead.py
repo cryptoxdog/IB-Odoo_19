@@ -240,6 +240,15 @@ class PlasticosWebLead(models.Model):
         tracking=True,
         help="When the seller submitted the form. The list sorts on this date.",
     )
+    assigned_user_id = fields.Many2one(
+        "res.users",
+        string="Assigned To",
+        tracking=True,
+        index=True,
+        ondelete="set null",
+        domain=[("share", "=", False)],
+        help="Queue assignee until an opportunity exists. The opportunity salesperson is the commercial owner after that.",
+    )
     source = fields.Selection(
         [
             ("web_lead", "Web Lead"),
@@ -367,9 +376,9 @@ class PlasticosWebLead(models.Model):
         string="Quantity (Form Input)",
         help="Raw quantity text from the form — unprocessed, for display only.",
     )
-    estimated_lbs_per_load = fields.Integer(string="Est. Lbs/Load")
+    estimated_lbs_per_load = fields.Integer(string="Lbs/Load")
     estimated_lbs_high = fields.Integer(
-        string="Est. Lbs High",
+        string="Lbs High",
         help="High end of a seller weight range. Empty when the seller stated one weight.",
     )
     lead_image_ids = fields.Many2many(
@@ -378,7 +387,7 @@ class PlasticosWebLead(models.Model):
         compute="_compute_lead_image_ids",
         help="Image files already stored on this lead. A cold decision does not remove them.",
     )
-    estimated_loads_per_month = fields.Integer(string="Est. Loads/Month")
+    estimated_loads_per_month = fields.Integer(string="Loads/Month")
     frequency = fields.Char(string="Frequency")
     has_contaminants = fields.Boolean(string="Has Contaminants")
     contaminant_notes = fields.Text(string="Contaminant Notes")
@@ -1346,6 +1355,7 @@ class PlasticosWebLead(models.Model):
             "contamination_notes": (
                 merged.get("contaminants_noted") or merged.get("contamination_notes") or self.contaminant_notes or False
             ),
+            "assigned_user_id": self.assigned_user_id.id or False,
         }
         intake_vals.update(
             web_lead_source_address(self.pickup_postal_code, self.pickup_place, self.pickup_location_text)
