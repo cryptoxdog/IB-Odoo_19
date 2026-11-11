@@ -153,7 +153,8 @@ class SaleOrder(models.Model):
     def _compile_worksheet_transactions(self):
         """One transaction per worksheet on each confirmed order. Safe to call again.
 
-        A worksheet whose name is already a transaction is left alone. When one
+        A worksheet whose name is already a transaction is left alone, except a
+        purchase order realized for it that is not yet linked. When one
         worksheet carries several sale orders, the lowest-numbered order
         compiles it and the others are named in its log.
         """
@@ -167,6 +168,7 @@ class SaleOrder(models.Model):
         for order in confirmed:
             for worksheet in _worksheet_numbers(order.origin):
                 if worksheet in compiled:
+                    order._link_worksheet_purchases(worksheet, documents)
                     continue
                 sales = (documents.get(worksheet) or {}).get("sales") or []
                 eligible = self.browse(sales).exists().filtered(lambda sale: sale.state == "sale").ids
@@ -251,6 +253,29 @@ class SaleOrder(models.Model):
         if not user or user == bot:
             return False
         return user.id
+
+    def _link_worksheet_purchases(self, worksheet: str, documents: dict) -> None:
+        """Attach purchase orders realized for this worksheet that the transaction does not yet name.
+
+        A closed historical row stays closed. Only missing purchase orders are linked,
+        and a supplier is written only when the transaction has none.
+        """
+        purchase_ids = (documents.get(worksheet) or {}).get("purchases") or []
+        if not purchase_ids:
+            return
+        transaction = self.env[PLASTICOS_TRANSACTION].search([("name", "=", worksheet)], limit=1)
+        if not transaction:
+            return
+        purchases = self.env["purchase.order"].browse(purchase_ids).exists()
+        missing = purchases - transaction.purchase_order_ids
+        if not missing:
+            return
+        vals = {"purchase_order_ids": [Command.link(purchase.id) for purchase in missing]}
+        if not transaction.supplier_id:
+            supplier = missing.filtered("partner_id")[:1].partner_id
+            if supplier:
+                vals["supplier_id"] = supplier.id
+        transaction.with_context(import_mode=True).write(vals)
 
     def _worksheet_document_vals(self, worksheet: str) -> dict:
         """Purchase orders, supplier, invoice, and bills that belong to this worksheet.
