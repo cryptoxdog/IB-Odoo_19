@@ -1,4 +1,5 @@
 """Append-only, source-bound approval events created only by the knowledge owner."""
+
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
 
@@ -30,12 +31,12 @@ class BrokerReviewEvent(models.Model):
         if not str(reason or "").strip():
             raise UserError("Review event requires its actual lifecycle rationale.")
         values = {
-            "knowledge_id": knowledge.id, "event": event,
+            "knowledge_id": knowledge.id,
+            "event": event,
             "actor_id": self.env.user.id,
             "company_id": knowledge.company_id.id or self.env.company.id,
             "reason": reason,
-            "source_snapshot": "%s:%s#%s" % (knowledge.source_file, knowledge.source_sha256,
-                                            knowledge.source_selector),
+            "source_snapshot": (f"{knowledge.source_file}:{knowledge.source_sha256}#{knowledge.source_selector}"),
             "support_snapshot": knowledge.review_evidence_ref,
         }
         # Only this owner may bypass the direct-create guard; the original actor

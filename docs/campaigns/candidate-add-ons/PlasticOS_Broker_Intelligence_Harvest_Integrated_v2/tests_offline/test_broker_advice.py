@@ -2,6 +2,7 @@
 
 These tests DO NOT claim Odoo ORM, registry or UI installation validation.
 """
+
 import importlib.util
 import unittest
 from pathlib import Path
@@ -24,16 +25,26 @@ rejection = module("broker_rejection", "plasticos_broker_intelligence_rejections
 
 class AdviceSafetyTest(unittest.TestCase):
     def setUp(self):
-        self.facts = {"polymer": evidence.fact("PP", "reported"),
-                      "mfi_value": evidence.fact(0.0, "recorded", zero_ambiguous=True),
-                      "mfi_conditions": evidence.fact(None, "unavailable"),
-                      "buyer_spec": evidence.fact(None, "unavailable")}
+        self.facts = {
+            "polymer": evidence.fact("PP", "reported"),
+            "mfi_value": evidence.fact(0.0, "recorded", zero_ambiguous=True),
+            "mfi_conditions": evidence.fact(None, "unavailable"),
+            "buyer_spec": evidence.fact(None, "unavailable"),
+        }
         self.approved = {
-            "state": "approved", "applies_to": "intake", "stable_key": "test-1", "version": 1,
-            "name": "PP material MFI", "reviewed_meaning": "Compare tested MFI only with buyer conditions",
-            "topic_tags": "PP melt-flow", "prerequisite_keys": "mfi_value,mfi_conditions",
-            "source_file": "verified.pdf", "source_sha256": "b" * 64, "source_selector": "p.1",
-            "source_candidate_id": "test-1", "evidence_requirements": "Dated measurement plus conditions",
+            "state": "approved",
+            "applies_to": "intake",
+            "stable_key": "test-1",
+            "version": 1,
+            "name": "PP material MFI",
+            "reviewed_meaning": "Compare tested MFI only with buyer conditions",
+            "topic_tags": "PP melt-flow",
+            "prerequisite_keys": "mfi_value,mfi_conditions",
+            "source_file": "verified.pdf",
+            "source_sha256": "b" * 64,
+            "source_selector": "p.1",
+            "source_candidate_id": "test-1",
+            "evidence_requirements": "Dated measurement plus conditions",
         }
 
     def test_missing_mfi_is_unknown_not_zero(self):
@@ -48,8 +59,7 @@ class AdviceSafetyTest(unittest.TestCase):
     def test_mfi_rule_remains_deferred(self):
         out = reasoning.build_response("plasticos.intake", 7, "a", "PP MFI", self.facts, [self.approved])
         self.assertFalse(out["approved_knowledge"])
-        self.assertEqual(out["deferred_knowledge"][0]["missing_prerequisites"],
-                         ["mfi_value", "mfi_conditions"])
+        self.assertEqual(out["deferred_knowledge"][0]["missing_prerequisites"], ["mfi_value", "mfi_conditions"])
 
     def test_draft_not_advice(self):
         draft = dict(self.approved, state="draft")
@@ -65,24 +75,28 @@ class AdviceSafetyTest(unittest.TestCase):
         self.assertEqual(reasoning.rank_approved("PP", self.facts, [wrong], "intake"), [])
 
     def test_approved_still_does_not_trigger_commerce(self):
-        known = dict(self.facts, mfi_value=evidence.fact(5.0, "measured"),
-                     mfi_conditions=evidence.fact("test conditions", "reported"))
+        known = dict(
+            self.facts,
+            mfi_value=evidence.fact(5.0, "measured"),
+            mfi_conditions=evidence.fact("test conditions", "reported"),
+        )
         out = reasoning.build_response("plasticos.intake", 7, "a", "PP MFI", known, [self.approved])
         self.assertTrue(out["approved_knowledge"])
         self.assertEqual(out["commercial_action"], "none")
         self.assertEqual(out["external_messages_sent"], 0)
 
     def test_citation_retains_source_digest(self):
-        known = dict(self.facts, mfi_value=evidence.fact(5.0, "measured"),
-                     mfi_conditions=evidence.fact("tested", "reported"))
+        known = dict(
+            self.facts, mfi_value=evidence.fact(5.0, "measured"), mfi_conditions=evidence.fact("tested", "reported")
+        )
         out = reasoning.build_response("plasticos.intake", 7, "a", "PP MFI", known, [self.approved])
         self.assertEqual(out["approved_knowledge"][0]["citation"]["sha256"], "b" * 64)
 
     def test_bad_citation_is_deferred_not_rendered(self):
-        bad = dict(self.approved, source_sha256='wrong')
-        out = reasoning.build_response('plasticos.intake', 1, 'rev', 'PP MFI', self.facts, [bad])
-        self.assertFalse(out['approved_knowledge'])
-        self.assertEqual(out['deferred_knowledge'][0]['reason'], 'source_citation_unavailable')
+        bad = dict(self.approved, source_sha256="wrong")
+        out = reasoning.build_response("plasticos.intake", 1, "rev", "PP MFI", self.facts, [bad])
+        self.assertFalse(out["approved_knowledge"])
+        self.assertEqual(out["deferred_knowledge"][0]["reason"], "source_citation_unavailable")
 
     def test_unsupported_owner_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -106,28 +120,34 @@ class AdviceSafetyTest(unittest.TestCase):
 class ObservationReplayIdentityTest(unittest.TestCase):
     def setUp(self):
         self.identity = {
-            'source_model': 'plasticos.offer', 'source_id': 17,
-            'source_revision': '2026-11-11 21:00:00',
-            'scope_basis': 'operator_company', 'company_id': 1,
-            'observation_type': 'rejection', 'actor_id': 9,
-            'evidence_ref': 'buyer:email:1', 'observation': 'Rejected due to color',
+            "source_model": "plasticos.offer",
+            "source_id": 17,
+            "source_revision": "2026-11-11 21:00:00",
+            "scope_basis": "operator_company",
+            "company_id": 1,
+            "observation_type": "rejection",
+            "actor_id": 9,
+            "evidence_ref": "buyer:email:1",
+            "observation": "Rejected due to color",
         }
 
     def test_replay_is_deterministic(self):
-        self.assertEqual(evidence.observation_identity(**self.identity),
-                         evidence.observation_identity(**self.identity))
+        self.assertEqual(evidence.observation_identity(**self.identity), evidence.observation_identity(**self.identity))
 
     def test_company_is_part_of_replay_identity(self):
         other = dict(self.identity, company_id=2)
-        self.assertNotEqual(evidence.observation_identity(**self.identity),
-                            evidence.observation_identity(**other))
+        self.assertNotEqual(evidence.observation_identity(**self.identity), evidence.observation_identity(**other))
 
     def test_delimiter_collision_is_not_a_replay(self):
-        one = dict(self.identity, evidence_ref='a:b', observation='c')
-        two = dict(self.identity, evidence_ref='a', observation='b:c')
+        one = dict(self.identity, evidence_ref="a:b", observation="c")
+        two = dict(self.identity, evidence_ref="a", observation="b:c")
         self.assertEqual(
-            evidence.legacy_observation_identity(**{k: v for k, v in one.items() if k not in ('company_id', 'scope_basis')}),
-            evidence.legacy_observation_identity(**{k: v for k, v in two.items() if k not in ('company_id', 'scope_basis')}),
+            evidence.legacy_observation_identity(
+                **{k: v for k, v in one.items() if k not in ("company_id", "scope_basis")}
+            ),
+            evidence.legacy_observation_identity(
+                **{k: v for k, v in two.items() if k not in ("company_id", "scope_basis")}
+            ),
         )
         self.assertNotEqual(evidence.observation_identity(**one), evidence.observation_identity(**two))
 
@@ -143,8 +163,7 @@ class WebLeadShadowTest(unittest.TestCase):
         self.assertFalse(shadow.can_inject("shadow_only", "legacy"))
 
     def test_context_never_provides_fake_seller_evidence(self):
-        sample = {"next_human_actions": ["Verify buyer conditions"],
-                  "facts": {"buyer": {"value": "Secret customer"}}}
+        sample = {"next_human_actions": ["Verify buyer conditions"], "facts": {"buyer": {"value": "Secret customer"}}}
         result = shadow.context_from_advice(sample)
         self.assertFalse(result["allowed_to_change_routing"])
         self.assertEqual(result["seller_evidence_refs"], [])
@@ -177,8 +196,10 @@ class RejectionTest(unittest.TestCase):
         self.assertFalse(out["verified_classification"])
 
     def test_rejection_never_excludes_or_rewrites_match(self):
-        for out in (rejection.response("R-01", None),
-                    rejection.response("WRONG_FORM", "WRONG_FORM", {"reviewed": True})):
+        for out in (
+            rejection.response("R-01", None),
+            rejection.response("WRONG_FORM", "WRONG_FORM", {"reviewed": True}),
+        ):
             self.assertFalse(out["automatic_exclusion"])
             self.assertFalse(out["offer_transition"])
             self.assertFalse(out["matching_change"])

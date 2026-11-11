@@ -91,29 +91,29 @@
       "sha256": "23004f90bc93580f00d2ab1b3efea6165e596ecfdaa0f305fb334d6eb6ea0a95"
     },
     {
-      "bytes": 7452,
+      "bytes": 7612,
       "path": "plasticos_broker_intelligence/models/advice_service.py",
-      "sha256": "f54366f8748adc7cf841b5783f9a70e5d48b03a63d62e1180f2b20e464a4a173"
+      "sha256": "1cd8e044c899e43c11e3e460ae86cbd406677119fc22b5660756f121a02d19d7"
     },
     {
-      "bytes": 2500,
+      "bytes": 2463,
       "path": "plasticos_broker_intelligence/models/audit.py",
-      "sha256": "94d062ae397f4f5fc45feecc1fbbcff5f04bd5213cb060cfdebe52f50ca0a671"
+      "sha256": "3c781e3aa20613cedcdd393edaefebd4511d232320f3601b1a1afc3cf4cce5c7"
     },
     {
-      "bytes": 7345,
+      "bytes": 8052,
       "path": "plasticos_broker_intelligence/models/feedback.py",
-      "sha256": "5112843d048c00b0db57c889d8738a4dfdb436f4bc383a1a0bcd562c75bd4a33"
+      "sha256": "ebe546d3eba06f3f793f82f81a704fc169c36bcee5ec3ce35c24dccd607a23b1"
     },
     {
-      "bytes": 553,
+      "bytes": 605,
       "path": "plasticos_broker_intelligence/models/intake_advice.py",
-      "sha256": "6352bb61cba048fb5385f4cbcb4ac77af19c2c290bffee8ddfe55e04888d1ada"
+      "sha256": "b6ad4d19742a4ebddfd82d7b272256bc27d31843e6a372b6be66d889e338197f"
     },
     {
-      "bytes": 13785,
+      "bytes": 14816,
       "path": "plasticos_broker_intelligence/models/knowledge.py",
-      "sha256": "5129cb345246d7a7cc918280f8e33940b89561dd93fe9e825cb70293f712eabc"
+      "sha256": "c7820c637d65862c4184dee7ac4eea8339d49340527fcbc8292a754b2be3352a"
     },
     {
       "bytes": 210,
@@ -136,14 +136,14 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "bytes": 3189,
+      "bytes": 3262,
       "path": "plasticos_broker_intelligence/services/evidence.py",
-      "sha256": "54b455f642fe4c51cccd4cbffd38ed2ad7f482e295991eb2d91b638e31fef982"
+      "sha256": "d3ad639b3bbda6cefacf084b6327e96f845618295dd1417345ee8913387ad635"
     },
     {
-      "bytes": 6495,
+      "bytes": 6961,
       "path": "plasticos_broker_intelligence/services/reasoning.py",
-      "sha256": "0f7ac6e0057277f031498b64bedfab560f47976b2ed512fdb57ef29625875e82"
+      "sha256": "d5a2cd492229d9df89cba00f35e5a045b6a8378cb636a75d28b5f72c77fa507a"
     },
     {
       "bytes": 29,
@@ -151,9 +151,9 @@
       "sha256": "23b5b8ef2020e0f55916998490fcc3f4b1a08de8250148a4095599a57e66744c"
     },
     {
-      "bytes": 4320,
+      "bytes": 4729,
       "path": "plasticos_broker_intelligence/tests/test_knowledge.py",
-      "sha256": "115ee81d3b5076fed0cbecf5e3b088a675a357428e8481d1f3323868f976dc18"
+      "sha256": "98cc60dc27af2f476dd449f28c6bfce0034de03f26cf558b89df9e3690b53732"
     },
     {
       "bytes": 703,
@@ -186,9 +186,9 @@
       "sha256": "da779f88f3e2cf45a50e8082d5857037a760c5786539c7a9d1c4901eae62a6c5"
     },
     {
-      "bytes": 1105,
+      "bytes": 1203,
       "path": "plasticos_broker_intelligence/wizards/advice_wizard.py",
-      "sha256": "f1329c7a1148c0f21d21937a1e74b7c3c4a434f71b8e32be1a46790342c2db58"
+      "sha256": "0c9c3619d3bd234c0565c02463451b3a0aaf43230d8cdf0ac725dfb722f620c9"
     },
     {
       "bytes": 500,
@@ -211,14 +211,14 @@
       "sha256": "681962d57885ed7100693f63b77d00c812f69efe2126ddc6776428c1471ed7f3"
     },
     {
-      "bytes": 5896,
+      "bytes": 6062,
       "path": "plasticos_broker_intelligence_mack/models/consultation.py",
-      "sha256": "260c552dd49ac2945c37a63e9179c9237fd0ebee547a6923b91284aeb5495dfe"
+      "sha256": "e1d479957173cc1b55714714ed832e9e7fc847f3462bc7531762bfc2d63a3db6"
     },
     {
-      "bytes": 528,
+      "bytes": 533,
       "path": "plasticos_broker_intelligence_mack/models/intake_mack.py",
-      "sha256": "5a715a2ab33b1ee08d8fefaf76e53820f31d5c2baf109daf4d9cc08a0a267bfa"
+      "sha256": "5e6bf790a861c144f8044e45079945091164729c35d8d5db70b3086750e5eb4b"
     },
     {
       "bytes": 322,
@@ -236,9 +236,9 @@
       "sha256": "339ef5fbe086490461edc848e5a623cc3d213b991504820b05dcd077eb4a25ab"
     },
     {
-      "bytes": 844,
+      "bytes": 1062,
       "path": "plasticos_broker_intelligence_mack/tests/test_consultation.py",
-      "sha256": "704b4b03b65ea169ddc03afb3f8e203a96d1be74357070ce330cefe42a8e25bd"
+      "sha256": "e351b7c9b125c4c2c7b76008425428b57c4fe92f5b0c09d11dc0e196ab8fe9fc"
     },
     {
       "bytes": 1599,
@@ -261,9 +261,9 @@
       "sha256": "0ea3b640d0129e662509512643c959d84fb70d6c9139802ae26fb2deb83fdb4e"
     },
     {
-      "bytes": 1331,
+      "bytes": 1450,
       "path": "plasticos_broker_intelligence_mack/wizards/consultation_wizard.py",
-      "sha256": "fd38900285ecbd5ce9dcc019e92dfd2d386548e771e692d958ac2c238cf0e4f9"
+      "sha256": "1a663a55bab38f2204587bff59ad60679677b704dfe332582490d391c6dba0f0"
     },
     {
       "bytes": 43,
@@ -281,14 +281,14 @@
       "sha256": "587106b55cd9c103537233631c5190811456637ec349b799c76f52ad242959ea"
     },
     {
-      "bytes": 497,
+      "bytes": 548,
       "path": "plasticos_broker_intelligence_rejections/models/match_advice.py",
-      "sha256": "c190af0f73ea7cc4a724c6edf6d470d9873ad378492cadab87cbdf07b5323975"
+      "sha256": "26c5c2a72da0afcae5ef34296cefe2d2b05009cd35770c2a603fca73cab69d72"
     },
     {
-      "bytes": 490,
+      "bytes": 541,
       "path": "plasticos_broker_intelligence_rejections/models/offer_advice.py",
-      "sha256": "f310448fb205704ede90186a597500c55e532bbacfebcf6ead4f54aee6aa7e86"
+      "sha256": "bc9547d19ecbfac6d6fa3625a36983a3cff1b9c637c774689f122f67808b1578"
     },
     {
       "bytes": 196,
@@ -301,9 +301,9 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "bytes": 2454,
+      "bytes": 2539,
       "path": "plasticos_broker_intelligence_rejections/services/rejection.py",
-      "sha256": "2443773c63ae07a721e7c051486eada3bc30a7ff6df98e91008f904fe1494983"
+      "sha256": "600ba4c3e2c0825206fa62bf18c1f73f49c335d65eadf1ea0db7cff65a767e0e"
     },
     {
       "bytes": 29,
@@ -311,9 +311,9 @@
       "sha256": "dc86ba736e5eede1965490e3271068d14c0e657967fc0081779e4b2c6543fdf3"
     },
     {
-      "bytes": 638,
+      "bytes": 626,
       "path": "plasticos_broker_intelligence_rejections/tests/test_rejection.py",
-      "sha256": "f08638a71429f938c2f62554423d67d92b40dae770620ee541de413922c55882"
+      "sha256": "98783e4bc811fcde14719d53418b55fec5cacc9a3778d8b491a3651eadfb5c75"
     },
     {
       "bytes": 519,
@@ -336,9 +336,9 @@
       "sha256": "b46cc23519c267e4958f5afffa30e7f521ffe16ff51939babd1497b716e92d2a"
     },
     {
-      "bytes": 4521,
+      "bytes": 5205,
       "path": "plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py",
-      "sha256": "933e092d56eb0ba6a92f2fd3db35851acaf3fc1910b8bfedb28e230509bd1df7"
+      "sha256": "70e50c992ce5f0399c5dc994e90dfeedebfdd6073b941ea056282f7aaa5d28f3"
     },
     {
       "bytes": 21,
@@ -356,9 +356,9 @@
       "sha256": "1fe0ca0591923874ba18e75de9ab7c885bd6b158d808d827af9fda273e14d578"
     },
     {
-      "bytes": 2024,
+      "bytes": 2055,
       "path": "plasticos_broker_intelligence_web_leads/models/web_lead_advice.py",
-      "sha256": "ec388699dddff76e0b3490f11590d31103b99eb5388c254261cb1f4bbd88a4a3"
+      "sha256": "4a77cb47bdc1540ccd8a3734a7cc3feb441f672f60f03cb11e53674ff6dd5dcc"
     },
     {
       "bytes": 0,
@@ -366,9 +366,9 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "bytes": 671,
+      "bytes": 679,
       "path": "plasticos_broker_intelligence_web_leads/services/shadow.py",
-      "sha256": "c4c79e8caf7539faf5e2c378b7ebc4d41394169879a3846fc9bf4aced9fc0722"
+      "sha256": "9ebbce4060b0a071a6485780bf8172b2cee26170448ec5e4638a5abcabd03721"
     },
     {
       "bytes": 26,
@@ -376,9 +376,9 @@
       "sha256": "18967168b039c050f8b57cace33581bf1eb333f0bd43ddd45b39e53a454ece57"
     },
     {
-      "bytes": 687,
+      "bytes": 694,
       "path": "plasticos_broker_intelligence_web_leads/tests/test_shadow.py",
-      "sha256": "583d59d1050e1557d75cb1d8413000750d9c55d0ad01eaa1e5040d2387fb3921"
+      "sha256": "ce11f50106749e2e136d87dadecefd8c9873b94359ef81a9c097d93eee12b180"
     },
     {
       "bytes": 491,
@@ -521,34 +521,34 @@
       "sha256": "d8bc694a22fc48ccb5bd74531b6f09739738b32422e66f8a4e339a7eb660a9df"
     },
     {
-      "bytes": 9351,
+      "bytes": 9495,
       "path": "tests_offline/test_broker_advice.py",
-      "sha256": "1da5d211b3847584586f197176ff154893e906696e925fe952b157451bc4bbf1"
+      "sha256": "3c3e9dd98a70e8daa5ef06add27d2a0338d247b73eec5db360021962b6d19d62"
     },
     {
-      "bytes": 3508,
+      "bytes": 3622,
       "path": "tests_offline/test_harvest_source.py",
-      "sha256": "43290390eb2c958c3e694fd379c327b5423a5e3bf4bd71bb94b9c2eef57c23d4"
+      "sha256": "ffa01e9e6b6bde476c56a7357e53648bc227ee3e2267d6e7d9a68fe7ec4719bc"
     },
     {
-      "bytes": 8912,
+      "bytes": 9160,
       "path": "tests_offline/test_review_safety.py",
-      "sha256": "1178ed9e41113a351f1668d156e848b5661e9529c015fd672efad1d585db1aad"
+      "sha256": "6b9f49dc937773712ec52e93e78c59d39962b6855d6749e13e376333a0468746"
     },
     {
-      "bytes": 2359,
+      "bytes": 2459,
       "path": "tests_offline/test_unverified_values.py",
-      "sha256": "78e0107b83282945eaeaf18dbaf0ebdd0b36f7e0c886508e509eb9b30950a6d5"
+      "sha256": "b66cabaa93e0416d896d5b06fe0e753bd07b2ef649810700041724009c365925"
     },
     {
-      "bytes": 6249,
+      "bytes": 6266,
       "path": "tools/build_release.py",
-      "sha256": "794d8e460d4d18cd321106d4629a9bcdf6414d9facc681d80b43733ff757762f"
+      "sha256": "26976eae077a67ed051998a6a38a73eb38a0e5b0a977024984a56b569d9dc886"
     },
     {
-      "bytes": 8157,
+      "bytes": 8244,
       "path": "tools/validate_package.py",
-      "sha256": "6475d82bac3cd34706e4d084bd280acd540bde174870030da14848f695ebe213"
+      "sha256": "763e003b4dae5766818b6576c61397b11117dc9f283b0e55d5a7a7941d38423f"
     }
   ],
   "improvement_kernel_sha256": "dc6cbd25ffb3be5be681db984afeeda6e33d78929bb64854f23c6cb94a6ffab3",

@@ -1,8 +1,8 @@
 """Optional qualification-signals seam: only in non-routing shadow mode."""
+
 import logging
 
 from odoo import models
-from odoo.exceptions import AccessError, UserError
 
 from ..services.shadow import can_inject, context_from_advice
 
@@ -16,9 +16,14 @@ class BrokerWebLeadAdvice(models.Model):
     def action_broker_advice(self):
         self.ensure_one()
         self.check_access("read")
-        return {"type": "ir.actions.act_window", "name": "Broker Advice: Web Lead",
-                "res_model": "plasticos.broker.advice.wizard", "view_mode": "form", "target": "new",
-                "context": {"default_source_model": self._name, "default_source_id": self.id}}
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Broker Advice: Web Lead",
+            "res_model": "plasticos.broker.advice.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_source_model": self._name, "default_source_id": self.id},
+        }
 
     def _qualification_signals(self, merged, evidence_bundle, eligibility, config):
         """Off = byte-equivalent parent dict. Shadow cannot alter any live final routing."""
@@ -37,5 +42,7 @@ class BrokerWebLeadAdvice(models.Model):
                 value["broker_advisory_shadow"] = context_from_advice(advisory)
             return value
         except Exception as exc:  # Optional advice must not become qualification authority.
-            _logger.info("Optional broker advisory was unavailable; original qualification retained: %s", type(exc).__name__)
+            _logger.info(
+                "Optional broker advisory was unavailable; original qualification retained: %s", type(exc).__name__
+            )
             return base

@@ -1,4 +1,5 @@
 """Permission-preserving, read-only fact adapter for broker-advice/v2."""
+
 from odoo import api, models
 from odoo.exceptions import AccessError, UserError
 
@@ -52,16 +53,18 @@ class BrokerAdviceService(models.AbstractModel):
         model = record._name
         result = {}
         if model == "plasticos.intake":
-            for name, key in (("polymer_id", "polymer"), ("form_id", "form"),
-                              ("material_grade_id", "material_grade")):
+            for name, key in (("polymer_id", "polymer"), ("form_id", "form"), ("material_grade_id", "material_grade")):
                 result[key] = fact(self._field(record, name, relational=True), "reported")
             # Odoo's quantity has a default (36,000 lbs on this Staging revision): it is NOT verified weight.
-            result["quantity_lbs"] = fact(self._field(record, "quantity_per_load_lbs"), "recorded_default_possible",
-                                           zero_ambiguous=True)
-            result["moisture_pct"] = fact(self._field(record, "moisture_pct"), "recorded_unverified",
-                                          zero_ambiguous=True)
-            result["contamination_pct"] = fact(self._field(record, "contamination_pct"), "recorded_unverified",
-                                               zero_ambiguous=True)
+            result["quantity_lbs"] = fact(
+                self._field(record, "quantity_per_load_lbs"), "recorded_default_possible", zero_ambiguous=True
+            )
+            result["moisture_pct"] = fact(
+                self._field(record, "moisture_pct"), "recorded_unverified", zero_ambiguous=True
+            )
+            result["contamination_pct"] = fact(
+                self._field(record, "contamination_pct"), "recorded_unverified", zero_ambiguous=True
+            )
             result["mfi_value"], result["mfi_conditions"] = mfi_basis(self._field(record, "mfi_value"), None)
             result["notes"] = fact(self._field(record, "intake_notes"), "reported")
         elif model == "plasticos.web.lead":
@@ -69,11 +72,12 @@ class BrokerAdviceService(models.AbstractModel):
             seller = seller if isinstance(seller, dict) else {}
             result["polymer"] = fact(seller.get("polymer"), "seller_reported")
             result["form"] = fact(seller.get("form"), "seller_reported")
-            result["quantity_lbs"] = fact(seller.get("estimated_lbs_per_load"), "seller_reported",
-                                           zero_ambiguous=True)
+            result["quantity_lbs"] = fact(seller.get("estimated_lbs_per_load"), "seller_reported", zero_ambiguous=True)
             result["review_state"] = fact(self._field(record, "review_status"), "workflow_state")
         elif model in ("plasticos.offer", "plasticos.match.result"):
-            result["rejection_reason"] = fact(self._field(record, "rejection_reason"), "counterparty_statement_unverified")
+            result["rejection_reason"] = fact(
+                self._field(record, "rejection_reason"), "counterparty_statement_unverified"
+            )
             result["state"] = fact(self._field(record, "state"), "workflow_state")
             buyer_field = "buyer_id" if model == "plasticos.offer" else "buyer_partner_id"
             result["buyer"] = fact(self._field(record, buyer_field, relational=True), "recorded_identity")
@@ -91,8 +95,7 @@ class BrokerAdviceService(models.AbstractModel):
         Owners without an explicit company remain tied to the active operator
         company. The global knowledge pool is available in either case.
         """
-        company = (target.company_id if "company_id" in target._fields and
-                   target.company_id else self.env.company)
+        company = target.company_id if "company_id" in target._fields and target.company_id else self.env.company
         if company.id not in self.env.companies.ids:
             raise AccessError("Knowledge context is outside the user's permitted companies.")
         return ["|", ("company_id", "=", False), ("company_id", "=", company.id)]
@@ -103,7 +106,8 @@ class BrokerAdviceService(models.AbstractModel):
         facts = self._facts(target)
         scope = ALLOWED[source_model]
         clauses = [
-            ("state", "=", "approved"), ("applies_to", "in", ["all", scope]),
+            ("state", "=", "approved"),
+            ("applies_to", "in", ["all", scope]),
             *self._knowledge_company_domain(target),
         ]
         # Fetch one sentinel row: a bounded lookup must never silently claim
@@ -111,22 +115,45 @@ class BrokerAdviceService(models.AbstractModel):
         knowledge = self.env["plasticos.broker.knowledge"].search(clauses, limit=151)
         truncated = len(knowledge) > 150
         knowledge = knowledge[:150]
-        rows = [{"state": x.state, "stable_key": x.stable_key, "version": x.version,
-                 "name": x.name, "reviewed_meaning": x.reviewed_meaning,
-                 "topic_tags": x.topic_tags, "applies_to": x.applies_to,
-                 "prerequisite_keys": x.prerequisite_keys, "evidence_requirements": x.evidence_requirements,
-                 "source_file": x.source_file, "source_sha256": x.source_sha256,
-                 "source_selector": x.source_selector, "source_candidate_id": x.source_candidate_id,
-                 "workflow_scope": x.workflow_scope} for x in knowledge]
-        return build_response(source_model, target.id, target.write_date or target.create_date,
-                              str(question or "")[:1500], facts, rows,
-                              retrieval_complete=not truncated, candidates_examined=len(rows))
+        rows = [
+            {
+                "state": x.state,
+                "stable_key": x.stable_key,
+                "version": x.version,
+                "name": x.name,
+                "reviewed_meaning": x.reviewed_meaning,
+                "topic_tags": x.topic_tags,
+                "applies_to": x.applies_to,
+                "prerequisite_keys": x.prerequisite_keys,
+                "evidence_requirements": x.evidence_requirements,
+                "source_file": x.source_file,
+                "source_sha256": x.source_sha256,
+                "source_selector": x.source_selector,
+                "source_candidate_id": x.source_candidate_id,
+                "workflow_scope": x.workflow_scope,
+            }
+            for x in knowledge
+        ]
+        return build_response(
+            source_model,
+            target.id,
+            target.write_date or target.create_date,
+            str(question or "")[:1500],
+            facts,
+            rows,
+            retrieval_complete=not truncated,
+            candidates_examined=len(rows),
+        )
 
     @api.model
     def advise_v1(self, source_model, source_id, question=""):
         """Compatibility entrypoint. Exact absent standalone-v1 call signature remains unverified."""
         v2 = self.advise_v2(source_model, source_id, question)
-        return {"schema": "broker-advice/v1", "advice": v2["next_human_actions"],
-                "citations": [r["citation"] for r in v2["approved_knowledge"]],
-                "known_facts": v2["facts"], "unknowns": v2["unknowns"],
-                "abstain": v2["uncertainty"] == "unresolved"}
+        return {
+            "schema": "broker-advice/v1",
+            "advice": v2["next_human_actions"],
+            "citations": [r["citation"] for r in v2["approved_knowledge"]],
+            "known_facts": v2["facts"],
+            "unknowns": v2["unknowns"],
+            "abstain": v2["uncertainty"] == "unresolved",
+        }

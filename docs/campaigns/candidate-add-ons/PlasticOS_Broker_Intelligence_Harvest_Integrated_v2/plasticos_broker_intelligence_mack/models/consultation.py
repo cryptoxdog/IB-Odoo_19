@@ -1,7 +1,7 @@
 """Immutable Mack broker advice receipts: only an authenticated source can trigger them."""
+
 import hashlib
 import json
-import re
 import uuid
 from html.parser import HTMLParser
 
@@ -32,9 +32,15 @@ class BrokerConsultation(models.Model):
     _order = "id desc"
 
     source_model = fields.Selection(
-        [("plasticos.intake", "Intake"), ("plasticos.web.lead", "Web Lead"),
-         ("plasticos.offer", "Offer"), ("plasticos.match.result", "Match Result")],
-        required=True, readonly=True)
+        [
+            ("plasticos.intake", "Intake"),
+            ("plasticos.web.lead", "Web Lead"),
+            ("plasticos.offer", "Offer"),
+            ("plasticos.match.result", "Match Result"),
+        ],
+        required=True,
+        readonly=True,
+    )
     source_id = fields.Integer(required=True, readonly=True)
     source_revision = fields.Char(required=True, readonly=True)
     source_message_id = fields.Many2one("mail.message", readonly=True, ondelete="restrict")
@@ -87,25 +93,37 @@ class BrokerConsultation(models.Model):
         service = self.env["plasticos.broker.advice.service"]
         target = service._authorized_target(source_model, source_id)
         message = self._verify_source_message(source_message_id, source_model, target.id, question)
-        key = (hashlib.sha256(f"mack:{message.id}".encode()).hexdigest() if message
-               else hashlib.sha256(f"mack:manual:{uuid.uuid4().hex}".encode()).hexdigest())
+        key = (
+            hashlib.sha256(f"mack:{message.id}".encode()).hexdigest()
+            if message
+            else hashlib.sha256(f"mack:manual:{uuid.uuid4().hex}".encode()).hexdigest()
+        )
         existing = self.search([("request_key", "=", key)], limit=1) if message else self.browse()
         if existing:
             if (existing.source_model, existing.source_id, existing.question, existing.actor_id.id) != (
-                source_model, target.id, question, self.env.user.id
+                source_model,
+                target.id,
+                question,
+                self.env.user.id,
             ):
                 raise AccessError("A source message cannot be reinterpreted into a different consultation.")
             return existing
         advice = service.advise_v2(source_model, target.id, question)
         company = target.company_id if "company_id" in target._fields and target.company_id else self.env.company
-        vals = {"source_model": source_model, "source_id": target.id,
-                "source_revision": str(target.write_date or target.create_date or "unknown"),
-                "source_message_id": message.id if message else False, "request_key": key,
-                "question": question, "response_snapshot": json.loads(json.dumps(advice, default=str)),
-                "actor_id": self.env.user.id, "company_id": company.id}
+        vals = {
+            "source_model": source_model,
+            "source_id": target.id,
+            "source_revision": str(target.write_date or target.create_date or "unknown"),
+            "source_message_id": message.id if message else False,
+            "request_key": key,
+            "question": question,
+            "response_snapshot": json.loads(json.dumps(advice, default=str)),
+            "actor_id": self.env.user.id,
+            "company_id": company.id,
+        }
         try:
             with self.env.cr.savepoint():
-                return super(BrokerConsultation, self).create([vals])
+                return super().create([vals])
         except IntegrityError:
             concurrent = self.search([("request_key", "=", key)], limit=1)
             if concurrent and concurrent.actor_id == self.env.user and concurrent.question == question:

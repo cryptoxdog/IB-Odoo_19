@@ -1,29 +1,51 @@
 """Pure evidence packaging. Zero, missing and uncertain are never equivalent."""
+
 import hashlib
 import json
 
 
-def observation_identity(*, source_model, source_id, source_revision, scope_basis,
-                         company_id, observation_type, actor_id, evidence_ref, observation):
+def observation_identity(
+    *,
+    source_model,
+    source_id,
+    source_revision,
+    scope_basis,
+    company_id,
+    observation_type,
+    actor_id,
+    evidence_ref,
+    observation,
+):
     """Versioned, unambiguous replay identity including legal company scope.
 
     JSON array encoding prevents delimiter collisions between free-text fields.
     Source-revision and actor remain part of the original idempotency contract.
     """
-    parts = ["broker-feedback/v2", source_model, source_id, str(source_revision),
-             scope_basis, company_id, observation_type, actor_id, evidence_ref, observation]
+    parts = [
+        "broker-feedback/v2",
+        source_model,
+        source_id,
+        str(source_revision),
+        scope_basis,
+        company_id,
+        observation_type,
+        actor_id,
+        evidence_ref,
+        observation,
+    ]
     blob = json.dumps(parts, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(blob).hexdigest()
 
-def legacy_observation_identity(*, source_model, source_id, source_revision,
-                                observation_type, actor_id, evidence_ref, observation):
+
+def legacy_observation_identity(
+    *, source_model, source_id, source_revision, observation_type, actor_id, evidence_ref, observation
+):
     """Compatibility lookup for receipts created by the previous package.
 
     Never trust this delimiter-joined digest by itself: compare all stored
     provenance fields before returning an old receipt.
     """
-    raw = (f"{source_model}:{source_id}:{source_revision}:{observation_type}:"
-           f"{actor_id}:{evidence_ref}:{observation}")
+    raw = f"{source_model}:{source_id}:{source_revision}:{observation_type}:{actor_id}:{evidence_ref}:{observation}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -58,6 +80,10 @@ def is_source_rejection_evidence(model, state, source_reason, observation_type, 
     truthfulness of the buyer's original statement.
     """
     reason = str(source_reason or "").strip()
-    return (model in {"plasticos.offer", "plasticos.match.result"}
-            and state == "rejected" and observation_type == "rejection"
-            and bool(reason) and str(observation or "").strip() == reason)
+    return (
+        model in {"plasticos.offer", "plasticos.match.result"}
+        and state == "rejected"
+        and observation_type == "rejection"
+        and bool(reason)
+        and str(observation or "").strip() == reason
+    )

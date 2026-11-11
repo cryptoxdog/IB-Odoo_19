@@ -8,8 +8,14 @@ class ConsultationWizard(models.TransientModel):
     _description = "Mack: Broker Advice"
 
     source_model = fields.Selection(
-        [("plasticos.intake", "Intake"), ("plasticos.web.lead", "Web Lead"),
-         ("plasticos.offer", "Offer"), ("plasticos.match.result", "Match Result")], required=True)
+        [
+            ("plasticos.intake", "Intake"),
+            ("plasticos.web.lead", "Web Lead"),
+            ("plasticos.offer", "Offer"),
+            ("plasticos.match.result", "Match Result"),
+        ],
+        required=True,
+    )
     source_id = fields.Integer(required=True)
     question = fields.Text(required=True, default="What information is missing before we can quote this material?")
     source_message_id = fields.Many2one("mail.message", string="Authenticated Chatter Source (optional)")
@@ -23,5 +29,10 @@ class ConsultationWizard(models.TransientModel):
         )
         self.consultation_id = receipt.id
         self.response = json.dumps(receipt.response_snapshot, ensure_ascii=False, indent=2, default=str)
-        return {"type": "ir.actions.act_window", "res_model": self._name, "res_id": self.id,
-                "view_mode": "form", "target": "new"}
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
+        }
