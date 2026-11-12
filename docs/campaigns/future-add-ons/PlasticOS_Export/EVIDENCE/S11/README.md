@@ -106,6 +106,7 @@ Removing her Logistics group is not a supported stop: her commands would raise `
 | Coordinator runtime at `652b650a` | 762 run, 1 failed (R8, fixed in `87dca375`), 0 errors; install-smoke PASSED; S10 → S11 migration proof PASSED |
 | Round 3 code head `87dca375`: `pytest tests/`, pre-commit `e71599d5..87dca375`, `make audit-baseline`, gate-reach scan | 3076 passed / 0 failed; all hooks passed; no new finding; 47 entry points, 0 gated paths. Runtime of the S11 tests at this head: PENDING_COORDINATOR (this container's fixture is not admitted) |
 | Coordinator runtime at `4913fd94` | 767 run, 0 failed, 1 error (R2 witness: the person got the named not-attached `ValidationError`; fixed by R9); install-smoke PASSED; S10 → S11 migration proof PASSED, rerun identical |
+| Round 4 code head `a581bb34`: `pytest tests/`, pre-commit `e71599d5..a581bb34`, `make audit-baseline`, gate-reach scan | 3076 passed / 0 failed; all hooks passed; no new finding; 47 entry points, 0 gated paths. Runtime: PENDING_COORDINATOR |
 | Coordinator migration proof at `0beb2eb4` (S10 clone with gate_in + container_tare facts and two cursor parameters) | Passed (revision 1, unique key, cursors moved, correction appends revision 2, idempotent rerun) |
 | Coordinator runtime at `0beb2eb4` | 732 run, 1 failed, 15 errors in test_s11_linda_approval (Linda grant skipped on upgrade under noupdate; fixed in `49c366ab`); rerun on the final head PENDING_COORDINATOR |
 | `pytest tests/test_phantom_enum_values.py tests/test_repo_dependency_integrity.py` at the E02 head | 63 passed |
