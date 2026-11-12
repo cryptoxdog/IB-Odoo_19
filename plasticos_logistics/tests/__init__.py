@@ -4,3 +4,4 @@ from . import test_linda_po_issuance
 from . import test_linda_so_issuance
 from . import test_linda_inbound
 from . import test_same_as_last
+from . import test_iso_journey

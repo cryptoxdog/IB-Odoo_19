@@ -717,13 +717,9 @@ _constraints = [
 1. `plasticos_geolocalize/data/cron_geo_backfill.xml`: Set `active=False` by default
 2. `cron_geo_backfill()` method: Added early-abort after 3 consecutive failures, exponential backoff (5s delay), per-success commits
 
-### H. Attachment Orphan Cleanup (2026-02-25)
+### H. Attachment Orphan Cleanup (2026-02-25; retired 2026-11-11)
 
-**Problem**: After DB rebuild/restore, `ir.attachment` rows reference missing filestore blobs, causing `FileNotFoundError` in enrichment cron.
-
-**Fix**: Added `plasticos_base/models/ir_attachment.py`:
-- `_cron_cleanup_missing_filestore_orphans()`: Daily cron that removes orphan attachment rows
-- Cron: `PlasticOS: Cleanup Missing Filestore Attachments`
+**Retired 2026-11-11.** `plasticos_base` 19.0.1.1.11 removes the nightly job that deleted `ir.attachment` rows whose filestore file was missing. Deleting those rows erased the record that a file had been lost. Migration `plasticos_base/migrations/19.0.1.1.11/post-migrate.py` removes the cron, its server action and their xmlids from existing databases, including databases where the cron xmlid is `noupdate`. No PlasticOS code deletes attachments now; native Odoo keeps such a row, reads the missing file as empty, and logs it.
 
 ### I. XML View Fixes (2026-02-25)
 
@@ -859,3 +855,17 @@ module/
 **Last Updated**: 2026-08-07
 **Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch
 **Doc convergence:** ADR-019 — Gate consumer narrative aligned with ADR-009–018
+
+---
+
+## Export physical evidence and owner contracts (ADR-130, 2026-11-11)
+
+[docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md](docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md) records the ownership the PlasticOS Export campaign relies on. Realized in `plasticos_logistics` 19.0.1.14.20 and `plasticos_security_base` 19.0.1.2.25:
+
+| Owner | Records |
+|---|---|
+| `plasticos_logistics` | `plasticos.load.company_id` (source company, not related to the sale order), `plasticos.load.transaction_id` (one parent per load; a transaction owns many loads), J1 `plasticos.iso.journey`, J2 `plasticos.iso.journey.source`, the physical-release guard, actual pickup/delivery clocks, the manual freight context |
+| `plasticos_security_base` | Global company rules for loads (no company-null escape) and the Load dashboard; J1/J2 grants for Logistics and Operations Manager |
+| `plasticos_export` (19.0.1.0.0 scaffold from PR #474: installable, `auto_install` False, depends on `plasticos_documents_native`, no models or data yet, module-owned `business_rules/`; models arrive in S5B) | Bookings, slots and cargo allocation (E1-E4) once S5B adds them; will specialize the Logistics guard and Linda by `_inherit` |
+
+Dependency direction: Export → Logistics / Documents / Security Base. No upstream module depends on Export, and Logistics depends on none of Documents, Native Documents, Security Base or Export.

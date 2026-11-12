@@ -101,6 +101,19 @@ The seven clauses keep their source text in `plasticos_documents`. Their clocks 
 | --- | --- |
 | `BRS-04-R023` | The freight resolver still reuses a prior booked rate only when the booking fingerprint matches, and it still refuses to rebuild a missing fingerprint from today's address. `action_same_as_last` is the date-only deal copy. It does not confirm an order, post an invoice, or invent a booking fingerprint. |
 
+## 2026-11-11 Export campaign S2: load company, container journeys, release and actual clocks
+
+**Source:** operator approval of the PlasticOS Export campaign and code grant, 2026-11-11, contract `PLASTICOS-EXPORT-C01-S2-LOGISTICS-FOUNDATION` and its coordinator reconciliation (A1-A13). Architecture: `docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md`. This section adds interpretations; it does not edit an earlier section or any source BRS file. Export rule IDs (`BRS-EXP-*`) live in the campaign pack until the `plasticos_export` addon registers them.
+
+| Rule ID | Amended interpretation (2026-11-11) |
+| --- | --- |
+| `BRS-01-R002` | A load's company is its own source company: its sale order's company, or the company named for a buyerless movement. It is never the user's current company. One transaction owns zero or more loads through `plasticos.load.transaction_id`, and each load has at most one parent. A sale order with two eligible transactions is refused, not resolved by picking one (operator decision 2026-11-11). A buyerless load may join only a purchase-backed transaction in its company; no buyer, sale order or transaction is invented. |
+| `BRS-01-R065` | Mechanical eligibility of a sale-backed parent still requires the real supplier and buyer. A purchase-backed buyerless parent requires its supplier and purchase orders in the load's company. |
+| `BRS-05-R030` | The acknowledgment job escalates once per load per day four hours after the recorded send and no longer resends the dispatch packet. The +2 hour reminder is a Linda-owned notice delivered by the Linda slice; until then no reminder is sent. |
+| `BRS-05-R034` | `dispatch_sent` is stamped only when native mail reports the packet sent. A queued or failed send leaves it empty and says so on the load. |
+| `BRS-06-R039` | Every route that issues a new instruction (schedule, dispatch, the packet and document composers, direct send, standalone dispatch) passes one Logistics release guard. A hold withholds new release; it never blocks recording a pickup or delivery that already happened. |
+| `BRS-07-R051` | Document chase clocks start from `actual_pickup_at` / `actual_delivery_at`, recorded only from evidence attached to the load. A state change, schedule or dispatch time never fills them; a missing actual time leaves the clock unknown. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.

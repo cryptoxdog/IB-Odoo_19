@@ -14,6 +14,7 @@
                 <field name="pickup_partner_id"/>
                 <field name="delivery_partner_id"/>
                 <field name="sale_order_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
                 <filter name="filter_draft" string="Draft"
                         domain="[('state', '=', 'draft')]"/>
                 <filter name="filter_scheduled" string="Scheduled"
@@ -171,6 +172,7 @@
                     <button name="action_open_actual_freight_correction_wizard" string="Correct Actual Freight" type="object" invisible="not actual_freight_recorded_at"/>
                     <button name="action_dispatch" string="Dispatch" type="object" class="btn-primary" invisible="state != 'scheduled'"/>
                     <button name="action_close" string="Close Load" type="object" class="btn-success" invisible="state != 'delivered'"/>
+                    <button name="action_open_actual_event_wizard" string="Record Actual Event" type="object" invisible="state == 'draft'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,rate_confirmed,scheduled,dispatched,picked_up,delivered,closed"/>
                 </header>
                 <sheet>
@@ -206,6 +208,12 @@
                     <group>
                         <group string="General">
                             <field name="sale_order_id"/>
+                            <!-- Source company: from the sale order, or named for a buyerless
+                                 movement. Fixed once the load leaves Draft or gains a parent. -->
+                            <field name="company_id"
+                                   readonly="sale_order_id or state != 'draft' or transaction_id"
+                                   required="not sale_order_id"/>
+                            <field name="transaction_id" readonly="1"/>
                             <field name="carrier_id" readonly="rate_confirmed_at"/>
                             <field name="rate_amount" readonly="rate_confirmed_at"/>
                             <field name="rate_currency_id" readonly="rate_confirmed_at"/>
@@ -231,6 +239,8 @@
                         </group>
                         <group string="Dispatch Tracking">
                             <field name="dispatch_method"/>
+                            <!-- Direct send stamps it only on a confirmed send; an operator
+                                 records a manual (phone/SMS) dispatch here. -->
                             <field name="dispatch_sent"/>
                             <field name="dispatch_acknowledged"/>
                         </group>
@@ -319,6 +329,18 @@
                                     <field name="cycle_time_hours" readonly="1"/>
                                 </group>
                             </group>
+                            <!-- Actual physical events come from attributed evidence through
+                                 Record Actual Event; a state change never fills them. Empty means unknown. -->
+                            <group string="Actual Events" name="actual_events">
+                                <group>
+                                    <field name="actual_pickup_at" readonly="1"/>
+                                    <field name="pickup_evidence_attachment_id" readonly="1"/>
+                                </group>
+                                <group>
+                                    <field name="actual_delivery_at" readonly="1"/>
+                                    <field name="delivery_evidence_attachment_id" readonly="1"/>
+                                </group>
+                            </group>
                             <group>
                                 <group string="Documents" name="documents">
                                     <field name="bol_pickup_attached"/>
@@ -335,6 +357,29 @@
                     <field name="message_follower_ids"/>
                     <field name="message_ids"/>
                 </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         RECORD ACTUAL EVENT WIZARD
+         ═══════════════════════════════════════════════════════════════════ -->
+    <record id="view_load_actual_event_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.load.actual.event.wizard.form</field>
+        <field name="model">plasticos.load.actual.event.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="load_id" readonly="1"/>
+                    <field name="event_kind"/>
+                    <field name="occurred_at"/>
+                    <field name="attachment_id" options="{'no_create': True}"/>
+                    <field name="reason" placeholder="Required when correcting a recorded event"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Record" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
             </form>
         </field>
     </record>

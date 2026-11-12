@@ -48,6 +48,13 @@ BD = business days Monday-Friday. Holiday policy remains OPEN. Each doc reminder
 - Document verification/status recomputation must remain side-effect free. No finance posting, payment, credit/debit, $150 penalty or cash settlement from a Linda email or a document trigger. Operational close and posted accounting close are separate.
 - Direct dropship is a legitimate Odoo-native route. Supplier PO must use audience-safe native QWeb variant (or fail closed per send) without buyer shipping name/address; never ban dropship procurement categorically or expose a default unsafe report.
 
+## Logistics handoffs to Documents and Export (2026-11-11, ADR-130)
+
+- **Release guard.** `plasticos.load._physical_release_errors(operation_kind)` is the one Logistics seam for a new physical instruction. `plasticos_documents` adds evidence-policy reasons and `plasticos_export` adds booking or slot holds by ordinary `_inherit`. Logistics imports neither. A reason only withholds release; it never verifies a document, sends mail or changes stock.
+- **Actual events.** `plasticos.load.action_record_actual_event` stores the actual pickup or delivery time with a pointer to an original `ir.attachment` already attached to the load. The pointer is a source reference, not a verification: `plasticos_documents` remains the sole business verifier of that original, and Linda remains the sole external sender of any chase it starts.
+- **Container journeys.** J1/J2 evidence fields point at the native original (`ondelete="restrict"`). Documents may add J1 as an association subject; it does not copy the original or verify it from J1/J2.
+- **No duplicate SMTP or verification.** The acknowledgment job escalates internally and no longer resends the packet; Logistics stamps `dispatch_sent` only on a confirmed native send.
+
 ## Native AI inference, explicitly NOT active
 
 Odoo 19 Enterprise AI Server Action Manager may choose a native guarded Execute Code Worker with explicitly declared arguments, once exact installed capability and licensing are verified. The Worker must independently reject untrusted reply text, stale ancestry, unauthenticated sender, wrong company/party, canceled cycle, unresolved conflicts and any request to accept READY, approve rate, send, change orders/stock or post accounting. Candidate output remains append-only evidence pending authenticated validation. No custom LLM client, no external orchestration, and no invented native AI XML field names. If unavailable, persist `ai_not_run` and one internal exception.

@@ -142,11 +142,14 @@
 
     <!-- Company isolation is global because plasticos.load is the source
          authority for all company-scoped freight evidence. Role rules narrow
-         access further; they must never permit a cross-company source load. -->
+         access further; they must never permit a cross-company source load.
+         ADR-130: there is no company-null escape. Logistics proves every
+         load's company (migration 19.0.1.14.20) before this rule tightens, and
+         this module's 19.0.1.2.25 pre-migration refuses to tighten otherwise. -->
     <record id="rule_load_company_isolation" model="ir.rule">
         <field name="name">Plasticos: Load - Company Isolation</field>
         <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
-        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         <field name="global" eval="True"/>
         <field name="perm_read" eval="True"/>
         <field name="perm_write" eval="True"/>
@@ -160,6 +163,19 @@
        Owned here (not plasticos_logistics): groups are defined in this module,
        and logistics cannot depend on security_base without a circular dep.
   ══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- The dashboard is a separate SQL model: the plasticos.load rule does not
+       protect its rows. Global company isolation binds every role here too. -->
+  <record id="rule_load_dashboard_company_isolation" model="ir.rule">
+    <field name="name">Load Dashboard: Company Isolation</field>
+    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
+    <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    <field name="global" eval="True"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="True"/>
+    <field name="perm_create" eval="True"/>
+    <field name="perm_unlink" eval="True"/>
+  </record>
 
   <record id="rule_load_dashboard_rep_own" model="ir.rule">
     <field name="name">Load Dashboard: Sales Reps see own loads only</field>

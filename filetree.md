@@ -120,7 +120,6 @@
 │   └── hooks.py
 ├── plasticos_base
 │   ├── data/
-│   │   ├── attachment_maintenance_cron.xml
 │   │   ├── material_taxonomy.xml
 │   │   ├── midnight_recompute_cron.xml
 │   │   ├── partner_tags.xml
@@ -129,7 +128,6 @@
 │   ├── migrations/
 │   ├── models/
 │   │   ├── __init__.py
-│   │   ├── ir_attachment.py
 │   │   └── midnight_recompute.py
 │   ├── tests/
 │   │   ├── __init__.py

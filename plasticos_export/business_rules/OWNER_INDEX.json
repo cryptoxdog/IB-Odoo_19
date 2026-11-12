@@ -1,0 +1,281 @@
+[
+  {
+    "brs_id": "BRS-EXP-01",
+    "title": "Native-first boundaries and minimality",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-01-R001",
+      "BRS-EXP-01-R002",
+      "BRS-EXP-01-R003",
+      "BRS-EXP-01-R004",
+      "BRS-EXP-01-R005"
+    ],
+    "phases": [
+      "BOTH"
+    ],
+    "source": "BRS-EXP-01.md"
+  },
+  {
+    "brs_id": "BRS-EXP-02",
+    "title": "Booking identity, six fields and schedule evidence",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-02-R001",
+      "BRS-EXP-02-R002",
+      "BRS-EXP-02-R003",
+      "BRS-EXP-02-R004",
+      "BRS-EXP-02-R005",
+      "BRS-EXP-02-R006"
+    ],
+    "phases": [
+      "BOTH"
+    ],
+    "source": "BRS-EXP-02.md"
+  },
+  {
+    "brs_id": "BRS-EXP-03",
+    "title": "Document applicability, evidence and reporting",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-03-R001",
+      "BRS-EXP-03-R002",
+      "BRS-EXP-03-R003",
+      "BRS-EXP-03-R004",
+      "BRS-EXP-03-R005",
+      "BRS-EXP-03-R006",
+      "BRS-EXP-03-R007"
+    ],
+    "phases": [
+      "BOTH"
+    ],
+    "source": "BRS-EXP-03.md"
+  },
+  {
+    "brs_id": "BRS-EXP-04",
+    "title": "Phase 1: recycler FOB pickup and FAS port/rail",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-04-R001",
+      "BRS-EXP-04-R002",
+      "BRS-EXP-04-R003",
+      "BRS-EXP-04-R004",
+      "BRS-EXP-04-R005"
+    ],
+    "phases": [
+      "P1"
+    ],
+    "source": "BRS-EXP-04.md"
+  },
+  {
+    "brs_id": "BRS-EXP-05",
+    "title": "Phase 2: international sale and ocean obligations",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-05-R001",
+      "BRS-EXP-05-R002",
+      "BRS-EXP-05-R003",
+      "BRS-EXP-05-R004",
+      "BRS-EXP-05-R005",
+      "BRS-EXP-05-R006"
+    ],
+    "phases": [
+      "P2"
+    ],
+    "source": "BRS-EXP-05.md"
+  },
+  {
+    "brs_id": "BRS-EXP-06",
+    "title": "Security, exceptions, readiness and acceptance",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-06-R001",
+      "BRS-EXP-06-R002",
+      "BRS-EXP-06-R003",
+      "BRS-EXP-06-R004",
+      "BRS-EXP-06-R005"
+    ],
+    "phases": [
+      "BOTH"
+    ],
+    "source": "BRS-EXP-06.md"
+  },
+  {
+    "brs_id": "BRS-EXP-07",
+    "title": "Transport equipment types, booking quantities and container identity",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-07-R001",
+      "BRS-EXP-07-R002",
+      "BRS-EXP-07-R003",
+      "BRS-EXP-07-R004",
+      "BRS-EXP-07-R005",
+      "BRS-EXP-07-R006",
+      "BRS-EXP-07-R007",
+      "BRS-EXP-07-R008"
+    ],
+    "phases": [
+      "BOTH",
+      "P1"
+    ],
+    "source": "BRS-EXP-07.md"
+  },
+  {
+    "brs_id": "BRS-EXP-08",
+    "title": "Multi-order commitments, partial fulfillment, buyer-optional cargo and allocation",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-08-R001",
+      "BRS-EXP-08-R002",
+      "BRS-EXP-08-R003",
+      "BRS-EXP-08-R004",
+      "BRS-EXP-08-R005",
+      "BRS-EXP-08-R006",
+      "BRS-EXP-08-R007",
+      "BRS-EXP-08-R008"
+    ],
+    "phases": [
+      "BOTH"
+    ],
+    "source": "BRS-EXP-08.md"
+  },
+  {
+    "brs_id": "BRS-EXP-09",
+    "title": "Native Odoo 19 AI booking extraction, exact association and guarded transitions",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-09-R001",
+      "BRS-EXP-09-R002",
+      "BRS-EXP-09-R003",
+      "BRS-EXP-09-R004",
+      "BRS-EXP-09-R005",
+      "BRS-EXP-09-R006",
+      "BRS-EXP-09-R007",
+      "BRS-EXP-09-R008"
+    ],
+    "phases": [
+      "BOTH"
+    ],
+    "source": "BRS-EXP-09.md"
+  },
+  {
+    "brs_id": "BRS-EXP-10",
+    "title": "Logistics/Linda handoff, schedule constraints and audience-safe packet issuance",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-10-R001",
+      "BRS-EXP-10-R002",
+      "BRS-EXP-10-R003",
+      "BRS-EXP-10-R004",
+      "BRS-EXP-10-R005",
+      "BRS-EXP-10-R006",
+      "BRS-EXP-10-R007",
+      "BRS-EXP-10-R008"
+    ],
+    "phases": [
+      "BOTH",
+      "P1"
+    ],
+    "source": "BRS-EXP-10.md"
+  },
+  {
+    "brs_id": "BRS-EXP-11",
+    "title": "Real-world booking correspondence, rolls and AI coordinator behavior",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-11-R001",
+      "BRS-EXP-11-R002",
+      "BRS-EXP-11-R003",
+      "BRS-EXP-11-R004",
+      "BRS-EXP-11-R005",
+      "BRS-EXP-11-R006",
+      "BRS-EXP-11-R007",
+      "BRS-EXP-11-R008",
+      "BRS-EXP-11-R009",
+      "BRS-EXP-11-R010",
+      "BRS-EXP-11-R011",
+      "BRS-EXP-11-R012"
+    ],
+    "phases": [
+      "BOTH",
+      "P1"
+    ],
+    "source": "BRS-EXP-11.md"
+  },
+  {
+    "brs_id": "BRS-EXP-12",
+    "title": "Phase 2 provider integrations (FindTEU + ACE AESDirect)",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-12-R001",
+      "BRS-EXP-12-R002",
+      "BRS-EXP-12-R003",
+      "BRS-EXP-12-R004",
+      "BRS-EXP-12-R005",
+      "BRS-EXP-12-R006",
+      "BRS-EXP-12-R007",
+      "BRS-EXP-12-R008",
+      "BRS-EXP-12-R009",
+      "BRS-EXP-12-R010"
+    ],
+    "phases": [
+      "P2"
+    ],
+    "source": "BRS-EXP-12.md"
+  },
+  {
+    "brs_id": "BRS-EXP-13",
+    "title": "Booking form, extended fields and documentary reconciliation",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-13-R001",
+      "BRS-EXP-13-R002",
+      "BRS-EXP-13-R003",
+      "BRS-EXP-13-R004",
+      "BRS-EXP-13-R005",
+      "BRS-EXP-13-R006",
+      "BRS-EXP-13-R007",
+      "BRS-EXP-13-R008",
+      "BRS-EXP-13-R009",
+      "BRS-EXP-13-R010"
+    ],
+    "phases": [
+      "BOTH"
+    ],
+    "source": "BRS-EXP-13.md"
+  },
+  {
+    "brs_id": "BRS-EXP-14",
+    "title": "Native Odoo reporting and operational intelligence views",
+    "module_owner": "plasticos_export",
+    "rules": [
+      "BRS-EXP-14-R001",
+      "BRS-EXP-14-R002",
+      "BRS-EXP-14-R003",
+      "BRS-EXP-14-R004",
+      "BRS-EXP-14-R005",
+      "BRS-EXP-14-R006",
+      "BRS-EXP-14-R007",
+      "BRS-EXP-14-R008",
+      "BRS-EXP-14-R009",
+      "BRS-EXP-14-R010",
+      "BRS-EXP-14-R011",
+      "BRS-EXP-14-R012",
+      "BRS-EXP-14-R013",
+      "BRS-EXP-14-R014",
+      "BRS-EXP-14-R015",
+      "BRS-EXP-14-R016",
+      "BRS-EXP-14-R017",
+      "BRS-EXP-14-R018",
+      "BRS-EXP-14-R019",
+      "BRS-EXP-14-R020",
+      "BRS-EXP-14-R021",
+      "BRS-EXP-14-R022"
+    ],
+    "phases": [
+      "BOTH",
+      "P1",
+      "P2"
+    ],
+    "source": "BRS-EXP-14.md"
+  }
+]

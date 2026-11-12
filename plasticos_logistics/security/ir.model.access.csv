@@ -26,3 +26,6 @@ access_logistics_request_user,plasticos.logistics.request.user,model_plasticos_l
 access_logistics_request_purchase,plasticos.logistics.request.purchase,model_plasticos_logistics_request,purchase.group_purchase_user,1,1,1,0
 access_logistics_request_manager,plasticos.logistics.request.manager,model_plasticos_logistics_request,base.group_system,1,1,1,0
 access_logistics_response_user,plasticos.logistics.response.user,model_plasticos_logistics_response,base.group_user,1,0,0,0
+access_iso_journey_manager,plasticos.iso.journey.manager,model_plasticos_iso_journey,base.group_system,1,1,1,1
+access_iso_journey_source_manager,plasticos.iso.journey.source.manager,model_plasticos_iso_journey_source,base.group_system,1,1,1,1
+access_load_actual_event_wizard_user,plasticos.load.actual.event.wizard.user,model_plasticos_load_actual_event_wizard,base.group_user,1,1,1,1

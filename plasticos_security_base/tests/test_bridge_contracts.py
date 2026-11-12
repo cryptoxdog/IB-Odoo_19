@@ -33,6 +33,7 @@ STRONG (catches real bugs):
 import unittest
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -750,3 +751,148 @@ class TestLoadModelContract(PlasticosTestCase):
         if not field:
             self.skipTest("bol_attachment_id not installed")
         self.assertEqual(field.type, "many2one")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# COMPANY AND ROLE ISOLATION FOR LOADS, THE LOAD DASHBOARD AND J1/J2 (ADR-130)
+# ═══════════════════════════════════════════════════════════════════════════
+# V11: global company rules bind every role; no company-null escape on loads;
+# J1/J2 grants go to Logistics and Operations Manager only.
+
+
+@tagged("post_install", "-at_install", "plasticos", "contract", "load", "security")
+class TestLoadCompanyIsolationContract(PlasticosTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        for model in ("plasticos.load", "plasticos.load.dashboard", "plasticos.iso.journey"):
+            assert model in cls.env, f"{model} is not installed; security_base depends on plasticos_logistics"
+        cls.company_a = cls.env.company
+        cls.company_b = cls.env["res.company"].create({"name": "Isolation Company B"})
+        cls.pickup = cls.env["res.partner"].create({"name": "Isolation Pickup", "is_company": True})
+
+    def _user(self, login, *groups, companies=None):
+        companies = companies or self.company_a
+        group_ids = self.env.ref("base.group_user")
+        for xml_id in groups:
+            group_ids |= self.env.ref(xml_id)
+        return self.env["res.users"].create(
+            {
+                "name": login,
+                "login": login,
+                "company_id": companies[0].id,
+                "company_ids": [(6, 0, companies.ids)],
+                "group_ids": [(6, 0, group_ids.ids)],
+            }
+        )
+
+    def _load(self, company):
+        return self.env["plasticos.load"].create({"company_id": company.id, "pickup_partner_id": self.pickup.id})
+
+    def test_load_rule_has_no_company_null_escape(self):
+        rule = self.env.ref("plasticos_security_base.rule_load_company_isolation")
+        self.assertTrue(rule["global"])
+        self.assertNotIn("False", rule.domain_force)
+
+    def test_company_less_load_is_hidden_and_cannot_be_created_by_a_user(self):
+        """A missing company is denied, not shown to everyone."""
+        logistics = self._user("iso.logistics.nullco", "plasticos_security_base.group_logistics")
+        companyless = self.env["plasticos.load"].create({"pickup_partner_id": self.pickup.id})
+        self.assertFalse(companyless.company_id)
+        self.assertNotIn(companyless, self.env["plasticos.load"].with_user(logistics).search([]))
+        with self.assertRaises(UserError):
+            self.env["plasticos.load"].with_user(logistics).create({"pickup_partner_id": self.pickup.id})
+
+    def test_logistics_user_sees_only_loads_of_allowed_companies(self):
+        logistics = self._user("iso.logistics.a", "plasticos_security_base.group_logistics")
+        own, foreign = self._load(self.company_a), self._load(self.company_b)
+        visible = self.env["plasticos.load"].with_user(logistics).search([("id", "in", (own | foreign).ids)])
+        self.assertEqual(visible, own)
+
+    def test_load_dashboard_company_rule_binds_every_role(self):
+        """The SQL dashboard is not protected by the load rule; its own global rule must filter it."""
+        rule = self.env.ref("plasticos_security_base.rule_load_dashboard_company_isolation")
+        self.assertTrue(rule["global"])
+        self.assertIn("company_id", self.env["plasticos.load.dashboard"]._fields)
+        manager = self._user("iso.opsmgr.dash", "plasticos_security_base.group_operations_manager")
+        own, foreign = self._load(self.company_a), self._load(self.company_b)
+        self.env["plasticos.load.dashboard"].invalidate_model()
+        dashboard = self.env["plasticos.load.dashboard"].with_user(manager)
+        rows = dashboard.search([("load_id", "in", (own | foreign).ids)])
+        self.assertEqual(rows.load_id, own)
+        grouped = dashboard._read_group([("load_id", "in", (own | foreign).ids)], ["company_id"], ["__count"])
+        self.assertEqual([company for company, _count in grouped], [self.company_a])
+
+    def test_bare_internal_user_cannot_create_or_write_journeys(self):
+        bare = self._user("iso.bare")
+        journey = self.env["plasticos.iso.journey"].create({"company_id": self.company_a.id, "equipment_class": "40HC"})
+        with self.assertRaises(AccessError):
+            self.env["plasticos.iso.journey"].with_user(bare).create(
+                {"company_id": self.company_a.id, "equipment_class": "40HC"}
+            )
+        with self.assertRaises(AccessError):
+            journey.with_user(bare).write({"seal_number": "X"})
+
+    def test_logistics_role_registers_journeys_only_in_its_company(self):
+        logistics = self._user("iso.logistics.j1", "plasticos_security_base.group_logistics")
+        journeys = self.env["plasticos.iso.journey"].with_user(logistics)
+        applied = journeys.action_register_iso_journey(
+            self.company_a.id, "SEC-CYCLE-A", "40HC", None, "MSCU1234567", None, "op-sec-a"
+        )
+        self.assertEqual(applied["status"], "applied")
+        with self.assertRaises(AccessError):
+            journeys.action_register_iso_journey(
+                self.company_b.id, "SEC-CYCLE-B", "40HC", None, "MSCU7654321", None, "op-sec-b"
+            )
+
+    def test_multi_role_union_cannot_bypass_the_journey_company_rule(self):
+        user = self._user(
+            "iso.multirole",
+            "plasticos_security_base.group_logistics",
+            "plasticos_security_base.group_operations_manager",
+            "plasticos_security_base.group_sales_rep",
+        )
+        foreign = self.env["plasticos.iso.journey"].create(
+            {"company_id": self.company_b.id, "equipment_class": "20STD"}
+        )
+        self.assertFalse(self.env["plasticos.iso.journey"].with_user(user).search([("id", "=", foreign.id)]))
+        with self.assertRaises(AccessError):
+            foreign.with_user(user).read(["equipment_class"])
+
+    def test_sales_rep_gains_no_journey_access(self):
+        rep = self._user("iso.rep", "plasticos_security_base.group_sales_rep")
+        with self.assertRaises(AccessError):
+            self.env["plasticos.iso.journey"].with_user(rep).search([])
+
+    def _security_pre_migration(self):
+        import importlib.util
+
+        from odoo.modules.module import get_module_path
+
+        path = get_module_path("plasticos_security_base") + "/migrations/19.0.1.2.25/pre-migrate.py"
+        spec = importlib.util.spec_from_file_location("security_base_pre_1912025", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_pre_migration_preflights_active_user_company_scopes(self):
+        """M-SEC (RP-07-E012): refuse to tighten while a load-owning company has no active user."""
+        pre = self._security_pre_migration()
+        cr = self.env.cr
+        isolated = self.env["res.company"].create({"name": "Isolation Unstaffed Co"})
+        cr.execute("DELETE FROM res_company_users_rel WHERE cid = %s", (isolated.id,))
+        self._load(isolated)
+        self.assertIn(isolated.id, pre.load_companies_without_users(cr))
+        with self.assertRaises(RuntimeError):
+            pre.migrate(cr, "19.0.1.2.24")
+        self._user("iso.staffed", "plasticos_security_base.group_logistics", companies=isolated)
+        self.assertNotIn(isolated.id, pre.load_companies_without_users(cr))
+        self.assertEqual(pre.users_without_company_scope(cr), [])
+        pre.migrate(cr, "19.0.1.2.24")
+
+    def test_pre_migration_refuses_a_company_less_load(self):
+        pre = self._security_pre_migration()
+        companyless = self.env["plasticos.load"].create({"pickup_partner_id": self.pickup.id})
+        self.assertIn(companyless.id, pre.missing_company_loads(self.env.cr))
+        with self.assertRaises(RuntimeError):
+            pre.migrate(self.env.cr, "19.0.1.2.24")
