@@ -97,6 +97,52 @@ def match_codes(text: str | None, entries: Sequence[CatalogEntry]) -> tuple[str,
     return tuple(codes)
 
 
+def _spans(text: str | None, entries: Sequence[CatalogEntry]) -> list[tuple[int, int, str]]:
+    haystack = str(text or "")
+    spans: list[tuple[int, int, str]] = []
+    for entry in entries:
+        if not entry.code:
+            continue
+        for label in _labels(entry, include_description=True):
+            for match in re.finditer(rf"\b{re.escape(label)}\b", haystack, re.IGNORECASE):
+                spans.append((match.start(), match.end(), entry.code))
+    return spans
+
+
+def match_distinct(
+    text: str | None,
+    entries: Sequence[CatalogEntry],
+    item_entries: Sequence[CatalogEntry] = (),
+) -> tuple[str, ...]:
+    """Every code the text names on its own, earliest first, each code once.
+
+    A label found only inside a longer label of another code is not its own
+    mention: ``HDPE HMW`` names one code, ``HDPE and PP`` names two. When the
+    text names more than one code, a mention that is an item word of
+    ``item_entries`` (``Plastic Pallets`` over the ``Pallets`` grade) is set
+    aside, provided another code is still named.
+    """
+    spans = _spans(text, entries)
+    own: dict[str, list[tuple[int, int]]] = {}
+    for start, end, code in spans:
+        inside_other = any(
+            other != code and o_start <= start and end <= o_end and (o_end - o_start) > (end - start)
+            for o_start, o_end, other in spans
+        )
+        if not inside_other:
+            own.setdefault(code, []).append((start, end))
+    if len(own) > 1 and item_entries:
+        items = _spans(text, item_entries)
+
+        def _is_item(code: str) -> bool:
+            return all(any(i_start < end and start < i_end for i_start, i_end, _ in items) for start, end in own[code])
+
+        kept = {code: found for code, found in own.items() if not _is_item(code)}
+        if kept:
+            own = kept
+    return tuple(sorted(own, key=lambda code: (min(own[code])[0], code)))
+
+
 def code_list(entries: Sequence[CatalogEntry]) -> str:
     codes: list[str] = []
     seen: set[str] = set()

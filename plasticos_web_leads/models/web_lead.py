@@ -69,7 +69,7 @@ from .evidence_keys import (
 )
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
-from .material_catalog import CatalogEntry, accept_value, match_codes, match_one
+from .material_catalog import CatalogEntry, accept_value, match_codes, match_distinct, match_one
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, WEIGHT_SOURCE_AREA, replay_stored_mass
@@ -138,6 +138,19 @@ def _safe_int(val: Any, default: int = 0) -> int:
     except (ValueError, TypeError):
         _logger.debug("_safe_int: non-numeric value %r → %d", val, default)
         return default
+
+
+def _declared_material_text(canonical: dict, raw: dict) -> str:
+    """The seller's own material words, as the merge and the stored-evidence replay read them."""
+    return " ".join(
+        str(value or "")
+        for value in (
+            canonical.get("material_description"),
+            canonical.get("material_composition_text"),
+            raw.get("DescribeYourMaterial"),
+            raw.get("WhatIsIt"),
+        )
+    )
 
 
 def _is_lead_identity_collision(exc: Exception) -> bool:
@@ -1216,15 +1229,7 @@ class PlasticosWebLead(models.Model):
 
         # Seller item words name a grade. They are not written into the form
         # slot: a physical form from text AI or vision has to survive beside them.
-        declared_material = " ".join(
-            str(value or "")
-            for value in (
-                canonical.get("material_description"),
-                canonical.get("material_composition_text"),
-                raw.get("DescribeYourMaterial"),
-                raw.get("WhatIsIt"),
-            )
-        )
+        declared_material = _declared_material_text(canonical, raw)
 
         # ── Weight fallback cascade ────────────────────────────────────
         if quantity_evidence is not None:
@@ -1298,13 +1303,22 @@ class PlasticosWebLead(models.Model):
                 return seller_code
             return accept_value(photo_value, entries)
 
-        seller_polymer = match_one(declared_material, catalog.get("polymer", ()))
+        # A seller who names two polymers ("HDPE and PP regrind") leaves the
+        # identity unresolved: neither the text AI, a photo, nor label length
+        # picks one of them. Exactly one named polymer still resolves.
+        seller_polymers = match_distinct(
+            declared_material, catalog.get("polymer", ()), catalog.get("material_grade", ())
+        )
+        seller_polymer = seller_polymers[0] if len(seller_polymers) == 1 else None
         vision_polymer = accept_value(
             agreed_confident_polymer(list(vision_results or [])),
             catalog.get("polymer", ()),
         )
         joint_polymer = accept_value(ai_data.get("polymer"), catalog.get("polymer", ()))
-        if seller_polymer and vision_polymer and seller_polymer != vision_polymer:
+        if len(seller_polymers) > 1:
+            merged["polymer"] = None
+            merged["polymer_source"] = None
+        elif seller_polymer and vision_polymer and seller_polymer != vision_polymer:
             merged["polymer"] = seller_polymer
             merged["polymer_source"] = "seller_text"
         elif joint_polymer:
@@ -1425,7 +1439,13 @@ class PlasticosWebLead(models.Model):
         analysis = dict(self.ai_analysis) if isinstance(self.ai_analysis, dict) else {}
         normalized = self.ai_normalized if isinstance(self.ai_normalized, dict) else {}
         raw_polymer = str(analysis.get("polymer") or normalized.get("polymer") or "").strip()
-        polymer = accept_value(raw_polymer, self._material_catalog()["polymer"]) if raw_polymer else None
+        catalog = self._material_catalog()
+        polymer_entries = catalog["polymer"]
+        polymer = accept_value(raw_polymer, polymer_entries) if raw_polymer else None
+        # Replay keeps a two-polymer seller description unresolved, as the merge does.
+        declared_material = _declared_material_text(self.canonical_payload or {}, self.raw_payload or {})
+        if len(match_distinct(declared_material, polymer_entries, catalog.get("material_grade", ()))) > 1:
+            polymer = None
         config = self.env["plasticos.web.lead.config"].get_config()
         economic = evaluate_economic_eligibility(
             estimated_lbs=lbs,
