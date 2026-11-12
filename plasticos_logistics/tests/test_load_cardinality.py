@@ -1350,3 +1350,50 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         self.assertIn("and 25 more", message)
         self.assertNotIn(" 6,", message)
         self.assertIn("keep exactly one parent transaction", message)
+
+    # ── C01-REAUTH-4 (a): carrier documents name the load's own company ──
+
+    _CARRIER_REPORTS = (
+        "plasticos_logistics.report_delivery_order",
+        "plasticos_logistics.report_bol_pickup",
+        "plasticos_logistics.report_bol_delivery",
+    )
+
+    def _render(self, report_ref, load):
+        html, _kind = self.env["ir.actions.report"]._render_qweb_html(report_ref, load.ids)
+        return html.decode() if isinstance(html, bytes) else str(html)
+
+    def _assert_issuer_block(self, html, company):
+        """The template's own issuer block (bold name, then street), not the layout header."""
+        import re
+
+        from markupsafe import escape
+
+        pattern = (
+            r"<strong[^>]*>\s*"
+            + re.escape(str(escape(company.name)))
+            + r"\s*</strong>\s*<br\s*/?>\s*"
+            + re.escape(str(escape(company.street or "")))
+        )
+        self.assertRegex(html, pattern)
+
+    def test_carrier_documents_name_the_company_of_a_buyerless_load(self):
+        # A second company makes the issuer come from the load, never env.company.
+        other = self.env["res.company"].create({"name": "S2 Buyerless Issuer Co", "street": "7 Yard Rd"})
+        load = self._buyerless_load(company_id=other.id)
+        load.transaction_id = self._purchase_transaction(company=other)
+        self.assertFalse(load.sale_order_id)
+        self.assertNotEqual(self.env.company, other)
+        for report_ref in self._CARRIER_REPORTS:
+            with self.subTest(report_ref):
+                self._assert_issuer_block(self._render(report_ref, load), other)
+
+    def test_carrier_documents_keep_the_sale_order_company_of_a_sale_backed_load(self):
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        load = self.env["plasticos.load"].create(
+            {"sale_order_id": order.id, "pickup_partner_id": self.supplier.id, "delivery_partner_id": self.terminal.id}
+        )
+        self.assertEqual(load.company_id, order.company_id)
+        for report_ref in self._CARRIER_REPORTS:
+            with self.subTest(report_ref):
+                self._assert_issuer_block(self._render(report_ref, load), order.company_id)

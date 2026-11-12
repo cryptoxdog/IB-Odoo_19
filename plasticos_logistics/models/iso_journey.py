@@ -555,7 +555,15 @@ class PlasticosIsoJourneySource(models.Model):
             domain.append((_SOURCE_SUBJECT_FIELD[source_kind], "=", subject.id))
         existing = self.search(domain, limit=1)
         if existing:
-            if existing.state == "accepted" and existing.source_party_id == party:
+            # Replay is idempotent only for the exact accepted facts; any changed
+            # party, evidence or basis is a different claim, never a silent success.
+            same_facts = (
+                existing.state == "accepted"
+                and existing.source_party_id == party
+                and existing.evidence_attachment_id.id == (attachment.id if attachment else False)
+                and existing.acceptance_basis == values["acceptance_basis"]
+            )
+            if same_facts:
                 return _result("already_applied", existing)
             return _result("blocked", existing, f"an existing {existing.state} association differs")
         candidate = self.with_context(**{_GUARDED_WRITE: _GUARDED_WRITE_TOKEN}).new(values)

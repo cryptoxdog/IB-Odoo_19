@@ -180,6 +180,31 @@ class TestIsoJourney(PlasticosTestCase):
         replay = self._bind(journey_id, "load", load.id, self.supplier)
         self.assertEqual(replay, {"status": "already_applied", "record_id": applied["record_id"]})
 
+    def test_source_bind_replay_with_different_facts_is_blocked(self):
+        """Replay returns already_applied only for the exact accepted facts (C01-REAUTH-4 (b))."""
+        journey_id = self._register("CYCLE-REPLAY-FACTS")["record_id"]
+        load = self._load()
+        evidence = self._attachment(load, "interchange.pdf")
+        applied = self._bind(journey_id, "load", load.id, self.supplier, attachment=evidence, basis="Seal matches")
+        source = self.env[SOURCE].browse(applied["record_id"])
+        other_evidence = self._attachment(load, "other.pdf")
+        for label, kwargs in (
+            ("other party", {"party": self.carrier, "attachment": evidence, "basis": "Seal matches"}),
+            ("other evidence", {"party": self.supplier, "attachment": other_evidence, "basis": "Seal matches"}),
+            ("no evidence", {"party": self.supplier, "attachment": None, "basis": "Seal matches"}),
+            ("other basis", {"party": self.supplier, "attachment": evidence, "basis": "Driver said so"}),
+        ):
+            with self.subTest(label):
+                result = self._bind(journey_id, "load", load.id, kwargs["party"], kwargs["attachment"], kwargs["basis"])
+                self.assertEqual(result["status"], "blocked")
+                self.assertEqual(result["record_id"], source.id)
+        exact = self._bind(journey_id, "load", load.id, self.supplier, attachment=evidence, basis="  Seal matches ")
+        self.assertEqual(exact, {"status": "already_applied", "record_id": source.id})
+        self.assertEqual(
+            (source.source_party_id, source.evidence_attachment_id, source.acceptance_basis),
+            (self.supplier, evidence, "Seal matches"),
+        )
+
     def test_fas_delivery_with_no_stock_move_uses_original_evidence(self):
         """BRS-EXP-04-R002/R003: a supplier-delivered FAS leg has evidence but no picking or buyer."""
         journey_id = self._register("CYCLE-FAS")["record_id"]
