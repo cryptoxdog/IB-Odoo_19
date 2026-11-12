@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Linda dispatch acknowledgement reminder and escalation (S4, RP-03-E019; V10,
+    BRS-EXP-10-R004). +2h after the actual confirmed send the carrier gets a reminder;
+    +4h the carrier and ops get an escalation. Neither carries the dispatch packet.
+    Every template targets plasticos.logistics.request, never a downstream booking
+    model. It renders only the immutable, audience-safe snapshot Linda froze when the
+    obligation was recorded; recipients, attachments and the source thread are set by
+    the request, never by followers or CC. Sender is the source company.
+-->
+<odoo noupdate="1">
+    <record id="mail_template_linda_load_ack_notice" model="mail.template">
+        <field name="name">Linda: Dispatch Acknowledgement Reminder</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">{{ object.snapshot_subject }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="description">Carrier reminder two hours after an unacknowledged dispatch was actually sent. No packet attached.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello <t t-out="object.partner_id.name or ''">Partner</t>,</p>
+    <t t-out="object.snapshot_body_html"/>
+</div>
+        </field>
+    </record>
+
+    <record id="mail_template_linda_load_ack_escalation" model="mail.template">
+        <field name="name">Linda: Dispatch Acknowledgement Escalation</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">{{ object.snapshot_subject }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="description">Carrier and ops escalation four hours after an unacknowledged dispatch was actually sent. No packet attached.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello <t t-out="object.partner_id.name or ''">Partner</t>,</p>
+    <t t-out="object.snapshot_body_html"/>
+</div>
+        </field>
+    </record>
+
+</odoo>

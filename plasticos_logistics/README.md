@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_logistics
 component_name: Plasticos Logistics Engine
-module_version: 19.0.1.14.20
+module_version: 19.0.1.14.21
 layer: 5
 installable: true
 auto_install: true
@@ -74,6 +74,9 @@ Moves material from supplier to buyer: loads, readiness, rates, scheduling, disp
   - `shadow` records evidence and creates no mail. Only `live` queues mail through the native template.
   - A request becomes `sent` only after Odoo Mail reports the `mail.mail` as sent; an unrecorded outcome becomes `unknown` and is not retried automatically.
   - The `mail.mail` extension rechecks queued Linda mail at send time, sends it one at a time, and holds an issue mail until an earlier cancellation to the same party is confirmed sent.
+- **Linda typed obligations (S4).** The same request owner records booking issue/amend/cancel, dispatch acknowledgement reminder (+2h) and escalation (+4h, carrier and ops), and carrier document chase. Each has a `source_kind`, an accepted `source_revision_key`, one audience and an immutable snapshot that its template on `plasticos.logistics.request` renders. Booking mail goes only through `request_booking_correspondence`; its source resolver is registered by `plasticos_export`, and without it the answer is `not_available`. The acknowledgement job polls every five minutes from the actual `dispatch_sent` time and never reattaches the packet. A document chase reads the Documents scale-ticket status, runs only when `plasticos_logistics.linda_document_chase` is `1`, and is withheld once the ticket is received.
+  - The native send claim locks the source row, then the request row, and re-reads the source before SMTP. A revision that wins first withholds the old mail; a claim that wins first is kept as history, and the later revision is held. Unknown outcomes are never resent.
+  - A carrier dispatch or document composer re-checks the physical-release guard when it sends, not only when it opens, and cannot be scheduled.
 - **Linda replies.** `plasticos.logistics.response` records which request an incoming message answers, proven by `In-Reply-To` / `References`. Only exact standard replies ("confirmed", "confirm", "not ready") are classified; free-form replies stay unresolved. It changes no order, load, picking, or transaction. `data/linda_inbound_ai.xml` wires it to new `mail.message` records.
 - **Dashboard.** `plasticos.load.dashboard` is a read-only SQL view, one row per non-cancelled load.
 - **Extensions.** `plasticos.transaction` gets `load_ids`, `load_count`, and `action_view_loads`. `sale.order` gets `action_create_load`. Both order models get `linda_request_ids`.

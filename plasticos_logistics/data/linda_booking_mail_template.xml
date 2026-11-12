@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Linda booking issue, amendment and cancellation mail (S4, RP-04-E004;
+    BRS-EXP-03-R005, BRS-EXP-10-R002). The booking source resolver is registered by
+    plasticos_export; without it these templates are never used.
+    Every template targets plasticos.logistics.request, never a downstream booking
+    model. It renders only the immutable, audience-safe snapshot Linda froze when the
+    obligation was recorded; recipients, attachments and the source thread are set by
+    the request, never by followers or CC. Sender is the source company.
+-->
+<odoo noupdate="1">
+    <record id="mail_template_linda_booking_issue" model="mail.template">
+        <field name="name">Linda: Booking Issue</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">{{ object.snapshot_subject }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="description">Booking confirmation for one accepted booking revision, sent by Linda.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello <t t-out="object.partner_id.name or ''">Partner</t>,</p>
+    <t t-out="object.snapshot_body_html"/>
+</div>
+        </field>
+    </record>
+
+    <record id="mail_template_linda_booking_amend" model="mail.template">
+        <field name="name">Linda: Booking Amendment</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">{{ object.snapshot_subject }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="description">Amended booking for a later accepted revision, sent by Linda; the prior message stays history.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello <t t-out="object.partner_id.name or ''">Partner</t>,</p>
+    <t t-out="object.snapshot_body_html"/>
+</div>
+        </field>
+    </record>
+
+    <record id="mail_template_linda_booking_cancel" model="mail.template">
+        <field name="name">Linda: Booking Cancellation</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">{{ object.snapshot_subject }}</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="description">Notice that an issued booking was cancelled, sent by Linda.</field>
+        <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+    <p>Hello <t t-out="object.partner_id.name or ''">Partner</t>,</p>
+    <t t-out="object.snapshot_body_html"/>
+</div>
+        </field>
+    </record>
+
+</odoo>

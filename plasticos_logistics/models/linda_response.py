@@ -12,6 +12,13 @@ commitment. Free-form text is not interpreted: the native Odoo AI server
 action that would extract candidates is not available on this runtime, so
 such replies stay ``unresolved`` (``ai_not_run``) and no substitute
 inference is used (BRS-02-R062, SUPERSESSION 2026-10-25).
+
+Typed sources (S4, V07): a reply on a registered typed source (a Logistics load,
+or Export's booking once it registers its model) is recorded on its own branch
+with ``source_kind``/``source_res_id`` and no fabricated order. A From match is
+not authentication; booking text stays candidate evidence and never accepts
+booking terms, READY, verification, stock or payment. An unregistered model is
+not Linda's conversation and records nothing.
 """
 
 import email
@@ -24,7 +31,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tools import email_normalize, html2plaintext
 from odoo.tools.mail import unfold_references
 
-from .linda_request import CANCEL_SPECS, ISSUE_SPECS, LINDA_MODE_OFF
+from .linda_request import CANCEL_SPECS, ISSUE_SPECS, LINDA_MODE_OFF, TYPED_SPECS
 
 _logger = logging.getLogger(__name__)
 
@@ -108,6 +115,13 @@ class PlasticosLogisticsResponse(models.Model):
         ondelete="restrict",
         help="The exact Linda request the original's In-Reply-To/References name; never the latest one.",
     )
+    source_kind = fields.Selection(
+        [("booking", "Export Booking"), ("load", "Logistics Load")],
+        readonly=True,
+        index="btree_not_null",
+        help="Typed source the native gateway routed the reply to; empty for PO/SO replies.",
+    )
+    source_res_id = fields.Integer(readonly=True, help="Id of the typed source record.")
     request_revision = fields.Integer(readonly=True, help="Revision of the answered request.")
     email_from = fields.Char(related="mail_message_id.email_from", string="From")
     binding = fields.Selection(
@@ -156,8 +170,10 @@ class PlasticosLogisticsResponse(models.Model):
         "A Linda response already exists for this message.",
     )
     _check_exactly_one_order = models.Constraint(
-        "CHECK((purchase_order_id IS NOT NULL) != (sale_order_id IS NOT NULL))",
-        "A Linda response belongs to exactly one purchase or sale order.",
+        "CHECK((source_kind IS NULL AND (purchase_order_id IS NOT NULL) != (sale_order_id IS NOT NULL))"
+        " OR (source_kind IS NOT NULL AND source_res_id IS NOT NULL"
+        " AND purchase_order_id IS NULL AND sale_order_id IS NULL))",
+        "A Linda response belongs to exactly one purchase order, sale order or typed source.",
     )
 
     @api.depends("mail_message_id", "disposition")
@@ -165,7 +181,8 @@ class PlasticosLogisticsResponse(models.Model):
         labels = dict(self._fields["disposition"].selection)
         for response in self:
             order = response.purchase_order_id or response.sale_order_id
-            response.display_name = f"{order.name or ''} · {labels.get(response.disposition, '')}"
+            label = order.name or (f"{response.source_kind} {response.source_res_id}" if response.source_kind else "")
+            response.display_name = f"{label} · {labels.get(response.disposition, '')}"
 
     # ── Evidence integrity ───────────────────────────────────
     # Responses are recorded only by Linda's inbound handler under sudo() and never change.
@@ -204,8 +221,14 @@ class PlasticosLogisticsResponse(models.Model):
         # itself sent was not reproduced on this head, so that case stays Unknown.
         evidence = self.sudo()  # sudo: gateway records Linda evidence a follower may not write
         responses = self.browse()
+        typed_models = evidence.env[LOGISTICS_REQUEST]._linda_source_models()
         for message in messages.sudo():  # sudo: gateway reads the new message when the follower cannot
-            if message.message_type != "email" or message.model not in ORDER_FIELDS:
+            if message.message_type != "email":
+                continue
+            if message.model in typed_models:
+                responses |= evidence._record_typed_incoming(message, typed_models[message.model])
+                continue
+            if message.model not in ORDER_FIELDS:
                 continue
             existing = evidence.search([("mail_message_id", "=", message.id)], limit=1)
             if existing:
@@ -222,6 +245,76 @@ class PlasticosLogisticsResponse(models.Model):
                 continue
             responses |= evidence._record_message(message, order, order_field)
         return responses
+
+    def _record_typed_incoming(self, message, source_kind):
+        """Record one reply on a registered typed source that Linda actually wrote to."""
+        existing = self.search([("mail_message_id", "=", message.id)], limit=1)
+        if existing:
+            return existing
+        source = self.env[message.model].browse(message.res_id).exists()
+        requests = self.env[LOGISTICS_REQUEST]
+        if not source or not requests.search_count(
+            [("source_kind", "=", source_kind), ("source_res_id", "=", source.id), ("source_model", "=", source._name)]
+        ):
+            return self.browse()
+        original = self._native_original(message)
+        request, binding, reason = self._bind_typed(message, source_kind, source, original)
+        company = request.company_id or (source.company_id if "company_id" in source._fields else False)
+        if not company:
+            return self.browse()
+        values = {
+            "company_id": company.id,
+            "mail_message_id": message.id,
+            "source_kind": source_kind,
+            "source_res_id": source.id,
+            "request_id": request.id,
+            "request_revision": request.revision,
+            "binding": binding,
+        }
+        values.update(self._validate(message, request, binding, reason, original))
+        return self.create(values)
+
+    def _bind_typed(self, message, source_kind, source, original):
+        """Which typed Linda request this reply answers, from its own header ancestry only."""
+        no_request = self.env[LOGISTICS_REQUEST]
+        if original is None:
+            return no_request, "unbound", "original_not_retained"
+        in_reply_to = (original.get("In-Reply-To") or "").strip()
+        references = [ref.strip() for ref in unfold_references(original.get("References") or "")]
+        known = [ref for ref in [in_reply_to, *references] if ref]
+        requests = no_request.search([("mail_id.message_id", "in", known)]) if known else no_request
+        if not requests:
+            return no_request, "unbound", "no_linda_ancestor"
+        direct = requests.filtered(lambda request: request.mail_id.message_id == in_reply_to)
+        if direct:
+            request = direct
+        elif len(requests) == 1:
+            request = requests
+        else:
+            return no_request, "ambiguous", "multiple_linda_ancestors"
+        if (
+            request.purpose not in TYPED_SPECS
+            or request.source_kind != source_kind
+            or request.source_model != source._name
+            or request.source_res_id != source.id
+        ):
+            return no_request, "unbound", "ancestor_on_other_source"
+        if request.purpose == "booking_cancel":
+            return request, "stale", "reply_to_cancellation_notice"
+        if request.state == "canceled":
+            return request, "stale", "request_canceled"
+        newer = no_request.search_count(
+            [
+                ("source_kind", "=", source_kind),
+                ("source_res_id", "=", source.id),
+                ("purpose", "=", request.purpose),
+                ("partner_id", "=", request.partner_id.id),
+                ("revision", ">", request.revision),
+            ]
+        )
+        if newer:
+            return request, "stale", "newer_revision_issued"
+        return request, "current", False
 
     def _record_message(self, message, order, order_field):
         original = self._native_original(message)

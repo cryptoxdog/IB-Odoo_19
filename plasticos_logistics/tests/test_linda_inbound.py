@@ -458,3 +458,25 @@ class TestLindaInbound(PlasticosTestCase):
         with self.assertRaises(UserError):
             response.unlink()
         self.assertEqual(response.disposition, "identity_unverified")
+
+    # ── S4: typed source branches (RP-04-E009) ───────────────
+
+    def test_reply_on_an_unregistered_source_kind_is_not_linda_evidence(self):
+        """No resolver registered the model, so even a Linda ancestor records nothing (Export absent)."""
+        po, issue = self._sent_po()
+        reference = issue.mail_id.message_id
+        raw = self._raw("CONFIRMED", SUPPLIER_EMAIL, in_reply_to=reference, references=reference)
+        message = self._receive(raw, model="res.partner", thread_id=self.supplier.id)
+        self.assertTrue(message)
+        self.assertNotIn("res.partner", self.Request._linda_source_models())
+        self.assertFalse(self.Response._record_incoming(message))
+        self.assertFalse(self._response(message))
+
+    def test_reply_on_a_registered_source_without_a_typed_request_records_nothing(self):
+        """A load is a registered typed source, but Linda never wrote to this one."""
+        self._set_mode("live")
+        load = self.env["plasticos.load"].create({"company_id": self.company.id, "pickup_partner_id": self.supplier.id})
+        message = self._receive(self._raw("CONFIRMED", SUPPLIER_EMAIL), model="plasticos.load", thread_id=load.id)
+        self.assertTrue(message)
+        self.assertFalse(self.Response._record_incoming(message))
+        self.assertFalse(self._response(message))

@@ -10,15 +10,27 @@ fingerprint only detects change and never grants a second send on its own.
 Queued is not sent: ``state`` becomes ``sent`` only after native Odoo Mail
 reports the ``mail.mail`` as sent. A send attempt whose outcome was never
 recorded becomes ``unknown`` and is not retried automatically.
+
+Typed sources (S4, C04): booking issue/amend/cancel, load dispatch
+acknowledgement notice/escalation and document chase are obligations on the
+same request owner. They carry ``source_kind``/``source_res_id``, an accepted
+``source_revision_key`` and an immutable, audience-safe payload snapshot, and
+never a fabricated PO/SO. A source kind resolves only through a registered
+resolver (``_linda_source_resolvers``); Export registers ``booking`` by normal
+``_inherit``. Without it the request is ``not_available``. Linda is the only
+sender of this mail (BRS-EXP-03-R005, operator decision 2026-11-11).
 """
 
 import hashlib
 import json
 import logging
+from datetime import timedelta
 from typing import NamedTuple
 
+from markupsafe import Markup, escape
+
 from odoo import _, api, fields, models
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import AccessError, LockError, UserError, ValidationError
 from odoo.tools import email_normalize
 
 _logger = logging.getLogger(__name__)
@@ -113,6 +125,13 @@ IDENTITY_FIELDS = frozenset(
         "revision",
         "payload_fingerprint",
         "origin_request_id",
+        "source_kind",
+        "source_model",
+        "source_res_id",
+        "source_revision_key",
+        "operation_key",
+        "source_payload_snapshot",
+        "template_xmlid",
     }
 )
 
@@ -150,6 +169,48 @@ CANCEL_SPECS = {
 CANCEL_PURPOSE_BY_ISSUE = {spec.issue_purpose: purpose for purpose, spec in CANCEL_SPECS.items()}
 
 
+def _plain(text, **values):
+    """Untranslated party-facing text: a snapshot must not change with the worker's language."""
+    return text % values if values else text
+
+
+class TypedSpec(NamedTuple):
+    """A typed-source purpose: the source kind it belongs to and its native template."""
+
+    source_kind: str
+    template: str
+
+
+BOOKING_ISSUE_TEMPLATE = "plasticos_logistics.mail_template_linda_booking_issue"
+BOOKING_AMEND_TEMPLATE = "plasticos_logistics.mail_template_linda_booking_amend"
+BOOKING_CANCEL_TEMPLATE = "plasticos_logistics.mail_template_linda_booking_cancel"
+LOAD_ACK_NOTICE_TEMPLATE = "plasticos_logistics.mail_template_linda_load_ack_notice"
+LOAD_ACK_ESCALATION_TEMPLATE = "plasticos_logistics.mail_template_linda_load_ack_escalation"
+DOCUMENT_CHASE_TEMPLATE = "plasticos_logistics.mail_template_linda_document_chase"
+
+SOURCE_BOOKING = "booking"
+SOURCE_LOAD = "load"
+TYPED_SPECS = {
+    "booking_issue": TypedSpec(SOURCE_BOOKING, BOOKING_ISSUE_TEMPLATE),
+    "booking_amend": TypedSpec(SOURCE_BOOKING, BOOKING_AMEND_TEMPLATE),
+    "booking_cancel": TypedSpec(SOURCE_BOOKING, BOOKING_CANCEL_TEMPLATE),
+    "load_ack_notice": TypedSpec(SOURCE_LOAD, LOAD_ACK_NOTICE_TEMPLATE),
+    "load_ack_escalation": TypedSpec(SOURCE_LOAD, LOAD_ACK_ESCALATION_TEMPLATE),
+    "document_chase": TypedSpec(SOURCE_LOAD, DOCUMENT_CHASE_TEMPLATE),
+}
+BOOKING_PURPOSES = tuple(purpose for purpose, spec in TYPED_SPECS.items() if spec.source_kind == SOURCE_BOOKING)
+# Dispatch acknowledgement clock (BRS-EXP-10-R004, V10): anchored on the actual
+# confirmed send (``dispatch_sent``), never on scheduling or queueing.
+ACK_NOTICE_AFTER = timedelta(hours=2)
+ACK_ESCALATION_AFTER = timedelta(hours=4)
+# An external document chase is sent only when the operator approved it.
+DOCUMENT_CHASE_PARAM = "plasticos_logistics.linda_document_chase"
+# Load states in which an unacknowledged dispatch is still a live obligation.
+ACK_LOAD_STATES = ("dispatched", "scheduled")
+# Load states in which a delivered load may still owe its carrier documents.
+CHASE_LOAD_STATES = ("delivered", "closed")
+
+
 class PlasticosLogisticsRequest(models.Model):
     _name = "plasticos.logistics.request"
     _description = "Linda Logistics Request"
@@ -170,10 +231,47 @@ class PlasticosLogisticsRequest(models.Model):
             ("so_issue", "SO Issuance"),
             ("po_cancel", "PO Cancellation"),
             ("so_cancel", "SO Cancellation"),
+            ("booking_issue", "Booking Issue"),
+            ("booking_amend", "Booking Amendment"),
+            ("booking_cancel", "Booking Cancellation"),
+            ("load_ack_notice", "Dispatch Acknowledgement Reminder"),
+            ("load_ack_escalation", "Dispatch Acknowledgement Escalation"),
+            ("document_chase", "Carrier Document Chase"),
         ],
         required=True,
         readonly=True,
         help="External obligation this request evidences.",
+    )
+    source_kind = fields.Selection(
+        [(SOURCE_BOOKING, "Export Booking"), (SOURCE_LOAD, "Logistics Load")],
+        readonly=True,
+        index="btree_not_null",
+        help="Typed source of a booking, acknowledgement or document-chase obligation; empty for PO/SO.",
+    )
+    source_model = fields.Char(
+        readonly=True,
+        help="Native model of the typed source, as its registered resolver names it. Replies thread there.",
+    )
+    source_res_id = fields.Integer(readonly=True, index="btree_not_null", help="Id of the typed source record.")
+    source_revision_key = fields.Char(
+        readonly=True,
+        help="Accepted source revision this obligation was prepared from. A later revision is a new obligation.",
+    )
+    operation_key = fields.Char(
+        readonly=True,
+        index="btree_not_null",
+        help="Caller idempotency key; a retry with the same key and payload is already applied.",
+    )
+    source_payload_snapshot = fields.Text(
+        readonly=True,
+        help="Immutable audience-safe facts the message renders: subject, lines and exact attachment ids.",
+    )
+    template_xmlid = fields.Char(readonly=True, help="Native mail template that rendered this obligation.")
+    snapshot_subject = fields.Char(compute="_compute_snapshot_render", help="Subject frozen in the snapshot.")
+    snapshot_body_html = fields.Html(
+        compute="_compute_snapshot_render",
+        sanitize=False,
+        help="Escaped rendering of the frozen snapshot; never re-read from the live source.",
     )
     purchase_order_id = fields.Many2one(
         PURCHASE_ORDER,
@@ -271,14 +369,34 @@ class PlasticosLogisticsRequest(models.Model):
         "A Linda request already exists for this company, sale order, party, purpose and revision.",
     )
     _check_exactly_one_source_order = models.Constraint(
-        "CHECK((purpose IN ('po_issue', 'po_cancel') AND purchase_order_id IS NOT NULL AND sale_order_id IS NULL)"
-        " OR (purpose IN ('so_issue', 'so_cancel') AND sale_order_id IS NOT NULL AND purchase_order_id IS NULL))",
-        "A Linda request has exactly one source order, matching its purpose.",
+        "CHECK((purpose IN ('po_issue', 'po_cancel') AND purchase_order_id IS NOT NULL AND sale_order_id IS NULL"
+        " AND source_kind IS NULL)"
+        " OR (purpose IN ('so_issue', 'so_cancel') AND sale_order_id IS NOT NULL AND purchase_order_id IS NULL"
+        " AND source_kind IS NULL)"
+        " OR (purpose IN ('booking_issue', 'booking_amend', 'booking_cancel') AND source_kind = 'booking'"
+        " AND purchase_order_id IS NULL AND sale_order_id IS NULL AND source_model IS NOT NULL"
+        " AND source_res_id IS NOT NULL AND source_revision_key IS NOT NULL)"
+        " OR (purpose IN ('load_ack_notice', 'load_ack_escalation', 'document_chase') AND source_kind = 'load'"
+        " AND purchase_order_id IS NULL AND sale_order_id IS NULL AND source_model IS NOT NULL"
+        " AND source_res_id IS NOT NULL AND source_revision_key IS NOT NULL))",
+        "A Linda request has exactly one source, matching its purpose: a PO, an SO, or one typed source.",
+    )
+    # Typed obligation identity: company, source, purpose, accepted revision and audience.
+    # source_kind is NOT NULL in this branch (CHECK above), so no NULL gap opens the index.
+    _unique_typed_obligation = models.UniqueIndex(
+        "(company_id, source_kind, source_res_id, purpose, source_revision_key, partner_id)"
+        " WHERE source_kind IS NOT NULL"
+    )
+    _unique_typed_operation = models.UniqueIndex(
+        "(company_id, source_kind, operation_key) WHERE source_kind IS NOT NULL AND operation_key IS NOT NULL"
     )
 
     @api.constrains("company_id", "purchase_order_id", "sale_order_id")
     def _check_company_matches_source_order(self):
         for request in self:
+            if request.source_kind:
+                # A typed source's company is validated by its resolver when the obligation is recorded.
+                continue
             order = request._source_order()
             if order.company_id != request.company_id:
                 raise ValidationError(_("A Linda request's company must be its source order's company."))
@@ -287,14 +405,59 @@ class PlasticosLogisticsRequest(models.Model):
     def _compute_display_name(self):
         labels = dict(self._fields["purpose"].selection)
         for request in self:
-            order = request._source_order()
-            request.display_name = f"{order.name or ''} · {labels.get(request.purpose, '')} r{request.revision}"
+            if request.source_kind:
+                label = request._snapshot().get("reference") or f"{request.source_kind} {request.source_res_id}"
+            else:
+                label = request._source_order().name or ""
+            request.display_name = f"{label} · {labels.get(request.purpose, '')} r{request.revision}"
+
+    def _snapshot(self):
+        """The frozen payload snapshot as a dict; an empty dict for PO/SO rows."""
+        self.ensure_one()
+        try:
+            data = json.loads(self.source_payload_snapshot or "{}")
+        except ValueError:
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    @api.depends("source_payload_snapshot")
+    def _compute_snapshot_render(self):
+        for request in self:
+            snapshot = request._snapshot()
+            request.snapshot_subject = snapshot.get("subject") or False
+            parts = []
+            for paragraph in snapshot.get("paragraphs") or []:
+                parts.append(Markup("<p>%s</p>") % escape(paragraph))
+            rows = [
+                Markup(
+                    "<tr><td style='padding: 6px; border: 1px solid #ddd;'><strong>%s</strong></td>"
+                    "<td style='padding: 6px; border: 1px solid #ddd;'>%s</td></tr>"
+                )
+                % (escape(label), escape(value))
+                for label, value in snapshot.get("lines") or []
+            ]
+            if rows:
+                parts.append(
+                    Markup("<table style='border-collapse: collapse; margin: 12px 0;'>%s</table>")
+                    % Markup("").join(rows)
+                )
+            for closing in snapshot.get("closing") or []:
+                parts.append(Markup("<p>%s</p>") % escape(closing))
+            request.snapshot_body_html = Markup("").join(parts) if parts else False
 
     def _source_order(self):
-        """The exact native order this request evidences."""
+        """The exact native order this request evidences; empty for a typed source."""
         self.ensure_one()
         spec = ISSUE_SPECS.get(self.purpose) or CANCEL_SPECS.get(self.purpose)
         return self[spec.order_field] if spec else self.env[PURCHASE_ORDER]
+
+    def _source_lock_target(self):
+        """``(model, id)`` of the source row a send claim locks before this request row."""
+        self.ensure_one()
+        if self.source_kind:
+            return self.source_model, self.source_res_id
+        order = self._source_order()
+        return order._name, order.id
 
     # ── Evidence integrity ───────────────────────────────────
     # Requests are written only by Linda's own issuance, cancellation and mail-transport
@@ -810,6 +973,8 @@ class PlasticosLogisticsRequest(models.Model):
             # A notice reports a past cancellation event: a later reopen of the order does
             # not make it stale, so only its own audience and template are rechecked.
             return self._cancel_block_reason(self.purpose, self.recipient_email)
+        if self.purpose in TYPED_SPECS:
+            return self._typed_block_reason()
         spec = ISSUE_SPECS[self.purpose]
         order = self._source_order()
         reason = getattr(self, spec.block_reason)(order)
@@ -927,3 +1092,450 @@ class PlasticosLogisticsRequest(models.Model):
         for request in self.search([("mail_id", "in", mails.ids), ("state", "=", "queued")]):
             if request.mail_id.state == "exception":
                 request.write({"state": "unknown", "state_reason": "send_interrupted"})
+
+    # ── Typed sources: resolvers (S4, C04) ───────────────────
+    # A resolver returns ``{"status": "applied", ...}`` with ``company`` (res.company),
+    # ``partner`` (res.partner), ``recipient_email``, ``model``, ``res_id``,
+    # ``revision_key``, ``snapshot`` (dict with ``subject``), ``attachment_ids``
+    # (exact original ir.attachment ids) and ``source_fingerprint``; or a non-applied
+    # status (``stale``, ``blocked``, ``ambiguous``, ``not_available``) with ``reason``.
+
+    @api.model
+    def _linda_source_resolvers(self):
+        """``source_kind`` -> resolver. The downstream Export addon adds ``booking`` by ``_inherit``."""
+        return {SOURCE_LOAD: self._linda_resolve_load_source}
+
+    @api.model
+    def _linda_source_models(self):
+        """Native model -> ``source_kind`` whose replies Linda may attribute. Export adds its booking model."""
+        return {"plasticos.load": SOURCE_LOAD}
+
+    @api.model
+    def _linda_resolve(self, source_kind, purpose, res_id, audience_partner, **params):
+        """Resolve one typed source through its registered resolver, or report it unavailable."""
+        resolver = self._linda_source_resolvers().get(source_kind)
+        if not resolver:
+            return {"status": "not_available", "reason": f"no_resolver_for_{source_kind}"}
+        if TYPED_SPECS.get(purpose, TypedSpec(None, None)).source_kind != source_kind:
+            return {"status": "not_available", "reason": "purpose_not_of_source_kind"}
+        result = resolver(purpose, res_id, audience_partner, **params) or {}
+        if result.get("status") != "applied":
+            return {"status": result.get("status") or "blocked", "reason": result.get("reason") or "unresolved"}
+        if not result.get("company") or not result.get("partner") or not result.get("snapshot", {}).get("subject"):
+            return {"status": "blocked", "reason": "resolver_incomplete"}
+        partner = result["partner"]
+        if partner != audience_partner:
+            return {"status": "blocked", "reason": "audience_not_permitted"}
+        if partner.company_id and partner.company_id != result["company"]:
+            return {"status": "blocked", "reason": "audience_company_mismatch"}
+        if not email_normalize(result.get("recipient_email") or ""):
+            return {"status": "blocked", "reason": "recipient_email_invalid"}
+        return result
+
+    @api.model
+    def _typed_fingerprint(self, resolved):
+        """Hash of everything this obligation commits to: source, revision, audience, snapshot, files."""
+        payload = [
+            resolved["company"].id,
+            resolved["model"],
+            resolved["res_id"],
+            resolved["revision_key"],
+            resolved["partner"].id,
+            email_normalize(resolved["recipient_email"] or ""),
+            resolved["snapshot"],
+            sorted(resolved.get("attachment_ids") or []),
+            resolved.get("source_fingerprint") or "",
+        ]
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+
+    # ── Typed sources: Logistics load (ACK notice/escalation, document chase) ──
+
+    @api.model
+    def _load_audiences(self, load, purpose):
+        """Who a load obligation is addressed to. The carrier always; ops only on escalation."""
+        partners = self.env[RES_PARTNER]
+        if load.carrier_id:
+            partners |= load.carrier_id
+        if purpose == "load_ack_escalation":
+            ops = load.transaction_id.user_id.partner_id or load.company_id.partner_id
+            if ops and ops != load.carrier_id:
+                partners |= ops
+        return partners
+
+    @api.model
+    def _utc_label(self, value):
+        """A clock rendered with its zone named. No local timezone is guessed (V10)."""
+        return f"{fields.Datetime.to_string(value)} UTC" if value else ""
+
+    @api.model
+    def _scale_ticket_chase_reason(self, load):
+        """Why no carrier document chase is due for this load now, or ``False``.
+
+        Documents owns the scale-ticket status and its timing (``scale_ticket_rule.xml``:
+        overdue after 2 business days). Linda only reads that status; it never re-times
+        the rule and never writes a reminder flag. Without Documents nothing is chased.
+        """
+        approved = (self.env["ir.config_parameter"].sudo().get_param(DOCUMENT_CHASE_PARAM) or "").strip().lower()
+        if approved not in ("1", "true", "on"):
+            return "document_chase_not_approved"
+        if "scale_ticket_reminder_sent" not in load._fields:
+            return "documents_status_not_available"
+        checker = getattr(self.env["plasticos.transaction"], "_load_has_current_scale_ticket", None)
+        if checker is None:
+            return "documents_status_not_available"
+        if load.state not in CHASE_LOAD_STATES:
+            return "load_not_delivered"
+        if not load.actual_delivery_at:
+            return "actual_delivery_unknown"
+        if not load.scale_ticket_reminder_sent:
+            return "documents_reminder_not_due"
+        # Documents depends on Logistics, so its model is an optional, soft reference here.
+        if "plasticos.document.tag" not in self.env:
+            return "documents_status_not_available"
+        tag = self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], order="id ASC", limit=1)
+        if not tag:
+            return "documents_status_not_available"
+        if checker(load, tag):
+            return "evidence_received"
+        return False
+
+    @api.model
+    def _linda_resolve_load_source(self, purpose, res_id, audience_partner, **params):
+        load = self.env["plasticos.load"].browse(res_id).exists()
+        if not load:
+            return {"status": "not_available", "reason": "load_not_found"}
+        if not load.company_id:
+            return {"status": "blocked", "reason": "company_missing"}
+        if audience_partner not in self._load_audiences(load, purpose):
+            return {"status": "blocked", "reason": "audience_not_permitted"}
+        carrier = load.carrier_id.name or ""
+        route = [
+            (_plain("Load"), load.name or ""),
+            (_plain("Pickup"), load.pickup_partner_id.city or load.pickup_partner_id.name or ""),
+            (_plain("Delivery"), load.delivery_partner_id.city or load.delivery_partner_id.name or ""),
+        ]
+        if purpose in ("load_ack_notice", "load_ack_escalation"):
+            if not load.dispatch_sent:
+                return {"status": "blocked", "reason": "dispatch_not_confirmed_sent"}
+            if load.dispatch_acknowledged:
+                return {"status": "blocked", "reason": "dispatch_acknowledged"}
+            if load.state not in ACK_LOAD_STATES:
+                return {"status": "blocked", "reason": "load_not_awaiting_acknowledgement"}
+            due = load.dispatch_sent + (ACK_NOTICE_AFTER if purpose == "load_ack_notice" else ACK_ESCALATION_AFTER)
+            if fields.Datetime.now() < due:
+                return {"status": "blocked", "reason": "not_due"}
+            revision_key = f"dispatch_sent:{fields.Datetime.to_string(load.dispatch_sent)}"
+            sent = self._utc_label(load.dispatch_sent)
+            if purpose == "load_ack_notice":
+                snapshot = {
+                    "reference": load.name,
+                    "subject": _plain("Please confirm dispatch %(load)s", load=load.name),
+                    "paragraphs": [
+                        _plain("We sent the dispatch packet for load %(load)s at %(sent)s.", load=load.name, sent=sent),
+                        _plain("Please reply to this email to confirm you received it."),
+                        _plain("This is a reminder only. The dispatch packet is not attached again."),
+                    ],
+                    "lines": route + [(_plain("Dispatch sent"), sent)],
+                }
+            else:
+                snapshot = {
+                    "reference": load.name,
+                    "subject": _plain("ESCALATION: dispatch %(load)s not acknowledged", load=load.name),
+                    "paragraphs": [
+                        _plain(
+                            "The dispatch for load %(load)s sent at %(sent)s to %(carrier)s has not been acknowledged.",
+                            load=load.name,
+                            sent=sent,
+                            carrier=carrier,
+                        ),
+                        _plain("Please confirm receipt by replying to this email. The packet is not attached again."),
+                    ],
+                    "lines": route + [(_plain("Carrier"), carrier), (_plain("Dispatch sent"), sent)],
+                }
+        elif purpose == "document_chase":
+            reason = self._scale_ticket_chase_reason(load)
+            if reason:
+                return {"status": "blocked", "reason": reason}
+            revision_key = f"scale_ticket:{fields.Datetime.to_string(load.actual_delivery_at)}"
+            snapshot = {
+                "reference": load.name,
+                "category": "scale_ticket",
+                "subject": _plain("Scale tickets needed for load %(load)s", load=load.name),
+                "paragraphs": [
+                    _plain(
+                        "Load %(load)s was delivered at %(delivered)s. We have not received its scale tickets.",
+                        load=load.name,
+                        delivered=self._utc_label(load.actual_delivery_at),
+                    ),
+                    _plain("Please reply with the light and heavy third-party certified scale tickets for this load."),
+                ],
+                "lines": route + [(_plain("Delivered"), self._utc_label(load.actual_delivery_at))],
+            }
+        else:
+            return {"status": "not_available", "reason": "purpose_not_of_source_kind"}
+        snapshot["closing"] = [load.company_id.name or ""]
+        return {
+            "status": "applied",
+            "company": load.company_id,
+            "partner": audience_partner,
+            "recipient_email": email_normalize(audience_partner.email or "") or "",
+            "model": load._name,
+            "res_id": load.id,
+            "revision_key": revision_key,
+            "snapshot": snapshot,
+            "attachment_ids": [],
+            "source_fingerprint": revision_key,
+        }
+
+    # ── Typed sources: record, queue, recheck ────────────────
+
+    def _lock_source(self, model, res_id):
+        """Take the source row lock first: the same order revision acceptance and send claims use."""
+        record = self.env[model].browse(res_id).exists()
+        if record:
+            record.lock_for_update(allow_referencing=True)
+        return record
+
+    def _record_typed(self, purpose, resolved, operation_key=False, expected_source_fingerprint=False):
+        """Record and queue one typed obligation from an applied resolver verdict.
+
+        Identity is company + source + purpose + accepted revision + audience. A
+        repeated poll or retry of the same obligation returns ``already_applied``.
+        A new revision cancels an older unclaimed request of the same audience;
+        an older request already claimed (or unknown) is kept as history and the
+        new revision is held, because bytes that may have left are never unsent
+        or replayed (V06).
+        """
+        mode = self._linda_mode()
+        if mode == LINDA_MODE_OFF or any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS):
+            return {"status": "not_available", "reason": "linda_not_active"}
+        spec = TYPED_SPECS[purpose]
+        if expected_source_fingerprint and expected_source_fingerprint != resolved.get("source_fingerprint"):
+            return {"status": "stale", "reason": "source_payload_changed"}
+        try:
+            with self.env.cr.savepoint():
+                source = self._lock_source(resolved["model"], resolved["res_id"])
+        except LockError:
+            # A concurrent revision or send claim holds the source; the caller retries later.
+            return {"status": "blocked", "reason": "source_busy"}
+        if not source:
+            return {"status": "not_available", "reason": "source_not_found"}
+        fingerprint = self._typed_fingerprint(resolved)
+        company, partner = resolved["company"], resolved["partner"]
+        if operation_key:
+            prior = self.search(
+                [
+                    ("company_id", "=", company.id),
+                    ("source_kind", "=", spec.source_kind),
+                    ("operation_key", "=", operation_key),
+                ],
+                limit=1,
+            )
+            if prior:
+                if prior.payload_fingerprint == fingerprint and prior.purpose == purpose:
+                    return {"status": "already_applied", "record_id": prior.id}
+                return {"status": "stale", "record_id": prior.id, "reason": "operation_key_reused"}
+        scope = [
+            ("company_id", "=", company.id),
+            ("source_kind", "=", spec.source_kind),
+            ("source_res_id", "=", resolved["res_id"]),
+            ("purpose", "=", purpose),
+            ("partner_id", "=", partner.id),
+        ]
+        existing = self.search([*scope, ("source_revision_key", "=", resolved["revision_key"])], limit=1)
+        if existing:
+            if existing.payload_fingerprint == fingerprint:
+                return {"status": "already_applied", "record_id": existing.id}
+            return {"status": "stale", "record_id": existing.id, "reason": "revision_payload_changed"}
+        history = self.search(scope, order="revision desc")
+        open_requests = history.filtered(lambda request: request.state in ("queued", "unknown", "exception"))
+        in_flight = open_requests.filtered(
+            lambda request: request.state in ("unknown", "exception") or request.send_attempt_count
+        )
+        (open_requests - in_flight)._cancel_queued("superseded_by_revision")
+        block_reason = False
+        if in_flight:
+            block_reason = "prior_send_outcome_unknown"
+        elif not self.env.ref(spec.template, raise_if_not_found=False):
+            block_reason = "template_missing"
+        attachments = self.env["ir.attachment"].browse(resolved.get("attachment_ids") or []).exists()
+        if len(attachments) != len(set(resolved.get("attachment_ids") or [])):
+            block_reason = block_reason or "attachment_missing"
+        outcome = "blocked" if block_reason else ("shadow" if mode == LINDA_MODE_SHADOW else "queued")
+        snapshot = dict(resolved["snapshot"], attachment_ids=sorted(attachments.ids))
+        request = self.create(
+            {
+                "company_id": company.id,
+                "purpose": purpose,
+                "source_kind": spec.source_kind,
+                "source_model": resolved["model"],
+                "source_res_id": resolved["res_id"],
+                "source_revision_key": resolved["revision_key"],
+                "operation_key": operation_key or False,
+                "source_payload_snapshot": json.dumps(snapshot, sort_keys=True, default=str),
+                "template_xmlid": spec.template,
+                "partner_id": partner.id,
+                "recipient_email": email_normalize(resolved["recipient_email"] or ""),
+                "revision": (history[:1].revision or 0) + 1,
+                "payload_fingerprint": fingerprint,
+                "state": outcome,
+                "state_reason": block_reason,
+            }
+        )
+        if outcome == "blocked":
+            _logger.info("Linda %s blocked for %s %s: %s", purpose, spec.source_kind, resolved["res_id"], block_reason)
+            return {"status": "blocked", "record_id": request.id, "reason": block_reason}
+        request._queue_typed_mail(outcome, attachments)
+        if request.state == "blocked":
+            return {"status": "blocked", "record_id": request.id, "reason": request.state_reason}
+        return {"status": "applied", "record_id": request.id}
+
+    def _queue_typed_mail(self, outcome, attachments):
+        """Render the frozen snapshot through the purpose's native template and queue it once."""
+        self.ensure_one()
+        template = self.env.ref(TYPED_SPECS[self.purpose].template, raise_if_not_found=False)
+        mail_id = False
+        try:
+            with self.env.cr.savepoint():
+                subject = template._render_field("subject", self.ids)[self.id]
+                if outcome == "queued":
+                    mail_id = template.send_mail(
+                        self.id,
+                        force_send=False,
+                        email_values={
+                            "email_to": self.recipient_email,
+                            "recipient_ids": [],
+                            "email_cc": False,
+                            "auto_delete": False,
+                            # Replies thread on the source record, not on this evidence row.
+                            "model": self.source_model,
+                            "res_id": self.source_res_id,
+                            "attachment_ids": [(4, attachment.id) for attachment in attachments],
+                        },
+                    )
+        except Exception:
+            _logger.exception("Linda %s could not be rendered or queued for request %s", self.purpose, self.id)
+            self.write({"state": "blocked", "state_reason": "render_failed"})
+            return
+        self.write({"subject": subject, "mail_id": mail_id, "queued_at": mail_id and fields.Datetime.now()})
+
+    def _typed_block_reason(self):
+        """Re-resolve the typed source at send time; any drift withholds the queued mail."""
+        self.ensure_one()
+        if not self.env.ref(TYPED_SPECS[self.purpose].template, raise_if_not_found=False):
+            return "template_missing"
+        snapshot = self._snapshot()
+        resolved = self._linda_resolve(
+            self.source_kind,
+            self.purpose,
+            self.source_res_id,
+            self.partner_id,
+            revision_key=self.source_revision_key,
+            attachment_ids=snapshot.get("attachment_ids") or [],
+            recheck=True,
+        )
+        if resolved["status"] != "applied":
+            return resolved.get("reason") or resolved["status"]
+        if resolved["company"] != self.company_id or resolved["partner"] != self.partner_id:
+            return "party_changed"
+        if email_normalize(resolved["recipient_email"] or "") != self.recipient_email:
+            return "party_changed"
+        if resolved["revision_key"] != self.source_revision_key:
+            return "source_revision_changed"
+        if self._typed_fingerprint(resolved) != self.payload_fingerprint:
+            return "payload_changed"
+        return False
+
+    # ── Frozen command (TECHNICAL_CONTRACT_v2.7 target_command_signatures[11]) ──
+
+    @api.model
+    def request_booking_correspondence(
+        self,
+        booking_id,
+        accepted_revision_id,
+        purpose,
+        audience_partner_id,
+        recipient_email,
+        attachment_original_ids,
+        source_payload_fingerprint,
+        operation_key,
+    ):
+        """Linda's one sender for booking issue/amend/cancel mail (BRS-EXP-03-R005, BRS-EXP-10-R002).
+
+        Export only assembles context: the registered ``booking`` resolver proves the
+        accepted revision, audience, attachments and payload. Without that resolver
+        (Export not installed) the answer is ``not_available``. Returns
+        ``applied | already_applied | stale | blocked | ambiguous | not_available``.
+        """
+        if purpose not in BOOKING_PURPOSES:
+            return {"status": "not_available", "reason": f"unknown booking purpose {purpose!r}"}
+        if not operation_key:
+            return {"status": "blocked", "reason": "operation_key_required"}
+        partner = self.env[RES_PARTNER].browse(audience_partner_id).exists()
+        if not partner:
+            return {"status": "blocked", "reason": "audience_not_found"}
+        resolved = self._linda_resolve(
+            SOURCE_BOOKING,
+            purpose,
+            booking_id,
+            partner,
+            accepted_revision_id=accepted_revision_id,
+            recipient_email=recipient_email,
+            attachment_ids=list(attachment_original_ids or []),
+        )
+        if resolved["status"] != "applied":
+            return {"status": resolved["status"], "reason": resolved.get("reason")}
+        if email_normalize(recipient_email or "") != email_normalize(resolved["recipient_email"] or ""):
+            return {"status": "blocked", "reason": "recipient_not_audience"}
+        if sorted(attachment_original_ids or []) != sorted(resolved.get("attachment_ids") or []):
+            return {"status": "stale", "reason": "attachments_changed"}
+        evidence = self.sudo()  # sudo: Linda records request evidence; the resolver already proved the caller's source
+        return evidence._record_typed(purpose, resolved, operation_key, source_payload_fingerprint)
+
+    # ── Load obligation sweep (five-minute ACK job) ──────────
+
+    @api.model
+    def _run_load_obligations(self, loads=None):
+        """Record due ACK notices/escalations and approved document chases; withhold expired ones.
+
+        Each obligation is recorded once per purpose, revision and audience however
+        often the job polls. A queued obligation whose source no longer needs it
+        (acknowledged, evidence received, state moved) is canceled before any claim.
+        """
+        Load = self.env["plasticos.load"]
+        now = fields.Datetime.now()
+        if loads is None:
+            loads = Load.search(
+                [
+                    ("dispatch_sent", "!=", False),
+                    ("dispatch_sent", "<=", now - ACK_NOTICE_AFTER),
+                    ("dispatch_acknowledged", "=", False),
+                    ("state", "in", list(ACK_LOAD_STATES)),
+                ],
+                order="dispatch_sent asc",
+                limit=200,
+            )
+            if "scale_ticket_reminder_sent" in Load._fields:
+                loads |= Load.search(
+                    [
+                        ("scale_ticket_reminder_sent", "=", True),
+                        ("actual_delivery_at", "!=", False),
+                        ("state", "in", list(CHASE_LOAD_STATES)),
+                    ],
+                    order="actual_delivery_at asc",
+                    limit=200,
+                )
+        results = []
+        for load in loads:
+            for purpose in ("load_ack_notice", "load_ack_escalation", "document_chase"):
+                for partner in self._load_audiences(load, purpose):
+                    resolved = self._linda_resolve(SOURCE_LOAD, purpose, load.id, partner)
+                    if resolved["status"] != "applied":
+                        continue
+                    with self.env.cr.savepoint():
+                        results.append(self._record_typed(purpose, resolved))
+        queued = self.search([("source_kind", "=", SOURCE_LOAD), ("state", "=", "queued")])
+        for request in queued:
+            if not request.send_attempt_count and (reason := request._current_block_reason()):
+                request._cancel_queued(reason)
+        return results

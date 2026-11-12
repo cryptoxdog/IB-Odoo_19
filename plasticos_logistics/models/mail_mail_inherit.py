@@ -14,11 +14,19 @@ SMTP; a manual "Send Now" keeps native transactional semantics.
 An issue mail is held, untouched and still outgoing, until an earlier
 cancellation notice to the same party is confirmed sent. Selection in the
 same batch is not delivery. Unknown and failed notices keep the hold.
+
+The claim is the logical send authorization (S4, V06). It takes the source row
+lock first (the order revision acceptance uses), then the request row, and
+re-reads the current source, recipient and payload under both locks. A
+revision that won the source lock first leaves the old unclaimed mail canceled
+before SMTP; a claim that won first is kept, and the later revision treats it
+as in-flight history. Ordinary mail never reaches this path.
 """
 
 import smtplib
 
 from odoo import models
+from odoo.exceptions import LockError
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
 REQUEST_TABLE = "plasticos_logistics_request"
@@ -91,6 +99,23 @@ class MailMailInherit(models.Model):
             raise RuntimeError("Linda request storage name drifted")
         requests.flush_model()
         self.env.cr.execute(
+            "SELECT id FROM plasticos_logistics_request WHERE mail_id = %s AND state = %s",
+            (mail.id, "queued"),
+        )
+        candidates = [row[0] for row in self.env.cr.fetchall()]
+        if not candidates:
+            return "skip" if requests.search([("mail_id", "=", mail.id)], limit=1) else "send"
+        if len(candidates) != 1:
+            return "skip"
+        source_model, source_id = requests.browse(candidates[0])._source_lock_target()
+        try:
+            with self.env.cr.savepoint():
+                # Source before request: the same order revision acceptance uses.
+                requests._lock_source(source_model, source_id)
+        except LockError:
+            # A revision is being accepted on this source; decide on the next queue run.
+            return "skip"
+        self.env.cr.execute(
             """
             SELECT id, COALESCE(send_attempt_count, 0)
               FROM plasticos_logistics_request
@@ -102,12 +127,18 @@ class MailMailInherit(models.Model):
         )
         rows = self.env.cr.fetchall()
         if not rows:
-            return "skip" if requests.search([("mail_id", "=", mail.id)], limit=1) else "send"
+            return "skip"
         if len(rows) != 1 or rows[0][1]:
             return "skip"
         request_id, attempt_count = rows[0]
         request = requests.browse(request_id)
-        request.invalidate_recordset(["send_attempt_count", "state"])
+        # Re-read what other transactions committed before the locks were granted.
+        self.env.invalidate_all()
+        reason = request._current_block_reason()
+        if reason:
+            # The source moved before this claim: the unclaimed mail never reaches SMTP.
+            request._cancel_queued(reason)
+            return "skip"
         # Same field write as _mark_attempt, bound to the locked row.
         request.write({"send_attempt_count": attempt_count + 1})
         return "claimed"

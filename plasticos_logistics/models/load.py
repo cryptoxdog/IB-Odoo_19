@@ -2086,7 +2086,14 @@ class PlasticosLoad(models.Model):
         job creates one internal escalation activity per load per day. It does not
         resend the full dispatch packet: a blind resend could repeat an
         instruction whose first delivery outcome is unknown (BRS-EXP-10-R004).
+
+        The job polls every five minutes (S4, V10). Linda records the +2h carrier
+        reminder and the +4h carrier and ops escalation as request obligations,
+        once each per actual sent time and audience, and withholds one whose load
+        no longer needs it. Neither carries the packet.
         """
+        # sudo: the scheduler records Linda evidence, which only Linda's sudo writer may create
+        self.env["plasticos.logistics.request"].sudo()._run_load_obligations()
         threshold_hours = 4
         threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
 

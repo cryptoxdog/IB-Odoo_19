@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Logistics Engine",
-    "version": "19.0.1.14.20",
+    "version": "19.0.1.14.21",
     "summary": "Load management and dispatch",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -24,6 +24,9 @@
         "data/linda_po_mail_template.xml",
         "data/linda_so_mail_template.xml",
         "data/linda_order_cancel_mail_templates.xml",
+        "data/linda_booking_mail_template.xml",
+        "data/linda_dispatch_ack_notice.xml",
+        "data/linda_document_chase.xml",
         "data/linda_inbound_ai.xml",
         "views/load_views.xml",
         "views/freight_views.xml",
