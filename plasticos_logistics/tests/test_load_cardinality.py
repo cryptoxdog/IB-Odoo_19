@@ -1412,6 +1412,8 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        # D5: carrier mail is sent from the load's own company and nothing stands in for it.
+        cls.company.email = "dispatch@s4-composer-company.example"
         cls.supplier = cls.env["res.partner"].create(
             {"name": "S4 Composer Mill", "is_company": True, "supplier_rank": 1, "street": "2 Mill Rd"}
         )
@@ -1518,6 +1520,8 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         self.assertFalse(load.dispatch_sent, "queueing is not sending")
         with sink[0], sink[1], sink[2]:
             self.env["mail.mail"].process_email_queue(email_ids=packet_mails.ids)
+        for mail in packet_mails.exists():
+            self.assertEqual(mail.state, "sent", self._mail_diagnosis(mail))
         load.invalidate_recordset()
         self.assertTrue(load.dispatch_sent, "a confirmed send stamps the clock")
         stamped = load.dispatch_sent
@@ -1533,6 +1537,29 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
             patch.object(server_class, "_connect__", lambda *args, **kwargs: None),
             patch.object(server_class, "send_email", lambda server, message, *a, **k: message["Message-Id"]),
         )
+
+    def _last_load_mail(self, load):
+        return self.env["mail.mail"].search(
+            [("model", "=", "plasticos.load"), ("res_id", "=", load.id)], order="id desc", limit=1
+        )
+
+    @staticmethod
+    def _mail_diagnosis(mail):
+        return (
+            f"state={mail.state} failure={mail.failure_type} {mail.failure_reason} from={mail.email_from} "
+            f"to={mail.email_to} partners={mail.recipient_ids.mapped('email')}"
+        )
+
+    def test_a_company_without_its_own_sender_never_confirms_a_packet(self):
+        """D5 fails closed: no sender address means no confirmed send and no ACK clock."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        self.company.email = False
+        sink = self._sink()
+        with sink[0], sink[1], sink[2]:
+            self.assertFalse(load.action_send_dispatch_direct())
+        self.assertNotEqual(self._last_load_mail(load).state, "sent")
+        self.assertFalse(load.dispatch_sent, "an unsent packet never starts the clock")
 
     def test_one_invalid_co_recipient_does_not_stop_the_clock(self):
         """Review O2: the transport's sent state is the gate, not the absence of any failure_type."""
@@ -1563,7 +1590,8 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         load.action_dispatch()
         sink = self._sink()
         with sink[0], sink[1], sink[2]:
-            self.assertTrue(load.action_send_dispatch_direct())
+            sent = load.action_send_dispatch_direct()
+            self.assertTrue(sent, self._mail_diagnosis(self._last_load_mail(load)))
             first = load.dispatch_sent
             self.assertTrue(first)
             with patch.object(fields.Datetime, "now", lambda *args, **kwargs: first + timedelta(hours=3)):
