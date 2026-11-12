@@ -1,19 +1,38 @@
 {
     "name": "PlasticOS Export",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "summary": "Export booking and shipment context over native and PlasticOS owners",
     "category": "PlasticOS",
     "author": "Igor Beylin",
     "license": "LGPL-3",
     # Export depends on its owners, never the reverse. plasticos_documents_native
-    # reaches Enterprise documents/documents_account and the Documents, Logistics,
-    # Transaction and Security Base modules. Add an owner here when Export first
-    # imports from it directly.
+    # reaches Enterprise documents/documents_account. The owners Export imports or
+    # extends directly are named too: Logistics (J1, load guard, Linda), Documents
+    # (obligations), Security Base (roles), native Purchase, Sale and Stock (cargo
+    # sources) and base_automation (booking reply trigger).
     "depends": [
+        "base_automation",
+        "purchase",
+        "sale",
+        "stock",
+        "plasticos_security_base",
+        "plasticos_logistics",
+        "plasticos_documents",
         "plasticos_documents_native",
     ],
-    # Scaffold: no data, views, ACL or reports yet; installing it writes nothing.
-    "data": [],
+    "data": [
+        "security/ir.model.access.csv",
+        "security/export_record_rules.xml",
+        "views/booking_views.xml",
+        "views/allocation_views.xml",
+        "views/shipment_views.xml",
+        "views/export_analysis_views.xml",
+        "views/export_menus.xml",
+        "report/export_report_actions.xml",
+        "report/report_booking_summary.xml",
+        "report/report_container_manifest.xml",
+        "data/linda_booking_inbound.xml",
+    ],
     "installable": True,
     "application": True,
     "auto_install": False,

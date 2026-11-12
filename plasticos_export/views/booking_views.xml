@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Export booking list, search, form and deadline calendar (RP-07-E049).
+    BRS-EXP-04-R005, BRS-EXP-13-R001..R010. The form shows the current accepted
+    revision as its source states it; every revision stays visible. Acceptance
+    runs only through Accept Revision (compare-and-set), never by editing fields.
+-->
+<odoo>
+    <record id="view_export_booking_list" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.list</field>
+        <field name="model">plasticos.export.booking</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="carrier_booking_no"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="carrier_id"/>
+                <field name="issuer_id" optional="hide"/>
+                <field name="current_steamship_line_id"/>
+                <field name="current_pol_text"/>
+                <field name="current_pod_text"/>
+                <field name="current_erd_utc"/>
+                <field name="current_cargo_cutoff_utc"/>
+                <field name="slot_confirmed_count"/>
+                <field name="slot_committed_count"/>
+                <field name="slot_available_count"/>
+                <field name="slot_held_count" optional="hide"/>
+                <field name="display_state" widget="badge" decoration-success="display_state == 'confirmed'" decoration-warning="display_state == 'held'" decoration-danger="display_state == 'cancelled'" decoration-info="display_state == 'candidate'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_export_booking_search" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.search</field>
+        <field name="model">plasticos.export.booking</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="carrier_booking_no"/>
+                <field name="source_occurrence_key"/>
+                <field name="carrier_id"/>
+                <field name="issuer_id"/>
+                <field name="current_steamship_line_id"/>
+                <field name="current_pol_text"/>
+                <field name="current_pod_text"/>
+                <field name="slot_ids" string="Container No." filter_domain="[('slot_ids.journey_id.iso_number', 'ilike', self)]"/>
+                <field name="slot_ids" string="Seal" filter_domain="[('slot_ids.journey_id.seal_number', 'ilike', self)]"/>
+                <field name="slot_ids" string="Supplier PO" filter_domain="[('slot_ids.cargo_link_ids.purchase_order_id.name', 'ilike', self)]"/>
+                <field name="slot_ids" string="Customer SO" filter_domain="[('slot_ids.cargo_link_ids.sale_order_id.name', 'ilike', self)]"/>
+                <filter name="filter_awaiting" string="Awaiting Carrier Confirmation" domain="[('display_state', '=', 'candidate')]"/>
+                <filter name="filter_confirmed" string="Confirmed" domain="[('display_state', '=', 'confirmed')]"/>
+                <filter name="filter_held" string="Held" domain="[('display_state', '=', 'held')]"/>
+                <filter name="filter_cancelled" string="Rolled/Cancelled" domain="[('display_state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter name="filter_available" string="Available Bookings" domain="[('slot_ids.allocation_state', '=', 'available')]"/>
+                <filter name="filter_fully_allocated" string="Fully Allocated" domain="[('display_state', '=', 'confirmed'), ('slot_ids', '!=', False), ('slot_ids.allocation_state', 'not in', ['available', 'held'])]"/>
+                <filter name="filter_multi_supplier" string="Booking with Multiple Suppliers" domain="[('slot_ids.supplier_count', '>', 1)]"/>
+                <separator/>
+                <filter name="filter_cutoff_unknown" string="Cutoff Not Stated" domain="[('current_revision_id', '!=', False), ('current_cargo_cutoff_utc', '=', False)]"/>
+                <separator/>
+                <filter name="group_state" string="State" context="{'group_by': 'display_state'}"/>
+                <filter name="group_carrier" string="Carrier" context="{'group_by': 'carrier_id'}"/>
+                <filter name="group_line" string="Steamship Line" context="{'group_by': 'current_steamship_line_id'}"/>
+                <filter name="group_pol" string="Port of Loading" context="{'group_by': 'current_pol_text'}"/>
+                <filter name="group_pod" string="Port of Discharge" context="{'group_by': 'current_pod_text'}"/>
+                <filter name="group_cutoff" string="Cargo Cutoff" context="{'group_by': 'current_cargo_cutoff_utc:week'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_export_booking_form" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.form</field>
+        <field name="model">plasticos.export.booking</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="display_state" widget="statusbar" statusbar_visible="candidate,confirmed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_slots" type="object" class="oe_stat_button" icon="fa-cubes">
+                            <field name="slot_confirmed_count" widget="statinfo" string="Slots"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="carrier_booking_no" placeholder="Booking number as issued" readonly="current_revision_id"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identity">
+                            <field name="company_id" readonly="current_revision_id" groups="base.group_multi_company"/>
+                            <field name="issuer_id" readonly="current_revision_id"/>
+                            <field name="carrier_id"/>
+                            <field name="source_occurrence_key" readonly="current_revision_id"/>
+                        </group>
+                        <group string="Current Accepted Revision">
+                            <field name="current_revision_id"/>
+                            <field name="current_steamship_line_id"/>
+                            <field name="current_pol_text"/>
+                            <field name="current_pod_text"/>
+                            <field name="current_erd_utc"/>
+                            <field name="current_cargo_cutoff_utc"/>
+                        </group>
+                    </group>
+                    <group string="Capacity">
+                        <field name="slot_confirmed_count"/>
+                        <field name="slot_committed_count"/>
+                        <field name="slot_available_count"/>
+                        <field name="slot_held_count"/>
+                    </group>
+                    <notebook>
+                        <page string="Revisions" name="revisions">
+                            <field name="revision_ids" readonly="1">
+                                <list>
+                                    <field name="source_revision_key"/>
+                                    <field name="decision" widget="badge"/>
+                                    <field name="booking_status"/>
+                                    <field name="observed_at"/>
+                                    <field name="source_issued_at"/>
+                                    <field name="erd_local"/>
+                                    <field name="erd_tz"/>
+                                    <field name="cargo_cutoff_local"/>
+                                    <field name="cargo_cutoff_tz"/>
+                                    <field name="equipment_summary"/>
+                                    <field name="source_original_id"/>
+                                    <field name="source_message_id" optional="hide"/>
+                                    <field name="accepted_by" optional="hide"/>
+                                    <field name="supersedes_revision_id" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Shipments" name="shipments">
+                            <field name="slot_ids" readonly="1" context="{'active_test': False}">
+                                <list>
+                                    <field name="slot_key"/>
+                                    <field name="equipment_class"/>
+                                    <field name="allocation_state" widget="badge"/>
+                                    <field name="iso_number"/>
+                                    <field name="seal_number"/>
+                                    <field name="journey_equipment_class"/>
+                                    <field name="supplier_count"/>
+                                    <field name="hold_reason"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_export_booking_calendar" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.calendar</field>
+        <field name="model">plasticos.export.booking</field>
+        <field name="arch" type="xml">
+            <calendar date_start="current_cargo_cutoff_utc" color="current_steamship_line_id" mode="month">
+                <field name="carrier_booking_no"/>
+                <field name="current_pol_text"/>
+                <field name="display_state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_export_booking_revision_list" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.revision.list</field>
+        <field name="model">plasticos.export.booking.revision</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="booking_id"/>
+                <field name="source_revision_key"/>
+                <field name="decision" widget="badge"/>
+                <field name="booking_status"/>
+                <field name="observed_at"/>
+                <field name="equipment_summary"/>
+                <field name="source_original_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_export_booking_revision_form" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.revision.form</field>
+        <field name="model">plasticos.export.booking.revision</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0">
+                <header>
+                    <button name="action_accept_from_form" type="object" string="Accept Revision" class="btn-primary" invisible="decision != 'candidate'" groups="plasticos_security_base.group_logistics"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="decision != 'candidate'" groups="plasticos_security_base.group_logistics"/>
+                    <field name="decision" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Source">
+                            <field name="booking_id" readonly="1"/>
+                            <field name="source_revision_key" readonly="1"/>
+                            <field name="source_original_id" readonly="1"/>
+                            <field name="source_message_id" readonly="1"/>
+                            <field name="observed_at" readonly="1"/>
+                            <field name="source_issued_at" readonly="1"/>
+                            <field name="booking_status"/>
+                        </group>
+                        <group string="Stated Terms">
+                            <field name="carrier_booking_no" readonly="1"/>
+                            <field name="steamship_line_id" readonly="1"/>
+                            <field name="pol_text" readonly="1"/>
+                            <field name="pod_text" readonly="1"/>
+                            <field name="equipment_summary"/>
+                        </group>
+                        <group string="Earliest Return Date">
+                            <field name="erd_local" readonly="1"/>
+                            <field name="erd_tz" readonly="1"/>
+                            <field name="erd_precision" readonly="1"/>
+                            <field name="erd_utc" readonly="1"/>
+                        </group>
+                        <group string="Cargo Cutoff">
+                            <field name="cargo_cutoff_local" readonly="1"/>
+                            <field name="cargo_cutoff_tz" readonly="1"/>
+                            <field name="cargo_cutoff_precision" readonly="1"/>
+                            <field name="cargo_cutoff_utc" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Decision">
+                        <field name="review_note" readonly="decision != 'candidate'" placeholder="Why this source is accepted"/>
+                        <field name="acceptance_basis"/>
+                        <field name="accepted_by"/>
+                        <field name="accepted_at"/>
+                        <field name="supersedes_revision_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_export_booking" model="ir.actions.act_window">
+        <field name="name">Bookings</field>
+        <field name="res_model">plasticos.export.booking</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="search_view_id" ref="view_export_booking_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a booking for a carrier reservation</p>
+            <p>Attach the carrier's original confirmation, record it as a candidate revision and accept it.</p>
+        </field>
+    </record>
+
+    <record id="action_export_booking_deadlines" model="ir.actions.act_window">
+        <field name="name">Deadlines</field>
+        <field name="res_model">plasticos.export.booking</field>
+        <field name="view_mode">calendar,list,form</field>
+        <field name="domain">[('current_revision_id', '!=', False)]</field>
+        <field name="search_view_id" ref="view_export_booking_search"/>
+    </record>
+</odoo>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Booking-only Linda inbound trigger (RP-04-E011, V07, BRS-EXP-10-R002/R004).
+
+    A native base.automation on mail.message creation hands Linda's existing
+    response owner exactly the incoming emails just created on an Export
+    booking. Linda binds a reply only through the saved native header ancestry
+    of a Linda booking request; a missing original, wrong party, forward or stale
+    reply is withheld by that owner. The Logistics PO/SO trigger
+    (plasticos_logistics.automation_linda_incoming_reply) stays untouched, so a
+    booking reply is never recorded twice. Linda is inert in its default "off"
+    mode: no external effect.
+-->
+<odoo noupdate="1">
+    <record id="action_linda_record_booking_reply" model="ir.actions.server">
+        <field name="name">Linda: Record Incoming Booking Reply</field>
+        <field name="model_id" ref="mail.model_mail_message"/>
+        <field name="state">code</field>
+        <field name="code">env["plasticos.logistics.response"]._record_incoming(records)</field>
+    </record>
+
+    <record id="automation_linda_incoming_booking_reply" model="base.automation">
+        <field name="name">Linda: Incoming Reply on Export Booking</field>
+        <field name="model_id" ref="mail.model_mail_message"/>
+        <field name="trigger">on_create</field>
+        <field name="filter_domain">[("message_type", "=", "email"), ("model", "=", "plasticos.export.booking")]</field>
+        <field name="action_server_ids" eval="[(6, 0, [ref('plasticos_export.action_linda_record_booking_reply')])]"/>
+    </record>
+</odoo>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Booking summary (RP-07-E055, BRS-EXP-14-R003). Renders the current accepted
+    revision as its source stated it: local times with their zone and precision,
+    never converted or guessed. Every earlier revision is listed as history, so a
+    roll prints its predecessor as superseded. Unaccepted candidates never print
+    as booking terms.
+-->
+<odoo>
+    <template id="report_booking_summary">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="booking">
+                <t t-call="web.external_layout">
+                    <t t-set="revision" t-value="booking.current_revision_id"/>
+                    <div class="page">
+                        <h2>Booking Summary <span t-out="booking.carrier_booking_no or 'unconfirmed'"/></h2>
+                        <p class="text-muted">
+                            Export-generated summary, not the carrier's confirmation.
+                            As of <span t-out="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M %Z')"/>.
+                        </p>
+                        <table class="table table-sm o_booking_identity">
+                            <tr><th>Company</th><td t-out="booking.company_id.name"/></tr>
+                            <tr><th>Issuer</th><td t-out="booking.issuer_id.name or ''"/></tr>
+                            <tr><th>Carrier</th><td t-out="booking.carrier_id.name or ''"/></tr>
+                            <tr><th>Source booking cycle</th><td t-out="booking.source_occurrence_key or ''"/></tr>
+                        </table>
+                        <t t-if="not revision">
+                            <p class="o_no_accepted_revision">No accepted revision: this booking has no confirmed terms yet.</p>
+                        </t>
+                        <t t-else="">
+                            <h4>Current terms (revision <span class="o_current_revision" t-out="revision.source_revision_key"/>)</h4>
+                            <table class="table table-sm">
+                                <tr><th>Steamship line</th><td t-out="revision.steamship_line_id.name or 'not stated'"/></tr>
+                                <tr><th>Port of loading</th><td t-out="revision.pol_text or 'not stated'"/></tr>
+                                <tr><th>Port of discharge</th><td t-out="revision.pod_text or 'not stated'"/></tr>
+                                <tr>
+                                    <th>Earliest return date</th>
+                                    <td>
+                                        <t t-if="revision.erd_precision == 'unknown'">not stated</t>
+                                        <t t-else=""><span t-out="revision.erd_local"/> <span t-out="revision.erd_tz or '(zone not stated)'"/> (<span t-out="revision.erd_precision"/>)</t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Cargo cutoff</th>
+                                    <td>
+                                        <t t-if="revision.cargo_cutoff_precision == 'unknown'">not stated</t>
+                                        <t t-else=""><span t-out="revision.cargo_cutoff_local"/> <span t-out="revision.cargo_cutoff_tz or '(zone not stated)'"/> (<span t-out="revision.cargo_cutoff_precision"/>)</t>
+                                    </td>
+                                </tr>
+                                <tr><th>Equipment</th><td t-out="revision.equipment_summary or 'not stated'"/></tr>
+                                <tr><th>Stated status</th><td t-out="revision.booking_status or 'not stated'"/></tr>
+                                <tr><th>Source original</th><td t-out="revision.source_original_id.name or (revision.source_message_id and 'email') or ''"/></tr>
+                                <tr><th>Accepted</th><td><span t-out="revision.accepted_by.name"/>, <span t-field="revision.accepted_at"/></td></tr>
+                            </table>
+                            <h4>Capacity</h4>
+                            <table class="table table-sm">
+                                <tr><th>Confirmed slots</th><td t-out="booking.slot_confirmed_count"/></tr>
+                                <tr><th>Committed</th><td t-out="booking.slot_committed_count"/></tr>
+                                <tr><th>Available</th><td t-out="booking.slot_available_count"/></tr>
+                                <tr><th>Held</th><td t-out="booking.slot_held_count"/></tr>
+                            </table>
+                        </t>
+                        <h4>Revision history</h4>
+                        <table class="table table-sm o_revision_history">
+                            <thead><tr><th>Revision</th><th>Decision</th><th>Observed</th><th>Equipment</th><th>Currentness</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="booking.revision_ids" t-as="past">
+                                    <td t-out="past.source_revision_key"/>
+                                    <td t-out="past.decision"/>
+                                    <td><span t-field="past.observed_at"/></td>
+                                    <td t-out="past.equipment_summary"/>
+                                    <td>
+                                        <t t-if="past == revision">current</t>
+                                        <t t-elif="past.decision == 'accepted'">superseded</t>
+                                        <t t-else="">not accepted</t>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

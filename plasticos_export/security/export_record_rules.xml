@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Company isolation for every Export record (RP-07-E048, BRS-EXP-14-R012).
+    Global rules: they apply to every read, write, create and unlink path and to
+    every report and list row. A user sees only bookings, revisions, slots and
+    cargo links of the companies currently allowed to them.
+-->
+<odoo>
+    <record id="rule_export_booking_company" model="ir.rule">
+        <field name="name">Export booking: allowed companies</field>
+        <field name="model_id" ref="plasticos_export.model_plasticos_export_booking"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_export_revision_company" model="ir.rule">
+        <field name="name">Export booking revision: allowed companies</field>
+        <field name="model_id" ref="plasticos_export.model_plasticos_export_booking_revision"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_export_slot_company" model="ir.rule">
+        <field name="name">Export booking slot: allowed companies</field>
+        <field name="model_id" ref="plasticos_export.model_plasticos_export_booking_slot"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_export_cargo_link_company" model="ir.rule">
+        <field name="name">Export cargo link: allowed companies</field>
+        <field name="model_id" ref="plasticos_export.model_plasticos_export_booking_cargo_link"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

@@ -1,2 +1,2 @@
-# PlasticOS Export: installable scaffold (campaign slice S5A).
-# No models yet. Later slices import their packages here, e.g. `from . import models`.
+# PlasticOS Export: booking, revisions, slots and cargo links (campaign slice S5B).
+from . import models

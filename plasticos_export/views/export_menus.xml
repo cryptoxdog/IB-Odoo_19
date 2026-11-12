@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Export menu (RP-07-E053, BRS-EXP-04-R005, BRS-EXP-14-R017): Overview,
+    Bookings, Allocations, Shipments, Deadlines and the six Reporting entries.
+    No Phase 2 provider action (FindTEU, AESDirect) exists here.
+-->
+<odoo>
+    <menuitem id="menu_export_root" name="Export" sequence="62" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,plasticos_security_base.group_sales_rep"/>
+    <menuitem id="menu_export_overview" name="Overview" parent="menu_export_root" action="action_export_report_availability" sequence="1"/>
+    <menuitem id="menu_export_bookings" name="Bookings" parent="menu_export_root" action="action_export_booking" sequence="10"/>
+    <menuitem id="menu_export_allocations" name="Allocations" parent="menu_export_root" action="action_export_slot" sequence="20"/>
+    <menuitem id="menu_export_cargo" name="Cargo" parent="menu_export_root" action="action_export_cargo_link" sequence="25"/>
+    <menuitem id="menu_export_shipments" name="Shipments" parent="menu_export_root" action="action_export_shipments" sequence="30"/>
+    <menuitem id="menu_export_deadlines" name="Deadlines" parent="menu_export_root" action="action_export_booking_deadlines" sequence="40"/>
+    <menuitem id="menu_export_reporting" name="Reporting" parent="menu_export_root" sequence="90"/>
+    <menuitem id="menu_export_report_availability" name="Booking Space Availability" parent="menu_export_reporting" action="action_export_report_availability" sequence="1"/>
+    <menuitem id="menu_export_report_manifest" name="Booking Allocation / Container Manifest" parent="menu_export_reporting" action="action_export_report_manifest" sequence="2"/>
+    <menuitem id="menu_export_report_fulfillment" name="Open Supplier PO / Customer SO Fulfillment" parent="menu_export_reporting" action="action_export_report_fulfillment" sequence="3"/>
+    <menuitem id="menu_export_report_register" name="Container Shipment Register" parent="menu_export_reporting" action="action_export_report_register" sequence="4"/>
+    <menuitem id="menu_export_report_exceptions" name="Cutoff &amp; Booking Exceptions" parent="menu_export_reporting" action="action_export_report_exceptions" sequence="5"/>
+    <menuitem id="menu_export_report_missing_documents" name="Missing Export Documents" parent="menu_export_reporting" action="action_export_report_missing_documents" sequence="6"/>
+</odoo>

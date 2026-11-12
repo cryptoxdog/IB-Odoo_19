@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Export print reports (RP-07-E054, BRS-EXP-03-R004, BRS-EXP-14-R010).
+    Export-generated summaries, distinct from the carrier's original confirmation
+    (BRS-EXP-13-R010). Printing stores no attachment; retention stays with
+    Documents and sending stays with Linda. Record rules decide what prints.
+-->
+<odoo>
+    <record id="action_report_booking_summary" model="ir.actions.report">
+        <field name="name">Booking Summary</field>
+        <field name="model">plasticos.export.booking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">plasticos_export.report_booking_summary</field>
+        <field name="report_file">plasticos_export.report_booking_summary</field>
+        <field name="print_report_name">'Booking Summary - %s' % (object.carrier_booking_no or object.id)</field>
+        <field name="binding_model_id" ref="plasticos_export.model_plasticos_export_booking"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_container_manifest" model="ir.actions.report">
+        <field name="name">Container Manifest</field>
+        <field name="model">plasticos.export.booking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">plasticos_export.report_container_manifest</field>
+        <field name="report_file">plasticos_export.report_container_manifest</field>
+        <field name="print_report_name">'Container Manifest - %s' % (object.carrier_booking_no or object.id)</field>
+        <field name="binding_model_id" ref="plasticos_export.model_plasticos_export_booking"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
