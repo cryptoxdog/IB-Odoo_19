@@ -753,8 +753,28 @@ class TestLindaRound2(_LindaCase):
             text = " ".join(filter(None, (row.edge_reason, row.result_reason, row.arguments)))
             self.assertNotIn("other-company-ticket", text, "nothing stored for Linda names an original she cannot see")
         self.assertFalse(load.actual_pickup_at)
-        with self.assertRaises(AccessError):
+        with self.assertRaises(AccessError) as refused:
             load.with_user(self.logistics).action_record_actual_event("pickup", self._ago(6), hidden)
+        self.assertNotIn("other-company-ticket", str(refused.exception))
+
+    # R9 ──────────────────────────────────────────────────────────────
+    def test_approving_a_hidden_original_stores_no_attachment_name(self):
+        other = self.env["res.company"].create({"name": "S11 R9 Other Co"})
+        foreign = self._load(company_id=other.id)
+        hidden = self._attach(foreign, "other-company-ticket.pdf")
+        hidden.company_id = other
+        load = self._load()
+        held = load.with_user(self.linda).action_record_actual_event("pickup", self._ago(6), hidden)
+        approval = self._held(held, "evidence_unverified", "record_actual_event")
+        self._approve(approval)
+        self.assertEqual(approval.state, "approved")
+        self.assertNotEqual(approval.result_status, "applied")
+        self.assertFalse(load.actual_pickup_at)
+        for row in self.env[APPROVAL].search([("subject_key", "=", f"load:{load.id}")]):
+            text = " ".join(filter(None, (row.edge_reason, row.result_reason, row.arguments)))
+            self.assertNotIn(
+                "other-company-ticket", text, "an approved run stores nothing that names a hidden original"
+            )
 
     # R5 ──────────────────────────────────────────────────────────────
     def test_actual_event_correction_without_reason_is_refused_not_held(self):

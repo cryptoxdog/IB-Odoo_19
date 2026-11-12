@@ -69,6 +69,7 @@ _ACTUAL_EVENT_EVIDENCE_MARKERS = (
     "must belong to the load's company",
 )
 _ACTUAL_EVENT_SEQUENCE_MARKERS = ("cannot be before actual pickup",)
+ORIGINAL_NOT_VISIBLE = "The original document is not visible to you."
 
 
 # Load fields Linda changes only through a gated command or an approval (C12 round 2, R1).
@@ -1976,11 +1977,14 @@ class PlasticosLoad(models.Model):
         attachment = attachment.exists() if attachment else attachment
         if not attachment:
             raise UserError("An actual pickup or delivery needs the original document that attests it.")
-        attachment.check_access("read")
+        from .linda_approval import original_hidden
+
+        if not self.env.su and original_hidden(self.env, attachment):
+            # R9: an original the caller cannot see is refused without naming it, for every caller.
+            raise AccessError(ORIGINAL_NOT_VISIBLE)
         if attachment.res_model != PLASTICOS_LOAD or attachment.res_id != self.id:
             raise ValidationError(
-                f"Evidence {attachment.display_name} is not attached to load {self.name}. "
-                "Attach the original to this load first."
+                f"The evidence is not attached to load {self.name}. Attach the original to this load first."
             )
         if attachment.company_id and attachment.company_id != self.company_id:
             raise ValidationError("Actual-event evidence must belong to the load's company.")

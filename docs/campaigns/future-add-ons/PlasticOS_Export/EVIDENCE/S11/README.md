@@ -66,6 +66,8 @@ Gated commands are called only by people or RPC: `action_propose_shipment_event`
 
 `ir.attachment.check_access("read")` can pass for an attachment whose record Linda cannot read (another company's load or journey), so the coordinator's runtime at `652b650a` saw the actual-event refusal "Evidence <name> is not attached to load …" stored in her ledger. `linda_approval.original_hidden()` now treats an original as hidden when the attachment, its company or the record it is attached to is not readable by the actor, and both Linda gates (`load._linda_actual_event_gate`, `iso_journey_fact._preconditions`) hold it as `evidence_unverified` with a neutral reason before any refusal text is built. No reason, edge or ledger text stored for Linda names such an original; hold arguments carry attachment ids only. A person keeps today's behaviour.
 
+Round 4 (R9): `ir.attachment.check_access` passes for a person too, so the person's "not attached" refusal named another company's attachment, and an approved held run (as Linda under the approval token, where her gate is skipped) stored that text in `result_reason`. `load._require_actual_event_attachment` now calls `original_hidden()` for every non-superuser caller before comparing the attachment's record, and raises `AccessError("The original document is not visible to you.")`, which names nothing. The not-attached `ValidationError` no longer carries the attachment's name, only the load's. Linda's gate is unchanged. Witness: `test_approving_a_hidden_original_stores_no_attachment_name`, and the R2 witness now checks that the person's `AccessError` text has no attachment name.
+
 ### Kill switch (round 2, R3)
 
 The operator stops Linda by archiving `user_linda`. `data/linda_user.xml` does not set `active`, so a module upgrade never reactivates her, and the `plasticos_security_base` grant stays. While she is archived:
@@ -103,6 +105,7 @@ Removing her Logistics group is not a supported stop: her commands would raise `
 | Coordinator runtime at `fb257cb2` (fresh template clone) | 754 run, 0 failed, 0 errors; install-smoke PASSED; rerun on the round 2 head PENDING_COORDINATOR |
 | Coordinator runtime at `652b650a` | 762 run, 1 failed (R8, fixed in `87dca375`), 0 errors; install-smoke PASSED; S10 → S11 migration proof PASSED |
 | Round 3 code head `87dca375`: `pytest tests/`, pre-commit `e71599d5..87dca375`, `make audit-baseline`, gate-reach scan | 3076 passed / 0 failed; all hooks passed; no new finding; 47 entry points, 0 gated paths. Runtime of the S11 tests at this head: PENDING_COORDINATOR (this container's fixture is not admitted) |
+| Coordinator runtime at `4913fd94` | 767 run, 0 failed, 1 error (R2 witness: the person got the named not-attached `ValidationError`; fixed by R9); install-smoke PASSED; S10 → S11 migration proof PASSED, rerun identical |
 | Coordinator migration proof at `0beb2eb4` (S10 clone with gate_in + container_tare facts and two cursor parameters) | Passed (revision 1, unique key, cursors moved, correction appends revision 2, idempotent rerun) |
 | Coordinator runtime at `0beb2eb4` | 732 run, 1 failed, 15 errors in test_s11_linda_approval (Linda grant skipped on upgrade under noupdate; fixed in `49c366ab`); rerun on the final head PENDING_COORDINATOR |
 | `pytest tests/test_phantom_enum_values.py tests/test_repo_dependency_integrity.py` at the E02 head | 63 passed |
