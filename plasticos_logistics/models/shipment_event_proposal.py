@@ -37,6 +37,8 @@ RES_PARTNER = "res.partner"
 _DECISION_WRITE = "plasticos_shipment_event_proposal_decision"
 _DECISION_WRITE_TOKEN = object()
 
+# Linda dispositions that still identify a current reply on the right request.
+_USABLE_DISPOSITIONS = frozenset({"identity_unverified", "unresolved"})
 _LOAD_EVENTS = frozenset({"supplier_ready", "loaded"})
 _JOURNEY_EVENTS = frozenset({"gate_accepted", "sailed"})
 # Who may attest each event. A supplier cannot attest a terminal gate-in or a sailing.
@@ -223,9 +225,9 @@ class PlasticosShipmentEventProposal(models.Model):
             return "Attach the original to the proposal's load or container journey first."
         if attachment.company_id and attachment.company_id != self.company_id:
             return "Proposal evidence belongs to another company."
-        response = self.linda_response_id
-        if response and response.company_id != self.company_id:
-            return "The Linda reply belongs to another company."
+        error = self._linda_response_error()
+        if error:
+            return error
         if self.event_kind != "supplier_ready" and not self.occurred_at:
             return "A loaded, gate-in or sailing proposal needs the time it happened."
         if self.event_kind == "gate_accepted" and not self.facility_partner_id:
@@ -233,6 +235,36 @@ class PlasticosShipmentEventProposal(models.Model):
         if self.event_kind == "sailed" and not _normalize_text(self.vessel):
             return "A sailing proposal names the vessel."
         return None
+
+    def _linda_response_error(self):
+        """A cited Linda reply must answer the current request about this exact shipment.
+
+        It must be bound to its current request, keep a usable disposition, and be
+        about this load (its typed source, its sale order or a purchase order of its
+        transaction) or, for a journey, about a load accepted as a source of it.
+        """
+        self.ensure_one()
+        response = self.linda_response_id
+        if not response:
+            return None
+        if response.company_id != self.company_id:
+            return "The Linda reply belongs to another company."
+        if response.binding != "current" or response.disposition not in _USABLE_DISPOSITIONS:
+            return "The Linda reply is stale, unbound or unattributed; it cannot support a shipment event."
+        if self.load_id:
+            loads = self.load_id
+        else:
+            loads = self.journey_id.source_ids.filtered(
+                lambda source: source.state == "accepted" and source.source_kind == "load"
+            ).load_id
+        for load in loads:
+            if response.source_kind == "load" and response.source_res_id == load.id:
+                return None
+            if response.sale_order_id and response.sale_order_id == load.sale_order_id:
+                return None
+            if response.purchase_order_id and response.purchase_order_id in load.transaction_id.purchase_order_ids:
+                return None
+        return "The Linda reply is not about this shipment."
 
     # ── Commands ──────────────────────────────────────────────────────
 

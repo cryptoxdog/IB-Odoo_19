@@ -324,6 +324,9 @@ class PlasticosIsoJourneyFact(models.Model):
         documents_basis = weight_basis == "documents_verified_gross_mass"
         if weight_basis not in ("scale_ticket", "documents_verified_gross_mass"):
             return _result("blocked", reason="a tare or VGM weight needs a scale ticket or the Documents VGM verdict")
+        if documents_basis and kind != "verified_gross_mass":
+            # A VGM verdict proves gross mass only; it is not a tare measurement.
+            return _result("blocked", reason="the Documents VGM verdict attests gross mass, not container tare")
         journey, attachment, blocked = self._preconditions(
             journey_id, evidence_attachment_id, key, attachment_required=not documents_basis
         )

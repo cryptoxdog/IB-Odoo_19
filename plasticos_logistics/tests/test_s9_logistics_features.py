@@ -372,6 +372,53 @@ class TestShipmentEventProposals(_S9Case):
         self.assertFalse(self._fact(journey, "gate_in"))
         self.assertEqual(after["journey"], before["journey"])
 
+    def _linda_reply(self, order, binding="current", disposition="unresolved"):
+        message = order.message_post(body="Booking complete. Ticket 1728952.")
+        return (
+            self.env["plasticos.logistics.response"]
+            .sudo()  # sudo: Linda evidence is recorded only under sudo, as its inbound handler does
+            .create(
+                {
+                    "company_id": order.company_id.id,
+                    "mail_message_id": message.id,
+                    "purchase_order_id": order.id,
+                    "binding": binding,
+                    "interpretation": "ai_not_run" if disposition == "unresolved" else "not_interpreted",
+                    "disposition": disposition,
+                }
+            )
+        )
+
+    def test_linda_reply_must_be_current_and_about_this_shipment(self):
+        """AC-EXP-09-007: a cited Linda reply must answer the current request on this exact shipment."""
+        po, _tx, loads = self._five_container_order()
+        load_1 = loads[0]
+        email = self._attach(load_1, "booking-complete.eml")
+        other_po = self.env["purchase.order"].create({"partner_id": self.supplier.id, "company_id": self.company.id})
+        values = {
+            "event_kind": "loaded",
+            "load_id": load_1.id,
+            "occurred_at": self._ago(30),
+            "evidence_attachment_id": email.id,
+            "asserted_by": "supplier_reported",
+        }
+        refused = {
+            "stale": self._linda_reply(po, binding="stale", disposition="stale"),
+            "unbound": self._linda_reply(po, binding="unbound", disposition="unbound"),
+            "unattributed": self._linda_reply(po, disposition="unattributed"),
+            "another order": self._linda_reply(other_po),
+        }
+        for label, reply in refused.items():
+            with self.subTest(label=label):
+                result = self._propose({**values, "linda_response_id": reply.id}, f"linda-{label}")
+                self.assertEqual(result["status"], "blocked")
+        current = self._linda_reply(po)
+        result = self._propose({**values, "linda_response_id": current.id}, "linda-current")
+        self.assertEqual(result["status"], "applied")
+        self.env["plasticos.shipment.event.proposal"].browse(result["record_id"]).action_accept()
+        self.assertTrue(load_1.actual_pickup_at)
+        self.assertEqual([load.actual_pickup_at for load in loads[1:]], [False] * 4)
+
     def test_booking_complete_cannot_attest_gate_in_or_sailing(self):
         """AC-EXP-09-007 / AC-EXP-11-010 negative: the keyword closes nothing and gate-in never appears."""
         po, tx, loads = self._five_container_order()
@@ -642,6 +689,22 @@ class TestContainerTareAndVgm(_S9Case):
         self.assertEqual(
             self._weigh("verified_gross_mass", journey, 9, self.lb, "scale_ticket", ticket, "T-1")["status"], "applied"
         )
+
+    def test_documents_vgm_verdict_cannot_record_tare(self):
+        """Negative: a VGM verdict proves gross mass only, so it never records a container tare."""
+        journey = self._journey("S9-TARE-FROM-VGM")
+        calls = []
+        with patch.object(
+            type(self.env["plasticos.document"]),
+            "get_scoped_evidence_verdict",
+            lambda *args: calls.append(args) or {"status": "applied", "record_id": 1},
+        ):
+            result = self._weigh(
+                "container_tare", journey, 8775, self.lb, "documents_verified_gross_mass", None, "rev-1"
+            )
+        self.assertEqual(result["status"], "blocked")
+        self.assertFalse(calls, "the Documents verdict is not even consulted for a tare")
+        self.assertFalse(self._fact(journey, "container_tare"))
 
     def test_tare_and_vgm_are_never_inferred(self):
         """Negative: no weight from the equipment class or a trailer type; unverified evidence is refused."""
