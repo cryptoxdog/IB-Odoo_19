@@ -17,6 +17,8 @@ Business rule change recorded in `plasticos_export/business_rules/SUPERSESSION.m
 | AC-EXP-14-022 | BRS-EXP-14-R022 | none replaced | adds `plasticos_export/tests/test_multicompany_permissions.py::TestMulticompanyPermissions::test_container_manifest_renders_for_a_sales_rep` |
 | AC-EXP-06-001 | BRS-EXP-06-R001 | partial witness `plasticos_export/tests/test_multicompany_permissions.py::TestMulticompanyPermissions::test_sales_rep_reads_only_cargo_on_their_own_sale_orders` removed | stays DEFERRED_COVERAGE_DEBT; no economics column was added (the link exposes names only) |
 
+Independent review of PR #482 at `ffd8f26b` (fixed in the same push): N1, order-name search uses the link's sudo-related `purchase_order_ref` / `sale_order_ref` / `supplier_ref` (related search uses `any!`), witness `plasticos_export/tests/test_multicompany_permissions.py::TestMulticompanyPermissions::test_sales_rep_finds_another_reps_allocation_by_order_name`; N2, non-Logistics list nodes show `supplier_ref` instead of the `supplier_id` Many2one, witness `plasticos_export/tests/test_multicompany_permissions.py::TestMulticompanyPermissions::test_private_supplier_never_blocks_the_sales_rep_list`; N6, the cargo One2many is compared as a set. Runtime fixes: the install witness pins 19.0.1.1.2; refused changes assert their exact exception; export runs for a rep with `base.group_allow_export` and the native refusal without it is asserted.
+
 Also documented: `plasticos_export/tests/test_multicompany_permissions.py::TestMulticompanyPermissions::test_sales_rep_and_logistics_user_sees_the_operations_view` (group rules are OR'ed).
 
 ## B. Bales as packaging (enrichment)
@@ -31,6 +33,14 @@ Web leads (contract effect OP7-E09, coordinator ruling option a): `plasticos_web
 - Gaylords (`GAY`) still maps to form OTHER in enrichment (final audit).
 - `plasticos.load` has no Logistics-wide record rule, so a user in both Sales Rep and Logistics gets the openable load reference but the Sales Rep load rule still governs reading another rep's load (`plasticos_security_base`, not changed here).
 
+## Review observations recorded, not changed here
+
+- N2 (rest): exporting an arbitrary Many2one, such as `supplier_id`, through the export dialog reads the partner in the reader's access, so a private partner is refused natively. That is correct native behaviour and is not changed.
+- N3: a user in both Sales Rep and Logistics reads every link (group rules are OR'ed) and gets the openable references; `plasticos.load` has no Logistics-wide rule, so the Sales Rep load rule still governs reading another rep's load.
+- N4: enrichment falls back to form OTHER for a bales material when the Bales packaging record is archived or missing (the packaging lookup returns nothing). Profiles created before S7 with form OTHER for bales are not merged into packaging-only profiles.
+- N5: `plasticos_enrichment/models/enrichment_run.py` merge always writes `source_type_id` when one is extracted, so it can overwrite an existing source type. This predates S7 and is not fixed here.
+- D1 (blocker, fixed): a bale form seen only in a photo now records packaging Bales on the web-lead intake (`plasticos_web_leads/tests/test_web_lead_bales_packaging.py::TestWebLeadBalesPackaging::test_photo_of_bales_sets_packaging_on_the_intake`).
+
 ## Runtime proof
 
-Not run in this coding session: `add_repo Quantum-L9/odoo-enterprise` was refused, so `make runtime-bootstrap`, install-smoke and `make runtime-test` were not run here. The coordinator runs them on the pushed head.
+Not run in this coding session: `add_repo Quantum-L9/odoo-enterprise` was refused. The coordinator ran install-smoke (PASSED) and `make runtime-test` on `ffd8f26b` (444 run, 1 failed, 2 errors, all S7 export test defects, fixed in this push) and re-runs the Export and Web Leads suites on the new head.

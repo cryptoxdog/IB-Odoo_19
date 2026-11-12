@@ -470,10 +470,13 @@ class PlasticosExportBookingCargoLink(models.Model):
     # order behind another rep's row stay owner-scoped. Lists, the container
     # manifest and exports print these names instead of traversing the source in
     # the reader's environment. Names only: no economics (BRS-EXP-06-R001).
+    # Searching them also bypasses the source rules (related search uses any!),
+    # so a Sales Rep finds another rep's allocation by its PO or SO name.
     source_load_ref = fields.Char(related="source_load_id.name", string="Source Load Ref")
     sale_order_ref = fields.Char(related="sale_line_id.order_id.name", string="Customer SO Ref")
     purchase_order_ref = fields.Char(related="purchase_line_id.order_id.name", string="Supplier PO Ref")
     original_ref = fields.Char(related="original_attachment_id.name", string="Original Ref")
+    supplier_ref = fields.Char(related="purchase_line_id.order_id.partner_id.name", string="Supplier Ref")
     po_constraint_display = fields.Text(
         compute="_compute_po_constraint_display",
         string="PO Constraints",

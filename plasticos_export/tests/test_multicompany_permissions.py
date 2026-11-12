@@ -11,6 +11,7 @@ allocation, read only, while the loads and orders behind it stay owner-scoped.
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
+from odoo.tools.safe_eval import safe_eval
 
 from .test_booking_and_revision import BOOKING, LINK, REVISION, SLOT, ExportFixtureMixin
 
@@ -235,7 +236,7 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(Link.search([("booking_id", "=", booking.id)]), everything.with_user(self.sales_reader))
         self.assertIn(data["other_link"].id, Link.search([]).ids)
         slots = booking.with_user(self.sales_reader).slot_ids
-        self.assertEqual(slots.cargo_link_ids.ids, everything.ids)
+        self.assertEqual(set(slots.cargo_link_ids.ids), set(everything.ids))
         values = data["other_link"].with_user(self.sales_reader).read(["supplier_id", "planned_quantity"])[0]
         self.assertEqual(values["planned_quantity"], 38000)
         groups = Link.formatted_read_group(
@@ -247,6 +248,91 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
         self.assertFalse(Link.search([("company_id", "=", self.company_b.id)]))
         with self.assertRaises(AccessError), self.env.cr.savepoint():
             data["foreign_link"].with_user(self.sales_reader).read(["allocation_key"])
+
+    def test_sales_rep_finds_another_reps_allocation_by_order_name(self):
+        """Operator decision 2026-11-12, BRS-EXP-14-R017: search matches the see-all audience.
+
+        The order-name search fields and the booking and slot "Supplier PO" and
+        "Customer SO" filters search the link's own name fields, which bypass the
+        order rules. Another rep's allocation is found by its sale order and its
+        purchase order name, though the orders themselves stay unreadable.
+        """
+        from lxml import etree
+
+        data = self._shared_allocations()
+        booking, link = data["booking"], data["other_link"]
+        so_name, po_name = data["other_order"].name, data["purchase"].name
+        Link = self.env[LINK].with_user(self.sales_reader)
+        self.assertIn(link.id, Link.search([("sale_order_ref", "ilike", so_name)]).ids)
+        self.assertIn(link.id, Link.search([("purchase_order_ref", "ilike", po_name)]).ids)
+        self.assertIn(link.id, Link.search([("supplier_ref", "ilike", self.suppliers[2].name)]).ids)
+        searches = (
+            ("plasticos_export.view_export_booking_search", BOOKING, booking),
+            ("plasticos_export.view_export_slot_search", SLOT, link.slot_id),
+        )
+        for xmlid, model, expected in searches:
+            arch = etree.fromstring(self.env.ref(xmlid).arch)
+            for node in arch.iter("field"):
+                domain = node.get("filter_domain") or ""
+                if "_ref" not in domain:
+                    continue
+                for name in (so_name, po_name):
+                    if ("sale_order_ref" in domain) != (name == so_name):
+                        continue
+                    found = self.env[model].with_user(self.sales_reader).search(safe_eval(domain, {"self": name}))
+                    self.assertIn(expected.id, found.ids, f"{xmlid} {node.get('string')} {name}")
+        link_search = etree.fromstring(self.env.ref("plasticos_export.view_export_cargo_link_search").arch)
+        names = {node.get("name") for node in link_search.iter("field")}
+        self.assertTrue({"purchase_order_ref", "sale_order_ref", "supplier_ref"} <= names)
+        self.assertFalse({"purchase_order_id", "sale_order_id", "supplier_id"} & names)
+
+    def test_private_supplier_never_blocks_the_sales_rep_list(self):
+        """Operator decision 2026-11-12 (review N2): a private supplier shows by name only and never raises.
+
+        A supplier marked private by another user is unreadable to the rep. The
+        rep's list shows the link's supplier name field, so list reads and the
+        list's default export do not traverse the partner.
+        """
+        from lxml import etree
+
+        booking, revision = self._populated_booking()
+        private = self.env["res.partner"].create(
+            {"name": "S7 Private Mill", "is_company": True, "supplier_rank": 1, "is_private": True}
+        )
+        with self.assertRaises(AccessError), self.env.cr.savepoint():
+            private.with_user(self.sales_reader).read(["name"])
+        purchase = self.env["purchase.order"].create(
+            {
+                "partner_id": private.id,
+                "order_line": [(0, 0, {"product_id": self.product.id, "product_qty": 5, "product_uom_id": self.lb.id})],
+            }
+        )
+        applied = (
+            booking.slot_ids.sorted("slot_key")[1]
+            .with_user(self.actor)
+            .action_commit_cargo({"purchase_line_id": purchase.order_line.id}, None, None, revision.id, self.key())
+        )
+        self.assertEqual(applied["status"], "applied", applied)
+        exporter = new_test_user(
+            self.env,
+            login="s7_export_private_supplier_reader",
+            groups="base.group_user,base.group_allow_export,plasticos_security_base.group_sales_rep",
+            company_id=self.company.id,
+            company_ids=[(6, 0, [self.company.id])],
+        )
+        Link = self.env[LINK].with_user(exporter)
+        arch = Link.get_views([(False, "list")])["views"]["list"]["arch"]
+        names = [node.get("name") for node in etree.fromstring(arch).iter("field") if node.get("name") in Link._fields]
+        self.assertIn("supplier_ref", names)
+        self.assertNotIn("supplier_id", names)
+        link = Link.browse(applied["record_id"])
+        spec = {
+            name: ({"fields": {"display_name": {}}} if Link._fields[name].type == "many2one" else {}) for name in names
+        }
+        values = link.web_read(spec)[0]
+        self.assertEqual(values["supplier_ref"], "S7 Private Mill")
+        rows = link.export_data(names)["datas"]
+        self.assertIn("S7 Private Mill", {str(value) for row in rows for value in row})
 
     def test_sales_rep_cannot_change_or_command_allocations(self):
         """Operator decision 2026-11-12: Sales Reps see allocations, never change them (BRS-EXP-14-R012)."""
