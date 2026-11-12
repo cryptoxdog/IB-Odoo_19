@@ -26,7 +26,6 @@ MATERIAL_SPEC_FIELDS = (
     "polymer_id",
     "material_grade_id",
     "form_id",
-    "color_id",
     "packaging_type_id",
     "source_type_id",
     "filler_type_id",
@@ -38,6 +37,7 @@ def material_spec_key(material):
     if not material:
         return ""
     parts = [f"{name}={material[name].id or 0}" for name in MATERIAL_SPEC_FIELDS]
+    parts.append("colors=" + ",".join(str(i) for i in sorted(material.color_ids.ids)))
     parts.append("attributes=" + ",".join(str(i) for i in sorted(material.material_attribute_ids.ids)))
     return ";".join(parts)
 

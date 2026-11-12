@@ -69,7 +69,7 @@ from .evidence_keys import (
 )
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
-from .material_catalog import CatalogEntry, accept_value, match_codes, match_distinct, match_one
+from .material_catalog import CatalogEntry, accept_value, match_codes, match_distinct, split_phrase
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, WEIGHT_SOURCE_AREA, replay_stored_mass
@@ -92,17 +92,56 @@ REVIEW_STATUS_APPROVED = "approved"
 # ── Pallet weight assumption when no lbs given ───────────────────────────────
 _LBS_PER_PALLET_ASSUMPTION = 1_500  # conservative: typical plastic pallet
 
-# Active master rows that triage may write. Inactive rows, including form BALES, stay out.
+# Active rows of the ten vocabulary masters. Inactive rows, including form BALES, stay out.
 _CATALOG_MODELS: tuple[tuple[str, str], ...] = (
     ("polymer", "plasticos.polymer"),
     ("form", "plasticos.material.form"),
     ("material_grade", "plasticos.material.grade"),
+    ("quality_tier", "plasticos.material.quality.tier"),
     ("source_type", "plasticos.source.type"),
     ("color", "plasticos.material.color"),
     ("attribute", "plasticos.material.attribute"),
     ("filler", "plasticos.filler.type"),
     ("packaging", "plasticos.packaging.type"),
+    ("process", "plasticos.process.type"),
 )
+_OMIT_ATTRIBUTE_CODES = frozenset({"reusable"})
+
+
+def _merged_attributes(
+    attribute_text: Any,
+    seller_attributes: tuple[str, ...],
+    photo_rows: list[dict[str, Any]],
+    catalog: Mapping[str, tuple[CatalogEntry, ...]],
+) -> tuple[str, ...]:
+    """Joint attribute codes, or the seller phrase plus photo codes. reusable is a quality tier."""
+    if isinstance(attribute_text, (list, tuple)):
+        attribute_text = " ".join(str(item) for item in attribute_text)
+    joint = tuple(
+        code
+        for code in match_codes(str(attribute_text or ""), catalog.get("attribute", ()))
+        if code.casefold() not in _OMIT_ATTRIBUTE_CODES
+    )
+    if joint:
+        return joint
+    photo_values = [
+        str(item)
+        for row in photo_rows
+        if isinstance(row, dict) and not row.get("error")
+        for item in (
+            row.get("observed_attributes")
+            if isinstance(row.get("observed_attributes"), (list, tuple))
+            else [row.get("observed_attributes")]
+        )
+        if item
+    ]
+    seen: list[str] = []
+    for code in (*seller_attributes, *match_codes(" ".join(photo_values), catalog.get("attribute", ()))):
+        if code.casefold() in _OMIT_ATTRIBUTE_CODES or code in seen:
+            continue
+        seen.append(code)
+    return tuple(seen)
+
 
 _FREQ_TO_DEAL: dict[str, str] = {
     "ongoing": "recurring",
@@ -928,6 +967,7 @@ class PlasticosWebLead(models.Model):
                 polymer=merged.get("polymer"),
                 form_code=merged.get("form"),
                 material_grade_code=merged.get("material_grade"),
+                quality_tier_code=merged.get("quality_tier"),
                 material_description=self.material_description,
                 estimated_lbs=merged.get("estimated_lbs", 0),
                 source_description=merged.get("source_description", ""),
@@ -1159,7 +1199,7 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def _material_catalog(self) -> dict[str, tuple[CatalogEntry, ...]]:
-        """Active master rows plus the intake process selection. Inactive rows stay out."""
+        """Active rows of the ten vocabulary masters. Inactive rows stay out."""
         catalog: dict[str, tuple[CatalogEntry, ...]] = {}
         for kind, model_name in _CATALOG_MODELS:
             model = self.env[model_name]
@@ -1167,16 +1207,12 @@ class PlasticosWebLead(models.Model):
             entries: list[CatalogEntry] = []
             for record in model.search(domain):
                 code = (record.code or "").strip()
-                if not code:
+                if not code or (kind == "attribute" and code.casefold() in _OMIT_ATTRIBUTE_CODES):
                     continue
                 description = record.description if "description" in record._fields else ""
                 full_name = record.full_name if "full_name" in record._fields else ""
                 entries.append(CatalogEntry(code, record.name or "", description or "", full_name or ""))
             catalog[kind] = tuple(entries)
-        selection = self.env["plasticos.intake"]._fields["origin_process_type"].selection
-        if callable(selection):
-            selection = selection(self.env["plasticos.intake"])
-        catalog["process"] = tuple(CatalogEntry(str(code), str(label), "") for code, label in (selection or []) if code)
         return catalog
 
     def _merge_ai_and_vision(
@@ -1293,12 +1329,14 @@ class PlasticosWebLead(models.Model):
                 notes = [str(v.get("contamination_notes") or "").strip() for v in dirty]
                 merged["contamination_notes"] = "; ".join(dict.fromkeys(note for note in notes if note)) or None
 
+        seller = split_phrase(declared_material, catalog)
+
         def _slot(ai_key: str, kind: str, photo_value: Any = None) -> str | None:
             entries = catalog.get(kind, ())
             accepted = accept_value(ai_data.get(ai_key), entries)
             if accepted:
                 return accepted
-            seller_code = match_one(declared_material, entries)
+            seller_code = seller.get(ai_key)
             if seller_code:
                 return seller_code
             return accept_value(photo_value, entries)
@@ -1354,28 +1392,13 @@ class PlasticosWebLead(models.Model):
         merged["filler_type"] = _slot("filler_type", "filler")
         merged["packaging_type"] = _slot("packaging_type", "packaging", vision_packaging)
         merged["process_type"] = _slot("process_type", "process")
-        attribute_text = ai_data.get("attributes")
-        if isinstance(attribute_text, (list, tuple)):
-            attribute_text = " ".join(str(item) for item in attribute_text)
-        joint_attributes = match_codes(str(attribute_text or ""), catalog.get("attribute", ()))
-        if joint_attributes:
-            merged["attributes"] = joint_attributes
-        else:
-            photo_attributes = [
-                str(item)
-                for row in vision_results or []
-                if isinstance(row, dict) and not row.get("error")
-                for item in (
-                    row.get("observed_attributes")
-                    if isinstance(row.get("observed_attributes"), (list, tuple))
-                    else [row.get("observed_attributes")]
-                )
-                if item
-            ]
-            merged["attributes"] = match_codes(
-                f"{declared_material} {' '.join(photo_attributes)}",
-                catalog.get("attribute", ()),
-            )
+        merged["quality_tier"] = _slot("quality_tier", "quality_tier")
+        merged["attributes"] = _merged_attributes(
+            ai_data.get("attributes"),
+            seller["attributes"],
+            list(vision_results or []),
+            catalog,
+        )
         return merged
 
     # ═══════════════════════════════════════════════════════════
@@ -1460,6 +1483,7 @@ class PlasticosWebLead(models.Model):
             polymer=polymer,
             form_code=analysis.get("form"),
             material_grade_code=analysis.get("material_grade"),
+            quality_tier_code=analysis.get("quality_tier"),
             material_description=self.material_description,
             estimated_lbs=lbs,
             source_description=str(analysis.get("source_description") or ""),
@@ -1584,6 +1608,7 @@ class PlasticosWebLead(models.Model):
         source_type_rec = _one(self.env["plasticos.source.type"], source_type_code)
         color_rec = _one(self.env["plasticos.material.color"], merged.get("color"))
         packaging_rec = _one(self.env["plasticos.packaging.type"], merged.get("packaging_type"))
+        quality_tier_rec = _one(self.env["plasticos.material.quality.tier"], merged.get("quality_tier"))
         filler_rec = _one(self.env["plasticos.filler.type"], merged.get("filler_type"))
         attribute_codes = [code for code in (merged.get("attributes") or ()) if code]
         attribute_recs = (
@@ -1613,9 +1638,11 @@ class PlasticosWebLead(models.Model):
             "assigned_user_id": self.assigned_user_id.id or False,
         }
         if color_rec:
-            intake_vals["color_id"] = color_rec.id
+            intake_vals["color_ids"] = [(6, 0, color_rec.ids)]
         if packaging_rec:
             intake_vals["packaging_type_id"] = packaging_rec.id
+        if quality_tier_rec:
+            intake_vals["quality_tier_id"] = quality_tier_rec.id
         if filler_rec:
             intake_vals["filler_type_id"] = filler_rec.id
         if attribute_recs:

@@ -19,7 +19,6 @@ RES_PARTNER = "res.partner"
 # Opportunity material fields described to the buyer, in order. Supplier price,
 # coordinates, internal notes and profile links are never described.
 _DESCRIBED_RELATIONS = (
-    ("color_id", "Color"),
     ("packaging_type_id", "Packaging"),
     ("source_type_id", "Source"),
 )
@@ -44,6 +43,8 @@ def buyer_material_description(material):
     label = material_label(material)
     if label:
         lines.append(_("Material: %s", label))
+    if material.color_ids:
+        lines.append(_("Color: %s", ", ".join(material.color_ids.mapped("display_name"))))
     for field_name, caption in _DESCRIBED_RELATIONS:
         value = material[field_name]
         if value:

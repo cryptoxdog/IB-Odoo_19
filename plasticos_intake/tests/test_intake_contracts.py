@@ -54,8 +54,8 @@ class TestIntakeFieldContract(PlasticosTestCase):
         self.assertIsNotNone(f, "form_id missing — plasticos_matching depends on it")
         self.assertEqual(f.comodel_name, "plasticos.material.form")
 
-    def test_color_id_exists(self):
-        self.assertIn("color_id", self.fields)
+    def test_color_ids_exists(self):
+        self.assertIn("color_ids", self.fields)
 
     def test_source_type_id_exists(self):
         self.assertIn("source_type_id", self.fields)

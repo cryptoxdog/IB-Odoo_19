@@ -118,8 +118,6 @@ class PlasticosMaterialProfile(models.Model):
         help="Auto-populated from polymer_id. Kept for backward compatibility.",
     )
 
-    sub_grade = fields.Char()  # TODO: Define sub-grade logic and re-enable in view
-
     # ── Form (Many2one to master) ────────────────────────────
     form_id = fields.Many2one(
         "plasticos.material.form",
@@ -148,6 +146,14 @@ class PlasticosMaterialProfile(models.Model):
         ondelete="restrict",
         tracking=True,
         help="What the material was before processing (Drums, Totes, Pallets). Optional.",
+    )
+    quality_tier_id = fields.Many2one(
+        "plasticos.material.quality.tier",
+        string="Quality Tier",
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="Quality tier from the material quality tier master (Grade A, Grade B, Grade C, Reusable, Standard).",
     )
 
     # ── Color ──
@@ -380,17 +386,6 @@ class PlasticosMaterialProfile(models.Model):
 
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
-    quality_tier = fields.Selection(
-        [
-            ("prime", "Prime"),
-            ("near_prime", "Near Prime"),
-            ("standard", "Standard"),
-            ("economy", "Economy"),
-            ("unknown", "Unknown"),
-        ],
-        string="Quality Tier",
-        help="AI-inferred quality tier based on material specifications.",
-    )
 
     # ── Navigation: Related Record Counts ──────────────────────
     # NOTE: intake_count is added by plasticos_intake module via inheritance
@@ -469,12 +464,6 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             code = rec.form_id.code if rec.form_id else False
             rec.form = code if code in valid_codes else False
-
-    def _sole_color(self):
-        """The color when this profile names exactly one."""
-        self.ensure_one()
-        colors = self.color_ids
-        return colors if len(colors) == 1 else colors.browse()
 
     @api.depends("source_type_id", "source_type_id.code")
     def _compute_source_type_code(self):
@@ -688,7 +677,7 @@ class PlasticosMaterialProfile(models.Model):
             "product_uom_id": product_uom_id,
             "material_profile_id": self.id,
             "material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
-            "color_id": self._sole_color().id or False,
+            "color_ids": [(6, 0, self.color_ids.ids)],
             "form_id": self.form_id.id if self.form_id else False,
             "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
             "source_type_id": self.source_type_id.id if self.source_type_id else False,
