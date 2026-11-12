@@ -1649,27 +1649,31 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         self.assertFalse(load.dispatch_sent, "a carrier document is not the dispatch packet")
 
     def test_one_invalid_co_recipient_does_not_stop_the_clock(self):
-        """Review O2: the transport's sent state is the gate, not the absence of any failure_type."""
+        """Review O2: the transport's sent state is the gate, not the absence of any failure_type.
+
+        The carrier is reached even though a co-recipient's address is invalid, so the clock
+        starts. Mirror (review R1): a reached non-carrier with the same bad co-recipient does not.
+        """
         load = self._scheduled_load()
         load.action_dispatch()
-        valid = self.env["res.partner"].create({"name": "S4 Valid Dispatcher", "email": "desk@s4-carrier.example"})
         invalid = self.env["res.partner"].create({"name": "S4 Broken Address", "email": "not-an-address"})
-        packet = self.env["mail.mail"].create(
-            {
-                "model": "plasticos.load",
-                "res_id": load.id,
-                "subject": "packet",
-                "body_html": "<p>packet</p>",
-                "recipient_ids": [(6, 0, (valid | invalid).ids)],
-                "headers": repr({"X-Plasticos-Release": f"dispatch_packet:{load.id}"}),
-            }
-        )
+        packet = self._packet_mail(load, recipient_ids=[(6, 0, (self.carrier | invalid).ids)])
         sink = self._sink()
         with sink[0], sink[1], sink[2]:
             self.env["mail.mail"].process_email_queue(email_ids=packet.ids)
         load.invalidate_recordset()
         self.assertEqual(packet.state, "sent", "the valid recipient was reached")
         self.assertTrue(load.dispatch_sent, "a confirmed send starts the clock despite one bad co-recipient")
+
+        other = self._scheduled_load()
+        other.action_dispatch()
+        bystander = self.env["res.partner"].create({"name": "S4 Valid Dispatcher", "email": "desk@s4-carrier.example"})
+        mirror = self._packet_mail(other, recipient_ids=[(6, 0, (bystander | invalid).ids)])
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=mirror.ids)
+        other.invalidate_recordset()
+        self.assertEqual(mirror.state, "sent", self._mail_diagnosis(mirror))
+        self.assertFalse(other.dispatch_sent, "reaching someone other than the carrier starts no clock")
 
     def test_a_second_direct_packet_never_moves_the_clock(self):
         """Review O3: the direct send keeps the first confirmed time, like the composer path."""
