@@ -182,6 +182,15 @@ class TestManualOffers(PlasticosTestCase):
         with self.assertRaisesRegex(UserError, "Archived"):
             self._generate(opportunity, gone)
 
+    def test_mixed_active_and_archived_selection_is_refused(self):
+        """An archived contact is refused, never silently dropped from a mixed selection."""
+        opportunity = self._opportunity()
+        gone = self._contact(self.buyer_b, "Gone Mixed B", "gone-mixed@buyer-b.example.com")
+        gone.action_archive()
+        with self.assertRaisesRegex(UserError, "Archived contacts cannot receive offers: Gone Mixed B"):
+            self._generate(opportunity, self.alice | gone)
+        self.assertFalse(self.Offer.search([("opportunity_id", "=", opportunity.id)]))
+
     def test_contact_of_another_company_is_refused(self):
         other_company = self.env["res.company"].create({"name": "Other Legal Company"})
         hidden = self.env["res.partner"].create(
@@ -197,12 +206,24 @@ class TestManualOffers(PlasticosTestCase):
             }
         )
         opportunity = self._opportunity()
-        with self.assertRaises((AccessError, UserError)):
+        # AccessError subclasses UserError in Odoo 19; the regex pins the
+        # company refusal, not a generic access error.
+        with self.assertRaisesRegex(UserError, "belong to a company you are not working in") as caught:
             wizard = self.Wizard.with_user(rep).create(
                 {"opportunity_id": opportunity.id, "contact_ids": [Command.set(hidden.ids)]}
             )
             wizard.action_generate_draft_offers()
+        self.assertNotIsInstance(caught.exception, AccessError)
+        self.assertNotIn("Hidden Buyer", str(caught.exception), "a hidden contact is never named")
         self.assertFalse(self.Offer.search([("buyer_id", "=", hidden.id)]))
+
+        # Mixed with a contact the rep may offer to: refused, not silently reduced.
+        with self.assertRaisesRegex(UserError, "belong to a company you are not working in"):
+            wizard = self.Wizard.with_user(rep).create(
+                {"opportunity_id": opportunity.id, "contact_ids": [Command.set((self.alice | hidden).ids)]}
+            )
+            wizard.action_generate_draft_offers()
+        self.assertFalse(self.Offer.search([("opportunity_id", "=", opportunity.id)]))
 
     # ── Draft content ───────────────────────────────────────
 

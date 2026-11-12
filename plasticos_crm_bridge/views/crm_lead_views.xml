@@ -333,7 +333,8 @@
 
                 <page string="Personal Intel"
                       name="personal_intel_tab"
-                      invisible="not partner_id or partner_id.is_company">
+                      invisible="not partner_id or partner_is_company">
+                    <field name="partner_is_company" invisible="1"/>
                     <group>
                         <field name="partner_personal_intel"
                                nolabel="1" colspan="2"

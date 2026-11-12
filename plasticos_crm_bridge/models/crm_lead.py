@@ -66,6 +66,13 @@ class CrmLeadPlastOS(models.Model):
         string="Personal Intel",
         readonly=True,
     )
+    # Form modifiers cannot read through a many2one (``partner_id.is_company``):
+    # the Personal Intel page reads this related flag instead.
+    partner_is_company = fields.Boolean(
+        related="partner_id.is_company",
+        string="Partner Is a Company",
+        help="Whether the opportunity partner is a company. The Personal Intel page is shown for individuals only.",
+    )
 
     # ── Delivery Term (captured during qualification) ──────
     delivery_term = fields.Selection(
