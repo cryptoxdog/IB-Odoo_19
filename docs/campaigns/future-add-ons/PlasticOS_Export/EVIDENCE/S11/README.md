@@ -71,12 +71,14 @@ Gated commands are called only by people or RPC: `action_propose_shipment_event`
 | Check | Result |
 |---|---|
 | `pytest tests/` (pure Python) at `ec9b3704` | 3076 passed, 49 skipped, 0 failed |
+| `pytest tests/` (pure Python) at `fabb7900` (final code head) | 3076 passed, 49 skipped, 0 failed |
+| `pre-commit run --from-ref e71599d5 --to-ref fabb7900` | all hooks passed |
+| `make audit-baseline` at `fabb7900` | no new finding (comprehensive and extended) |
 | `pytest tests/test_phantom_enum_values.py tests/test_repo_dependency_integrity.py` at the E02 head | 63 passed |
 | Static gate-reach scan (run outside Odoo) | 47 entry points, 0 gated paths; planted path detected |
 | Enterprise runtime `m=plasticos_logistics,plasticos_export,plasticos_documents,plasticos_security_base` | **PENDING_COORDINATOR** (C12-SCOPE-2: this session's fixture needs an operator rebuild, not authorized; the coordinator runs it on its admitted fixture) |
 | Migration from the S10 head with a fact present | **PENDING_COORDINATOR** |
 
-Pre-commit and `make audit-baseline` results for the published head are in the receipt.
 
 ## Not in scope
 
