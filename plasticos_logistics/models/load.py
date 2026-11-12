@@ -2092,8 +2092,8 @@ class PlasticosLoad(models.Model):
         once each per actual sent time and audience, and withholds one whose load
         no longer needs it. Neither carries the packet.
         """
-        # sudo: the scheduler records Linda evidence, which only Linda's sudo writer may create
-        self.env["plasticos.logistics.request"].sudo()._run_load_obligations()
+        requests = self.env["plasticos.logistics.request"]
+        requests.sudo()._run_load_obligations()  # cron-sudo-justification: sudo: only Linda's sudo writer records evidence
         threshold_hours = 4
         threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
 
