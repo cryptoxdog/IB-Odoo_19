@@ -496,6 +496,8 @@ class TestExactAssociation(PlasticosTestCase):
 
     def test_sibling_scale_ticket_does_not_finish_the_other_load(self):
         from odoo.addons.plasticos_logistics.models.load import (
+            _ACTUAL_EVENT_INTERNAL_WRITE,
+            _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN,
             _FREIGHT_INTERNAL_WRITE,
             _FREIGHT_INTERNAL_WRITE_TOKEN,
         )
@@ -514,6 +516,10 @@ class TestExactAssociation(PlasticosTestCase):
         pickup = fields.Datetime.now() - timedelta(days=3)
         (load_a | load_b).with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
             {"state": "delivered", "delivered_at": when, "dispatched_at": pickup}
+        )
+        # The scale-ticket clocks read the Logistics actual events (BRS-07-R051, 2026-11-11).
+        (load_a | load_b).with_context(**{_ACTUAL_EVENT_INTERNAL_WRITE: _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN}).write(
+            {"actual_pickup_at": pickup, "actual_delivery_at": when}
         )
         attachment = self.env["ir.attachment"].create(
             {
