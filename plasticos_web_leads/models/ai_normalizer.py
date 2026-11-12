@@ -23,7 +23,7 @@ from typing import Any
 from .ai_client import call_json_with_retry
 from .evidence_keys import KEY_ATTACHMENTS, KEY_RAW_PAYLOAD, scrub_attachment_rows
 from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
-from .material_catalog import CatalogEntry, code_list, restrict_to_catalog
+from .material_catalog import CatalogEntry, labeled_list, restrict_to_catalog
 from .quantity_normalizer import QuantityEvidence
 from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, coerce_bool, parse_weight_lbs, safe_float
 
@@ -92,7 +92,9 @@ Rules:
   set estimated_lbs_per_load to null — the deterministic parser handles unit-count conversion
 - Current inventory, per-load weight, and recurring cadence are separate facts.
 - Cadence requires explicit time-basis language; unknown is null, never zero.
-- Do not infer a polymer from weak context or visual appearance.
+- Seller words and the photo observations are one case. A photo fills a slot the seller left blank.
+- Do not infer a polymer from color or weak context. A photo may fill a blank polymer only when it
+  names a listed code from a marking or a shape. Do not replace a polymer the seller named.
 - Facts are three-valued: true or a value when stated, false only when the seller states the opposite, null when unknown.
 - Keep polymer, physical form, material grade, and packaging separate. A grade is what the item was
   (pallets, drums, stretch film). A form is the physical shape now. Packaging is how it is shipped.
@@ -116,15 +118,15 @@ def system_prompt(catalog: Mapping[str, Sequence[CatalogEntry]] | None = None) -
     """The system prompt with the live catalog codes filled in."""
     catalog = catalog or {}
     replacements = {
-        "__POLYMER_CODES__": code_list(catalog.get("polymer", ())),
-        "__FORM_CODES__": code_list(catalog.get("form", ())),
-        "__GRADE_CODES__": code_list(catalog.get("material_grade", ())),
-        "__COLOR_CODES__": code_list(catalog.get("color", ())),
-        "__SOURCE_CODES__": code_list(catalog.get("source_type", ())),
-        "__FILLER_CODES__": code_list(catalog.get("filler", ())),
-        "__PACKAGING_CODES__": code_list(catalog.get("packaging", ())),
-        "__PROCESS_CODES__": code_list(catalog.get("process", ())),
-        "__ATTRIBUTE_CODES__": code_list(catalog.get("attribute", ())),
+        "__POLYMER_CODES__": labeled_list(catalog.get("polymer", ())),
+        "__FORM_CODES__": labeled_list(catalog.get("form", ())),
+        "__GRADE_CODES__": labeled_list(catalog.get("material_grade", ())),
+        "__COLOR_CODES__": labeled_list(catalog.get("color", ())),
+        "__SOURCE_CODES__": labeled_list(catalog.get("source_type", ())),
+        "__FILLER_CODES__": labeled_list(catalog.get("filler", ())),
+        "__PACKAGING_CODES__": labeled_list(catalog.get("packaging", ())),
+        "__PROCESS_CODES__": labeled_list(catalog.get("process", ())),
+        "__ATTRIBUTE_CODES__": labeled_list(catalog.get("attribute", ())),
     }
     text = _SYSTEM_PROMPT
     for token, value in replacements.items():
@@ -257,17 +259,63 @@ def _attachment_summary(rows: Any) -> str:
     return f"Attachments: {len(parts)} file(s): " + "; ".join(parts)
 
 
-def build_user_prompt(form_data: dict[str, Any]) -> str:
+_VISION_OBSERVATION_KEYS = (
+    "observed_polymer_hint",
+    "observed_form",
+    "observed_material_grade",
+    "observed_color",
+    "observed_packaging",
+    "observed_attributes",
+    "cleanliness",
+    "contamination_visible",
+    "contamination_notes",
+    "visual_summary",
+    "confidence",
+)
+
+
+def _vision_prompt_lines(rows: Sequence[Mapping[str, Any]] | None) -> list[str]:
+    """Photo observations for the normalizer. Acquisition URLs stay out."""
+    if not rows:
+        return []
+    lines = ["=== Photo observations ==="]
+    for index, row in enumerate(rows, start=1):
+        if not isinstance(row, Mapping) or row.get("error"):
+            continue
+        bits: list[str] = []
+        for key in _VISION_OBSERVATION_KEYS:
+            value = row.get(key)
+            if value in (None, "", [], ()):
+                continue
+            if isinstance(value, (list, tuple)):
+                text = ", ".join(str(item).strip() for item in value if str(item).strip())
+            else:
+                text = str(value).strip()
+            if text:
+                bits.append(f"{key}={text}")
+        if bits:
+            lines.append(f"Photo {index}: " + "; ".join(bits))
+    if len(lines) == 1:
+        return []
+    return lines
+
+
+def build_user_prompt(
+    form_data: dict[str, Any],
+    vision_results: Sequence[Mapping[str, Any]] | None = None,
+) -> str:
     """
-    Build the user-turn prompt from raw form data. (FIX AN-03)
+    Build the user-turn prompt from raw form data and photo observations.
 
     - Maps known Typeform field IDs to human labels
     - Skips empty strings and values ≤ 2 characters
     - Appends unmapped scalar fields as "Extra" lines (values > 2 chars only)
     - Never serializes attachment rows or nested payloads: signed acquisition
       URLs are not seller facts and must not reach an external provider
+    - Photo observations are the same rows the classifier receives
     """
-    if not form_data:
+    form_data = form_data or {}
+    if not form_data and not vision_results:
         return "No form data provided."
 
     lines: list[str] = ["=== Web Lead Form Data ==="]
@@ -291,6 +339,7 @@ def build_user_prompt(form_data: dict[str, Any]) -> str:
     summary = _attachment_summary(form_data.get(KEY_ATTACHMENTS))
     if summary:
         lines.append(summary)
+    lines.extend(_vision_prompt_lines(vision_results))
 
     if len(lines) == 1:
         return "No form data provided."
@@ -340,6 +389,7 @@ def normalize_lead(
     temperature: float = 0.0,
     quantity_evidence: QuantityEvidence | None = None,
     catalog: Mapping[str, Sequence[CatalogEntry]] | None = None,
+    vision_results: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """
     Full normalization pipeline for a web lead.
@@ -376,7 +426,7 @@ def normalize_lead(
 
     # Step 2 — AI extraction
     try:
-        user_prompt = build_user_prompt(form_data)
+        user_prompt = build_user_prompt(form_data, vision_results)
         ai_raw, metadata = call_json_with_retry(
             client=openai_client,
             model=model,
@@ -410,6 +460,7 @@ def normalize_with_provider(
     *,
     quantity_evidence: QuantityEvidence | None = None,
     catalog: Mapping[str, Sequence[CatalogEntry]] | None = None,
+    vision_results: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Normalize with a configured role-selected provider profile.
 
@@ -436,7 +487,7 @@ def normalize_with_provider(
         ai_raw, metadata = call_structured_text(
             provider,
             system_prompt=system_prompt(catalog),
-            user_prompt=build_user_prompt(form_data),
+            user_prompt=build_user_prompt(form_data, vision_results),
         )
     except Exception as exc:
         error = safe_provider_error(exc, provider, role="text_normalization")

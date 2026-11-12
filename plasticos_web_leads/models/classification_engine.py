@@ -168,6 +168,8 @@ def classify_lead(
     economic_eligible: bool | None = None,
     economic_policy_reasons: list[str] | None = None,
     vision_evidence: list[dict] | None = None,
+    form_code: str | None = None,
+    material_grade_code: str | None = None,
 ) -> ClassificationResult:
     """
     Classify a normalised lead as "hot" or "cold".
@@ -183,6 +185,10 @@ def classify_lead(
     cold_gates: list[str] = []
     hot_quals: list[str] = []
     vision_copy = _successful_vision_evidence(vision_evidence)
+    if form_code:
+        reasons.append(f"Form identified: {form_code}.")
+    if material_grade_code:
+        reasons.append(f"Material grade identified: {material_grade_code}.")
 
     # Normalise inputs
     poly_lower = (polymer or "").strip().lower()

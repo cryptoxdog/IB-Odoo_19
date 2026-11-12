@@ -2,8 +2,8 @@
 # Model : plasticos.web.lead
 # Purpose: Web lead ingestion with AI-powered triage pipeline:
 #          1. Receive a provider packet through the inbound adapter port
-#          2. AI normalization (1 LLM call)
-#          3. Image analysis (1 Vision call per image)
+#          2. Image analysis (1 Vision call per image)
+#          3. AI normalization of the seller text and those photo rows
 #          4. Commercial qualification: LLM recommends HOT/REVIEW/COLD,
 #             the deterministic validator decides (ADR-016 2026-11-11)
 #          5. HOT → intake (partner deferred to buyer-match)
@@ -161,8 +161,8 @@ class PlasticosWebLead(models.Model):
       1. Project the provider payload into a provider-neutral packet
       2. Create web.lead record (decision=review, state=received: not yet classified)
       3. _run_triage_pipeline():
-           a. AI normalization (LLM)
-           b. Image analysis (Vision)
+           a. Image analysis (Vision)
+           b. AI normalization (LLM), with those photo rows as well as the seller text
            c. _merge_ai_and_vision() — weight fallback cascade here
            d. classify_lead() — legacy HOT/COLD, kept for shadow comparison
            e. commercial qualification → validated HOT/REVIEW/COLD (live mode routes on it)
@@ -774,9 +774,9 @@ class PlasticosWebLead(models.Model):
         """Execute the full AI triage pipeline on this web lead.
 
         Steps:
-          [AI]     1. AI normalization (if enabled)
-          [VISION] 2. Image analysis (if enabled + images present)
-          [MERGE]  3. Merge AI + Vision → weight fallback cascade
+          [VISION] 1. Image analysis (if enabled + images present)
+          [AI]     2. AI normalization of the seller text and those photo rows
+          [MERGE]  3. Merge that reading; the classifier still receives the photo rows
           [CLASS]  4. Deterministic HOT/COLD classification
           [WRITE]  5. Persist classification result
           [HOT]    6. Create intake + notify admin
@@ -816,22 +816,6 @@ class PlasticosWebLead(models.Model):
                     f"[QUANTITY] weight={quantity_evidence.load_weight_lbs} "
                     f"source={quantity_evidence.weight_source} cadence={quantity_evidence.loads_per_month}"
                 )
-
-            ai_data: dict[str, Any] = {}
-            text_provider_spec = config.get_inference_provider("text_normalization") if config.ai_enabled else None
-            if text_provider_spec:
-                log_lines.append("[AI] Running normalization.")
-                text_provider = InferenceProvider(**text_provider_spec)
-                ai_data = ai_normalizer.normalize_with_provider(
-                    raw_payload=triage_input,
-                    quantity_evidence=quantity_evidence,
-                    provider=text_provider,
-                    catalog=catalog,
-                )
-                provider_used = ai_data.pop("_provider_used", "unknown")
-                log_lines.append(f"[AI] provider={provider_used}:{text_provider.model}")
-            else:
-                log_lines.append("[AI] SKIPPED (disabled or no API keys).")
 
             vision_results: list[dict[str, Any]] = []
             vision_provider_spec = config.get_inference_provider("vision_analysis") if config.vision_enabled else None
@@ -874,6 +858,23 @@ class PlasticosWebLead(models.Model):
                 else:
                     log_lines.append("[VISION] SKIPPED.")
 
+            ai_data: dict[str, Any] = {}
+            text_provider_spec = config.get_inference_provider("text_normalization") if config.ai_enabled else None
+            if text_provider_spec:
+                log_lines.append("[AI] Running normalization.")
+                text_provider = InferenceProvider(**text_provider_spec)
+                ai_data = ai_normalizer.normalize_with_provider(
+                    raw_payload=triage_input,
+                    quantity_evidence=quantity_evidence,
+                    provider=text_provider,
+                    catalog=catalog,
+                    vision_results=vision_results,
+                )
+                provider_used = ai_data.pop("_provider_used", "unknown")
+                log_lines.append(f"[AI] provider={provider_used}:{text_provider.model}")
+            else:
+                log_lines.append("[AI] SKIPPED (disabled or no API keys).")
+
             merged = self._merge_ai_and_vision(
                 ai_data,
                 vision_results,
@@ -912,6 +913,8 @@ class PlasticosWebLead(models.Model):
             log_lines.append("[CLASS] Running legacy deterministic classification.")
             result = classify_lead(
                 polymer=merged.get("polymer"),
+                form_code=merged.get("form"),
+                material_grade_code=merged.get("material_grade"),
                 material_description=self.material_description,
                 estimated_lbs=merged.get("estimated_lbs", 0),
                 source_description=merged.get("source_description", ""),
@@ -1154,7 +1157,8 @@ class PlasticosWebLead(models.Model):
                 if not code:
                     continue
                 description = record.description if "description" in record._fields else ""
-                entries.append(CatalogEntry(code, record.name or "", description or ""))
+                full_name = record.full_name if "full_name" in record._fields else ""
+                entries.append(CatalogEntry(code, record.name or "", description or "", full_name or ""))
             catalog[kind] = tuple(entries)
         selection = self.env["plasticos.intake"]._fields["origin_process_type"].selection
         if callable(selection):
@@ -1174,8 +1178,10 @@ class PlasticosWebLead(models.Model):
         """Merge text AI normalization with vision analysis.
 
         Authority rules:
-        - Text AI: polymer, weight, source (form data knows the business context)
-        - Vision: form, color, contamination (eyes on the material)
+        - The joint reply, which has already seen the seller text and the photos, is the reading.
+        - A photo code fills a slot that reply left empty when the seller named no different code.
+        - A seller-named polymer that disagrees with a confident photo stays the seller code.
+        - The classifier still receives the original photo rows.
 
         Legacy-path weight fallback cascade (FIX — resolves WeightPerLoad="unknown" bug):
           1. AI estimated_lbs_per_load (most reliable when AI ran)
@@ -1265,6 +1271,7 @@ class PlasticosWebLead(models.Model):
         vision_form = None
         vision_grade = None
         vision_color = None
+        vision_packaging = None
         if vision_results:
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
@@ -1272,6 +1279,7 @@ class PlasticosWebLead(models.Model):
                 vision_form = best_vision.get("observed_form")
                 vision_grade = best_vision.get("observed_material_grade")
                 vision_color = best_vision.get("observed_color")
+                vision_packaging = best_vision.get("observed_packaging")
                 merged["vision_summary"] = best_vision.get("visual_summary", "")
             # One clean photo never erases contamination another photo shows.
             dirty = [v for v in valid_vision if v.get("contamination_visible") is True]
@@ -1280,25 +1288,37 @@ class PlasticosWebLead(models.Model):
                 notes = [str(v.get("contamination_notes") or "").strip() for v in dirty]
                 merged["contamination_notes"] = "; ".join(dict.fromkeys(note for note in notes if note)) or None
 
-        def _slot(ai_key: str, kind: str) -> str | None:
-            accepted = accept_value(ai_data.get(ai_key), catalog.get(kind, ()))
-            return accepted or match_one(declared_material, catalog.get(kind, ()))
+        def _slot(ai_key: str, kind: str, photo_value: Any = None) -> str | None:
+            entries = catalog.get(kind, ())
+            accepted = accept_value(ai_data.get(ai_key), entries)
+            if accepted:
+                return accepted
+            seller_code = match_one(declared_material, entries)
+            if seller_code:
+                return seller_code
+            return accept_value(photo_value, entries)
 
-        # A listed code wins. Seller text fills an empty slot. Nothing else is a vocabulary.
-        merged["polymer"] = accept_value(ai_data.get("polymer"), catalog.get("polymer", ()))
-        merged["polymer_source"] = "text_ai" if merged["polymer"] else None
-        if not merged["polymer"]:
-            seller_polymer = match_one(declared_material, catalog.get("polymer", ()))
-            vision_polymer = accept_value(
-                agreed_confident_polymer(list(vision_results or [])),
-                catalog.get("polymer", ()),
-            )
-            if seller_polymer:
-                merged["polymer"] = seller_polymer
-                merged["polymer_source"] = "seller_text"
-            elif vision_polymer:
-                merged["polymer"] = vision_polymer
-                merged["polymer_source"] = "vision"
+        seller_polymer = match_one(declared_material, catalog.get("polymer", ()))
+        vision_polymer = accept_value(
+            agreed_confident_polymer(list(vision_results or [])),
+            catalog.get("polymer", ()),
+        )
+        joint_polymer = accept_value(ai_data.get("polymer"), catalog.get("polymer", ()))
+        if seller_polymer and vision_polymer and seller_polymer != vision_polymer:
+            merged["polymer"] = seller_polymer
+            merged["polymer_source"] = "seller_text"
+        elif joint_polymer:
+            merged["polymer"] = joint_polymer
+            merged["polymer_source"] = "text_ai"
+        elif seller_polymer:
+            merged["polymer"] = seller_polymer
+            merged["polymer_source"] = "seller_text"
+        elif vision_polymer:
+            merged["polymer"] = vision_polymer
+            merged["polymer_source"] = "vision"
+        else:
+            merged["polymer"] = None
+            merged["polymer_source"] = None
 
         # Grade and form stay in separate slots. A drum grade must not erase
         # regrind, and an AI form must not hide the item word.
@@ -1315,18 +1335,33 @@ class PlasticosWebLead(models.Model):
         elif not merged["material_grade"]:
             merged["material_grade"] = accept_value(vision_grade, catalog.get("material_grade", ()))
 
-        merged["color"] = _slot("color", "color") or accept_value(vision_color, catalog.get("color", ()))
+        merged["color"] = _slot("color", "color", vision_color)
         merged["source_type"] = _slot("source_type", "source_type")
         merged["filler_type"] = _slot("filler_type", "filler")
-        merged["packaging_type"] = _slot("packaging_type", "packaging")
+        merged["packaging_type"] = _slot("packaging_type", "packaging", vision_packaging)
         merged["process_type"] = _slot("process_type", "process")
         attribute_text = ai_data.get("attributes")
         if isinstance(attribute_text, (list, tuple)):
             attribute_text = " ".join(str(item) for item in attribute_text)
-        merged["attributes"] = match_codes(
-            f"{attribute_text or ''} {declared_material}",
-            catalog.get("attribute", ()),
-        )
+        joint_attributes = match_codes(str(attribute_text or ""), catalog.get("attribute", ()))
+        if joint_attributes:
+            merged["attributes"] = joint_attributes
+        else:
+            photo_attributes = [
+                str(item)
+                for row in vision_results or []
+                if isinstance(row, dict) and not row.get("error")
+                for item in (
+                    row.get("observed_attributes")
+                    if isinstance(row.get("observed_attributes"), (list, tuple))
+                    else [row.get("observed_attributes")]
+                )
+                if item
+            ]
+            merged["attributes"] = match_codes(
+                f"{declared_material} {' '.join(photo_attributes)}",
+                catalog.get("attribute", ()),
+            )
         return merged
 
     # ═══════════════════════════════════════════════════════════
@@ -1403,6 +1438,8 @@ class PlasticosWebLead(models.Model):
         )
         result = classify_lead(
             polymer=polymer,
+            form_code=analysis.get("form"),
+            material_grade_code=analysis.get("material_grade"),
             material_description=self.material_description,
             estimated_lbs=lbs,
             source_description=str(analysis.get("source_description") or ""),

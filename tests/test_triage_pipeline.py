@@ -861,3 +861,46 @@ class TestVisionBytePath:
         assert result["support_unit"] == "Pallets"
         assert result["commercial_color"] == "Mixed"
         assert result["observed_polymer_hint"] is None
+
+
+def test_joint_prompt_carries_photo_codes_and_rejects_an_invented_code():
+    prompt = build_user_prompt(
+        {"WhatMaterialDoYouHave": "Polycarbonate plastic"},
+        [
+            {
+                "observed_form": "SHEET",
+                "observed_packaging": "palletized",
+                "observed_attributes": ["printed"],
+                "source_url": "https://files.example/photo?token=SECRET-TOKEN",
+            }
+        ],
+    )
+    assert "observed_form=SHEET" in prompt
+    assert "observed_packaging=palletized" in prompt
+    assert "observed_attributes=printed" in prompt
+    assert "SECRET-TOKEN" not in prompt
+
+    polymer = _ai.CatalogEntry("LDPE", "LDPE", "", "Low-Density Polyethylene")
+    system = _ai.system_prompt({"polymer": (polymer,)})
+    assert "Low-Density Polyethylene" in system
+    catalog_module = sys.modules["plasticos_web_leads.models.material_catalog"]
+    assert catalog_module.match_one("Low-Density Polyethylene", (polymer,)) is None
+
+    kept = _ai.restrict_to_catalog(
+        {"form": "SHEET", "packaging_type": "invented_wrap"},
+        {
+            "form": (_ai.CatalogEntry("SHEET", "Sheet"),),
+            "packaging": (_ai.CatalogEntry("palletized", "Palletized"),),
+        },
+    )
+    assert kept["form"] == "SHEET"
+    assert kept["packaging_type"] is None
+
+
+def test_vision_still_reaches_the_classifier_after_it_feeds_the_normalizer():
+    with open(os.path.join(_models_dir, "web_lead.py"), encoding="utf-8") as handle:
+        source = handle.read()
+    pipeline = source.split("def _run_triage_pipeline", 1)[1].split("\n    def ", 1)[0]
+    assert pipeline.index("analyze_image_with_provider") < pipeline.index("normalize_with_provider")
+    assert "vision_results=vision_results" in pipeline
+    assert "vision_evidence=vision_results" in pipeline

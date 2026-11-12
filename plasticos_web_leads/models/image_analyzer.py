@@ -19,7 +19,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .inference_provider import InferenceProvider, call_structured_vision, provider_audit_metadata, safe_provider_error
-from .material_catalog import CatalogEntry, code_list
+from .material_catalog import CatalogEntry, labeled_list
 
 _logger = logging.getLogger(__name__)
 
@@ -33,6 +33,8 @@ Analyse the image and return ONLY valid JSON with these fields (null if unknown)
   "observed_material_grade": string | null, // one listed material grade code, or null
   "observed_color": string | null,          // one listed color code, or null
   "observed_polymer_hint": string | null,   // one listed polymer code, or null
+  "observed_packaging": string | null,      // one listed packaging code, or null
+  "observed_attributes": string | null,     // listed attribute codes, or null
   "material_form_observed": string | null,
   "commercial_color": string | null,
   "containment": string | null,
@@ -58,6 +60,8 @@ Rules:
 - Form codes: __FORM_CODES__
 - Material grade codes: __GRADE_CODES__
 - Color codes: __COLOR_CODES__
+- Packaging codes: __PACKAGING_CODES__
+- Attribute codes: __ATTRIBUTE_CODES__
 """
 
 
@@ -65,10 +69,12 @@ def vision_prompt(catalog: Mapping[str, Sequence[CatalogEntry]] | None = None) -
     """The vision prompt with the live catalog codes filled in."""
     catalog = catalog or {}
     replacements = {
-        "__POLYMER_CODES__": code_list(catalog.get("polymer", ())),
-        "__FORM_CODES__": code_list(catalog.get("form", ())),
-        "__GRADE_CODES__": code_list(catalog.get("material_grade", ())),
-        "__COLOR_CODES__": code_list(catalog.get("color", ())),
+        "__POLYMER_CODES__": labeled_list(catalog.get("polymer", ())),
+        "__FORM_CODES__": labeled_list(catalog.get("form", ())),
+        "__GRADE_CODES__": labeled_list(catalog.get("material_grade", ())),
+        "__COLOR_CODES__": labeled_list(catalog.get("color", ())),
+        "__PACKAGING_CODES__": labeled_list(catalog.get("packaging", ())),
+        "__ATTRIBUTE_CODES__": labeled_list(catalog.get("attribute", ())),
     }
     text = _VISION_SYSTEM_PROMPT
     for token, value in replacements.items():

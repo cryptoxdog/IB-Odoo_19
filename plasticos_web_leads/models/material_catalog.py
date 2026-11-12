@@ -29,6 +29,7 @@ class CatalogEntry:
     code: str
     name: str
     description: str = ""
+    full_name: str = ""
 
 
 def _labels(entry: CatalogEntry, *, include_description: bool) -> tuple[str, ...]:
@@ -104,6 +105,21 @@ def code_list(entries: Sequence[CatalogEntry]) -> str:
             seen.add(entry.code)
             codes.append(entry.code)
     return ", ".join(codes) if codes else "(none)"
+
+
+def labeled_list(entries: Sequence[CatalogEntry]) -> str:
+    """Prompt text: code, name, and a polymer full name. The full name is not a match label."""
+    rows: list[str] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if not entry.code or entry.code in seen:
+            continue
+        seen.add(entry.code)
+        label = f"{entry.code} — {entry.name or entry.code}"
+        if entry.full_name:
+            label = f"{label} — {entry.full_name}"
+        rows.append(label)
+    return "; ".join(rows) if rows else "(none)"
 
 
 def restrict_to_catalog(raw: Mapping[str, Any], catalog: Mapping[str, Sequence[CatalogEntry]]) -> dict[str, Any]:
