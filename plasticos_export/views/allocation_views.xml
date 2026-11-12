@@ -52,9 +52,8 @@
                             <field name="hold_revision_id"/>
                         </group>
                         <group string="Physical Container (Logistics)">
-                            <!-- Only readers of the Logistics container journey open it (OP10-E06, review N7 of C07). -->
+                            <!-- Only readers of the Logistics container journey get the journey (OP10-E06, review N7 of C07); others see the container number and seal below. -->
                             <field name="journey_id" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,base.group_system"/>
-                            <field name="journey_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics,!plasticos_security_base.group_operations_manager,!base.group_system"/>
                             <field name="journey_binding_state"/>
                             <field name="iso_number"/>
                             <field name="seal_number"/>

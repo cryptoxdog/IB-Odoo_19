@@ -19,7 +19,6 @@
                 <field name="iso_number"/>
                 <field name="seal_number"/>
                 <field name="journey_id" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,base.group_system"/>
-                <field name="journey_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics,!plasticos_security_base.group_operations_manager,!base.group_system"/>
                 <field name="supplier_count"/>
                 <field name="allocation_state" widget="badge"/>
                 <button name="action_open_journey" type="object" string="Container" icon="fa-truck" title="Open the Logistics container journey" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,base.group_system"/>

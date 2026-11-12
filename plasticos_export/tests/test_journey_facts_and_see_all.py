@@ -196,8 +196,9 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         before = self.env[FACT].search_count([])
         _booking, slot, _journey = self._bound_slot()
         self.assertEqual(slot.with_user(self.actor).owner_container_vgm_weight, NOT_RECORDED_BY_LOGISTICS)
-        # Logistics grants every internal user read on the journey facts, so a Sales Rep sees the same answer.
-        self.assertEqual(slot.with_user(self.rep).owner_container_tare, NOT_RECORDED_BY_LOGISTICS)
+        # A reader without Logistics read on the journey facts gets the restricted marker, never a false value.
+        expected = NOT_RECORDED_BY_LOGISTICS if self._rep_reads_facts() else RESTRICTED
+        self.assertEqual(slot.with_user(self.rep).owner_container_tare, expected)
         self.assertEqual(self.env[FACT].search_count([]), before, "reading the slot records no fact")
 
     # ── BRS-EXP-08-R007: resale afloat ───────────────────────
@@ -269,7 +270,12 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         )
         self.env.invalidate_all()
         rep_history = slot.with_user(self.rep).owner_shipment_history
-        self.assertIn(f"delivery partner: {self.agent.display_name}", rep_history)
+        if self._rep_reads_facts():
+            self.assertIn(f"delivery partner: {self.agent.display_name}", rep_history)
+        else:
+            self.assertIn(f"Container facts: {RESTRICTED}", rep_history)
+            self.assertNotIn(self.agent.display_name, rep_history)
+            self.assertNotIn(journey.display_name, rep_history)
         self.assertIn(f"buyer SO {sale.order_id.name}", rep_history)
 
     # ── OP10-E06: Sales Rep see-all without AccessError ──────
@@ -294,15 +300,19 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
             self.env[view.model].with_user(user).get_views([(view.id, "form")])["views"]["form"]["arch"]
         )
 
-    def test_rep_gets_no_openable_journey_or_journey_button(self):
-        """OP10-E06: no journey button and a no_open journey for a rep; journey readers keep both."""
+    def _rep_reads_facts(self):
+        """Whether the Logistics owner lets a Sales Rep read journey facts (S9 review: it will not)."""
+        return self.env[FACT].with_user(self.rep).has_access("read")
+
+    def test_rep_gets_no_journey_link_or_journey_button(self):
+        """OP10-E06: a rep gets no journey Many2one and no journey button; journey readers keep both."""
         for user, reader in ((self.rep, False), (self.actor, True), (self.ops_manager, True), (self.system_user, True)):
             arch = self._form_arch(user, "plasticos_export.view_export_slot_form")
             buttons = [node.get("name") for node in arch.iter("button")]
             journey_nodes = [node for node in arch.iter("field") if node.get("name") == "journey_id"]
-            self.assertEqual(len(journey_nodes), 1, user.login)
+            self.assertEqual(len(journey_nodes), 1 if reader else 0, user.login)
             self.assertEqual("action_open_journey" in buttons, reader, user.login)
-            self.assertEqual("no_open" in (journey_nodes[0].get("options") or ""), not reader, user.login)
+            self.assertIn("iso_number", [node.get("name") for node in arch.iter("field")], user.login)
         self.assertTrue(self.ops_manager.has_group(JOURNEY_READERS), "Operations Manager implies Logistics")
         self.assertFalse(self.system_user.has_group(JOURNEY_READERS))
 
@@ -350,3 +360,34 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
             self.assertTrue(slot_fields["journey_id"].get("exportable", True), user.login)
         actor_link = self.env[LINK].with_user(self.actor).browse(links.ids)
         self.assertEqual((actor_link.source_load_id, actor_link.sale_order_id), (load, sale.order_id))
+
+    def test_rep_reads_the_slot_display_without_access_error_or_journey(self):
+        """OP10-E06 / S9 review: a rep reads every slot form field with no AccessError and no fact or journey link."""
+        booking, slot, journey = self._bound_slot(iso="CAIU1234569", seal="SEAL-REP")
+        self._afloat(journey)
+        self._record(
+            "action_record_container_tare",
+            journey,
+            3900,
+            self.kg.id,
+            "scale_ticket",
+            self._attach(journey, "tare.pdf").id,
+            "TKT-REP",
+        )
+        self.env.invalidate_all()
+        arch = self._form_arch(self.rep, "plasticos_export.view_export_slot_form")
+        rep_slot = self.env[SLOT].with_user(self.rep).browse(slot.id)
+        names = {node.get("name") for node in arch.iter("field") if node.get("name") in rep_slot._fields}
+        relational = {
+            name: rep_slot._fields[name].comodel_name for name in names if rep_slot._fields[name].type == "many2one"
+        }
+        self.assertNotIn(JOURNEY, relational.values())
+        self.assertNotIn(FACT, relational.values())
+        spec = {name: ({"fields": {"display_name": {}}} if name in relational else {}) for name in names}
+        values = rep_slot.web_read(spec)[0]
+        self.assertEqual(values["iso_number"], "CAIU1234569")
+        if not self._rep_reads_facts():
+            self.assertEqual(values["owner_container_tare"], RESTRICTED)
+            self.assertEqual(values["owner_container_vgm_weight"], RESTRICTED)
+        actor_slot = self.env[SLOT].with_user(self.actor).browse(slot.id)
+        self.assertEqual(actor_slot.owner_container_tare, f"3900 {self.kg.name} (Scale Ticket: TKT-REP)")
