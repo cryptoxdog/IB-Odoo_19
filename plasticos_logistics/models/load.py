@@ -2117,7 +2117,8 @@ class PlasticosLoad(models.Model):
             [
                 ("res_model", "=", PLASTICOS_LOAD),
                 ("summary", "ilike", "URGENT: No carrier acknowledgment"),
-                ("date_deadline", "=", fields.Date.today()),
+                # activity_schedule dates the deadline in the user's timezone; compare in it too.
+                ("date_deadline", "=", fields.Date.context_today(self)),
             ],
             order="id",
         )

@@ -1193,6 +1193,23 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
             cron._cron_check_dispatch_acknowledgments()
         self.assertEqual(len(escalated()), 101, "a load is never escalated twice on one day")
 
+    def test_acknowledgment_job_dedupes_in_the_user_timezone(self):
+        """S6 D9 review N1: a cron user whose date differs from UTC still escalates a load once."""
+        load = self._scheduled()
+        load.action_dispatch()
+        load.write({"dispatch_sent": fields.Datetime.now() - timedelta(hours=5)})
+        # A zone whose calendar date differs from UTC's right now (UTC+14 late in the UTC day, UTC-12 early).
+        tz = "Pacific/Kiritimati" if fields.Datetime.now().hour >= 12 else "Etc/GMT+12"
+        cron = self.env["plasticos.load"].with_context(tz=tz, linda_load_sweep_ids=load.ids)
+        self.assertNotEqual(fields.Date.context_today(cron), fields.Date.today(), tz)
+        with patch.object(PlasticosLoad, "action_send_dispatch_direct", side_effect=AssertionError("blind resend")):
+            cron._cron_check_dispatch_acknowledgments()
+            cron._cron_check_dispatch_acknowledgments()
+        summary = f"URGENT: No carrier acknowledgment for {load.name}"
+        self.assertEqual(
+            self.env["mail.activity"].search_count([("res_id", "=", load.id), ("summary", "=", summary)]), 1
+        )
+
     # ── V10: actual event clocks (BRS-EXP-04-R001/R003, BRS-EXP-10-R007) ──
 
     def test_state_changes_never_fill_actual_clocks(self):
