@@ -20,7 +20,7 @@ from collections import OrderedDict
 
 from odoo import api, models
 
-from .owner_facts import NOT_RECORDED, RESTRICTED, VERIFIED_GROSS_MASS, evidence_verdict, readable
+from .owner_facts import NOT_RECORDED, RESTRICTED, VERIFIED_GROSS_MASS, evidence_verdict, party_name, readable
 
 MISSING = "Missing"
 UNKNOWN = "Unknown: not stated by the booking source"
@@ -179,7 +179,7 @@ class PlasticosExportCargoLinkLegacyReport(models.Model):
                 H_POL: _stated(revision.pol_text),
                 H_POD: _stated(revision.pod_text),
                 H_PDLV: _stated(terms.get("pdlv")),
-                H_CARRIER: _stated(revision.steamship_line_id.display_name),
+                H_CARRIER: _stated(party_name(revision.steamship_line_id, False) or None),
                 H_VESSEL: _stated(terms.get("vessel")),
                 H_VOYAGE_NO: _stated(terms.get("voyage")),
                 H_ETS: _stated(terms.get("ets")),
@@ -217,7 +217,7 @@ class PlasticosExportCargoLinkLegacyReport(models.Model):
             return dict.fromkeys((H_SUPPLIER, H_PO_NO, H_PO_REF, H_GRADE), RESTRICTED)
         order = line.order_id
         return {
-            H_SUPPLIER: order.partner_id.display_name or MISSING,
+            H_SUPPLIER: party_name(order.partner_id, MISSING),
             H_PO_NO: order.name,
             H_PO_REF: order.partner_ref or MISSING,
             H_GRADE: line.product_id.display_name or MISSING,
@@ -236,9 +236,9 @@ class PlasticosExportCargoLinkLegacyReport(models.Model):
             return dict.fromkeys((H_CUSTOMER, H_SO_NO, H_CUSTOMER_LOC, H_INVOICE_NO, H_INVOICE_USER), RESTRICTED)
         order = line.order_id
         cells = {
-            H_CUSTOMER: order.partner_id.display_name or MISSING,
+            H_CUSTOMER: party_name(order.partner_id, MISSING),
             H_SO_NO: order.name,
-            H_CUSTOMER_LOC: order.partner_shipping_id.display_name or MISSING,
+            H_CUSTOMER_LOC: party_name(order.partner_shipping_id, MISSING),
         }
         if not self.purchase_line_id:
             cells[H_GRADE] = line.product_id.display_name or MISSING

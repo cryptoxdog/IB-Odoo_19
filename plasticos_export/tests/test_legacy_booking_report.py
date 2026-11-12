@@ -24,8 +24,8 @@ from ..models.legacy_report import (
     UNASSIGNED_BUYER,
     UNKNOWN,
 )
-from ..models.owner_facts import NO_CONTAINER_BOUND
-from .test_booking_and_revision import LINK, ExportFixtureMixin
+from ..models.owner_facts import NO_CONTAINER_BOUND, RESTRICTED
+from .test_booking_and_revision import LINK, ExportFixtureMixin, row_versions
 
 WORKBOOK = "plasticos_export/tests/data/synthetic_booking_report.xlsx"
 INVENTORY = "plasticos_export/tests/data/booking_report_heading_inventory.csv"
@@ -152,11 +152,47 @@ class TestLegacyBookingReport(ExportFixtureMixin, PlasticosTestCase):
             "purchase.order",
             "plasticos.document",
         )
-        before = {model: self.env[model].search_count([]) for model in watched}
-        stamps = {model: max(self.env[model].search([]).mapped("write_date") or [False]) for model in watched}
+        before = {model: row_versions(self.env[model].search([])) for model in watched}
         self.env[LINK].with_user(self.actor)._legacy_booking_report_groups()
         self.env.invalidate_all()
-        self.assertEqual({model: self.env[model].search_count([]) for model in watched}, before)
-        self.assertEqual(
-            {model: max(self.env[model].search([]).mapped("write_date") or [False]) for model in watched}, stamps
+        after = {model: row_versions(self.env[model].search([])) for model in watched}
+        self.assertEqual(after, before, "no row of any watched owner was created, updated or deleted")
+
+    def test_14_r011_private_partners_show_restricted_not_an_error(self):
+        """BRS-EXP-14-R022 (review I2): a supplier or buyer hidden by rule_partner_private reads Restricted."""
+        private_supplier = self.env["res.partner"].create(
+            {"name": "S10 Private Mill", "is_company": True, "supplier_rank": 1, "is_private": True}
         )
+        private_buyer = self.env["res.partner"].create(
+            {"name": "S10 Private Buyer", "is_company": True, "customer_rank": 1, "is_private": True}
+        )
+        booking, revision = self.accepted_booking(confirmed=1, cycle=self.key("i2"))
+        purchase = self.env["purchase.order"].create(
+            {
+                "partner_id": private_supplier.id,
+                "order_line": [(0, 0, {"product_id": self.product.id, "product_qty": 1})],
+            }
+        )
+        sale = self.env["sale.order"].create(
+            {
+                "partner_id": private_buyer.id,
+                "user_id": self.actor.id,
+                "order_line": [(0, 0, {"product_id": self.product.id, "product_uom_qty": 1})],
+            }
+        )
+        outcome = booking.slot_ids.with_user(self.actor).action_commit_cargo(
+            {"purchase_line_id": purchase.order_line.id, "sale_line_id": sale.order_line.id},
+            None,
+            None,
+            revision.id,
+            self.key("i2"),
+        )
+        self.assertEqual(outcome["status"], "applied", outcome)
+        self.env.invalidate_all()  # a fresh request: nothing read as the superuser stays cached
+        groups = self.env[LINK].with_user(self.actor)._legacy_booking_report_groups([("booking_id", "=", booking.id)])
+        (row,) = next(iter(groups.values()))
+        self.assertEqual((row["Supplier"], row["Customer"], row["Customer-Loc"]), (RESTRICTED,) * 3)
+        self.assertEqual(
+            (row["PO No"], row["SO No"]), (purchase.name, sale.name), "the order lines themselves are readable"
+        )
+        self.assertNotIn(private_supplier.name, str(row))

@@ -31,6 +31,18 @@ ACTOR_GROUPS = [
 ]
 
 
+def row_versions(records):
+    """``(id, ctid)`` per row. An UPDATE writes a new row version and moves its ctid, so an
+    unchanged list proves no write happened; ``write_date`` cannot, as ``cr.now()`` is constant
+    inside one test transaction."""
+    records.env.flush_all()
+    records.env.cr.execute(
+        f'SELECT id, ctid::text FROM "{records._table}" WHERE id = ANY(%s) ORDER BY id',  # noqa: S608 - ORM table name
+        [records.ids],
+    )
+    return records.env.cr.fetchall()
+
+
 def actor_groups(env, extra=()):
     refs = [env.ref(xmlid, raise_if_not_found=False) for xmlid in [*ACTOR_GROUPS, *extra]]
     return ",".join(ref.get_external_id()[ref.id] for ref in refs if ref)

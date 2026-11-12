@@ -169,3 +169,33 @@ class TestSlotCommandScreens(ExportFixtureMixin, PlasticosTestCase):
         )
         self.assertEqual(refused["status"], "not_available")
         self.assertFalse(self.env[LINK].search_count([("slot_id", "=", slot.id)]))
+        # Review N3: release and bind called directly by a Sales Rep are refused by the commands too.
+        committed = slot.with_user(self.actor).action_commit_cargo(
+            {"purchase_line_id": self._po_line().id}, None, None, revision.id, self.key()
+        )
+        self.assertEqual(committed["status"], "applied", committed)
+        release = slot.with_user(self.sales_reader).action_release_cargo(
+            committed["record_id"], revision.id, self.key(), "rep tries to release"
+        )
+        self.assertEqual(release["status"], "not_available")
+        bind = slot.with_user(self.sales_reader).action_bind_journey(
+            self._journey().id, revision.id, self.key(), "rep tries to bind"
+        )
+        self.assertEqual(bind["status"], "not_available")
+        self.assertEqual(self.env[LINK].browse(committed["record_id"]).state, "committed")
+        self.assertFalse(slot.journey_id)
+
+    def test_commit_screens_cannot_double_allocate_one_load(self):
+        """BRS-EXP-08-R006 at the screen (review N4): two Commit Cargo screens name one load; the second is refused."""
+        booking, _revision = self.accepted_booking(confirmed=2)
+        first_slot, second_slot = booking.slot_ids.sorted("slot_key")
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        values = {"source_load_id": load.id, "physical_source_kind": "logistics_load"}
+        first = self._screen(COMMIT, first_slot, purchase_line_id=self._po_line().id, **values)
+        second = self._screen(COMMIT, second_slot, purchase_line_id=self._po_line().id, **values)
+        first.action_confirm()
+        with self.assertRaisesRegex(UserError, "already committed on another live cargo link"):
+            second.action_confirm()
+        live = self.env[LINK].search([("source_load_id", "=", load.id), ("state", "in", ("committed", "held"))])
+        self.assertEqual(live.slot_id, first_slot)

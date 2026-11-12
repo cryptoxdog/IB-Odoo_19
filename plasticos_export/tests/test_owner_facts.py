@@ -21,7 +21,7 @@ from odoo.tests.common import new_test_user, tagged
 
 from ..models.document_inherit import VERIFIED_GROSS_MASS
 from ..models.owner_facts import NO_CONTAINER_BOUND, RESTRICTED
-from .test_booking_and_revision import LINK, ExportFixtureMixin, actor_groups
+from .test_booking_and_revision import LINK, ExportFixtureMixin, actor_groups, row_versions
 
 _BYTES = itertools.count(1)
 OWNER_FACT_FIELDS = {
@@ -259,7 +259,7 @@ class TestExportOwnerFacts(ExportFixtureMixin, PlasticosTestCase):
         view = slot.with_user(self.actor)
         self.assertIn("Packages: 1", view.owner_package_summary)
         self.assertIn(f"Recorded shipping weight: 18000 {self.unit}", view.owner_package_summary)
-        self.assertIn(f"Package tare: 40 {self.unit}", view.owner_package_summary)
+        self.assertIn(f"Package type nominal weight: 40 {self.unit}", view.owner_package_summary)
         self.assertIn("not a certified VGM", view.owner_package_summary)
         self.assertEqual(view.owner_vgm_verdict, f"{load.name}: missing")
         self._verified_vgm(load)
@@ -308,13 +308,50 @@ class TestExportOwnerFacts(ExportFixtureMixin, PlasticosTestCase):
         """BRS-EXP-02-R006 negative: FAS sets no ICC FAS term and turns on no freight; a reader cannot set it."""
         _booking, _slot, link, sale, purchase, load, _move_line = self._shipment()
         purchase.incoterm_id = False
-        before = (purchase.write_date, sale.write_date, load.write_date, load.state, load.actual_freight_cost)
+        sale_incoterm = sale.incoterm if "incoterm" in sale._fields else None
+        before = (
+            row_versions(purchase),
+            row_versions(purchase.order_line),
+            row_versions(sale),
+            row_versions(sale.order_line),
+            row_versions(load),
+        )
         link.with_user(self.actor).write({"commercial_trade_label": "fas"})
         self.assertFalse(purchase.incoterm_id)
         self.assertEqual(link.with_user(self.actor).purchase_incoterm_display, "No Incoterm on the order")
         self.assertEqual(
-            (purchase.write_date, sale.write_date, load.write_date, load.state, load.actual_freight_cost), before
+            (
+                row_versions(purchase),
+                row_versions(purchase.order_line),
+                row_versions(sale),
+                row_versions(sale.order_line),
+                row_versions(load),
+            ),
+            before,
+            "the label wrote no order, order line or load row",
         )
+        if "incoterm" in sale._fields:
+            self.assertEqual(sale.incoterm, sale_incoterm, "the SO Incoterm is unchanged")
         with self.assertRaises(AccessError):
             link.with_user(self.sales_reader).write({"commercial_trade_label": "cnf"})
         self.assertEqual(link.commercial_trade_label, "fas")
+
+    def test_07_r006_package_type_weight_is_summed_per_package(self):
+        """BRS-EXP-07-R006 (review B1): two packages of one type count twice; mixed types add up, per package."""
+        Type = self.env["stock.package.type"]
+        bale, gaylord = (
+            Type.create({"name": "S10 Bale B1", "base_weight": 40}),
+            Type.create({"name": "S10 Gaylord B1", "base_weight": 15}),
+        )
+        Package = self.env["stock.package"]
+        same = Package.create(
+            [{"name": f"S10-B1-{n}", "package_type_id": bale.id, "shipping_weight": 1000} for n in range(2)]
+        )
+        mixed = same | Package.create({"name": "S10-B1-G", "package_type_id": gaylord.id, "shipping_weight": 500})
+        Slot = self.env["plasticos.export.booking.slot"]
+        self.assertIn(f"Package type nominal weight: 80 {self.unit}", Slot._package_summary(same, self.unit))
+        summary = Slot._package_summary(mixed, self.unit)
+        self.assertIn("Packages: 3", summary)
+        self.assertIn(f"Recorded shipping weight: 2500 {self.unit}", summary)
+        self.assertIn(f"Package type nominal weight: 95 {self.unit}", summary)
+        self.assertNotIn("incomplete", summary)

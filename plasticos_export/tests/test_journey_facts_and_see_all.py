@@ -22,7 +22,7 @@ from odoo.tools.safe_eval import safe_eval
 
 from ..models.export_scope import CARGO_LINK_SOURCE_LINKS
 from ..models.owner_facts import NO_CONTAINER_BOUND, NOT_RECORDED_BY_LOGISTICS, RESTRICTED
-from .test_booking_and_revision import BOOKING, LINK, ExportFixtureMixin
+from .test_booking_and_revision import BOOKING, LINK, ExportFixtureMixin, actor_groups, row_versions
 
 FACT = "plasticos.iso.journey.fact"
 JOURNEY = "plasticos.iso.journey"
@@ -130,7 +130,6 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
                 row.vessel,
                 row.customs_filer_id,
                 row.delivery_partner_id,
-                row.write_date,
             )
             for row in rows
         ]
@@ -198,8 +197,8 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         _booking, slot, _journey = self._bound_slot()
         self.assertEqual(slot.with_user(self.actor).owner_container_vgm_weight, NOT_RECORDED_BY_LOGISTICS)
         # A reader without Logistics read on the journey facts gets the restricted marker, never a false value.
-        expected = NOT_RECORDED_BY_LOGISTICS if self._rep_reads_facts() else RESTRICTED
-        self.assertEqual(slot.with_user(self.rep).owner_container_tare, expected)
+        self.assertFalse(self._rep_reads_facts(), "S9 B1: only journey readers read journey facts")
+        self.assertEqual(slot.with_user(self.rep).owner_container_tare, RESTRICTED)
         self.assertEqual(self.env[FACT].search_count([]), before, "reading the slot records no fact")
 
     # ── BRS-EXP-08-R007: resale afloat ───────────────────────
@@ -214,7 +213,8 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         self._afloat(journey)
         facts = self._facts(journey)
         revision = booking.current_revision_id
-        revision_terms = (revision.erd_utc, revision.cargo_cutoff_local, revision.write_date)
+        revision_terms = (revision.erd_utc, revision.cargo_cutoff_local, row_versions(revision), row_versions(booking))
+        facts = (facts, row_versions(self.env[FACT].search([("journey_id", "=", journey.id)])))
         sale = self._sale_line(self.rep, sale_date)
         action = slot.with_user(self.actor).action_open_commit_cargo()
         screen = (
@@ -241,9 +241,15 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         sold = self.env[LINK].search([("replaces_link_id", "=", buyerless.id)])
         self.assertEqual(buyerless.state, "released")
         self.assertEqual((sold.state, sold.sale_line_id, sold.slot_id), ("committed", sale, slot))
-        self.assertEqual(self._facts(journey), facts, "no Logistics fact was rewritten by the sale")
+        self.assertEqual(
+            (self._facts(journey), row_versions(self.env[FACT].search([("journey_id", "=", journey.id)]))),
+            facts,
+            "no Logistics fact was rewritten by the sale",
+        )
         self.assertEqual(booking.current_revision_id, revision)
-        self.assertEqual((revision.erd_utc, revision.cargo_cutoff_local, revision.write_date), terms)
+        self.assertEqual(
+            (revision.erd_utc, revision.cargo_cutoff_local, row_versions(revision), row_versions(booking)), terms
+        )
         self.env.invalidate_all()
         history = slot.with_user(self.actor).owner_shipment_history
         self.assertIn(f"at {self.terminal.display_name}", history)
@@ -260,23 +266,25 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         backdated = self._ago(24 * 60)
         booking, slot, journey, facts, revision, terms, _first, sale = self._buyerless_then_sold(backdated)
         self.assertLess(sale.order_id.date_order, self._ago(20))
-        self.assertEqual(self._facts(journey), facts)
+        self.assertEqual(
+            (self._facts(journey), row_versions(self.env[FACT].search([("journey_id", "=", journey.id)]))), facts
+        )
         parties = self.env[FACT].search([("journey_id", "=", journey.id), ("fact_kind", "=", "regulatory_parties")])
         self.assertEqual((parties.customs_filer_id, parties.delivery_partner_id), (self.filer, self.agent))
         self.assertNotEqual(parties.delivery_partner_id, sale.order_id.partner_id)
-        self.assertEqual((revision.erd_utc, revision.cargo_cutoff_local, revision.write_date), terms)
+        self.assertEqual(
+            (revision.erd_utc, revision.cargo_cutoff_local, row_versions(revision), row_versions(booking)), terms
+        )
         self.assertEqual(booking.current_revision_id, revision)
         self.assertEqual(
             self.env[FACT].search_count([("journey_id", "=", journey.id)]), 3, "the sale recorded no Logistics fact"
         )
         self.env.invalidate_all()
         rep_history = slot.with_user(self.rep).owner_shipment_history
-        if self._rep_reads_facts():
-            self.assertIn(f"delivery partner: {self.agent.display_name}", rep_history)
-        else:
-            self.assertIn(f"Container facts: {RESTRICTED}", rep_history)
-            self.assertNotIn(self.agent.display_name, rep_history)
-            self.assertNotIn(journey.display_name, rep_history)
+        self.assertFalse(self._rep_reads_facts())
+        self.assertIn(f"Container facts: {RESTRICTED}", rep_history)
+        self.assertNotIn(self.agent.display_name, rep_history)
+        self.assertNotIn(journey.display_name, rep_history)
         self.assertIn(f"buyer SO {sale.order_id.name}", rep_history)
 
     # ── OP10-E06: Sales Rep see-all without AccessError ──────
@@ -387,11 +395,38 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         spec = {name: ({"fields": {"display_name": {}}} if name in relational else {}) for name in names}
         values = rep_slot.web_read(spec)[0]
         self.assertEqual(values["iso_number"], "CAIU1234569")
-        if not self._rep_reads_facts():
-            self.assertEqual(values["owner_container_tare"], RESTRICTED)
-            self.assertEqual(values["owner_container_vgm_weight"], RESTRICTED)
-            with self.assertRaises(AccessError):
-                self.env[FACT].with_user(self.rep).search_read([("journey_id", "=", journey.id)], ["weight"])
+        self.assertFalse(self._rep_reads_facts())
+        self.assertEqual(values["owner_container_tare"], RESTRICTED)
+        self.assertEqual(values["owner_container_vgm_weight"], RESTRICTED)
+        with self.assertRaises(AccessError):
+            self.env[FACT].with_user(self.rep).search_read([("journey_id", "=", journey.id)], ["weight"])
         self.assertNotIn(journey.display_name, str(values))
         actor_slot = self.env[SLOT].with_user(self.actor).browse(slot.id)
         self.assertEqual(actor_slot.owner_container_tare, f"3900 {self.kg.name} (Scale Ticket: TKT-REP)")
+
+    def test_private_party_on_a_fact_shows_restricted_to_another_logistics_user(self):
+        """BRS-EXP-14-R022 (review I1): a fact naming a partner hidden by rule_partner_private never crashes the slot."""
+        private = self.env["res.partner"].create({"name": "S10 Private Broker", "is_company": True, "is_private": True})
+        # The recording Logistics user owns the private partner, so it is visible to them and to no other user.
+        self.env.cr.execute("UPDATE res_partner SET create_uid = %s WHERE id = %s", [self.actor.id, private.id])
+        self.env.invalidate_all()
+        other_logistics = new_test_user(
+            self.env,
+            login="s10_logistics_l2",
+            groups=actor_groups(self.env),
+            company_id=self.company.id,
+            company_ids=[(6, 0, [self.company.id])],
+        )
+        with self.assertRaises(AccessError):
+            private.with_user(other_logistics).check_access("read")
+        _booking, slot, journey = self._bound_slot(iso="PRIV1234565", seal="SEAL-I1")
+        self._record("action_record_gate_in", journey, self._ago(30), private.id, self._attach(journey, "eir.pdf").id)
+        self._record(
+            "action_record_regulatory_parties", journey, private.id, self.agent.id, self._attach(journey, "file.pdf").id
+        )
+        self.env.invalidate_all()
+        history = slot.with_user(other_logistics).owner_shipment_history
+        self.assertIn("Gate-in: ", history)
+        self.assertIn(f"at {RESTRICTED}", history)
+        self.assertIn(f"Customs filer: {RESTRICTED}; delivery partner: {self.agent.display_name}", history)
+        self.assertNotIn(private.name, history)

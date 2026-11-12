@@ -75,6 +75,16 @@ def readable(record):
     return True
 
 
+def party_name(partner, missing="not named"):
+    """A partner's name, or the restricted marker when a record rule hides it (e.g. a private partner)."""
+    if not partner:
+        return missing
+    try:
+        return partner.display_name
+    except AccessError:
+        return RESTRICTED
+
+
 def evidence_verdict(env, subject, kind):
     """The Documents verdict of one Export obligation on one subject, as a label.
 
@@ -114,7 +124,7 @@ def weight_unit(env):
 
 
 def package_lines(packages, unit):
-    """One line per native package: its recorded shipping weight and its type's tare."""
+    """One line per native package: its recorded shipping weight and its package type's nominal weight."""
     rows = []
     for package in packages:
         weight = f"{package.shipping_weight:g} {unit}" if package.shipping_weight else NOT_RECORDED
@@ -123,7 +133,7 @@ def package_lines(packages, unit):
             if package.package_type_id and package.package_type_id.base_weight
             else NOT_RECORDED
         )
-        rows.append(f"{package.display_name}: shipping weight {weight}; package tare {tare}")
+        rows.append(f"{package.display_name}: shipping weight {weight}; package type nominal weight {tare}")
     return rows
 
 
@@ -401,15 +411,15 @@ class PlasticosExportSlotOwnerFacts(models.Model):
             gate_in, departure, parties = (facts.get(kind) for kind in ("gate_in", "departure", "regulatory_parties"))
             rows = [
                 f"Container: {self.iso_number or 'no ISO number'} (seal {self.seal_number or 'not stated'})",
-                f"Gate-in: {self._when(gate_in.occurred_at)} at {gate_in.facility_partner_id.display_name}"
+                f"Gate-in: {self._when(gate_in.occurred_at)} at {party_name(gate_in.facility_partner_id)}"
                 if gate_in
                 else f"Gate-in: {NOT_RECORDED_BY_LOGISTICS}",
                 f"Departure: {self._when(departure.occurred_at)} on {departure.vessel} {departure.voyage or ''}".rstrip()
                 if departure
                 else f"Departure: {NOT_RECORDED_BY_LOGISTICS}",
                 (
-                    f"Customs filer: {parties.customs_filer_id.display_name or 'not named'}; "
-                    f"delivery partner: {parties.delivery_partner_id.display_name or 'not named'}"
+                    f"Customs filer: {party_name(parties.customs_filer_id)}; "
+                    f"delivery partner: {party_name(parties.delivery_partner_id)}"
                 )
                 if parties
                 else f"Filer and delivery partner: {NOT_RECORDED_BY_LOGISTICS}",
@@ -435,12 +445,13 @@ class PlasticosExportSlotOwnerFacts(models.Model):
         weighed = packages.filtered("shipping_weight")
         tared = packages.filtered(lambda package: package.package_type_id.base_weight)
         total = sum(weighed.mapped("shipping_weight"))
-        tare = sum(tared.mapped("package_type_id.base_weight"))
+        # Per package, never through mapped(): mapped() would count a shared package type once.
+        tare = sum(package.package_type_id.base_weight for package in tared)
         head = [
             f"Packages: {len(packages)}",
             f"Recorded shipping weight: {total:g} {unit}"
             + ("" if len(weighed) == len(packages) else f" (incomplete: {len(packages) - len(weighed)} not recorded)"),
-            f"Package tare: {tare:g} {unit}"
+            f"Package type nominal weight: {tare:g} {unit}"
             + ("" if len(tared) == len(packages) else f" (incomplete: {len(packages) - len(tared)} not recorded)"),
             "Package totals are not a certified VGM.",
         ]
