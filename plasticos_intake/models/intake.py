@@ -185,10 +185,9 @@ class PlasticosIntake(models.Model):
     polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer",
-        required=True,
         index=True,
         ondelete="restrict",
-        help="Polymer type from master registry.",
+        help="Polymer type from master registry. Empty when triage matched no polymer.",
     )
     material_grade_id = fields.Many2one(
         "plasticos.material.grade",
@@ -200,10 +199,9 @@ class PlasticosIntake(models.Model):
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
-        required=True,
         index=True,
         ondelete="restrict",
-        help="Material form from master registry.",
+        help="Material form from master registry. Empty when triage matched no form.",
     )
     color_id = fields.Many2one(
         "plasticos.material.color",

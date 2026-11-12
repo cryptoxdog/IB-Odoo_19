@@ -37,7 +37,6 @@ class TestWebLeadMaterialGrade(TransactionCase):
                 "hot_intake_reviewer_id": cls.env.ref("base.user_admin").id,
             }
         )
-        cls.form_other = cls.env.ref("plasticos_material_profile.form_other")
         cls.grade_pallets = cls.env.ref("plasticos_material_profile.material_grade_pallets")
 
     def _lead(self, external_id, description, weight):
@@ -50,7 +49,7 @@ class TestWebLeadMaterialGrade(TransactionCase):
         self.assertEqual(lead.decision, "hot")
         self.assertEqual(lead.ai_analysis["material_grade"], "PALLETS")
         self.assertFalse(lead.ai_analysis["form"])
-        self.assertEqual(lead.intake_id.form_id, self.form_other)
+        self.assertFalse(lead.intake_id.form_id)
         self.assertEqual(lead.intake_id.material_grade_id, self.grade_pallets)
 
     def test_stored_analysis_without_a_grade_key_is_split_when_forced(self):
@@ -58,7 +57,7 @@ class TestWebLeadMaterialGrade(TransactionCase):
 
         intake = lead._create_intake({"form": "PALLETS", "polymer": "HDPE", "estimated_lbs": 500}, self.config)
 
-        self.assertEqual(intake.form_id, self.form_other)
+        self.assertFalse(intake.form_id)
         self.assertEqual(intake.material_grade_id, self.grade_pallets)
 
     def test_film_maps_to_the_film_form(self):
@@ -87,6 +86,22 @@ class TestWebLeadMaterialGrade(TransactionCase):
 
         self.assertEqual(merged["form"], "FILM")
         self.assertEqual(merged["material_grade"], "BUCKETS")
+
+    def test_seller_naming_two_polymers_leaves_the_polymer_unresolved(self):
+        lead = self._lead("polymer-two", "HDPE and PP regrind", "40000 lbs")
+
+        merged = lead._merge_ai_and_vision({"polymer": "PP"}, [])
+
+        self.assertIsNone(merged["polymer"])
+        self.assertIsNone(merged["polymer_source"])
+
+    def test_seller_naming_one_polymer_still_resolves_it(self):
+        lead = self._lead("polymer-one", "Clean PP regrind", "40000 lbs")
+
+        merged = lead._merge_ai_and_vision({}, [])
+
+        self.assertEqual(merged["polymer"], "PP")
+        self.assertEqual(merged["polymer_source"], "seller_text")
 
     def test_punctuated_item_words_keep_the_reusable_grade(self):
         pallets = self._lead("grade-pallets-punct", "HDPE pallets, clean", "9000 lbs")
