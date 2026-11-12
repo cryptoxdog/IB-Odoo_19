@@ -214,6 +214,7 @@ DOCUMENT_CHASE_PARAM = "plasticos_logistics.linda_document_chase"
 LOGGED_SKIP_REASONS = frozenset({"sender_email_missing", "recipient_email_invalid", "audience_company_mismatch"})
 # The obligation sweep visits at most this many loads per lane per run, rotating by id.
 LOAD_SWEEP_BATCH = 200
+# Pre-S11 ir.config_parameter prefix of the sweep cursor; read only by the 19.0.1.14.24 migration.
 LOAD_SWEEP_CURSOR = "plasticos_logistics.linda_load_sweep_cursor"
 # Load states in which an unacknowledged dispatch is still a live obligation.
 ACK_LOAD_STATES = ("dispatched", "scheduled")
@@ -1514,7 +1515,8 @@ class PlasticosLogisticsRequest(models.Model):
 
         Recording an obligation changes nothing in the eligibility domain, so a fixed
         "oldest first" page would revisit the same loads forever and starve the rest.
-        A persisted id cursor continues after the last load seen and wraps to the start.
+        A persisted id cursor (``plasticos.linda.sweep.cursor``, one per lane and company)
+        continues after the last load seen and wraps to the start.
         """
         Load = self.env["plasticos.load"]
         batch = int(self.env.context.get("linda_load_sweep_batch") or LOAD_SWEEP_BATCH)
@@ -1523,16 +1525,14 @@ class PlasticosLogisticsRequest(models.Model):
         scope = self.env.context.get("linda_load_sweep_ids")
         if scope is not None:
             domain = [*domain, ("id", "in", [int(load_id) for load_id in scope])]
-        params = self.env["ir.config_parameter"].sudo()  # sudo: the sweep cursor is a system parameter
-        key = f"{LOAD_SWEEP_CURSOR}.{lane}"
-        raw = params.get_param(key) or "0"
-        cursor = int(raw) if raw.isdigit() else 0
+        cursors = self.env["plasticos.linda.sweep.cursor"].sudo()  # sudo: the cron user holds no group on its cursor
+        cursor = cursors._get_position(lane)
         page = Load.search([*domain, ("id", ">", cursor)], order="id asc", limit=batch)
         if len(page) < batch:
             page |= Load.search(
                 [*domain, ("id", "<=", cursor), ("id", "not in", page.ids)], order="id asc", limit=batch - len(page)
             )
-        params.set_param(key, str(page[-1:].id or 0) if len(page) == batch else "0")
+        cursors._set_position(lane, (page[-1:].id or 0) if len(page) == batch else 0)
         return page
 
     @api.model

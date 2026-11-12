@@ -18,6 +18,14 @@ these rows, so the departure, gate-in, filer and delivery partner of a
 container already afloat survive its sale. Milestones stay distinct: a
 supplier's "booking complete", a loaded event or a gate appointment is not a
 gate-in, and a gate-in is not a sailing.
+
+Corrections (S11, OP11-E01, operator decision 2026-11-12) are append-only too.
+A correction never edits a row: it records revision ``n + 1`` of the same kind,
+names the revision it supersedes, and carries a required reason, its author and
+its time. The current fact of a kind is its highest revision, read only through
+``plasticos.iso.journey.current_facts()`` / ``current_fact()``. A correction
+passes the same evidence, company, Documents and party guards as the first
+record, and a correction that changes nothing is refused.
 """
 
 import psycopg2
@@ -52,7 +60,7 @@ VGM_OBLIGATION = "verified_gross_mass"
 class PlasticosIsoJourneyFact(models.Model):
     _name = "plasticos.iso.journey.fact"
     _description = "Plasticos ISO Container Journey Fact"
-    _order = "journey_id, occurred_at, id"
+    _order = "journey_id, fact_kind, revision, id"
 
     journey_id = fields.Many2one(PLASTICOS_ISO_JOURNEY, required=True, readonly=True, index=True, ondelete="restrict")
     company_id = fields.Many2one("res.company", required=True, readonly=True, index=True, ondelete="restrict")
@@ -110,10 +118,41 @@ class PlasticosIsoJourneyFact(models.Model):
     )
     recorded_at = fields.Datetime(required=True, readonly=True)
     recorded_by = fields.Many2one("res.users", required=True, readonly=True, ondelete="restrict")
+    revision = fields.Integer(
+        required=True,
+        readonly=True,
+        default=1,
+        help="1 for the first record of this kind; each correction adds the next revision.",
+    )
+    supersedes_id = fields.Many2one(
+        "plasticos.iso.journey.fact",
+        string="Supersedes",
+        readonly=True,
+        index=True,
+        ondelete="restrict",
+        help="The revision this correction replaces. That row is kept unchanged.",
+    )
+    correction_reason = fields.Text(readonly=True, help="Why the fact was corrected. Required on every correction.")
+    corrected_by = fields.Many2one("res.users", readonly=True, ondelete="restrict")
+    corrected_at = fields.Datetime(readonly=True)
+    operation_key = fields.Char(readonly=True, index=True, help="Idempotency key of the correction that wrote it.")
 
-    _one_fact_per_kind = models.Constraint(
-        "UNIQUE(journey_id, fact_kind)",
-        "This container journey already has that fact; a recorded fact is immutable.",
+    _one_fact_per_revision = models.Constraint(
+        "UNIQUE(journey_id, fact_kind, revision)",
+        "This container journey already has that revision of the fact; a recorded fact is immutable.",
+    )
+    _one_correction_per_key = models.Constraint(
+        "UNIQUE(journey_id, operation_key)",
+        "This correction was already recorded on this container journey.",
+    )
+    _revision_shape = models.Constraint(
+        """CHECK(
+            (revision = 1 AND supersedes_id IS NULL AND correction_reason IS NULL)
+            OR (revision > 1 AND supersedes_id IS NOT NULL AND correction_reason IS NOT NULL
+                AND corrected_by IS NOT NULL AND corrected_at IS NOT NULL AND operation_key IS NOT NULL)
+        )""",
+        "A first record supersedes nothing; a correction names the revision it supersedes, its reason, "
+        "author, time and operation key.",
     )
     _kind_shape = models.Constraint(
         """CHECK(
@@ -213,14 +252,50 @@ class PlasticosIsoJourneyFact(models.Model):
             return f"the {label} belongs to another company"
         return None
 
+    # ── Current revision (the one read path is plasticos.iso.journey.current_facts) ──
+
+    @api.model
+    def _current(self, journey, kind):
+        """The highest revision of one kind on one journey, or an empty recordset."""
+        return journey.current_fact(kind)
+
     @api.model
     def _existing_result(self, journey, kind, facts):
-        existing = self.search([("journey_id", "=", journey.id), ("fact_kind", "=", kind)], limit=1)
+        existing = self._current(journey, kind)
         if not existing:
             return None
         if all(existing._same_fact(name, facts.get(name)) for name in _KIND_FACTS[kind]):
             return _result("already_applied", existing)
         return _result("blocked", existing, f"this container journey's {kind.replace('_', ' ')} is recorded")
+
+    @api.model
+    def _create_fact(self, journey, kind, facts, extra=None):
+        """Insert one row inside a savepoint. Returns ``(fact, error_result)``.
+
+        ``error_result`` is ``None`` on success, ``"unique"`` when a concurrent
+        writer won a unique index first, or a blocked result for any other
+        constraint, never a raw IntegrityError.
+        """
+        now = fields.Datetime.now()
+        try:
+            with self.env.cr.savepoint():
+                fact = self.with_context(**{_RECORD_WRITE: _RECORD_WRITE_TOKEN}).create(
+                    {
+                        **facts,
+                        **(extra or {}),
+                        "journey_id": journey.id,
+                        "company_id": journey.company_id.id,
+                        "fact_kind": kind,
+                        "recorded_at": now,
+                        "recorded_by": self.env.user.id,
+                    }
+                )
+        except psycopg2.errors.UniqueViolation:
+            self.env.invalidate_all()
+            return None, "unique"
+        except psycopg2.IntegrityError as error:
+            return None, _result("blocked", journey, f"constraint violated: {error.diag.constraint_name or 'database'}")
+        return fact, None
 
     @api.model
     def _record(self, journey, kind, facts):
@@ -232,27 +307,85 @@ class PlasticosIsoJourneyFact(models.Model):
         existing = self._existing_result(journey, kind, facts)
         if existing:
             return existing
-        try:
-            with self.env.cr.savepoint():
-                fact = self.with_context(**{_RECORD_WRITE: _RECORD_WRITE_TOKEN}).create(
-                    {
-                        **facts,
-                        "journey_id": journey.id,
-                        "company_id": journey.company_id.id,
-                        "fact_kind": kind,
-                        "recorded_at": fields.Datetime.now(),
-                        "recorded_by": self.env.user.id,
-                    }
-                )
-        except psycopg2.errors.UniqueViolation:
+        fact, error = self._create_fact(journey, kind, facts)
+        if error == "unique":
             # A concurrent record of the same fact won the unique index; answer from its row.
-            self.env.invalidate_all()
             return self._existing_result(journey, kind, facts) or _result(
                 "blocked", journey, "constraint violated: a concurrent record of this fact could not be read back"
             )
-        except psycopg2.IntegrityError as error:
-            return _result("blocked", journey, f"constraint violated: {error.diag.constraint_name or 'database'}")
-        return _result("applied", fact)
+        return error or _result("applied", fact)
+
+    # ── Per-kind validation, shared by the first record and every correction ──
+
+    @api.model
+    def _validated(self, kind, journey_id, values, operation_key):
+        """Run every guard of ``kind``. Returns ``(journey, facts, blocked_result)``."""
+        if kind in WEIGHT_KINDS:
+            return self._validated_weight(kind, journey_id, values, operation_key)
+        journey, attachment, blocked = self._preconditions(
+            journey_id, values.get("evidence_attachment_id"), operation_key
+        )
+        if blocked:
+            return journey, None, blocked
+        if kind == "gate_in":
+            facts, error = self._gate_in_facts(journey, values)
+        elif kind == "departure":
+            facts, error = self._departure_facts(journey, values)
+        else:
+            facts, error = self._regulatory_facts(journey, values)
+        if error:
+            return journey, None, _result("blocked", journey, error)
+        return journey, {**facts, "evidence_attachment_id": attachment.id}, None
+
+    @api.model
+    def _gate_in_facts(self, journey, values):
+        when, error = self._past_time(values.get("occurred_at"))
+        facility = self.env[RES_PARTNER].browse(int(values.get("facility_partner_id") or 0)).exists()
+        if error or not facility:
+            return None, error or "the gate-in facility is required"
+        error = self._partner_error(facility, journey, "gate-in facility")
+        if error:
+            return None, error
+        departure = self._current(journey, "departure")
+        if departure and when > departure.occurred_at:
+            # Only a correction can meet a recorded departure; the order still holds.
+            return None, "a container's gate-in cannot follow its vessel's departure"
+        return {"occurred_at": when, "facility_partner_id": facility.id}, None
+
+    @api.model
+    def _departure_facts(self, journey, values):
+        when, error = self._past_time(values.get("departed_at"))
+        vessel = _normalize_text(values.get("vessel"))
+        if error or not vessel:
+            return None, error or "the vessel is required"
+        gate_in = self._current(journey, "gate_in")
+        if not gate_in:
+            return None, "record the terminal gate-in before the departure"
+        if when < gate_in.occurred_at:
+            return None, "a vessel cannot sail before the container's gate-in"
+        return {"occurred_at": when, "vessel": vessel, "voyage": _normalize_text(values.get("voyage"))}, None
+
+    @api.model
+    def _regulatory_facts(self, journey, values):
+        partners = self.env[RES_PARTNER]
+        filer = partners.browse(int(values.get("customs_filer_id") or 0)).exists()
+        delivery = partners.browse(int(values.get("delivery_partner_id") or 0)).exists()
+        if not filer and not delivery:
+            return None, "name the customs filer or the delivery partner"
+        for partner, label in ((filer, "customs filer"), (delivery, "delivery partner")):
+            error = partner and self._partner_error(partner, journey, label)
+            if error:
+                return None, error
+        return {"customs_filer_id": filer.id or False, "delivery_partner_id": delivery.id or False}, None
+
+    @api.model
+    def _record_kind(self, kind, journey_id, values, operation_key):
+        journey, facts, blocked = self._validated(kind, journey_id, values, operation_key)
+        if blocked:
+            return blocked
+        return self._record(journey, kind, facts)
+
+    # ── First-record commands ──────────────────────────────────────────
 
     @api.model
     def action_record_gate_in(
@@ -262,74 +395,35 @@ class PlasticosIsoJourneyFact(models.Model):
 
         A supplier's "booking complete" or a loaded event never stands in for it.
         """
-        journey, attachment, blocked = self._preconditions(journey_id, evidence_attachment_id, operation_key)
-        if blocked:
-            return blocked
-        when, error = self._past_time(occurred_at)
-        facility = self.env[RES_PARTNER].browse(int(facility_partner_id or 0)).exists()
-        if error or not facility:
-            return _result("blocked", journey, error or "the gate-in facility is required")
-        error = self._partner_error(facility, journey, "gate-in facility")
-        if error:
-            return _result("blocked", journey, error)
-        return self._record(
-            journey,
-            "gate_in",
-            {"occurred_at": when, "facility_partner_id": facility.id, "evidence_attachment_id": attachment.id},
-        )
+        values = {
+            "occurred_at": occurred_at,
+            "facility_partner_id": facility_partner_id,
+            "evidence_attachment_id": evidence_attachment_id,
+        }
+        return self._record_kind("gate_in", journey_id, values, operation_key)
 
     @api.model
     def action_record_departure(self, journey_id, departed_at, vessel, voyage, evidence_attachment_id, operation_key):
         """The vessel carrying this container sailed. A departure follows its gate-in."""
-        journey, attachment, blocked = self._preconditions(journey_id, evidence_attachment_id, operation_key)
-        if blocked:
-            return blocked
-        when, error = self._past_time(departed_at)
-        vessel = _normalize_text(vessel)
-        if error or not vessel:
-            return _result("blocked", journey, error or "the vessel is required")
-        gate_in = self.search([("journey_id", "=", journey.id), ("fact_kind", "=", "gate_in")], limit=1)
-        if not gate_in:
-            return _result("blocked", journey, "record the terminal gate-in before the departure")
-        if when < gate_in.occurred_at:
-            return _result("blocked", journey, "a vessel cannot sail before the container's gate-in")
-        return self._record(
-            journey,
-            "departure",
-            {
-                "occurred_at": when,
-                "vessel": vessel,
-                "voyage": _normalize_text(voyage),
-                "evidence_attachment_id": attachment.id,
-            },
-        )
+        values = {
+            "departed_at": departed_at,
+            "vessel": vessel,
+            "voyage": voyage,
+            "evidence_attachment_id": evidence_attachment_id,
+        }
+        return self._record_kind("departure", journey_id, values, operation_key)
 
     @api.model
     def action_record_regulatory_parties(
         self, journey_id, customs_filer_id, delivery_partner_id, evidence_attachment_id, operation_key
     ):
         """Who files the export and who takes delivery, from filing authority, never from a buyer."""
-        journey, attachment, blocked = self._preconditions(journey_id, evidence_attachment_id, operation_key)
-        if blocked:
-            return blocked
-        partners = self.env[RES_PARTNER]
-        filer = partners.browse(int(customs_filer_id or 0)).exists()
-        delivery = partners.browse(int(delivery_partner_id or 0)).exists()
-        if not filer and not delivery:
-            return _result("blocked", journey, "name the customs filer or the delivery partner")
-        for partner, label in ((filer, "customs filer"), (delivery, "delivery partner")):
-            error = partner and self._partner_error(partner, journey, label)
-            if error:
-                return _result("blocked", journey, error)
-        return self._record(
-            journey,
-            "regulatory_parties",
-            {
-                "customs_filer_id": filer.id or False,
-                "delivery_partner_id": delivery.id or False,
-                "evidence_attachment_id": attachment.id,
-            },
-        )
+        values = {
+            "customs_filer_id": customs_filer_id,
+            "delivery_partner_id": delivery_partner_id,
+            "evidence_attachment_id": evidence_attachment_id,
+        }
+        return self._record_kind("regulatory_parties", journey_id, values, operation_key)
 
     # ── Container tare and verified gross mass (C10-SCOPE-2, BRS-EXP-07-R006) ──
 
@@ -380,84 +474,174 @@ class PlasticosIsoJourneyFact(models.Model):
         return document.id, document.attachment_id, None
 
     @api.model
-    def _record_weight(
-        self, kind, journey_id, weight, weight_uom_id, weight_basis, evidence_attachment_id, evidence_reference, key
-    ):
+    def _validated_weight(self, kind, journey_id, values, key):
         _require_logistics_actor(self.env)
+        weight_basis = values.get("weight_basis")
         documents_basis = weight_basis == "documents_verified_gross_mass"
         if weight_basis not in ("scale_ticket", "documents_verified_gross_mass"):
-            return _result("blocked", reason="a tare or VGM weight needs a scale ticket or the Documents VGM verdict")
+            return (
+                None,
+                None,
+                _result("blocked", reason="a tare or VGM weight needs a scale ticket or the Documents VGM verdict"),
+            )
         if documents_basis and kind != "verified_gross_mass":
             # A VGM verdict proves gross mass only; it is not a tare measurement.
-            return _result("blocked", reason="the Documents VGM verdict attests gross mass, not container tare")
+            return (
+                None,
+                None,
+                _result("blocked", reason="the Documents VGM verdict attests gross mass, not container tare"),
+            )
         journey, attachment, blocked = self._preconditions(
-            journey_id, evidence_attachment_id, key, attachment_required=not documents_basis
+            journey_id, values.get("evidence_attachment_id"), key, attachment_required=not documents_basis
         )
         if blocked:
-            return blocked
-        reference = _normalize_text(evidence_reference)
+            return journey, None, blocked
+        reference = _normalize_text(values.get("evidence_reference"))
         if not reference:
-            return _result("blocked", journey, "name the scale ticket or the Documents operation revision")
+            return (
+                journey,
+                None,
+                _result("blocked", journey, "name the scale ticket or the Documents operation revision"),
+            )
         try:
-            weight = float(weight or 0.0)
+            weight = float(values.get("weight") or 0.0)
         except (TypeError, ValueError):
             weight = 0.0
         weight = float_round(weight, precision_digits=WEIGHT_DIGITS)
         if weight <= 0:
-            return _result("blocked", journey, "a weight must be positive")
-        uom = self.env["uom.uom"].browse(int(weight_uom_id or 0)).exists()
+            return journey, None, _result("blocked", journey, "a weight must be positive")
+        uom = self.env["uom.uom"].browse(int(values.get("weight_uom_id") or 0)).exists()
         error = self._weight_unit_error(uom)
         if error:
-            return _result("blocked", journey, error)
+            return journey, None, _result("blocked", journey, error)
         document_id = False
         if documents_basis:
             document_id, verified, error = self._documents_vgm_evidence(journey, reference)
             if error:
-                return _result(error[0], journey, error[1])
+                return journey, None, _result(error[0], journey, error[1])
             if attachment and attachment != verified:
-                return _result("blocked", journey, "the evidence is not the verified Documents original")
+                return journey, None, _result("blocked", journey, "the evidence is not the verified Documents original")
             attachment = verified
-        return self._record(
-            journey,
-            kind,
-            {
-                "weight": weight,
-                "weight_uom_id": uom.id,
-                "weight_basis": weight_basis,
-                "evidence_reference": reference,
-                "verified_document_id": document_id,
-                "evidence_attachment_id": attachment.id,
-            },
-        )
+        facts = {
+            "weight": weight,
+            "weight_uom_id": uom.id,
+            "weight_basis": weight_basis,
+            "evidence_reference": reference,
+            "verified_document_id": document_id,
+            "evidence_attachment_id": attachment.id,
+        }
+        return journey, facts, None
 
     @api.model
     def action_record_container_tare(
         self, journey_id, weight, weight_uom_id, weight_basis, evidence_attachment_id, evidence_reference, operation_key
     ):
         """The container's tare, from a scale ticket on the journey or the Documents VGM verdict."""
-        return self._record_weight(
-            "container_tare",
-            journey_id,
-            weight,
-            weight_uom_id,
-            weight_basis,
-            evidence_attachment_id,
-            evidence_reference,
-            operation_key,
-        )
+        values = {
+            "weight": weight,
+            "weight_uom_id": weight_uom_id,
+            "weight_basis": weight_basis,
+            "evidence_attachment_id": evidence_attachment_id,
+            "evidence_reference": evidence_reference,
+        }
+        return self._record_kind("container_tare", journey_id, values, operation_key)
 
     @api.model
     def action_record_verified_gross_mass(
         self, journey_id, weight, weight_uom_id, weight_basis, evidence_attachment_id, evidence_reference, operation_key
     ):
         """The container's VGM weight, from a scale ticket on the journey or the Documents VGM verdict."""
-        return self._record_weight(
-            "verified_gross_mass",
-            journey_id,
-            weight,
-            weight_uom_id,
-            weight_basis,
-            evidence_attachment_id,
-            evidence_reference,
-            operation_key,
+        values = {
+            "weight": weight,
+            "weight_uom_id": weight_uom_id,
+            "weight_basis": weight_basis,
+            "evidence_attachment_id": evidence_attachment_id,
+            "evidence_reference": evidence_reference,
+        }
+        return self._record_kind("verified_gross_mass", journey_id, values, operation_key)
+
+    # ── Corrections (S11, OP11-E01) ────────────────────────────────────
+
+    def _as_values(self):
+        """This revision's facts in the argument names of its record command."""
+        self.ensure_one()
+        values = {name: self._value(name) for name in _KIND_FACTS[self.fact_kind]}
+        if self.fact_kind == "departure":
+            values["departed_at"] = values.pop("occurred_at")
+        return values
+
+    @api.model
+    def action_correct_fact(self, fact_id, values, correction_reason, operation_key):
+        """Record the next revision of one fact. The superseded row is never touched.
+
+        ``values`` uses the argument names of the kind's record command; a name it
+        omits keeps the current revision's value. The correction passes every guard
+        of the first record (evidence on the journey in its company, the Documents
+        VGM verdict, visible same-company parties, gate-in before departure). An
+        empty reason, an unchanged value or a stale revision is refused, and the
+        same operation key replays the correction it recorded.
+        """
+        _require_logistics_actor(self.env)
+        key = _normalize_text(operation_key)
+        if not key:
+            return _result("blocked", reason="operation_key is required")
+        reason = _normalize_text(correction_reason)
+        if not reason:
+            return _result("blocked", reason="a correction needs its reason")
+        if not isinstance(values, dict):
+            return _result("blocked", reason="the corrected values must be a mapping")
+        fact = self.browse(int(fact_id or 0)).exists()
+        if not fact:
+            return _result("not_available", reason="container journey fact not found")
+        fact.check_access("read")
+        kind = fact.fact_kind
+        allowed = set(fact._as_values())
+        unknown = sorted(set(values) - allowed)
+        if unknown:
+            return _result("blocked", fact, f"a {kind.replace('_', ' ')} has no {', '.join(unknown)}")
+        merged = {**fact._as_values(), **values}
+        journey, facts, blocked = self._validated(kind, fact.journey_id.id, merged, key)
+        if blocked:
+            return blocked
+        return self._correct(fact, journey, facts, reason, key)
+
+    @api.model
+    def _correction_replay(self, fact, journey, facts, reason, key):
+        """The answer for an operation key already used on this journey, or ``None``."""
+        done = self.search([("journey_id", "=", journey.id), ("operation_key", "=", key)], limit=1)
+        if not done:
+            return None
+        same = (
+            done.supersedes_id == fact
+            and done.correction_reason == reason
+            and all(done._same_fact(name, facts.get(name)) for name in _KIND_FACTS[done.fact_kind])
         )
+        if same:
+            return _result("already_applied", done)
+        return _result("blocked", done, "this operation key already recorded a different correction")
+
+    @api.model
+    def _correct(self, fact, journey, facts, reason, key):
+        replay = self._correction_replay(fact, journey, facts, reason, key)
+        if replay:
+            return replay
+        current = self._current(journey, fact.fact_kind)
+        if current != fact:
+            return _result("blocked", current, f"correct the current revision ({current.revision}) of this fact")
+        if all(fact._same_fact(name, facts.get(name)) for name in _KIND_FACTS[fact.fact_kind]):
+            return _result("blocked", fact, "the correction changes nothing")
+        now = fields.Datetime.now()
+        extra = {
+            "revision": fact.revision + 1,
+            "supersedes_id": fact.id,
+            "correction_reason": reason,
+            "corrected_by": self.env.user.id,
+            "corrected_at": now,
+            "operation_key": key,
+        }
+        corrected, error = self._create_fact(journey, fact.fact_kind, facts, extra)
+        if error == "unique":
+            return self._correction_replay(fact, journey, facts, reason, key) or _result(
+                "blocked", journey, "a concurrent correction of this fact was recorded first"
+            )
+        return error or _result("applied", corrected)
