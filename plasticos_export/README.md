@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_export
 component_name: PlasticOS Export
-module_version: 19.0.1.1.1
+module_version: 19.0.1.1.2
 installable: true
 auto_install: false
 application: true
@@ -60,6 +60,8 @@ Downstream extensions, by ordinary `_inherit` only:
 
 Data and UI: least-privilege ACL (Logistics and Operations Manager read/write/create, Sales Rep read, nobody unlinks), global company record rules on all four models, a cargo-link rule that limits a Sales Rep to links on sale orders they own, booking/allocation/shipment views, a deadline calendar, six native reports (Booking Space Availability, Booking Allocation / Container Manifest, Open Supplier PO / Customer SO Fulfillment, Container Shipment Register, Cutoff & Booking Exceptions, Missing Export Documents), the Export menu, two QWeb reports (booking summary, container manifest) and a booking-only Linda inbound reply trigger (`data/linda_booking_inbound.xml`). No controller, cron or external effect.
 
+`19.0.1.1.2` (slice S8, contract `PLASTICOS-EXPORT-C08-S8-COVERAGE-AND-ALLOCATION-GUARD`) adds the allocation guard of `BRS-EXP-08-R006` to `action_commit_cargo`, with no new public command. A Logistics load or a stock move line sits on at most one live (not released) cargo link; the known planned quantities on one PO or SO line, converted to that line's unit, never exceed the line's own quantity, and a unit that does not convert is refused. The command row-locks the cargo sources before it checks, a model constraint repeats the check for any guarded write, and two partial unique indexes refuse a concurrent second link on the same load or move line. A correction or split passes `replaces_link_id` and `correction_reason` in `source_refs`: the replaced link is released (never edited), each new part records what it replaces, and the booking chatter names the user and the reason.
+
 Quantities use native `uom.uom` records. Pounds are `uom.product_uom_lb` (shipped inactive by Odoo 19 `uom`; Export references it and creates no unit). Odoo 19 has no US short ton record; `uom.product_uom_ton` is the metric tonne.
 
 ## Installation
@@ -79,7 +81,7 @@ The campaign pack stays the provenance. Its private operator originals (`EXPORT_
 ## Tests
 
 - Pure Python: `tests/contracts/test_export_brs_registry.py` and the Export checks in `tests/test_repo_dependency_integrity.py`.
-- Odoo runtime, in `plasticos_export/tests/`: `test_install.py` (install witness), `test_booking_and_revision.py` (E1/E2), `test_booking_allocation.py` (E3/E4, PHASE1 gate case, release hold, live PO constraints), `test_document_obligations.py` (E1/E2 obligations per operation kind), `test_export_owner_handoff.py` (Linda, E3, E6, reply trigger, no shadow writer), `test_views_and_reports.py` (six reports, QWeb) and `test_multicompany_permissions.py` (company access). Each test names the BRS rules it witnesses.
+- Odoo runtime, in `plasticos_export/tests/`: `test_install.py` (install witness), `test_booking_and_revision.py` (E1/E2), `test_booking_allocation.py` (E3/E4, PHASE1 gate case, release hold, live PO constraints), `test_document_obligations.py` (E1/E2 obligations per operation kind), `test_export_owner_handoff.py` (Linda, E3, E6, reply trigger, no shadow writer), `test_views_and_reports.py` (six reports, QWeb) and `test_multicompany_permissions.py` (company access). `native_fixture.py` builds a native Enterprise fixture (30-load SO, 4-load supplier POs, weekly receipts with backorders, a partial delivery, a posted invoice, a verified document); on it `test_native_coverage.py` witnesses the deferred rules of S8 and `test_allocation_guard.py` witnesses `BRS-EXP-08-R006`. Each test names the BRS rules it witnesses.
 
 ## Read next
 

@@ -58,7 +58,9 @@
                             <field name="purchase_order_id"/>
                             <field name="sale_order_id"/>
                             <field name="source_load_id"/>
+                            <field name="stock_move_line_id" optional="hide"/>
                             <field name="physical_source_kind"/>
+                            <field name="replaces_link_id" optional="hide"/>
                             <field name="planned_quantity"/>
                             <field name="planned_quantity_known"/>
                             <field name="uom_id"/>
