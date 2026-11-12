@@ -124,3 +124,25 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(revision.read(["erd_local", "decision", "accepted_at", "acceptance_basis"]), before)
         with self.assertRaises(UserError), self.env.cr.savepoint():
             booking.slot_ids[0].with_user(self.actor).write({"hold_reason": "typed in"})
+
+    def test_sales_rep_reads_only_cargo_on_their_own_sale_orders(self):
+        """BRS-EXP-14-R012 (PR #479 review): supplier-side cargo data stays with the parties entitled to it."""
+        booking, revision = self._populated_booking()
+        own_order = self.env["sale.order"].create({"partner_id": self.buyer.id, "user_id": self.sales_reader.id})
+        own_order.order_line = [(0, 0, {"product_id": self.product.id, "product_uom_qty": 1})]
+        other_order = self.env["sale.order"].create({"partner_id": self.buyer.id, "user_id": self.actor.id})
+        other_order.order_line = [(0, 0, {"product_id": self.product.id, "product_uom_qty": 1})]
+        slot = booking.slot_ids.sorted("slot_key")[1]
+        own = slot.with_user(self.actor).action_commit_cargo(
+            {"sale_line_id": own_order.order_line.id}, None, None, revision.id, self.key()
+        )
+        other = slot.with_user(self.actor).action_commit_cargo(
+            {"sale_line_id": other_order.order_line.id}, None, None, revision.id, self.key()
+        )
+        Link = self.env[LINK].with_user(self.sales_reader)
+        visible = Link.search([("booking_id", "=", booking.id)])
+        self.assertEqual(visible.ids, [own["record_id"]])
+        with self.assertRaises(AccessError), self.env.cr.savepoint():
+            Link.browse(other["record_id"]).read(["supplier_id"])
+        everything = self.env[LINK].with_user(self.actor).search([("booking_id", "=", booking.id)])
+        self.assertEqual(len(everything), 3)

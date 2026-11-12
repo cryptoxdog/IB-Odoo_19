@@ -395,3 +395,75 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
         )
         self.assertEqual(through_sudo["status"], "not_available")
         self.assertFalse(booking.revision_ids)
+
+    def _commit_po(self, slot, revision):
+        order = self.env["purchase.order"].create(
+            {
+                "partner_id": self.suppliers[0].id,
+                "order_line": [
+                    (0, 0, {"product_id": self.product.id, "product_qty": 1000, "product_uom_id": self.lb.id})
+                ],
+            }
+        )
+        outcome = slot.with_user(self.actor).action_commit_cargo(
+            {"purchase_line_id": order.order_line.id}, None, None, revision.id, self.key("commit")
+        )
+        self.assertEqual(outcome["status"], "applied", outcome)
+        return self.env[LINK].browse(outcome["record_id"])
+
+    def _roll(self, booking, confirmed):
+        recorded = self.candidate(booking, terms=self.terms(confirmed=confirmed))
+        outcome = self.accept(booking, recorded["record_id"], expected=booking.current_revision_id.id)
+        self.assertEqual(outcome["status"], "applied", outcome)
+        return self.env[REVISION].browse(recorded["record_id"])
+
+    def test_restored_capacity_lifts_holds_before_adding_slots(self):
+        """BRS-EXP-14-R016, BRS-EXP-11-R011 (PR #479 review): a hold ends when the carrier restores capacity."""
+        booking, first = self.accepted_booking(confirmed=3)
+        slots = booking.slot_ids.sorted("slot_key")
+        kept = self._commit_po(slots[1], first)
+        held = self._commit_po(slots[2], first)
+        self._roll(booking, 1)
+        self.assertEqual((slots[1].allocation_state, slots[2].allocation_state), ("committed", "held"))
+        self.assertEqual((booking.slot_confirmed_count, booking.slot_held_count), (1, 1))
+        # The same lower count again withdraws nothing more: the existing hold already covers it.
+        self._roll(booking, 1)
+        self.assertEqual((slots[1].allocation_state, slots[2].allocation_state), ("committed", "held"))
+        self.assertEqual(kept.state, "committed")
+        # Capacity back to three: the held slot is restored first, then one new slot is added.
+        self._roll(booking, 3)
+        self.assertEqual(slots[2].allocation_state, "committed")
+        self.assertFalse(slots[2].hold_reason)
+        self.assertFalse(slots[2].hold_revision_id)
+        self.assertEqual(held.state, "committed")
+        self.assertEqual(booking.display_state, "confirmed")
+        self.assertEqual((booking.slot_confirmed_count, booking.slot_held_count), (3, 0))
+        live = self.env[SLOT].search([("booking_id", "=", booking.id)])
+        self.assertEqual(sorted(live.mapped("slot_key")), ["40HC-2", "40HC-3", "40HC-4"])
+
+    def test_confirmed_count_follows_the_accepted_revision_not_held_slots(self):
+        """BRS-EXP-14-R014 (PR #479 review): held slots are not confirmed carrier capacity."""
+        booking, first = self.accepted_booking(confirmed=2)
+        for slot in booking.slot_ids:
+            self._commit_po(slot, first)
+        self._roll(booking, 1)
+        self.assertEqual((booking.slot_confirmed_count, booking.slot_held_count), (1, 1))
+        cancel = self.candidate(
+            booking, terms=self.terms(confirmed=1, additional_terms={"booking_status": "cancelled"})
+        )
+        self.assertEqual(
+            self.accept(booking, cancel["record_id"], expected=booking.current_revision_id.id)["status"], "applied"
+        )
+        self.assertEqual(booking.slot_confirmed_count, 0)
+        self.assertEqual(booking.slot_held_count, 2)
+
+    def test_daylight_saving_ambiguity_is_refused_not_guessed(self):
+        """BRS-EXP-02-R003, BRS-EXP-06-R002 (PR #479 review): a repeated or skipped local hour has no single UTC."""
+        booking = self.make_booking()
+        repeated = self.candidate(booking, terms=self.terms(erd_local="2026-11-01 01:30"))
+        self.assertEqual(repeated["status"], "blocked")
+        self.assertIn("occurs twice", repeated["reason"])
+        skipped = self.candidate(booking, terms=self.terms(erd_local="2026-03-08 02:30"))
+        self.assertEqual(skipped["status"], "blocked")
+        self.assertIn("does not exist", skipped["reason"])
+        self.assertFalse(booking.revision_ids)

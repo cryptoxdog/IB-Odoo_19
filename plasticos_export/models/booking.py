@@ -175,8 +175,16 @@ def utc_from_local(local, tz_name, precision):
             naive = datetime.strptime(local.strip(), pattern)
         except ValueError:
             continue
-        aware = naive.replace(tzinfo=zone)
-        return aware.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        utc = ZoneInfo("UTC")
+        first = naive.replace(tzinfo=zone, fold=0).astimezone(utc)
+        second = naive.replace(tzinfo=zone, fold=1).astimezone(utc)
+        if first.astimezone(zone).replace(tzinfo=None) != naive:
+            # A spring-forward gap: this wall-clock time never happens in that zone.
+            raise ValidationError(f"{local!r} does not exist in {tz_name}.")
+        if first != second:
+            # A daylight-saving fall-back hour occurs twice; the source must say which.
+            raise ValidationError(f"{local!r} occurs twice in {tz_name}; the source time is ambiguous.")
+        return first.replace(tzinfo=None)
     raise ValidationError(f"{local!r} is not a local date and time.")
 
 
@@ -321,11 +329,18 @@ class PlasticosExportBooking(models.Model):
             else:
                 booking.display_state = "confirmed"
 
-    @api.depends("slot_ids.allocation_state")
+    @api.depends(
+        "slot_ids.allocation_state",
+        "current_revision_id",
+        "current_revision_id.equipment_counts",
+        "current_revision_id.additional_terms",
+    )
     def _compute_slot_counts(self):
         for booking in self:
             states = booking.slot_ids.mapped("allocation_state")
-            booking.slot_confirmed_count = len([state for state in states if state != "historical"])
+            # Confirmed capacity is what the current accepted revision confirms; held slots are counted apart.
+            revision = booking.current_revision_id
+            booking.slot_confirmed_count = sum(revision.confirmed_counts().values()) if revision else 0
             booking.slot_committed_count = states.count("committed")
             booking.slot_available_count = states.count("available")
             booking.slot_held_count = states.count("held")

@@ -61,6 +61,8 @@ DECLARED = {
     "ir.rule": [
         "rule_export_booking_company",
         "rule_export_cargo_link_company",
+        "rule_export_cargo_link_operations",
+        "rule_export_cargo_link_sales_own",
         "rule_export_revision_company",
         "rule_export_slot_company",
     ],

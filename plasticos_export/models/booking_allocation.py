@@ -208,10 +208,13 @@ class PlasticosExportBookingSlot(models.Model):
     def _reconcile_capacity(self, booking, revision):
         """Make the booking's live slots match the accepted revision's confirmed counts.
 
-        Called inside the acceptance, after the booking row lock. A new count adds
-        slots with stable keys. A lower count (or a cancellation) retires free
-        slots first, highest key first, and holds committed or bound slots it
-        cannot retire, naming the revision that held them.
+        Called inside the acceptance, after the booking row lock. Per equipment
+        class, a slot already held by an earlier revision counts as capacity
+        already withdrawn. When the new count covers more slots, holds are lifted
+        first (lowest key first, their cargo committed again) and only then are
+        new slots added with stable keys. When it covers fewer, extra holds are
+        lifted or free slots retired (highest key first), and only committed or
+        bound slots that cannot be retired are held, naming the revision.
         """
         Slot = guard(self.with_context(active_test=False))
         existing = Slot.search([("booking_id", "=", booking.id)], order="id ASC")
@@ -221,45 +224,48 @@ class PlasticosExportBookingSlot(models.Model):
         for code in sorted(set(wanted) | set(live.mapped("equipment_class"))):
             target = wanted.get(code, 0)
             slots = live.filtered(lambda slot, code=code: slot.equipment_class == code)
-            if len(slots) < target:
-                used = set(existing.filtered(lambda slot, code=code: slot.equipment_class == code).mapped("slot_key"))
-                number = 1
-                for _index in range(target - len(slots)):
-                    while f"{code}-{number}" in used:
-                        number += 1
-                    used.add(f"{code}-{number}")
-                    Slot.create(
+            held = slots.filtered("hold_reason").sorted(lambda slot: slot.slot_key)
+            unheld = slots - held
+            if len(unheld) >= target:
+                # Capacity shrinks or stays: holds still cover part of the withdrawal.
+                excess = len(unheld) - target
+                if excess == 0:
+                    continue
+                free = unheld.filtered(
+                    lambda slot: slot.allocation_state == "available" and slot.journey_binding_state != "active"
+                ).sorted(lambda slot: slot.slot_key, reverse=True)
+                retire = free[:excess]
+                retire.write({"active": False})
+                busy = (unheld - retire).sorted(lambda slot: slot.slot_key, reverse=True)[: excess - len(retire)]
+                if busy:
+                    busy.write(
                         {
-                            "booking_id": booking.id,
-                            "slot_key": f"{code}-{number}",
-                            "equipment_class": code,
-                            "created_from_revision_id": revision.id,
+                            "hold_reason": f"Revision {revision.source_revision_key} reduced confirmed {code} capacity",
+                            "hold_revision_id": revision.id,
                         }
                     )
+                    guard(busy.cargo_link_ids.filtered(lambda link: link.state == "committed")).write({"state": "held"})
                 continue
-            excess = len(slots) - target
-            if excess <= 0:
-                continue
-            free = slots.filtered(
-                lambda slot: slot.allocation_state == "available" and slot.journey_binding_state != "active"
-            ).sorted(lambda slot: slot.slot_key, reverse=True)
-            retire = free[:excess]
-            retire.write({"active": False})
-            remaining = excess - len(retire)
-            if remaining > 0:
-                busy = (
-                    (slots - retire)
-                    .filtered(lambda slot: not slot.hold_reason)
-                    .sorted(lambda slot: slot.slot_key, reverse=True)
-                )
-                busy[:remaining].write(
+            # Capacity grows past the unheld slots: lift holds first, then add slots.
+            restore = held[: target - len(unheld)]
+            if restore:
+                restore.write({"hold_reason": False, "hold_revision_id": False})
+                guard(restore.cargo_link_ids.filtered(lambda link: link.state == "held")).write({"state": "committed"})
+            missing = target - len(unheld) - len(restore)
+            used = set(existing.filtered(lambda slot, code=code: slot.equipment_class == code).mapped("slot_key"))
+            number = 1
+            for _index in range(missing):
+                while f"{code}-{number}" in used:
+                    number += 1
+                used.add(f"{code}-{number}")
+                Slot.create(
                     {
-                        "hold_reason": f"Revision {revision.source_revision_key} reduced confirmed {code} capacity",
-                        "hold_revision_id": revision.id,
+                        "booking_id": booking.id,
+                        "slot_key": f"{code}-{number}",
+                        "equipment_class": code,
+                        "created_from_revision_id": revision.id,
                     }
                 )
-                held_links = busy[:remaining].cargo_link_ids.filtered(lambda link: link.state == "committed")
-                guard(held_links).write({"state": "held"})
         return True
 
     # ── shared command plumbing ──────────────────────────────
