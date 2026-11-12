@@ -384,13 +384,17 @@ class PlasticosExportBooking(models.Model):
         self.ensure_one()
         if not (operation_key or "").strip():
             return result(BLOCKED, reason="operation_key is required")
-        error = export_actor_error(self.env, self.company_id)
+        # Role first, then record access, then company: an outsider learns nothing by a read error.
+        error = export_actor_error(self.env)
         if error:
             return result(NOT_AVAILABLE, reason=error)
         try:
             self.check_access("write")
         except AccessError:
             return result(NOT_AVAILABLE, reason="no access to this booking")
+        error = export_actor_error(self.env, self.company_id)
+        if error:
+            return result(NOT_AVAILABLE, reason=error)
         return False
 
     def _validated_original(self, source_original_id):

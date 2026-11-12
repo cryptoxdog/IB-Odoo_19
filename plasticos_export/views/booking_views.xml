@@ -51,7 +51,7 @@
                 <filter name="filter_cancelled" string="Rolled/Cancelled" domain="[('display_state', '=', 'cancelled')]"/>
                 <separator/>
                 <filter name="filter_available" string="Available Bookings" domain="[('slot_ids.allocation_state', '=', 'available')]"/>
-                <filter name="filter_fully_allocated" string="Fully Allocated" domain="[('display_state', '=', 'confirmed'), ('slot_ids', '!=', False), ('slot_ids.allocation_state', 'not in', ['available', 'held'])]"/>
+                <filter name="filter_fully_allocated" string="Fully Allocated" domain="[('display_state', '=', 'confirmed'), ('slot_ids', '!=', False), ('slot_ids', 'not any', [('allocation_state', '=', 'available')])]"/>
                 <filter name="filter_multi_supplier" string="Booking with Multiple Suppliers" domain="[('slot_ids.supplier_count', '>', 1)]"/>
                 <separator/>
                 <filter name="filter_cutoff_unknown" string="Cutoff Not Stated" domain="[('current_revision_id', '!=', False), ('current_cargo_cutoff_utc', '=', False)]"/>

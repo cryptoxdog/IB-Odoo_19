@@ -151,7 +151,7 @@ class PlasticosExportBookingSlot(models.Model):
     seal_number = fields.Char(related="journey_id.seal_number", string="Seal")
     journey_equipment_class = fields.Char(related="journey_id.equipment_class", string="Actual Equipment")
     carrier_booking_no = fields.Char(related="booking_id.carrier_booking_no", string="Booking No.", store=True)
-    supplier_count = fields.Integer(compute="_compute_supplier_count", string="Suppliers")
+    supplier_count = fields.Integer(compute="_compute_supplier_count", string="Suppliers", store=True)
 
     _booking_slot_unique = models.Constraint(
         "UNIQUE(booking_id, slot_key)", "This booking already has a slot with that key."
@@ -177,7 +177,7 @@ class PlasticosExportBookingSlot(models.Model):
             else:
                 slot.allocation_state = "available"
 
-    @api.depends("cargo_link_ids.state", "cargo_link_ids.purchase_line_id")
+    @api.depends("cargo_link_ids.state", "cargo_link_ids.supplier_id")
     def _compute_supplier_count(self):
         for slot in self:
             links = slot.cargo_link_ids.filtered(lambda link: link.state in ("committed", "held"))
@@ -269,14 +269,17 @@ class PlasticosExportBookingSlot(models.Model):
         self.ensure_one()
         if not (operation_key or "").strip():
             return result(BLOCKED, reason="operation_key is required")
-        booking = self.booking_id
-        error = export_actor_error(self.env, booking.company_id)
+        error = export_actor_error(self.env)
         if error:
             return result(NOT_AVAILABLE, reason=error)
         try:
             self.check_access("write")
         except AccessError:
             return result(NOT_AVAILABLE, reason="no access to this slot")
+        booking = self.booking_id
+        error = export_actor_error(self.env, booking.company_id)
+        if error:
+            return result(NOT_AVAILABLE, reason=error)
         try:
             booking._lock_booking()
             self.lock_for_update()

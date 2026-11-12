@@ -98,14 +98,14 @@ class PlasticosLogisticsRequestExport(models.Model):
         if not booking:
             return {"status": NOT_AVAILABLE, "reason": "booking_not_found"}
         if not recheck:
-            # E3: the caller must be an Export actor of this company with record access.
-            if export_actor_error(self.env, booking.company_id):
+            # E3: role, then record access, then company, before any booking field is read.
+            if export_actor_error(self.env):
                 return {"status": NOT_AVAILABLE, "reason": "not_authorized"}
             try:
-                booking.check_access("read")
+                booking.check_access("write")
             except AccessError:
                 return {"status": NOT_AVAILABLE, "reason": "not_authorized"}
-            if booking.company_id not in self.env.companies:
+            if export_actor_error(self.env, booking.company_id) or booking.company_id not in self.env.companies:
                 return {"status": NOT_AVAILABLE, "reason": "not_authorized"}
         revision = booking.current_revision_id
         if not revision:
