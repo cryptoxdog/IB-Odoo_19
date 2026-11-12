@@ -10,146 +10,268 @@
   "F8",
   "V13"
  ],
- "admission": {
-  "tree": "separate wired worktree of cryptoxdog/IB-Odoo_19",
-  "head": "08504e12ba2243b532319918019680bee5e06b59",
-  "staging_moved": false,
-  "git_status_porcelain_before": "",
-  "git_status_porcelain_after": "",
-  "command": "ODOO_ENTERPRISE_PATH=<enterprise clone> make runtime-bootstrap",
-  "exit": 0,
-  "template": "odoo_test_tpl_ee_c9e8a81f52f23680",
-  "fingerprint": "340ec5d0f5c3734cff97642ad8bd19c82a748198283a87fe1686e95179277cf7",
-  "enterprise": "git:3225e0e80692b77e49e0bfe021aab0ee6f757b96",
-  "admission": "odoo=19.0.1.3 installed=172 country=US fiscal=US currency=USD chart=us accounts=164 plasticos_accounts=58/58 terms=10/10 journals=bank=1,general=4,purchase=1,sale=1 taxes=purchase=23,sale=23"
- },
- "seed": {
-  "clone": "odoo_test_s6up (owner s6proof)",
-  "code": "Staging 08504e12 (wt-staging)",
-  "script": "scripts/export_upgrade_seed.py",
-  "command": "scripts/test_env.sh run odoo_test_s6up -- shell --no-http < scripts/export_upgrade_seed.py",
-  "observed": {
-   "accepted_documents": 6,
-   "dispatched_unacknowledged": 240,
-   "documents": 8,
-   "legacy_parent_links": 6,
-   "loads": 254,
-   "multi_load_transactions": 4,
-   "null_company_loads": 10,
-   "transactions": 6
+ "contract_digest": "sha256:3383d697f85b3f3ee731ebabbf0a1e9ef35c96c756ee910eef48b4248a28cddd",
+ "final_run": {
+  "label": "FINAL RUN on the final addon head f8bb8f9c (all S6 fixes)",
+  "admission": {
+   "tree": "/home/user/wt-staging (wired worktree)",
+   "head": "08504e12ba2243b532319918019680bee5e06b59",
+   "git_status_porcelain_before": "",
+   "command": "ODOO_ENTERPRISE_PATH=<enterprise clone> make test-env-rebuild (sanctioned re-admission; template was admitted for the slice inputs)",
+   "exit": 0,
+   "fingerprint": "340ec5d0f5c3734cff97642ad8bd19c82a748198283a87fe1686e95179277cf7",
+   "enterprise": "git:3225e0e80692b77e49e0bfe021aab0ee6f757b96",
+   "installed": 172,
+   "srchead_note": "the Staging tree's scripts/test_env.sh predates F4, so srchead/srcdigest are not in that marker; HEAD and porcelain are recorded here instead"
   },
-  "observed_equals_plan": true,
-  "data": "synthetic S6-SYN-* rows only; no real data, no secrets"
- },
- "versions_before": {
-  "plasticos_accounting": "19.0.1.6.2",
-  "plasticos_admin_dashboard": "19.0.1.1.3",
-  "plasticos_automation": "19.0.2.1.9",
-  "plasticos_base": "19.0.1.1.10",
-  "plasticos_claims": "19.0.1.1.6",
-  "plasticos_commission": "19.0.1.4.8",
-  "plasticos_crm_bridge": "19.0.3.6.0",
-  "plasticos_crm_sync": "19.0.1.9.25",
-  "plasticos_documents": "19.0.2.1.17",
-  "plasticos_documents_native": "19.0.1.2.13",
-  "plasticos_enrichment": "19.0.2.5.9",
-  "plasticos_facility_profile": "19.0.5.4.11",
-  "plasticos_gate": "19.0.1.9.9",
-  "plasticos_geolocalize": "19.0.1.1.1",
-  "plasticos_intake": "19.0.5.4.4",
-  "plasticos_intake_normalizer": "19.0.1.0.5",
-  "plasticos_logistics": "19.0.1.14.19",
-  "plasticos_matching": "19.0.3.1.5",
-  "plasticos_material_profile": "19.0.5.11.16",
-  "plasticos_odoo_standard_apps": "19.0.1.0.0",
-  "plasticos_offer": "19.0.1.2.0",
-  "plasticos_order_lines": "19.0.1.1.1",
-  "plasticos_partner_import": "19.0.2.10.38",
-  "plasticos_product": "19.0.1.0.3",
-  "plasticos_screen_views": "19.0.1.0.0",
-  "plasticos_security_base": "19.0.1.2.24",
-  "plasticos_transaction": "19.0.2.3.66",
-  "plasticos_web_leads": "19.0.2.11.1"
- },
- "upgrade": {
-  "command": "scripts/test_env.sh migrate odoo_test_s6up 08504e12ba2243b532319918019680bee5e06b59",
-  "code": "slice tree 1c5c2308 (S5B head 0c142374 + seed script; no addon change)",
-  "odoo_args": "-u <existing roster> -i plasticos_export --stop-after-init",
-  "exit": 0,
-  "transcript": "F7_UPGRADE_TRANSCRIPT.txt",
-  "running_upgrade_lines": [
-   "plasticos_base: Running upgrade [19.0.1.1.11>] post-migrate (deleted ir.cron [42], ir.actions.server [668])",
-   "plasticos_logistics: Running upgrade [>19.0.1.14.20] pre-migrate (10 repaired, 0 refused; 8 via transaction_sale_order, 2 via transaction_purchase_order)",
-   "plasticos_logistics: Running upgrade [19.0.1.14.20>] post-migrate (verified load companies, first run; 0 container journeys)",
-   "plasticos_documents: Running upgrade [>19.0.2.1.18] pre-migrate (census: 8 rows, 6 accepted, 6 decided, digest f4208ed67cb34a728fc1eb4cf4744d73)",
-   "plasticos_documents: Running upgrade [19.0.2.1.18>] post-migrate (0 rows classified legacy; provenance unchanged [8, 6, 6, f4208ed6...]) -- see finding D1",
-   "plasticos_security_base: Running upgrade [>19.0.1.2.25] pre-migrate (every load has a company; dashboard projects company_id; user scopes cover every load-owning company)"
-  ],
-  "no_migration_folder": [
-   "plasticos_logistics 19.0.1.14.21",
-   "plasticos_claims 19.0.1.1.7",
-   "plasticos_commission 19.0.1.4.9",
-   "plasticos_documents_native 19.0.1.2.14"
-  ]
- },
- "versions_after": {
-  "plasticos_base": "19.0.1.1.11",
-  "plasticos_logistics": "19.0.1.14.21",
-  "plasticos_documents": "19.0.2.1.18",
-  "plasticos_security_base": "19.0.1.2.25",
-  "plasticos_claims": "19.0.1.1.7",
-  "plasticos_commission": "19.0.1.4.9",
-  "plasticos_documents_native": "19.0.1.2.14",
-  "plasticos_transaction": "19.0.2.3.66",
-  "plasticos_export": "19.0.1.1.0 (installed by -i)"
- },
- "after": {
-  "null_company_loads": 0,
-  "loads": 254,
-  "documents_obligation_kind": {
-   "legacy": 8
+  "seed": {
+   "clone": "odoo_test_s6up2",
+   "observed": {
+    "accepted_documents": 6,
+    "dispatched_unacknowledged": 240,
+    "documents": 8,
+    "legacy_parent_links": 6,
+    "loads": 254,
+    "multi_load_transactions": 4,
+    "null_company_loads": 10,
+    "transactions": 6
+   },
+   "observed_equals_plan": true
   },
-  "documents_census_key": "deleted",
-  "logistics_marker": "done"
- },
- "f5_census_branch": {
-  "status": "WITNESSED on Staging-shaped rows",
-  "recorded": "8 rows, 6 accepted, 6 decided",
-  "classified_counter": 0,
-  "rows_legacy_after": 8,
-  "note": "finding D1: obligation_kind is required with default 'legacy', so the ORM backfills the new column before post-migrate; the UPDATE ... IS NULL counts 0. Outcome correct, counter not a witness."
- },
- "control_upgrade_unseeded": {
-  "clone": "odoo_test_s6ctl",
-  "exit": 0,
-  "counters": "logistics 0 repaired, 0 refused; documents census 0 rows; 0 classified; security_base passes"
- },
- "v13_replay": {
-  "db": "odoo_test_s6f6 (restore of the post-upgrade backup), rolled back",
-  "scripts_replayed": [
-   "logistics 14.20 pre",
-   "logistics 14.20 post",
-   "documents 2.1.18 pre",
-   "documents 2.1.18 post",
-   "security_base 1.2.25 pre"
-  ],
-  "idempotent": true,
-  "before_after": {
-   "null_company": 0,
-   "loads_digest": "326c053d43f6b1b41e62f8b42be83c07",
-   "documents_census": [
-    8,
-    6,
-    6,
-    "f4208ed67cb34a728fc1eb4cf4744d73"
+  "versions_before": {
+   "plasticos_accounting": "19.0.1.6.2",
+   "plasticos_admin_dashboard": "19.0.1.1.3",
+   "plasticos_automation": "19.0.2.1.9",
+   "plasticos_base": "19.0.1.1.10",
+   "plasticos_claims": "19.0.1.1.6",
+   "plasticos_commission": "19.0.1.4.8",
+   "plasticos_crm_bridge": "19.0.3.6.0",
+   "plasticos_crm_sync": "19.0.1.9.25",
+   "plasticos_documents": "19.0.2.1.17",
+   "plasticos_documents_native": "19.0.1.2.13",
+   "plasticos_enrichment": "19.0.2.5.9",
+   "plasticos_facility_profile": "19.0.5.4.11",
+   "plasticos_gate": "19.0.1.9.9",
+   "plasticos_geolocalize": "19.0.1.1.1",
+   "plasticos_intake": "19.0.5.4.4",
+   "plasticos_intake_normalizer": "19.0.1.0.5",
+   "plasticos_logistics": "19.0.1.14.19",
+   "plasticos_matching": "19.0.3.1.5",
+   "plasticos_material_profile": "19.0.5.11.16",
+   "plasticos_odoo_standard_apps": "19.0.1.0.0",
+   "plasticos_offer": "19.0.1.2.0",
+   "plasticos_order_lines": "19.0.1.1.1",
+   "plasticos_partner_import": "19.0.2.10.38",
+   "plasticos_product": "19.0.1.0.3",
+   "plasticos_screen_views": "19.0.1.0.0",
+   "plasticos_security_base": "19.0.1.2.24",
+   "plasticos_transaction": "19.0.2.3.66",
+   "plasticos_web_leads": "19.0.2.11.1"
+  },
+  "upgrade": {
+   "command": "scripts/test_env.sh migrate odoo_test_s6up2 08504e12ba2243b532319918019680bee5e06b59",
+   "code": "f8bb8f9c51e6e7f7d3bf78ada88cec6d0118bf92",
+   "exit": 0,
+   "transcript": "F7_UPGRADE_TRANSCRIPT.txt",
+   "running_upgrade_lines": [
+    "plasticos_base: Running upgrade [19.0.1.1.11>] post-migrate (deleted ir.cron [42], ir.actions.server [668])",
+    "plasticos_logistics: Running upgrade [>19.0.1.14.20] pre-migrate (load company census: 10 repaired, 0 refused)",
+    "plasticos_logistics: Running upgrade [19.0.1.14.20>] post-migrate (verified load companies, first run; 0 container journeys)",
+    "plasticos_documents: Running upgrade [>19.0.2.1.18] pre-migrate (census: 8 rows, 6 accepted, 6 decided, digest 41e1c9e0001d56f4676bc1e93113d38e)",
+    "plasticos_documents: Running upgrade [19.0.2.1.18>] post-migrate (8 rows classified legacy (0 set here, 8 by the column default); provenance unchanged)",
+    "plasticos_security_base: Running upgrade [>19.0.1.2.25] pre-migrate (every load has a company; dashboard projects company_id; user scopes cover every load-owning company)"
+   ],
+   "no_migration_folder": [
+    "plasticos_logistics 19.0.1.14.21, 19.0.1.14.22",
+    "plasticos_documents 19.0.2.1.19",
+    "plasticos_claims 19.0.1.1.7",
+    "plasticos_commission 19.0.1.4.9",
+    "plasticos_documents_native 19.0.1.2.14",
+    "plasticos_export 19.0.1.1.1 (installed by -i)"
    ]
   },
-  "refusals": {
-   "documents 2.1.18 from unsupported 19.0.2.1.16": "RuntimeError (upgrades only from 19.0.2.1.17)",
-   "documents 2.1.18 with a contradictory accepted digest": "RuntimeError (accepted decisions contradict their association checksum)",
-   "logistics 14.20 with a NULL-company load and no source": "RuntimeError (load company migration refused; no row changed)",
-   "security_base 1.2.25 with a NULL-company load": "RuntimeError (refuses to tighten load company isolation)"
+  "f5_census_branch": {
+   "status": "WITNESSED on Staging-shaped rows with the corrected counter",
+   "recorded": "8 rows, 6 accepted, 6 decided",
+   "classified": 8,
+   "equals_census_total": true
   },
-  "not_probed": "stale lower-version script and an unexpected future 2.2.0 migration (no such script exists to probe)"
+  "runtime_on_upgraded_seeded_data": {
+   "m=all": {
+    "tests": 1569,
+    "failed": 0,
+    "errors": 0
+   },
+   "m=plasticos_documents_native": {
+    "tests": 31,
+    "failed": 0,
+    "errors": 0
+   }
+  },
+  "v13_replay": {
+   "db": "odoo_test_s6rst3 (restore of the final backup), rolled back",
+   "idempotent": true,
+   "before_after": {
+    "documents_census": [
+     8,
+     6,
+     6,
+     "41e1c9e0001d56f4676bc1e93113d38e"
+    ],
+    "loads_digest": "c9faf8abafe833835adf6680af7668a7",
+    "null_company": 0
+   },
+   "refusals": {
+    "documents 2.1.18 pre from unsupported 19.0.2.1.16": "RuntimeError",
+    "documents 2.1.18 pre with contradictory accepted digest": "RuntimeError",
+    "logistics 14.20 pre with a NULL-company load and no source": "RuntimeError",
+    "security_base 1.2.25 pre with a NULL-company load": "RuntimeError"
+   }
+  }
+ },
+ "pre_fix_run": {
+  "admission": {
+   "tree": "separate wired worktree of cryptoxdog/IB-Odoo_19",
+   "head": "08504e12ba2243b532319918019680bee5e06b59",
+   "staging_moved": false,
+   "git_status_porcelain_before": "",
+   "git_status_porcelain_after": "",
+   "command": "ODOO_ENTERPRISE_PATH=<enterprise clone> make runtime-bootstrap",
+   "exit": 0,
+   "template": "odoo_test_tpl_ee_c9e8a81f52f23680",
+   "fingerprint": "340ec5d0f5c3734cff97642ad8bd19c82a748198283a87fe1686e95179277cf7",
+   "enterprise": "git:3225e0e80692b77e49e0bfe021aab0ee6f757b96",
+   "admission": "odoo=19.0.1.3 installed=172 country=US fiscal=US currency=USD chart=us accounts=164 plasticos_accounts=58/58 terms=10/10 journals=bank=1,general=4,purchase=1,sale=1 taxes=purchase=23,sale=23"
+  },
+  "seed": {
+   "clone": "odoo_test_s6up (owner s6proof)",
+   "code": "Staging 08504e12 (wt-staging)",
+   "script": "scripts/export_upgrade_seed.py",
+   "command": "scripts/test_env.sh run odoo_test_s6up -- shell --no-http < scripts/export_upgrade_seed.py",
+   "observed": {
+    "accepted_documents": 6,
+    "dispatched_unacknowledged": 240,
+    "documents": 8,
+    "legacy_parent_links": 6,
+    "loads": 254,
+    "multi_load_transactions": 4,
+    "null_company_loads": 10,
+    "transactions": 6
+   },
+   "observed_equals_plan": true,
+   "data": "synthetic S6-SYN-* rows only; no real data, no secrets"
+  },
+  "versions_before": {
+   "plasticos_accounting": "19.0.1.6.2",
+   "plasticos_admin_dashboard": "19.0.1.1.3",
+   "plasticos_automation": "19.0.2.1.9",
+   "plasticos_base": "19.0.1.1.10",
+   "plasticos_claims": "19.0.1.1.6",
+   "plasticos_commission": "19.0.1.4.8",
+   "plasticos_crm_bridge": "19.0.3.6.0",
+   "plasticos_crm_sync": "19.0.1.9.25",
+   "plasticos_documents": "19.0.2.1.17",
+   "plasticos_documents_native": "19.0.1.2.13",
+   "plasticos_enrichment": "19.0.2.5.9",
+   "plasticos_facility_profile": "19.0.5.4.11",
+   "plasticos_gate": "19.0.1.9.9",
+   "plasticos_geolocalize": "19.0.1.1.1",
+   "plasticos_intake": "19.0.5.4.4",
+   "plasticos_intake_normalizer": "19.0.1.0.5",
+   "plasticos_logistics": "19.0.1.14.19",
+   "plasticos_matching": "19.0.3.1.5",
+   "plasticos_material_profile": "19.0.5.11.16",
+   "plasticos_odoo_standard_apps": "19.0.1.0.0",
+   "plasticos_offer": "19.0.1.2.0",
+   "plasticos_order_lines": "19.0.1.1.1",
+   "plasticos_partner_import": "19.0.2.10.38",
+   "plasticos_product": "19.0.1.0.3",
+   "plasticos_screen_views": "19.0.1.0.0",
+   "plasticos_security_base": "19.0.1.2.24",
+   "plasticos_transaction": "19.0.2.3.66",
+   "plasticos_web_leads": "19.0.2.11.1"
+  },
+  "upgrade": {
+   "command": "scripts/test_env.sh migrate odoo_test_s6up 08504e12ba2243b532319918019680bee5e06b59",
+   "code": "slice tree 1c5c2308 (S5B head 0c142374 + seed script; no addon change)",
+   "odoo_args": "-u <existing roster> -i plasticos_export --stop-after-init",
+   "exit": 0,
+   "transcript": "F7_UPGRADE_TRANSCRIPT.txt",
+   "running_upgrade_lines": [
+    "plasticos_base: Running upgrade [19.0.1.1.11>] post-migrate (deleted ir.cron [42], ir.actions.server [668])",
+    "plasticos_logistics: Running upgrade [>19.0.1.14.20] pre-migrate (10 repaired, 0 refused; 8 via transaction_sale_order, 2 via transaction_purchase_order)",
+    "plasticos_logistics: Running upgrade [19.0.1.14.20>] post-migrate (verified load companies, first run; 0 container journeys)",
+    "plasticos_documents: Running upgrade [>19.0.2.1.18] pre-migrate (census: 8 rows, 6 accepted, 6 decided, digest f4208ed67cb34a728fc1eb4cf4744d73)",
+    "plasticos_documents: Running upgrade [19.0.2.1.18>] post-migrate (0 rows classified legacy; provenance unchanged [8, 6, 6, f4208ed6...]) -- see finding D1",
+    "plasticos_security_base: Running upgrade [>19.0.1.2.25] pre-migrate (every load has a company; dashboard projects company_id; user scopes cover every load-owning company)"
+   ],
+   "no_migration_folder": [
+    "plasticos_logistics 19.0.1.14.21",
+    "plasticos_claims 19.0.1.1.7",
+    "plasticos_commission 19.0.1.4.9",
+    "plasticos_documents_native 19.0.1.2.14"
+   ]
+  },
+  "versions_after": {
+   "plasticos_base": "19.0.1.1.11",
+   "plasticos_logistics": "19.0.1.14.21",
+   "plasticos_documents": "19.0.2.1.18",
+   "plasticos_security_base": "19.0.1.2.25",
+   "plasticos_claims": "19.0.1.1.7",
+   "plasticos_commission": "19.0.1.4.9",
+   "plasticos_documents_native": "19.0.1.2.14",
+   "plasticos_transaction": "19.0.2.3.66",
+   "plasticos_export": "19.0.1.1.0 (installed by -i)"
+  },
+  "after": {
+   "null_company_loads": 0,
+   "loads": 254,
+   "documents_obligation_kind": {
+    "legacy": 8
+   },
+   "documents_census_key": "deleted",
+   "logistics_marker": "done"
+  },
+  "f5_census_branch": {
+   "status": "WITNESSED on Staging-shaped rows",
+   "recorded": "8 rows, 6 accepted, 6 decided",
+   "classified_counter": 0,
+   "rows_legacy_after": 8,
+   "note": "finding D1: obligation_kind is required with default 'legacy', so the ORM backfills the new column before post-migrate; the UPDATE ... IS NULL counts 0. Outcome correct, counter not a witness."
+  },
+  "control_upgrade_unseeded": {
+   "clone": "odoo_test_s6ctl",
+   "exit": 0,
+   "counters": "logistics 0 repaired, 0 refused; documents census 0 rows; 0 classified; security_base passes"
+  },
+  "v13_replay": {
+   "db": "odoo_test_s6f6 (restore of the post-upgrade backup), rolled back",
+   "scripts_replayed": [
+    "logistics 14.20 pre",
+    "logistics 14.20 post",
+    "documents 2.1.18 pre",
+    "documents 2.1.18 post",
+    "security_base 1.2.25 pre"
+   ],
+   "idempotent": true,
+   "before_after": {
+    "null_company": 0,
+    "loads_digest": "326c053d43f6b1b41e62f8b42be83c07",
+    "documents_census": [
+     8,
+     6,
+     6,
+     "f4208ed67cb34a728fc1eb4cf4744d73"
+    ]
+   },
+   "refusals": {
+    "documents 2.1.18 from unsupported 19.0.2.1.16": "RuntimeError (upgrades only from 19.0.2.1.17)",
+    "documents 2.1.18 with a contradictory accepted digest": "RuntimeError (accepted decisions contradict their association checksum)",
+    "logistics 14.20 with a NULL-company load and no source": "RuntimeError (load company migration refused; no row changed)",
+    "security_base 1.2.25 with a NULL-company load": "RuntimeError (refuses to tighten load company isolation)"
+   },
+   "not_probed": "stale lower-version script and an unexpected future 2.2.0 migration (no such script exists to probe)"
+  },
+  "label": "PRE-FIX RUN (addon head 1c5c2308 = S5B head; before C06-SCOPE-2..5). Superseded by final_run; kept for D1/D3/D4/D9 discovery."
  }
 }

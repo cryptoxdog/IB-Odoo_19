@@ -1,5 +1,7 @@
 # Acceptance criterion 0: evidence for V13, V14, V17, V18 and V19
 
+The final evidence comes from the final addon head `f8bb8f9c` (the `final_run` and `final_rehearsal` sections of `L-MIGRATE.json` and `L-RESTORE.json`). The pre-fix runs are kept and labelled as such. Every number below was observed again on the final code. The V13 census digest is `41e1c9e0…` on the final seed. On the restore of the final backup, the replay is idempotent and all four refusals hold. V14 is 932/932 byte-identical files, with 0 missing attachment files, and the runtime test on the restore passes 57/0/0. V18 counts 0 account and stock rows, and V19 shows no activation.
+
 | V | Requirement (SOURCE_BOUND_CHANGE_PLAN_v2.7.5) | S6 evidence | Status |
 |---|---|---|---|
 | V13 | Upgrade census, version range and replay | `L-MIGRATE.json`. The census came from the 2.1.18 pre-migrate on 8 Staging-shaped rows: 6 accepted, 6 decided, digest unchanged. The logistics 14.20 census repaired 10 rows and refused 0. Versions run from Staging (`versions_before`) to the slice head (`versions_after`). Replaying all five scripts left the data unchanged (loads digest and documents census identical). Four refusals were proven: an unsupported baseline, a contradictory accepted digest, a load with no source company, and a security tightening over a NULL company. | Passed. Not probed: a stale lower-version script and an unexpected future 2.2.0 migration, because no such script exists to probe. |

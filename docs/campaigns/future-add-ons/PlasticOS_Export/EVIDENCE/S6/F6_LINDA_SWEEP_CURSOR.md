@@ -19,3 +19,5 @@ Measured on `odoo_test_s6f6`, a restore of the post-upgrade backup (`L-RESTORE.j
 No defect was proven, so nothing changed (C06-RECON F6). The Logistics code is outside S6 effects in any case.
 
 The real cost is that each worker flushes its `default` and `stable` ormcaches once per lane every five minutes while that lane holds more than 200 eligible loads. Each flush costs milliseconds per worker in the measured paths. This is recorded for the final audit. If production shows cache churn, the owner's remedy is to move the cursor to a dedicated row or table so the write does not invalidate the registry, as S4 O4 proposed.
+
+These numbers were measured at code `dc08ab6d`, which has the same `_load_sweep_page` path as the final head `f8bb8f9c`. The only S6 change to that method is the test-only `linda_load_sweep_ids` seam (C06-SCOPE-3). Production never sets that key, so the cursor write and its cache clear are unchanged.
