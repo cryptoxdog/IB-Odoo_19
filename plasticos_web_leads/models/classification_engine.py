@@ -170,6 +170,7 @@ def classify_lead(
     vision_evidence: list[dict] | None = None,
     form_code: str | None = None,
     material_grade_code: str | None = None,
+    quality_tier_code: str | None = None,
 ) -> ClassificationResult:
     """
     Classify a normalised lead as "hot" or "cold".
@@ -189,6 +190,8 @@ def classify_lead(
         reasons.append(f"Form identified: {form_code}.")
     if material_grade_code:
         reasons.append(f"Material grade identified: {material_grade_code}.")
+    if quality_tier_code:
+        reasons.append(f"Quality tier identified: {quality_tier_code}.")
 
     # Normalise inputs
     poly_lower = (polymer or "").strip().lower()

@@ -260,3 +260,85 @@ def test_punctuated_pallet_phrase_meets_the_reusable_threshold() -> None:
     assert with_grade.eligible is True
     assert with_grade.applicable_hot_min_lbs == 8_000.0
     assert with_grade.policy_applied == "reusable_item"
+
+
+def _profile_catalog():
+    entry = CATALOG.CatalogEntry
+    return {
+        "polymer": (
+            entry("LDPE", "LDPE", "", "Low-Density Polyethylene"),
+            entry("HDPE", "HDPE", ""),
+            entry("HDPE_HMW", "HDPE HMW", ""),
+            entry("PET", "PET", ""),
+            entry("PP", "PP", ""),
+            entry("BOPP", "BOPP", ""),
+            entry("PMMA", "PMMA", "", "Acrylic"),
+            entry("MRP", "MRP", "", "Mixed Rigid Plastic"),
+        ),
+        "form": (entry("FILM", "Film", ""), entry("REGRIND", "Regrind", ""), entry("LOOSE", "Loose", "")),
+        "material_grade": (entry("DRUMS", "Drums", ""), entry("BOTTLES", "Bottles", "")),
+        "quality_tier": (
+            entry("GRADE_A", "Grade A", ""),
+            entry("GRADE_B", "Grade B", ""),
+            entry("GRADE_C", "Grade C", ""),
+            entry("REUSABLE", "Reusable", ""),
+            entry("STANDARD", "Standard", ""),
+        ),
+        "color": (entry("WHITE", "White", ""), entry("MIXED", "Mixed Color", "")),
+        "source_type": (entry("POST_CONSUMER", "Post-Consumer", ""),),
+        "packaging": (entry("bales", "Bales", ""), entry("loose", "Loose", ""), entry("supersacks", "Super Sacks", "")),
+        "attribute": (
+            entry("clean", "Clean", ""),
+            entry("printed", "Printed", ""),
+            entry("rigid", "Rigid", ""),
+            entry("mixed", "Mixed", ""),
+            entry("reusable", "Reusable", ""),
+        ),
+    }
+
+
+def test_phrase_rules_fill_profile_slots_without_a_product_row() -> None:
+    catalog = _profile_catalog()
+
+    grade_a = CATALOG.split_phrase("LDPE Film - Grade A", catalog)
+    assert grade_a["polymer"] == "LDPE"
+    assert grade_a["form"] == "FILM"
+    assert grade_a["quality_tier"] == "GRADE_A"
+    assert grade_a["packaging_type"] is None
+    assert grade_a["attributes"] == ()
+
+    hmw = CATALOG.split_phrase("HDPE-HMW Drum Regrind CLEAN", catalog)
+    assert hmw["polymer"] == "HDPE_HMW"
+    assert hmw["material_grade"] == "DRUMS"
+    assert hmw["form"] == "REGRIND"
+    assert hmw["attributes"] == ("clean",)
+
+    bottles = CATALOG.split_phrase("PET Bottles - Post Consumer Bales", catalog)
+    assert bottles["polymer"] == "PET"
+    assert bottles["material_grade"] == "BOTTLES"
+    assert bottles["source_type"] == "POST_CONSUMER"
+    assert bottles["packaging_type"] == "bales"
+
+    supersacs = CATALOG.split_phrase("PP Supersacs - REUSEABLE", catalog)
+    assert supersacs["polymer"] == "PP"
+    assert supersacs["quality_tier"] == "REUSABLE"
+    assert "reusable" not in supersacs["attributes"]
+
+    printed = CATALOG.split_phrase("BOPP Film - White W/ Print", catalog)
+    assert printed["polymer"] == "BOPP"
+    assert printed["form"] == "FILM"
+    assert printed["color"] == "WHITE"
+    assert printed["attributes"] == ("printed",)
+
+    assert CATALOG.split_phrase("Acrylic (PMMA)", catalog)["polymer"] == "PMMA"
+
+    rigid = CATALOG.split_phrase("Mixed Rigid Plastics - Grade A", catalog)
+    assert rigid["quality_tier"] == "GRADE_A"
+    assert "rigid" in rigid["attributes"]
+    assert rigid["polymer"] is None
+
+    mixed = CATALOG.split_phrase("HDPE Mixed Color Film", catalog)
+    assert mixed["color"] == "MIXED"
+    assert "mixed" not in mixed["attributes"]
+
+    assert CATALOG.restrict_to_catalog({"quality_tier": "invented"}, catalog)["quality_tier"] is None

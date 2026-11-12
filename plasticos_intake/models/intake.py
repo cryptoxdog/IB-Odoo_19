@@ -227,6 +227,13 @@ class PlasticosIntake(models.Model):
         ondelete="restrict",
         help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales).",
     )
+    quality_tier_id = fields.Many2one(
+        "plasticos.material.quality.tier",
+        string="Quality Tier",
+        index=True,
+        ondelete="restrict",
+        help="Quality tier from the material quality tier master (Grade A, Grade B, Grade C, Reusable, Standard).",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Material Attributes (multi-select)
@@ -873,6 +880,8 @@ class PlasticosIntake(models.Model):
         profile_vals["partner_id"] = profile_partner.id
         if self.packaging_type_id:
             profile_vals["packaging_type_id"] = self.packaging_type_id.id
+        if self.quality_tier_id:
+            profile_vals["quality_tier_id"] = self.quality_tier_id.id
         if MaterialProfile._fields["lat"].related:
             profile_vals.pop("lat", None)
             profile_vals.pop("lon", None)

@@ -897,6 +897,25 @@ def test_joint_prompt_carries_photo_codes_and_rejects_an_invented_code():
     assert kept["packaging_type"] is None
 
 
+def test_prompt_rules_name_quality_tier_and_printed_film():
+    prompt = _ai.system_prompt(
+        {
+            "polymer": (_ai.CatalogEntry("BOPP", "BOPP", ""),),
+            "form": (_ai.CatalogEntry("FILM", "Film", ""),),
+            "color": (_ai.CatalogEntry("WHITE", "White", ""),),
+            "attribute": (_ai.CatalogEntry("printed", "Printed", ""),),
+            "quality_tier": (_ai.CatalogEntry("GRADE_A", "Grade A", ""),),
+        }
+    )
+    assert "BOPP" in prompt
+    assert "FILM" in prompt
+    assert "WHITE" in prompt
+    assert "printed" in prompt
+    assert "w/ print" in prompt
+    assert "GRADE_A" in prompt
+    assert "reuseable" in prompt
+
+
 def test_vision_still_reaches_the_classifier_after_it_feeds_the_normalizer():
     with open(os.path.join(_models_dir, "web_lead.py"), encoding="utf-8") as handle:
         source = handle.read()
