@@ -2188,7 +2188,10 @@ class PlasticosLoad(models.Model):
         mail = self.env["mail.mail"].sudo().browse(mail_id).exists()  # sudo: read own mail outcome only
         # A force-sent mail with auto_delete is removed only after a successful send.
         if not mail or mail.state == "sent":
-            self.dispatch_sent = fields.Datetime.now()
+            # The first confirmed send is the acknowledgement clock and its revision key;
+            # a later packet never moves it (S4, same property as the composer path).
+            if not self.dispatch_sent:
+                self.dispatch_sent = fields.Datetime.now()
             self.message_post(body="Dispatch packet sent to carrier.")
             return True
         self.message_post(

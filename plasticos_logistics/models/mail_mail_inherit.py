@@ -248,13 +248,12 @@ class MailMailInherit(models.Model):
             load.message_post(body="Dispatch packet confirmed sent to carrier.")
 
     def _postprocess_sent_message(self, success_pids, success_emails, failure_reason=False, failure_type=None):
-        # Read before native post-processing: an auto-delete mail is gone afterwards.
-        if not failure_type:
-            sent_packets = self.filtered(lambda mail: mail.state == "sent")._plasticos_dispatch_packet_loads()
-            if sent_packets:
-                self.sudo().filtered(  # sudo: queue workers stamp the load the sent packet belongs to
-                    lambda mail: mail.state == "sent"
-                )._plasticos_stamp_dispatch_sent()
+        # Read before native post-processing: an auto-delete mail is gone afterwards. The gate is
+        # the transport's own verdict (state "sent"): native _send also reports a failure_type such
+        # as mail_email_invalid for a mail that still reached its valid recipients.
+        sent = self.filtered(lambda mail: mail.state == "sent")
+        if sent and sent._plasticos_dispatch_packet_loads():
+            sent.sudo()._plasticos_stamp_dispatch_sent()  # sudo: queue workers stamp the sent packet's own load
         res = super()._postprocess_sent_message(
             success_pids,
             success_emails,

@@ -210,6 +210,8 @@ ACK_NOTICE_AFTER = timedelta(hours=2)
 ACK_ESCALATION_AFTER = timedelta(hours=4)
 # An external document chase is sent only when the operator approved it.
 DOCUMENT_CHASE_PARAM = "plasticos_logistics.linda_document_chase"
+# Resolver refusals that mean a configuration gap, logged by the sweep instead of skipped silently.
+LOGGED_SKIP_REASONS = frozenset({"sender_email_missing", "recipient_email_invalid", "audience_company_mismatch"})
 # The obligation sweep visits at most this many loads per lane per run, rotating by id.
 LOAD_SWEEP_BATCH = 200
 LOAD_SWEEP_CURSOR = "plasticos_logistics.linda_load_sweep_cursor"
@@ -1563,6 +1565,15 @@ class PlasticosLogisticsRequest(models.Model):
                 for partner in self._load_audiences(load, purpose):
                     resolved = self._linda_resolve(SOURCE_LOAD, purpose, load.id, partner)
                     if resolved["status"] != COMMAND_APPLIED:
+                        if resolved.get("reason") in LOGGED_SKIP_REASONS:
+                            # A configuration gap must not be silent; ids and reason codes only, no PII.
+                            _logger.info(
+                                "Linda %s not recorded for load %s partner %s: %s",
+                                purpose,
+                                load.id,
+                                partner.id,
+                                resolved["reason"],
+                            )
                         continue
                     with self.env.cr.savepoint():
                         results.append(self._record_typed(purpose, resolved))
