@@ -463,9 +463,12 @@
 ./plasticos_base/hooks.py:3:import logging
 ./plasticos_base/migrations/19.0.1.0.2/post-migrate.py:1:import logging
 ./plasticos_base/migrations/19.0.1.0.2/post-migrate.py:3:from odoo import SUPERUSER_ID, api
-./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:18:import logging
-./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:20:from odoo import SUPERUSER_ID, api
-./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:21:from odoo.exceptions import UserError
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:22:    import importlib.util, os
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:23:    from odoo.modules import get_module_path
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:32:import logging
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:34:import psycopg2
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:36:from odoo import SUPERUSER_ID, api
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:37:from odoo.exceptions import UserError
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:8:import logging
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:10:from odoo import SUPERUSER_ID
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:11:from odoo.api import Environment
