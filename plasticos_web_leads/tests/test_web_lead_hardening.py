@@ -421,7 +421,7 @@ class TestHotReviewerRouting(_WebLeadCase):
         self.assertTrue(lead.intake_id)
         self.assertEqual(lead.state, "intake_created")
         self.assertEqual(lead.mack_review_state, "blocked")
-        self.assertIn("not configured", lead.mack_review_reason.lower())
+        self.assertIn("no web-lead reviewer is configured", lead.mack_review_reason.lower())
         self.assertFalse(lead.intake_id.activity_ids)
         self.assertFalse(
             self.env["mail.activity"].search_count(
