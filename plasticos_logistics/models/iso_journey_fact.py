@@ -21,6 +21,7 @@ gate-in, and a gate-in is not a sailing.
 """
 
 import psycopg2
+import psycopg2.errors
 
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
@@ -243,11 +244,14 @@ class PlasticosIsoJourneyFact(models.Model):
                         "recorded_by": self.env.user.id,
                     }
                 )
-        except psycopg2.IntegrityError:
+        except psycopg2.errors.UniqueViolation:
+            # A concurrent record of the same fact won the unique index; answer from its row.
             self.env.invalidate_all()
             return self._existing_result(journey, kind, facts) or _result(
-                "blocked", journey, "a concurrent record of this fact could not be read back"
+                "blocked", journey, "constraint violated: a concurrent record of this fact could not be read back"
             )
+        except psycopg2.IntegrityError as error:
+            return _result("blocked", journey, f"constraint violated: {error.diag.constraint_name or 'database'}")
         return _result("applied", fact)
 
     @api.model
