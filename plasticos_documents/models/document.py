@@ -439,9 +439,7 @@ class PlasticosDocument(models.Model):
         self._invalidate_native_attachments(attachments)
         # Trigger recompute after delete (both flags AND compliance)
         if transactions:
-            projected = (
-                transactions.sudo()
-            )  # sudo: compliance flags; group_user read ACL still admits every internal user
+            projected = transactions.sudo()  # sudo: compliance flags; internal users keep document read access
             projected._compute_missing_doc_flags()
             if hasattr(projected, "_compute_compliance"):
                 projected._compute_compliance()
@@ -463,9 +461,7 @@ class PlasticosDocument(models.Model):
         """
         transactions = self._get_related_transactions(records)
         if transactions:
-            projected = (
-                transactions.sudo()
-            )  # sudo: compliance flags; group_user read ACL still admits every internal user
+            projected = transactions.sudo()  # sudo: compliance flags; internal users keep document read access
             projected._compute_missing_doc_flags()
             # Issue 3 fix: compliance_status depends on documents too
             if hasattr(projected, "_compute_compliance"):
@@ -500,8 +496,8 @@ class PlasticosDocument(models.Model):
         marker = "Conflicting association withheld from evidence."
         if any(marker in (message.body or "") for message in self.message_ids):
             return
-        # sudo: system review note; a read-only internal user can reach this through a recompute
-        self.sudo().message_post(
+        note_target = self.sudo()  # sudo: system review note; a read-only user reaches this via recompute
+        note_target.message_post(
             body=f"{marker} {reason}",
             message_type="notification",
             subtype_xmlid="mail.mt_note",
@@ -884,8 +880,8 @@ class IrAttachmentEvidenceRevision(models.Model):
         documents = self.env["plasticos.document"].search([("attachment_id", "in", self.ids)])
         replaced = documents.filtered(_replaced_accepted_evidence)
         if replaced:
-            # sudo: fail-closed review flag; the actor may hold attachment write but only document read
-            replaced.sudo()._association_write({"association_review_required": True})
+            flagged = replaced.sudo()  # sudo: fail-closed review flag; actor may hold only document read
+            flagged._association_write({"association_review_required": True})
         if documents:
             documents._invalidate_native_projection()
             documents._trigger_transaction_recompute(documents)
