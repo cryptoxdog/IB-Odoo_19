@@ -14,6 +14,8 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests.common import new_test_user, tagged
 
+from ..models.booking_allocation import slot_order
+
 BOOKING = "plasticos.export.booking"
 REVISION = "plasticos.export.booking.revision"
 SLOT = "plasticos.export.booking.slot"
@@ -253,7 +255,7 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
         slots = booking.slot_ids
         self.assertEqual(len(slots), 5)
         self.assertEqual(set(slots.mapped("equipment_class")), {"40HC"})
-        self.assertEqual(sorted(slots.mapped("slot_key")), [f"40HC-{n}" for n in range(1, 6)])
+        self.assertEqual(slots.sorted(slot_order).mapped("slot_key"), [f"40HC-{n}" for n in range(1, 6)])
         self.assertEqual(set(slots.mapped("allocation_state")), {"available"})
         self.assertEqual(booking.slot_confirmed_count, 5)
         self.assertEqual(revision.accepted_by, self.actor)
@@ -346,7 +348,7 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
     def test_reduction_retires_free_slots_and_holds_committed_ones(self):
         """BRS-EXP-14-R016, BRS-EXP-11-R005, BRS-EXP-11-R011: a downsize never releases cargo silently."""
         booking, first = self.accepted_booking(confirmed=3)
-        slots = booking.slot_ids.sorted("slot_key")
+        slots = booking.slot_ids.sorted(slot_order)
         order = self.env["purchase.order"].create(
             {
                 "partner_id": self.suppliers[0].id,
@@ -432,7 +434,7 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
     def test_restored_capacity_lifts_holds_before_adding_slots(self):
         """BRS-EXP-14-R016, BRS-EXP-11-R011 (PR #479 review): a hold ends when the carrier restores capacity."""
         booking, first = self.accepted_booking(confirmed=3)
-        slots = booking.slot_ids.sorted("slot_key")
+        slots = booking.slot_ids.sorted(slot_order)
         kept = self._commit_po(slots[1], first)
         held = self._commit_po(slots[2], first)
         self._roll(booking, 1)
@@ -451,7 +453,7 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(booking.display_state, "confirmed")
         self.assertEqual((booking.slot_confirmed_count, booking.slot_held_count), (3, 0))
         live = self.env[SLOT].search([("booking_id", "=", booking.id)])
-        self.assertEqual(sorted(live.mapped("slot_key")), ["40HC-2", "40HC-3", "40HC-4"])
+        self.assertEqual(live.sorted(slot_order).mapped("slot_key"), ["40HC-2", "40HC-3", "40HC-4"])
 
     def test_confirmed_count_follows_the_accepted_revision_not_held_slots(self):
         """BRS-EXP-14-R014 (PR #479 review): held slots are not confirmed carrier capacity."""

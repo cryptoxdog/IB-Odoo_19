@@ -72,6 +72,17 @@ _BOUNDED_LINES = {
 # Command-only keys of ``source_refs`` that are not link fields.
 _CORRECTION_REFS = ("replaces_link_id", "correction_reason", "replaced_booking_revision_id")
 
+# Planned weight normalization (C13 OP12-E02a): a pound total never adds a unit that is not a weight.
+UOM_LB = "uom.product_uom_lb"
+WEIGHT_BASIS_WEIGHT = "weight"
+WEIGHT_BASIS_NOT_WEIGHT = "not_weight"
+WEIGHT_BASIS_UNKNOWN = "unknown"
+PLANNED_WEIGHT_BASES = [
+    (WEIGHT_BASIS_WEIGHT, "Converted to lb"),
+    (WEIGHT_BASIS_NOT_WEIGHT, "Excluded: not a weight unit"),
+    (WEIGHT_BASIS_UNKNOWN, "No planned quantity"),
+]
+
 PHYSICAL_SOURCE_KINDS = [
     ("native_stock", "Native stock move"),
     ("logistics_load", "Logistics load"),
@@ -128,6 +139,21 @@ _LINK_COMMAND_FIELDS = frozenset(
 )
 
 
+def slot_number(key):
+    """The trailing number of a slot key (``40HC-12`` → 12); 0 when the key ends in no number."""
+    digits = ""
+    for char in reversed(key or ""):
+        if not char.isdigit():
+            break
+        digits = char + digits
+    return int(digits) if digits else 0
+
+
+def slot_order(slot):
+    """Numeric slot order: ``40HC-9`` before ``40HC-10`` (C13 OP12-E02b)."""
+    return (slot.equipment_class or "", slot_number(slot.slot_key), slot.slot_key or "")
+
+
 def _record_company(record):
     if not record:
         return record
@@ -139,13 +165,20 @@ def _record_company(record):
 class PlasticosExportBookingSlot(models.Model):
     _name = "plasticos.export.booking.slot"
     _description = "Export Booking Slot"
-    _order = "booking_id, equipment_class, slot_key"
+    _order = "booking_id, equipment_class, slot_number, slot_key"
     _rec_name = "slot_key"
 
     active = fields.Boolean(default=True, help="Cleared when an accepted revision retires this free slot.")
     booking_id = fields.Many2one(EXPORT_BOOKING, required=True, index=True, ondelete="restrict")
     company_id = fields.Many2one(related="booking_id.company_id", store=True, index=True)
     slot_key = fields.Char(required=True, help="Stable key of this slot within its booking.")
+    slot_number = fields.Integer(
+        compute="_compute_slot_number",
+        store=True,
+        index=True,
+        aggregator=None,
+        help="The number at the end of the slot key, so slot 10 sorts after slot 9 (C13 OP12-E02b).",
+    )
     equipment_class = fields.Selection(
         EQUIPMENT_CLASSES,
         required=True,
@@ -211,6 +244,11 @@ class PlasticosExportBookingSlot(models.Model):
             links = slot.cargo_link_ids.filtered(lambda link: link.state in ("committed", "held"))
             slot.supplier_count = len(links.purchase_line_id.order_id.partner_id)
 
+    @api.depends("slot_key")
+    def _compute_slot_number(self):
+        for slot in self:
+            slot.slot_number = slot_number(slot.slot_key)
+
     @api.depends("slot_key", "equipment_class", "booking_id")
     def _compute_display_name(self):
         for slot in self:
@@ -256,7 +294,7 @@ class PlasticosExportBookingSlot(models.Model):
         for code in sorted(set(wanted) | set(live.mapped("equipment_class"))):
             target = wanted.get(code, 0)
             slots = live.filtered(lambda slot, code=code: slot.equipment_class == code)
-            held = slots.filtered("hold_reason").sorted(lambda slot: slot.slot_key)
+            held = slots.filtered("hold_reason").sorted(slot_order)
             unheld = slots - held
             if len(unheld) >= target:
                 # Capacity shrinks or stays: holds still cover part of the withdrawal.
@@ -265,10 +303,10 @@ class PlasticosExportBookingSlot(models.Model):
                     continue
                 free = unheld.filtered(
                     lambda slot: slot.allocation_state == "available" and slot.journey_binding_state != "active"
-                ).sorted(lambda slot: slot.slot_key, reverse=True)
+                ).sorted(slot_order, reverse=True)
                 retire = free[:excess]
                 retire.write({"active": False})
-                busy = (unheld - retire).sorted(lambda slot: slot.slot_key, reverse=True)[: excess - len(retire)]
+                busy = (unheld - retire).sorted(slot_order, reverse=True)[: excess - len(retire)]
                 if busy:
                     busy.write(
                         {
@@ -528,9 +566,25 @@ class PlasticosExportBookingCargoLink(models.Model):
     physical_source_kind = fields.Selection(PHYSICAL_SOURCE_KINDS, required=True, default="pending")
     physical_source_ref = fields.Char(help="Exact source reference, never a name match.")
     source_revision_key = fields.Char(help="Source owner's revision of this cargo, for identity and replay.")
-    planned_quantity = fields.Float(help="Planned only. Never shipped, scaled or stocked quantity.")
+    # No aggregator: planned quantities in different units are never summed (C13 OP12-E02a).
+    planned_quantity = fields.Float(help="Planned only. Never shipped, scaled or stocked quantity.", aggregator=None)
     planned_quantity_known = fields.Boolean(required=True, default=False)
     uom_id = fields.Many2one(UOM, string="Unit", ondelete="restrict")
+    planned_weight_lb = fields.Float(
+        compute="_compute_planned_weight_lb",
+        store=True,
+        string="Planned Weight (lb)",
+        help="The planned quantity converted to pounds through the native unit of measure. A planned "
+        "quantity in a unit that is not a weight is excluded (0) and flagged by its weight basis.",
+    )
+    planned_weight_basis = fields.Selection(
+        PLANNED_WEIGHT_BASES,
+        compute="_compute_planned_weight_lb",
+        store=True,
+        string="Weight Basis",
+        help="Whether the planned quantity counts in the pound total: a weight unit converts; any other "
+        "unit is excluded and shown here instead of being added.",
+    )
     replaces_link_id = fields.Many2one(EXPORT_CARGO_LINK, string="Replaces", ondelete="restrict")
     purchase_order_id = fields.Many2one(related="purchase_line_id.order_id", string="Supplier PO", store=True)
     supplier_id = fields.Many2one(related="purchase_line_id.order_id.partner_id", string="Supplier", store=True)
@@ -555,6 +609,19 @@ class PlasticosExportBookingCargoLink(models.Model):
         string="PO Constraints",
         help="Read live from the native PO line. Export copies no PO fact (BRS-EXP-11-R007).",
     )
+
+    @api.depends("planned_quantity", "planned_quantity_known", "uom_id")
+    def _compute_planned_weight_lb(self):
+        pound = self.env.ref(UOM_LB, raise_if_not_found=False)
+        for link in self:
+            unit = link.uom_id
+            if not link.planned_quantity_known or not unit:
+                link.planned_weight_lb, link.planned_weight_basis = 0.0, WEIGHT_BASIS_UNKNOWN
+            elif pound and unit._has_common_reference(pound):
+                link.planned_weight_lb = unit._compute_quantity(link.planned_quantity, pound, round=False)
+                link.planned_weight_basis = WEIGHT_BASIS_WEIGHT
+            else:
+                link.planned_weight_lb, link.planned_weight_basis = 0.0, WEIGHT_BASIS_NOT_WEIGHT
 
     _company_allocation_unique = models.UniqueIndex(
         "(company_id, allocation_key)", "This company already has a cargo commitment under that allocation key."

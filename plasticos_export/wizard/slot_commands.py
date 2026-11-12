@@ -85,7 +85,13 @@ class PlasticosExportSlotCommitCargo(models.TransientModel):
     source_revision_key = fields.Char(help="The source owner's revision of this cargo.")
     planned_quantity_known = fields.Boolean(string="Planned Quantity Known")
     planned_quantity = fields.Float(help="Planned only. Never shipped, scaled or stocked quantity.")
-    uom_id = fields.Many2one(UOM, string="Unit", ondelete="cascade")
+    uom_id = fields.Many2one(
+        UOM,
+        string="Unit",
+        ondelete="cascade",
+        default=lambda self: self.env.ref("uom.product_uom_lb", raise_if_not_found=False),
+        help="Defaults to lb (C13 OP12-E02c). The command still refuses a known quantity without a unit.",
+    )
     replaces_link_id = fields.Many2one(
         EXPORT_CARGO_LINK,
         string="Replaces Cargo",

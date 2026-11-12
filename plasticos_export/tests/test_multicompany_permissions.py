@@ -13,6 +13,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
 from odoo.tools.safe_eval import safe_eval
 
+from ..models.booking_allocation import slot_order
 from .test_booking_and_revision import BOOKING, LINK, REVISION, SLOT, ExportFixtureMixin
 
 
@@ -145,7 +146,7 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
         both to the same booking through the Export command.
         """
         booking, revision = self._populated_booking()
-        slot_a, slot_b = booking.slot_ids.sorted("slot_key")
+        slot_a, slot_b = booking.slot_ids.sorted(slot_order)
         own_order = self.env["sale.order"].create({"partner_id": self.buyer.id, "user_id": self.sales_reader.id})
         # Quantities fit the order lines: BRS-EXP-08-R006 refuses planned cargo beyond the line (S8).
         own_order.order_line = [
@@ -313,7 +314,7 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
             }
         )
         applied = (
-            booking.slot_ids.sorted("slot_key")[1]
+            booking.slot_ids.sorted(slot_order)[1]
             .with_user(self.actor)
             .action_commit_cargo({"purchase_line_id": purchase.order_line.id}, None, None, revision.id, self.key())
         )
@@ -513,7 +514,7 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
     def test_derived_and_company_fields_cannot_be_written(self):
         """C05 review D1, BRS-EXP-14-R012: no row is relabelled across companies; derived state is never forged."""
         booking, revision = self._populated_booking()
-        slot = booking.slot_ids.sorted("slot_key")[0]
+        slot = booking.slot_ids.sorted(slot_order)[0]
         link = self.env[LINK].search([("booking_id", "=", booking.id)], limit=1)
         attempts = [
             (booking, {"company_id": self.company_b.id}),
@@ -552,7 +553,7 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
                 ],
             }
         )
-        slot = booking.slot_ids.sorted("slot_key")[1]
+        slot = booking.slot_ids.sorted(slot_order)[1]
         applied = slot.with_user(self.actor).action_commit_cargo(
             {"sale_line_id": order.order_line.id, "purchase_line_id": purchase.order_line.id},
             None,

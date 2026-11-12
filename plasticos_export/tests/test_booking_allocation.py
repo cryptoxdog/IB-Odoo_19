@@ -9,6 +9,7 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
+from ..models.booking_allocation import slot_order
 from .test_booking_and_revision import LINK, SLOT, ExportFixtureMixin
 
 
@@ -52,7 +53,7 @@ class TestBookingAllocation(ExportFixtureMixin, PlasticosTestCase):
     def test_phase1_gate_five_40hc_four_supplier_pos(self):
         """BRS-EXP-14-R014, BRS-EXP-14-R015, BRS-EXP-08-R005, BRS-EXP-13-R005: capacity is distinct slots, not links."""
         booking, _revision = self.accepted_booking(confirmed=5)
-        slots = booking.slot_ids.sorted("slot_key")
+        slots = booking.slot_ids.sorted(slot_order)
         lines = [self._po_line(supplier) for supplier in self.suppliers]
         # Two feeder POs into the first container, then one PO each for the next two.
         for slot, line in zip([slots[0], slots[0], slots[1], slots[2]], lines):
@@ -152,7 +153,7 @@ class TestBookingAllocation(ExportFixtureMixin, PlasticosTestCase):
     def test_journey_binding_is_exact_and_exclusive(self):
         """BRS-EXP-07-R004, BRS-EXP-07-R007, BRS-EXP-07-R008: one container per active slot; mismatch reported."""
         booking, revision = self.accepted_booking(confirmed=2)
-        first, second = booking.slot_ids.sorted("slot_key")
+        first, second = booking.slot_ids.sorted(slot_order)
         mismatch = first.with_user(self.actor).action_bind_journey(
             self._journey(equipment="20STD", iso="MSKU7654326").id, revision.id, self.key(), "in-gate receipt"
         )
@@ -179,7 +180,7 @@ class TestBookingAllocation(ExportFixtureMixin, PlasticosTestCase):
     def test_held_slot_withholds_its_load_from_new_physical_instructions(self):
         """BRS-EXP-11-R011, BRS-EXP-10-R001, BRS-EXP-10-R005: a downsize holds the impacted load only."""
         booking, first = self.accepted_booking(confirmed=2)
-        slot_a, slot_b = booking.slot_ids.sorted("slot_key")
+        slot_a, slot_b = booking.slot_ids.sorted(slot_order)
         order = self.env["sale.order"].create({"partner_id": self.buyer.id})
         load_a = self.env["plasticos.load"].create({"sale_order_id": order.id})
         load_b = self.env["plasticos.load"].create({"sale_order_id": order.id})

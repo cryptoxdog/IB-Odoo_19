@@ -13,6 +13,7 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
 
+from ..models.booking_allocation import slot_order
 from .test_booking_and_revision import LINK, ExportFixtureMixin
 
 COMMIT = "plasticos.export.slot.commit.cargo"
@@ -97,8 +98,14 @@ class TestSlotCommandScreens(ExportFixtureMixin, PlasticosTestCase):
         empty = self._screen(COMMIT, slot)
         with self.assertRaisesRegex(UserError, "blocked.*at least one exact source record"):
             empty.action_confirm()
+        # The screen defaults the unit to lb (C13 OP12-E02c); a user who clears it is still refused by the command.
         unitless = self._screen(
-            COMMIT, slot, purchase_line_id=self._po_line().id, planned_quantity_known=True, planned_quantity=5
+            COMMIT,
+            slot,
+            purchase_line_id=self._po_line().id,
+            planned_quantity_known=True,
+            planned_quantity=5,
+            uom_id=False,
         )
         with self.assertRaisesRegex(UserError, "needs its unit"):
             unitless.action_confirm()
@@ -133,7 +140,7 @@ class TestSlotCommandScreens(ExportFixtureMixin, PlasticosTestCase):
     def test_bind_screen_binds_once_and_refuses_a_mismatch(self):
         """BRS-EXP-07-R007: a matching container binds once; a different equipment class is refused, never rewritten."""
         booking, _revision = self.accepted_booking(confirmed=2)
-        first, second = booking.slot_ids.sorted("slot_key")
+        first, second = booking.slot_ids.sorted(slot_order)
         mismatch = self._screen(BIND, first, journey_id=self._journey("40STD").id, source_basis="Terminal ticket")
         with self.assertRaisesRegex(UserError, "equipment mismatch"):
             mismatch.action_confirm()
@@ -188,7 +195,7 @@ class TestSlotCommandScreens(ExportFixtureMixin, PlasticosTestCase):
     def test_commit_screens_cannot_double_allocate_one_load(self):
         """BRS-EXP-08-R006 at the screen (review N4): two Commit Cargo screens name one load; the second is refused."""
         booking, _revision = self.accepted_booking(confirmed=2)
-        first_slot, second_slot = booking.slot_ids.sorted("slot_key")
+        first_slot, second_slot = booking.slot_ids.sorted(slot_order)
         order = self.env["sale.order"].create({"partner_id": self.buyer.id})
         load = self.env["plasticos.load"].create({"sale_order_id": order.id})
         values = {"source_load_id": load.id, "physical_source_kind": "logistics_load"}

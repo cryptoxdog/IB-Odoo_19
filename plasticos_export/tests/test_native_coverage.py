@@ -14,6 +14,7 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
 
+from ..models.booking_allocation import slot_order
 from .native_fixture import PO_LOADS, SO_LOADS, SUPPLIER_PRICE, NativeExportFixtureMixin
 from .test_booking_and_revision import BOOKING, LINK, REVISION, SLOT
 
@@ -228,7 +229,7 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         self.assertNotIn(self.buyer, self.purchases.partner_id, "the buyer PO is never the supplier PO")
         orders = (self.env["sale.order"].search_count([]), self.env["purchase.order"].search_count([]))
         booking, _revision = self.accepted_booking(confirmed=2)
-        for week, slot in enumerate(booking.slot_ids.sorted("slot_key"), start=1):
+        for week, slot in enumerate(booking.slot_ids.sorted(slot_order), start=1):
             received = self.receive_week()
             refs = self.stock_refs(received, sale_line_id=self.sale_line.id)
             self.assertEqual(self.commit_cargo(slot, refs)["status"], "applied", week)
@@ -244,7 +245,7 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         purchases_before = self.env["purchase.order"].search_count([])
         po_lines_before = self.env["purchase.order.line"].search_count([])
         booking, _revision = self.accepted_booking(confirmed=PO_LOADS)
-        slots = booking.slot_ids.sorted("slot_key")
+        slots = booking.slot_ids.sorted(slot_order)
         for week, slot in enumerate(slots, start=1):
             received = self.receive_week()
             self.assertEqual(received.picking_id.state, "done")
@@ -329,7 +330,7 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         """AC-EXP-11-010 (BRS-EXP-11-R010): one recognised load; the PO keeps its native remaining balance."""
         received = self.receive_week()
         booking, _revision = self.accepted_booking(confirmed=PO_LOADS)
-        slots = booking.slot_ids.sorted("slot_key")
+        slots = booking.slot_ids.sorted(slot_order)
         self.assertEqual(self.commit_cargo(slots[0], self.stock_refs(received))["status"], "applied")
         self.assertEqual(self.purchase_line.qty_received, 1.0)
         self.assertEqual(self.purchase_line.product_qty - self.purchase_line.qty_received, PO_LOADS - 1)

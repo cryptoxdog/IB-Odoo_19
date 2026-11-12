@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_export
 component_name: PlasticOS Export
-module_version: 19.0.1.2.0
+module_version: 19.0.1.3.0
 installable: true
 auto_install: false
 application: true

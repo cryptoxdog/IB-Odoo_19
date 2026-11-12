@@ -16,6 +16,7 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 from odoo.tools.misc import file_open
 
+from ..models.booking_allocation import slot_order
 from ..models.legacy_report import (
     LEGACY_BOOKING_REPORT_COLUMNS,
     LEGACY_BOOKING_REPORT_HEADINGS,
@@ -85,7 +86,7 @@ class TestLegacyBookingReport(ExportFixtureMixin, PlasticosTestCase):
             recorded = self.candidate(booking, terms=terms)
             self.assertEqual(recorded["status"], "applied", recorded)
             self.assertEqual(self.accept(booking, recorded["record_id"])["status"], "applied")
-            for slot, row in zip(booking.slot_ids.sorted("slot_key"), booking_rows):
+            for slot, row in zip(booking.slot_ids.sorted(slot_order), booking_rows):
                 purchase = self.env["purchase.order"].create(
                     {
                         "partner_id": self.suppliers[0].id,

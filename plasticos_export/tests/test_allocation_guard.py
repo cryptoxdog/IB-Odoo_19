@@ -15,6 +15,7 @@ from odoo.tests.common import tagged
 from odoo.tools import mute_logger
 
 from ..models.booking import guard
+from ..models.booking_allocation import slot_order
 from .native_fixture import PO_LOADS, SO_LOADS, NativeExportFixtureMixin
 from .test_booking_and_revision import LINK
 
@@ -30,7 +31,7 @@ class TestAllocationGuard(NativeExportFixtureMixin, PlasticosTestCase):
 
     def _slots(self, count):
         booking, _revision = self.accepted_booking(confirmed=count)
-        return booking.slot_ids.sorted("slot_key")
+        return booking.slot_ids.sorted(slot_order)
 
     def test_four_executed_loads_traced_to_four_bookings(self):
         """AC-EXP-08-006 (BRS-EXP-08-R006), positive: four executed PO quantities, four separate bookings."""

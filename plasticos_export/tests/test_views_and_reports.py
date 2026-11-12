@@ -15,6 +15,7 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 from odoo.tools.safe_eval import safe_eval
 
+from ..models.booking_allocation import slot_order
 from .test_booking_and_revision import BOOKING, LINK, SLOT, ExportFixtureMixin
 
 SIX_REPORTS = {
@@ -37,7 +38,7 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
     def _scenario(self):
         """Two-slot booking: two feeders and a bound container on slot 1, then a roll."""
         booking, first = self.accepted_booking(confirmed=2)
-        slot = booking.slot_ids.sorted("slot_key")[0]
+        slot = booking.slot_ids.sorted(slot_order)[0]
         orders = self.env["purchase.order"].create(
             [
                 {

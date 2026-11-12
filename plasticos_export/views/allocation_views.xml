@@ -161,6 +161,8 @@
                 <field name="physical_source_kind"/>
                 <field name="planned_quantity"/>
                 <field name="uom_id"/>
+                <field name="planned_weight_lb" sum="Planned lb"/>
+                <field name="planned_weight_basis" optional="show"/>
                 <field name="allocation_key" optional="hide"/>
             </list>
         </field>
@@ -184,6 +186,8 @@
                             <field name="planned_quantity_known"/>
                             <field name="planned_quantity" invisible="not planned_quantity_known"/>
                             <field name="uom_id" invisible="not planned_quantity_known"/>
+                            <field name="planned_weight_lb" invisible="planned_weight_basis != 'weight'"/>
+                            <field name="planned_weight_basis"/>
                             <field name="replaces_link_id"/>
                         </group>
                         <group string="Exact Sources">
@@ -272,12 +276,14 @@
         <field name="name">plasticos.export.booking.cargo.link.pivot</field>
         <field name="model">plasticos.export.booking.cargo.link</field>
         <field name="arch" type="xml">
-            <!-- Planned quantities are summed only within one unit: the unit is the first column group (review D5). -->
+            <!-- The measure is the planned weight in lb, converted through the native unit of measure. A unit
+                 that is not a weight is excluded and shown in its own weight-basis column; planned_quantity
+                 carries no aggregator, so no total ever adds two units (C13 OP12-E02a, review D5). -->
             <pivot string="Open PO / SO Fulfillment">
                 <field name="purchase_order_id" type="row"/>
-                <field name="uom_id" type="col"/>
+                <field name="planned_weight_basis" type="col"/>
                 <field name="sale_order_id" type="col"/>
-                <field name="planned_quantity" type="measure" string="Planned (per unit column; totals across units are not meaningful)"/>
+                <field name="planned_weight_lb" type="measure"/>
             </pivot>
         </field>
     </record>
