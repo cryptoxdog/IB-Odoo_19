@@ -37,12 +37,6 @@ RES_PARTNER = "res.partner"
 _DECISION_WRITE = "plasticos_shipment_event_proposal_decision"
 _DECISION_WRITE_TOKEN = object()
 
-EVENT_KINDS = [
-    ("supplier_ready", "Supplier Ready"),
-    ("loaded", "Loaded"),
-    ("gate_accepted", "Gate Accepted"),
-    ("sailed", "Sailed"),
-]
 _LOAD_EVENTS = frozenset({"supplier_ready", "loaded"})
 _JOURNEY_EVENTS = frozenset({"gate_accepted", "sailed"})
 # Who may attest each event. A supplier cannot attest a terminal gate-in or a sailing.
@@ -79,7 +73,16 @@ class PlasticosShipmentEventProposal(models.Model):
     company_id = fields.Many2one(
         "res.company", required=True, readonly=True, index=True, ondelete="restrict", help="Company of the subject."
     )
-    event_kind = fields.Selection(EVENT_KINDS, required=True, index=True)
+    event_kind = fields.Selection(
+        [
+            ("supplier_ready", "Supplier Ready"),
+            ("loaded", "Loaded"),
+            ("gate_accepted", "Gate Accepted"),
+            ("sailed", "Sailed"),
+        ],
+        required=True,
+        index=True,
+    )
     load_id = fields.Many2one(PLASTICOS_LOAD, string="Load", index="btree_not_null", ondelete="restrict")
     journey_id = fields.Many2one(ISO_JOURNEY, string="Container Journey", index="btree_not_null", ondelete="restrict")
     occurred_at = fields.Datetime(string="Occurred At", help="When the source says the event happened.")
@@ -147,7 +150,7 @@ class PlasticosShipmentEventProposal(models.Model):
 
     @api.depends("event_kind", "load_id", "journey_id", "state")
     def _compute_display_name(self):
-        kinds = dict(EVENT_KINDS)
+        kinds = dict(self._fields["event_kind"].selection)
         for rec in self:
             subject = rec.load_id.display_name or rec.journey_id.display_name or ""
             rec.display_name = f"{kinds.get(rec.event_kind, '')} · {subject} ({rec.state})"
@@ -244,7 +247,7 @@ class PlasticosShipmentEventProposal(models.Model):
         key = _normalize_text(operation_key)
         if not key:
             return _result("blocked", reason="operation_key is required")
-        if values.get("event_kind") not in dict(EVENT_KINDS):
+        if values.get("event_kind") not in dict(self._fields["event_kind"].selection):
             return _result("not_available", reason=f"unknown shipment event {values.get('event_kind')!r}")
         subject = self._subject_from_vals(values)
         if not subject:
