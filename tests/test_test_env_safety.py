@@ -1284,3 +1284,73 @@ def test_lease_session_that_ends_without_a_grant_fails_closed(tmp_path):
     assert result.returncode == 1, result.stderr
     assert "lease session ended" in result.stderr
     assert "does not exist" not in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 (Export campaign S3, C02-REAUTH-3): an installable module listed
+# under excluded_modules is test-scoped only when the admitted fixture has it
+# installed. Its state is read from the verified clone, a copy of the fixture.
+# ---------------------------------------------------------------------------
+_MODULE_STATE_STUB = _STATEFUL_STUB.replace(
+    '    if "shobj_description" in query and name is not None:\n',
+    '    if "FROM ir_module_module" in query:\n'
+    '        out(os.environ.get("STUB_MODULE_STATE", ""))\n'
+    '    if "shobj_description" in query and name is not None:\n',
+)
+
+
+def _excluded_test_run(tmp_path: Path, module_state: str) -> subprocess.CompletedProcess:
+    assert _MODULE_STATE_STUB != _STATEFUL_STUB
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    stub = tmp_path / "sbin" / "docker"
+    stub.parent.mkdir(exist_ok=True)
+    stub.write_text(_MODULE_STATE_STUB)
+    stub.chmod(0o755)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)}))
+    environ = {
+        "PATH": f"{stub.parent}{os.pathsep}{os.environ['PATH']}",
+        "HOME": str(tmp_path),
+        "STUB_STATE": str(state),
+        "STUB_ROOT": str(ROOT),
+        "STUB_LOG": str(tmp_path / "stub.log"),
+        "STUB_MODULE_STATE": module_state,
+        "STUB_ODOO_LOG": _summary(0, 0, 12),
+        "TEST_ENV_OWNER": "agenta",
+        "TEST_ENV_PARITY": "community",
+        "TEST_ENV_SAFETY_HARNESS": "1",
+        "TEST_ENV_EVIDENCE_DIR": str(tmp_path / "evidence"),
+        **base,
+    }
+    recipe = [*TEST_RECIPE, "-d", "odoo_test_a", "--log-level=test", "-u", "plasticos_documents_native"]
+    return subprocess.run(
+        ["bash", str(ROOT / "scripts" / "test_env.sh"), "run", "odoo_test_a", "--", *recipe],
+        capture_output=True,
+        text=True,
+        env=environ,
+        cwd=ROOT,
+        check=False,
+    )
+
+
+def test_excluded_module_installed_in_the_fixture_is_test_scoped(tmp_path):
+    """plasticos_documents_native auto-installs on the Enterprise fixture: its tests run, tagged like the roster."""
+    result = _excluded_test_run(tmp_path, "installed")
+    assert result.returncode == 0, result.stderr
+    assert "scope plasticos_documents_native" in result.stdout
+    call = _odoo_call(tmp_path)
+    assert f" -u {ROSTER} " in call
+    assert "plasticos_documents_native" not in ROSTER.split(",")
+    assert " --test-tags /plasticos_documents_native " in call
+
+
+@pytest.mark.parametrize("module_state", ["", "uninstalled", "to install"])
+def test_excluded_module_not_installed_in_the_fixture_is_refused(tmp_path, module_state):
+    """An excluded module the fixture does not have installed is refused before Odoo runs."""
+    result = _excluded_test_run(tmp_path, module_state)
+    assert result.returncode != 0, result.stdout
+    assert "test-env refused" in result.stderr
+    assert "is excluded from the roster and is not installed in the admitted fixture" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert "--test-enable" not in calls

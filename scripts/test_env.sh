@@ -1214,7 +1214,39 @@ assert_clone() {
 TEST_ROSTER=""
 TEST_SCOPE=""
 TEST_TAGS=""
+TEST_EXCLUDED=""
+# An installable module named under excluded_modules in config/odoo_module_order.yaml.
+# It is never named in -u; Odoo installs some of them on the Enterprise fixture anyway
+# (auto_install). Its tests are admitted only when the fixture has it installed, which
+# require_excluded_installed proves after Docker. Reads files only; prints nothing for
+# any other name.
+excluded_installable() {
+  python3 - "$1" <<'PY'
+import ast, pathlib, re, sys
+name = sys.argv[1]
+if not re.fullmatch(r"plasticos_[a-z0-9_]+", name):
+    sys.exit(0)
+listed, inside = set(), False
+for line in pathlib.Path("config/odoo_module_order.yaml").read_text(encoding="utf-8").splitlines():
+    if re.match(r"^excluded_modules:\s*$", line):
+        inside = True
+        continue
+    if inside:
+        item = re.match(r"^\s+-\s+([a-z0-9_]+)", line)
+        if item:
+            listed.add(item.group(1))
+        elif line.strip() and not line.startswith((" ", "#")):
+            inside = False
+manifest = pathlib.Path(name) / "__manifest__.py"
+if name in listed and manifest.is_file():
+    if ast.literal_eval(manifest.read_text(encoding="utf-8")).get("installable", True):
+        print(name)
+PY
+}
+
 # The scope is checked before Docker: declared PlasticOS modules, or the roster.
+# An installable excluded module is admitted provisionally here and refused after
+# Docker unless the admitted fixture has it installed.
 test_scope() {
   local m modules=()
   TEST_SCOPE="$1"
@@ -1222,12 +1254,28 @@ test_scope() {
   [ -n "$TEST_ROSTER" ] || refuse "scripts/get_odoo_module_order.py declared no PlasticOS modules"
   read -r -a modules <<<"${TEST_SCOPE:-${TEST_ROSTER//,/ }}"
   TEST_TAGS=""
+  TEST_EXCLUDED=""
   for m in ${modules[@]+"${modules[@]}"}; do
-    [[ ",$TEST_ROSTER," == *",$m,"* ]] ||
-      refuse "'$m' is not a declared PlasticOS module (config/odoo_module_order.yaml); the fixture does not install it"
+    if [[ ",$TEST_ROSTER," != *",$m,"* ]]; then
+      [ "$(excluded_installable "$m")" = "$m" ] ||
+        refuse "'$m' is not a declared PlasticOS module (config/odoo_module_order.yaml); the fixture does not install it"
+      TEST_EXCLUDED="${TEST_EXCLUDED}${TEST_EXCLUDED:+ }$m"
+    fi
     TEST_TAGS="${TEST_TAGS}${TEST_TAGS:+,}/$m"
   done
   [ -n "$TEST_TAGS" ] || refuse "the test scope '$TEST_SCOPE' names no module"
+}
+
+# After assert_clone: each provisionally admitted excluded module must be installed
+# in the fixture. The admitted template refuses connections, so its state is read
+# from the verified clone, a copy of that template. Read only.
+require_excluded_installed() {
+  local target="$1" m state
+  for m in $TEST_EXCLUDED; do
+    state="$(psql_on "$target" "SELECT state FROM ir_module_module WHERE name = '$m'")"
+    [ "$state" = "installed" ] ||
+      refuse "'$m' is excluded from the roster and is not installed in the admitted fixture (state: ${state:-absent}); its tests cannot run here"
+  done
 }
 
 # A --test-enable run is the test runner. It accepts the Makefile test recipes'
@@ -1394,6 +1442,9 @@ main() {
       # or other run of it can start in between.
       lease "db:$target" exclusive
       assert_clone "$target"
+      if [ "$RUN_MODE" = "test" ]; then
+        require_excluded_installed "$target"
+      fi
       TEST_SOURCE="$(addon_source)"
       if [ "$RUN_MODE" != "test" ]; then
         ensure_clone_upgraded "$target"
