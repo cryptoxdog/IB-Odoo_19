@@ -1518,6 +1518,11 @@ class PlasticosLogisticsRequest(models.Model):
         """
         Load = self.env["plasticos.load"]
         batch = int(self.env.context.get("linda_load_sweep_batch") or LOAD_SWEEP_BATCH)
+        # Test seam (S6, C06-SCOPE-3): a test narrows the sweep to its own loads. Absent
+        # in production, where the domain is unchanged. Private method: not RPC-callable.
+        scope = self.env.context.get("linda_load_sweep_ids")
+        if scope is not None:
+            domain = [*domain, ("id", "in", [int(load_id) for load_id in scope])]
         params = self.env["ir.config_parameter"].sudo()  # sudo: the sweep cursor is a system parameter
         key = f"{LOAD_SWEEP_CURSOR}.{lane}"
         raw = params.get_param(key) or "0"

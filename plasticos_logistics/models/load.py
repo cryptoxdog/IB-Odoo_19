@@ -2098,16 +2098,18 @@ class PlasticosLoad(models.Model):
         threshold_hours = 4
         threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
 
-        unacknowledged = self.search(
-            [
-                ("dispatch_sent", "!=", False),
-                ("dispatch_sent", "<", threshold_dt),
-                ("dispatch_acknowledged", "=", False),
-                ("state", "in", ["dispatched", "scheduled"]),
-            ],
-            order="dispatch_sent asc",
-            limit=100,
-        )
+        domain = [
+            ("dispatch_sent", "!=", False),
+            ("dispatch_sent", "<", threshold_dt),
+            ("dispatch_acknowledged", "=", False),
+            ("state", "in", ["dispatched", "scheduled"]),
+        ]
+        # Test seam (S6, C06-SCOPE-3): the same context key narrows the Linda sweep.
+        # Absent in production, where the domain is unchanged.
+        scope = self.env.context.get("linda_load_sweep_ids")
+        if scope is not None:
+            domain.append(("id", "in", [int(load_id) for load_id in scope]))
+        unacknowledged = self.search(domain, order="dispatch_sent asc", limit=100)
         already_escalated = set()
         if unacknowledged:
             activities = self.env["mail.activity"].search(

@@ -1131,8 +1131,10 @@ class TestLindaFreightModels(PlasticosTestCase):
             load.action_schedule(pickup, pickup)
             load.action_dispatch()
             load.write({"dispatch_sent": sent_at})
-        self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
-        self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
+        # S6: scoped to this test's loads; other dispatched loads in the database are not its subject.
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=[aged.id, fresh.id])
+        cron._cron_check_dispatch_acknowledgments()
+        cron._cron_check_dispatch_acknowledgments()
         activities = self.env["mail.activity"].search(
             [
                 ("res_model", "=", "plasticos.load"),
@@ -1209,6 +1211,8 @@ class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
         super().setUp()
         self.env["ir.config_parameter"].sudo().set_param("plasticos_logistics.linda_mode", "live")
         self.sent_at = fields.Datetime.now().replace(microsecond=0) - timedelta(days=1)
+        # S6: the sweeps see only this test's loads, whatever dispatched loads the database holds.
+        self.own_loads = self.env["plasticos.load"]
 
     def _dispatched(self):
         load = self.env["plasticos.load"].create(
@@ -1227,12 +1231,14 @@ class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
         load.action_schedule(self.sent_at, self.sent_at)
         load.action_dispatch()
         load.write({"dispatch_sent": self.sent_at})
+        self.own_loads |= load
         return load
 
     def _run_at(self, offset):
         moment = self.sent_at + offset
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=self.own_loads.ids)
         with patch.object(fields.Datetime, "now", lambda *args, **kwargs: moment):
-            self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
+            cron._cron_check_dispatch_acknowledgments()
 
     def _obligations(self, load, purpose=None):
         domain = [("source_kind", "=", "load"), ("source_res_id", "=", load.id)]
@@ -1280,7 +1286,9 @@ class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
         """Codex 4545894607: a bounded page must not revisit the same oldest loads forever."""
         loads = [self._dispatched() for _index in range(3)]
         moment = self.sent_at + timedelta(hours=2, minutes=5)
-        cron = self.env["plasticos.load"].with_context(linda_load_sweep_batch=2)
+        cron = self.env["plasticos.load"].with_context(
+            linda_load_sweep_batch=2, linda_load_sweep_ids=self.own_loads.ids
+        )
         with patch.object(fields.Datetime, "now", lambda *args, **kwargs: moment):
             cron._cron_check_dispatch_acknowledgments()
             first = [bool(self._obligations(load, "load_ack_notice")) for load in loads]
@@ -1377,3 +1385,14 @@ class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
         chase.invalidate_recordset()
         self.assertEqual((chase.state, chase.state_reason), ("canceled", "evidence_received"))
         self.assertEqual((load.scale_ticket_reminder_sent, load.scale_ticket_escalated), reminder_flags)
+
+    def test_claim_of_no_mail_is_a_skip_not_a_sql_error(self):
+        """S6 (C06-SCOPE-3 a): an empty mail record claims nothing and sends nothing."""
+        Mail = self.env["mail.mail"]
+        with self.env.cr.savepoint():
+            self.assertEqual(Mail._linda_claim_outgoing(Mail.browse()), "skip")
+        pair = Mail.create(
+            [{"subject": "S6 one", "body_html": "<p>1</p>"}, {"subject": "S6 two", "body_html": "<p>2</p>"}]
+        )
+        with self.assertRaises(ValueError):
+            Mail._linda_claim_outgoing(pair)

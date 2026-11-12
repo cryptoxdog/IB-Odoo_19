@@ -104,6 +104,11 @@ class MailMailInherit(models.Model):
         two queue workers from both passing ``_guard_mails_before_send`` and
         both reaching SMTP.
         """
+        if not mail:
+            # No mail: nothing to hand to SMTP and nothing to claim. Binding an empty
+            # record's id would compare the integer column with false (S6 finding).
+            return "skip"
+        mail.ensure_one()
         requests = self.env[LOGISTICS_REQUEST].sudo()  # sudo: queue claim locks the Linda request row
         if requests._table != REQUEST_TABLE:
             raise RuntimeError("Linda request storage name drifted")

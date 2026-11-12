@@ -167,6 +167,10 @@ class TestLoadCardinality(TransactionCase):
         load = self.env["plasticos.load"].create({"sale_order_id": order.id})
         cr = self.env.cr
         cr.execute("ALTER TABLE plasticos_transaction ADD COLUMN IF NOT EXISTS load_id integer")
+        # S6: a database that already ran 14.6 keeps the old column with values for rows this
+        # test does not own. The replay reads the whole table, so the legacy input is limited
+        # to the rows this test writes below (rolled back with the test).
+        cr.execute("UPDATE plasticos_transaction SET load_id = NULL WHERE load_id IS NOT NULL")
         cr.execute(
             """
             UPDATE plasticos_transaction AS t
@@ -543,6 +547,10 @@ class TestLoadCardinality(TransactionCase):
         load = self.env["plasticos.load"].create({"sale_order_id": order.id})
         cr = self.env.cr
         cr.execute("ALTER TABLE plasticos_transaction ADD COLUMN IF NOT EXISTS load_id integer")
+        # S6: a database that already ran 14.6 keeps the old column with values for rows this
+        # test does not own. The replay reads the whole table, so the legacy input is limited
+        # to the rows this test writes below (rolled back with the test).
+        cr.execute("UPDATE plasticos_transaction SET load_id = NULL WHERE load_id IS NOT NULL")
         cr.execute("UPDATE plasticos_load SET transaction_id = NULL WHERE id = %s", (load.id,))
         cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (load.id, tx.id))
         post.migrate(cr, "19.0.1.14.5")
@@ -1133,7 +1141,10 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         with patch.object(
             PlasticosLoad, "action_send_dispatch_direct", side_effect=AssertionError("blind resend")
         ) as resend:
-            self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
+            # S6: scoped to this test's load; other dispatched loads in the database are not its subject.
+            self.env["plasticos.load"].with_context(
+                linda_load_sweep_ids=load.ids
+            )._cron_check_dispatch_acknowledgments()
         resend.assert_not_called()
         summary = f"URGENT: No carrier acknowledgment for {load.name}"
         self.assertEqual(
