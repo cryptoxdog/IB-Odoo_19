@@ -12,10 +12,11 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessDenied, AccessError, UserError
 from odoo.modules.module import get_module_path
 from odoo.tests.common import tagged
 from odoo.tools import mute_logger
+from odoo.tools.convert import convert_file
 
 from . import test_s9_logistics_features as s9
 from .test_s9_logistics_features import FACT, JOURNEY, PROPOSAL
@@ -82,6 +83,37 @@ class TestLindaIdentity(_LindaCase):
         self.assertFalse(explicit, "Linda holds no group besides Logistics (and the internal user type)")
         self.env.cr.execute("SELECT password FROM res_users WHERE id = %s", [linda.id])
         self.assertFalse(self.env.cr.fetchone()[0], "Linda has no password and cannot log in")
+
+    def test_linda_is_updatable_and_her_grant_survives_upgrades(self):
+        """Runtime B1: the Linda xmlid is not noupdate, so the security_base grant applies on upgrade too.
+
+        A Logistics-only reload never removes the grant (it only adds), and reloading the
+        security_base grant restores Logistics after it was taken away.
+        """
+        data = self.env["ir.model.data"].search([("module", "=", "plasticos_logistics"), ("name", "=", "user_linda")])
+        self.assertEqual((len(data), data.noupdate), (1, False))
+        logistics = self.env.ref(LOGISTICS)
+        convert_file(self.env, "plasticos_logistics", "data/linda_user.xml", {}, mode="update", noupdate=False)
+        self.linda.invalidate_recordset()
+        self.assertTrue(self.linda.has_group(LOGISTICS), "a Logistics-only upgrade keeps the grant")
+        self.linda.write({"group_ids": [(3, logistics.id)]})
+        self.assertFalse(self.linda.has_group(LOGISTICS))
+        convert_file(
+            self.env, "plasticos_security_base", "security/record_rules.xml", {}, mode="update", noupdate=False
+        )
+        self.linda.invalidate_recordset()
+        self.assertTrue(self.linda.has_group(LOGISTICS), "a security_base upgrade grants Logistics again")
+
+    def test_linda_cannot_authenticate(self):
+        """No password, no API key: no credential of Linda's is accepted."""
+        for password in ("", "plasticos_linda", "linda"):
+            with self.subTest(password=password), self.assertRaises(AccessDenied):
+                self.linda.with_user(self.linda)._check_credentials(
+                    {"login": "plasticos_linda", "password": password, "type": "password"}, {"interactive": True}
+                )
+        self.assertFalse(self.env["res.users.apikeys"].sudo().search_count([("user_id", "=", self.linda.id)]))
+        if "oauth_uid" in self.linda._fields:
+            self.assertFalse(self.linda.oauth_uid)
 
     def test_no_cron_runs_as_linda(self):
         crons = self.env["ir.cron"].with_context(active_test=False).search([("user_id", "=", self.linda.id)])

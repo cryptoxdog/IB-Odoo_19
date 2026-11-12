@@ -27,7 +27,7 @@ Both reruns change nothing (`TestLindaSweepCursor::test_migration_moves_a_stored
 
 ## Linda (OP11-E02, C12-SCOPE-2)
 
-`plasticos_logistics.user_linda` (`data/linda_user.xml`, `noupdate`): active, internal, no password, main company, `base.group_user` plus `plasticos_security_base.group_logistics` and nothing else. No `ir.cron` `user_id` was changed.
+`plasticos_logistics.user_linda` (`data/linda_user.xml`, deliberately not `noupdate`): active, internal, no password and no API key, main company, `base.group_user` plus `plasticos_security_base.group_logistics` and nothing else. The Logistics grant is `(4, group_logistics)` in `plasticos_security_base/security/record_rules.xml`; the record is updatable so the grant applies on upgrade as well as install (coordinator runtime B1 at `0beb2eb4`: under `noupdate` the grant was skipped on upgrade and Linda had no Logistics rights), and the Logistics file only ever adds groups, so a Logistics-only upgrade keeps the grant. No `ir.cron` `user_id` was changed.
 
 A gated command run by Linda returns `{"status": "pending", "approval_id": …, "reason": …}` and files one `plasticos.linda.approval` row (idempotent per company, command and operation key while pending) in these edge cases:
 

@@ -2,18 +2,20 @@
 <odoo>
     <!-- S11 (OP11-E02, coordinator C12-SCOPE-2): Linda, the automated logistics agent.
          A service user that cannot log in (no password). Her edge-case commands are
-         held for an Operations Manager (plasticos.linda.approval). plasticos_security_base,
-         which owns the business groups and loads after this module, grants her
-         Logistics and nothing else. No cron runs as her. -->
-    <data noupdate="1">
-        <record id="user_linda" model="res.users">
-            <field name="name">Linda</field>
-            <field name="login">plasticos_linda</field>
-            <field name="active" eval="True"/>
-            <field name="share" eval="False"/>
-            <field name="company_id" ref="base.main_company"/>
-            <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
-            <field name="group_ids" eval="[(6, 0, [ref('base.group_user')])]"/>
-        </record>
-    </data>
+         held for an Operations Manager (plasticos.linda.approval).
+
+         Not noupdate: plasticos_security_base, which owns the business groups and loads
+         after this module, grants her Logistics with (4, group_logistics) on every install
+         and upgrade, and Odoo skips writes to a noupdate xmlid outside install mode.
+         group_ids only ever adds (4, ...) here, so a Logistics-only upgrade never removes
+         the grant. No cron runs as her. -->
+    <record id="user_linda" model="res.users">
+        <field name="name">Linda</field>
+        <field name="login">plasticos_linda</field>
+        <field name="active" eval="True"/>
+        <field name="share" eval="False"/>
+        <field name="company_id" ref="base.main_company"/>
+        <field name="company_ids" eval="[(4, ref('base.main_company'))]"/>
+        <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
 </odoo>

@@ -38,3 +38,5 @@ OP11-E02 static witness,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_
 OP11-E02 static witness,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaGateReach::test_the_scan_detects_a_planted_path,PENDING_COORDINATOR
 OP11-E02 evidence_unverified,BRS-EXP-08-R007,positive+negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRecords::test_unreadable_evidence_is_held_without_disclosure,PENDING_COORDINATOR
 OP11-E02 idempotent filing,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRecords::test_concurrent_filing_answers_the_winning_approval,PENDING_COORDINATOR
+OP11-E02 identity,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaIdentity::test_linda_is_updatable_and_her_grant_survives_upgrades,PENDING_COORDINATOR
+OP11-E02 identity,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaIdentity::test_linda_cannot_authenticate,PENDING_COORDINATOR
