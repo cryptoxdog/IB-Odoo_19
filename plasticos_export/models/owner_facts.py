@@ -27,7 +27,7 @@ writes.
 from odoo import api, fields, models
 from odoo.exceptions import AccessError
 
-from .booking import EXPORT_BOOKING, EXPORT_CARGO_LINK, EXPORT_SLOT, guarded
+from .booking import EXPORT_CARGO_LINK, guarded
 from .document_inherit import BOOKING_CONFIRMATION, LOADING_PHOTOS, TERMINAL_INGATE_RECEIPT, VERIFIED_GROSS_MASS
 
 PLASTICOS_DOCUMENT = "plasticos.document"
@@ -92,8 +92,8 @@ def evidence_verdict(env, subject, kind):
     except AccessError:
         return RESTRICTED
     if not row:
-        # sudo: counts rows hidden from this user only to label them restricted; nothing of them is shown
-        if Document.sudo().search_count(domain, limit=1):
+        hidden = Document.sudo().search_count(domain, limit=1)  # sudo: count only, to label hidden rows restricted
+        if hidden:
             return RESTRICTED
         return MISSING_EVIDENCE
     try:
@@ -126,7 +126,7 @@ def package_lines(packages, unit):
 
 
 class PlasticosExportCargoLinkOwnerFacts(models.Model):
-    _inherit = EXPORT_CARGO_LINK
+    _inherit = "plasticos.export.booking.cargo.link"
 
     commercial_trade_label = fields.Selection(
         COMMERCIAL_TRADE_LABELS,
@@ -297,7 +297,7 @@ class PlasticosExportCargoLinkOwnerFacts(models.Model):
 
 
 class PlasticosExportSlotOwnerFacts(models.Model):
-    _inherit = EXPORT_SLOT
+    _inherit = "plasticos.export.booking.slot"
 
     owner_package_summary = fields.Text(
         compute="_compute_owner_package_summary", string="Packages (Stock)", compute_sudo=False
@@ -360,7 +360,7 @@ class PlasticosExportSlotOwnerFacts(models.Model):
 
 
 class PlasticosExportBookingOwnerFacts(models.Model):
-    _inherit = EXPORT_BOOKING
+    _inherit = "plasticos.export.booking"
 
     owner_booking_confirmation_verdict = fields.Char(
         compute="_compute_owner_booking_confirmation_verdict",

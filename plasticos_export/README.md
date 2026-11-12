@@ -22,6 +22,8 @@ models_owned:
   - plasticos.export.booking.slot
   - plasticos.export.booking.cargo.link
   - plasticos.export.booking.revision.accept
+  - plasticos.export.booking.manual.candidate
+  - plasticos.export.booking.manual.candidate.line
 models_extended:
   - plasticos.document
   - plasticos.load
@@ -60,6 +62,20 @@ Downstream extensions, by ordinary `_inherit` only:
 
 Data and UI: least-privilege ACL (Logistics and Operations Manager read/write/create, Sales Rep read, nobody unlinks), global company record rules on all four models, a cargo-link rule that limits a Sales Rep to links on sale orders they own, booking/allocation/shipment views, a deadline calendar, six native reports (Booking Space Availability, Booking Allocation / Container Manifest, Open Supplier PO / Customer SO Fulfillment, Container Shipment Register, Cutoff & Booking Exceptions, Missing Export Documents), the Export menu, two QWeb reports (booking summary, container manifest) and a booking-only Linda inbound reply trigger (`data/linda_booking_inbound.xml`). No controller, cron or external effect.
 
+`19.0.1.2.0` (slice S10, contract `PLASTICOS-EXPORT-C11-S10-EXPORT-FEATURES`) adds displays and one input. Export still stores no owner fact:
+
+- Owner facts (`BRS-EXP-01-R002`, `BRS-EXP-07-R006`). The cargo link, slot and booking forms show the facts below. Each one is computed live as the acting user and is never stored:
+  - the Documents verdict of each Export obligation, through `get_scoped_evidence_verdict`;
+  - the Logistics load status;
+  - the native stock move line and its package's shipping weight and package-type tare;
+  - posted customer invoices and vendor bills;
+  - the slot's package totals, labelled "not a certified VGM", and the Documents VGM verdict.
+
+  A fact the user may not read shows a restricted marker, never a blank or a zero (`BRS-EXP-14-R022`). No owner records container tare, and the slot says so.
+- Commercial trade label (`BRS-EXP-02-R006`). A cargo link stores the quoted FOB, FAS or CNF usage and its quoted wording. It is edited only through the Set Trade Label dialog and audited on the booking. The order Incoterms are shown beside it and never written.
+- Record Booking Candidate (`BRS-EXP-09-R001` manual fallback). This booking button opens `plasticos.export.booking.manual.candidate`. The screen hands the typed terms to `record_booking_revision_candidate` as the acting user, so every command guard applies. It stores no file and makes nothing current. Native Documents AI is not activated.
+- Legacy booking report (`BRS-EXP-14-R011`). `_legacy_booking_report_groups()` lays live cargo links out under the 43 legacy headings, grouped by booking. Every cell is a value or an explicit Missing, Unknown, Not recorded, Not mapped, Phase 2 or Restricted marker. It only reads. `tests/data/` holds a synthetic 43-heading workbook, its generator and the heading inventory.
+
 Quantities use native `uom.uom` records. Pounds are `uom.product_uom_lb` (shipped inactive by Odoo 19 `uom`; Export references it and creates no unit). Odoo 19 has no US short ton record; `uom.product_uom_ton` is the metric tonne.
 
 ## Installation
@@ -79,7 +95,7 @@ The campaign pack stays the provenance. Its private operator originals (`EXPORT_
 ## Tests
 
 - Pure Python: `tests/contracts/test_export_brs_registry.py` and the Export checks in `tests/test_repo_dependency_integrity.py`.
-- Odoo runtime, in `plasticos_export/tests/`: `test_install.py` (install witness), `test_booking_and_revision.py` (E1/E2), `test_booking_allocation.py` (E3/E4, PHASE1 gate case, release hold, live PO constraints), `test_document_obligations.py` (E1/E2 obligations per operation kind), `test_export_owner_handoff.py` (Linda, E3, E6, reply trigger, no shadow writer), `test_views_and_reports.py` (six reports, QWeb) and `test_multicompany_permissions.py` (company access). Each test names the BRS rules it witnesses.
+- Odoo runtime, in `plasticos_export/tests/`: `test_install.py` (install witness), `test_booking_and_revision.py` (E1/E2), `test_booking_allocation.py` (E3/E4, PHASE1 gate case, release hold, live PO constraints), `test_document_obligations.py` (E1/E2 obligations per operation kind), `test_export_owner_handoff.py` (Linda, E3, E6, reply trigger, no shadow writer), `test_views_and_reports.py` (six reports, QWeb), `test_multicompany_permissions.py` (company access), `test_owner_facts.py` (owner facts, trade label), `test_manual_booking_candidate.py` (manual booking entry) and `test_legacy_booking_report.py` (43-heading conformance). Each test names the BRS rules it witnesses.
 
 ## Read next
 

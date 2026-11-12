@@ -20,7 +20,6 @@ from collections import OrderedDict
 
 from odoo import api, models
 
-from .booking import EXPORT_CARGO_LINK
 from .owner_facts import NOT_RECORDED, RESTRICTED, VERIFIED_GROSS_MASS, evidence_verdict, readable
 
 MISSING = "Missing"
@@ -96,7 +95,7 @@ def _time(local, tz_name, precision):
 
 
 class PlasticosExportCargoLinkLegacyReport(models.Model):
-    _inherit = EXPORT_CARGO_LINK
+    _inherit = "plasticos.export.booking.cargo.link"
 
     @api.model
     def _legacy_booking_report_groups(self, domain=None):
