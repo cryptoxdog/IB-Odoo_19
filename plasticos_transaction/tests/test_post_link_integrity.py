@@ -1,9 +1,13 @@
 """Posting gate and transaction link integrity on account.move.action_post.
 
 C1 (F-03): a vendor bill that resolves to a transaction passes the document check.
-C2 (F-08): order lookups are company-scoped; an ambiguous name creates no link.
+C2 (F-08): order lookups are company-scoped and never last-wins.
 C3 (F-04): every refusal is raised before the native post; link bookkeeping
 never rolls a posted move back and never replaces a customer invoice.
+C5: an ambiguous origin is refused; an origin that names nothing posts unlinked.
+C7: purchase order confirmation uses the same company-scoped lookup.
+C8: the link write is system bookkeeping; the gates run as the posting user.
+C9: a transaction number or delivery order number resolves; carrier bills are freight.
 """
 
 from unittest.mock import patch
@@ -107,51 +111,59 @@ class TestPostLinkIntegrity(_plasticos_test_case()):
         no_match = self._move("in_invoice", "NO-SUCH-ORDER-C1")
         no_transaction = self._move("in_invoice", unlinked_purchase.name)
         no_origin = self._move("in_invoice")
+        credit = self._move("in_refund", "NO-SUCH-ORDER-C1")
         with self._hook_must_not_run():
-            (no_match | no_transaction | no_origin).action_post()
-        for bill in no_match | no_transaction | no_origin:
+            (no_match | no_transaction | no_origin | credit).action_post()
+        for bill in no_match | no_transaction | no_origin | credit:
             self.assertEqual(bill.state, "posted")
             self.assertFalse(self.env["account.move"]._find_linked_transactions(bill.id))
         self.assertFalse(tx.vendor_bill_ids)
 
-    # ── C2: company scope and ambiguity ──────────────────────────────
+    # ── C2 / C5: company scope; an ambiguous origin is refused ───────
 
-    def test_duplicate_sale_name_is_ambiguous_and_never_last_wins(self):
+    def test_duplicate_sale_name_is_refused_and_never_last_wins(self):
         first, second = self._tx(), self._tx()
         sale = self._sale(first)
         self._sale(second, name=sale.name)
         invoice = self._move("out_invoice", sale.name)
         bill = self._move("in_invoice", sale.name)
-        with self._hook_must_not_run():
-            (invoice | bill).action_post()
-        self.assertEqual(invoice.state, "posted")
-        self.assertEqual(bill.state, "posted")
+        credit = self._move("in_refund", sale.name)
+        for move in (invoice, bill, credit):
+            with self._hook_must_not_run(), self.assertRaisesRegex(UserError, "more than one sale order is named"):
+                move.action_post()
+            self.assertEqual(move.state, "draft")
         self.assertFalse(first.customer_invoice_id | second.customer_invoice_id)
         self.assertFalse(first.vendor_bill_ids | second.vendor_bill_ids)
-        self.assertIn("more than one sale order is named", self._notes(invoice))
-        self.assertIn("more than one sale order is named", self._notes(bill))
 
-    def test_duplicate_purchase_name_is_ambiguous(self):
+    def test_duplicate_purchase_name_is_refused(self):
         first, second = self._tx(), self._tx()
         purchase = self._purchase(first)
         self._purchase(second, name=purchase.name)
         bill = self._move("in_invoice", purchase.name)
-        with self._hook_must_not_run():
+        with self._hook_must_not_run(), self.assertRaisesRegex(UserError, "more than one purchase order is named"):
             bill.action_post()
-        self.assertEqual(bill.state, "posted")
+        self.assertEqual(bill.state, "draft")
         self.assertFalse(first.vendor_bill_ids | second.vendor_bill_ids)
-        self.assertIn("more than one purchase order is named", self._notes(bill))
 
-    def test_purchase_held_by_two_transactions_is_ambiguous(self):
+    def test_purchase_held_by_two_transactions_is_refused(self):
         first, second = self._tx(), self._tx()
         purchase = self._purchase(first)
         second.purchase_order_ids = [(4, purchase.id)]
         bill = self._move("in_invoice", purchase.name)
-        with self._hook_must_not_run():
+        with self._hook_must_not_run(), self.assertRaisesRegex(UserError, "belongs to more than one transaction"):
             bill.action_post()
-        self.assertEqual(bill.state, "posted")
+        self.assertEqual(bill.state, "draft")
         self.assertFalse(first.vendor_bill_ids | second.vendor_bill_ids)
-        self.assertIn("belongs to more than one transaction", self._notes(bill))
+
+    def test_one_ambiguous_move_refuses_the_whole_batch_before_posting(self):
+        first, second = self._tx(), self._tx()
+        sale = self._sale(first)
+        self._sale(second, name=sale.name)
+        clean = self._move("in_invoice")
+        ambiguous = self._move("in_invoice", sale.name)
+        with self._documents(False), self.assertRaisesRegex(UserError, "is ambiguous"):
+            (clean | ambiguous).action_post()
+        self.assertEqual((clean | ambiguous).mapped("state"), ["draft", "draft"])
 
     def test_order_of_another_company_is_not_resolved(self):
         other_company = self.env["res.company"].create({"name": "Post Link Other Company"})
@@ -244,3 +256,163 @@ class TestPostLinkIntegrity(_plasticos_test_case()):
         self.assertEqual(bill.state, "posted")
         self.assertIn(bill, tx.freight_bill_ids)
         self.assertNotIn(bill, tx.vendor_bill_ids)
+
+    # ── C8: the link is system bookkeeping; gates run as the user ────
+
+    def _accountant(self):
+        return self.env["res.users"].create(
+            {
+                "name": "Post Link Accountant",
+                "login": "post_link_accountant",
+                "group_ids": [
+                    (6, 0, [self.env.ref("base.group_user").id, self.env.ref("account.group_account_invoice").id])
+                ],
+            }
+        )
+
+    def test_accountant_without_manager_group_posts_and_the_link_is_written(self):
+        accountant = self._accountant()
+        self.assertFalse(accountant.has_group("plasticos_transaction.group_plasticos_manager"))
+        tx = self._tx()
+        self.assertFalse(tx.with_user(accountant).has_access("write"))
+        sale = self._sale(tx)
+        invoice = self._move("out_invoice", sale.name)
+        bill = self._move("in_invoice", sale.name)
+        with self._documents(False):
+            (invoice | bill).with_user(accountant).action_post()
+        self.assertEqual((invoice | bill).mapped("state"), ["posted", "posted"])
+        self.assertEqual(tx.customer_invoice_id, invoice)
+        self.assertIn(bill, tx.vendor_bill_ids)
+
+    def test_gates_still_apply_to_the_accountant(self):
+        accountant = self._accountant()
+        tx = self._tx()
+        sale = self._sale(tx)
+        bill = self._move("in_invoice", sale.name)
+        with self._documents(True), self.assertRaisesRegex(UserError, "Missing required documents for vendor bill"):
+            bill.with_user(accountant).action_post()
+        self.assertEqual(bill.state, "draft")
+        self.assertFalse(tx.vendor_bill_ids)
+        tx._apply_close(tx)
+        with self._documents(False), self.assertRaisesRegex(UserError, "cannot be attached to a closed trade"):
+            bill.with_user(accountant).action_post()
+        self.assertEqual(bill.state, "draft")
+        self.assertFalse(tx.vendor_bill_ids)
+
+    # ── C9: transaction number, delivery order number, carrier role ──
+
+    def _carrier(self):
+        return self.env["res.partner"].create({"name": "Post Link Carrier", "is_company": True, "supplier_rank": 1})
+
+    def test_transaction_number_origin_resolves_invoice_and_bill(self):
+        tx = self._tx()
+        invoice = self._move("out_invoice", tx.name)
+        bill = self._move("in_invoice", tx.name)
+        with self._documents(True), self.assertRaisesRegex(UserError, "Missing required documents for vendor bill"):
+            bill.action_post()
+        self.assertEqual(bill.state, "draft")
+        with self._documents(False):
+            (invoice | bill).action_post()
+        self.assertEqual(tx.customer_invoice_id, invoice)
+        self.assertIn(bill, tx.vendor_bill_ids)
+        self.assertFalse(tx.freight_bill_ids)
+
+    def test_carrier_bill_is_linked_as_freight_and_supplier_bill_as_vendor(self):
+        carrier = self._carrier()
+        tx = self._tx()
+        tx.carrier_id = carrier
+        freight = self._move("in_invoice", tx.name)
+        freight.partner_id = carrier
+        supplier_bill = self._move("in_invoice", tx.name)
+        with self._documents(False):
+            (freight | supplier_bill).action_post()
+        self.assertEqual(tx.freight_bill_ids, freight)
+        self.assertEqual(tx.vendor_bill_ids, supplier_bill)
+
+    def test_carrier_that_is_also_the_supplier_stays_a_vendor_bill(self):
+        tx = self._tx()
+        tx.carrier_id = self.partner
+        bill = self._move("in_invoice", tx.name)
+        with self._documents(False):
+            bill.action_post()
+        self.assertEqual(tx.vendor_bill_ids, bill)
+        self.assertFalse(tx.freight_bill_ids)
+
+    def _delivery_order(self):
+        warehouse = self.env["stock.warehouse"].search([("company_id", "=", self.env.company.id)], limit=1)
+        return self.env["stock.picking"].create(
+            {"picking_type_id": warehouse.out_type_id.id, "partner_id": self.partner.id}
+        )
+
+    def test_delivery_order_number_resolves_a_carrier_bill(self):
+        carrier = self._carrier()
+        tx = self._tx()
+        picking = self._delivery_order()
+        tx.write({"carrier_id": carrier.id, "delivery_order_id": picking.id})
+        self.assertEqual(tx.do_number, picking.name)
+        bill = self._move("in_invoice", picking.name)
+        bill.partner_id = carrier
+        with self._documents(False):
+            bill.action_post()
+        self.assertEqual(tx.freight_bill_ids, bill)
+        # A customer invoice is never resolved by a delivery order number.
+        invoice = self._move("out_invoice", picking.name)
+        with self._hook_must_not_run():
+            invoice.action_post()
+        self.assertFalse(tx.customer_invoice_id)
+
+    def test_delivery_order_shared_by_two_transactions_is_refused(self):
+        first, second = self._tx(), self._tx()
+        picking = self._delivery_order()
+        (first | second).write({"delivery_order_id": picking.id})
+        bill = self._move("in_invoice", picking.name)
+        with self._hook_must_not_run(), self.assertRaisesRegex(UserError, "leads to more than one transaction"):
+            bill.action_post()
+        self.assertEqual(bill.state, "draft")
+
+    def test_references_to_different_transactions_are_refused(self):
+        by_sale, by_number = self._tx(), self._tx()
+        self._sale(by_sale, name=by_number.name)
+        bill = self._move("in_invoice", by_number.name)
+        with self._hook_must_not_run(), self.assertRaisesRegex(UserError, "leads to more than one transaction"):
+            bill.action_post()
+        self.assertEqual(bill.state, "draft")
+
+    def test_vendor_credit_resolves_gates_and_links(self):
+        tx = self._tx()
+        credit = self._move("in_refund", self._sale(tx).name)
+        with self._documents(True), self.assertRaisesRegex(UserError, "Missing required documents for vendor bill"):
+            credit.action_post()
+        self.assertEqual(credit.state, "draft")
+        with self._documents(False):
+            credit.action_post()
+        self.assertEqual(credit.state, "posted")
+        self.assertIn(credit, tx.vendor_bill_ids)
+
+    # ── C7: purchase order confirmation ──────────────────────────────
+
+    def test_purchase_confirm_links_the_one_sale_order_transaction(self):
+        tx = self._tx()
+        sale = self._sale(tx)
+        purchase = self._purchase(origin=sale.name)
+        purchase.button_confirm()
+        self.assertIn(purchase, tx.purchase_order_ids)
+
+    def test_purchase_confirm_refuses_a_duplicate_sale_name(self):
+        first, second = self._tx(), self._tx()
+        sale = self._sale(first)
+        self._sale(second, name=sale.name)
+        purchase = self._purchase(origin=sale.name)
+        with self.assertRaisesRegex(UserError, "more than one sale order is named"):
+            purchase.button_confirm()
+        self.assertEqual(purchase.state, "draft")
+        self.assertNotIn(purchase, first.purchase_order_ids | second.purchase_order_ids)
+
+    def test_purchase_confirm_ignores_a_sale_order_of_another_company(self):
+        other_company = self.env["res.company"].create({"name": "Post Link Purchase Company"})
+        self.env.user.company_ids = [(4, other_company.id)]
+        foreign_tx = self._tx()
+        foreign_sale = self._sale(foreign_tx, company_id=other_company.id)
+        purchase = self._purchase(origin=foreign_sale.name)
+        purchase.button_confirm()
+        self.assertNotIn(purchase, foreign_tx.purchase_order_ids)
