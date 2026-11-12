@@ -1643,3 +1643,130 @@ def test_migrate_accepts_the_full_revision_as_acknowledgement_and_logs_it(tmp_pa
     line = f"source bound by acknowledgement: TEST_ENV_MIGRATE_SOURCE_ACK={head}"
     assert line in result.stdout
     assert line in (tmp_path / "evidence" / "odoo_test_a.migrate.log").read_text()
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 (PR #480 independent review, N2/N5/N6): refusals of migrate and
+# restore that had no test, the module-order append-only rule, and an unsafe
+# restore marker.
+# ---------------------------------------------------------------------------
+def _migrate_with_clone(tmp_path: Path, clone_comment, **extra):
+    """A migration case whose clone marker is rewritten by clone_comment(old_fp)."""
+    root, head, case, old_fp = _migration_case(tmp_path)
+    case["databases"]["odoo_test_a"] = clone_comment(old_fp)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    case.update(extra)
+    return _migrate(tmp_path, root, head, case)
+
+
+@pytest.mark.parametrize(
+    ("clone_comment", "reason"),
+    [
+        (lambda fp: "", "is not a test-env clone"),
+        (
+            lambda fp: f"plasticos-test-env/2 role=clone owner=agenta parity=ce template={PINNED_FIXTURE} fp={fp}",
+            "was cloned with parity 'ce'",
+        ),
+        (
+            lambda fp: (
+                f"plasticos-test-env/2 role=clone owner=agenta parity=ee template=odoo_test_tpl_ee_{'0' * 16} fp={fp}"
+            ),
+            f"was not cloned from {PINNED_FIXTURE}",
+        ),
+        (
+            lambda fp: (
+                f"plasticos-test-env/2 role=clone owner=agenta parity=ee template={PINNED_FIXTURE} fp={fp} "
+                f"migrated_from={'c' * 64}"
+            ),
+            "was already migrated",
+        ),
+    ],
+)
+def test_migrate_refuses_a_database_that_is_not_an_unmigrated_clone_of_the_fixture(tmp_path, clone_comment, reason):
+    result = _migrate_with_clone(tmp_path, clone_comment)
+    assert result.returncode == 2, result.stdout
+    assert reason in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_refuses_when_a_non_roster_input_changed(tmp_path):
+    """The recorded inputs differ from the current ones by the image, not only the roster."""
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    evidence = tmp_path / "evidence" / f"{PINNED_FIXTURE}.inputs.txt"
+    lines = [
+        "image=content:" + "9" * 64 if line.startswith("image=") else line for line in evidence.read_text().splitlines()
+    ]
+    text = "\n".join(lines) + "\n"
+    evidence.write_text(text)
+    old_fp = _sha256(text)
+    case["databases"][PINNED_FIXTURE] = _ee_template(old_fp)
+    case["databases"]["odoo_test_a"] = (
+        f"plasticos-test-env/2 role=clone owner=agenta parity=ee template={PINNED_FIXTURE} fp={old_fp}"
+    )
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "inputs other than the module roster changed" in result.stderr
+    assert "image" in result.stderr
+
+
+def test_migrate_refuses_a_module_order_change_outside_the_appended_roster(tmp_path):
+    """N5: excluded_modules (or any key other than default_install_order) may not change."""
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    order = root / "config" / "odoo_module_order.yaml"
+    text = order.read_text()
+    assert "excluded_modules:\n" in text
+    order.write_text(text.replace("excluded_modules:\n", "excluded_modules:\n  - plasticos_s6_review_probe\n", 1))
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "changed beyond entries appended to default_install_order" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_refuses_a_template_name_before_docker(tmp_path):
+    result, calls = _run(tmp_path, "migrate", PINNED_FIXTURE, "0" * 40)
+    _assert_refused(result, calls, "template name")
+    assert calls == ""
+
+
+def _backup(tmp_path: Path, marker: str) -> dict:
+    import hashlib
+
+    base = _enterprise(tmp_path)
+    backup = tmp_path / "evidence" / "backup"
+    backup.mkdir(parents=True)
+    content = b"PK synthetic"
+    (backup / "odoo_test_a.zip").write_bytes(content)
+    (backup / "odoo_test_a.zip.json").write_text(
+        json.dumps({"sha256": hashlib.sha256(content).hexdigest(), "marker": marker})
+    )
+    return base
+
+
+def test_restore_refuses_a_backup_of_another_owners_clone(tmp_path):
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp).replace("owner=agenta", "owner=agentb")
+    meta.write_text(json.dumps(data))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2
+    assert "is not of a clone owned by agenta" in result.stderr
+    assert " load " not in (tmp_path / "stub.log").read_text()
+
+
+def test_restore_refuses_a_marker_that_is_not_sql_safe(tmp_path):
+    """N2: the recorded marker is written into COMMENT ... IS '...'; an unsafe token is refused."""
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp) + " note=x';DROP"
+    meta.write_text(json.dumps(data))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2
+    assert "carries an unsafe marker" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " load " not in calls and "COMMENT ON" not in calls

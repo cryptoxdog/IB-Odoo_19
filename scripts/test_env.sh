@@ -1448,6 +1448,46 @@ addon_digest_at() {
   rm -rf "$tmp"
 }
 
+# config/odoo_module_order.yaml at Git revision $1 against the working tree: every
+# top-level key holds the same list, except default_install_order, which may only gain
+# entries at its end. Comments are ignored. Prints nothing; exit status is the verdict.
+module_order_append_only() {
+  local rev="$1" old
+  old="$(git -C "$ROOT" show "$rev:config/odoo_module_order.yaml")" || return 1
+  python3 - "$ROOT/config/odoo_module_order.yaml" "$old" <<'PY'
+import re, sys
+
+def parse(text):
+    keys, key = {}, None
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].rstrip()
+        if not line:
+            continue
+        top = re.match(r"^([A-Za-z0-9_]+):\s*(.*)$", line)
+        if top:
+            key = top.group(1)
+            keys[key] = [top.group(2)] if top.group(2) else []
+            continue
+        item = re.match(r"^\s+-\s+(\S+)\s*$", line)
+        if item and key is not None:
+            keys[key].append(item.group(1))
+        elif key is not None:
+            keys[key].append(line.strip())
+    return keys
+
+new = parse(open(sys.argv[1], encoding="utf-8").read())
+old = parse(sys.argv[2])
+if set(new) != set(old):
+    sys.exit(1)
+for key, items in old.items():
+    if key == "default_install_order":
+        if new[key][: len(items)] != items:
+            sys.exit(1)
+    elif new[key] != items:
+        sys.exit(1)
+PY
+}
+
 # F8. `migrate <db> <from-rev>` upgrades an owned clone that was cloned in another
 # checkout of this repository (a clean Staging tree) to the source on disk, when the
 # two trees differ only by PlasticOS modules appended to the roster. Every other
@@ -1493,6 +1533,12 @@ migrate_clone() {
     "$old_modules",?*) added="${new_modules#"$old_modules",}" ;;
     *) refuse "the roster is not the recorded roster with modules appended" ;;
   esac
+  module_order_append_only "$rev" ||
+    refuse "config/odoo_module_order.yaml changed beyond entries appended to default_install_order since ${rev:0:12}"
+  local module
+  for module in ${added//,/ }; do
+    [[ "$module" =~ ^[a-z0-9_]+$ ]] || refuse "'$module' is not a module name"
+  done
   # The fingerprint leaves addon source out, so <from-rev> is bound to the source the
   # template installed: its recorded srcdigest, or, for a template admitted before that
   # was recorded, an explicit acknowledgement naming the full revision (PR #480 review).
@@ -1560,23 +1606,40 @@ backup_clone() {
 # zip must still hash to its recorded checksum. The target inherits the source
 # clone's lineage (template, fp, migration) and records what it was restored from.
 restore_clone() {
-  local source="$1" target="$2" zip meta sha marker staged
+  local source="$1" target="$2" zip meta sha marker staged copy token
   BACKUP_DIR="$EVIDENCE_DIR/backup"
   zip="$BACKUP_DIR/${source}.zip"
   meta="$zip.json"
   [ -f "$zip" ] && [ -f "$meta" ] || refuse "no backup of $source under ${BACKUP_DIR#"$ROOT"/}"
-  sha="$(sha256 <"$zip")"
-  [ "$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["sha256"])' "$meta")" = "$sha" ] ||
+  # Copy first, then verify the copy: what is loaded is exactly what was checked.
+  copy="$(mktemp "$BACKUP_DIR/.restore-${target}.XXXXXX")"
+  cp "$zip" "$copy"
+  sha="$(sha256 <"$copy")"
+  if [ "$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["sha256"])' "$meta")" != "$sha" ]; then
+    rm -f "$copy"
     refuse "the backup of $source no longer matches its recorded checksum"
+  fi
   marker="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["marker"])' "$meta")"
-  is_ours "$marker" && [ "$(field "$marker" role)" = "clone" ] && [ "$(field "$marker" owner)" = "$OWNER" ] ||
+  # The marker is written into a SQL literal below: every token must already be marker-safe.
+  for token in $marker; do
+    if [ "$(marker_safe "$token")" != "$token" ]; then
+      rm -f "$copy"
+      refuse "the backup of $source carries an unsafe marker"
+    fi
+  done
+  if ! { is_ours "$marker" && [ "$(field "$marker" role)" = "clone" ] && [ "$(field "$marker" owner)" = "$OWNER" ]; }; then
+    rm -f "$copy"
     refuse "the backup of $source is not of a clone owned by $OWNER"
+  fi
   assert_owned_or_absent "$target"
   drop_owned_clone "$target"
   clear_filestore "$target"
   staged="/var/lib/odoo/restore-${target}.zip"
-  compose run --rm --no-deps -T --entrypoint sh odoo -c "cat > '$staged'" <"$zip" ||
+  if ! compose run --rm --no-deps -T --entrypoint sh odoo -c "cat > '$staged'" <"$copy"; then
+    rm -f "$copy"
     die "could not stage the backup for $target"
+  fi
+  rm -f "$copy"
   # shellcheck disable=SC2046 # word-split the fixed manager arguments
   compose run --rm --no-deps -T odoo odoo $(db_manager_args "$(addons_path)") load "$target" "$staged" </dev/null ||
     die "odoo db load into $target failed"
@@ -1664,6 +1727,8 @@ main() {
     migrate)
       target="$2"
       lease "db:$target" exclusive
+      # The template the clone is checked against cannot be rebuilt or dropped mid-run.
+      lease "tpl:$TEMPLATE_DB" shared
       db_exists "$target" || refuse "$target does not exist"
       migrate_clone "$target" "${3:-}"
       ;;
