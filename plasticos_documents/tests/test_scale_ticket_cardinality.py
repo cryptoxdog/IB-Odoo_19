@@ -110,7 +110,7 @@ class TestScaleTicketCardinality(TransactionCase):
         )
         with (
             patch.object(type(model), "_record_scale_ticket_reminder", explode),
-            patch.object(type(model), "_get_logistics_manager", lambda self, group: manager),
+            patch.object(type(model), "_get_logistics_manager", lambda self, group, company=None: manager),
         ):
             result = model.cron_check_scale_tickets()
         self.assertGreaterEqual(result["failures"], 1)
