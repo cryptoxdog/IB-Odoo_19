@@ -257,19 +257,22 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
             for operation in ("write", "create", "unlink"):
                 with self.assertRaises(AccessError, msg=f"{record._name} {operation}"), self.env.cr.savepoint():
                     record.with_user(self.sales_reader).check_access(operation)
-        with self.assertRaises((AccessError, UserError)), self.env.cr.savepoint():
+        # The ACL check above is the access verdict. The Export models refuse a typed
+        # change before the ORM reaches that check, so each direct attempt raises the
+        # model's UserError; a booking field the model allows is refused by the ACL.
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             link.with_user(self.sales_reader).write({"state": "released"})
-        with self.assertRaises((AccessError, UserError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             link.with_user(self.sales_reader).write({"physical_source_ref": "typed in"})
-        with self.assertRaises((AccessError, UserError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             link.with_user(self.sales_reader).unlink()
-        with self.assertRaises((AccessError, UserError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             self.env[LINK].with_user(self.sales_reader).create(
                 {"slot_id": slot.id, "allocation_key": "typed", "sale_line_id": data["other_order"].order_line.id}
             )
-        with self.assertRaises((AccessError, UserError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             slot.with_user(self.sales_reader).write({"hold_reason": "typed in"})
-        with self.assertRaises((AccessError, UserError)), self.env.cr.savepoint():
+        with self.assertRaises(AccessError), self.env.cr.savepoint():
             booking.with_user(self.sales_reader).write({"carrier_id": self.line.id})
         reader_slot = slot.with_user(self.sales_reader)
         commit = reader_slot.action_commit_cargo(
@@ -386,13 +389,30 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
         self.assertIn(data["purchase"].name, text)
 
     def test_sales_rep_exports_the_allocation_list(self):
-        """Operator decision 2026-11-12, BRS-EXP-14-R012: exporting the list a Sales Rep sees does not raise."""
+        """Operator decision 2026-11-12, BRS-EXP-14-R012: exporting the list a Sales Rep sees does not raise.
+
+        Native Odoo keeps export behind ``base.group_allow_export``: a rep without it
+        gets the native refusal. A rep who holds it exports the rows they read, and
+        no source reference is traversed in their access.
+        """
         from lxml import etree
 
         data = self._shared_allocations()
-        Link = self.env[LINK].with_user(self.sales_reader)
+        exporter = new_test_user(
+            self.env,
+            login="s7_export_sales_exporter",
+            groups="base.group_user,base.group_allow_export,plasticos_security_base.group_sales_rep",
+            company_id=self.company.id,
+            company_ids=[(6, 0, [self.company.id])],
+        )
+        Link = self.env[LINK].with_user(exporter)
         arch = Link.get_views([(False, "list")])["views"]["list"]["arch"]
         names = [node.get("name") for node in etree.fromstring(arch).iter("field") if node.get("name") in Link._fields]
+        self.assertFalse(self.sales_reader.has_group("base.group_allow_export"))
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            self.env[LINK].with_user(self.sales_reader).search([("booking_id", "=", data["booking"].id)]).export_data(
+                names
+            )
         rows = Link.search([("booking_id", "=", data["booking"].id)]).export_data(names)["datas"]
         self.assertEqual(len(rows), 3)
         flat = {str(value) for row in rows for value in row}
