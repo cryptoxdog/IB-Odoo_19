@@ -18,11 +18,14 @@ from odoo.tests.common import tagged
 from odoo.tools import mute_logger
 from odoo.tools.convert import convert_file
 
+from . import test_linda_inbound as inbound_tests
+from . import test_linda_po_issuance as po_tests
 from . import test_s9_logistics_features as s9
 from .test_s9_logistics_features import FACT, JOURNEY, LOAD, PROPOSAL
 from .test_s11_fact_corrections import _S11Case
 
 APPROVAL = "plasticos.linda.approval"
+PAUSE_SUPPLIER = "sales@s11-pause.example"
 MANAGER = "plasticos_security_base.group_operations_manager"
 LOGISTICS = "plasticos_security_base.group_logistics"
 
@@ -783,6 +786,20 @@ class TestLindaRound2(_LindaCase):
             "correction",
             "correct_fact",
         )
+        candidate = self.env[PROPOSAL].browse(
+            self.env[PROPOSAL]
+            .with_user(self.logistics)
+            .action_propose_shipment_event(
+                {
+                    "event_kind": "loaded",
+                    "load_id": load.id,
+                    "occurred_at": self._ago(3),
+                    "evidence_attachment_id": ticket.id,
+                    "asserted_by": "carrier_issued",
+                },
+                "stop-candidate",
+            )["record_id"]
+        )
         self.linda.write({"active": False})
         approvals_before = self.env[APPROVAL].search_count([])
         facts_before = self.env[FACT].search_count([("journey_id", "=", journey.id)])
@@ -801,6 +818,7 @@ class TestLindaRound2(_LindaCase):
                 },
                 "s3",
             ),
+            "accept": lambda: candidate.with_user(self.linda).action_accept(),
             "confirm_ready": lambda: load.with_user(self.linda).action_confirm_ready(),
             "actual_event": lambda: load.with_user(self.linda).action_record_actual_event(
                 "pickup", self._ago(4), ticket
@@ -812,14 +830,132 @@ class TestLindaRound2(_LindaCase):
                 self.assertEqual(result["status"], "blocked")
                 self.assertIn("archived", result["reason"])
         requests = self.env["plasticos.logistics.request"].with_user(self.linda)
-        self.assertEqual(requests._linda_mode(), "off", "every mode-gated Linda path records nothing")
         sweep = requests.sudo()._run_load_obligations(loads=load)
         self.assertEqual(sweep[0]["status"], "blocked")
         with self.assertRaises(UserError):
             held.with_user(self.manager).action_approve()
         self.assertEqual(self.env[APPROVAL].search_count([]), approvals_before)
         self.assertEqual(self.env[FACT].search_count([("journey_id", "=", journey.id)]), facts_before)
-        self.assertFalse(self.env[PROPOSAL].search([("load_id", "=", load.id)]))
+        self.assertEqual(self.env[PROPOSAL].search([("load_id", "=", load.id)]), candidate)
+        self.assertEqual(candidate.state, "candidate", "an archived Linda cannot accept")
         load.invalidate_recordset()
         self.assertEqual((load.state, load.actual_pickup_at), ("awaiting_ready", False))
         self.assertEqual(held.state, "pending")
+
+
+@tagged("post_install", "-at_install", "plasticos", "logistics", "linda")
+class TestLindaPause(_LindaCase):
+    """C12 review round 3 (R7): archiving Linda pauses her; it never turns her mode off."""
+
+    # Borrowed through their modules, so those classes are not collected a second time here.
+    _mail_sink = po_tests.TestLindaPoIssuance._mail_sink
+    _process_queue = po_tests.TestLindaPoIssuance._process_queue
+    _raw = inbound_tests.TestLindaInbound._raw
+    _receive = inbound_tests.TestLindaInbound._receive
+    _reply_to = inbound_tests.TestLindaInbound._reply_to
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company.po_double_validation = "one_step"
+        cls.env["plasticos.automation.config"].get_config().sale_approval_threshold = 1000000.0
+        cls.mail_supplier = cls.env["res.partner"].create(
+            {"name": "S11 Pause Mill", "is_company": True, "supplier_rank": 1, "email": PAUSE_SUPPLIER}
+        )
+        cls.mail_buyer = cls.env["res.partner"].create(
+            {"name": "S11 Pause Buyer", "is_company": True, "customer_rank": 1, "email": "buy@s11-pause.example"}
+        )
+        cls.product = cls.env["product.product"].create(
+            {"name": "S11 PP Regrind", "type": "consu", "purchase_ok": True, "sale_ok": True}
+        )
+        cls.Request = cls.env["plasticos.logistics.request"]
+
+    def setUp(self):
+        super().setUp()
+        self.env["ir.config_parameter"].sudo().set_param("plasticos_logistics.linda_mode", "live")
+
+    def _po(self):
+        return self.env["purchase.order"].create(
+            {
+                "partner_id": self.mail_supplier.id,
+                "company_id": self.company.id,
+                "order_line": [(0, 0, {"product_id": self.product.id, "product_qty": 40000, "price_unit": 0.1})],
+            }
+        )
+
+    def _requests(self, po, purpose):
+        return self.Request.search([("purchase_order_id", "=", po.id), ("purpose", "=", purpose)], order="revision")
+
+    def _issued_po(self):
+        po = self._po()
+        po.button_confirm()
+        issue = self._requests(po, "po_issue")
+        with self._mail_sink():
+            self._process_queue(issue)
+        self.assertEqual(issue.state, "sent")
+        return po, issue
+
+    def _archive(self):
+        self.linda.write({"active": False})
+
+    def _chatter(self, order, text):
+        return order.message_ids.filtered(lambda message: text in (message.body or ""))
+
+    def test_archived_linda_keeps_issuance_and_the_legacy_sender_stays_silent(self):
+        self._archive()
+        self.assertEqual(self.Request._linda_mode(), "live", "archiving pauses Linda; it is not a mode change")
+        po = self._po()
+        po.button_confirm()
+        self.assertTrue(po._linda_owns_po_issuance())
+        self.assertFalse(self._chatter(po, "Supplier confirmation request sent"), "no legacy PO send")
+        issue = self._requests(po, "po_issue")
+        self.assertEqual((len(issue), issue.mail_id.state), (1, "outgoing"), "the obligation still queues")
+        so = self.env["sale.order"].create(
+            {
+                "partner_id": self.mail_buyer.id,
+                "company_id": self.company.id,
+                "order_line": [(0, 0, {"product_id": self.product.id, "product_uom_qty": 40000, "price_unit": 0.2})],
+            }
+        )
+        so.action_confirm()
+        self.assertTrue(so._linda_owns_so_issuance())
+        self.assertFalse(self._chatter(so, "Sales order confirmation sent to buyer"), "no legacy SO send")
+
+    def test_send_guard_withholds_while_archived_and_releases_on_return(self):
+        po = self._po()
+        po.button_confirm()
+        issue = self._requests(po, "po_issue")
+        self._archive()
+        withheld, sendable, _held = self.Request.sudo()._guard_mails_before_send(issue.mail_id)
+        self.assertEqual((withheld, sendable), (issue.mail_id, self.env["mail.mail"]))
+        with self._mail_sink() as sent:
+            self._process_queue(issue)
+        self.assertFalse(sent, "nothing leaves while Linda is archived")
+        self.assertEqual((issue.state, issue.mail_id.state), ("queued", "outgoing"), "withheld untouched")
+        self.linda.write({"active": True})
+        with self._mail_sink() as sent:
+            self._process_queue(issue)
+        self.assertEqual(issue.state, "sent")
+        self.assertEqual([message["To"] for message in sent], [PAUSE_SUPPLIER])
+
+    def test_cancellation_notice_queues_while_archived_and_is_sent_on_return(self):
+        po, _issue = self._issued_po()
+        self._archive()
+        po.button_cancel()
+        notice = self._requests(po, "po_cancel")
+        self.assertEqual((len(notice), notice.state, notice.mail_id.state), (1, "queued", "outgoing"))
+        with self._mail_sink() as sent:
+            self._process_queue(notice)
+        self.assertFalse(sent)
+        self.linda.write({"active": True})
+        with self._mail_sink() as sent:
+            self._process_queue(notice)
+        self.assertEqual(notice.state, "sent", "the supplier is told after Linda returns")
+        self.assertEqual([message["To"] for message in sent], [PAUSE_SUPPLIER])
+
+    def test_inbound_reply_is_recorded_while_archived(self):
+        _po, issue = self._issued_po()
+        self._archive()
+        message = self._reply_to(issue, "CONFIRMED")
+        response = self.env["plasticos.logistics.response"].search([("mail_message_id", "=", message.id)])
+        self.assertEqual((len(response), response.request_id), (1, issue), "a reply is evidence, recorded while paused")

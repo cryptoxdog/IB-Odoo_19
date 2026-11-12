@@ -506,9 +506,9 @@ class PlasticosLogisticsRequest(models.Model):
             .get_param(LINDA_MODE_PARAM, LINDA_MODE_OFF)
         )
         mode = (value or LINDA_MODE_OFF).strip().lower()
-        if linda_stopped(self.env):
-            # R3: an archived Linda is the operator's stop; every mode-gated Linda path records nothing.
-            return LINDA_MODE_OFF
+        # R7: archiving Linda pauses her; it never turns her mode off. She keeps owning issuance (the
+        # legacy sender never takes over), obligations still queue, replies are still recorded, and her
+        # queued mail is withheld at send time until she is reactivated.
         return mode if mode in LINDA_MODES else LINDA_MODE_OFF
 
     @api.model

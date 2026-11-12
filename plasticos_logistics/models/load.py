@@ -2098,6 +2098,10 @@ class PlasticosLoad(models.Model):
                 refusal = {"status": "blocked", "record_id": self.id, "reason": "a correction needs a reason"}
                 return record_refusal(self.env, command, subject_key, self.company_id, refusal, arguments, key, self)
             edge, cause = "correction", f"Linda corrects the recorded actual {event_kind}"
+        elif not self._linda_can_read(attachment):
+            # R2/N4: only the attachment check makes an unreadable original unverified evidence;
+            # the reason names nothing of it.
+            edge, cause = "evidence_unverified", "the original document is not visible to Linda"
         else:
             try:
                 with self.env.cr.savepoint():
@@ -2107,11 +2111,7 @@ class PlasticosLoad(models.Model):
                 self.env.invalidate_all()
                 if done.result.get("status") == "already_applied":
                     return done.result
-            except AccessError:
-                # R2: an original Linda cannot read is unverified evidence; the reason names nothing of it.
-                self.env.invalidate_all()
-                edge, cause = "evidence_unverified", "the original document is not visible to Linda"
-            except (UserError, ValidationError) as error:
+            except (UserError, ValidationError, AccessError) as error:
                 self.env.invalidate_all()
                 message = str(error.args[0] if error.args else error)
                 edge = _actual_event_edge(message)
@@ -2128,6 +2128,18 @@ class PlasticosLoad(models.Model):
         return hold_for_approval(
             self.env, command, edge, cause, arguments, key, self.company_id, self, subject_key=subject_key
         )
+
+    @staticmethod
+    def _linda_can_read(attachment):
+        """Whether the acting user may read this original; a missing one is the owner command's refusal."""
+        attachment = attachment.exists() if attachment else attachment
+        if not attachment:
+            return True
+        try:
+            attachment.check_access("read")
+        except AccessError:
+            return False
+        return True
 
     def action_open_actual_event_wizard(self):
         self.ensure_one()

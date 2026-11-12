@@ -66,3 +66,7 @@ Round 2 R5,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_app
 Round 2 R6,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_a_hold_without_company_answers_blocked,PENDING_COORDINATOR
 Round 2 R3,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_archived_linda_stays_archived_with_her_grant_across_upgrades,PENDING_COORDINATOR
 Round 2 R3,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_archived_linda_is_refused_everywhere_and_writes_nothing,PENDING_COORDINATOR
+Round 3 R7,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaPause::test_archived_linda_keeps_issuance_and_the_legacy_sender_stays_silent,PENDING_COORDINATOR
+Round 3 R7,BRS-EXP-11-R010,positive+negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaPause::test_send_guard_withholds_while_archived_and_releases_on_return,PENDING_COORDINATOR
+Round 3 R7,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaPause::test_cancellation_notice_queues_while_archived_and_is_sent_on_return,PENDING_COORDINATOR
+Round 3 R7,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaPause::test_inbound_reply_is_recorded_while_archived,PENDING_COORDINATOR

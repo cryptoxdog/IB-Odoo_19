@@ -22,10 +22,13 @@ approves or rejects it:
 
 Neither Linda nor a Logistics user without Operations Manager rights can approve.
 
-The supported stop is to archive ``user_linda``: every gated command she runs, every
-approval of her held commands, the load-obligation sweep and the request/response
-paths then refuse or skip and write nothing, and a module upgrade never
-reactivates her. Removing her Logistics group is not a supported stop.
+The supported stop is to archive ``user_linda``, which pauses her: every gated
+command she runs and every approval of her held commands is refused and writes
+nothing, typed requests and the load-obligation sweep answer ``blocked``, and her
+queued mail is withheld until she is reactivated. Her mode does not change, so
+she keeps owning order issuance, obligations still queue and inbound replies are
+still recorded. A module upgrade never reactivates her. Removing her Logistics
+group is not a supported stop.
 Approval runs the held command as Linda, in the approval's company only, under a
 context token that RPC cannot forge, so the owner guards still run and the record
 keeps Linda as its author. Human actors are never held: they need no second
