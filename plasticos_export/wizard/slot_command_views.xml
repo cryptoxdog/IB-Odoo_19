@@ -29,6 +29,11 @@
                         <field name="physical_source_ref"/>
                         <field name="source_revision_key"/>
                     </group>
+                    <group string="Replaces (correction, split or late buyer)">
+                        <field name="replaces_link_id"/>
+                        <field name="correction_reason" invisible="not replaces_link_id" required="replaces_link_id"/>
+                        <field name="replaced_booking_revision_id" force_save="1" invisible="not replaces_link_id"/>
+                    </group>
                     <group string="Planned Quantity">
                         <field name="planned_quantity_known"/>
                         <field name="planned_quantity" invisible="not planned_quantity_known"/>

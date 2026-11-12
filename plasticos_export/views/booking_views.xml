@@ -42,8 +42,8 @@
                 <field name="current_steamship_line_id"/>
                 <field name="current_pol_text"/>
                 <field name="current_pod_text"/>
-                <field name="slot_ids" string="Container No." filter_domain="[('slot_ids.journey_id.iso_number', 'ilike', self)]"/>
-                <field name="slot_ids" string="Seal" filter_domain="[('slot_ids.journey_id.seal_number', 'ilike', self)]"/>
+                <field name="slot_ids" string="Container No." filter_domain="[('slot_ids.iso_number', 'ilike', self)]"/>
+                <field name="slot_ids" string="Seal" filter_domain="[('slot_ids.seal_number', 'ilike', self)]"/>
                 <field name="slot_ids" string="Supplier PO" filter_domain="[('slot_ids.cargo_link_ids.purchase_order_ref', 'ilike', self)]"/>
                 <field name="slot_ids" string="Customer SO" filter_domain="[('slot_ids.cargo_link_ids.sale_order_ref', 'ilike', self)]"/>
                 <filter name="filter_awaiting" string="Awaiting Carrier Confirmation" domain="[('display_state', '=', 'candidate')]"/>

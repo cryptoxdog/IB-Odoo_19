@@ -20,7 +20,7 @@ from odoo.exceptions import AccessError
 from odoo.tests.common import new_test_user, tagged
 
 from ..models.document_inherit import VERIFIED_GROSS_MASS
-from ..models.owner_facts import NO_CONTAINER_TARE, RESTRICTED
+from ..models.owner_facts import NO_CONTAINER_BOUND, RESTRICTED
 from .test_booking_and_revision import LINK, ExportFixtureMixin, actor_groups
 
 _BYTES = itertools.count(1)
@@ -34,7 +34,13 @@ OWNER_FACT_FIELDS = {
         "owner_stock_move_display",
         "owner_package_display",
     ),
-    "plasticos.export.booking.slot": ("owner_package_summary", "owner_vgm_verdict", "owner_container_tare"),
+    "plasticos.export.booking.slot": (
+        "owner_package_summary",
+        "owner_vgm_verdict",
+        "owner_container_tare",
+        "owner_container_vgm_weight",
+        "owner_shipment_history",
+    ),
     "plasticos.export.booking": ("owner_booking_confirmation_verdict",),
 }
 
@@ -259,7 +265,7 @@ class TestExportOwnerFacts(ExportFixtureMixin, PlasticosTestCase):
         self._verified_vgm(load)
         self.env.invalidate_all()
         self.assertEqual(slot.with_user(self.actor).owner_vgm_verdict, f"{load.name}: verified and current")
-        self.assertEqual(view.owner_container_tare, NO_CONTAINER_TARE)
+        self.assertEqual(view.owner_container_tare, NO_CONTAINER_BOUND)
         self.assertIn("shipping weight 18000", link.with_user(self.actor).owner_package_display)
 
     def test_07_r006_negative_equipment_never_implies_weight_or_vgm(self):
@@ -268,7 +274,7 @@ class TestExportOwnerFacts(ExportFixtureMixin, PlasticosTestCase):
         slot = booking.slot_ids.with_user(self.actor)
         self.assertEqual(slot.owner_package_summary, "No package recorded by Stock")
         self.assertEqual(slot.owner_vgm_verdict, "No Logistics load committed")
-        self.assertEqual(slot.owner_container_tare, NO_CONTAINER_TARE)
+        self.assertEqual(slot.owner_container_tare, NO_CONTAINER_BOUND)
         _booking, slot, _link, _sale, _purchase, _load, move_line = self._shipment()
         package = move_line.result_package_id
         package.shipping_weight = 0.0

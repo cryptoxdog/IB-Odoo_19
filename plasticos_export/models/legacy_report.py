@@ -67,7 +67,7 @@ LEGACY_BOOKING_REPORT_COLUMNS = (
     ("PRA Status", "Owner not yet identified", "requires_owner_proof"),
     ("PRA Sent Date", "Owner not yet identified", "requires_owner_proof"),
     ("VGM", "Documents verified_gross_mass verdict", "mapped"),
-    ("Eq Tare Wt", "Container tare evidence", "not_recorded"),
+    ("Eq Tare Wt", "Logistics container journey tare fact", "mapped"),
     ("BL No", "Documents original ocean B/L", "phase_2"),
     ("Invoice-User", "Native Accounting invoice author", "mapped"),
     ("Container-Ref", "Logistics container journey", "mapped"),
@@ -189,6 +189,8 @@ class PlasticosExportCargoLinkLegacyReport(models.Model):
             }
         )
         row.update(self._legacy_container_cells(journey))
+        # Container tare is a Logistics journey fact (S9); read live, never copied.
+        row[H_EQ_TARE_WT] = slot.owner_container_tare
         row.update(self._legacy_purchase_cells(purchase))
         row.update(self._legacy_sale_cells(sale))
         row.update(self._legacy_load_cells(load))

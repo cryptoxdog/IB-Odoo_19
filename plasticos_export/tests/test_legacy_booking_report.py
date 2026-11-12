@@ -24,7 +24,7 @@ from ..models.legacy_report import (
     UNASSIGNED_BUYER,
     UNKNOWN,
 )
-from ..models.owner_facts import NOT_RECORDED
+from ..models.owner_facts import NO_CONTAINER_BOUND
 from .test_booking_and_revision import LINK, ExportFixtureMixin
 
 WORKBOOK = "plasticos_export/tests/data/synthetic_booking_report.xlsx"
@@ -134,7 +134,7 @@ class TestLegacyBookingReport(ExportFixtureMixin, PlasticosTestCase):
         sample = projected[0]
         self.assertEqual(sample["Container No"], MISSING, "no container is bound yet")
         self.assertEqual(sample["Source Wks"], NOT_MAPPED)
-        self.assertEqual(sample["Eq Tare Wt"], NOT_RECORDED)
+        self.assertEqual(sample["Eq Tare Wt"], NO_CONTAINER_BOUND, "no container is bound, so no tare fact applies")
         self.assertNotIn(sample["PO No"], (MISSING, UNKNOWN), "the supplier PO comes from the native order")
 
     def test_14_r011_negative_projection_writes_no_owner_record(self):

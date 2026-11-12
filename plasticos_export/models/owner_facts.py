@@ -36,7 +36,9 @@ ACCOUNT_MOVE = "account.move"
 
 RESTRICTED = "Restricted: you have no access to this owner record"
 NOT_RECORDED = "Not recorded by its owner"
-NO_CONTAINER_TARE = "Not recorded: no owner records container tare"
+NO_CONTAINER_BOUND = "No container journey bound"
+NOT_RECORDED_BY_LOGISTICS = "Not recorded by Logistics"
+JOURNEY_FACT = "plasticos.iso.journey.fact"
 
 # Display order of the Export obligations and their labels.
 OBLIGATION_LABELS = (
@@ -306,7 +308,18 @@ class PlasticosExportSlotOwnerFacts(models.Model):
         compute="_compute_owner_package_summary", string="VGM (Documents)", compute_sudo=False
     )
     owner_container_tare = fields.Char(
-        compute="_compute_owner_package_summary", string="Container Tare", compute_sudo=False
+        compute="_compute_owner_journey_facts", string="Container Tare (Logistics)", compute_sudo=False
+    )
+    owner_container_vgm_weight = fields.Char(
+        compute="_compute_owner_journey_facts", string="VGM Weight (Logistics)", compute_sudo=False
+    )
+    owner_shipment_history = fields.Text(
+        compute="_compute_owner_journey_facts",
+        string="Shipment History",
+        compute_sudo=False,
+        help="The container's recorded gate-in, departure and filing parties from Logistics, then every cargo "
+        "allocation of this slot, oldest first. A buyer assigned after sailing appears as a new allocation; "
+        "the recorded container facts never change with it (BRS-EXP-08-R007).",
     )
 
     def _live_links(self):
@@ -318,7 +331,6 @@ class PlasticosExportSlotOwnerFacts(models.Model):
         unit = weight_unit(self.env)
         for slot in self:
             links = slot._live_links()
-            slot.owner_container_tare = NO_CONTAINER_TARE
             move_lines = links.stock_move_line_id
             if not readable(move_lines):
                 slot.owner_package_summary = RESTRICTED
@@ -340,6 +352,82 @@ class PlasticosExportSlotOwnerFacts(models.Model):
                     f"{load.name}: {evidence_verdict(self.env, load, VERIFIED_GROSS_MASS)}"
                     for load in loads.sorted("id")
                 )
+
+    @api.depends_context("uid", "allowed_company_ids")
+    def _compute_owner_journey_facts(self):
+        """Container tare, VGM weight and the shipment history, read live from the Logistics journey facts."""
+        for slot in self:
+            facts = slot._journey_facts()
+            if facts in (None, RESTRICTED):
+                marker = NO_CONTAINER_BOUND if facts is None else RESTRICTED
+                slot.owner_container_tare = marker
+                slot.owner_container_vgm_weight = marker
+            else:
+                slot.owner_container_tare = self._weight_label(facts.get("container_tare"))
+                slot.owner_container_vgm_weight = self._weight_label(facts.get("verified_gross_mass"))
+            slot.owner_shipment_history = slot._shipment_history(facts)
+
+    def _journey_facts(self):
+        """``{fact_kind: fact}`` of the bound journey; ``None`` when unbound; ``RESTRICTED`` when unreadable."""
+        self.ensure_one()
+        journey = self.journey_id
+        if not journey or self.journey_binding_state != "active":
+            return None
+        try:
+            facts = self.env[JOURNEY_FACT].search([("journey_id", "=", journey.id)], order="id ASC")
+        except AccessError:
+            return RESTRICTED
+        return {fact.fact_kind: fact for fact in facts}
+
+    @staticmethod
+    def _weight_label(fact):
+        if not fact:
+            return NOT_RECORDED_BY_LOGISTICS
+        basis = dict(fact._fields["weight_basis"]._description_selection(fact.env)).get(fact.weight_basis, "")
+        return f"{fact.weight:g} {fact.weight_uom_id.name} ({basis}: {fact.evidence_reference})"
+
+    @staticmethod
+    def _when(value):
+        return f"{fields.Datetime.to_string(value)} UTC" if value else "time not stated"
+
+    def _shipment_history(self, facts):
+        """Recorded container facts, then each allocation of this slot in the order it was made."""
+        self.ensure_one()
+        if facts is None:
+            rows = [f"Container: {NO_CONTAINER_BOUND}"]
+        elif facts == RESTRICTED:
+            rows = [f"Container facts: {RESTRICTED}"]
+        else:
+            gate_in, departure, parties = (facts.get(kind) for kind in ("gate_in", "departure", "regulatory_parties"))
+            rows = [
+                f"Container: {self.iso_number or 'no ISO number'} (seal {self.seal_number or 'not stated'})",
+                f"Gate-in: {self._when(gate_in.occurred_at)} at {gate_in.facility_partner_id.display_name}"
+                if gate_in
+                else f"Gate-in: {NOT_RECORDED_BY_LOGISTICS}",
+                f"Departure: {self._when(departure.occurred_at)} on {departure.vessel} {departure.voyage or ''}".rstrip()
+                if departure
+                else f"Departure: {NOT_RECORDED_BY_LOGISTICS}",
+                (
+                    f"Customs filer: {parties.customs_filer_id.display_name or 'not named'}; "
+                    f"delivery partner: {parties.delivery_partner_id.display_name or 'not named'}"
+                )
+                if parties
+                else f"Filer and delivery partner: {NOT_RECORDED_BY_LOGISTICS}",
+            ]
+        rows.append("Cargo allocations, oldest first:")
+        links = self.cargo_link_ids.sorted("id")
+        if not links:
+            rows.append("  none")
+        states = dict(links._fields["state"]._description_selection(self.env)) if links else {}
+        for link in links:
+            buyer = link.sale_order_ref or "no buyer sale"
+            supplier = link.purchase_order_ref or "no supplier PO"
+            replaces = f", replaces {link.replaces_link_id.allocation_key}" if link.replaces_link_id else ""
+            rows.append(
+                f"  {self._when(link.create_date)} by {link.create_uid.name}: {link.allocation_key} "
+                f"{states.get(link.state, link.state)}; buyer SO {buyer}; supplier PO {supplier}{replaces}"
+            )
+        return "\n".join(rows)
 
     @api.model
     def _package_summary(self, packages, unit):

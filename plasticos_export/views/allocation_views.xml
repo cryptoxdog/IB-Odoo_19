@@ -37,7 +37,7 @@
                     <button name="action_open_commit_cargo" type="object" string="Commit Cargo" class="btn-primary" invisible="not active or allocation_state == 'held'" groups="plasticos_security_base.group_logistics"/>
                     <button name="action_open_release_cargo" type="object" string="Release Cargo" invisible="allocation_state not in ('committed', 'held')" groups="plasticos_security_base.group_logistics"/>
                     <button name="action_open_bind_journey" type="object" string="Bind Container" invisible="not active or journey_binding_state == 'active'" groups="plasticos_security_base.group_logistics"/>
-                    <button name="action_open_journey" type="object" string="Open Container Journey" invisible="not journey_id"/>
+                    <button name="action_open_journey" type="object" string="Open Container Journey" invisible="not journey_id" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,base.group_system"/>
                     <field name="allocation_state" widget="statusbar"/>
                 </header>
                 <sheet>
@@ -52,7 +52,9 @@
                             <field name="hold_revision_id"/>
                         </group>
                         <group string="Physical Container (Logistics)">
-                            <field name="journey_id"/>
+                            <!-- Only readers of the Logistics container journey open it (OP10-E06, review N7 of C07). -->
+                            <field name="journey_id" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,base.group_system"/>
+                            <field name="journey_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics,!plasticos_security_base.group_operations_manager,!base.group_system"/>
                             <field name="journey_binding_state"/>
                             <field name="iso_number"/>
                             <field name="seal_number"/>
@@ -62,7 +64,11 @@
                     <group string="Packages, Tare and VGM (read live from their owners)" name="owner_weights">
                         <field name="owner_package_summary"/>
                         <field name="owner_container_tare"/>
+                        <field name="owner_container_vgm_weight"/>
                         <field name="owner_vgm_verdict"/>
+                    </group>
+                    <group string="Shipment History (Logistics facts and cargo allocations)" name="shipment_history">
+                        <field name="owner_shipment_history" nolabel="1" colspan="2"/>
                     </group>
                     <field name="cargo_link_ids">
                         <list>

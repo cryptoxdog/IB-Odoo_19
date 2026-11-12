@@ -86,6 +86,26 @@ class PlasticosExportSlotCommitCargo(models.TransientModel):
     planned_quantity_known = fields.Boolean(string="Planned Quantity Known")
     planned_quantity = fields.Float(help="Planned only. Never shipped, scaled or stocked quantity.")
     uom_id = fields.Many2one(UOM, string="Unit", ondelete="cascade")
+    replaces_link_id = fields.Many2one(
+        EXPORT_CARGO_LINK,
+        string="Replaces Cargo",
+        ondelete="cascade",
+        domain="[('company_id', '=', company_id), ('state', '!=', 'released')]",
+        help="A correction, a split or a buyer assigned later: the replaced cargo is released and kept as history "
+        "(BRS-EXP-08-R006, BRS-EXP-08-R007).",
+    )
+    correction_reason = fields.Text(help="Why the replaced cargo changes. Posted on the booking.")
+    replaced_booking_revision_id = fields.Many2one(
+        EXPORT_REVISION,
+        string="Replaced Cargo's Booking Revision",
+        readonly=True,
+        ondelete="cascade",
+        help="Captured with the replaced cargo; the command compares it when that cargo is on another booking.",
+    )
+
+    @api.onchange("replaces_link_id")
+    def _onchange_replaces_link_id(self):
+        self.replaced_booking_revision_id = self.replaces_link_id.booking_id.current_revision_id
 
     def action_confirm(self):
         self.ensure_one()
@@ -99,6 +119,12 @@ class PlasticosExportSlotCommitCargo(models.TransientModel):
             "physical_source_ref": self.physical_source_ref or False,
             "source_revision_key": self.source_revision_key or False,
         }
+        if self.replaces_link_id:
+            refs.update(
+                replaces_link_id=self.replaces_link_id.id,
+                correction_reason=self.correction_reason or "",
+                replaced_booking_revision_id=self.replaced_booking_revision_id.id or False,
+            )
         quantity = self.planned_quantity if self.planned_quantity_known else None
         outcome = self.slot_id.action_commit_cargo(
             refs,
