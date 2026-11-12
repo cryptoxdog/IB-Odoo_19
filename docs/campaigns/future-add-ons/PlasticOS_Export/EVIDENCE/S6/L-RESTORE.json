@@ -1,0 +1,49 @@
+{
+ "receipt": "L-RESTORE",
+ "recon": [
+  "F9",
+  "V14"
+ ],
+ "backup": {
+  "source": "odoo_test_s6up right after the F7 upgrade, before any runtime test",
+  "tool": "odoo db dump (zip with filestore) via scripts/test_env.sh backup",
+  "code_revision": "dc08ab6dd4417c78208c83d3785b196b858df25e",
+  "code_dirty": false,
+  "zip_sha256": "1376d982012c69d83128e03860a32604209787f9cfd21371898a9b583bddcd30",
+  "zip_bytes": 3875513,
+  "dump_sql_sha256": "a6349e0bb0423d306ec314e9239ad3d039ad836eaef2e0ea0da406e03afa6029",
+  "dump_sql_bytes": 23610117,
+  "filestore_files": 932,
+  "filestore_tree_sha256": "53df6b9a2dde2e68f9fe24b3f9e6a5930b454c63a006ad3e6a35aa72ebbf3974",
+  "manifest_json_sha256": "f8aa12caecf1ea5e9a65423bcc9c33634a267e8b486fdbc22b233e41c49f98ad",
+  "location": "gitignored .l9/runtime/test-env/backup/ (not committed)"
+ },
+ "restore": {
+  "tool": "odoo db load via scripts/test_env.sh restore odoo_test_s6up odoo_test_s6rst",
+  "checksum_verified_before_load": true,
+  "target_marker": "role=clone owner=s6proof ... migrated_from=340ec5d0... restored_from=odoo_test_s6up backup=1376d982...",
+  "coherence": {
+   "filestore_files_restored": 932,
+   "filestore_byte_identical_to_backup": true,
+   "attachments_missing_file": 0,
+   "module_state_md5_equal_to_source": "f8e1dfec43ace99acd7bad475e7227e4",
+   "loads": 254,
+   "documents": 8
+  },
+  "uuid": "new (odoo db load default copy mode; the clone is isolated)"
+ },
+ "runtime_on_restored": {
+  "command": "make runtime-test m=plasticos_export fresh=0 ODOO_TEST_DB=odoo_test_s6rst",
+  "tests": 57,
+  "failed": 0,
+  "errors": 0,
+  "exit": 0,
+  "head": "dc08ab6d"
+ },
+ "install_smoke": "see L-RUNTIME.json (install-smoke runs on a clone of the fixture admitted for the slice inputs; it proves the restored code revision loads)",
+ "v14_negative_cases_not_probed": [
+  "code-only rollback",
+  "reinstall-as-rollback",
+  "automatic unknown-send replay (no mail server and no mail.mail rows exist on the clone)"
+ ]
+}

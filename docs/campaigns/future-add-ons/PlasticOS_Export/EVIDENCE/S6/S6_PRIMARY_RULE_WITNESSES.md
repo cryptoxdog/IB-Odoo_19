@@ -1,0 +1,134 @@
+# S6 primary rules: witness review
+
+Branch feat/plasticos-export-s6-proof, HEAD dc08ab6. Read-only analysis. A test is named as a witness only after its assertions were read.
+Result: 1 of 18 has a cited witness (BRS-EXP-14-R008, and that witness is partial). 17 of 18 are NOT_RUN. None has a semantic witness: for every uncited rule, the tests that come close prove only some clauses of the acceptance case. Those tests are listed as `partial`.
+
+**Blocker for the 17 NOT_RUN rules (S6 receipt):** a new witness would live in `plasticos_export/tests/`, which is outside the C06 modification_scope (only four claims/commission/security_base tests, the harness and the evidence folder are in scope). Each NOT_RUN is returned to GAR with the blocker named below; nothing was weakened or skipped.
+
+
+## BRS-EXP-01-R002: Single authoritative fact owner (AC-EXP-01-002, phase BOTH)
+
+- Rule: "Original bytes/versions belong to native Odoo Documents or approved `ir.attachment` fallback; business evidence classification/verification belong to `plasticos_documents`; purchase/sales and financial facts belong to native Odoo; stock movements belong to native Stock; freight, dispatch and approved external operational mail belong to `plasticos_logistics`/Linda. Export SHALL only bind and display those facts."
+- Case: positive "Export view shows one current document verdict, one freight status, one stock movement and one posted invoice sourced from the proper owners."; negative "Export stores a second verified flag, shipment stock quantity, actual freight ledger or independently sent mail."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test asserts the positive (Export view shows one current document verdict, one freight status, one stock movement and one posted invoice from their owners) nor that Export models carry no second verified flag or shipment stock quantity. Only the 'independently sent mail' clause is proven. partial: plasticos_export/tests/test_export_owner_handoff.py::TestExportOwnerHandoff::test_notice_goes_through_linda_with_the_exact_original (mail queued only via Linda request, mail.mail count +1); ::test_export_writes_no_field_on_another_owner_and_has_no_controller (no Export field on plasticos.document/stock.move.line/etc.); test_booking_allocation.py::TestBookingAllocation::test_po_constraints_are_read_live_never_copied (no price/amount/cost field on plasticos.export.*). Needs a combined Enterprise run with native picking + posted invoice (slice_basis: cross-owner).
+
+## BRS-EXP-01-R004: Evidence proposals are not unauthorized business transitions (AC-EXP-01-004, phase BOTH)
+
+- Rule: "Saving or extracting a booking, receiving a file, scanning, or generating a report SHALL NOT directly set a purchase, sale, transaction, stock, load, compliance, financial or regulatory state. A verified source observation MAY request a *named, authorized* state-owner business action if exact scope, preconditions, idempotency, and actor permissions are satisfied. The authoritative owner SHALL enforce the transition and return accepted/refused with reason and provenance; no direct state write or bypass is allowed."
+- Case: positive "An exactly matched, verified booking updates its booking context; an explicitly permitted documented transition is performed only through an authorized guarded business action."; negative "AI marks transaction delivered/invoiced when it reads a booking PDF, or a controller writes `state` directly."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test accepts a booking revision and then asserts that transaction/PO/SO/load/compliance state is unchanged, nor that a permitted transition goes through a named guarded command. partial: test_booking_and_revision.py::TestBookingAndRevision::test_candidate_needs_exact_source_and_changes_nothing_current (a candidate changes nothing current); test_export_owner_handoff.py::TestExportOwnerHandoff::test_export_writes_no_field_on_another_owner_and_has_no_controller (asserts no controllers/ dir); plasticos_logistics/tests/test_linda_freight_models.py::TestLindaFreightModels::test_load_provenance_and_state_bypass_is_rejected and plasticos_logistics/tests/test_load_cardinality.py::TestLoadSourceCompanyAndPhysicalEvents::test_dispatch_state_cannot_be_written_around_the_guard (direct state writes refused).
+
+## BRS-EXP-01-R005: Capability proof and deployment independence (AC-EXP-01-005, phase BOTH)
+
+- Rule: "Before depending on Enterprise Documents, Inventory Barcode, AI/OCR or IoT device features, installation, licensing and actual installed API SHALL be verified; where the approved build lacks a capability, Export SHALL use an explicitly approved native fallback or keep it unavailable rather than fabricate or silently require it."
+- Case: positive "A CE environment records its supported attachment workflow and marks Enterprise-only features unavailable."; negative "Export refuses to install because a speculative Documents AI action is mandatory or claims scanning was proven."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: Export depends on plasticos_documents_native (Enterprise documents) per test_install.py DEPENDS; no CE environment or capability-unavailable path exists to run the positive (CE records attachment workflow, Enterprise-only marked unavailable). Test runtime is the pinned Enterprise fixture only. partial: plasticos_export/tests/test_install.py::TestExportInstall::test_dependencies_are_its_owners_and_installed (exact depends list contains no AI/OCR/IoT module).
+
+## BRS-EXP-02-R006: Commercial label is not a legal Incoterm (AC-EXP-02-006, phase BOTH)
+
+- Rule: "The recycler trade labels `FOB` (buyer pickup), `FAS` (seller-included freight to agreed port/rail), and `CNF`/`C&F` SHALL be preserved as quoted business usage separately from any explicitly contracted formal ICC Incoterm and named place. Booking arranger, payer, contracted handoff and exporter/filing role SHALL be explicit facts, not inferred from either shorthand. Export SHALL never silently rewrite an order Incoterm."
+- Case: positive "Industry FOB pickup and a formal FCA term can be stored distinctly when the actual contract supports both."; negative "Selecting FAS sets official ICC FAS risk transfer at rail gate or turns on seller ocean freight automatically."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: Export stores no FOB/FAS/CNF trade-label field (grep of plasticos_export/models finds only a read of purchase.order.incoterm_id for display, booking_allocation.py:513) and no test asserts the label/ICC Incoterm distinction or that Export never rewrites an order Incoterm. test_po_constraints_are_read_live_never_copied sets incoterm_id=FCA but asserts nothing about it. Owner is native sale/purchase contract; witness needs a cross-owner case.
+
+## BRS-EXP-06-R001: Audience/confidentiality and company isolation (AC-EXP-06-001, phase BOTH)
+
+- Rule: "Every booking, document link, generated report, outgoing recipient and related stock/order lookup SHALL enforce the exact company and approved audience. Supplier economics, buyer identity, freight economics and sensitive documents SHALL NOT leak across a brokered trade or company boundary; Export SHALL not grant external Documents access."
+- Case: positive "Forwarder booking sheet contains authorized load details without exposing hidden supplier buy price."; negative "A read-only export user can download every native Documents original or a buyer sees supplier invoice."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: positive (forwarder booking sheet without supplier buy price) is not rendered/asserted; negative 'read-only export user downloads every native Documents original' is tested only across companies, not for a same-company read-only user, and 'buyer sees supplier invoice' is untested; no test asserts Export grants no external Documents access. partial: plasticos_export/tests/test_multicompany_permissions.py::TestMulticompanyPermissions::test_other_company_sees_and_counts_nothing, ::test_other_company_cannot_command_print_or_read_the_original (foreign actor AccessError on attachment.read(['datas'])), ::test_sales_rep_reads_only_cargo_on_their_own_sale_orders, ::test_sales_rep_opens_cargo_without_purchase_rights ('PO not readable for your role.'); test_export_owner_handoff.py::TestExportOwnerHandoff::test_notice_goes_through_linda_with_the_exact_original (assertNotIn buyer email in snapshot).
+
+## BRS-EXP-06-R003: Order, shipment, evidence and transaction states remain scoped (AC-EXP-06-003, phase BOTH)
+
+- Rule: "Purchase/Sale ordered quantity, each physical receipt/dispatch, each booking/terminal milestone, document verification, transaction state, invoicing and financial settlement SHALL remain independent and scoped to the correct child/line. One of four weekly loads delivered SHALL NOT mark the entire four-load PO fulfilled nor a 30-load SO delivered. AI may propose a transition but the existing validated state owner SHALL apply it only if the explicitly required evidence, quantities and authorization permit it."
+- Case: positive "A first-week load has a verified gate receipt while three future PO quantities remain open and the 30-load SO remains partially fulfilled."; negative "One extracted booking or scanned container marks its parent transaction and all sibling loads Delivered/Closed, or invoices all remaining quantities."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test executes a native PO receipt/backorder or SO delivery alongside an Export booking and asserts that one load leaves sibling PO/SO quantities open. partial: plasticos_export/tests/test_booking_allocation.py::TestBookingAllocation::test_held_slot_withholds_its_load_from_new_physical_instructions (a hold is scoped to the impacted load only); plasticos_logistics/tests/test_load_cardinality.py::TestLoadSourceCompanyAndPhysicalEvents::test_delivered_to_port_without_a_buyer_fact (delivery event creates no account.move). Discriminating cardinality proof is recorded NOT_RUN in plasticos_export/business_rules/OPEN_DECISIONS_AND_PROOFS.md.
+
+## BRS-EXP-06-R004: Minimality and acceptance gate (AC-EXP-06-004, phase BOTH)
+
+- Rule: "A future proposed export field, model, menu, QWeb report, cron or automation SHALL carry a source-owner census, a concrete unmet business action and one positive plus one failure acceptance case. Rules are planning requirements until separately admitted and implemented. Each real test SHALL cite its BRS ID, exact repo revision and observed evidence; no unrun scenario may be labeled PASS."
+- Case: positive "A future export PR maps each changed file to a rule and shows no duplicate sender/verifier/stock writer under tests."; negative "A new generic document engine is approved solely because a QWeb template could not find a field."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: governance/process rule (source-owner census per field, PR file-to-rule map, test evidence with exact revision); it is witnessed by PR and evidence review, not by an Odoo assertion. partial guards: tests/contracts/test_export_brs_registry.py::test_every_rule_has_its_one_acceptance_case (asserts every case status == NOT_RUN, so nothing is labelled PASS) and ::test_every_rule_maps_once_to_a_slice_and_a_witness; plasticos_export/tests/test_install.py::TestExportInstall::test_export_owns_exactly_the_declared_models_and_records (no undeclared model/record, e.g. a generic document engine).
+
+## BRS-EXP-06-R005: Safe change and activation boundaries (AC-EXP-06-005, phase BOTH)
+
+- Rule: "The export BRS pack SHALL not itself install a module, activate mail or cron, create shipment transactions, approve legal filings or change Native-First BRS semantics. Any implementation/cutover requires a bounded separately authorized contract; changes to prior locked decisions require explicit dated supersession, preserving old rules and acceptance trace."
+- Case: positive "The BRS pack can be reviewed with all operational services unchanged."; negative "Publishing a document BRS silently enables Linda email or makes a compliance rule legally operative."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: governance/activation rule about the BRS pack itself; no runtime assertion proves 'the pack can be reviewed with all operational services unchanged'. partial guards: tests/test_no_campaign_file_dependency.py::test_repo_tests_do_not_read_campaign_files; plasticos_export/tests/test_install.py::TestExportInstall::test_module_is_installed_at_the_manifest_version (auto_install False); plasticos_logistics/tests/test_linda_freight_models.py::TestLindaLoadAcknowledgementObligations::test_job_polls_every_five_minutes_and_data_never_forces_it_active; tests/contracts/test_export_brs_registry.py::test_every_rule_has_its_one_acceptance_case.
+
+## BRS-EXP-07-R006: Do not infer payload, capacity or VGM from nominal equipment name (AC-EXP-07-006, phase BOTH)
+
+- Rule: "Equipment labels SHALL NOT imply a fixed cargo limit or certified legal weight. Actual scale observations, package net/tare, container tare, gross, lashing/packing weight where applicable, local carrier/road/port constraints, and any valid VGM evidence SHALL retain their respective sources, units, revisions and verification. Export SHALL NOT derive a certified VGM or commercial settlement quantity solely from scanned package weights or from a 40HC/20STD selection."
+- Case: positive "A 40HC shipment includes current package totals and independently attributed container tare/VGM evidence when required, without altering supplier/buyer settlement authority."; negative "40HC code automatically inserts a universal max payload, self-certifies VGM or writes invoice weights."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test asserts that a 40HC/20STD slot carries no payload/VGM value, nor the positive (package totals plus independently attributed tare/VGM). partial: plasticos_export/tests/test_document_obligations.py::TestExportDocumentObligations::test_stale_vgm_withholds_only_carrier_documents (VGM is separate Documents evidence); test_booking_and_revision.py::TestBookingAndRevision::test_other_places_and_references_stay_distinct_source_terms (max_cargo_weight_lb kept as a source term); test_views_and_reports.py::TestViewsAndReports::test_container_manifest_renders_two_feeders_and_no_inferred_movement (assertNotIn 'shipped weight'); plasticos_documents/tests/test_scoped_evidence.py::TestScopedEvidence::test_quantity_is_known_only_with_its_unit_and_never_inferred.
+
+## BRS-EXP-08-R002: One large customer commitment with smaller supply orders (AC-EXP-08-002, phase BOTH)
+
+- Rule: "One real buyer commitment (example: customer PO represented by one SO for 30 MRP loads) SHALL be fulfillable through multiple suppliers, supplier POs, and physical shipments. A supplier PO for 4 loads SHALL coexist with that 30-load SO without requiring four separate supplier POs; customer PO evidence is not a supplier PO."
+- Case: positive "One 30-load customer SO and one four-load Waste Management supplier PO are both represented natively with correct counterparties and quantities."; negative "Each new weekly truck creates a new SO or PO, or the buyer PO is mistaken for the supplier PO."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test builds a 30-load customer SO with a 4-load supplier PO; the discriminating cardinality proof (30-load SO, 4-load PO, two weekly bookings, buyerless load sold on the water) is NOT_RUN per plasticos_export/business_rules/OPEN_DECISIONS_AND_PROOFS.md. partial: plasticos_export/tests/test_booking_allocation.py::TestBookingAllocation::test_phase1_gate_five_40hc_four_supplier_pos (four supplier POs on one booking, not one SO).
+
+## BRS-EXP-08-R003: Partial purchase fulfillment without PO duplication (AC-EXP-08-003, phase BOTH)
+
+- Rule: "A supplier PO MAY authorize multiple separately ready and executed loads across weeks. Native receipt/backorder and delivered/remaining quantity mechanics SHALL be used for each physically executed quantity; the PO obligation remains open for its unfulfilled balance. No Export-created parallel purchase/receipt counters."
+- Case: positive "One supplier PO for four planned loads is received across four weekly stock operations and correctly shows three remaining after week 1."; negative "First receipt closes the PO or Export issues a new PO to substitute for an approved backorder."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test receives one supplier PO across weekly native receipts/backorders and asserts three remaining after week 1. Owner is native Purchase/Stock; needs the combined Enterprise cardinality run (OPEN_DECISIONS_AND_PROOFS.md: NOT_RUN).
+
+## BRS-EXP-08-R004: Partial sales fulfillment and reserved allocation (AC-EXP-08-004, phase BOTH)
+
+- Rule: "A customer SO MAY be fulfilled by multiple suppliers and many loads; native reserved/delivered/unfulfilled quantities SHALL remain authoritative per order line and valid UoM. If a buyer is not yet assigned, cargo remains unallocated to a sale until real contract approval. A shipment association SHALL NOT alone validate its stock picking."
+- Case: positive "After shipping one eligible load the SO still has 29 load-equivalents open (subject to actual UoM) and a later shipment can satisfy more."; negative "Assigning a booking decrements SO deliveries, auto-delivers the rest, or books sold quantity before approved allocation."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test ships one load against a multi-load SO and asserts the native open quantity, nor that assigning a booking leaves SO deliveries/picking validation untouched. Owner is native Sales/Stock; needs the combined Enterprise cardinality run.
+
+## BRS-EXP-08-R006: Fulfillment allocation is traceable without second quantity ledger (AC-EXP-08-006, phase BOTH)
+
+- Rule: "When a real order spans shipments or cargo is resold in transit, maintain exact links and quantities between the participating native PO/SO order lines, pickings/moves, shipment/load, container and applicable booking. No allocation may exceed authoritative available/contracted quantities; corrections, splits and reversals SHALL be attributed and must prevent double allocation."
+- Case: positive "One four-load PO has four traceable executed quantities each linked to separate bookings, and a received load cannot be allocated twice to SOs."; negative "Export stores editable aggregate inventory or allows the same stock quantity to satisfy two sales orders."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test links four executed PO quantities to separate bookings or proves that one received load cannot be allocated to two SOs. partial: plasticos_export/tests/test_booking_allocation.py::TestBookingAllocation::test_journey_binding_is_exact_and_exclusive (one container per active slot), ::test_commit_replay_and_stale_revision (one allocation key, one commitment), ::test_release_frees_the_slot_and_keeps_history (link unlink/state rewrite refused).
+
+## BRS-EXP-08-R007: Late buyer assignment and on-water resale (AC-EXP-08-007, phase BOTH)
+
+- Rule: "Buyer allocation MAY occur after pickup, terminal delivery or ocean sailing when a legal sale is entered and approved. The exact cargo/container/booking remains unchanged; the new sale association retains effective timestamps, actor, source contract, company and audit history. Change of physical destination or regulatory party requires independent logistics/filing authority and cannot be inferred from buyer allocation."
+- Case: positive "An unsold container already afloat is sold and linked to a new buyer SO without rewriting its prior gate-in or departure facts."; negative "Sale order date backdates the ocean booking or changing buyer silently changes delivery partner, customs filer or original B/L."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test sells an already-afloat/gated-in container to a new buyer SO and asserts prior gate-in/departure facts, delivery partner and filer are unchanged. partial: plasticos_logistics/tests/test_load_cardinality.py::TestLoadSourceCompanyAndPhysicalEvents::test_buyerless_load_joins_a_purchase_backed_transaction (buyerless progress only); ::test_correction_needs_a_reason_and_keeps_the_first_event (actual events keep history).
+
+## BRS-EXP-09-R001: Use Odoo native AI Documents before custom extraction (AC-EXP-09-001, phase BOTH)
+
+- Rule: "When the approved Odoo 19 Enterprise AI Documents capability is available, incoming booking confirmations and amendments SHALL be classified and candidate booking data extracted through that native facility, not a parallel Export OCR/doc ingestion engine. Actual installed APIs, AI licensing/permissions, coverage and fallback SHALL be verified before activation; if unavailable, permit controlled manual booking entry."
+- Case: positive "A carrier booking PDF enters native Documents and yields editable candidate data with the original retained."; negative "Export introduces a second file storage/OCR pipeline or claims unverified AI integration works in CE."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: Odoo 19 Enterprise Documents AI capability is not installed/verified on the fixture (EXP-GAP-03/06); every Export test supplies booking terms by hand to record_booking_revision_candidate, so 'PDF enters native Documents and yields candidate data' is never exercised. partial: plasticos_export/tests/test_booking_and_revision.py::TestBookingAndRevision::test_candidate_needs_exact_source_and_changes_nothing_current (candidate bound to a native documents.document original, attachment retained); test_install.py::TestExportInstall::test_export_owns_exactly_the_declared_models_and_records (no second storage/OCR model).
+
+## BRS-EXP-09-R007: Transaction/load state changes only via validated commands (AC-EXP-09-007, phase BOTH)
+
+- Rule: "Document-derived supplier readiness, loaded shipment confirmation, carrier acknowledgment, terminal/rail acceptance, vessel departure and booking cancellation SHALL be distinct typed event proposals tied to the exact shipment and source. After source verification, only the authorized Purchase/Stock/Logistics/Transaction business command may execute a permitted transition with its own prerequisites. A supplier statement "booking complete" is evidence of a supplier-reported milestone, not conclusive terminal gate-in, loaded-on-vessel or completed international delivery; parent PO/SO totals derive from verified partial execution."
+- Case: positive "The Oct 8 supplier completion email and ticket 1728952 support a reviewable Load 1 shipped/loaded event; other four PO loads remain open and terminal gate-in remains unverified."; negative "AI marks the five-container PO fulfilled or load delivered-to-port/at sea solely on a supplier email saying booking complete."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test turns a supplier 'booking complete' email/ticket into a typed event proposal for Load 1 while sibling PO loads stay open and terminal gate-in stays unverified. partial: plasticos_logistics/tests/test_load_cardinality.py::TestLoadSourceCompanyAndPhysicalEvents::test_actual_pickup_needs_evidence_attached_to_this_load, ::test_state_changes_never_fill_actual_clocks, ::test_hold_does_not_block_recording_what_already_happened; plasticos_logistics/tests/test_linda_freight_models.py::TestLindaFreightModels::test_load_provenance_and_state_bypass_is_rejected (load.state direct write refused).
+
+## BRS-EXP-11-R010: Guard shipment state changes and order balances (AC-EXP-11-010, phase BOTH)
+
+- Rule: "Extraction SHALL produce typed event proposals; only the owning business command may advance supplier ready, loaded, pickup, gate accepted, sailed, inventory receipt/delivery or commercial state after all movement-specific checks and idempotency. One approved 40200-lb physical shipment does not complete a 200000-lb/five-container supplier PO, other bookings, or a customer multi-load SO. No direct AI writes to transaction.state or load.state."
+- Case: positive "Load 1 recognized, with exact source evidence; the supplier PO retains a remaining balance computed through native order/stock execution and future bookings remain untouched."; negative "Keyword booking complete causes all five units to close, sale invoice to post, or terminal gate-in to appear."
+- Basis: **NOT_RUN**
+- Justification: BLOCKER: no test proves a 40,200-lb load leaves the 200,000-lb/five-container PO with a native remaining balance and other bookings untouched, nor that transaction.state cannot be written by extraction. partial: plasticos_logistics/tests/test_linda_freight_models.py::TestLindaFreightModels::test_load_provenance_and_state_bypass_is_rejected and ::test_direct_load_create_cannot_bypass_state_or_provenance (no direct load.state); plasticos_logistics/tests/test_load_cardinality.py::TestLoadSourceCompanyAndPhysicalEvents::test_delivered_to_port_without_a_buyer_fact (no account.move posted); plasticos_export/tests/test_booking_allocation.py::TestBookingAllocation::test_held_slot_withholds_its_load_from_new_physical_instructions (other load untouched).
+
+## BRS-EXP-14-R008: Weight, equipment tare, VGM and units (AC-EXP-14-008, phase BOTH)
+
+- Rule: "The detailed report SHALL distinguish cargo net weight, supplier or scale weight provenance, number of units, equipment tare, and compliant VGM when actually verified; display lb and metric ton using a single explicit conversion policy. Preserve null and unknown rather than printing zero as fact. Do not make a raw gross/tare formula into certified VGM."
+- Case: positive "For the first container show 40,200 lb net and leave missing VGM unverified, with metric-ton conversion labeled."; negative "System sums cargo and tare then asserts certified VGM or prints unknown VGM as 0.00 accepted."
+- Basis: **cited**
+- Witness: `plasticos_export/tests/test_views_and_reports.py::TestViewsAndReports::test_planned_quantities_are_never_summed_across_units` (module `plasticos_export`)
+- Justification: cited by docstring "C05 review D5, BRS-EXP-14-R008"; asserts self.assertFalse([node for node in planned if node.get("sum") or node.get("avg")]) and self.assertEqual(columns[:1], ["uom_id"]) (planned quantities are never totalled across units). PARTIAL vs AC-EXP-14-008: nothing asserts 40,200 lb net, a labelled lb-to-metric-ton conversion, equipment tare, or unverified VGM shown as unknown rather than 0.00; no Export report renders weight or VGM today. Supporting (not citing 14-R008): test_booking_allocation.py::TestBookingAllocation::test_quantity_is_planned_only_in_native_units (unknown planned quantity keeps planned_quantity_known False), test_views_and_reports.py::TestViewsAndReports::test_container_manifest_renders_two_feeders_and_no_inferred_movement (assertIn "unknown"; assertNotIn "shipped weight").
