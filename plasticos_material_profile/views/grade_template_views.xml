@@ -12,7 +12,7 @@
         <field name="polymer_id"/>
         <field name="material_grade_id"/>
         <field name="form_id"/>
-        <field name="color_id"/>
+        <field name="color_ids" widget="many2many_tags"/>
         <field name="quality_tier_id"/>
         <field name="usage_count"/>
       </list>
@@ -34,7 +34,7 @@
               <field name="polymer_id"/>
               <field name="material_grade_id"/>
               <field name="form_id"/>
-              <field name="color_id"/>
+              <field name="color_ids" widget="many2many_tags"/>
               <field name="quality_tier_id"/>
             </group>
             <group string="Packaging &amp; Source">

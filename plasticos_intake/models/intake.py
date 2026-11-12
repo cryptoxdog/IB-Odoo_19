@@ -203,12 +203,13 @@ class PlasticosIntake(models.Model):
         ondelete="restrict",
         help="Material form from master registry. Empty when triage matched no form.",
     )
-    color_id = fields.Many2one(
+    color_ids = fields.Many2many(
         "plasticos.material.color",
+        "plasticos_intake_color_rel",
+        "intake_id",
+        "color_id",
         string="Color",
-        index=True,
-        ondelete="restrict",
-        help="Material color from master registry.",
+        help="Every color this intake names. More than one can be selected.",
     )
     source_type_id = fields.Many2one(
         "plasticos.source.type",
@@ -575,9 +576,8 @@ class PlasticosIntake(models.Model):
             return
         self.polymer_id = mp.polymer_id.id if mp.polymer_id else self.polymer_id
         self.form_id = mp.form_id.id if mp.form_id else self.form_id
-        sole = mp._sole_color()
-        if sole:
-            self.color_id = sole.id
+        if mp.color_ids:
+            self.color_ids = [(6, 0, mp.color_ids.ids)]
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.material_grade_id = mp.material_grade_id.id if mp.material_grade_id else self.material_grade_id
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id

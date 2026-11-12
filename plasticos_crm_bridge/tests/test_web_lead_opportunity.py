@@ -269,13 +269,14 @@ class TestWebLeadOpportunity(TransactionCase):
         polymer = self.env.ref("plasticos_material_profile.polymer_hdpe")
         form = self.env.ref("plasticos_material_profile.form_pellets")
         color = self.env.ref("plasticos_material_profile.color_natural")
+        blue = self.env.ref("plasticos_material_profile.color_blue")
         source_type = self.env.ref("plasticos_material_profile.source_post_industrial")
         profile = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": partner.id,
                 "polymer_id": polymer.id,
                 "form_id": form.id,
-                "color_ids": [(6, 0, [color.id])],
+                "color_ids": [(6, 0, [color.id, blue.id])],
                 "source_type_id": source_type.id,
                 "melt_flow_index": 8.5,
                 "contamination_percent": 2.5,
@@ -298,7 +299,7 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertEqual(intake.material_profile_id, profile)
         self.assertEqual(intake.polymer_id, polymer)
         self.assertEqual(intake.form_id, form)
-        self.assertEqual(intake.color_id, color)
+        self.assertEqual(intake.color_ids, color | blue)
         self.assertEqual(intake.source_type_id, source_type)
         self.assertEqual(intake.mfi_value, 8.5)
         self.assertEqual(intake.contamination_pct, 2.5)

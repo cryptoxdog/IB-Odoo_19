@@ -2434,19 +2434,23 @@ class SyncOrchestrator:
         found = []
         for value in values:
             text = _collapse_ws(value)
-            if not text or "," in text or ";" in text:
+            if not text:
                 return Color.browse()
-            exact = colors.filtered(
-                lambda color, text=text: (
-                    color.name.casefold() == text.casefold() or (color.code or "").casefold() == text.casefold()
+            tokens = [token.strip() for token in re.split(r"[,;]", text) if token.strip()]
+            if not tokens:
+                return Color.browse()
+            for token in tokens:
+                exact = colors.filtered(
+                    lambda color, token=token: (
+                        color.name.casefold() == token.casefold() or (color.code or "").casefold() == token.casefold()
+                    )
                 )
-            )
-            if len(exact) != 1:
-                return Color.browse()
-            found.append(exact.id)
-        if len(set(found)) != 1:
+                if len(exact) != 1:
+                    return Color.browse()
+                found.append(exact.id)
+        if not found:
             return Color.browse()
-        return Color.browse(found[0])
+        return Color.browse(found)
 
     def _append_labelled_note(self, profile, external_id, field_name, value) -> None:
         line = provenance_line(external_id, field_name, value)

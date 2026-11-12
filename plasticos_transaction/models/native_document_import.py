@@ -1579,6 +1579,15 @@ def _create_grade_product(importer, xml_id, grade, description):
     return product
 
 
+def _color_set_label(records):
+    labels = []
+    for record in records:
+        label = getattr(record, "code", None) or record.display_name
+        if label:
+            labels.append(label)
+    return ", ".join(labels)
+
+
 def _material_line_values(importer, report, model_name, existing, detail_id, normalized):
     """Fill empty material fields. A stored value that disagrees is kept and reported.
 
@@ -1592,7 +1601,6 @@ def _material_line_values(importer, report, model_name, existing, detail_id, nor
         ("material_grade_id", "material_grade"),
         ("form_id", "form"),
         ("source_type_id", "source_type"),
-        ("color_id", "color"),
         ("packaging_type_id", "packaging_type"),
         ("filler_type_id", "filler_type"),
     ):
@@ -1619,6 +1627,15 @@ def _material_line_values(importer, report, model_name, existing, detail_id, nor
                 detail_id,
                 f"origin_process_type stored {current}, normalizer {process}; kept",
             )
+    resolved_colors = getattr(normalized, "color", None)
+    if resolved_colors and "color_ids" in fields:
+        current_colors = existing.color_ids if existing is not None else resolved_colors.browse()
+        if not current_colors:
+            values["color_ids"] = [Command.set(list(resolved_colors.ids))]
+        elif set(current_colors.ids) != set(resolved_colors.ids):
+            stored = _color_set_label(current_colors)
+            wanted = _color_set_label(resolved_colors)
+            report.anomaly("WKSDetail", detail_id, f"color_ids stored {stored}, normalizer {wanted}; kept")
     if normalized.attributes and "material_attribute_ids" in fields:
         current = existing.material_attribute_ids if existing is not None else normalized.attributes.browse()
         missing = normalized.attributes - current

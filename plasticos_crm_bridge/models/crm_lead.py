@@ -552,9 +552,8 @@ class CrmLeadPlastOS(models.Model):
             related = profile[source_name]
             if related:
                 vals[target_name] = related.id
-        sole = profile._sole_color()
-        if sole:
-            vals["color_id"] = sole.id
+        if profile.color_ids:
+            vals["color_ids"] = [(6, 0, profile.color_ids.ids)]
         for source_name, target_name in (
             ("melt_flow_index", "mfi_value"),
             ("density", "density_value"),

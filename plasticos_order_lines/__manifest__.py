@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Order Lines",
-    "version": "19.0.1.1.2",
+    "version": "19.0.1.1.3",
     "category": "Inventory/Purchase",
     "summary": "Extend PO/SO lines with full material specifications",
     "description": """

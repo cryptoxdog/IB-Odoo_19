@@ -1593,7 +1593,7 @@ class PlasticosWebLead(models.Model):
             "assigned_user_id": self.assigned_user_id.id or False,
         }
         if color_rec:
-            intake_vals["color_id"] = color_rec.id
+            intake_vals["color_ids"] = [(6, 0, color_rec.ids)]
         if packaging_rec:
             intake_vals["packaging_type_id"] = packaging_rec.id
         if filler_rec:

@@ -92,7 +92,7 @@
       <field name="code">LDPE_MIXED_FILM</field>
       <field name="polymer_id" ref="polymer_ldpe"/>
       <field name="form_id" ref="form_film"/>
-      <field name="color_id" ref="color_mixed"/>
+      <field name="color_ids" eval="[(6, 0, [ref('color_mixed')])]"/>
       <field name="packaging_type_id" ref="packaging_bales"/>
       <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">90</field>

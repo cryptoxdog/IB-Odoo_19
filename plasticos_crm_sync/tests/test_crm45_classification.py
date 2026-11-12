@@ -447,6 +447,22 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertEqual(profile.loads_per_month, 4)
         self.assertEqual(profile.color_ids.mapped("code"), ["BLUE"])
 
+    def test_comma_color_phrase_fills_the_color_set(self):
+        orch = SyncOrchestrator(self.env)
+        lead = orch._upsert_lead(
+            self.connection,
+            self._lead(
+                "crm45-two-colors",
+                custom_fields={
+                    "Material (HDPE)": "HDPE Drums",
+                    "Color (HDPE)": "Blue, Green",
+                },
+            ),
+        )
+        profile = self._profiles(lead)
+        self.assertEqual(set(profile.color_ids.mapped("code")), {"BLUE", "GREEN"})
+        self.assertFalse(orch._exact_color(["Blue, not-a-color"]))
+
     def test_pps_notes_attach_only_to_a_distinguished_profile(self):
         orch = SyncOrchestrator(self.env)
         generic = orch._upsert_lead(

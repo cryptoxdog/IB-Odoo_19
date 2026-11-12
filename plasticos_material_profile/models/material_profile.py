@@ -465,12 +465,6 @@ class PlasticosMaterialProfile(models.Model):
             code = rec.form_id.code if rec.form_id else False
             rec.form = code if code in valid_codes else False
 
-    def _sole_color(self):
-        """The color when this profile names exactly one."""
-        self.ensure_one()
-        colors = self.color_ids
-        return colors if len(colors) == 1 else colors.browse()
-
     @api.depends("source_type_id", "source_type_id.code")
     def _compute_source_type_code(self):
         valid_codes = {k for k, _ in self._fields["source_type"].selection}
@@ -683,7 +677,7 @@ class PlasticosMaterialProfile(models.Model):
             "product_uom_id": product_uom_id,
             "material_profile_id": self.id,
             "material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
-            "color_id": self._sole_color().id or False,
+            "color_ids": [(6, 0, self.color_ids.ids)],
             "form_id": self.form_id.id if self.form_id else False,
             "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
             "source_type_id": self.source_type_id.id if self.source_type_id else False,
