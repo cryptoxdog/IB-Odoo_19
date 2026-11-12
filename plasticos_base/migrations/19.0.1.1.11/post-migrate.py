@@ -13,11 +13,17 @@ that calls the retired method, archived crons included, and deletes each one wit
 delegated server action. The plasticos_base xmlids of the cron and of its server
 action are removed in every case.
 
-A cron that is running right now cannot be deleted. The script then tries to switch it
-off; that UPDATE waits on the running job's row lock, up to the 15 s lock_timeout the
-Odoo loader sets. If the lock is still held, the cron is left as it is and a WARNING
-names it: the upgrade is never aborted. Once that run has ended, re-run this script from
-an Odoo shell (``odoo shell -d <db>``); it finds the cron by its code:
+A cron that is running right now cannot be deleted: ``unlink()`` refuses with a
+``UserError`` when the job holds its row lock, and raises a serialization failure when
+the job committed a change to that row after this transaction's REPEATABLE READ
+snapshot. Both are caught. The script then switches the cron off with an UPDATE that
+waits on the row lock, up to the 15 s lock_timeout the Odoo loader sets. If that UPDATE
+succeeds, this transaction holds the row lock and ``unlink()`` is tried once more; the
+cron stays inactive only if that also fails. If the UPDATE hits the lock timeout or a
+serialization failure, the cron is left as it is. In both cases a WARNING names the
+cron and the exception class, and the upgrade continues. Once that run has ended,
+re-run this script from an Odoo shell (``odoo shell -d <db>``); it finds the cron by
+its code:
 
     import importlib.util, os
     from odoo.modules import get_module_path
@@ -31,7 +37,8 @@ an Odoo shell (``odoo shell -d <db>``); it finds the cron by its code:
 
 import logging
 
-import psycopg2
+import psycopg2.errors
+from psycopg2.extensions import TransactionRollbackError
 
 from odoo import SUPERUSER_ID, api
 from odoo.exceptions import UserError
@@ -47,6 +54,16 @@ def _xmlid_rows(env):
     return env["ir.model.data"].search([("module", "=", "plasticos_base"), ("name", "in", _XMLIDS)])
 
 
+def _unlink(cr, cron):
+    """Delete ``cron``; return the exception class name when it is refused, else None."""
+    try:
+        with cr.savepoint():
+            cron.unlink()
+    except (UserError, TransactionRollbackError) as exc:
+        return type(exc).__name__
+    return None
+
+
 def migrate(cr, version):
     if not version:
         return
@@ -60,23 +77,31 @@ def migrate(cr, version):
     actions = Action.browse(rows.filtered(lambda r: r.model == "ir.actions.server").mapped("res_id")).exists()
     actions |= crons.ir_actions_server_id
 
-    deleted, deactivated, locked = [], [], []
+    deleted, deactivated, left = [], {}, {}
     for cron in crons:
-        try:
-            with cr.savepoint():
-                cron.unlink()
+        refused = _unlink(cr, cron)
+        if refused is None:
             deleted.append(cron.id)
             continue
-        except UserError:
-            pass  # running in another worker: unlink refuses without waiting
         try:
-            # Waits for that run to commit, up to the loader's lock_timeout.
+            # Waits for the running job's row lock, up to the loader's lock_timeout.
             with cr.savepoint():
-                cr.execute("UPDATE ir_cron SET active = false WHERE id = %s", (cron.id,))
-            deactivated.append(cron.id)
-        except psycopg2.OperationalError:
-            locked.append(cron.id)
+                cr.execute(
+                    "UPDATE ir_cron SET active = false WHERE id = %s",
+                    (cron.id,),
+                    log_exceptions=False,
+                )
+        except (psycopg2.errors.LockNotAvailable, TransactionRollbackError) as exc:
+            cron.invalidate_recordset(["active"])
+            left[cron.id] = f"{refused}, then {type(exc).__name__}"
+            continue
         cron.invalidate_recordset(["active"])
+        # This transaction now holds the row lock, so the job has ended: try again.
+        retry = _unlink(cr, cron)
+        if retry is None:
+            deleted.append(cron.id)
+        else:
+            deactivated[cron.id] = f"{refused}, then {retry}"
 
     removed_actions = []
     for action in actions.exists():
@@ -96,12 +121,12 @@ def migrate(cr, version):
         removed_actions,
         leftover_ids,
     )
-    if deactivated or locked:
+    if deactivated or left:
         _logger.warning(
-            "plasticos_base 19.0.1.1.11: ir.cron %s (deactivated) and %s (still active, row lock held) "
-            "were running and could not be deleted, and now have no plasticos_base xmlid. Remove them "
-            "once that run ends: re-run plasticos_base/migrations/19.0.1.1.11/post-migrate.py from an "
-            "Odoo shell (see its docstring).",
+            "plasticos_base 19.0.1.1.11: ir.cron could not be deleted while it was running and now has "
+            "no plasticos_base xmlid; deactivated %s, left active %s (exception classes). Remove it once "
+            "that run ends: re-run plasticos_base/migrations/19.0.1.1.11/post-migrate.py from an Odoo "
+            "shell (see its docstring).",
             deactivated,
-            locked,
+            left,
         )

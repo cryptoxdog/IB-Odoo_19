@@ -571,8 +571,9 @@
 ./plasticos_base/hooks.py:8:def pre_init_hook(env):
 ./plasticos_base/hooks.py:47:def post_init_hook(env):
 ./plasticos_base/migrations/19.0.1.0.2/post-migrate.py:8:def migrate(cr, version):
-./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:46:def _xmlid_rows(env):
-./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:50:def migrate(cr, version):
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:53:def _xmlid_rows(env):
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:57:def _unlink(cr, cron):
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:67:def migrate(cr, version):
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:16:def migrate(cr, version):
 ./plasticos_base/migrations/19.0.1.1.6/pre-migrate.py:25:def migrate(cr, version):
 ./plasticos_base/migrations/19.0.1.1.7/post-migrate.py:21:def migrate(cr, version):
