@@ -1,6 +1,7 @@
 import logging
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -40,19 +41,39 @@ class PurchaseOrder(models.Model):
             tx = po_tx.get(order.id)
             order.delivery_term = tx.delivery_term if tx else False
 
+    def _origin_sale_orders(self):
+        """Sale orders named by each purchase order's origin, per ``(company id, name)``."""
+        sales_by_key = {}
+        origins = list({order.origin for order in self if order.origin})
+        if not origins:
+            return sales_by_key
+        sale_orders = self.env["sale.order"].search(
+            [("name", "in", origins), ("company_id", "in", self.company_id.ids)]
+        )
+        for sale in sale_orders:
+            sales_by_key.setdefault((sale.company_id.id, sale.name), []).append(sale)
+        return sales_by_key
+
     def button_confirm(self):
+        """Confirm, then attach each order to the transaction of the sale order its origin names.
+
+        The sale order is looked up in the purchase order's company. An origin
+        that names more than one sale order is refused before confirmation.
+        """
+        sales_by_key = self._origin_sale_orders()
+        for rec in self:
+            if len(sales_by_key.get((rec.company_id.id, rec.origin), [])) > 1:
+                raise UserError(
+                    f"Cannot confirm {rec.display_name}: more than one sale order is named {rec.origin}. "
+                    "Correct the origin so it names exactly one sale order."
+                )
+
         res = super().button_confirm()
 
-        # Batch query: find all SOs by origin in one query
-        origins = [rec.origin for rec in self if rec.origin]
-        if origins:
-            sale_orders = self.env["sale.order"].search([("name", "in", origins)])
-            so_by_name = {so.name: so for so in sale_orders}
-            for rec in self:
-                if rec.origin and rec.origin in so_by_name:
-                    so = so_by_name[rec.origin]
-                    if so.transaction_id:
-                        so.transaction_id.purchase_order_ids = [(4, rec.id)]
+        for rec in self:
+            sale_orders = sales_by_key.get((rec.company_id.id, rec.origin), [])
+            if sale_orders and sale_orders[0].transaction_id:
+                sale_orders[0].transaction_id.purchase_order_ids = [(4, rec.id)]
 
         return res
 
@@ -85,17 +106,19 @@ class PurchaseOrder(models.Model):
         return res
 
     def _find_transaction_for_po(self, order):
-        """Find the transaction linked to this purchase order."""
-        tx = None
+        """The one transaction this purchase order belongs to, or nothing when that is not unique."""
+        Transaction = self.env["plasticos.transaction"]
         if order.origin:
-            so = self.env["sale.order"].search([("name", "=", order.origin)], limit=1)
-            if so and hasattr(so, "transaction_id") and so.transaction_id:
-                tx = so.transaction_id
-
-        if not tx:
-            tx = self.env["plasticos.transaction"].search(
-                [("purchase_order_ids", "in", [order.id])],
-                limit=1,
+            sale_orders = self.env["sale.order"].search(
+                [("name", "=", order.origin), ("company_id", "=", order.company_id.id)]
             )
-
-        return tx
+            if len(sale_orders) > 1:
+                _logger.warning("PO %s: origin %s names more than one sale order", order.name, order.origin)
+                return Transaction
+            if sale_orders.transaction_id:
+                return sale_orders.transaction_id
+        holders = Transaction.search([("purchase_order_ids", "in", [order.id])])
+        if len(holders) > 1:
+            _logger.warning("PO %s belongs to more than one transaction", order.name)
+            return Transaction
+        return holders

@@ -1,0 +1,86 @@
+[
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Master material identity and fields",
+    "owner": "plasticos_material_profile",
+    "status": "REUSE"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Existing HOT/REVIEW/COLD; not replace recommender",
+    "owner": "plasticos_web_leads",
+    "status": "REVISE_ADVISORY_ONLY"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Commercial opportunity approvals and snapshots",
+    "owner": "plasticos_crm_bridge",
+    "status": "REUSE"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Gate/CEG match run and result",
+    "owner": "plasticos_matching",
+    "status": "REUSE"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Native offer terms, disposition, human send",
+    "owner": "plasticos_offer",
+    "status": "REUSE"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Load scheduling and freight",
+    "owner": "plasticos_logistics",
+    "status": "REUSE"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Originals, association, verification",
+    "owner": "plasticos_documents_native",
+    "status": "REUSE"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "6 passive models, currently off",
+    "owner": "plasticos_semantic_kernel",
+    "status": "DEFER"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Immutable verified chatter intent, company scope and idempotency",
+    "owner": "plasticos_mack_workbench (Development only)",
+    "status": "HARVEST_DESIGN_ONLY"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Draft knowledge/advice, not on Staging",
+    "owner": "plasticos_broker_intelligence (local ZIP only)",
+    "status": "EXTEND_AFTER_SEPARATE_APPROVAL"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Standalone advice consultation, not Mack chat generation",
+    "owner": "plasticos_broker_intelligence_mack (local ZIP only)",
+    "status": "EXTEND_AFTER_SEPARATE_APPROVAL"
+  },
+  {
+    "deployment_status": "SOURCE_ONLY_NOT_RUNTIME_VERIFIED",
+    "notes": "A source snapshot, Odoo installation is not implied.",
+    "observed_role": "Advisory-only action; no live classification integration",
+    "owner": "plasticos_broker_intelligence_web_leads (local ZIP only)",
+    "status": "EXTEND_AFTER_SEPARATE_APPROVAL"
+  }
+]

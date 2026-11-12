@@ -251,6 +251,23 @@ else:
         <field name="active" eval="True"/>
     </record>
 
+    <!-- Rule: Trigger Penalty Calculation when a posted invoice gains its transaction.
+         plasticos_transaction links a move to its transaction AFTER posting, so the rule
+         above (not posted -> posted with a transaction) cannot match on that path: at the
+         posting write the move has no transaction yet. This rule fires on the recompute of
+         the derived transaction_id (empty -> set) of an already posted move. The action is
+         idempotent through has_penalty. -->
+    <record id="rule_trigger_penalty_on_transaction_link" model="base.automation">
+        <field name="name">Trigger Penalty Calculation on Transaction Link</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="trigger">on_write</field>
+        <field name="trigger_field_ids" eval="[(6, 0, [ref('plasticos_automation.field_account_move__transaction_id')])]"/>
+        <field name="filter_pre_domain">[('transaction_id', '=', False)]</field>
+        <field name="filter_domain">[('state', '=', 'posted'), ('transaction_id', '!=', False)]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_auto_calculate_penalties'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
     <!-- Action: Supplier Ready - Create DO -->
     <record id="action_supplier_ready_create_do" model="ir.actions.server">
         <field name="name">Supplier Ready - Trigger DO Creation</field>

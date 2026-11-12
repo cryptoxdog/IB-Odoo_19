@@ -1,0 +1,192 @@
+[
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "449b5863528a5b039d32ceb66f92a6ee370f8fa1",
+    "observed_subject": "POS-INV-01/02/03/04/05/06/07/12/15/17/18/19/20",
+    "path": "INVARIANTS.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "4d49f7dc82a6ceb8f07fa94025616b9dbf4dec75",
+    "observed_subject": "material master and measured fields",
+    "path": "plasticos_material_profile/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "46010a1c571f9a15c7c7f5cf69b7bb5f2c39eed4",
+    "observed_subject": "local triage/review",
+    "path": "plasticos_web_leads/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "2765d105f9a262d9e4bfbbdf7535ec827fdbbb6a",
+    "observed_subject": "opportunity, approval and offer creation",
+    "path": "plasticos_crm_bridge/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "976c76b12484012b12adea15cff75cd70944f71e",
+    "observed_subject": "Gate-only matching and reviewed results",
+    "path": "plasticos_matching/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "151eaff1838524cabbb1a707fee3c587c0bd3880",
+    "observed_subject": "offer lifecycle, not actual email",
+    "path": "plasticos_offer/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "0b4158d6a3bb0d04776ecb31e55db6e9e185668",
+    "observed_subject": "load, freight and BOL",
+    "path": "plasticos_logistics/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "85e5e66bf1f76c58fef543ad3dfedb52e4e17b3e",
+    "observed_subject": "native Documents verification",
+    "path": "plasticos_documents_native/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "88837ead13611aa0e4367a642cec2a39f3a77110",
+    "observed_subject": "retired local inference, Gate convergence",
+    "path": "plasticos_enrichment/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "804919a0070e9bf8921b37b69d44ea7691cf66ea",
+    "observed_subject": "6 passive optional models uninstalled by policy",
+    "path": "plasticos_semantic_kernel/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "13a00d766fd9a4b8b543fd1588c6692b9403c290",
+    "observed_subject": "HOT REVIEW COLD and one economic recommender",
+    "path": "docs/adr/ADR-016-web-lead-triage-boundary.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "dd5654a452f2324079bc37ce51a5bf7e45552821",
+    "observed_subject": "manual review and offer send",
+    "path": "docs/adr/ADR-018-human-brokerage-checkpoints.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "6f223eaefe5e0bf7e38d49a3fe8018d3c3b8dc28",
+    "observed_subject": "CEG DomainSpec scoring owner",
+    "path": "docs/adr/ADR-014-domainspec-ssot-gates-scoring-readiness.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "dcc2341e2a62e055847942f4f84b2074af569430",
+    "observed_subject": "material identity vs transaction snapshot",
+    "path": "docs/adr/ADR-004-intake-vs-material-profile-domain-split.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "86d64c286f2ec946d2f7c1a86206b0cb05bfa83f",
+    "observed_subject": "web-lead-economic-assessment/v2",
+    "path": "plasticos_web_leads/models/economic_evaluator.py",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "e172df0b55cd8ae5f23b8aecbec6aeaf0ce89c21",
+    "observed_subject": "vision fields/uncertainty",
+    "path": "plasticos_web_leads/models/image_analyzer.py",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "ab19f6a41967950c8b28c6365562495017dca5e1",
+    "observed_subject": "match result rejected, textual reason",
+    "path": "plasticos_matching/models/match_result.py",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "1311e9dc4cb1aa595d288cf286be762eb00069eb",
+    "observed_subject": "offer reject and terms lifecycle",
+    "path": "plasticos_offer/models/offer.py",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "4c19d4ac2250e78facfc364dbc14341ddc98ae28",
+    "observed_subject": "scoped buyer/supplier exclusions",
+    "path": "plasticos_matching/models/match_exclusion.py",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Staging",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "fc5c54bfd57bf7314aa623aba30087433e49895a",
+    "observed_subject": "12 sections; technical PP statements unverified",
+    "path": "plasticos_enrichment/knowledge_base/plasticos_kb_PP_v8.0.yaml",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "64896c7fc976daa67d90ca51ff4570900ce7b0c7"
+  },
+  {
+    "branch_at_observation": "Development",
+    "claim_verification": "CONNECTOR_SOURCE_READ_NOT_LOCAL_REHASH",
+    "git_blob_sha1": "5906350202027f79019e883c7587511e5de5522c",
+    "observed_subject": "WIP Mack, not on Staging",
+    "path": "plasticos_mack_workbench/README.md",
+    "repo": "https://github.com/cryptoxdog/IB-Odoo_19",
+    "revision": "d9933baaf517750779e592181d9d5ef4abdc3485",
+    "selector": "native chat intent receipts"
+  }
+]

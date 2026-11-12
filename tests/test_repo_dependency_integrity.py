@@ -41,6 +41,7 @@ KNOWN_ODOO_ADDONS = frozenset(
     {
         "account",
         "account_debit_note",
+        "account_invoice_extract",
         "barcodes",
         "base",
         "base_automation",
