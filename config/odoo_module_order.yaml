@@ -121,6 +121,7 @@ default_install_order:
   - plasticos_partner_import      # after crm_bridge
   - plasticos_crm_sync            # after crm_bridge + security_base
   - plasticos_admin_dashboard
+  - plasticos_export             # Export campaign; depends plasticos_documents_native (Enterprise documents)
 
 # Web leads kept as named section for scoped test scripts:
 web_leads_module:
@@ -130,7 +131,8 @@ web_leads_module:
 excluded_modules:
   - plasticos_dev_tools         # installable: False
   - plasticos_website           # installable: False
-  - plasticos_documents_native  # needs Enterprise documents (install on Odoo.sh only)
+  - plasticos_documents_native  # needs Enterprise documents; never named in -i/-u here. On the Enterprise
+                                #   fixture Odoo installs it anyway (auto_install, and as plasticos_export's dependency)
   - plasticos_inference_engine  # DELETED — external CEG microservice
   - plasticos_buyer_match_engine # DELETED — external CEG microservice
   - plasticos_enrichment_bridge # DELETED / retired

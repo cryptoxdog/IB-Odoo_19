@@ -158,3 +158,48 @@ def test_retired_modules_absent_from_every_depends():
         f"{mod} -> {dep}" for mod, data in MANIFESTS.items() for dep in data.get("depends", []) if dep in retired
     ]
     assert not offenders, "Manifests still depending on M7-retired modules:\n  " + "\n  ".join(offenders)
+
+
+# PlasticOS Export campaign (contract PLASTICOS-EXPORT-C04-S5A): Export depends on
+# its owners, never the reverse (dependency direction Export -> Logistics /
+# Documents / Security Base).
+EXPORT_MODULE = "plasticos_export"
+EXPORT_ALLOWED_PLASTICOS_DEPENDS = frozenset(
+    {
+        "plasticos_documents_native",
+        "plasticos_documents",
+        "plasticos_logistics",
+        "plasticos_security_base",
+        "plasticos_transaction",
+    }
+)
+
+
+def _depends_closure(module: str) -> set[str]:
+    seen: set[str] = set()
+    pending = [module]
+    while pending:
+        for dep in MANIFESTS.get(pending.pop(), {}).get("depends", []):
+            if dep not in seen:
+                seen.add(dep)
+                pending.append(dep)
+    return seen
+
+
+def test_no_module_depends_on_export():
+    upstream = [mod for mod in MANIFESTS if mod != EXPORT_MODULE and EXPORT_MODULE in _depends_closure(mod)]
+    assert not upstream, f"Modules depending on {EXPORT_MODULE} (dependency must point the other way): {upstream}"
+
+
+def test_export_manifest_shape_and_direct_dependencies():
+    data = MANIFESTS[EXPORT_MODULE]
+    assert data["installable"] is True
+    assert data["application"] is True
+    assert data["auto_install"] is False, "Export must not install itself; activation is a separate decision"
+    assert "plasticos_documents_native" in data["depends"]
+    stray = [
+        dep for dep in data["depends"] if dep.startswith("plasticos_") and dep not in EXPORT_ALLOWED_PLASTICOS_DEPENDS
+    ]
+    assert not stray, f"{EXPORT_MODULE} depends on modules outside its owner set: {stray}"
+    closure = _depends_closure(EXPORT_MODULE)
+    assert {"documents", "documents_account"} <= closure, "Export must reach Enterprise Documents"
