@@ -1,17 +1,37 @@
-"""Static witness (S11, C12-SCOPE-2): no scheduled or automated entry point reaches a Linda-gated command.
+"""Static witness (S11, C12-SCOPE-2/SCOPE-3): no declared automated entry point reaches a Linda-gated command.
 
-Pure Python, no Odoo import, so it also runs outside the Odoo test runner.
+Pure Python, no Odoo import, so it also runs outside the Odoo test runner
+(``python3 -I linda_gate_reach.py <repository root>``).
 
-Entry points are every ``ir.cron``, ``base.automation`` and ``ir.actions.server``
-record declared in the XML data of the PlasticOS addons: the method names their
-``code`` calls. The call graph is name-based over every non-test Python file of
-those addons (a function name stands for every definition with that name), so it
-over-approximates reach: a path it does not find does not exist by name. An
-entry point that runs as ``plasticos_logistics.user_linda`` would be allowed
-(the gate then holds its edge cases); none does today.
+What it covers: every ``ir.cron``, ``base.automation`` and ``ir.actions.server``
+``<record>`` in the XML data of the PlasticOS addons, followed through a
+name-based call graph of all their Python except ``tests/``, ``migrations/`` and
+the operator shell ``scripts/`` (no addon module imports those). A function
+name stands for every definition with that name, so it over-approximates.
+``getattr(obj, "prefix…")`` and ``getattr(obj, f"prefix{…}")`` are followed
+conservatively: the call reaches every function and gated command whose name
+starts with that literal prefix. An entry point that runs as
+``plasticos_logistics.user_linda`` is allowed (the gate then holds its edge
+cases); none does today.
+
+What it does not cover, so a clean result is not proof about these:
+
+* implicit ORM dispatch (``create``/``write`` overrides, computed fields,
+  onchanges, ``_inherit`` chains reached through framework code) beyond the
+  names the graph links by call;
+* ``getattr`` with a fully computed name (no literal prefix);
+* entry points stored only in the database (crons or server actions created at
+  runtime) or declared by non-PlasticOS addons;
+* entries declared in CSV data or through ``<function>`` tags;
+* calls over RPC, controllers and the mail gateway, which run as their caller
+  rather than as a scheduled user;
+* a call spelled like a Python builtin or a method of a builtin type (``open``,
+  ``append``, ``get``…), which is not followed by name.
 """
 
 import ast
+import builtins
+import io
 import re
 from pathlib import Path
 from xml.etree import ElementTree
@@ -28,6 +48,8 @@ GATED_COMMANDS = frozenset(
         "action_record_verified_gross_mass",
         "_record_kind",
         "_correct",
+        "action_confirm_ready",
+        "action_record_actual_event",
     }
 )
 ENTRY_MODELS = ("ir.cron", "base.automation", "ir.actions.server")
@@ -69,7 +91,8 @@ def call_graph(root):
     graph = {}
     for addon in addon_dirs(root):
         for py_file in sorted(addon.rglob("*.py")):
-            if {"tests", "migrations"} & set(py_file.parts):
+            # scripts/ are piped into ``odoo-bin shell`` by an operator; no addon module imports them.
+            if {"tests", "migrations", "scripts"} & set(py_file.relative_to(addon).parts):
                 continue
             try:
                 tree = ast.parse(py_file.read_text(encoding="utf-8"))
@@ -83,10 +106,51 @@ def call_graph(root):
                     if isinstance(inner, ast.Call):
                         func = inner.func
                         if isinstance(func, ast.Attribute):
-                            calls.add(func.attr)
+                            if func.attr not in _BUILTIN_METHODS:
+                                calls.add(func.attr)
                         elif isinstance(func, ast.Name):
-                            calls.add(func.id)
+                            if func.id not in _BUILTIN_NAMES:
+                                calls.add(func.id)
+                            prefix = _getattr_prefix(inner) if func.id == "getattr" else None
+                            if prefix is not None:
+                                calls.add(PREFIX_MARK + prefix)
     return graph
+
+
+PREFIX_MARK = "getattr-prefix:"
+# A call spelled like a Python builtin, or like a method of a builtin type, is not followed
+# by name: ``open(...)`` and ``rows.append(...)`` would otherwise reach every PlasticOS
+# method that happens to share that name (stated limit).
+_BUILTIN_NAMES = frozenset(dir(builtins))
+_BUILTIN_METHODS = frozenset(
+    name
+    for kind in (list, dict, set, frozenset, str, bytes, tuple, int, float, io.IOBase, io.StringIO)
+    for name in dir(kind)
+    if not name.startswith("__")
+)
+
+
+def _getattr_prefix(call):
+    """The literal leading text of ``getattr``'s name argument, or None when there is none."""
+    if len(call.args) < 2:
+        return None
+    name = call.args[1]
+    if isinstance(name, ast.Constant) and isinstance(name.value, str):
+        return name.value
+    if isinstance(name, ast.JoinedStr) and name.values:
+        head = name.values[0]
+        if isinstance(head, ast.Constant) and isinstance(head.value, str):
+            return head.value
+        return ""
+    return None
+
+
+def _callees(graph, name):
+    """Who ``name`` calls; a getattr prefix reaches every function and gated command it can name."""
+    if name.startswith(PREFIX_MARK):
+        prefix = name[len(PREFIX_MARK) :]
+        return sorted({candidate for candidate in (*graph, *GATED_COMMANDS) if candidate.startswith(prefix)})
+    return sorted(graph.get(name, ()))
 
 
 def gated_paths(root):
@@ -106,5 +170,16 @@ def gated_paths(root):
             if name in GATED_COMMANDS:
                 hits.append((xml_id, name, chain))
                 continue
-            queue.extend((callee, (*chain, callee)) for callee in sorted(graph.get(name, ())) if callee not in seen)
+            queue.extend((callee, (*chain, callee)) for callee in _callees(graph, name) if callee not in seen)
     return hits
+
+
+if __name__ == "__main__":
+    import sys
+
+    repository = sys.argv[1] if len(sys.argv) > 1 else "."
+    found = gated_paths(repository)
+    print(f"{len(entry_points(repository))} entry points, {len(found)} gated paths")
+    for hit in found:
+        print(hit)
+    sys.exit(1 if found else 0)

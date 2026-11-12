@@ -33,7 +33,7 @@ from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
 from .iso_journey import _check_company_allowed, _normalize_text, _require_logistics_actor, _result
-from .linda_approval import hold_for_approval, linda_acting, prior_refusal
+from .linda_approval import hold_for_approval, is_linda, linda_acting, prior_refusal, record_refusal
 
 PLASTICOS_LOAD = "plasticos.load"
 ISO_JOURNEY = "plasticos.iso.journey"
@@ -42,6 +42,9 @@ IR_ATTACHMENT = "ir.attachment"
 RES_PARTNER = "res.partner"
 _DECISION_WRITE = "plasticos_shipment_event_proposal_decision"
 _DECISION_WRITE_TOKEN = object()
+# Set only by action_propose_shipment_event: Linda creates proposals through it alone (C12-SCOPE-3 (3)).
+_PROPOSE_CREATE = "plasticos_shipment_event_proposal_propose"
+_PROPOSE_CREATE_TOKEN = object()
 
 # Linda dispositions that still identify a current reply on the right request.
 _USABLE_DISPOSITIONS = frozenset({"identity_unverified", "unresolved"})
@@ -82,6 +85,13 @@ _PROPOSAL_FIELDS = frozenset(
         "operation_key",
     }
 )
+
+
+def _proposal_subject_key(subject, event_kind):
+    """The Linda ledger subject of a proposal: its load, or its journey and event kind."""
+    if subject._name == "plasticos.load":
+        return f"load:{subject.id}"
+    return f"journey:{subject.id}:{event_kind}"
 
 
 class _ProbeRollback(Exception):
@@ -194,6 +204,8 @@ class PlasticosShipmentEventProposal(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         _require_logistics_actor(self.env)
+        if is_linda(self.env) and self.env.context.get(_PROPOSE_CREATE) is not _PROPOSE_CREATE_TOKEN:
+            raise AccessError("Linda proposes shipment events only through action_propose_shipment_event.")
         for vals in vals_list:
             if vals.get("state", "candidate") != "candidate" or any(vals.get(name) for name in _DECISION_FIELDS[1:]):
                 raise UserError("A shipment event proposal starts as a candidate; accept it to run the owner command.")
@@ -353,6 +365,9 @@ class PlasticosShipmentEventProposal(models.Model):
     def action_propose_shipment_event(self, values, operation_key):
         """Record one typed candidate. Writes nothing but the proposal.
 
+        Linda's refusal is recorded in the approval ledger against the subject, so her
+        next proposal there is held (C12-SCOPE-3 (2)).
+
         Returns ``{status, record_id?, reason?}`` with status ``applied``,
         ``already_applied``, ``blocked``, ``not_available`` or ``rejected``.
         Replay by ``operation_key`` returns the same proposal (``already_applied``)
@@ -360,6 +375,24 @@ class PlasticosShipmentEventProposal(models.Model):
         ``blocked`` when the facts differ.
         """
         _require_logistics_actor(self.env)
+        result = self._propose_shipment_event(values, operation_key)
+        if linda_acting(self.env):
+            subject = self._subject_from_vals(values or {})
+            if subject:
+                record_refusal(
+                    self.env,
+                    "propose_shipment_event",
+                    _proposal_subject_key(subject, values.get("event_kind")),
+                    subject.company_id,
+                    result,
+                    {"values": values, "operation_key": _normalize_text(operation_key)},
+                    operation_key,
+                    subject,
+                )
+        return result
+
+    @api.model
+    def _propose_shipment_event(self, values, operation_key):
         key = _normalize_text(operation_key)
         if not key:
             return _result("blocked", reason="operation_key is required")
@@ -392,13 +425,13 @@ class PlasticosShipmentEventProposal(models.Model):
                 return held
         try:
             with self.env.cr.savepoint():
-                proposal = self.create({**values, "company_id": company.id, "operation_key": key})
+                proposal = self._proposer().create({**values, "company_id": company.id, "operation_key": key})
         except psycopg2.errors.UniqueViolation:
             # A concurrent propose with the same key won; answer from its row.
             self.env.invalidate_all()
             winner = self.search([("company_id", "=", company.id), ("operation_key", "=", key)], limit=1)
             if winner:
-                return self.action_propose_shipment_event(values, key)
+                return self._propose_shipment_event(values, key)
             return _result("blocked", reason="constraint violated: a unique key is taken by a row you cannot read")
         except psycopg2.IntegrityError as error:
             return _result("blocked", reason=f"constraint violated: {error.diag.constraint_name or 'database'}")
@@ -406,37 +439,47 @@ class PlasticosShipmentEventProposal(models.Model):
             return _result("blocked", reason=str(error.args[0] if error.args else error))
         return _result("applied", proposal)
 
+    def _proposer(self):
+        return self.with_context(**{_PROPOSE_CREATE: _PROPOSE_CREATE_TOKEN})
+
     @api.model
     def _linda_propose_gate(self, values, key, company, subject):
-        """Hold Linda's proposal citing an unverified Linda reply, or retrying a refusal (C12-SCOPE-2).
+        """Hold Linda's proposal citing an unverified Linda reply, or retrying after a refusal.
 
         The proposal is first built and checked inside a rolled-back savepoint, so
         an invalid one is refused as usual and only a standing one is held.
         """
         response = self.env["plasticos.logistics.response"].browse(int(values.get("linda_response_id") or 0))
+        subject_key = _proposal_subject_key(subject, values.get("event_kind"))
         edge = None
         if response.exists() and response.disposition in ("identity_unverified", "unresolved"):
             edge = "unverified_linda_reply"
-        if prior_refusal(self.env, "propose_shipment_event", key, company):
+        if prior_refusal(self.env, "propose_shipment_event", subject_key, company):
             edge = "refusal_retry"
         if not edge:
             return None
         try:
             with self.env.cr.savepoint():
-                self.create({**values, "company_id": company.id, "operation_key": key})
+                self._proposer().create({**values, "company_id": company.id, "operation_key": key})
                 raise _ProbeRollback
         except _ProbeRollback:
             self.env.invalidate_all()
+        except psycopg2.errors.UniqueViolation:
+            # A concurrent propose with the same key won while the probe ran; answer from its row.
+            self.env.invalidate_all()
+            return self._propose_shipment_event(values, key)
         except (UserError, ValidationError) as error:
             self.env.invalidate_all()
             return _result("blocked", reason=str(error.args[0] if error.args else error))
         reason = (
             f"the cited Linda reply is {response.disposition.replace('_', ' ')}"
             if edge == "unverified_linda_reply"
-            else "this operation key was refused or rejected before"
+            else "Linda's previous proposal on this subject was refused"
         )
         arguments = {"values": values, "operation_key": key}
-        return hold_for_approval(self.env, "propose_shipment_event", edge, reason, arguments, key, company, subject)
+        return hold_for_approval(
+            self.env, "propose_shipment_event", edge, reason, arguments, key, company, subject, subject_key=subject_key
+        )
 
     def _stored_value(self, name):
         value = self[name]
@@ -518,22 +561,41 @@ class PlasticosShipmentEventProposal(models.Model):
         held = []
         for rec in self:
             rec.check_access("read")
+            subject_key = f"proposal:{rec.id}"
+            arguments = {"proposal_id": rec.id, "note": _normalize_text(note)}
             if rec.state == "accepted":
                 held.append(_result("already_applied", rec))
                 continue
             if rec.state != "candidate":
-                held.append(_result("blocked", rec, "a rejected shipment event proposal cannot be accepted"))
+                refused = _result("blocked", rec, "a rejected shipment event proposal cannot be accepted")
+                held.append(
+                    record_refusal(
+                        self.env,
+                        "accept_shipment_event",
+                        subject_key,
+                        rec.company_id,
+                        refused,
+                        arguments,
+                        f"accept:{rec.id}",
+                        rec,
+                    )
+                )
                 continue
-            key = f"accept:{rec.id}"
-            edge = (
-                "refusal_retry"
-                if prior_refusal(self.env, "accept_shipment_event", key, rec.company_id)
-                else "acceptance"
-            )
-            arguments = {"proposal_id": rec.id, "note": _normalize_text(note)}
+            retry = prior_refusal(self.env, "accept_shipment_event", subject_key, rec.company_id)
+            edge = "refusal_retry" if retry else "acceptance"
             reason = f"Linda accepts the {rec.event_kind.replace('_', ' ')} proposal"
             held.append(
-                hold_for_approval(self.env, "accept_shipment_event", edge, reason, arguments, key, rec.company_id, rec)
+                hold_for_approval(
+                    self.env,
+                    "accept_shipment_event",
+                    edge,
+                    reason,
+                    arguments,
+                    f"accept:{rec.id}",
+                    rec.company_id,
+                    rec,
+                    subject_key=subject_key,
+                )
             )
         return held[0] if len(held) == 1 else held
 

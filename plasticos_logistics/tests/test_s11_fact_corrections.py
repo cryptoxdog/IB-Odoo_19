@@ -21,6 +21,7 @@ from unittest.mock import patch
 from odoo import fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
+from odoo.tools import mute_logger
 
 from .test_s9_logistics_features import FACT, JOURNEY, _S9Case
 
@@ -233,6 +234,62 @@ class TestJourneyFactCorrectionRefusals(_S11Case):
         with self.assertRaises(AccessError):
             self._as(rep).action_correct_fact(first.id, {"occurred_at": self._ago(7)}, "r", "c")
 
+    def test_correction_keeps_party_visibility_and_company(self):
+        """I6: a corrected party must be visible to the actor and shared or in the journey's company."""
+        journey = self._journey("S11-PARTY")
+        filing = self._attach(journey, "filing.pdf")
+        first = self._as().action_record_regulatory_parties(journey.id, self.filer.id, False, filing.id, "rp")
+        self.assertEqual(first["status"], "applied")
+        other = self.env["res.company"].create({"name": "S11 Party Other Co"})
+        foreign = self.env["res.partner"].create({"name": "S11 Foreign Broker", "company_id": other.id})
+        result = self._as().action_correct_fact(first["record_id"], {"customs_filer_id": foreign.id}, "broker", "rpc")
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertRegex(result["reason"], "customs filer (is not visible to you|belongs to another company)")
+        self.assertEqual(self.env[FACT].search_count([("journey_id", "=", journey.id), ("revision", ">", 1)]), 0)
+
+    def test_documents_vgm_basis_correction_needs_the_verdict(self):
+        """I6: switching a VGM to the Documents basis runs the Documents verdict guard."""
+        journey = self._journey("S11-VGM-BASIS")
+        ticket = self._attach(journey, "scale-ticket.pdf")
+        vgm = self._as().action_record_verified_gross_mass(
+            journey.id, 48975, self.lb.id, "scale_ticket", ticket.id, "T-1", "v"
+        )
+        result = self._as().action_correct_fact(
+            vgm["record_id"],
+            {
+                "weight_basis": "documents_verified_gross_mass",
+                "evidence_reference": "rev-1",
+                "evidence_attachment_id": False,
+            },
+            "use the verdict",
+            "vc",
+        )
+        self.assertIn(result["status"], ("blocked", "not_available"), result)
+        self.assertRegex(result["reason"], "Documents|verified_gross_mass")
+        self.assertEqual(self.env[FACT].search_count([("journey_id", "=", journey.id), ("revision", ">", 1)]), 0)
+
+    def test_concurrent_correction_is_answered_by_the_unique_key(self):
+        """I6: a correction that loses UNIQUE(journey, kind, revision) is blocked, never an IntegrityError."""
+        journey = self._journey("S11-RACE")
+        first, _doc = self._gate_in(journey)
+        winner = self._as().action_correct_fact(first.id, {"occurred_at": self._ago(7)}, "first fix", "w")
+        self.assertEqual(winner["status"], "applied")
+        fact_class = type(self.env[FACT])
+        original = fact_class._current
+        calls = []
+
+        def stale_once(model, journey, kind):
+            if kind == "gate_in" and not calls:
+                calls.append(kind)
+                return first
+            return original(model, journey, kind)
+
+        with patch.object(fact_class, "_current", stale_once), mute_logger("odoo.sql_db"):
+            loser = self._as().action_correct_fact(first.id, {"occurred_at": self._ago(8)}, "second fix", "l")
+        self.assertEqual(loser["status"], "blocked")
+        self.assertIn("concurrent correction", loser["reason"])
+        self.assertEqual(self.env[FACT].search_count([("journey_id", "=", journey.id)]), 2)
+
     def test_rows_stay_immutable_and_a_first_record_cannot_overwrite(self):
         journey = self._journey("S11-IMMUTABLE")
         first, doc = self._gate_in(journey)
@@ -260,7 +317,12 @@ class TestLindaSweepCursor(_S11Case):
         loads = self._load() | self._load() | self._load()
         Request = self.env[REQUEST].with_context(linda_load_sweep_batch=2)
         Param = type(self.env["ir.config_parameter"])
-        with patch.object(Param, "set_param", side_effect=AssertionError("the sweep wrote ir.config_parameter")):
+        refuse = AssertionError("the sweep wrote ir.config_parameter")
+        with (
+            patch.object(Param, "set_param", side_effect=refuse),
+            patch.object(Param, "create", side_effect=refuse),
+            patch.object(Param, "write", side_effect=refuse),
+        ):
             first = Request._load_sweep_page(self._domain(loads), "ack")
             second = Request._load_sweep_page(self._domain(loads), "ack")
         self.assertEqual(first, loads[:2], "one page of two loads, oldest first")

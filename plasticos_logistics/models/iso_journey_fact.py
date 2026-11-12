@@ -36,7 +36,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tools import float_compare, float_round
 
 from .iso_journey import _check_company_allowed, _lock, _normalize_text, _require_logistics_actor, _result
-from .linda_approval import hold_for_approval, linda_acting, prior_refusal
+from .linda_approval import hold_for_approval, linda_acting, prior_refusal, record_refusal
 
 PLASTICOS_ISO_JOURNEY = "plasticos.iso.journey"
 IR_ATTACHMENT = "ir.attachment"
@@ -74,6 +74,11 @@ _EVIDENCE_REASONS = (
 _SEQUENCE_REASONS = (R_GATE_IN_FIRST, R_SAIL_BEFORE_GATE_IN, R_GATE_IN_AFTER_SAILING)
 NOT_A_WEIGHT_UNIT = " is not a unit of weight"
 _DOCUMENTS_EVIDENCE_PREFIXES = ("the Documents ", "the verified Documents ", "no installed owner declares")
+
+
+def _subject_key(journey, kind):
+    """The Linda ledger subject of a journey fact: the journey and the fact kind."""
+    return f"journey:{journey.id}:{kind}"
 
 
 def _edge_case_of(reason):
@@ -424,35 +429,61 @@ class PlasticosIsoJourneyFact(models.Model):
     @api.model
     def _record_kind(self, kind, journey_id, values, operation_key):
         journey, facts, blocked = self._validated(kind, journey_id, values, operation_key)
-        if linda_acting(self.env) and journey:
+        linda = linda_acting(self.env) and journey
+        if linda:
             held = self._linda_record_gate(kind, journey, facts, blocked, values, operation_key)
             if held:
                 return held
-        if blocked:
-            return blocked
-        return self._record(journey, kind, facts)
+        result = blocked or self._record(journey, kind, facts)
+        if linda:
+            arguments = {**values, "journey_id": journey.id, "operation_key": _normalize_text(operation_key)}
+            record_refusal(
+                self.env,
+                f"record_{kind}",
+                _subject_key(journey, kind),
+                journey.company_id,
+                result,
+                arguments,
+                operation_key,
+                journey,
+            )
+        return result
 
     @api.model
     def _linda_record_gate(self, kind, journey, facts, blocked, values, operation_key):
         """Linda's edge case of a first record, held for approval; ``None`` when straight-through."""
         command = f"record_{kind}"
         key = _normalize_text(operation_key)
+        subject_key = _subject_key(journey, kind)
         arguments = {**values, "journey_id": journey.id, "operation_key": key}
-        edge, reason = None, None
+        edge, reason, extra = None, None, None
         if blocked:
             edge = _edge_case_of(blocked.get("reason"))
             reason = blocked.get("reason")
         else:
             existing = self._existing_result(journey, kind, facts)
             if existing and existing["status"] == "blocked":
+                # I3: approval is measured against this exact revision, refused if it moved.
                 edge, reason = "value_conflict", existing["reason"]
+                extra = {"conflict_fact_id": existing["record_id"]}
             elif existing:
                 return None
-        if not edge and key and prior_refusal(self.env, command, key, journey.company_id):
-            edge, reason = "refusal_retry", "this operation key was refused or rejected before"
+        if (edge or not blocked) and prior_refusal(self.env, command, subject_key, journey.company_id):
+            edge, reason = "refusal_retry", f"Linda's previous {command.replace('_', ' ')} here was refused"
         if not edge:
             return None
-        return hold_for_approval(self.env, command, edge, reason, arguments, key, journey.company_id, journey)
+        return hold_for_approval(
+            self.env,
+            command,
+            edge,
+            reason,
+            arguments,
+            key,
+            journey.company_id,
+            journey,
+            subject_key=subject_key,
+            extra=extra,
+        )
 
     # ── First-record commands ──────────────────────────────────────────
 
@@ -671,27 +702,45 @@ class PlasticosIsoJourneyFact(models.Model):
         merged = {**fact._as_values(), **values}
         journey, facts, blocked = self._validated(kind, fact.journey_id.id, merged, key)
         if linda_acting(self.env) and journey:
-            # Every Linda correction waits for an Operations Manager (C12-SCOPE-2).
-            replay = None if blocked else self._correction_replay(fact, journey, facts, reason, key)
-            if replay:
-                return replay
-            edge = _edge_case_of(blocked.get("reason")) if blocked else "correction"
-            if edge and prior_refusal(self.env, "correct_fact", key, journey.company_id):
-                edge = "refusal_retry"
-            if edge:
-                arguments = {
-                    "fact_id": fact.id,
-                    "values": values,
-                    "correction_reason": reason,
-                    "operation_key": key,
-                }
-                cause = blocked.get("reason") if blocked else reason
-                return hold_for_approval(
-                    self.env, "correct_fact", edge, cause, arguments, key, journey.company_id, fact
-                )
+            return self._linda_correct_gate(fact, journey, facts, blocked, values, reason, key)
         if blocked:
             return blocked
         return self._correct(fact, journey, facts, reason, key)
+
+    @api.model
+    def _linda_correct_gate(self, fact, journey, facts, blocked, values, reason, key):
+        """Every Linda correction waits for an Operations Manager (C12-SCOPE-2).
+
+        A replay answers as usual. A plain refusal, a stale revision and a correction
+        that changes nothing are refused before any hold (C12-SCOPE-3 (4)) and recorded,
+        so her next correction of that fact is held as a retry.
+        """
+        subject_key = _subject_key(journey, fact.fact_kind)
+        arguments = {"fact_id": fact.id, "values": values, "correction_reason": reason, "operation_key": key}
+        replay = None if blocked else self._correction_replay(fact, journey, facts, reason, key)
+        if replay:
+            return replay
+        edge = _edge_case_of(blocked.get("reason")) if blocked else None
+        refusal = None
+        if blocked and not edge:
+            refusal = blocked
+        elif not blocked:
+            current = self._current(journey, fact.fact_kind)
+            if current != fact:
+                refusal = _result("blocked", current, f"correct the current revision ({current.revision}) of this fact")
+            elif all(fact._same_fact(name, facts.get(name)) for name in _KIND_FACTS[fact.fact_kind]):
+                refusal = _result("blocked", fact, "the correction changes nothing")
+            else:
+                edge = "correction"
+        if refusal:
+            company = journey.company_id
+            return record_refusal(self.env, "correct_fact", subject_key, company, refusal, arguments, key, fact)
+        if prior_refusal(self.env, "correct_fact", subject_key, journey.company_id):
+            edge = "refusal_retry"
+        cause = blocked.get("reason") if blocked else reason
+        return hold_for_approval(
+            self.env, "correct_fact", edge, cause, arguments, key, journey.company_id, fact, subject_key=subject_key
+        )
 
     @api.model
     def _correction_replay(self, fact, journey, facts, reason, key):

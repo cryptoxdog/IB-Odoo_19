@@ -277,9 +277,10 @@ class TestLindaRecords(_LindaCase):
         calls = []
 
         def miss_first(model, domain, *rest, **kwargs):
-            calls.append(domain)
-            if len(calls) == 1:
-                return model.browse()
+            if ("state", "=", "pending") in domain:
+                calls.append(domain)
+                if len(calls) == 1:
+                    return model.browse()
             return original(model, domain, *rest, **kwargs)
 
         with patch.object(approval_class, "search", miss_first), mute_logger("odoo.sql_db"):
@@ -340,7 +341,9 @@ class TestLindaProposals(_LindaCase):
         values["asserted_by"] = "carrier_issued"
         refused = self._linda(PROPOSAL).action_propose_shipment_event(values, "lp-bad")
         self.assertEqual(refused["status"], "blocked")
-        self._no_approvals("lp-bad")
+        rows = self.env[APPROVAL].search([("operation_key", "=", "lp-bad")])
+        self.assertEqual(rows.mapped("state"), ["refused"], "the refusal is recorded, nothing is held")
+        self.assertEqual(rows.subject_key, f"load:{loads[0].id}")
         self.assertFalse(self.env[PROPOSAL].search([("operation_key", "=", "lp-bad")]))
 
     def test_straight_through_proposal_and_human_citation_apply(self):
@@ -438,3 +441,217 @@ class TestLindaGateReach(_LindaCase):
         self.assertEqual(
             hits, [("cron_planted", "action_correct_fact", ("_cron_planted", "_helper", "action_correct_fact"))]
         )
+
+    def test_the_scan_follows_getattr_dispatch(self):
+        """I5: ``getattr(obj, f"action_record_{kind}")`` reaches every gated command it can name."""
+        reach = _reach_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            addon = Path(tmp) / "plasticos_planted"
+            (addon / "data").mkdir(parents=True)
+            (addon / "models").mkdir()
+            (addon / "__manifest__.py").write_text("{'name': 'planted'}")
+            (addon / "data" / "cron.xml").write_text(
+                '<odoo><record id="cron_dynamic" model="ir.cron">'
+                '<field name="code">model._cron_dynamic()</field></record></odoo>'
+            )
+            (addon / "models" / "planted.py").write_text(
+                "def _cron_dynamic(self, kind):\n    getattr(self.env['x'], f'action_record_{kind}')(1)\n"
+            )
+            hits = reach.gated_paths(tmp)
+        self.assertIn("action_record_gate_in", {hit[1] for hit in hits})
+        self.assertIn("action_record_actual_event", {hit[1] for hit in hits})
+
+
+@tagged("post_install", "-at_install", "plasticos", "logistics", "export")
+class TestLindaReviewClosure(_LindaCase):
+    """C12-SCOPE-3 criterion 6: review closure, as non-superuser users."""
+
+    # B2 ──────────────────────────────────────────────────────────────
+    def test_linda_cannot_create_a_proposal_directly(self):
+        po, _tx, loads = self._five_container_order()
+        reply = self._linda_reply(po)
+        values = {
+            "event_kind": "loaded",
+            "load_id": loads[0].id,
+            "occurred_at": self._ago(30),
+            "evidence_attachment_id": self._attach(loads[0], "booking complete.eml").id,
+            "asserted_by": "supplier_reported",
+            "linda_response_id": reply.id,
+        }
+        with self.assertRaises(AccessError):
+            self._linda(PROPOSAL).create(values)
+        self.assertFalse(self.env[PROPOSAL].search([("linda_response_id", "=", reply.id)]))
+        created = self.env[PROPOSAL].with_user(self.logistics).create(values)
+        self.assertTrue(created, "a person may still create a proposal from the form")
+
+    # B3 ──────────────────────────────────────────────────────────────
+    def test_retry_after_a_plain_refusal_is_held_under_a_new_key(self):
+        journey = self._journey("S11-R-NEWKEY")
+        doc = self._attach(journey, "eir.pdf")
+        future = self._ago(-2)
+        refused = self._linda().action_record_gate_in(journey.id, future, self.terminal.id, doc.id, "rk1")
+        self.assertEqual(refused["status"], "blocked")
+        ledger = self.env[APPROVAL].search([("operation_key", "=", "rk1")])
+        self.assertEqual((ledger.state, ledger.subject_key), ("refused", f"journey:{journey.id}:gate_in"))
+        retried = self._linda().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, doc.id, "rk2")
+        approval = self._held(retried, "refusal_retry", "record_gate_in")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+        self.assertEqual(self._approve(approval)["status"], "applied")
+        after = self._linda().action_record_regulatory_parties(
+            journey.id, self.filer.id, self.consignee.id, self._attach(journey, "filing.pdf").id, "rk3"
+        )
+        self.assertEqual(after["status"], "applied", "another fact kind is another subject")
+
+    def test_retry_after_a_plain_refusal_is_held_under_the_same_key(self):
+        journey = self._journey("S11-R-SAMEKEY")
+        doc = self._attach(journey, "eir.pdf")
+        refused = self._linda().action_record_gate_in(journey.id, self._ago(-2), self.terminal.id, doc.id, "rs1")
+        self.assertEqual(refused["status"], "blocked")
+        retried = self._linda().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, doc.id, "rs1")
+        self._held(retried, "refusal_retry", "record_gate_in")
+
+    def test_a_person_after_linda_refusal_is_not_held(self):
+        journey = self._journey("S11-R-HUMAN")
+        doc = self._attach(journey, "eir.pdf")
+        self._linda().action_record_gate_in(journey.id, self._ago(-2), self.terminal.id, doc.id, "rh1")
+        human = self._as().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, doc.id, "hh2")
+        self.assertEqual(human["status"], "applied")
+
+    # I2 ──────────────────────────────────────────────────────────────
+    def test_linda_confirm_ready_is_held(self):
+        load = self._load()
+        load._transition("awaiting_ready")
+        held = load.with_user(self.linda).action_confirm_ready()
+        approval = self._held(held, "acceptance", "confirm_ready")
+        self.assertFalse(load.ready_confirmed_at)
+        result = self._approve(approval)
+        self.assertEqual(result["status"], "applied", result)
+        self.assertTrue(load.ready_confirmed_at)
+        self.assertEqual(load.ready_confirmed_by, self.linda.name)
+
+    def test_linda_actual_event_first_record_straight_and_correction_held(self):
+        load = self._load()
+        ticket = self._attach(load, "ticket.pdf")
+        first = load.with_user(self.linda).action_record_actual_event("pickup", self._ago(6), ticket)
+        self.assertEqual(first["status"], "applied", "a first record from evidence on the load is straight-through")
+        self.assertEqual(load.pickup_evidence_attachment_id, ticket)
+        recorded = load.actual_pickup_at
+        held = load.with_user(self.linda).action_record_actual_event("pickup", self._ago(5), ticket, "re-read")
+        approval = self._held(held, "correction", "record_actual_event")
+        self.assertEqual(load.actual_pickup_at, recorded, "nothing changes before approval")
+        self.assertEqual(self._approve(approval)["status"], "applied")
+        self.assertNotEqual(load.actual_pickup_at, recorded)
+
+    def test_linda_actual_event_edge_cases_are_held_and_plain_refusals_returned(self):
+        load = self._load()
+        elsewhere = self._attach(self._load(), "other.pdf")
+        missing = load.with_user(self.linda).action_record_actual_event("pickup", self._ago(6), elsewhere)
+        self._held(missing, "evidence_unverified", "record_actual_event")
+        ticket = self._attach(load, "ticket.pdf")
+        future = load.with_user(self.linda).action_record_actual_event("delivery", self._ago(-3), ticket)
+        self.assertEqual(future["status"], "blocked", "a plain refusal is returned, not raised")
+        self.assertFalse(load.actual_delivery_at)
+
+    def test_a_person_records_actual_events_without_an_approver(self):
+        load = self._load()
+        ticket = self._attach(load, "ticket.pdf")
+        user = self._make_user("s11-freight-op", LOGISTICS)
+        self.assertEqual(
+            load.with_user(user).action_record_actual_event("pickup", self._ago(6), ticket)["status"], "applied"
+        )
+        with self.assertRaises(UserError):
+            load.with_user(user).action_record_actual_event("pickup", self._ago(5), ticket)
+
+    # I1 ──────────────────────────────────────────────────────────────
+    def test_a_multi_company_manager_approves_in_the_approval_company(self):
+        other = self.env["res.company"].create({"name": "S11 Manager Second Co"})
+        manager = self._make_user("s11-two-company-manager", MANAGER)
+        manager.write({"company_ids": [(4, other.id)]})
+        journey = self._journey("S11-I1")
+        first, _doc = self._gate_in(journey)
+        approval = self._held(
+            self._linda().action_correct_fact(first.id, {"occurred_at": self._ago(7)}, "fix", "i1"),
+            "correction",
+            "correct_fact",
+        )
+        result = (
+            approval.with_user(manager).with_context(allowed_company_ids=[other.id, self.company.id]).action_approve()
+        )
+        self.assertEqual(result["status"], "applied", result)
+
+    # I3 ──────────────────────────────────────────────────────────────
+    def test_a_stale_conflict_approval_is_refused(self):
+        journey = self._journey("S11-I3")
+        first, doc = self._gate_in(journey, hours=8)
+        approval = self._held(
+            self._linda().action_record_gate_in(journey.id, self._ago(7), self.terminal.id, doc.id, "i3"),
+            "value_conflict",
+            "record_gate_in",
+        )
+        self.assertEqual(approval.conflict_fact_id, first.id)
+        person = self._as().action_correct_fact(first.id, {"occurred_at": self._ago(6)}, "EIR reread", "i3-h")
+        self.assertEqual(person["status"], "applied")
+        result = self._approve(approval)
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("stale", result["reason"])
+        self.assertEqual(journey.current_fact("gate_in").id, person["record_id"], "the person's correction stands")
+
+    # I4 ──────────────────────────────────────────────────────────────
+    def test_linda_no_op_and_stale_corrections_are_refused_not_held(self):
+        journey = self._journey("S11-I4")
+        first, _doc = self._gate_in(journey)
+        noop = self._linda().action_correct_fact(first.id, {"occurred_at": first.occurred_at}, "same", "i4a")
+        self.assertEqual(noop["status"], "blocked")
+        self.assertIn("changes nothing", noop["reason"])
+        self.assertEqual(self.env[APPROVAL].search([("operation_key", "=", "i4a")]).state, "refused")
+        self._as().action_correct_fact(first.id, {"occurred_at": self._ago(7)}, "fix", "i4-h")
+        stale = self._linda().action_correct_fact(first.id, {"occurred_at": self._ago(8)}, "late", "i4b")
+        self.assertEqual(stale["status"], "blocked")
+        self.assertIn("current revision (2)", stale["reason"])
+        self.assertFalse(
+            self.env[APPROVAL].search([("state", "=", "pending"), ("operation_key", "in", ["i4a", "i4b"])])
+        )
+
+    # I6 / N2 / N3 ─────────────────────────────────────────────────────
+    def test_double_approval_and_approval_after_rejection(self):
+        journey = self._journey("S11-DOUBLE")
+        first, _doc = self._gate_in(journey)
+        approval = self._held(
+            self._linda().action_correct_fact(first.id, {"occurred_at": self._ago(7)}, "fix", "dbl"),
+            "correction",
+            "correct_fact",
+        )
+        self.assertEqual(self._approve(approval)["status"], "applied")
+        again = self._approve(approval)
+        self.assertEqual(again["status"], "already_applied")
+        self.assertEqual(self.env[FACT].search_count([("journey_id", "=", journey.id)]), 2, "approved once")
+        rejected = self._held(
+            self._linda().action_correct_fact(
+                journey.current_fact("gate_in").id, {"occurred_at": self._ago(8)}, "fix 2", "dbl2"
+            ),
+            "correction",
+            "correct_fact",
+        )
+        rejected.with_user(self.manager).action_reject("no")
+        self.assertEqual(self._approve(rejected)["status"], "rejected")
+        self.assertEqual(self.env[APPROVAL].with_user(self.manager).browse().action_approve(), [])
+
+    def test_same_key_with_different_arguments_is_refused(self):
+        journey = self._journey("S11-N3")
+        first, _doc = self._gate_in(journey)
+        self._held(
+            self._linda().action_correct_fact(first.id, {"occurred_at": self._ago(7)}, "fix", "n3"),
+            "correction",
+            "correct_fact",
+        )
+        other = self._linda().action_correct_fact(first.id, {"occurred_at": self._ago(9)}, "fix", "n3")
+        self.assertEqual(other["status"], "blocked")
+        self.assertIn("different arguments", other["reason"])
+
+    def test_linda_documents_vgm_evidence_is_held(self):
+        journey = self._journey("S11-VGM")
+        held = self._linda().action_record_verified_gross_mass(
+            journey.id, 48975, self.lb.id, "documents_verified_gross_mass", None, "rev-1", "vgm1"
+        )
+        self._held(held, "evidence_unverified", "record_verified_gross_mass")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))

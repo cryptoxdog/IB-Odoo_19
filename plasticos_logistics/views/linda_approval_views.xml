@@ -11,7 +11,8 @@
                 <field name="operation_key"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <filter name="filter_pending" string="Pending" domain="[('state', '=', 'pending')]"/>
-                <filter name="filter_decided" string="Decided" domain="[('state', '!=', 'pending')]"/>
+                <filter name="filter_decided" string="Decided" domain="[('state', 'in', ('approved', 'rejected'))]"/>
+                <filter name="filter_refused" string="Refusals" domain="[('state', '=', 'refused')]"/>
                 <separator/>
                 <filter name="group_command" string="Command" context="{'group_by': 'command'}"/>
                 <filter name="group_edge_case" string="Edge Case" context="{'group_by': 'edge_case'}"/>
@@ -29,11 +30,12 @@
                 <field name="edge_case"/>
                 <field name="edge_reason" optional="show"/>
                 <field name="operation_key" optional="hide"/>
+                <field name="subject_key" optional="hide"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'pending'"
                        decoration-success="state == 'approved'"
-                       decoration-muted="state == 'rejected'"/>
+                       decoration-muted="state in ('rejected', 'refused')"/>
                 <field name="result_status" optional="show"/>
             </list>
         </field>
@@ -58,8 +60,10 @@
                             <field name="edge_case"/>
                             <field name="edge_reason"/>
                             <field name="operation_key"/>
+                            <field name="subject_key"/>
                             <field name="subject_model"/>
                             <field name="subject_id"/>
+                            <field name="conflict_fact_id" invisible="not conflict_fact_id"/>
                         </group>
                         <group string="Request">
                             <field name="requested_by"/>
@@ -70,7 +74,7 @@
                     <group string="Arguments">
                         <field name="arguments" nolabel="1" colspan="2"/>
                     </group>
-                    <group string="Decision" invisible="state == 'pending'">
+                    <group string="Decision" invisible="state in ('pending', 'refused')">
                         <field name="decided_by"/>
                         <field name="decided_at"/>
                         <field name="decision_note"/>

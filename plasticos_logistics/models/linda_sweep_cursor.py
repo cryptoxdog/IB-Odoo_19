@@ -1,7 +1,10 @@
 """Where the Linda load-obligation sweep resumes (S11, OP11-E03, F6).
 
-One row per sweep lane and company. The sweep pages through eligible loads by
-id and wraps; this row holds the last id of the last full page. Before S11 the
+One row per sweep lane and company (a company record rule isolates them). The
+sweep reads and writes the row of the company it runs in, so each company pages
+through its own loads; it pages by id and wraps, and the row holds the last id of
+the last full page. The pre-S11 cursor was one global value per lane: the
+migration put it in the sweep company's row only, and other companies start at 0. Before S11 the
 cursor lived in ``ir.config_parameter`` (``plasticos_logistics.linda_load_sweep_cursor.<lane>``);
 the 19.0.1.14.24 migration moved that value here once, and the sweep no longer
 writes a system parameter. Behaviour is unchanged: the same page, the same wrap.
