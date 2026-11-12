@@ -2109,19 +2109,22 @@ class PlasticosLoad(models.Model):
         scope = self.env.context.get("linda_load_sweep_ids")
         if scope is not None:
             domain.append(("id", "in", [int(load_id) for load_id in scope]))
+        # An escalated load stays eligible until it is acknowledged, so a fixed oldest-first
+        # page kept returning the loads escalated earlier today and never reached the newer
+        # ones (S6 finding D9). Loads already escalated today are excluded before the page is
+        # taken: each run handles the next page of 100, and no load is escalated twice a day.
+        activities = self.env["mail.activity"].search(
+            [
+                ("res_model", "=", PLASTICOS_LOAD),
+                ("summary", "ilike", "URGENT: No carrier acknowledgment"),
+                ("date_deadline", "=", fields.Date.today()),
+            ],
+            order="id",
+        )
+        already_escalated = set(activities.mapped("res_id"))
+        if already_escalated:
+            domain.append(("id", "not in", sorted(already_escalated)))
         unacknowledged = self.search(domain, order="dispatch_sent asc", limit=100)
-        already_escalated = set()
-        if unacknowledged:
-            activities = self.env["mail.activity"].search(
-                [
-                    ("res_model", "=", PLASTICOS_LOAD),
-                    ("res_id", "in", unacknowledged.ids),
-                    ("summary", "ilike", "URGENT: No carrier acknowledgment"),
-                    ("date_deadline", "=", fields.Date.today()),
-                ],
-                order="id",
-            )
-            already_escalated = set(activities.mapped("res_id"))
 
         for load in unacknowledged:
             if load.id in already_escalated:

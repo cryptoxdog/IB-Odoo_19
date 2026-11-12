@@ -1151,6 +1151,48 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
             self.env["mail.activity"].search_count([("res_id", "=", load.id), ("summary", "=", summary)]), 1
         )
 
+    def test_acknowledgment_job_reaches_loads_beyond_one_page_once_each(self):
+        """S6 D9: escalated loads stay eligible, so a fixed oldest-first page must not starve newer loads."""
+        loads = self.env["plasticos.load"].create(
+            [
+                {
+                    "company_id": self.company.id,
+                    "pickup_partner_id": self.supplier.id,
+                    "delivery_partner_id": self.terminal.id,
+                    "carrier_id": self.carrier.id,
+                }
+                for _index in range(101)
+            ]
+        )
+        oldest = fields.Datetime.now() - timedelta(hours=30)
+        for offset, load in enumerate(loads):
+            # Legacy dispatched rows: the state and clock are written directly, oldest first.
+            self.env.cr.execute(
+                "UPDATE plasticos_load SET state = 'dispatched', dispatch_sent = %s, dispatch_acknowledged = NULL "
+                "WHERE id = %s",
+                (oldest + timedelta(minutes=offset), load.id),
+            )
+        loads.invalidate_recordset()
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=loads.ids)
+
+        def escalated():
+            activities = self.env["mail.activity"].search(
+                [
+                    ("res_model", "=", "plasticos.load"),
+                    ("res_id", "in", loads.ids),
+                    ("summary", "ilike", "URGENT: No carrier acknowledgment"),
+                ]
+            )
+            return activities.mapped("res_id")
+
+        with patch.object(PlasticosLoad, "action_send_dispatch_direct", side_effect=AssertionError("blind resend")):
+            cron._cron_check_dispatch_acknowledgments()
+            self.assertEqual(len(escalated()), 100, "one run is bounded to one page")
+            cron._cron_check_dispatch_acknowledgments()
+            self.assertEqual(sorted(escalated()), sorted(loads.ids), "the next run reaches the newest load, once each")
+            cron._cron_check_dispatch_acknowledgments()
+        self.assertEqual(len(escalated()), 101, "a load is never escalated twice on one day")
+
     # ── V10: actual event clocks (BRS-EXP-04-R001/R003, BRS-EXP-10-R007) ──
 
     def test_state_changes_never_fill_actual_clocks(self):
