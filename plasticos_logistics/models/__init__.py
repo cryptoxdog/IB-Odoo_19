@@ -16,6 +16,7 @@ from . import mail_compose_message
 from . import iso_journey
 from . import iso_journey_fact
 from . import linda_sweep_cursor
+from . import linda_approval
 from . import road_equipment
 from . import shipment_event_proposal
 

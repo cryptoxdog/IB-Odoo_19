@@ -219,4 +219,11 @@
        plasticos.commission.payout are defined in plasticos_commission/security/record_rules.xml
        since those models belong to plasticos_commission which loads after this module. -->
 
+  <!-- S11 (OP11-E02, C12-SCOPE-2): Linda, plasticos_logistics.user_linda, holds the
+       Logistics role and no other business group. Her record lives in plasticos_logistics,
+       which loads before this module defines the groups, so the grant is made here. -->
+  <record id="plasticos_logistics.user_linda" model="res.users">
+    <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_logistics'))]"/>
+  </record>
+
 </odoo>

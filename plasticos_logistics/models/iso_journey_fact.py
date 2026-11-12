@@ -36,6 +36,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tools import float_compare, float_round
 
 from .iso_journey import _check_company_allowed, _lock, _normalize_text, _require_logistics_actor, _result
+from .linda_approval import hold_for_approval, linda_acting, prior_refusal
 
 PLASTICOS_ISO_JOURNEY = "plasticos.iso.journey"
 IR_ATTACHMENT = "ir.attachment"
@@ -53,6 +54,33 @@ _KIND_FACTS = {
     "verified_gross_mass": ("weight", "weight_uom_id", "weight_basis", "evidence_reference", "evidence_attachment_id"),
 }
 WEIGHT_KINDS = ("container_tare", "verified_gross_mass")
+# Refusals Linda's edge-case gate holds instead of returning (S11, OP11-E02).
+R_ORIGINAL_REQUIRED = "the original document is required"
+R_ATTACH_TO_JOURNEY = "attach the original to this container journey first"
+R_EVIDENCE_COMPANY = "evidence belongs to another company"
+R_NOT_VERIFIED_ORIGINAL = "the evidence is not the verified Documents original"
+R_GATE_IN_FIRST = "record the terminal gate-in before the departure"
+R_SAIL_BEFORE_GATE_IN = "a vessel cannot sail before the container's gate-in"
+R_GATE_IN_AFTER_SAILING = "a container's gate-in cannot follow its vessel's departure"
+R_WEIGHT_UNIT_REQUIRED = "the weight unit is required"
+_EVIDENCE_REASONS = (R_ORIGINAL_REQUIRED, R_ATTACH_TO_JOURNEY, R_EVIDENCE_COMPANY, R_NOT_VERIFIED_ORIGINAL)
+_SEQUENCE_REASONS = (R_GATE_IN_FIRST, R_SAIL_BEFORE_GATE_IN, R_GATE_IN_AFTER_SAILING)
+NOT_A_WEIGHT_UNIT = " is not a unit of weight"
+_DOCUMENTS_EVIDENCE_PREFIXES = ("the Documents ", "the verified Documents ", "no installed owner declares")
+
+
+def _edge_case_of(reason):
+    """The Linda edge-case class of a refusal, or None for a plain refusal."""
+    reason = reason or ""
+    if reason in _EVIDENCE_REASONS or reason.startswith(_DOCUMENTS_EVIDENCE_PREFIXES):
+        return "evidence_unverified"
+    if reason in _SEQUENCE_REASONS:
+        return "out_of_sequence"
+    if reason == R_WEIGHT_UNIT_REQUIRED or reason.endswith(NOT_A_WEIGHT_UNIT):
+        return "unit_mismatch"
+    return None
+
+
 # Documents owns verification; it depends on Logistics, so it is a soft reference here.
 DOCUMENT = "plasticos.document"
 WEIGHT_DIGITS = 3
@@ -211,12 +239,12 @@ class PlasticosIsoJourneyFact(models.Model):
             _lock(self.env, "plasticos_iso_journey", [journey.id])
             return journey, attachment, None
         if not attachment:
-            return journey, None, _result("blocked", journey, "the original document is required")
+            return journey, None, _result("blocked", journey, R_ORIGINAL_REQUIRED)
         attachment.check_access("read")
         if attachment.res_model != PLASTICOS_ISO_JOURNEY or attachment.res_id != journey.id:
-            return journey, None, _result("blocked", journey, "attach the original to this container journey first")
+            return journey, None, _result("blocked", journey, R_ATTACH_TO_JOURNEY)
         if attachment.company_id and attachment.company_id != journey.company_id:
-            return journey, None, _result("blocked", journey, "evidence belongs to another company")
+            return journey, None, _result("blocked", journey, R_EVIDENCE_COMPANY)
         # One writer at a time per journey: the journey row is the lock.
         _lock(self.env, "plasticos_iso_journey", [journey.id])
         return journey, attachment, None
@@ -351,7 +379,7 @@ class PlasticosIsoJourneyFact(models.Model):
         departure = self._current(journey, "departure")
         if departure and when > departure.occurred_at:
             # Only a correction can meet a recorded departure; the order still holds.
-            return None, "a container's gate-in cannot follow its vessel's departure"
+            return None, R_GATE_IN_AFTER_SAILING
         return {"occurred_at": when, "facility_partner_id": facility.id}, None
 
     @api.model
@@ -362,9 +390,9 @@ class PlasticosIsoJourneyFact(models.Model):
             return None, error or "the vessel is required"
         gate_in = self._current(journey, "gate_in")
         if not gate_in:
-            return None, "record the terminal gate-in before the departure"
+            return None, R_GATE_IN_FIRST
         if when < gate_in.occurred_at:
-            return None, "a vessel cannot sail before the container's gate-in"
+            return None, R_SAIL_BEFORE_GATE_IN
         return dict(occurred_at=when, vessel=vessel, voyage=_normalize_text(values.get("voyage"))), None
 
     @api.model
@@ -383,9 +411,35 @@ class PlasticosIsoJourneyFact(models.Model):
     @api.model
     def _record_kind(self, kind, journey_id, values, operation_key):
         journey, facts, blocked = self._validated(kind, journey_id, values, operation_key)
+        if linda_acting(self.env) and journey:
+            held = self._linda_record_gate(kind, journey, facts, blocked, values, operation_key)
+            if held:
+                return held
         if blocked:
             return blocked
         return self._record(journey, kind, facts)
+
+    @api.model
+    def _linda_record_gate(self, kind, journey, facts, blocked, values, operation_key):
+        """Linda's edge case of a first record, held for approval; ``None`` when straight-through."""
+        command = f"record_{kind}"
+        key = _normalize_text(operation_key)
+        arguments = {**values, "journey_id": journey.id, "operation_key": key}
+        edge, reason = None, None
+        if blocked:
+            edge = _edge_case_of(blocked.get("reason"))
+            reason = blocked.get("reason")
+        else:
+            existing = self._existing_result(journey, kind, facts)
+            if existing and existing["status"] == "blocked":
+                edge, reason = "value_conflict", existing["reason"]
+            elif existing:
+                return None
+        if not edge and key and prior_refusal(self.env, command, key, journey.company_id):
+            edge, reason = "refusal_retry", "this operation key was refused or rejected before"
+        if not edge:
+            return None
+        return hold_for_approval(self.env, command, edge, reason, arguments, key, journey.company_id, journey)
 
     # ── First-record commands ──────────────────────────────────────────
 
@@ -432,10 +486,10 @@ class PlasticosIsoJourneyFact(models.Model):
     def _weight_unit_error(self, uom):
         kilogram = self.env.ref("uom.product_uom_kgm", raise_if_not_found=False)
         if not uom or not kilogram:
-            return "the weight unit is required"
+            return R_WEIGHT_UNIT_REQUIRED
         root = (uom.parent_path or "").split("/")[0]
         if not root or root != (kilogram.parent_path or "").split("/")[0]:
-            return f"{uom.display_name} is not a unit of weight"
+            return f"{uom.display_name}{NOT_A_WEIGHT_UNIT}"
         return None
 
     def _documents_vgm_evidence(self, journey, revision_key):
@@ -522,7 +576,7 @@ class PlasticosIsoJourneyFact(models.Model):
             if error:
                 return journey, None, _result(error[0], journey, error[1])
             if attachment and attachment != verified:
-                return journey, None, _result("blocked", journey, "the evidence is not the verified Documents original")
+                return journey, None, _result("blocked", journey, R_NOT_VERIFIED_ORIGINAL)
             attachment = verified
         facts = {
             "weight": weight,
@@ -603,6 +657,25 @@ class PlasticosIsoJourneyFact(models.Model):
             return _result("blocked", fact, f"a {kind.replace('_', ' ')} has no {', '.join(unknown)}")
         merged = {**fact._as_values(), **values}
         journey, facts, blocked = self._validated(kind, fact.journey_id.id, merged, key)
+        if linda_acting(self.env) and journey:
+            # Every Linda correction waits for an Operations Manager (C12-SCOPE-2).
+            replay = None if blocked else self._correction_replay(fact, journey, facts, reason, key)
+            if replay:
+                return replay
+            edge = _edge_case_of(blocked.get("reason")) if blocked else "correction"
+            if edge and prior_refusal(self.env, "correct_fact", key, journey.company_id):
+                edge = "refusal_retry"
+            if edge:
+                arguments = {
+                    "fact_id": fact.id,
+                    "values": values,
+                    "correction_reason": reason,
+                    "operation_key": key,
+                }
+                cause = blocked.get("reason") if blocked else reason
+                return hold_for_approval(
+                    self.env, "correct_fact", edge, cause, arguments, key, journey.company_id, fact
+                )
         if blocked:
             return blocked
         return self._correct(fact, journey, facts, reason, key)

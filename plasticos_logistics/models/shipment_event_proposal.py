@@ -33,6 +33,7 @@ from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
 from .iso_journey import _check_company_allowed, _normalize_text, _require_logistics_actor, _result
+from .linda_approval import hold_for_approval, linda_acting, prior_refusal
 
 PLASTICOS_LOAD = "plasticos.load"
 ISO_JOURNEY = "plasticos.iso.journey"
@@ -81,6 +82,10 @@ _PROPOSAL_FIELDS = frozenset(
         "operation_key",
     }
 )
+
+
+class _ProbeRollback(Exception):
+    """Rolls back the validation probe of a held Linda proposal."""
 
 
 class PlasticosShipmentEventProposal(models.Model):
@@ -381,6 +386,10 @@ class PlasticosShipmentEventProposal(models.Model):
         unknown = set(values) - _PROPOSAL_FIELDS
         if unknown:
             return _result("blocked", reason=f"unexpected fields {sorted(unknown)}")
+        if linda_acting(self.env):
+            held = self._linda_propose_gate(values, key, company, subject)
+            if held:
+                return held
         try:
             with self.env.cr.savepoint():
                 proposal = self.create({**values, "company_id": company.id, "operation_key": key})
@@ -396,6 +405,38 @@ class PlasticosShipmentEventProposal(models.Model):
         except (UserError, ValidationError) as error:
             return _result("blocked", reason=str(error.args[0] if error.args else error))
         return _result("applied", proposal)
+
+    @api.model
+    def _linda_propose_gate(self, values, key, company, subject):
+        """Hold Linda's proposal citing an unverified Linda reply, or retrying a refusal (C12-SCOPE-2).
+
+        The proposal is first built and checked inside a rolled-back savepoint, so
+        an invalid one is refused as usual and only a standing one is held.
+        """
+        response = self.env["plasticos.logistics.response"].browse(int(values.get("linda_response_id") or 0))
+        edge = None
+        if response.exists() and response.disposition in ("identity_unverified", "unresolved"):
+            edge = "unverified_linda_reply"
+        if prior_refusal(self.env, "propose_shipment_event", key, company):
+            edge = "refusal_retry"
+        if not edge:
+            return None
+        try:
+            with self.env.cr.savepoint():
+                self.create({**values, "company_id": company.id, "operation_key": key})
+                raise _ProbeRollback
+        except _ProbeRollback:
+            self.env.invalidate_all()
+        except (UserError, ValidationError) as error:
+            self.env.invalidate_all()
+            return _result("blocked", reason=str(error.args[0] if error.args else error))
+        reason = (
+            f"the cited Linda reply is {response.disposition.replace('_', ' ')}"
+            if edge == "unverified_linda_reply"
+            else "this operation key was refused or rejected before"
+        )
+        arguments = {"values": values, "operation_key": key}
+        return hold_for_approval(self.env, "propose_shipment_event", edge, reason, arguments, key, company, subject)
 
     def _stored_value(self, name):
         value = self[name]
@@ -441,8 +482,14 @@ class PlasticosShipmentEventProposal(models.Model):
         return result["status"]
 
     def action_accept(self, note=None):
-        """Accept a candidate: the owner command runs with its own guards, then the proposal is decided."""
+        """Accept a candidate: the owner command runs with its own guards, then the proposal is decided.
+
+        Linda's acceptance is always held for an Operations Manager (C12-SCOPE-2) and
+        returns ``{status: pending, approval_id, reason}``; a person's applies at once.
+        """
         _require_logistics_actor(self.env)
+        if linda_acting(self.env):
+            return self._linda_accept_gate(note)
         for rec in self:
             # Serialize a concurrent accept of the same proposal on its row, then re-read it.
             # justification: the ORM has no SELECT FOR UPDATE.
@@ -466,6 +513,29 @@ class PlasticosShipmentEventProposal(models.Model):
                 }
             )
         return True
+
+    def _linda_accept_gate(self, note):
+        held = []
+        for rec in self:
+            rec.check_access("read")
+            if rec.state == "accepted":
+                held.append(_result("already_applied", rec))
+                continue
+            if rec.state != "candidate":
+                held.append(_result("blocked", rec, "a rejected shipment event proposal cannot be accepted"))
+                continue
+            key = f"accept:{rec.id}"
+            edge = (
+                "refusal_retry"
+                if prior_refusal(self.env, "accept_shipment_event", key, rec.company_id)
+                else "acceptance"
+            )
+            arguments = {"proposal_id": rec.id, "note": _normalize_text(note)}
+            reason = f"Linda accepts the {rec.event_kind.replace('_', ' ')} proposal"
+            held.append(
+                hold_for_approval(self.env, "accept_shipment_event", edge, reason, arguments, key, rec.company_id, rec)
+            )
+        return held[0] if len(held) == 1 else held
 
     def action_reject(self, note=None):
         """Reject a candidate. Nothing else changes."""

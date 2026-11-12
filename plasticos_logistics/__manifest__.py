@@ -2,6 +2,16 @@
     "name": "Plasticos Logistics Engine",
     "version": "19.0.1.14.24",
     "summary": "Load management and dispatch",
+    "description": """
+Plasticos Logistics Engine
+==========================
+
+Loads, freight resolution and dispatch, Linda's order and shipment correspondence,
+container journeys with their recorded facts and corrections, and shipment event
+proposals for the PlasticOS brokerage ERP.
+
+See README.md in the module source.
+""",
     "author": "Igor Beylin",
     "license": "LGPL-3",
     "depends": [
@@ -29,6 +39,7 @@
         "data/linda_dispatch_ack_notice.xml",
         "data/linda_document_chase.xml",
         "data/linda_inbound_ai.xml",
+        "data/linda_user.xml",
         "views/load_views.xml",
         "views/freight_views.xml",
         "views/freight_actual_correction_wizard_views.xml",
@@ -40,6 +51,7 @@
         "views/linda_response_views.xml",
         "views/iso_journey_views.xml",
         "views/shipment_event_proposal_views.xml",
+        "views/linda_approval_views.xml",
         "report/load_reports.xml",
         "report/report_bol_pickup.xml",
         "report/report_bol_delivery.xml",

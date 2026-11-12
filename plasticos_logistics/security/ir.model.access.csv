@@ -34,3 +34,4 @@ access_road_equipment_type_manager,plasticos.road.equipment.type.manager,model_p
 access_shipment_event_proposal_manager,plasticos.shipment.event.proposal.manager,model_plasticos_shipment_event_proposal,base.group_system,1,1,1,1
 access_iso_journey_fact_manager,plasticos.iso.journey.fact.manager,model_plasticos_iso_journey_fact,base.group_system,1,0,0,0
 access_linda_sweep_cursor_manager,plasticos.linda.sweep.cursor.manager,model_plasticos_linda_sweep_cursor,base.group_system,1,1,1,1
+access_linda_approval_manager,plasticos.linda.approval.manager,model_plasticos_linda_approval,base.group_system,1,0,0,0
