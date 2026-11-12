@@ -61,7 +61,20 @@ class MailComposeMessagePlasticosLoad(models.TransientModel):
             loads.invalidate_recordset()
             loads._require_physical_release(operation)
 
+    def _plasticos_refuse_scheduled_release(self):
+        """A carrier release must leave now, after the recheck; a scheduled send would skip it."""
+        if self._plasticos_release_wizards().filtered("scheduled_date"):
+            raise UserError(
+                _(
+                    "A carrier dispatch or document email cannot be scheduled: it must pass the "
+                    "release check at the moment it is sent. Send it now instead."
+                )
+            )
+
     def _action_send_mail(self, auto_commit=False):
+        # Odoo 19 schedules a composer with scheduled_date inside _action_send_mail
+        # (runtime evidence C03-REAUTH-1), so the refusal lives on this path too.
+        self._plasticos_refuse_scheduled_release()
         self._plasticos_recheck_load_release()
         packet_loads = self.env[PLASTICOS_LOAD]
         for wizard in self._plasticos_release_wizards():

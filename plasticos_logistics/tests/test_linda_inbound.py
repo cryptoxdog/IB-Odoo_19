@@ -462,15 +462,24 @@ class TestLindaInbound(PlasticosTestCase):
     # ── S4: typed source branches (RP-04-E009) ───────────────
 
     def test_reply_on_an_unregistered_source_kind_is_not_linda_evidence(self):
-        """No resolver registered the model, so even a Linda ancestor records nothing (Export absent)."""
+        """An inbound email on a model no resolver registered is not Linda's (Export absent).
+
+        A reply whose In-Reply-To names a Linda mail is routed by the native gateway
+        to that ancestor's own thread, so the unregistered-model branch is exercised
+        with an email message posted directly on a partner thread.
+        """
         po, issue = self._sent_po()
-        reference = issue.mail_id.message_id
-        raw = self._raw("CONFIRMED", SUPPLIER_EMAIL, in_reply_to=reference, references=reference)
-        message = self._receive(raw, model="res.partner", thread_id=self.supplier.id)
-        self.assertTrue(message)
         self.assertNotIn("res.partner", self.Request._linda_source_models())
+        message = self.supplier.message_post(
+            body="CONFIRMED",
+            message_type="email",
+            email_from=SUPPLIER_EMAIL,
+            subtype_xmlid="mail.mt_comment",
+        )
+        self.assertEqual((message.model, message.message_type), ("res.partner", "email"))
         self.assertFalse(self.Response._record_incoming(message))
         self.assertFalse(self._response(message))
+        self.assertFalse(self.Response.search([("request_id", "=", issue.id)]), "the PO issue gained no evidence")
 
     def test_reply_on_a_registered_source_without_a_typed_request_records_nothing(self):
         """A load is a registered typed source, but Linda never wrote to this one."""
