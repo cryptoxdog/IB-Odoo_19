@@ -147,16 +147,21 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
         booking, revision = self._populated_booking()
         slot_a, slot_b = booking.slot_ids.sorted("slot_key")
         own_order = self.env["sale.order"].create({"partner_id": self.buyer.id, "user_id": self.sales_reader.id})
-        own_order.order_line = [(0, 0, {"product_id": self.product.id, "product_uom_qty": 1})]
+        # Quantities fit the order lines: BRS-EXP-08-R006 refuses planned cargo beyond the line (S8).
+        own_order.order_line = [
+            (0, 0, {"product_id": self.product.id, "product_uom_qty": 40000, "product_uom_id": self.lb.id})
+        ]
         other_order = self.env["sale.order"].create({"partner_id": self.buyer.id, "user_id": self.sales_rep_b.id})
-        other_order.order_line = [(0, 0, {"product_id": self.product.id, "product_uom_qty": 1})]
+        other_order.order_line = [
+            (0, 0, {"product_id": self.product.id, "product_uom_qty": 38000, "product_uom_id": self.lb.id})
+        ]
         own_load = self.env["plasticos.load"].create({"sale_order_id": own_order.id})
         other_load = self.env["plasticos.load"].create({"sale_order_id": other_order.id})
         purchase = self.env["purchase.order"].create(
             {
                 "partner_id": self.suppliers[2].id,
                 "order_line": [
-                    (0, 0, {"product_id": self.product.id, "product_qty": 700, "product_uom_id": self.lb.id})
+                    (0, 0, {"product_id": self.product.id, "product_qty": 38000, "product_uom_id": self.lb.id})
                 ],
             }
         )
