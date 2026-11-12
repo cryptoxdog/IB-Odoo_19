@@ -13,3 +13,4 @@ from . import test_slot_command_screens
 from . import test_native_coverage
 from . import test_allocation_guard
 from . import test_journey_facts_and_see_all
+from . import test_module_pages
