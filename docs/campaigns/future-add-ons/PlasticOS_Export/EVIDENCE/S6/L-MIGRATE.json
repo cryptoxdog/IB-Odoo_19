@@ -14,7 +14,7 @@
  "final_run": {
   "label": "FINAL RUN on the final addon head f8bb8f9c (all S6 fixes)",
   "admission": {
-   "tree": "/home/user/wt-staging (wired worktree)",
+   "tree": "Staging worktree (wired worktree of this repository at 08504e12)",
    "head": "08504e12ba2243b532319918019680bee5e06b59",
    "git_status_porcelain_before": "",
    "command": "ODOO_ENTERPRISE_PATH=<enterprise clone> make test-env-rebuild (sanctioned re-admission; template was admitted for the slice inputs)",

@@ -11,7 +11,7 @@ This folder holds no full Odoo logs and no real data. Every seeded row is a synt
 | `L-RESTORE.json` | F9/V14 backup and restore checksums, coherence, and the runtime test on the restored database |
 | `L-RUNTIME.json` | Runtime runs: upgraded seeded data, unseeded control, the Staging control for D3/D4, restored data, and the slice-head install-smoke and m=all on the fixture re-admitted from the clean slice head |
 | `V13_V19_EVIDENCE.md` | Acceptance criterion 0 |
-| `ACCEPTANCE_WITNESS_MATRIX.csv` | All 120 cases: 103 Phase 1 cases with a witness (84 cited) or NOT_RUN (19) plus a blocker; 17 Phase 2 cases out of scope |
+| `ACCEPTANCE_WITNESS_MATRIX.csv` | All 120 cases. Of the 103 Phase 1 cases, 84 have a cited witness, 16 are DEFERRED_COVERAGE_DEBT (no witness test yet; recorded for the final campaign audit) and 3 are NOT_RUN with a real blocker (BRS-EXP-01-R005, 06-R004, 06-R005). 17 Phase 2 cases are out of scope |
 | `S6_PRIMARY_RULE_WITNESSES.md` | Acceptance criterion 3: the 18 S6 primary rules |
 | `F6_LINDA_SWEEP_CURSOR.md` | F6 measurement and verdict |
 | `F10_RELEASE_NOTES.md` | Inherited residuals and release notes |

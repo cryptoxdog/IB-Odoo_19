@@ -3,10 +3,10 @@
  "contract_digest": "sha256:3383d697f85b3f3ee731ebabbf0a1e9ef35c96c756ee910eef48b4248a28cddd",
  "admissions": {
   "staging_for_F7_F9_initial": {
-   "tree": "wt-staging",
+   "tree": "Staging worktree",
    "head": "08504e12ba2243b532319918019680bee5e06b59",
    "porcelain": "",
-   "fp": "340ec5d0f5c3734c\u2026",
+   "fp": "340ec5d0f5c3734c…",
    "installed": 172,
    "backs": "pre-fix F7/F9/F6 runs"
   },
@@ -24,22 +24,22 @@
    }
   },
   "staging_for_F7_F9_final": {
-   "tree": "wt-staging",
+   "tree": "Staging worktree",
    "head": "08504e12ba2243b532319918019680bee5e06b59",
    "porcelain": "",
-   "fp": "340ec5d0f5c3734c\u2026",
+   "fp": "340ec5d0f5c3734c…",
    "installed": 172,
    "srchead": "not recorded (the Staging tree's harness predates F4)",
    "backs": "final F7 (L-MIGRATE final_run), final F9 (L-RESTORE final_rehearsal), D9 proof"
   },
   "slice_final_for_criterion_2": {
-   "tree": "/home/user/IB-Odoo_19 (feat/plasticos-export-s6-proof)",
+   "tree": "slice worktree (repository root, branch feat/plasticos-export-s6-proof)",
    "head_at_start": "bf099f3615b3c10304165f45146bb7a48f2204fb",
    "last_addon_commit": "f8bb8f9c51e6e7f7d3bf78ada88cec6d0118bf92",
    "porcelain": "",
    "command": "make test-env-rebuild",
    "exit": 0,
-   "fp": "b46f6d6f4d881224\u2026",
+   "fp": "b46f6d6f4d881224…",
    "installed": 173,
    "srchead": "96223f92b798b94073142be8c61ba59259f25457",
    "srcdigest": "4f4d1dd794f7f2ba034e583c45807e04d16eeb3689821f22dfea994ffa9abc72",
@@ -126,5 +126,12 @@
   }
  ],
  "acceptance_witnesses": "All 86 Odoo witness methods of the 84 cited Phase 1 cases ran and passed on m=all plus documents_native; the 2 pure-Python witnesses pass in pytest tests/ (ACCEPTANCE_WITNESS_MATRIX.csv).",
- "publication": "PR_SMOKE=1 PR_REMEDIATE=0 make pr base=feat/plasticos-export-s5b-export reruns install-smoke and runtime m=all on the pushed head; see the PR body and the execution receipt."
+ "publication": "PR_SMOKE=1 PR_REMEDIATE=0 make pr base=feat/plasticos-export-s5b-export reruns install-smoke and runtime m=all on the pushed head; see the PR body and the execution receipt.",
+ "invalidated_results": [
+  {
+   "tests": "plasticos_transaction TestErpWorksheetImport (7 methods)",
+   "reason": "B1: commit cf724ee6 put the module-level _origin_key helper between @tagged('post_install','-at_install') and the class, so the decorator tagged the function and the class ran untagged. Any earlier result for these 7 tests is invalid. Fixed in 91c32fcc; the valid runs are listed under chain r4.",
+   "fixed_in": "91c32fcc"
+  }
+ ]
 }

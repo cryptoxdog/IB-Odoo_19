@@ -26,6 +26,6 @@ The repository had to be deepened first with `git fetch --depth=2000 origin Stag
 | plasticos_transaction/tests/test_compliance_does_not_post.py | NO_CHANGE | UNCHANGED | Byte-identical |
 | plasticos_transaction/tests/__init__.py | NO_CHANGE | CHANGED | Byte-identical |
 | scripts/test_env.sh (C06-SCOPE-1) | EDIT | CHANGED | Edited for F4, F8 and F9 |
-| tests/test_test_env_safety.py (C06-SCOPE-1) | EDIT | CHANGED | Append-only: 223 lines added, 0 removed |
+| tests/test_test_env_safety.py (C06-SCOPE-1) | EDIT | CHANGED | Append-only for every test that predates S6: 416 lines added, 0 removed. One line was added inside an S6-authored test: the source acknowledgement, disclosed on PR #480 |
 
-No module is version-bumped: S6 changes no runtime code in any `plasticos_*` addon (validation obligation 1 is NotApplicable).
+Three modules are version-bumped once each, because S6 changes their runtime code, data or migration: plasticos_documents 19.0.2.1.18 → 19.0.2.1.19 (D1), plasticos_export 19.0.1.1.0 → 19.0.1.1.1 (D2), and plasticos_logistics 19.0.1.14.21 → 19.0.1.14.22 (a, D9 and N1, one bump). No new migration folder was added. Test-only modules are not bumped (validation obligation 1).
