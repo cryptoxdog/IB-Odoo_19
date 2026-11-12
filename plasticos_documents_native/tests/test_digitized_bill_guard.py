@@ -1,7 +1,5 @@
 """Posting guard on digitized or emailed vendor bills (B4, B8, B10) and reference matching on draft bills (B5, B9)."""
 
-from datetime import date, timedelta
-
 from markupsafe import Markup
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -69,9 +67,7 @@ class TestDigitizedBillGuard(PlasticosTestCase):
             "move_type": "in_invoice",
             "partner_id": self.vendor.id,
             "ref": f"B4-INV-{self.counter:04d}",
-            # One date per bill. Same vendor, amount and date is a native duplicate
-            # (account_move._fetch_duplicate_reference, case 2), which the guard blocks.
-            "invoice_date": date(2026, 1, 1) + timedelta(days=self.counter),
+            "invoice_date": "2026-11-10",
             "invoice_line_ids": [(0, 0, {"name": "Freight", "quantity": 1, "price_unit": 100.0, "tax_ids": False})],
         }
         if digitized:
@@ -180,12 +176,49 @@ class TestDigitizedBillGuard(PlasticosTestCase):
         self._assert_held(bill, "document total is not recorded")
         self.assertFalse(bill.plasticos_document_total)
 
-    def test_native_duplicate_blocks(self):
+    def test_same_reference_duplicate_blocks(self):
         first = self._bill(ref="B4-DUP-1")
         second = self._bill(ref="B4-DUP-1")
         second.invalidate_recordset(["duplicated_ref_ids"])
         self.assertIn(first, second.duplicated_ref_ids)
         self._assert_held(second, "possible duplicate")
+
+    def test_same_vendor_amount_and_date_with_different_references_both_post(self):
+        marker = "Same vendor, amount and date as another bill with a different reference:"
+        first = self._bill(ref="B11-A")
+        second = self._bill(ref="B11-B")
+        (first | second).invalidate_recordset(["duplicated_ref_ids"])
+        # Native reports them as duplicates of each other (same partner, amount and date).
+        self.assertIn(first, second.duplicated_ref_ids)
+        same_reference, look_alikes = second._plasticos_split_duplicates()
+        self.assertFalse(same_reference)
+        self.assertEqual(look_alikes, first)
+        self.assertEqual(second._plasticos_bill_block_reasons(), [])
+        second.action_post()
+        self.assertEqual(second.state, "posted")
+        notes = second.message_ids.filtered(lambda m: marker in (m.body or ""))
+        self.assertEqual(len(notes), 1)
+        self.assertIn("B11-A", notes.body)
+        self.assertFalse(self._activities(second))
+        first.action_post()
+        self.assertEqual(first.state, "posted")
+
+    def test_look_alike_note_is_written_once(self):
+        marker = "Same vendor, amount and date as another bill with a different reference:"
+        first = self._bill(ref="B11-C")
+        second = self._bill(ref="B11-D", total=105.0)
+        second.invalidate_recordset(["duplicated_ref_ids"])
+        second._plasticos_note_look_alikes()
+        second._plasticos_note_look_alikes()
+        self.assertEqual(len(second.message_ids.filtered(lambda m: marker in (m.body or ""))), 1)
+        self.assertTrue(first.exists())
+
+    def test_bill_without_a_reference_does_not_hold_its_look_alike(self):
+        unreferenced = self._bill(ref=False)
+        second = self._bill(ref="B11-E")
+        second.invalidate_recordset(["duplicated_ref_ids"])
+        self.assertEqual(second._plasticos_bill_block_reasons(), [])
+        self._assert_held(unreferenced, "bill reference is missing")
 
     # ── Correction and revalidation ──────────────────────────
     def test_manager_correction_then_normal_post(self):

@@ -191,8 +191,9 @@ class AccountMove(models.Model):
                 f"Lines and tax add up to {currency.format(computed)}, "
                 f"but the document total is {currency.format(document_total)}."
             )
-        if self.duplicated_ref_ids:
-            names = ", ".join(self.duplicated_ref_ids.mapped(lambda m: m.name or m.ref or str(m.id)))
+        same_reference, _look_alikes = self._plasticos_split_duplicates()
+        if same_reference:
+            names = ", ".join(same_reference.mapped(lambda m: m.name or m.ref or str(m.id)))
             reasons.append(f"A possible duplicate bill exists: {names}.")
         _email, found, party_ok = self._plasticos_reference_resolution()
         waived = self.sudo().plasticos_not_load_related  # sudo: read-only check of a manager-only field
@@ -212,6 +213,38 @@ class AccountMove(models.Model):
             )
         return reasons
 
+    def _plasticos_split_duplicates(self):
+        """``(same_reference, look_alikes)`` from the native duplicate search. Writes nothing.
+
+        Native ``_fetch_duplicate_reference`` (Community 19.0 account_move.py) already
+        joins on company, move type, currency and commercial partner (lines 2183-2191)
+        and reports two cases for vendor bills: the same ``ref`` (case 1, lines 2154-2163)
+        or the same amount and invoice date (case 2, lines 2165-2170). Only the first is
+        the same vendor invoice. Everything else is a look-alike: carriers bill the same
+        freight amount on the same day. A bill with no reference is held by the
+        missing-reference reason, not by this one.
+        """
+        self.ensure_one()
+        duplicates = self.duplicated_ref_ids
+        same_reference = duplicates.filtered(lambda other: bool(self.ref) and other.ref == self.ref)
+        return same_reference, duplicates - same_reference
+
+    def _plasticos_note_look_alikes(self):
+        """One chatter note naming bills of the same vendor, amount and date with another reference."""
+        marker = "Same vendor, amount and date as another bill with a different reference:"
+        for move in self:
+            if move.state != "draft" or not move._plasticos_is_digitized_bill():
+                continue
+            _same_reference, look_alikes = move._plasticos_split_duplicates()
+            if not look_alikes or any(marker in (message.body or "") for message in move.message_ids):
+                continue
+            names = ", ".join(look_alikes.mapped(lambda m: f"{m.name or 'draft'} ({m.ref or 'no reference'})"))
+            move.message_post(
+                body=f"{marker} {names}. Posting was not blocked.",
+                message_type="notification",
+                subtype_xmlid="mail.mt_note",
+            )
+
     def _plasticos_blocked_bills(self):
         """``[(move, reasons)]`` for the draft bills in ``self`` that may not post."""
         blocked = []
@@ -230,6 +263,8 @@ class AccountMove(models.Model):
         """
         self._plasticos_apply_reference_match()
         blocked = self._plasticos_blocked_bills()
+        held_ids = {move.id for move, _reasons in blocked}
+        self.filtered(lambda move: move.id not in held_ids)._plasticos_note_look_alikes()
         if not blocked:
             return super().action_post()
         service = self.env["plasticos.document.sync"]
