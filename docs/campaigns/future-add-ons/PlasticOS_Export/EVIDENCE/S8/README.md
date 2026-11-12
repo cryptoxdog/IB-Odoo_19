@@ -69,4 +69,13 @@ How refusals reach the caller:
   - at the command: a second commit returns `blocked`.
 
   The command also row-locks the sources (`lock_for_update`, `SKIP LOCKED`), so a concurrent commit gets `blocked: cargo_source_busy`.
-- The merged-tree runs (S7 merge) are recorded in the execution receipt.
+
+### Merged tree (S7 merged at `034f8b2d`)
+
+- S7 (PR #482, head `6218a7d2`) was merged with a merge commit. `plasticos_export` is 19.0.1.1.3, because S7 took 19.0.1.1.2.
+- First four-module run on the merge (`m=plasticos_export,plasticos_logistics,plasticos_documents,plasticos_transaction`): 545 run, **8 failed**, 0 errors. All 8 are S7 Sales Rep tests in `test_multicompany_permissions.py`, and all of them fail at the precondition of S7's `_shared_allocations` fixture. That fixture planned 40000 lb and 38000 lb against SO lines of 1 Unit, and 38000 lb against a 700 lb PO line. The S8 guard refuses this, as BRS-EXP-08-R006 requires.
+- Classification: fixture defect from the S7/S8 interaction, not a product defect. Coordinator ruling: the guard stays as built.
+- Fix in commit `020812b9`: data only. The fixture's SO lines are now 40000 lb and 38000 lb, and its PO line is 38000 lb. Every S7 assertion is byte-identical.
+- Rerun at clean head `020812b9`: 545 run, **0 failed, 0 errors**. Receipt `.l9/runtime/test-env/odoo_test_w9f0caa25be.test-receipt.json` (source `10a8a4b1…`, dirty false).
+- Static checks on the merged tree: `pytest tests/` 3076 passed, 49 skipped, 0 failed; `pre-commit run` on every file changed since `ff42df2d`: pass; `make audit-baseline`: no new finding.
+- `test_allocation_guard.py::TestAllocationGuard::test_planned_quantity_never_exceeds_the_order_line` already witnesses the refusal of an allocation planned beyond its SO line or PO line.
