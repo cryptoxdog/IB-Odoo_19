@@ -4,6 +4,8 @@ from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+
 
 class AccountMovePenalty(models.Model):
     """Invoice/Bill extension for penalty and scrap management.
@@ -15,11 +17,44 @@ class AccountMovePenalty(models.Model):
     _inherit = "account.move"
 
     # ── Transaction Link ──────────────────────────────────────
+    # plasticos.transaction owns the links (customer_invoice_id, vendor_bill_ids,
+    # freight_bill_ids). The three fields below only mirror them from the move
+    # side so transaction_id can be derived; nothing writes them here.
+    plasticos_invoice_transaction_ids = fields.One2many(
+        PLASTICOS_TRANSACTION,
+        "customer_invoice_id",
+        string="Transactions (Customer Invoice)",
+        readonly=True,
+        help="Transactions that name this move as their customer invoice.",
+    )
+    plasticos_vendor_transaction_ids = fields.Many2many(
+        PLASTICOS_TRANSACTION,
+        relation="plasticos_tx_vendor_rel",
+        column1="account_move_id",
+        column2="plasticos_transaction_id",
+        string="Transactions (Vendor Bill)",
+        readonly=True,
+        help="Transactions that list this move among their vendor bills.",
+    )
+    plasticos_freight_transaction_ids = fields.Many2many(
+        PLASTICOS_TRANSACTION,
+        relation="plasticos_tx_freight_rel",
+        column1="account_move_id",
+        column2="plasticos_transaction_id",
+        string="Transactions (Freight Bill)",
+        readonly=True,
+        help="Transactions that list this move among their freight bills.",
+    )
     transaction_id = fields.Many2one(
-        "plasticos.transaction",
+        PLASTICOS_TRANSACTION,
         string="Transaction",
+        compute="_compute_transaction_id",
+        store=True,
+        readonly=True,
+        compute_sudo=True,
         index=True,
-        help="Linked transaction for scrap management",
+        help="The one transaction that links this move as its customer invoice, vendor bill or "
+        "freight bill. Empty when no transaction, or more than one, links it.",
         # An invoice is a financial record: a transaction it names cannot be
         # deleted from under it, and deleting one must never SQL-delete the invoice.
         ondelete="restrict",
@@ -115,6 +150,21 @@ class AccountMovePenalty(models.Model):
     )
 
     # ── Computed Methods ──────────────────────────────────────
+    @api.depends(
+        "plasticos_invoice_transaction_ids",
+        "plasticos_vendor_transaction_ids",
+        "plasticos_freight_transaction_ids",
+    )
+    def _compute_transaction_id(self):
+        """Project the owning transaction; ambiguity is empty, never last-wins."""
+        for move in self:
+            owners = (
+                move.plasticos_invoice_transaction_ids
+                | move.plasticos_vendor_transaction_ids
+                | move.plasticos_freight_transaction_ids
+            )
+            move.transaction_id = owners if len(owners) == 1 else False
+
     @api.depends("transaction_id", "transaction_id.commission_amount")
     def _compute_commission_amount(self):
         for move in self:
