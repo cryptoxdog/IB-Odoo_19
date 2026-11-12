@@ -23,7 +23,7 @@ Also documented: `plasticos_export/tests/test_multicompany_permissions.py::TestM
 
 `plasticos_enrichment/models/enrichment_service.py`: `bale`, `bales`, `baled` map to `plasticos.packaging.type` code `bales` (`packaging_type_id` with provenance); BALE and BALES are no longer form codes. `enrichment_run.py`: a packaging-only material gets no form and never the OTHER fallback. Witnesses: `plasticos_enrichment/tests/test_bales_packaging.py` (real `normalize_material` path, nothing patched).
 
-Web leads (contract effect OP7-E09): see the S7 report; `plasticos.intake.form_id` is `required=True`.
+Web leads (contract effect OP7-E09, coordinator ruling option a): `plasticos_web_leads/models/web_lead.py` no longer maps bale words to the retired BALES form. A bale word sets the intake's `packaging_type_id` to Bales and the form stays at the OTHER fallback; a stored analysis naming BALES is read the same way. Witnesses: `plasticos_web_leads/tests/test_web_lead_bales_packaging.py`. Recorded for the final audit, not changed here: `plasticos.intake.form_id` is `required=True` (`plasticos_intake/models/intake.py`), so a web-lead intake cannot reach the no-form end state that enrichment profiles reach.
 
 ## Recorded, out of scope
 
