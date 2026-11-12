@@ -1415,18 +1415,25 @@ template_admitted_for() {
 
 # Content digest of the fingerprint's config files as they are at Git revision $1.
 config_digest_at() {
-  local rev="$1" tmp paths
+  local rev="$1" tmp listed
+  local -a paths=()
   tmp="$(mktemp -d)"
-  paths="$(git -C "$ROOT" ls-tree -r --name-only "$rev" -- $MIGRATE_CONFIG_FILES)" || {
+  listed="$(git -C "$ROOT" ls-tree -r --name-only "$rev" -- "${MIGRATE_CONFIG_FILES[@]}")" || {
     rm -rf "$tmp"
     return 1
   }
-  # shellcheck disable=SC2086 # word-split the path list
-  git -C "$ROOT" archive "$rev" -- $paths | tar -x -C "$tmp"
+  local path
+  # bash 3.2 (macOS /bin/bash) has no mapfile.
+  while IFS= read -r path; do
+    [ -z "$path" ] || paths+=("$path")
+  done <<<"$listed"
+  if [ "${#paths[@]}" -gt 0 ]; then
+    git -C "$ROOT" archive "$rev" -- "${paths[@]}" | tar -x -C "$tmp"
+  fi
   content_digest dir "$tmp"
   rm -rf "$tmp"
 }
-MIGRATE_CONFIG_FILES="config/odoo.conf config/odoo_module_order.yaml docker-compose.yml Dockerfile requirements.txt constraints.txt scripts/get_odoo_module_order.py"
+MIGRATE_CONFIG_FILES=(config/odoo.conf config/odoo_module_order.yaml docker-compose.yml Dockerfile requirements.txt constraints.txt scripts/get_odoo_module_order.py)
 
 # F8. `migrate <db> <from-rev>` upgrades an owned clone that was cloned in another
 # checkout of this repository (a clean Staging tree) to the source on disk, when the
@@ -1460,8 +1467,12 @@ migrate_clone() {
     config,modules | modules) ;;
     *) refuse "inputs other than the module roster changed since ${old:0:16} (${changed:-none})" ;;
   esac
-  # shellcheck disable=SC2086 # word-split the path list
-  git -C "$ROOT" diff --quiet "$rev" -- $(printf '%s\n' $MIGRATE_CONFIG_FILES | grep -vx config/odoo_module_order.yaml) ||
+  local -a others=()
+  local file
+  for file in "${MIGRATE_CONFIG_FILES[@]}"; do
+    [ "$file" = config/odoo_module_order.yaml ] || others+=("$file")
+  done
+  git -C "$ROOT" diff --quiet "$rev" -- "${others[@]}" ||
     refuse "a fingerprint config file other than config/odoo_module_order.yaml differs from ${rev:0:12}"
   old_modules="$(sed -n 's/^modules=//p' "$evidence")"
   new_modules="$(printf '%s\n' "$current" | sed -n 's/^modules=//p')"
