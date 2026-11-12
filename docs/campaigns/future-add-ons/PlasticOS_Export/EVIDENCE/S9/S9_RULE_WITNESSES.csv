@@ -1,0 +1,24 @@
+case_id,rule_id,polarity,witness,status
+AC-EXP-07-002,BRS-EXP-07-R002,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestRoadEquipment::test_operator_specifies_53_48_or_flatbed_on_the_load,PASS
+AC-EXP-07-002,BRS-EXP-07-R002,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestRoadEquipment::test_more_types_are_data_and_codes_are_unique,PASS
+AC-EXP-07-002,BRS-EXP-07-R002,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestRoadEquipment::test_flatbed_is_its_own_type_with_no_assumed_length,PASS
+AC-EXP-07-002,BRS-EXP-07-R002,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestRoadEquipment::test_equipment_infers_no_weight_and_no_container,PASS
+AC-EXP-08-007,BRS-EXP-08-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_afloat_container_is_sold_without_rewriting_its_facts,PASS
+AC-EXP-08-007,BRS-EXP-08-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_same_facts_replay_is_idempotent,PASS
+AC-EXP-08-007,BRS-EXP-08-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_buyer_change_cannot_silently_change_filer_delivery_partner_or_departure,PASS
+AC-EXP-08-007,BRS-EXP-08-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_facts_need_their_own_original_and_order,PASS
+AC-EXP-08-007,BRS-EXP-08-R007,guard,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_journey_stays_identity_only,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_oct8_booking_complete_supports_load_1_only,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_gate_in_and_sailing_proposals_run_the_journey_commands,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_supplier_ready_runs_the_load_command_with_its_guards,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_booking_complete_cannot_attest_gate_in_or_sailing,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_propose_replay_and_contradiction,PASS
+AC-EXP-11-010,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_oct8_booking_complete_supports_load_1_only,PASS
+AC-EXP-11-010,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_booking_complete_cannot_attest_gate_in_or_sailing,PASS
+AC-EXP-11-010,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_proposal_never_writes_state_directly,PASS
+AC-EXP-11-010,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentProposalAccess::test_sales_rep_cannot_create_or_accept_a_proposal,PASS
+C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_tare_and_vgm_from_a_scale_ticket,PASS
+C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_vgm_from_the_documents_verdict,PASS
+C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_tare_and_vgm_are_never_inferred,PASS
+C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_documents_basis_refuses_dangling_or_foreign_documents,PASS
+C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_documents_basis_without_documents_is_not_available,PASS

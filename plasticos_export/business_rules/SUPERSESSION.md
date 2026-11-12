@@ -51,3 +51,15 @@ This register cannot supersede Logistics, Documents, native Purchase/Sales/Stock
 ## Reading projection
 
 `EXPORT_BRS/REFINED_BRS/` regroups the same 120 IDs into seven briefs (RB-01 to RB-07). It is non-normative; `BUSINESS_RULE_TRACEABILITY.csv` column `refined_brief` gives each rule's brief from `EXACT_RULE_CROSSWALK.csv`.
+
+## Operator decision 2026-11-12: Sales Rep allocation visibility
+
+Recorded from the operator chat instruction of 2026-11-12: "sales reps must see all loads allocated to all bookings so they can plan accordingly if they see only their loads they may overbook a booking - sales just can't open or modify other loads but they can see them". It clarifies the audience of the rules below and replaces no rule text.
+
+| Rule | Version | Clarification | Source note |
+| --- | --- | --- | --- |
+| `BRS-EXP-14-R012` | 2026-11-12 | Same-company Sales Reps are an allowed audience for cargo allocation rows: every link of every booking in their companies, read only. A row shows the booking, slot, container, supplier, source names, physical source kind and planned quantity; it carries no economics (`BRS-EXP-06-R001` stays locked). The loads, sale orders and purchase orders behind another rep's row stay owner-scoped: their records cannot be opened, read or modified from Export. Company isolation is unchanged. | operator chat 2026-11-12 |
+| `BRS-EXP-14-R017` | 2026-11-12 | The Bookings control center drilldowns open the underlying load, sale order or purchase order only for a reader entitled to that record; for any other reader the reference is shown as text or a non-opening reference. | operator chat 2026-11-12 |
+| `BRS-EXP-14-R022` | 2026-11-12 | Report and record navigation, the container manifest and exports render allocation rows for a same-company Sales Rep from the link's own name fields, never by reading the source records in that reader's access. | operator chat 2026-11-12 |
+
+This supersedes the PR #479 review scoping that limited a Sales Rep to links on sale orders they own. Slots, bookings and links still change only through the Logistics-owned Export commands.

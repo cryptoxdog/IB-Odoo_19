@@ -28,11 +28,13 @@
     </record>
 
     <!--
-        Party isolation for cargo links (PR #479 review, BRS-EXP-14-R012). A cargo
-        link names supplier POs, loads and planned quantities. A Sales Rep reads only
-        links on sale orders they own; Logistics and Operations Managers read every
-        link of their companies. Group rules are OR'ed per user, so a user in both
-        roles keeps the operations view; the company rule above still applies to all.
+        Cargo link audience (BRS-EXP-14-R012, as clarified by the operator decision of
+        2026-11-12 in business_rules/SUPERSESSION.md). Logistics and Operations Managers
+        read and command every link of their companies. A Sales Rep reads every link of
+        every booking in their companies, read only, so space is planned against the
+        whole booking and never overbooked. The rows carry names, never economics; the
+        loads, sale orders and purchase orders behind them stay owner-scoped by their own
+        rules. Group rules are OR'ed per user; the company rule above still applies to all.
     -->
     <record id="rule_export_cargo_link_operations" model="ir.rule">
         <field name="name">Export cargo link: operations roles see their companies' links</field>
@@ -41,12 +43,18 @@
         <field name="groups" eval="[(4, ref('plasticos_security_base.group_logistics')), (4, ref('plasticos_security_base.group_operations_manager'))]"/>
     </record>
     <record id="rule_export_cargo_link_sales_own" model="ir.rule">
-        <field name="name">Export cargo link: sales reps see links on their own sale orders</field>
+        <field name="name">Export cargo link: sales reps read every link of their companies</field>
         <field name="model_id" ref="plasticos_export.model_plasticos_export_booking_cargo_link"/>
-        <field name="domain_force">[('sale_order_id.user_id', '=', user.id)]</field>
+        <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('plasticos_security_base.group_sales_rep'))]"/>
         <field name="perm_write" eval="False"/>
         <field name="perm_create" eval="False"/>
         <field name="perm_unlink" eval="False"/>
+    </record>
+    <!-- C08 OP8-E04: the internal claim row names PO/SO lines; it stays in its company like every Export model. -->
+    <record id="rule_export_source_line_claim_company" model="ir.rule">
+        <field name="name">Export source line claim: allowed companies</field>
+        <field name="model_id" ref="plasticos_export.model_plasticos_export_source_line_claim"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
 </odoo>

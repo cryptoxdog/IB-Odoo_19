@@ -66,4 +66,16 @@
         <field name="model_id" ref="model_plasticos_iso_journey_source"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <record id="rule_iso_journey_fact_company" model="ir.rule">
+        <field name="name">ISO container journey fact company isolation</field>
+        <field name="model_id" ref="model_plasticos_iso_journey_fact"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <!-- S9 journey facts and shipment event proposals: same global company isolation as J1/J2.
+         Business-role grants belong to plasticos_security_base. -->
+    <record id="rule_shipment_event_proposal_company" model="ir.rule">
+        <field name="name">Shipment event proposal company isolation</field>
+        <field name="model_id" ref="model_plasticos_shipment_event_proposal"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

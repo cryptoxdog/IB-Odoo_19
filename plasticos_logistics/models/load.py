@@ -319,6 +319,19 @@ class PlasticosLoad(models.Model):
     carrier_contact_phone = fields.Char(string="Carrier Phone")
     trailer_number = fields.Char(string="Trailer Number")
     seal_number = fields.Char(string="Seal Number")
+    # Domestic road equipment for dispatch (BRS-EXP-07-R002). The type implies no
+    # length, payload or VGM beyond what it names; the actual move states its own.
+    road_equipment_type_id = fields.Many2one(
+        "plasticos.road.equipment.type",
+        string="Road Equipment",
+        ondelete="restrict",
+        tracking=True,
+        help="Trailer the carrier brings for this move: 53 ft, 48 ft, flatbed or another type kept as data.",
+    )
+    road_equipment_requirements = fields.Text(
+        string="Equipment Dimensions / Restrictions",
+        help="Dimensions and restrictions of the actual move, e.g. a flatbed deck length. Not inferred from the type.",
+    )
 
     # ── Cargo/Product Fields ────────────────────────────────────────
     product_description = fields.Char(string="Product Description")

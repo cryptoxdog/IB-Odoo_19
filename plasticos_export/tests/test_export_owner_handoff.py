@@ -215,6 +215,7 @@ class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
                 "plasticos.export.slot.command.mixin",
                 "plasticos.export.slot.commit.cargo",
                 "plasticos.export.slot.release.cargo",
+                "plasticos.export.source.line.claim",
             ],
         )
         import os

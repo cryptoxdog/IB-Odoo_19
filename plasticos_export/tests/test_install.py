@@ -42,6 +42,8 @@ MODELS = [
     "plasticos.export.slot.command.mixin",
     "plasticos.export.slot.commit.cargo",
     "plasticos.export.slot.release.cargo",
+    # C08 OP8-E03 (coordinator:C08-SCOPE-2): the per-source-line claim row of the BRS-EXP-08-R006 guard.
+    "plasticos.export.source.line.claim",
 ]
 # Every record the data files declare, by model. Nothing else is Export data.
 DECLARED = {
@@ -80,6 +82,8 @@ DECLARED = {
             for screen in ("commit_cargo", "release_cargo", "bind_journey")
             for role in ("logistics", "ops_manager")
         ),
+        "access_export_source_line_claim_logistics",
+        "access_export_source_line_claim_ops_manager",
     ],
     "ir.rule": [
         "rule_export_booking_company",
@@ -88,6 +92,7 @@ DECLARED = {
         "rule_export_cargo_link_sales_own",
         "rule_export_revision_company",
         "rule_export_slot_company",
+        "rule_export_source_line_claim_company",
     ],
     "ir.ui.menu": [
         "menu_export_allocations",

@@ -31,7 +31,9 @@ from .booking import (
 
 SOURCE_BOOKING = "booking"
 NOT_STATED = "not stated"
-LIVE_LINK_STATES = ("committed", "held")
+# Confirmed cargo a physical instruction follows. A proposal holds nothing physical; it is
+# deliberately narrower than booking_allocation.SOURCE_CLAIM_LINK_STATES (allocation guard).
+PHYSICAL_HOLD_LINK_STATES = ("committed", "held")
 
 
 def _plain(text, **values):
@@ -69,7 +71,7 @@ class PlasticosLogisticsRequestExport(models.Model):
         links = (
             self.env[EXPORT_CARGO_LINK]
             .sudo()  # sudo: audience is derived from the booking's own live cargo; Linda reads no PO content
-            .search([("booking_id", "=", booking.id), ("state", "in", LIVE_LINK_STATES)])
+            .search([("booking_id", "=", booking.id), ("state", "in", PHYSICAL_HOLD_LINK_STATES)])
         )
         return booking.carrier_id | booking.issuer_id | links.purchase_line_id.order_id.partner_id
 
@@ -189,7 +191,7 @@ class PlasticosLoadExport(models.Model):
         links = (
             self.env[EXPORT_CARGO_LINK]
             .sudo()  # sudo: the guard must see every live Export link on this load; it only reads
-            .search([("source_load_id", "=", self.id), ("state", "in", LIVE_LINK_STATES)], order="id ASC")
+            .search([("source_load_id", "=", self.id), ("state", "in", PHYSICAL_HOLD_LINK_STATES)], order="id ASC")
         )
         for link in links:
             slot = link.slot_id.with_context(active_test=False)

@@ -4,6 +4,10 @@
     the physical container as Logistics attests it (J1) and each planned cargo
     source (E4) with its provenance. Quantities are planned, never shipped or
     weighed; no gate-in or sailing is printed unless an owner proves it.
+    Source names come from the cargo link's name fields, never from the source
+    records in the reader's environment: a same-company Sales Rep prints every
+    allocation of the booking without reading another rep's load or order
+    (operator decision 2026-11-12).
 -->
 <odoo>
     <template id="report_container_manifest">
@@ -33,15 +37,15 @@
                                     <thead><tr><th>Supplier PO</th><th>Customer SO</th><th>Source load</th><th>Physical source</th><th>Planned</th><th>Provenance</th></tr></thead>
                                     <tbody>
                                         <tr t-foreach="slot.cargo_link_ids.filtered(lambda link: link.state in ('committed', 'held'))" t-as="link" class="o_manifest_link">
-                                            <td t-out="link.purchase_order_id.name or ''"/>
-                                            <td t-out="link.sale_order_id.name or ''"/>
-                                            <td t-out="link.source_load_id.name or ''"/>
+                                            <td t-out="link.purchase_order_ref or ''"/>
+                                            <td t-out="link.sale_order_ref or ''"/>
+                                            <td t-out="link.source_load_ref or ''"/>
                                             <td t-out="link.physical_source_kind"/>
                                             <td>
                                                 <t t-if="link.planned_quantity_known"><span t-out="link.planned_quantity"/> <span t-out="link.uom_id.name"/></t>
                                                 <t t-else="">unknown</t>
                                             </td>
-                                            <td t-out="link.physical_source_ref or link.original_attachment_id.name or link.source_revision_key or ''"/>
+                                            <td t-out="link.physical_source_ref or link.original_ref or link.source_revision_key or ''"/>
                                         </tr>
                                     </tbody>
                                 </table>

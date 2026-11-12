@@ -44,8 +44,8 @@
                 <field name="current_pod_text"/>
                 <field name="slot_ids" string="Container No." filter_domain="[('slot_ids.journey_id.iso_number', 'ilike', self)]"/>
                 <field name="slot_ids" string="Seal" filter_domain="[('slot_ids.journey_id.seal_number', 'ilike', self)]"/>
-                <field name="slot_ids" string="Supplier PO" filter_domain="[('slot_ids.cargo_link_ids.purchase_order_id.name', 'ilike', self)]"/>
-                <field name="slot_ids" string="Customer SO" filter_domain="[('slot_ids.cargo_link_ids.sale_order_id.name', 'ilike', self)]"/>
+                <field name="slot_ids" string="Supplier PO" filter_domain="[('slot_ids.cargo_link_ids.purchase_order_ref', 'ilike', self)]"/>
+                <field name="slot_ids" string="Customer SO" filter_domain="[('slot_ids.cargo_link_ids.sale_order_ref', 'ilike', self)]"/>
                 <filter name="filter_awaiting" string="Awaiting Carrier Confirmation" domain="[('display_state', '=', 'candidate')]"/>
                 <filter name="filter_confirmed" string="Confirmed" domain="[('display_state', '=', 'confirmed')]"/>
                 <filter name="filter_held" string="Held" domain="[('display_state', '=', 'held')]"/>

@@ -594,15 +594,21 @@ class EnrichmentRun(models.Model):
                     continue
 
                 form = profile_vals.pop("form", False)
-                form_id = svc._resolve_form_id(form) if form else None
-                if not form_id:
-                    form_id = svc._resolve_form_id("other")
-                if not form_id:
-                    _logger.warning(
-                        "No plasticos.material.form for form %s — skip",
-                        form,
-                    )
-                    continue
+                if not form and profile_vals.get("packaging_type_id"):
+                    # Packaging only (bales): no form and never the OTHER fallback, the
+                    # end state of plasticos_material_profile 19.0.5.11.14 (operator
+                    # decision 2026-11-12). The unique key treats the empty form as a value.
+                    form_id = self.env["plasticos.material.form"]
+                else:
+                    form_id = svc._resolve_form_id(form) if form else None
+                    if not form_id:
+                        form_id = svc._resolve_form_id("other")
+                    if not form_id:
+                        _logger.warning(
+                            "No plasticos.material.form for form %s — skip",
+                            form,
+                        )
+                        continue
 
                 source_type = profile_vals.pop("source_type", None)
                 source_type_id = (
@@ -657,15 +663,17 @@ class EnrichmentRun(models.Model):
                     "written",
                     item["prov_items"],
                 )
-                self._record_provenance(
-                    partner,
-                    "form_id",
-                    str(item["form_id"].id),
-                    "",
-                    "written",
-                    item["prov_items"],
-                )
-                written += 2
+                written += 1
+                if item["form_id"]:
+                    self._record_provenance(
+                        partner,
+                        "form_id",
+                        str(item["form_id"].id),
+                        "",
+                        "written",
+                        item["prov_items"],
+                    )
+                    written += 1
                 created += 1
                 for ufield, uval in item["unmapped"]:
                     self._record_provenance(
@@ -689,6 +697,8 @@ class EnrichmentRun(models.Model):
                 if field in LEGACY_PROFILE_CODE_FIELDS:
                     continue
                 current = existing[field]
+                if isinstance(current, models.BaseModel):
+                    current = current.id
                 if not current:
                     merge_vals[field] = value
                     self._record_provenance(
