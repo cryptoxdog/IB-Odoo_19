@@ -51,4 +51,10 @@
         <field name="perm_create" eval="False"/>
         <field name="perm_unlink" eval="False"/>
     </record>
+    <!-- C08 OP8-E04: the internal claim row names PO/SO lines; it stays in its company like every Export model. -->
+    <record id="rule_export_source_line_claim_company" model="ir.rule">
+        <field name="name">Export source line claim: allowed companies</field>
+        <field name="model_id" ref="plasticos_export.model_plasticos_export_source_line_claim"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

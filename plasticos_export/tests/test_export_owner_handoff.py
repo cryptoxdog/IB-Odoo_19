@@ -209,6 +209,7 @@ class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
                 "plasticos.export.booking.revision",
                 "plasticos.export.booking.revision.accept",
                 "plasticos.export.booking.slot",
+                "plasticos.export.source.line.claim",
             ],
         )
         import os

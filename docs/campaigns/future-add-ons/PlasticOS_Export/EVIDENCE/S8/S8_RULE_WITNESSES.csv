@@ -11,6 +11,9 @@ AC-EXP-08-004,BRS-EXP-08-R004,,plasticos_export/tests/test_native_coverage.py::T
 AC-EXP-08-006,BRS-EXP-08-R006,positive,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_four_executed_loads_traced_to_four_bookings,cited,plasticos_export
 AC-EXP-08-006,BRS-EXP-08-R006,no double allocation,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_received_load_cannot_be_allocated_twice,cited,plasticos_export
 AC-EXP-08-006,BRS-EXP-08-R006,replaced link frees its source; partial indexes,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_replaced_link_frees_its_source,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,"concurrent quantity bound, review B3",plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_commits_on_one_order_line_serialize_on_one_claim_row,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,"cross-booking correction, review N4",plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_correction_across_bookings_checks_the_other_booking,cited,plasticos_export
+AC-EXP-01-004,BRS-EXP-01-R004 / 02-R006,"witness self-test, review B1",plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_stamps_detect_any_stored_field_write,cited,plasticos_export
 AC-EXP-08-006,BRS-EXP-08-R006,no over-allocation,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_planned_quantity_never_exceeds_the_order_line,cited,plasticos_export
 AC-EXP-08-006,BRS-EXP-08-R006,attributed corrections and splits,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_correction_and_split_are_attributed,cited,plasticos_export
 AC-EXP-08-006,BRS-EXP-08-R006,concurrency,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_double_commit_past_the_command_is_refused,cited,plasticos_export

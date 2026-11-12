@@ -25,7 +25,7 @@ the cargo source rows.
 
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, LockError, UserError, ValidationError
-from odoo.tools import float_compare
+from odoo.tools import SQL, float_compare
 
 from .booking import (
     ALREADY_APPLIED,
@@ -53,8 +53,12 @@ SALE_LINE = "sale.order.line"
 STOCK_MOVE_LINE = "stock.move.line"
 IR_ATTACHMENT = "ir.attachment"
 UOM = "uom.uom"
-# A released link is history; every other state still claims its source.
-LIVE_LINK_STATES = ("proposed", "committed", "held")
+EXPORT_SOURCE_LINE_CLAIM = "plasticos.export.source.line.claim"
+# A released link is history; every other state, a proposal included, still claims its
+# source for the allocation guard (BRS-EXP-08-R006). This is deliberately wider than
+# logistics_integration.PHYSICAL_HOLD_LINK_STATES, which is only the confirmed cargo a
+# physical instruction may follow.
+SOURCE_CLAIM_LINK_STATES = ("proposed", "committed", "held")
 # Physical subjects one live link holds exclusively.
 _EXCLUSIVE_SOURCES = {
     "source_load_id": "load",
@@ -66,7 +70,7 @@ _BOUNDED_LINES = {
     "sale_line_id": ("product_uom_qty", "SO"),
 }
 # Command-only keys of ``source_refs`` that are not link fields.
-_CORRECTION_REFS = ("replaces_link_id", "correction_reason")
+_CORRECTION_REFS = ("replaces_link_id", "correction_reason", "replaced_booking_revision_id")
 
 PHYSICAL_SOURCE_KINDS = [
     ("native_stock", "Native stock move"),
@@ -352,13 +356,22 @@ class PlasticosExportBookingSlot(models.Model):
         ``replaces_link_id`` and a ``correction_reason``: the replaced link is
         released, the new link records what it replaces, and the booking
         chatter attributes the change. Further split parts name the same
-        replaced link.
+        replaced link. When the replaced link sits on another booking, that
+        booking is locked too and ``replaced_booking_revision_id`` must name
+        its current revision, as ``expected_booking_revision_id`` does here.
+
+        Every commit that plans a quantity on a PO or SO line first claims that
+        line's Export-owned row (``plasticos.export.source.line.claim``) with an
+        upsert. Two transactions planning on one line therefore serialize on
+        that row: the later one fails to serialize and is retried, and its
+        retry counts the first one's quantity (no native row is written).
         """
         refusal = self._slot_preflight(operation_key, expected_booking_revision_id)
         if refusal:
             return refusal
         refs = dict(source_refs or {})
         correction = (refs.pop("correction_reason", None) or "").strip()
+        replaced_expected = refs.pop("replaced_booking_revision_id", None)
         Link = self.env[EXPORT_CARGO_LINK]
         values, reason = Link._source_values(self, refs, planned_quantity, uom_id)
         prior = Link.search([("company_id", "=", self.company_id.id), ("allocation_key", "=", operation_key)], limit=1)
@@ -374,14 +387,24 @@ class PlasticosExportBookingSlot(models.Model):
         usable = self._usable_error()
         if usable:
             return result(BLOCKED, self, usable)
+        if replaced and replaced.booking_id != self.booking_id:
+            other = replaced.booking_id
+            try:
+                other._lock_booking()
+                replaced.slot_id.lock_for_update()
+            except LockError:
+                return result(BLOCKED, reason="booking_busy")
+            if (other.current_revision_id.id or False) != (int(replaced_expected or 0) or False):
+                return result(STALE, other.current_revision_id, "the replaced cargo's booking revision changed")
         try:
             Link._lock_sources(values)
         except LockError:
             return result(BLOCKED, reason="cargo_source_busy")
+        self.env[EXPORT_SOURCE_LINE_CLAIM]._claim(self.company_id, values)
         allocation = Link._allocation_error(values, replaced)
         if allocation:
             return result(BLOCKED, self, allocation)
-        if replaced.state in LIVE_LINK_STATES:
+        if replaced.state in SOURCE_CLAIM_LINK_STATES:
             guard(replaced).write({"state": "released"})
         link = guard(Link).create({**values, "slot_id": self.id, "allocation_key": operation_key, "state": "committed"})
         if replaced:
@@ -595,7 +618,7 @@ class PlasticosExportBookingCargoLink(models.Model):
             raise UserError("Commit cargo through the slot's Commit Cargo command.")
         # Checked before the insert so a twin gets a clear refusal, not the unique index (BRS-EXP-08-R006).
         for vals in vals_list:
-            if vals.get("state", "proposed") in LIVE_LINK_STATES:
+            if vals.get("state", "proposed") in SOURCE_CLAIM_LINK_STATES:
                 error = self._allocation_error(vals)
                 if error:
                     raise ValidationError(f"Cargo {vals.get('allocation_key')}: {error}")
@@ -636,7 +659,7 @@ class PlasticosExportBookingCargoLink(models.Model):
         """
         excluding = excluding or self.browse()
         Live = self.sudo().with_context(active_test=False)  # sudo: count every live link, not only the visible ones
-        live = [("state", "in", LIVE_LINK_STATES), ("id", "not in", excluding.ids)]
+        live = [("state", "in", SOURCE_CLAIM_LINK_STATES), ("id", "not in", excluding.ids)]
         for name, label in _EXCLUSIVE_SOURCES.items():
             if values.get(name) and Live.search_count([*live, (name, "=", values[name])], limit=1):
                 return (
@@ -676,7 +699,7 @@ class PlasticosExportBookingCargoLink(models.Model):
     )
     def _check_allocation(self):
         """The same guard at the model, for any guarded write that bypasses the command check."""
-        for link in self.filtered(lambda link: link.state in LIVE_LINK_STATES):
+        for link in self.filtered(lambda link: link.state in SOURCE_CLAIM_LINK_STATES):
             values = {
                 "planned_quantity": link.planned_quantity,
                 "planned_quantity_known": link.planned_quantity_known,
@@ -738,7 +761,7 @@ class PlasticosExportBookingCargoLink(models.Model):
                 return {}, "replaces_link_id not readable"
             if replaced.company_id != company:
                 return {}, "replaces_link_id belongs to another company"
-            if replaced.state not in LIVE_LINK_STATES and not self.search_count(
+            if replaced.state not in SOURCE_CLAIM_LINK_STATES and not self.search_count(
                 [("replaces_link_id", "=", replaced.id)], limit=1
             ):
                 return {}, "the replaced cargo link was released, not replaced; commit new cargo instead"
@@ -764,3 +787,86 @@ class PlasticosExportBookingCargoLink(models.Model):
             if (current or False) != (value or False):
                 return False
         return True
+
+
+class PlasticosExportSourceLineClaim(models.Model):
+    """One Export-owned row per PO or SO line that cargo plans quantity on (BRS-EXP-08-R006).
+
+    It stores no quantity: the planned quantities stay on the cargo links, and the
+    order quantity stays on the native line. Its only job is serialization. The
+    conflict key is (line model, line id), one partial unique index per line model;
+    ``company_id`` is stored but not part of the key, which is equivalent because a
+    line belongs to one company. Each commit that plans on a line upserts and bumps
+    this row before it counts the line's live links. While a first commit is still
+    in flight, a second one is refused earlier with ``cargo_source_busy`` (the
+    SKIP LOCKED source lock). Once the first has committed, a second transaction
+    whose REPEATABLE READ snapshot predates it fails to serialize on this row; Odoo
+    retries it, and the retry sees the first link. The native PO and SO rows are
+    never written.
+    """
+
+    _name = "plasticos.export.source.line.claim"
+    _description = "Export Source Line Claim (internal: serializes allocation commits; no view or command)"
+    _rec_name = "id"
+
+    company_id = fields.Many2one("res.company", required=True, index=True, ondelete="restrict")
+    purchase_line_id = fields.Many2one(PURCHASE_LINE, index=True, ondelete="cascade")
+    sale_line_id = fields.Many2one(SALE_LINE, index=True, ondelete="cascade")
+    claim_count = fields.Integer(
+        default=0,
+        help=(
+            "Attempt and serialization counter. Bumped by every commit that plans on this line, before the guard "
+            "checks, and it stays bumped when that attempt is refused. Its value is not used for any decision."
+        ),
+    )
+
+    _one_source_line = models.Constraint(
+        "CHECK((purchase_line_id IS NULL) <> (sale_line_id IS NULL))",
+        "A source line claim names exactly one PO line or SO line.",
+    )
+    _one_claim_per_purchase_line = models.UniqueIndex(
+        "(purchase_line_id) WHERE purchase_line_id IS NOT NULL",
+        "This PO line already has its claim row.",
+    )
+    _one_claim_per_sale_line = models.UniqueIndex(
+        "(sale_line_id) WHERE sale_line_id IS NOT NULL",
+        "This SO line already has its claim row.",
+    )
+
+    @api.model
+    def _claim(self, company, values):
+        """Upsert and bump the claim row of each PO or SO line in ``values``. Returns the rows."""
+        if not values.get("planned_quantity_known"):
+            return self.browse()
+        ids = []
+        for column in _BOUNDED_LINES:
+            if not values.get(column):
+                continue
+            # An upsert, not search-then-create: INSERT ... ON CONFLICT DO UPDATE takes the row lock,
+            # and at REPEATABLE READ raises a serialization failure when the row changed after this
+            # transaction's snapshot. The ORM has no upsert, hence SQL on this Export-owned table only.
+            self.env.flush_all()
+            self.env.cr.execute(  # sudo: n/a, a raw upsert on Export's own claim table, the guard's only writer
+                SQL(
+                    """
+                    INSERT INTO %(table)s (company_id, %(column)s, claim_count,
+                                           create_uid, create_date, write_uid, write_date)
+                    VALUES (%(company)s, %(line)s, 1, %(uid)s, NOW() AT TIME ZONE 'UTC',
+                            %(uid)s, NOW() AT TIME ZONE 'UTC')
+                    ON CONFLICT (%(column)s) WHERE %(column)s IS NOT NULL
+                    DO UPDATE SET claim_count = %(table)s.claim_count + 1,
+                                  write_uid = EXCLUDED.write_uid,
+                                  write_date = EXCLUDED.write_date
+                    RETURNING id
+                    """,
+                    table=SQL.identifier(self._table),
+                    column=SQL.identifier(column),
+                    company=company.id,
+                    line=values[column],
+                    uid=self.env.uid,
+                )
+            )
+            ids.append(self.env.cr.fetchone()[0])
+        claims = self.browse(ids)
+        claims.invalidate_recordset()
+        return claims
