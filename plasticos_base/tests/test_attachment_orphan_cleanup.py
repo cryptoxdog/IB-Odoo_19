@@ -127,24 +127,31 @@ class TestAttachmentOrphanCleanup(TransactionCase):
         self.assertEqual(healthy.exists(), healthy)
 
     def test_attachment_referenced_by_a_protected_model_column_is_kept(self):
-        """Reference protection is generic: any stored ir.attachment link of a protected model counts."""
-        partner = self.env["res.partner"].create({"name": "Orphan Cleanup Probe", "is_company": True})
-        link = partner._fields["message_main_attachment_id"]
-        self.assertEqual((link.comodel_name, link.store), ("ir.attachment", True))
+        """An attachment a protected model points at through one of its own columns is kept.
+
+        The probe is account.move.message_main_attachment_id: a real stored
+        many2one to ir.attachment on a protected model. The attachment carries
+        no res_model, so only the column reference can protect it.
+        """
+        self.assertIn("account.move", self.env, "account is installed with plasticos_base (via sale_management)")
+        link = self.env["account.move"]._fields.get("message_main_attachment_id")
+        self.assertTrue(link, "account.move.message_main_attachment_id is the probe column")
+        self.assertEqual((link.type, link.comodel_name, link.store), ("many2one", "ir.attachment", True))
+        move = self.env["account.move"].create({"move_type": "entry"})
         healthy = self._attachments(8)
         referenced = self._attachments(1)
-        partner.message_main_attachment_id = referenced
+        self.assertFalse(referenced.res_model)
+        move.message_main_attachment_id = referenced
         self.env.flush_all()
         self._start_before(healthy)
         self._drop_blob(referenced)
-        module = "odoo.addons.plasticos_base.models.ir_attachment"
 
-        with patch(f"{module}.PROTECTED_MODELS", ("res.partner",)):
-            self.assertEqual(self._run(), 0)
+        self.assertEqual(self._run(), 0)
         self.assertTrue(referenced.exists())
+        self.assertEqual(move.message_main_attachment_id, referenced)
 
         # Falsifying: without the protection the same row is an ordinary orphan.
         self._start_before(healthy)
-        with patch(f"{module}.PROTECTED_MODELS", ()):
+        with patch("odoo.addons.plasticos_base.models.ir_attachment.PROTECTED_MODELS", ()):
             self.assertEqual(self._run(), 1)
         self.assertFalse(referenced.exists())

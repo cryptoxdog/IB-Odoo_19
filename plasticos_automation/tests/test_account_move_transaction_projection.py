@@ -71,13 +71,20 @@ class TestAccountMoveTransactionProjection(PlasticosTestCase):
             self.assertEqual(self._stored_transaction(move), transaction.id)
         self.assertFalse(unlinked.transaction_id)
 
-        transaction.customer_invoice_id = False
         transaction.vendor_bill_ids = [(3, vendor_bill.id)]
         transaction.freight_bill_ids = [(5, 0, 0)]
 
-        for move in (invoice, vendor_bill, freight_bill):
+        for move in (vendor_bill, freight_bill):
             self.assertFalse(move.transaction_id)
             self.assertIsNone(self._stored_transaction(move))
+
+        # The customer-invoice pointer is immutable by product contract
+        # (plasticos_transaction refuses to reassign or clear it), so the
+        # projection of that link has no reachable "cleared" state.
+        with self.assertRaises(UserError):
+            transaction.customer_invoice_id = False
+        self.assertEqual(invoice.transaction_id, transaction)
+        self.assertEqual(self._stored_transaction(invoice), transaction.id)
 
     def test_two_transactions_claiming_one_bill_project_nothing(self):
         """Falsifying: ambiguity is empty, never the first or the last claimant."""
@@ -102,15 +109,35 @@ class TestAccountMoveTransactionProjection(PlasticosTestCase):
         self.assertEqual(bill.transaction_id, transaction)
 
     def test_commission_amount_follows_the_projected_transaction(self):
+        """The move follows the transaction's own computed commission, through the ORM dependency.
+
+        The transaction's commission is computed (by plasticos_commission when
+        installed), so the test drives that compute instead of writing a value
+        the compute would not own.
+        """
         transaction = self._transaction("TX-PROJ-COMM")
         bill = self._move()
         self.assertEqual(bill.commission_amount, 0.0)
         transaction.vendor_bill_ids = [(4, bill.id)]
         self.assertEqual(bill.commission_amount, transaction.commission_amount or 0.0)
-        self.env.cr.execute("UPDATE plasticos_transaction SET commission_amount = 42.5 WHERE id = %s", [transaction.id])
-        transaction.invalidate_recordset(["commission_amount"])
-        self.env.add_to_compute(bill._fields["commission_amount"], bill)
-        self.assertEqual(bill.commission_amount, 42.5)
+
+        def fixed_commission(transactions):
+            for record in transactions:
+                record.commission_amount = 42.5
+
+        commission = transaction._fields["commission_amount"]
+        with patch.object(type(transaction), "_compute_commission", fixed_commission):
+            self.env.add_to_compute(commission, transaction)
+            self.assertEqual(transaction.commission_amount, 42.5)
+            # No manual recompute of the move: the dependency alone must carry it.
+            self.assertEqual(bill.commission_amount, 42.5)
+            self.env.flush_all()
+            self.env.cr.execute("SELECT commission_amount FROM account_move WHERE id = %s", [bill.id])
+            self.assertEqual(self.env.cr.fetchone()[0], 42.5)
+
+            # Falsifying: a move the transaction no longer owns stops following it.
+            transaction.vendor_bill_ids = [(3, bill.id)]
+            self.assertEqual(bill.commission_amount, 0.0)
 
     def test_linked_transaction_cannot_be_deleted(self):
         transaction = self._transaction("TX-PROJ-DEL")
