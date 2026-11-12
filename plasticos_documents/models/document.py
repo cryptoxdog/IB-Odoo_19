@@ -558,6 +558,18 @@ class PlasticosDocument(models.Model):
         return result
 
     def unlink(self):
+        decided = self.filtered(
+            lambda rec: (
+                rec.association_state == "accepted"
+                and not rec._is_legacy_obligation()
+                and (rec.verified or rec.override)
+            )
+        )
+        if decided:
+            raise UserError(
+                "Decided operation evidence cannot be deleted: its decision, actor and revision are history. "
+                "Record a correction with action_supersede instead."
+            )
         # Capture transactions before delete
         transactions = self._get_related_transactions(self)
         attachments = self.attachment_id
@@ -813,6 +825,16 @@ class PlasticosDocument(models.Model):
         ``not_available`` in the verdict; it is never vacuously satisfied.
         """
         return frozenset()
+
+    @api.model
+    def _release_obligations(self, operation_kind):
+        """Obligations whose stale evidence withholds this physical operation.
+
+        Default: every declared obligation, for every operation kind. The owner
+        of an obligation (for example Export) narrows this by ``_inherit``;
+        Documents does not invent an obligation-to-operation mapping.
+        """
+        return self._scoped_obligation_kinds()
 
     @api.model
     def _scoped_subject_models(self):

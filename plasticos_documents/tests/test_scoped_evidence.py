@@ -600,3 +600,74 @@ class TestScopedEvidence(PlasticosTestCase):
         self.assertEqual(row.obligation_kind, "legacy")
         self.assertFalse(row.operation_revision_key)
         self.assertFalse(row.quantity_known)
+
+    # ── Codex review of PR #477 (coordinator-authorized F-A, F-B, F-D) ────
+
+    def test_verdict_is_not_an_oracle_for_other_companies(self):
+        """F-A, POS-INV-05: a foreign record and a missing id answer identically, without record id."""
+        foreign = self.env["plasticos.load"].create({"company_id": self.company_b.id})
+        missing_id = foreign.id + 100000
+        self.assertFalse(self.env["plasticos.load"].browse(missing_id).exists())
+        Document = self.env["plasticos.document"].with_user(self.internal)
+        for company in (self.env.company, self.company_b):
+            seen = Document.get_scoped_evidence_verdict(company.id, "plasticos.load", foreign.id, GATE, "r1")
+            unseen = Document.get_scoped_evidence_verdict(company.id, "plasticos.load", missing_id, GATE, "r1")
+            self.assertEqual(seen, unseen)
+            self.assertEqual(seen["status"], "not_available")
+            self.assertNotIn("record_id", seen)
+
+    def test_superseded_scope_does_not_block_release_forever(self):
+        """F-B: a superseded row is history; its successor decides release."""
+        _order, _tx, load = self._trade("TX-S3-SUPERSEDE-RELEASE")
+        Load = self.env["plasticos.load"]
+        old = self._scope(self._shell(self.bol), load, revision="BKG-1/r1", coverage="container-1")
+        old.with_user(self.verifier).action_verify()
+        successor = self._scope(self._shell(self.bol), load, revision="BKG-1/r2", coverage="container-1b")
+        successor.write({"expiry_date": fields.Date.today() + timedelta(days=1)})
+        successor.with_user(self.verifier).action_verify()
+        old.with_user(self.verifier).action_supersede(successor.id)
+        self.assertEqual(Load.assert_can_release_physical_operation(load.id, "dispatch")["status"], "applied")
+        later = fields.Date.today() + timedelta(days=5)
+        with patch.object(type(self.env["plasticos.document"]), "_evidence_today", return_value=later):
+            verdict = Load.assert_can_release_physical_operation(load.id, "dispatch")
+        self.assertEqual(verdict["status"], "blocked", "an expired current row still withholds release")
+        self.assertIn("BKG-1/r2", verdict["reason"])
+        self.assertNotIn("BKG-1/r1", verdict["reason"])
+
+    def test_release_obligations_default_to_every_declared_obligation(self):
+        """F-B hook: by default every declared obligation applies to every physical operation."""
+        from odoo.addons.plasticos_logistics.models.load import PHYSICAL_RELEASE_OPERATIONS
+
+        Document = self.env["plasticos.document"]
+        for operation_kind in PHYSICAL_RELEASE_OPERATIONS:
+            self.assertEqual(Document._release_obligations(operation_kind), DECLARED)
+        _order, _tx, load = self._trade("TX-S3-RELEASE-HOOK")
+        row = self._scope(self._shell(self.bol), load)
+        row.write({"expiry_date": fields.Date.today() + timedelta(days=1)})
+        row.with_user(self.verifier).action_verify()
+        later = fields.Date.today() + timedelta(days=5)
+        Load = self.env["plasticos.load"]
+        with patch.object(type(Document), "_evidence_today", return_value=later):
+            self.assertEqual(Load.assert_can_release_physical_operation(load.id, "dispatch")["status"], "blocked")
+            with patch.object(type(Document), "_release_obligations", lambda model, kind: frozenset()):
+                self.assertEqual(Load.assert_can_release_physical_operation(load.id, "dispatch")["status"], "applied")
+
+    def test_decided_operation_evidence_cannot_be_deleted(self):
+        """F-D, POS-INV-07: a decided operation row is corrected by supersession, never deleted."""
+        _order, tx, load = self._trade("TX-S3-UNLINK")
+        decided = self._scope(self._shell(self.bol), load)
+        decided.with_user(self.verifier).action_verify()
+        with self.assertRaisesRegex(UserError, "action_supersede"), self.env.cr.savepoint():
+            decided.with_user(self.manager).unlink()
+        self.assertTrue(decided.exists())
+        undecided = self._scope(self._shell(self.bol), load, revision="BKG-9/r1")
+        undecided.with_user(self.manager).unlink()
+        self.assertFalse(undecided.exists())
+        legacy = (
+            self._shell(self.bol)
+            .with_user(self.verifier)
+            .action_associate("plasticos.transaction", tx.id, "legacy bol")
+        )
+        legacy.with_user(self.verifier).action_verify()
+        legacy.with_user(self.manager).unlink()
+        self.assertFalse(legacy.exists())

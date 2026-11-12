@@ -38,16 +38,21 @@ class PlasticosLoadDocsBridge(models.Model):
         Logistics does not import Documents; this owner appends its reasons by
         inheritance. Only accepted operation-scoped evidence on this exact load
         can withhold a NEW physical instruction: evidence from another company,
-        or an obligation whose accepted decision is no longer current (expired,
-        superseded or replaced) with no current row for the same scope.
+        or a current accepted decision that is no longer eligible (expired or
+        its original replaced) with no eligible row for the same scope. A
+        superseded row is history: its successor decides. Only obligations that
+        ``plasticos.document._release_obligations(operation_kind)`` names apply.
         Recording an actual event that already happened is not routed here.
         """
         errors = super()._physical_release_errors(operation_kind)
-        errors.extend(self._scoped_evidence_release_errors())
+        errors.extend(self._scoped_evidence_release_errors(operation_kind))
         return errors
 
-    def _scoped_evidence_release_errors(self):
+    def _scoped_evidence_release_errors(self, operation_kind):
         self.ensure_one()
+        relevant = self.env["plasticos.document"]._release_obligations(operation_kind)
+        if not relevant:
+            return []
         rows = (
             self.env["plasticos.document"]
             .sudo()  # sudo: the guard must see every accepted scope row on this load; it only reads
@@ -63,7 +68,7 @@ class PlasticosLoadDocsBridge(models.Model):
                 ],
                 order="id ASC",
             )
-        )
+        ).filtered(lambda row: row.obligation_kind in relevant and row.is_current and not row.superseded_by)
         errors = []
         foreign = rows.filtered(
             lambda row: row.subject_company_id and self.company_id and row.subject_company_id != self.company_id
