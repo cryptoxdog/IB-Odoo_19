@@ -15,6 +15,8 @@ from odoo import _, models
 from odoo.exceptions import LockError, UserError
 
 PLASTICOS_LOAD = "plasticos.load"
+# Physical operation (PHYSICAL_RELEASE_OPERATIONS in load.py) whose confirmed send starts the ACK clock.
+DISPATCH_PACKET_OPERATION = "dispatch_packet"
 # Context set by plasticos.load._open_mail_composer: the release this composer carries.
 LOAD_RELEASE_CONTEXT = "plasticos_load_release_operation"
 # A carrier template is a release whoever opened the composer and whatever it carried.
@@ -61,7 +63,31 @@ class MailComposeMessagePlasticosLoad(models.TransientModel):
 
     def _action_send_mail(self, auto_commit=False):
         self._plasticos_recheck_load_release()
-        return super()._action_send_mail(auto_commit=auto_commit)
+        packet_loads = self.env[PLASTICOS_LOAD]
+        for wizard in self._plasticos_release_wizards():
+            if wizard._plasticos_load_release_operation() == DISPATCH_PACKET_OPERATION:
+                packet_loads |= self.env[PLASTICOS_LOAD].browse(wizard._evaluate_res_ids()).exists()
+        result = super()._action_send_mail(auto_commit=auto_commit)
+        if packet_loads:
+            self._plasticos_mark_dispatch_packet_mail(packet_loads, result[1] if isinstance(result, tuple) else None)
+        return result
+
+    def _plasticos_mark_dispatch_packet_mail(self, loads, messages):
+        """Tag the outgoing packet mail so its confirmed send starts the ACK clock (S4, V10).
+
+        Queueing is not sending: ``dispatch_sent`` is stamped by ``mail.mail`` only when
+        native transport reports this mail sent, never here.
+        """
+        if not messages:
+            # Only the messages this send produced are tagged; never older load mail.
+            return
+        messages = messages.filtered(lambda message: message.model == PLASTICOS_LOAD and message.res_id in loads.ids)
+        mails = (
+            self.env["mail.mail"]
+            .sudo()  # sudo: the composer tags only the outgoing mail it just created for these loads
+            .search([("mail_message_id", "in", messages.ids)])
+        )
+        mails._plasticos_tag_dispatch_packet()
 
     def _action_schedule_message(self):
         if self._plasticos_release_wizards():

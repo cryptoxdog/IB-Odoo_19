@@ -210,6 +210,9 @@ ACK_NOTICE_AFTER = timedelta(hours=2)
 ACK_ESCALATION_AFTER = timedelta(hours=4)
 # An external document chase is sent only when the operator approved it.
 DOCUMENT_CHASE_PARAM = "plasticos_logistics.linda_document_chase"
+# The obligation sweep visits at most this many loads per lane per run, rotating by id.
+LOAD_SWEEP_BATCH = 200
+LOAD_SWEEP_CURSOR = "plasticos_logistics.linda_load_sweep_cursor"
 # Load states in which an unacknowledged dispatch is still a live obligation.
 ACK_LOAD_STATES = ("dispatched", "scheduled")
 # Load states in which a delivered load may still owe its carrier documents.
@@ -1504,6 +1507,28 @@ class PlasticosLogisticsRequest(models.Model):
     # ── Load obligation sweep (five-minute ACK job) ──────────
 
     @api.model
+    def _load_sweep_page(self, domain, lane):
+        """One bounded page of eligible loads, rotating by id so every load is visited in turn.
+
+        Recording an obligation changes nothing in the eligibility domain, so a fixed
+        "oldest first" page would revisit the same loads forever and starve the rest.
+        A persisted id cursor continues after the last load seen and wraps to the start.
+        """
+        Load = self.env["plasticos.load"]
+        batch = int(self.env.context.get("linda_load_sweep_batch") or LOAD_SWEEP_BATCH)
+        params = self.env["ir.config_parameter"].sudo()  # sudo: the sweep cursor is a system parameter
+        key = f"{LOAD_SWEEP_CURSOR}.{lane}"
+        raw = params.get_param(key) or "0"
+        cursor = int(raw) if raw.isdigit() else 0
+        page = Load.search([*domain, ("id", ">", cursor)], order="id asc", limit=batch)
+        if len(page) < batch:
+            page |= Load.search(
+                [*domain, ("id", "<=", cursor), ("id", "not in", page.ids)], order="id asc", limit=batch - len(page)
+            )
+        params.set_param(key, str(page[-1:].id or 0) if len(page) == batch else "0")
+        return page
+
+    @api.model
     def _run_load_obligations(self, loads=None):
         """Record due ACK notices/escalations and approved document chases; withhold expired ones.
 
@@ -1514,25 +1539,23 @@ class PlasticosLogisticsRequest(models.Model):
         Load = self.env["plasticos.load"]
         now = fields.Datetime.now()
         if loads is None:
-            loads = Load.search(
+            loads = self._load_sweep_page(
                 [
                     ("dispatch_sent", "!=", False),
                     ("dispatch_sent", "<=", now - ACK_NOTICE_AFTER),
                     ("dispatch_acknowledged", "=", False),
                     ("state", "in", list(ACK_LOAD_STATES)),
                 ],
-                order="dispatch_sent asc",
-                limit=200,
+                "ack",
             )
             if "scale_ticket_reminder_sent" in Load._fields:
-                loads |= Load.search(
+                loads |= self._load_sweep_page(
                     [
                         ("scale_ticket_reminder_sent", "=", True),
                         ("actual_delivery_at", "!=", False),
                         ("state", "in", list(CHASE_LOAD_STATES)),
                     ],
-                    order="actual_delivery_at asc",
-                    limit=200,
+                    "chase",
                 )
         results = []
         for load in loads:

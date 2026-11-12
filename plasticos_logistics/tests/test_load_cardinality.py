@@ -1481,6 +1481,32 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
             self.env["mail.scheduled.message"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
         )
 
+    def test_only_a_confirmed_packet_send_starts_the_acknowledgement_clock(self):
+        """Codex 4545894603: the composer path stamps dispatch_sent on transport success, not on queueing."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        self.assertFalse(load.dispatch_sent)
+        self._open(load.action_send_dispatch_packet()).action_send_mail()
+        packet_mails = self.env["mail.mail"].search(
+            [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("headers", "ilike", "X-Plasticos-Release")]
+        )
+        self.assertTrue(packet_mails, "the packet mail is tagged for the acknowledgement clock")
+        self.assertFalse(load.dispatch_sent, "queueing is not sending")
+        server_class = type(self.env["ir.mail_server"])
+        with (
+            patch.object(server_class, "_disable_send", lambda *args: False),
+            patch.object(server_class, "_connect__", lambda *args, **kwargs: None),
+            patch.object(server_class, "send_email", lambda server, message, *a, **k: message["Message-Id"]),
+        ):
+            self.env["mail.mail"].process_email_queue(email_ids=packet_mails.ids)
+        load.invalidate_recordset()
+        self.assertTrue(load.dispatch_sent, "a confirmed send stamps the clock")
+        stamped = load.dispatch_sent
+        # A second confirmed packet never moves the first clock.
+        self._open(load.action_send_dispatch_packet()).action_send_mail()
+        load.invalidate_recordset()
+        self.assertEqual(load.dispatch_sent, stamped)
+
     def test_unchanged_context_still_sends_and_ordinary_notes_are_untouched(self):
         load = self._scheduled_load()
         composer = self._open(load.action_send_dispatch_packet())

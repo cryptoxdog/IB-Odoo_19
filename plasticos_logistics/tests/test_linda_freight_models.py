@@ -1276,6 +1276,19 @@ class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
         self.assertFalse(escalation.mail_id.attachment_ids)
         self.assertEqual(load.dispatch_sent, self.sent_at, "the job never restamps the send clock")
 
+    def test_sweep_rotates_so_no_due_load_is_starved(self):
+        """Codex 4545894607: a bounded page must not revisit the same oldest loads forever."""
+        loads = [self._dispatched() for _index in range(3)]
+        moment = self.sent_at + timedelta(hours=2, minutes=5)
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_batch=2)
+        with patch.object(fields.Datetime, "now", lambda *args, **kwargs: moment):
+            cron._cron_check_dispatch_acknowledgments()
+            first = [bool(self._obligations(load, "load_ack_notice")) for load in loads]
+            cron._cron_check_dispatch_acknowledgments()
+        self.assertEqual(sum(first), 2, "one page of two loads per run")
+        for load in loads:
+            self.assertEqual(len(self._obligations(load, "load_ack_notice")), 1, "every due load is reached, once")
+
     def test_acknowledgement_withholds_a_queued_reminder_before_claim(self):
         load = self._dispatched()
         self._run_at(timedelta(hours=2, minutes=5))

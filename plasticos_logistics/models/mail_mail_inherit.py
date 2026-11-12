@@ -23,12 +23,16 @@ before SMTP; a claim that won first is kept, and the later revision treats it
 as in-flight history. Ordinary mail never reaches this path.
 """
 
+import ast
 import smtplib
 
-from odoo import models
+from odoo import fields, models
 from odoo.exceptions import LockError
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
+PLASTICOS_LOAD = "plasticos.load"
+# Set on the outgoing mail of a carrier dispatch-packet composer (S4, V10).
+DISPATCH_PACKET_HEADER = "X-Plasticos-Release"
 REQUEST_TABLE = "plasticos_logistics_request"
 
 
@@ -207,7 +211,43 @@ class MailMailInherit(models.Model):
             post_send_callback=post_send_callback,
         )
 
+    def _plasticos_tag_dispatch_packet(self):
+        """Mark these load mails as a dispatch packet; a confirmed send stamps ``dispatch_sent``."""
+        for mail in self.filtered(lambda mail: mail.model == PLASTICOS_LOAD and mail.state in ("outgoing", "sent")):
+            headers = {}
+            if mail.headers:
+                try:
+                    headers = ast.literal_eval(mail.headers)
+                except (ValueError, SyntaxError):
+                    headers = {}
+            if not isinstance(headers, dict):
+                headers = {}
+            headers[DISPATCH_PACKET_HEADER] = "dispatch_packet"
+            mail.headers = repr(headers)
+        sent = self.filtered(lambda mail: mail.state == "sent")
+        if sent:
+            sent._plasticos_stamp_dispatch_sent()
+
+    def _plasticos_dispatch_packet_loads(self):
+        packets = self.filtered(
+            lambda mail: mail.model == PLASTICOS_LOAD and DISPATCH_PACKET_HEADER in (mail.headers or "")
+        )
+        return self.env[PLASTICOS_LOAD].browse(packets.mapped("res_id")).exists()
+
+    def _plasticos_stamp_dispatch_sent(self):
+        """First confirmed send of a dispatch packet starts the acknowledgement clock."""
+        for load in self._plasticos_dispatch_packet_loads().filtered(lambda load: not load.dispatch_sent):
+            load.write({"dispatch_sent": fields.Datetime.now()})
+            load.message_post(body="Dispatch packet confirmed sent to carrier.")
+
     def _postprocess_sent_message(self, success_pids, success_emails, failure_reason=False, failure_type=None):
+        # Read before native post-processing: an auto-delete mail is gone afterwards.
+        if not failure_type:
+            sent_packets = self.filtered(lambda mail: mail.state == "sent")._plasticos_dispatch_packet_loads()
+            if sent_packets:
+                self.sudo().filtered(  # sudo: queue workers stamp the load the sent packet belongs to
+                    lambda mail: mail.state == "sent"
+                )._plasticos_stamp_dispatch_sent()
         res = super()._postprocess_sent_message(
             success_pids,
             success_emails,
