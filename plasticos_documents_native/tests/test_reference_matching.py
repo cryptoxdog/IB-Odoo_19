@@ -2,6 +2,8 @@
 
 import base64
 
+from markupsafe import Markup
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
@@ -181,7 +183,8 @@ class TestReferenceResolution(PlasticosTestCase):
             message_type="email",
             subtype_xmlid="mail.mt_comment",
             subject=subject,
-            body=body,
+            # An inbound email body is HTML. A plain str would be escaped as text by message_post.
+            body=Markup(body),
             email_from="trucker@example.com",
             author_id=self.partner.id,
         )

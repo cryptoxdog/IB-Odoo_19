@@ -1,8 +1,13 @@
 """B4 posting guard on digitized or emailed vendor bills, and B5 on draft bills."""
 
+from datetime import date, timedelta
+
+from markupsafe import Markup
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
+from odoo.tools import html2plaintext
 
 SUMMARY = "Digitized vendor bill needs manager review"
 
@@ -45,7 +50,9 @@ class TestDigitizedBillGuard(PlasticosTestCase):
             "move_type": "in_invoice",
             "partner_id": self.vendor.id,
             "ref": f"B4-INV-{self.counter:04d}",
-            "invoice_date": "2026-11-10",
+            # One date per bill. Same vendor, amount and date is a native duplicate
+            # (account_move._fetch_duplicate_reference, case 2), which the guard blocks.
+            "invoice_date": date(2026, 1, 1) + timedelta(days=self.counter),
             "invoice_line_ids": [(0, 0, {"name": "Freight", "quantity": 1, "price_unit": 100.0, "tax_ids": False})],
         }
         if digitized:
@@ -212,7 +219,8 @@ class TestDigitizedBillGuard(PlasticosTestCase):
             message_type="email",
             subtype_xmlid="mail.mt_comment",
             subject=subject,
-            body=body,
+            # An inbound email body is HTML. A plain str would be escaped as text by message_post.
+            body=Markup(body),
             email_from="trucker@example.com",
             author_id=self.vendor.id,
         )
@@ -224,7 +232,7 @@ class TestDigitizedBillGuard(PlasticosTestCase):
         note = bill.message_ids.filtered(lambda m: "Source document set to" in (m.body or ""))
         self.assertEqual(len(note), 1)
         self.assertIn(self.sale.name, note.body)
-        self.assertIn(message.message_id, note.body)
+        self.assertIn(message.message_id, html2plaintext(note.body))
         self.assertEqual(bill.state, "draft")
 
     def test_non_empty_origin_is_never_overwritten(self):
