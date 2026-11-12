@@ -11,6 +11,8 @@ from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
+from .common import create_claims_manager
+
 _OFFER_STATES = ("draft", "sent", "responded")
 _SLA_STATES = ("awaiting_ready", "ready_confirmed", "rate_confirmed", "scheduled", "dispatched")
 _SCALE_STATES = ("delivered", "closed", "invoiced")
@@ -207,6 +209,8 @@ class TestCronInDomain(PlasticosTestCase):
 
     def test_claim_sla_in_domain(self):
         claim_model = self.env["plasticos.claim"]
+        # Escalations and unassigned reminders are routed to a claims manager.
+        create_claims_manager(self.env, login="claims_sla_in_domain_manager")
         opened = fields.Datetime.to_datetime("2000-01-01 00:00:00")
         claim = self._create_claim(opened_at=opened, sla_hours=1, state="pending")
         self.assertTrue(claim)

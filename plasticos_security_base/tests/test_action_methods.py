@@ -453,6 +453,23 @@ class TestClaimActions(PlasticosTestCase):
 
     def test_action_escalate(self):
         claim = self._make_claim()
+        # Escalation routes to a claims manager; an empty group is a logged error.
+        self.env["res.users"].create(
+            {
+                "name": "Escalation Claims Manager",
+                "login": "action_escalate_claims_manager",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            self.env.ref("base.group_user").id,
+                            self.env.ref("plasticos_claims.group_claims_manager").id,
+                        ],
+                    )
+                ],
+            }
+        )
         claim.action_escalate()
         self.assertEqual(claim.state, "escalated")
         self.assertEqual(claim.escalation_level, 1)
