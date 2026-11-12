@@ -109,11 +109,12 @@ class TestAccountMoveTransactionProjection(PlasticosTestCase):
         self.assertEqual(bill.transaction_id, transaction)
 
     def test_commission_amount_follows_the_projected_transaction(self):
-        """The move follows the transaction's own computed commission, through the ORM dependency.
+        """The move follows the transaction's commission through the ORM dependency chain.
 
-        The transaction's commission is computed (by plasticos_commission when
-        installed), so the test drives that compute instead of writing a value
-        the compute would not own.
+        The ORM marks dependents of a computed field when one of that field's own
+        inputs is modified, so the commission is driven through real inputs: the
+        lock fields plasticos_commission writes at close. Nothing is patched and
+        the move is never recomputed by hand.
         """
         transaction = self._transaction("TX-PROJ-COMM")
         bill = self._move()
@@ -121,23 +122,27 @@ class TestAccountMoveTransactionProjection(PlasticosTestCase):
         transaction.vendor_bill_ids = [(4, bill.id)]
         self.assertEqual(bill.commission_amount, transaction.commission_amount or 0.0)
 
-        def fixed_commission(transactions):
-            for record in transactions:
-                record.commission_amount = 42.5
+        if "commission_locked" not in transaction._fields:
+            # Without plasticos_commission the transaction's commission is the
+            # constant-zero stub with no inputs: there is no value to follow.
+            self.assertEqual((transaction.commission_amount, bill.commission_amount), (0.0, 0.0))
+            return
 
-        commission = transaction._fields["commission_amount"]
-        with patch.object(type(transaction), "_compute_commission", fixed_commission):
-            self.env.add_to_compute(commission, transaction)
-            self.assertEqual(transaction.commission_amount, 42.5)
-            # No manual recompute of the move: the dependency alone must carry it.
-            self.assertEqual(bill.commission_amount, 42.5)
-            self.env.flush_all()
-            self.env.cr.execute("SELECT commission_amount FROM account_move WHERE id = %s", [bill.id])
-            self.assertEqual(self.env.cr.fetchone()[0], 42.5)
+        transaction.write({"commission_locked_amount": 42.5, "commission_locked": True})
 
-            # Falsifying: a move the transaction no longer owns stops following it.
-            transaction.vendor_bill_ids = [(3, bill.id)]
-            self.assertEqual(bill.commission_amount, 0.0)
+        self.assertEqual(transaction.commission_amount, 42.5)
+        self.assertEqual(bill.commission_amount, 42.5)
+        self.env.flush_all()
+        self.env.cr.execute("SELECT commission_amount FROM account_move WHERE id = %s", [bill.id])
+        self.assertEqual(self.env.cr.fetchone()[0], 42.5)
+
+        transaction.write({"commission_locked_amount": 17.25})
+        self.assertEqual(bill.commission_amount, 17.25, "a later change of the input is followed too")
+
+        # Falsifying: a move the transaction no longer owns stops following it.
+        transaction.vendor_bill_ids = [(3, bill.id)]
+        self.assertEqual(transaction.commission_amount, 17.25)
+        self.assertEqual(bill.commission_amount, 0.0)
 
     def test_linked_transaction_cannot_be_deleted(self):
         transaction = self._transaction("TX-PROJ-DEL")
