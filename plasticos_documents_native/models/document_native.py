@@ -31,6 +31,8 @@ NATIVE_DECISION_FIELDS = frozenset(
     }
 )
 NATIVE_HISTORY_KEY = "plasticos_native_verification_history_grant"
+# A classified original with a file gets its pending business row when one of these is written.
+SHELL_TRIGGER_FIELDS = frozenset({"doc_type", "attachment_id", "datas", "raw"})
 PROJECTION_FIELDS = ("verified", "verified_by", "verified_at", "override", "override_reason")
 
 
@@ -176,11 +178,51 @@ class DocumentNative(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             self._refuse_direct_decision_write(vals)
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        records._hold_classified_originals()
+        return records
 
     def write(self, vals):
         self._refuse_direct_decision_write(vals)
-        return super().write(vals)
+        result = super().write(vals)
+        if SHELL_TRIGGER_FIELDS.intersection(vals):
+            self._hold_classified_originals()
+        return result
+
+    def _hold_classified_originals(self):
+        """Give a classified original its pending business row as it arrives.
+
+        Runs when a type is set and the file exists. It creates or finds the
+        pending row and the manager review activity. It does not associate,
+        accept or verify anything, and a repeat is a no-op.
+        """
+        service = self.env["plasticos.document.sync"]
+        for rec in self:
+            if not rec.doc_type or not rec.attachment_id or rec.shortcut_document_id or rec.type != "binary":
+                continue
+            if rec.plasticos_doc_id:
+                continue
+            # A failed hold must not lose the upload. The savepoint undoes the
+            # partial row, the error is logged with its trace, and the operator
+            # backfill (batch_sync_unlinked) picks the original up again.
+            try:
+                with self.env.cr.savepoint():
+                    service.sync_native_to_legacy(rec)
+            except Exception:
+                _logger.exception("Could not hold classified native document %s as a pending business row", rec.id)
+
+    def _message_post_after_hook(self, message, msg_vals):
+        result = super()._message_post_after_hook(message, msg_vals)
+        if message.message_type == "email":
+            # The email arrives after the original is created: read its references now.
+            service = self.env["plasticos.document.sync"]
+            for rec in self.filtered(lambda doc: doc.doc_type and doc.attachment_id and doc.type == "binary"):
+                try:
+                    with self.env.cr.savepoint():
+                        service.sync_native_to_legacy(rec)
+                except Exception:
+                    _logger.exception("Could not read email references for native document %s", rec.id)
+        return result
 
     def _refuse_direct_decision_write(self, vals):
         touched = NATIVE_DECISION_FIELDS.intersection(vals)
