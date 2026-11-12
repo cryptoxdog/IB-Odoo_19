@@ -21,7 +21,7 @@ from odoo.tests.common import new_test_user, tagged
 from odoo.tools.safe_eval import safe_eval
 
 from ..models.export_scope import CARGO_LINK_SOURCE_LINKS
-from ..models.owner_facts import NO_CONTAINER_BOUND, NOT_RECORDED_BY_LOGISTICS
+from ..models.owner_facts import NO_CONTAINER_BOUND, NOT_RECORDED_BY_LOGISTICS, RESTRICTED
 from .test_booking_and_revision import BOOKING, LINK, ExportFixtureMixin
 
 FACT = "plasticos.iso.journey.fact"
