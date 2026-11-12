@@ -32,3 +32,6 @@ C10-SCOPE-4,N2,negative,plasticos_logistics/tests/test_s9_logistics_features.py:
 C10-SCOPE-4,N4,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_documents_vgm_edge_cases,PASS
 C10-SCOPE-4,N5,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_decision_fields_rejected_replay_and_generated_key,PASS
 C10-SCOPE-4,N8 precision,positive+negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_weight_replay_is_compared_at_stored_precision,PASS
+C10-SCOPE-4,B4,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_supplier_hauling_its_own_load_is_never_carrier_issued,PASS
+C10-SCOPE-4,B4,positive+negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_trucker_reply_cannot_attest_a_sailing_but_supports_loaded,PASS
+C10-SCOPE-4,B4,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_load_typed_reply_for_a_sibling_load_is_refused,PASS

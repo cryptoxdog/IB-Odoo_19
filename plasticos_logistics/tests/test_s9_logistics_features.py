@@ -440,8 +440,8 @@ class TestShipmentEventProposals(_S9Case):
             reply["purchase_order_id"] = order.id
         else:
             reply.update({"source_kind": "load", "source_res_id": load.id})
-        # sudo: Linda evidence is recorded only under sudo, as its inbound handler does
-        return self.env["plasticos.logistics.response"].sudo().create(reply)
+        responses = self.env["plasticos.logistics.response"].sudo()  # sudo: Linda records replies only under sudo
+        return responses.create(reply)
 
     def test_supplier_linda_reply_cannot_be_labelled_terminal_or_carrier(self):
         """AC-EXP-09-007 / AC-EXP-11-010 negative (B3): a supplier's reply is supplier-reported, whatever the label.
@@ -491,6 +491,125 @@ class TestShipmentEventProposals(_S9Case):
             "b3-honest",
         )
         self.assertEqual(honest["status"], "applied")
+
+    def _logistics_user(self, login):
+        groups = self.env.ref("base.group_user") | self.env.ref("plasticos_security_base.group_logistics")
+        return self.env["res.users"].create(
+            {
+                "name": login,
+                "login": login,
+                "company_id": self.company.id,
+                "company_ids": [(6, 0, self.company.ids)],
+                "group_ids": [(6, 0, groups.ids)],
+            }
+        )
+
+    def _journey_of(self, load, cycle):
+        journey = self._journey(cycle)
+        bound = self.env[SOURCE].action_bind_journey_source(
+            journey.id, "load", load.id, self.supplier.id, None, f"bind-{cycle}", "supplier loading sheet"
+        )
+        self.assertEqual(bound["status"], "applied")
+        return journey
+
+    def test_supplier_hauling_its_own_load_is_never_carrier_issued(self):
+        """B4: a supplier that is also the load's carrier speaks as the supplier; its reply never writes gate-in or sailing."""
+        user = self._logistics_user("s9-b4-supplier-haul")
+        load = self._load(carrier_id=self.supplier.id)
+        reply = self._linda_reply(None, purpose="load_ack_notice", load=load)
+        journey = self._journey_of(load, "S9-B4-SELFHAUL")
+        doc = self._attach(journey, "ack.eml")
+        proposals = self.env[PROPOSAL].with_user(user)
+        for kind, label, extra in (
+            ("sailed", "carrier_issued", {"vessel": "MSC Aurora"}),
+            ("sailed", "supplier_reported", {"vessel": "MSC Aurora"}),
+            ("gate_accepted", "carrier_issued", {"facility_partner_id": self.terminal.id}),
+        ):
+            with self.subTest(kind=kind, label=label):
+                result = proposals.action_propose_shipment_event(
+                    {
+                        "event_kind": kind,
+                        "journey_id": journey.id,
+                        "occurred_at": self._ago(5),
+                        "evidence_attachment_id": doc.id,
+                        "linda_response_id": reply.id,
+                        "asserted_by": label,
+                        **extra,
+                    },
+                    f"b4-selfhaul-{kind}-{label}",
+                )
+                self.assertEqual(result["status"], "blocked")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+        load_doc = self._attach(load, "ack-load.eml")
+        values = {
+            "event_kind": "loaded",
+            "load_id": load.id,
+            "occurred_at": self._ago(5),
+            "evidence_attachment_id": load_doc.id,
+            "linda_response_id": reply.id,
+        }
+        refused = proposals.action_propose_shipment_event({**values, "asserted_by": "carrier_issued"}, "b4-sh-c")
+        self.assertEqual(refused["status"], "blocked")
+        honest = proposals.action_propose_shipment_event({**values, "asserted_by": "supplier_reported"}, "b4-sh-s")
+        self.assertEqual(honest["status"], "applied")
+
+    def test_trucker_reply_cannot_attest_a_sailing_but_supports_loaded(self):
+        """B4: a road carrier's dispatch acknowledgement never attests a vessel departure; it may support loaded."""
+        user = self._logistics_user("s9-b4-trucker")
+        load = self._load()
+        reply = self._linda_reply(None, purpose="load_ack_notice", load=load)
+        journey = self._journey_of(load, "S9-B4-TRUCKER")
+        proposals = self.env[PROPOSAL].with_user(user)
+        sailed = proposals.action_propose_shipment_event(
+            {
+                "event_kind": "sailed",
+                "journey_id": journey.id,
+                "occurred_at": self._ago(5),
+                "vessel": "MSC Aurora",
+                "evidence_attachment_id": self._attach(journey, "ack.eml").id,
+                "linda_response_id": reply.id,
+                "asserted_by": "carrier_issued",
+            },
+            "b4-trucker-sailed",
+        )
+        self.assertEqual(sailed["status"], "blocked")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+        loaded = proposals.action_propose_shipment_event(
+            {
+                "event_kind": "loaded",
+                "load_id": load.id,
+                "occurred_at": self._ago(5),
+                "evidence_attachment_id": self._attach(load, "ack-load.eml").id,
+                "linda_response_id": reply.id,
+                "asserted_by": "carrier_issued",
+            },
+            "b4-trucker-loaded",
+        )
+        self.assertEqual(loaded["status"], "applied")
+        proposals.browse(loaded["record_id"]).action_accept()
+        self.assertTrue(load.actual_pickup_at)
+
+    def test_load_typed_reply_for_a_sibling_load_is_refused(self):
+        """B4 / P1: a load-typed reply about a sibling load cannot support this load's event."""
+        user = self._logistics_user("s9-b4-sibling")
+        load, sibling = self._load(), self._load()
+        reply = self._linda_reply(None, purpose="load_ack_notice", load=sibling)
+        result = (
+            self.env[PROPOSAL]
+            .with_user(user)
+            .action_propose_shipment_event(
+                {
+                    "event_kind": "loaded",
+                    "load_id": load.id,
+                    "occurred_at": self._ago(5),
+                    "evidence_attachment_id": self._attach(load, "ack.eml").id,
+                    "linda_response_id": reply.id,
+                    "asserted_by": "carrier_issued",
+                },
+                "b4-sibling",
+            )
+        )
+        self.assertEqual(result["status"], "blocked")
 
     def test_carrier_linda_reply_is_carrier_issued_only_from_the_load_carrier(self):
         """A reply to a typed load request sent to the load's carrier is carrier-issued, never terminal-issued."""

@@ -27,6 +27,7 @@ gate-in or a sailing, and it never touches the sibling loads of the same order.
 import uuid
 
 import psycopg2
+import psycopg2.errors
 
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -46,9 +47,13 @@ _USABLE_DISPOSITIONS = frozenset({"identity_unverified", "unresolved"})
 # Who a Linda request was addressed to decides who its reply speaks for. Linda never
 # writes to a terminal, so a reply is never terminal-issued.
 _SUPPLIER_PURPOSES = frozenset({"po_issue", "po_cancel"})
-_CARRIER_PURPOSES = frozenset(
-    {"booking_issue", "booking_amend", "booking_cancel", "load_ack_notice", "load_ack_escalation", "document_chase"}
-)
+# Typed load requests go to the load's road carrier (plasticos.load.carrier_id, the trucker).
+# Booking requests (Export) are not listed: a booking reply is about a booking, never a load,
+# so it cannot be cited here, and Logistics does not depend on Export's ocean carrier.
+_ROAD_CARRIER_PURPOSES = frozenset({"load_ack_notice", "load_ack_escalation", "document_chase"})
+# A Linda reply comes from a supplier or a road carrier. Neither is an authority for a
+# terminal gate-in or a vessel departure, so no cited Linda reply can support these events.
+_LINDA_EXCLUDED_EVENTS = frozenset({"gate_accepted", "sailed"})
 _DECISION_FIELDS = ("state", "command_status", "decision_note", "decided_at", "decided_by")
 _LOAD_EVENTS = frozenset({"supplier_ready", "loaded"})
 _JOURNEY_EVENTS = frozenset({"gate_accepted", "sailed"})
@@ -282,6 +287,11 @@ class PlasticosShipmentEventProposal(models.Model):
         loads = self._subject_loads()
         if not any(self._response_is_about(response, load) for load in loads):
             return "The Linda reply is not about this shipment."
+        if self.event_kind in _LINDA_EXCLUDED_EVENTS:
+            return (
+                "A Linda reply comes from a supplier or a road carrier; it cannot attest a terminal gate-in "
+                "or a vessel departure."
+            )
         asserter = self._linda_asserter(response, loads)
         if not asserter:
             return "The Linda reply's recipient is not a party that can attest this shipment event."
@@ -310,14 +320,25 @@ class PlasticosShipmentEventProposal(models.Model):
 
     @staticmethod
     def _linda_asserter(response, loads):
-        """Who the cited reply speaks for, from the answered request's recipient. None if no one who may attest."""
+        """Who the cited reply speaks for, from the answered request's recipient. None if no one who may attest.
+
+        The supplier role wins: a recipient that is the load's pickup party, the transaction's
+        supplier or the vendor of a purchase order on the transaction is supplier-reported, even
+        when it also hauls the load. Otherwise the load's road carrier is carrier-issued.
+        """
         request = response.request_id
         if not request:
             return None
         recipient = request.partner_id.commercial_partner_id
-        if request.purpose in _SUPPLIER_PURPOSES:
+        if not recipient:
+            return None
+        transactions = loads.transaction_id
+        suppliers = (
+            loads.pickup_partner_id | transactions.supplier_id | transactions.purchase_order_ids.partner_id
+        ).commercial_partner_id
+        if request.purpose in _SUPPLIER_PURPOSES or recipient in suppliers:
             return "supplier_reported"
-        if request.purpose in _CARRIER_PURPOSES and recipient and recipient in loads.carrier_id.commercial_partner_id:
+        if request.purpose in _ROAD_CARRIER_PURPOSES and recipient in loads.carrier_id.commercial_partner_id:
             return "carrier_issued"
         return None
 
@@ -327,8 +348,11 @@ class PlasticosShipmentEventProposal(models.Model):
     def action_propose_shipment_event(self, values, operation_key):
         """Record one typed candidate. Writes nothing but the proposal.
 
-        Replay by ``operation_key`` returns the same proposal when its facts
-        match, and is refused when they differ.
+        Returns ``{status, record_id?, reason?}`` with status ``applied``,
+        ``already_applied``, ``blocked``, ``not_available`` or ``rejected``.
+        Replay by ``operation_key`` returns the same proposal (``already_applied``)
+        when its facts match, ``rejected`` when that proposal was rejected, and
+        ``blocked`` when the facts differ.
         """
         _require_logistics_actor(self.env)
         key = _normalize_text(operation_key)
@@ -360,13 +384,15 @@ class PlasticosShipmentEventProposal(models.Model):
         try:
             with self.env.cr.savepoint():
                 proposal = self.create({**values, "company_id": company.id, "operation_key": key})
-        except psycopg2.IntegrityError:
+        except psycopg2.errors.UniqueViolation:
             # A concurrent propose with the same key won; answer from its row.
             self.env.invalidate_all()
             winner = self.search([("company_id", "=", company.id), ("operation_key", "=", key)], limit=1)
             if winner:
                 return self.action_propose_shipment_event(values, key)
-            return _result("blocked", reason="the proposal violates a database constraint")
+            return _result("blocked", reason="constraint violated: a unique key is taken by a row you cannot read")
+        except psycopg2.IntegrityError as error:
+            return _result("blocked", reason=f"constraint violated: {error.diag.constraint_name or 'database'}")
         except (UserError, ValidationError) as error:
             return _result("blocked", reason=str(error.args[0] if error.args else error))
         return _result("applied", proposal)
