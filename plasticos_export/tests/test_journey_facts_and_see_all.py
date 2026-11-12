@@ -430,3 +430,67 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         self.assertIn(f"at {RESTRICTED}", history)
         self.assertIn(f"Customs filer: {RESTRICTED}; delivery partner: {self.agent.display_name}", history)
         self.assertNotIn(private.name, history)
+
+    # ── C13 OP12-E01: corrected facts through the Logistics current-fact helper ──
+
+    def _corrected_tare(self):
+        _booking, slot, journey = self._bound_slot(iso="TGHU1234567", seal="SEAL-COR")
+        self._afloat(journey)
+        first = self._record(
+            "action_record_container_tare",
+            journey,
+            3900,
+            self.kg.id,
+            "scale_ticket",
+            self._attach(journey, "tare.pdf").id,
+            "TKT-COR-1",
+        )
+        outcome = (
+            self.env[FACT]
+            .with_user(self.actor)
+            .action_correct_fact(
+                first.id,
+                {"weight": 3850, "evidence_reference": "TKT-COR-2"},
+                "Terminal re-weighed the empty box",
+                self.key("correct"),
+            )
+        )
+        self.assertEqual(outcome["status"], "applied", outcome)
+        corrected = self.env[FACT].browse(outcome["record_id"])
+        self.assertEqual((corrected.revision, corrected.supersedes_id), (2, first))
+        self.env.invalidate_all()
+        return slot, journey, first, corrected
+
+    def test_e01_reader_sees_the_current_revision_and_the_correction_with_its_reason(self):
+        """C13 OP12-E01 positive: the slot shows revision 2; the history lists the correction, reason and author."""
+        slot, journey, first, _corrected = self._corrected_tare()
+        view = self.env[SLOT].with_user(self.actor).browse(slot.id)
+        self.assertEqual(view.owner_container_tare, f"3850 {self.kg.name} (Scale Ticket: TKT-COR-2)")
+        self.assertEqual(journey.with_user(self.actor).current_fact("container_tare").revision, 2)
+        history = view.owner_shipment_history
+        self.assertIn("Container fact corrections:", history)
+        self.assertIn(f"revision 2 by {self.actor.name} at ", history, "the correction names its revision and author")
+        self.assertIn("replacing revision 1: Terminal re-weighed the empty box", history)
+        self.assertNotIn("TKT-COR-1", view.owner_container_tare, "the superseded revision is never the display")
+        self.assertTrue(first.exists(), "the superseded revision is kept, unchanged")
+
+    def test_e01_negative_non_reader_sees_restricted_and_no_correction(self):
+        """C13 OP12-E01 negative: a Sales Rep gets Restricted, no correction text and no journey or fact link."""
+        slot, journey, _first, _corrected = self._corrected_tare()
+        view = self.env[SLOT].with_user(self.rep).browse(slot.id)
+        self.assertEqual(view.owner_container_tare, RESTRICTED)
+        self.assertIn(f"Container facts: {RESTRICTED}", view.owner_shipment_history)
+        self.assertNotIn("re-weighed", view.owner_shipment_history)
+        self.assertNotIn("Container fact corrections", view.owner_shipment_history)
+        with self.assertRaises(AccessError):
+            journey.with_user(self.rep).current_facts()
+        arch = self._form_arch(self.rep, "plasticos_export.view_export_slot_form")
+        self.assertNotIn("journey_id", {node.get("name") for node in arch.iter("field")})
+
+    def test_e01_unrecorded_kind_is_absent_not_a_stale_revision(self):
+        """C13 OP12-E01: an uncorrected journey lists no correction; the history says none."""
+        _booking, slot, journey = self._bound_slot(iso="TCLU7654320", seal="SEAL-NONE")
+        self._afloat(journey)
+        self.env.invalidate_all()
+        history = self.env[SLOT].with_user(self.actor).browse(slot.id).owner_shipment_history
+        self.assertIn("Container fact corrections:\n  none", history)
