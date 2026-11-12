@@ -729,3 +729,42 @@ class TestScopedEvidence(PlasticosTestCase):
         )
         self.assertEqual(seen, unseen)
         self.assertEqual(seen, {"status": "not_available", "reason": "subject not found"})
+
+    # ── Export campaign S6, finding D1 (C06-SCOPE-2) ────────────────────
+
+    def _census_with_defaulted_rows(self, name):
+        """Rows whose obligation_kind the ORM already filled with 'legacy', as on a real upgrade."""
+        _order, tx, _load = self._trade(name)
+        first = self._shell(self.bol).with_user(self.verifier).action_associate("plasticos.transaction", tx.id, "m")
+        first.with_user(self.verifier).action_verify()
+        self._shell(self.bol)
+        self.env.flush_all()
+        cr = self.env.cr
+        cr.execute("SELECT COUNT(*) FROM plasticos_document WHERE obligation_kind IS NULL OR obligation_kind = ''")
+        self.assertEqual(cr.fetchone()[0], 0, "the column default already classified every row")
+        pre = _migration("pre-migrate.py")
+        cr.execute(pre.CENSUS_SQL)
+        return pre, list(cr.fetchone())
+
+    def test_migration_counts_rows_the_column_default_already_classified(self):
+        """D1: the classified count is the legacy rows after the step, equal to the census total, not the UPDATE rowcount."""
+        pre, census = self._census_with_defaulted_rows("TX-S6-D1-COUNT")
+        self.assertGreaterEqual(census[0], 2)
+        self.env["ir.config_parameter"].set_param(pre.CENSUS_KEY, json.dumps(census))
+        self.env.flush_all()
+        post = _migration("post-migrate.py")
+        with self.assertLogs(post.__name__, level="INFO") as logs:
+            classified = post.migrate(self.env.cr, "19.0.2.1.17")
+        self.assertEqual(classified, census[0])
+        self.assertIn(
+            f"{census[0]} rows classified legacy (0 set here, {census[0]} by the column default)", logs.output[-1]
+        )
+
+    def test_migration_refuses_when_the_census_total_differs_from_the_legacy_rows(self):
+        """D1: a census that names another row total stops the upgrade before the provenance comparison."""
+        pre, census = self._census_with_defaulted_rows("TX-S6-D1-REFUSE")
+        self.env["ir.config_parameter"].set_param(pre.CENSUS_KEY, json.dumps([census[0] + 1, *census[1:]]))
+        self.env.flush_all()
+        post = _migration("post-migrate.py")
+        with self.assertRaisesRegex(RuntimeError, f"census recorded {census[0] + 1} evidence rows but {census[0]} are"):
+            post.migrate(self.env.cr, "19.0.2.1.17")

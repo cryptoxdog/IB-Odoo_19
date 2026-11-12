@@ -4,6 +4,12 @@ No operation revision, coverage, known quantity or unit is inferred from an
 old covered_quantity or checksum. New operation rows begin only from an
 attributed association. The accepted actor, time and source digest must equal
 the pre-migration census; otherwise the upgrade stops. Re-running is a no-op.
+
+The classified count is the number of rows that are ``legacy`` after this step,
+not the rows this UPDATE touched: the ORM adds the required ``obligation_kind``
+column with its ``legacy`` default before this script runs, so on a real upgrade
+the UPDATE usually matches nothing (Export campaign S6, finding D1). When a
+census was recorded, that count must equal the census row total.
 """
 
 import importlib.util
@@ -33,7 +39,9 @@ def migrate(cr, version):
          WHERE obligation_kind IS NULL OR obligation_kind = ''
         """
     )
-    classified = cr.rowcount
+    updated = cr.rowcount
+    cr.execute("SELECT COUNT(*) FROM plasticos_document WHERE obligation_kind = 'legacy'")
+    classified = cr.fetchone()[0]
     cr.execute(
         """
         SELECT id
@@ -52,15 +60,26 @@ def migrate(cr, version):
     row = cr.fetchone()
     if not row:
         _logger.info("plasticos_documents: no census recorded (already migrated); %s rows classified", classified)
-        return
+        return classified
     cr.execute("SELECT COUNT(*) FROM plasticos_document WHERE obligation_kind <> 'legacy'")
     if cr.fetchone()[0]:
         raise RuntimeError("plasticos_documents: an upgrade cannot create operation-scoped evidence rows.")
     before = json.loads(row[0])
+    if classified != before[0]:
+        raise RuntimeError(
+            f"plasticos_documents: the census recorded {before[0]} evidence rows but {classified} are classified legacy."
+        )
     cr.execute(pre.CENSUS_SQL)
     total, accepted, decided, digest = cr.fetchone()
     after = [total, accepted, decided, digest]
     if after != before:
         raise RuntimeError(f"plasticos_documents: evidence provenance changed during upgrade: {before} -> {after}")
     cr.execute("DELETE FROM ir_config_parameter WHERE key = %s", (pre.CENSUS_KEY,))
-    _logger.info("plasticos_documents: %s rows classified legacy; provenance unchanged (%s)", classified, after)
+    _logger.info(
+        "plasticos_documents: %s rows classified legacy (%s set here, %s by the column default); provenance unchanged (%s)",
+        classified,
+        updated,
+        classified - updated,
+        after,
+    )
+    return classified

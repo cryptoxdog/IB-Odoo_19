@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents Engine",
-    "version": "19.0.2.1.18",
+    "version": "19.0.2.1.19",
     "summary": "Document management, compliance, validation matrix, and transaction doc tracking",
     "author": "Igor Beylin",
     "license": "LGPL-3",
