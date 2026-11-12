@@ -36,7 +36,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tools import float_compare, float_round
 
 from .iso_journey import _check_company_allowed, _lock, _normalize_text, _require_logistics_actor, _result
-from .linda_approval import hold_for_approval, linda_acting, prior_refusal, record_refusal
+from .linda_approval import hold_for_approval, linda_acting, linda_stop, prior_refusal, record_refusal
 
 PLASTICOS_ISO_JOURNEY = "plasticos.iso.journey"
 IR_ATTACHMENT = "ir.attachment"
@@ -428,6 +428,9 @@ class PlasticosIsoJourneyFact(models.Model):
 
     @api.model
     def _record_kind(self, kind, journey_id, values, operation_key):
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
         journey, facts, blocked = self._validated(kind, journey_id, values, operation_key)
         linda = linda_acting(self.env) and journey
         if linda:
@@ -682,6 +685,9 @@ class PlasticosIsoJourneyFact(models.Model):
         same operation key replays the correction it recorded.
         """
         _require_logistics_actor(self.env)
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
         key = _normalize_text(operation_key)
         if not key:
             return _result("blocked", reason="operation_key is required")

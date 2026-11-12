@@ -33,7 +33,7 @@ from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
 from .iso_journey import _check_company_allowed, _normalize_text, _require_logistics_actor, _result
-from .linda_approval import hold_for_approval, is_linda, linda_acting, prior_refusal, record_refusal
+from .linda_approval import hold_for_approval, is_linda, linda_acting, linda_stop, prior_refusal, record_refusal
 
 PLASTICOS_LOAD = "plasticos.load"
 ISO_JOURNEY = "plasticos.iso.journey"
@@ -375,6 +375,9 @@ class PlasticosShipmentEventProposal(models.Model):
         ``blocked`` when the facts differ.
         """
         _require_logistics_actor(self.env)
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
         result = self._propose_shipment_event(values, operation_key)
         if linda_acting(self.env):
             subject = self._subject_from_vals(values or {})
@@ -503,7 +506,8 @@ class PlasticosShipmentEventProposal(models.Model):
         kind = self.event_kind
         if kind == "supplier_ready":
             load = self.load_id
-            if load.ready_confirmed_at:
+            # Readiness is the load's state, not a timestamp a raw write could set (C12 round 2, R1).
+            if load.state == "ready_confirmed":
                 return "already_applied"
             load.action_confirm_ready()
             return "applied"
@@ -531,6 +535,9 @@ class PlasticosShipmentEventProposal(models.Model):
         returns ``{status: pending, approval_id, reason}``; a person's applies at once.
         """
         _require_logistics_actor(self.env)
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
         if linda_acting(self.env):
             return self._linda_accept_gate(note)
         for rec in self:

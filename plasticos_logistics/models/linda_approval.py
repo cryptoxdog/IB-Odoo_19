@@ -21,6 +21,11 @@ approves or rejects it:
   key, is held.
 
 Neither Linda nor a Logistics user without Operations Manager rights can approve.
+
+The supported stop is to archive ``user_linda``: every gated command she runs, every
+approval of her held commands, the load-obligation sweep and the request/response
+paths then refuse or skip and write nothing, and a module upgrade never
+reactivates her. Removing her Logistics group is not a supported stop.
 Approval runs the held command as Linda, in the approval's company only, under a
 context token that RPC cannot forge, so the owner guards still run and the record
 keeps Linda as its author. Human actors are never held: they need no second
@@ -62,6 +67,22 @@ def is_linda(env):
     """True when the acting user is Linda, approved replay or not."""
     linda = linda_user(env)
     return bool(linda) and env.uid == linda.id
+
+
+def linda_stopped(env):
+    """True when the operator has archived Linda: the supported kill switch (C12 round 2, R3)."""
+    linda = linda_user(env)
+    return bool(linda) and not linda.sudo().active  # sudo: any caller may learn whether Linda is stopped
+
+
+STOPPED_RESULT = {"status": "blocked", "reason": "Linda is archived (operator stop); nothing was recorded"}
+
+
+def linda_stop(env):
+    """The refusal of a Linda command while she is archived, or ``None``. Writes nothing."""
+    if is_linda(env) and linda_stopped(env):
+        return dict(STOPPED_RESULT)
+    return None
 
 
 def linda_acting(env):
@@ -153,6 +174,8 @@ def hold_for_approval(
     key = _normalize_text(operation_key)
     if not key:
         return {"status": "blocked", "reason": "operation_key is required"}
+    if not company:
+        return {"status": "blocked", "reason": "the subject has no company to hold the approval in"}
     dumped = _dump(arguments)
     domain = [
         ("company_id", "=", company.id),
@@ -333,6 +356,8 @@ class PlasticosLindaApproval(models.Model):
         refusal is not an approval and cannot be approved.
         """
         self._require_approver()
+        if linda_stopped(self.env):
+            raise UserError("Linda is archived (operator stop). Reactivate her before approving her held commands.")
         results = []
         for rec in self:
             state = rec._locked_state()

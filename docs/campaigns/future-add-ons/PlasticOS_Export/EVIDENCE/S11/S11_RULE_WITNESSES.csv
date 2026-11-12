@@ -58,3 +58,11 @@ SCOPE-3 I6,BRS-EXP-07-R006,positive,plasticos_logistics/tests/test_s11_linda_app
 SCOPE-3 I6,BRS-EXP-08-R007,negative,plasticos_logistics/tests/test_s11_fact_corrections.py::TestJourneyFactCorrectionRefusals::test_correction_keeps_party_visibility_and_company,PENDING_COORDINATOR
 SCOPE-3 I6,BRS-EXP-07-R006,negative,plasticos_logistics/tests/test_s11_fact_corrections.py::TestJourneyFactCorrectionRefusals::test_documents_vgm_basis_correction_needs_the_verdict,PENDING_COORDINATOR
 SCOPE-3 I6,BRS-EXP-08-R007,negative,plasticos_logistics/tests/test_s11_fact_corrections.py::TestJourneyFactCorrectionRefusals::test_concurrent_correction_is_answered_by_the_unique_key,PENDING_COORDINATOR
+Round 2 R4,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaGateReach::test_the_scan_follows_a_write_override,PENDING_COORDINATOR
+Round 2 R1,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_linda_raw_load_writes_are_refused,PENDING_COORDINATOR
+Round 2 R1,BRS-EXP-11-R010,positive+negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_a_stale_ready_timestamp_is_not_readiness,PENDING_COORDINATOR
+Round 2 R2,BRS-EXP-11-R010,positive+negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_unreadable_actual_event_evidence_is_held_without_disclosure,PENDING_COORDINATOR
+Round 2 R5,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_actual_event_correction_without_reason_is_refused_not_held,PENDING_COORDINATOR
+Round 2 R6,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_a_hold_without_company_answers_blocked,PENDING_COORDINATOR
+Round 2 R3,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_archived_linda_stays_archived_with_her_grant_across_upgrades,PENDING_COORDINATOR
+Round 2 R3,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRound2::test_archived_linda_is_refused_everywhere_and_writes_nothing,PENDING_COORDINATOR

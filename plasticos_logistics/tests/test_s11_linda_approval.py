@@ -19,7 +19,7 @@ from odoo.tools import mute_logger
 from odoo.tools.convert import convert_file
 
 from . import test_s9_logistics_features as s9
-from .test_s9_logistics_features import FACT, JOURNEY, PROPOSAL
+from .test_s9_logistics_features import FACT, JOURNEY, LOAD, PROPOSAL
 from .test_s11_fact_corrections import _S11Case
 
 APPROVAL = "plasticos.linda.approval"
@@ -461,6 +461,25 @@ class TestLindaGateReach(_LindaCase):
         self.assertIn("action_record_gate_in", {hit[1] for hit in hits})
         self.assertIn("action_record_actual_event", {hit[1] for hit in hits})
 
+    def test_the_scan_follows_a_write_override(self):
+        """R4: ``self.write(...)`` reaching a PlasticOS ``write`` override is followed."""
+        reach = _reach_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            addon = Path(tmp) / "plasticos_planted"
+            (addon / "data").mkdir(parents=True)
+            (addon / "models").mkdir()
+            (addon / "__manifest__.py").write_text("{'name': 'planted'}")
+            (addon / "data" / "cron.xml").write_text(
+                '<odoo><record id="cron_write" model="ir.cron">'
+                '<field name="code">model._cron_touch()</field></record></odoo>'
+            )
+            (addon / "models" / "planted.py").write_text(
+                "def _cron_touch(self):\n    self.write({'x': 1})\n\n"
+                "def write(self, vals):\n    self.env['y'].action_correct_fact(1, {}, 'r', 'k')\n"
+            )
+            hits = reach.gated_paths(tmp)
+        self.assertEqual(hits, [("cron_write", "action_correct_fact", ("_cron_touch", "write", "action_correct_fact"))])
+
 
 @tagged("post_install", "-at_install", "plasticos", "logistics", "export")
 class TestLindaReviewClosure(_LindaCase):
@@ -655,3 +674,152 @@ class TestLindaReviewClosure(_LindaCase):
         )
         self._held(held, "evidence_unverified", "record_verified_gross_mass")
         self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+
+
+@tagged("post_install", "-at_install", "plasticos", "logistics", "export")
+class TestLindaRound2(_LindaCase):
+    """C12 review round 2 (R1-R6), as non-superuser users."""
+
+    # R1 ──────────────────────────────────────────────────────────────
+    def test_linda_raw_load_writes_are_refused(self):
+        load = self._load()
+        load._transition("awaiting_ready")
+        as_linda = load.with_user(self.linda)
+        for vals in (
+            {"ready_confirmed_at": self._ago(1)},
+            {"ready_confirmed_by": "Linda"},
+            {"state": "ready_confirmed"},
+            {"actual_pickup_at": self._ago(1)},
+        ):
+            with self.subTest(vals=list(vals)), self.assertRaises(AccessError):
+                as_linda.write(vals)
+        with self.assertRaises(AccessError):
+            self.env[LOAD].with_user(self.linda).create(
+                {"company_id": self.company.id, "pickup_partner_id": self.supplier.id, "ready_confirmed_by": "Linda"}
+            )
+        load.invalidate_recordset()
+        self.assertEqual((load.state, load.ready_confirmed_at), ("awaiting_ready", False))
+
+    def test_a_stale_ready_timestamp_is_not_readiness(self):
+        load = self._load()
+        load._transition("awaiting_ready")
+        load.write({"ready_confirmed_at": self._ago(9)})  # a stale stamp, as a raw write by someone else left it
+        held = load.with_user(self.linda).action_confirm_ready()
+        self._held(held, "acceptance", "confirm_ready")
+        doc = self._attach(load, "ready.eml")
+        proposed = (
+            self.env[PROPOSAL]
+            .with_user(self.logistics)
+            .action_propose_shipment_event(
+                {
+                    "event_kind": "supplier_ready",
+                    "load_id": load.id,
+                    "evidence_attachment_id": doc.id,
+                    "asserted_by": "supplier_reported",
+                },
+                "r1-ready",
+            )
+        )
+        proposal = self.env[PROPOSAL].browse(proposed["record_id"])
+        proposal.with_user(self.logistics).action_accept()
+        self.assertEqual((proposal.command_status, load.state), ("applied", "ready_confirmed"))
+
+    # R2 ──────────────────────────────────────────────────────────────
+    def test_unreadable_actual_event_evidence_is_held_without_disclosure(self):
+        other = self.env["res.company"].create({"name": "S11 R2 Other Co"})
+        foreign = self._load(company_id=other.id)
+        hidden = self._attach(foreign, "other-company-ticket.pdf")
+        hidden.company_id = other
+        load = self._load()
+        held = load.with_user(self.linda).action_record_actual_event("pickup", self._ago(6), hidden)
+        approval = self._held(held, "evidence_unverified", "record_actual_event")
+        self.assertEqual(approval.edge_reason, "the original document is not visible to Linda")
+        self.assertFalse(load.actual_pickup_at)
+        with self.assertRaises(AccessError):
+            load.with_user(self.logistics).action_record_actual_event("pickup", self._ago(6), hidden)
+
+    # R5 ──────────────────────────────────────────────────────────────
+    def test_actual_event_correction_without_reason_is_refused_not_held(self):
+        load = self._load()
+        ticket = self._attach(load, "ticket.pdf")
+        self.assertEqual(
+            load.with_user(self.linda).action_record_actual_event("pickup", self._ago(6), ticket)["status"], "applied"
+        )
+        refused = load.with_user(self.linda).action_record_actual_event("pickup", self._ago(5), ticket)
+        self.assertEqual((refused["status"], refused["reason"]), ("blocked", "a correction needs a reason"))
+        rows = self.env[APPROVAL].search([("subject_key", "=", f"load:{load.id}")])
+        self.assertEqual(rows.mapped("state"), ["refused"])
+
+    # R6 ──────────────────────────────────────────────────────────────
+    def test_a_hold_without_company_answers_blocked(self):
+        from odoo.addons.plasticos_logistics.models.linda_approval import hold_for_approval
+
+        env = self.env(user=self.linda.id, su=False)
+        result = hold_for_approval(
+            env, "confirm_ready", "acceptance", "r6", {"load_id": 0}, "r6-key", env["res.company"]
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertFalse(self.env[APPROVAL].search([("operation_key", "=", "r6-key")]))
+
+    # R3 ──────────────────────────────────────────────────────────────
+    def test_archived_linda_stays_archived_with_her_grant_across_upgrades(self):
+        self.linda.write({"active": False})
+        convert_file(self.env, "plasticos_logistics", "data/linda_user.xml", {}, mode="update", noupdate=False)
+        convert_file(
+            self.env, "plasticos_security_base", "security/record_rules.xml", {}, mode="update", noupdate=False
+        )
+        self.linda.invalidate_recordset()
+        self.assertFalse(self.linda.active, "an upgrade never reactivates Linda")
+        self.assertTrue(self.linda.has_group(LOGISTICS), "her grant is intact")
+
+    def test_archived_linda_is_refused_everywhere_and_writes_nothing(self):
+        journey = self._journey("S11-STOP")
+        first, doc = self._gate_in(journey)
+        load = self._load()
+        load._transition("awaiting_ready")
+        ticket = self._attach(load, "ticket.pdf")
+        held = self._held(
+            self._linda().action_correct_fact(first.id, {"occurred_at": self._ago(7)}, "fix", "stop-held"),
+            "correction",
+            "correct_fact",
+        )
+        self.linda.write({"active": False})
+        approvals_before = self.env[APPROVAL].search_count([])
+        facts_before = self.env[FACT].search_count([("journey_id", "=", journey.id)])
+        calls = {
+            "correction": lambda: self._linda().action_correct_fact(first.id, {"occurred_at": self._ago(8)}, "x", "s1"),
+            "record": lambda: self._linda().action_record_regulatory_parties(
+                journey.id, self.filer.id, False, doc.id, "s2"
+            ),
+            "proposal": lambda: self._linda(PROPOSAL).action_propose_shipment_event(
+                {
+                    "event_kind": "loaded",
+                    "load_id": load.id,
+                    "occurred_at": self._ago(3),
+                    "evidence_attachment_id": ticket.id,
+                    "asserted_by": "carrier_issued",
+                },
+                "s3",
+            ),
+            "confirm_ready": lambda: load.with_user(self.linda).action_confirm_ready(),
+            "actual_event": lambda: load.with_user(self.linda).action_record_actual_event(
+                "pickup", self._ago(4), ticket
+            ),
+        }
+        for name, call in calls.items():
+            with self.subTest(command=name):
+                result = call()
+                self.assertEqual(result["status"], "blocked")
+                self.assertIn("archived", result["reason"])
+        requests = self.env["plasticos.logistics.request"].with_user(self.linda)
+        self.assertEqual(requests._linda_mode(), "off", "every mode-gated Linda path records nothing")
+        sweep = requests.sudo()._run_load_obligations(loads=load)
+        self.assertEqual(sweep[0]["status"], "blocked")
+        with self.assertRaises(UserError):
+            held.with_user(self.manager).action_approve()
+        self.assertEqual(self.env[APPROVAL].search_count([]), approvals_before)
+        self.assertEqual(self.env[FACT].search_count([("journey_id", "=", journey.id)]), facts_before)
+        self.assertFalse(self.env[PROPOSAL].search([("load_id", "=", load.id)]))
+        load.invalidate_recordset()
+        self.assertEqual((load.state, load.actual_pickup_at), ("awaiting_ready", False))
+        self.assertEqual(held.state, "pending")

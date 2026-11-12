@@ -71,6 +71,22 @@ _ACTUAL_EVENT_EVIDENCE_MARKERS = (
 _ACTUAL_EVENT_SEQUENCE_MARKERS = ("cannot be before actual pickup",)
 
 
+# Load fields Linda changes only through a gated command or an approval (C12 round 2, R1).
+_LINDA_GATED_LOAD_FIELDS = frozenset({"state", "ready_confirmed_at", "ready_confirmed_by"}) | _ACTUAL_EVENT_FIELDS
+
+
+def _refuse_linda_raw_write(env, field_names):
+    """Linda's raw create/write of a gated load field is refused outside her gate or an approval."""
+    from .linda_approval import linda_acting
+
+    touched = _LINDA_GATED_LOAD_FIELDS.intersection(field_names)
+    if touched and linda_acting(env):
+        raise AccessError(
+            "Linda changes a load's readiness, state or actual events only through its commands: "
+            f"{', '.join(sorted(touched))}"
+        )
+
+
 def _actual_event_edge(message):
     """The Linda edge-case class of an actual-event refusal, or None for a plain refusal."""
     if any(marker in message for marker in _ACTUAL_EVENT_EVIDENCE_MARKERS):
@@ -402,6 +418,8 @@ class PlasticosLoad(models.Model):
         audit events.
         """
         internal_freight_write = self.env.context.get(_FREIGHT_INTERNAL_WRITE) is _FREIGHT_INTERNAL_WRITE_TOKEN
+        for vals in vals_list:
+            _refuse_linda_raw_write(self.env, vals)
         vals_list = [self._resolve_source_company(dict(vals), creating=True) for vals in vals_list]
         for vals in vals_list:
             actual = {name for name in _ACTUAL_EVENT_FIELDS.intersection(vals) if vals.get(name)}
@@ -914,6 +932,7 @@ class PlasticosLoad(models.Model):
         - Chatter fields (message_ids, message_follower_ids)
         """
         vals = dict(vals)
+        _refuse_linda_raw_write(self.env, vals)
         if "sale_order_id" in vals or "company_id" in vals:
             if vals.get("sale_order_id") or vals.get("company_id"):
                 self._resolve_source_company(vals)
@@ -1046,8 +1065,11 @@ class PlasticosLoad(models.Model):
         Linda's confirmation is held for an Operations Manager (C12-SCOPE-3 (1)) and
         returns ``{status: pending, approval_id, reason}``; a person's applies at once.
         """
-        from .linda_approval import linda_acting
+        from .linda_approval import linda_acting, linda_stop
 
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
         if linda_acting(self.env):
             return self._linda_confirm_ready_gate()
         for rec in self:
@@ -1062,7 +1084,12 @@ class PlasticosLoad(models.Model):
         held = []
         for rec in self:
             rec.check_access("read")
-            if rec.ready_confirmed_at:
+            if not rec.company_id:
+                held.append(
+                    {"status": "blocked", "record_id": rec.id, "reason": f"Load {rec.name} needs its proven company"}
+                )
+                continue
+            if rec.state == "ready_confirmed":
                 held.append({"status": "already_applied", "record_id": rec.id})
                 continue
             subject_key = f"load:{rec.id}"
@@ -1974,8 +2001,11 @@ class PlasticosLoad(models.Model):
         self.ensure_one()
         if event_kind not in _ACTUAL_EVENT_KINDS:
             raise ValidationError(f"Unknown actual event {event_kind!r}; expected pickup or delivery.")
-        from .linda_approval import linda_acting
+        from .linda_approval import linda_acting, linda_stop
 
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
         if linda_acting(self.env):
             return self._linda_actual_event_gate(event_kind, occurred_at, attachment, reason)
         self._require_freight_operator()
@@ -2043,6 +2073,9 @@ class PlasticosLoad(models.Model):
         from .linda_approval import as_approved, hold_for_approval, prior_refusal, record_refusal
 
         self.check_access("read")
+        if not self.company_id:
+            # R6: no company, no ledger subject; answered, never a raw required-field error.
+            return {"status": "blocked", "record_id": self.id, "reason": f"Load {self.name} needs its proven company"}
         when = fields.Datetime.to_datetime(occurred_at) if occurred_at else None
         when = when.replace(microsecond=0) if when else None
         attachment_id = attachment.id if attachment else False
@@ -2060,6 +2093,10 @@ class PlasticosLoad(models.Model):
         previous_at = self[time_field].replace(microsecond=0) if self[time_field] else None
         edge, cause = None, None
         if previous_at and (previous_at != when or self[evidence_field].id != attachment_id):
+            if not (reason or "").strip():
+                # R5: a correction without a reason is refused before any hold, as for journey facts.
+                refusal = {"status": "blocked", "record_id": self.id, "reason": "a correction needs a reason"}
+                return record_refusal(self.env, command, subject_key, self.company_id, refusal, arguments, key, self)
             edge, cause = "correction", f"Linda corrects the recorded actual {event_kind}"
         else:
             try:
@@ -2070,7 +2107,11 @@ class PlasticosLoad(models.Model):
                 self.env.invalidate_all()
                 if done.result.get("status") == "already_applied":
                     return done.result
-            except (UserError, ValidationError, AccessError) as error:
+            except AccessError:
+                # R2: an original Linda cannot read is unverified evidence; the reason names nothing of it.
+                self.env.invalidate_all()
+                edge, cause = "evidence_unverified", "the original document is not visible to Linda"
+            except (UserError, ValidationError) as error:
                 self.env.invalidate_all()
                 message = str(error.args[0] if error.args else error)
                 edge = _actual_event_edge(message)

@@ -24,14 +24,14 @@ What it does not cover, so a clean result is not proof about these:
   runtime) or declared by non-PlasticOS addons;
 * entries declared in CSV data or through ``<function>`` tags;
 * calls over RPC, controllers and the mail gateway, which run as their caller
-  rather than as a scheduled user;
-* a call spelled like a Python builtin or a method of a builtin type (``open``,
-  ``append``, ``get``…), which is not followed by name.
+  rather than as a scheduled user.
+
+Every call is followed by name, builtin-looking ones included (``write``, ``get``,
+``append``…), so a ``self.write(...)`` reaching a PlasticOS ``write`` override is
+followed (C12 round 2, R4).
 """
 
 import ast
-import builtins
-import io
 import re
 from pathlib import Path
 from xml.etree import ElementTree
@@ -106,11 +106,9 @@ def call_graph(root):
                     if isinstance(inner, ast.Call):
                         func = inner.func
                         if isinstance(func, ast.Attribute):
-                            if func.attr not in _BUILTIN_METHODS:
-                                calls.add(func.attr)
+                            calls.add(func.attr)
                         elif isinstance(func, ast.Name):
-                            if func.id not in _BUILTIN_NAMES:
-                                calls.add(func.id)
+                            calls.add(func.id)
                             prefix = _getattr_prefix(inner) if func.id == "getattr" else None
                             if prefix is not None:
                                 calls.add(PREFIX_MARK + prefix)
@@ -118,16 +116,6 @@ def call_graph(root):
 
 
 PREFIX_MARK = "getattr-prefix:"
-# A call spelled like a Python builtin, or like a method of a builtin type, is not followed
-# by name: ``open(...)`` and ``rows.append(...)`` would otherwise reach every PlasticOS
-# method that happens to share that name (stated limit).
-_BUILTIN_NAMES = frozenset(dir(builtins))
-_BUILTIN_METHODS = frozenset(
-    name
-    for kind in (list, dict, set, frozenset, str, bytes, tuple, int, float, io.IOBase, io.StringIO)
-    for name in dir(kind)
-    if not name.startswith("__")
-)
 
 
 def _getattr_prefix(call):

@@ -33,6 +33,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, LockError, UserError, ValidationError
 from odoo.tools import email_normalize
 
+from .linda_approval import linda_stopped
+
 _logger = logging.getLogger(__name__)
 
 RES_COMPANY = "res.company"
@@ -504,6 +506,9 @@ class PlasticosLogisticsRequest(models.Model):
             .get_param(LINDA_MODE_PARAM, LINDA_MODE_OFF)
         )
         mode = (value or LINDA_MODE_OFF).strip().lower()
+        if linda_stopped(self.env):
+            # R3: an archived Linda is the operator's stop; every mode-gated Linda path records nothing.
+            return LINDA_MODE_OFF
         return mode if mode in LINDA_MODES else LINDA_MODE_OFF
 
     @api.model
@@ -1020,6 +1025,10 @@ class PlasticosLogisticsRequest(models.Model):
         and blocked notices keep the hold, and an uncertain notice is not retried.
         """
         withheld = sendable = held = self.env[MAIL_MAIL]
+        if linda_stopped(self.env):
+            # R3: Linda is archived; her queued mail stays out of the batch, untouched, until she is reactivated.
+            withheld = self.search([("mail_id", "in", mails.ids)]).mail_id.filtered(lambda m: m.state == "outgoing")
+            return withheld, sendable, held
         # Ascending mail id, the order native sending uses, so a notice clears before its reissue.
         for request in self.search([("mail_id", "in", mails.ids)]).sorted(lambda request: request.mail_id.id):
             mail = request.mail_id
@@ -1321,6 +1330,8 @@ class PlasticosLogisticsRequest(models.Model):
         new revision is held, because bytes that may have left are never unsent
         or replayed (V06).
         """
+        if linda_stopped(self.env):
+            return {"status": "blocked", "reason": "linda_stopped"}
         mode = self._linda_mode()
         if mode == LINDA_MODE_OFF or any(self.env.context.get(key) for key in NON_RELEASE_CONTEXT_KEYS):
             return {"status": "not_available", "reason": "linda_not_active"}
@@ -1543,6 +1554,9 @@ class PlasticosLogisticsRequest(models.Model):
         often the job polls. A queued obligation whose source no longer needs it
         (acknowledged, evidence received, state moved) is canceled before any claim.
         """
+        if linda_stopped(self.env):
+            # R3: no sweep, no cursor move, no request while Linda is archived.
+            return [{"status": "blocked", "reason": "linda_stopped"}]
         Load = self.env["plasticos.load"]
         now = fields.Datetime.now()
         if loads is None:
