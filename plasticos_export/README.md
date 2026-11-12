@@ -25,6 +25,10 @@ models_owned:
   - plasticos.export.booking.manual.candidate
   - plasticos.export.booking.manual.candidate.line
   - plasticos.export.source.line.claim
+  - plasticos.export.slot.command.mixin
+  - plasticos.export.slot.commit.cargo
+  - plasticos.export.slot.release.cargo
+  - plasticos.export.slot.bind.journey
 models_extended:
   - plasticos.document
   - plasticos.load
@@ -72,12 +76,12 @@ Concurrent commits planning on one PO or SO line serialize on one Export-owned r
 - Owner facts (`BRS-EXP-01-R002`, `BRS-EXP-07-R006`). The cargo link, slot and booking forms show the facts below. Each one is computed live as the acting user and is never stored:
   - the Documents verdict of each Export obligation, through `get_scoped_evidence_verdict`;
   - the Logistics load status;
-  - the native stock move line and its package's shipping weight and package-type tare;
+  - the native stock move line and its package's shipping weight and package type nominal weight (Stock `base_weight`; not a tare measurement);
   - posted customer invoices and vendor bills;
   - the slot's package totals, labelled "not a certified VGM", and the Documents VGM verdict.
 
   A fact the user may not read shows a restricted marker, never a blank or a zero (`BRS-EXP-14-R022`). The slot also shows the container tare and VGM weight that Logistics records on the bound journey (`plasticos.iso.journey.fact`), and a shipment history: the recorded gate-in, departure and filing parties, then every cargo allocation, oldest first. A buyer assigned after sailing is a new allocation that replaces the buyerless one (`BRS-EXP-08-R007`); no journey fact or booking revision changes with it. Container weights and identities stay with Logistics. A user who cannot read the Logistics journey facts (only Logistics, which Operations Manager implies, and System can after the S9 review) sees "Restricted" for the container tare, the VGM weight and the shipment-history container facts, and gets no journey link. Export adds no sudo to show them. The operator's see-all rule covers allocations, so a Sales Rep still sees every cargo allocation on every booking through the `*_ref` names and can plan without overbooking (coordinator ruling 2026-11-12).
-- Commercial trade label (`BRS-EXP-02-R006`). A cargo link stores the quoted FOB, FAS or CNF usage and its quoted wording. It is edited only through the Set Trade Label dialog and audited on the booking. The order Incoterms are shown beside it and never written.
+- Commercial trade label (`BRS-EXP-02-R006`). A cargo link stores the quoted FOB, FAS or CNF usage and its quoted wording. The Set Trade Label dialog on the cargo link edits it; any write by a Logistics user is accepted the same way, and every change posts an audit note on the booking. The order Incoterms are shown beside it and never written.
 - Record Booking Candidate (`BRS-EXP-09-R001` manual fallback). This booking button opens `plasticos.export.booking.manual.candidate`. The screen hands the typed terms to `record_booking_revision_candidate` as the acting user, so every command guard applies. It stores no file and makes nothing current. Native Documents AI is not activated.
 - Slot command screens (C11-SCOPE-2). Commit Cargo (including a replacement of an earlier link), Release Cargo and Bind Container call the existing slot commands as the acting Logistics user and store nothing.
 - Sales Rep see-all (C11-SCOPE-3). Booking search by container and seal goes through the slot's own fields. Only readers of the container journey (Logistics, Operations Manager, System) get an openable journey and the Open Container Journey button. The Export dialog offers a user outside Logistics no cargo-link source link and, outside the journey readers, no slot journey; the `*_ref` names stay exportable.

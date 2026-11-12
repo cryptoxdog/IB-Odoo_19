@@ -22,5 +22,10 @@ C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py:
 C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_bind_screen_binds_once_and_refuses_a_mismatch
 C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_non_logistics_user_has_no_button_no_screen_and_the_command_refuses
 C11-SCOPE-3,OP10-E06,see-all,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_searches_bookings_by_container_and_seal
-C11-SCOPE-3,OP10-E06,see-all,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_gets_no_openable_journey_or_journey_button
+C11-SCOPE-3,OP10-E06,see-all,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_gets_no_journey_link_or_journey_button
 C11-SCOPE-3,OP10-E06,see-all,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_exports_cargo_links_without_access_error
+C11-SCOPE-3,OP10-E06 / C11-RULINGS (a),"see-all, no fact or journey link",plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_reads_the_slot_display_without_access_error_or_journey
+AC-EXP-07-006,BRS-EXP-07-R006,package type weight per package (review B1),plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_07_r006_package_type_weight_is_summed_per_package
+AC-EXP-14-022,BRS-EXP-14-R022,private party Restricted (review I1),plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_private_party_on_a_fact_shows_restricted_to_another_logistics_user
+AC-EXP-14-011,BRS-EXP-14-R011 / 14-R022,private partners Restricted (review I2),plasticos_export/tests/test_legacy_booking_report.py::TestLegacyBookingReport::test_14_r011_private_partners_show_restricted_not_an_error
+AC-EXP-08-006,BRS-EXP-08-R006,screen-level double allocation (review N4),plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_commit_screens_cannot_double_allocate_one_load

@@ -2,9 +2,8 @@
 
 Contract `PLASTICOS-EXPORT-C11-S10-EXPORT-FEATURES`.
 
-- Frozen digest: `sha256:a09dcbf9b127a8fe74e52fe4cbd7614a6a76786a18000ce7813c87f3044c751d`.
-- Coordinator amendments: C11-SCOPE-2 (`a1675277…`), then C11-SCOPE-3 (`sha256:b85ee104e2337842db2f5fd664cb1f909c387acad6693e99dd0d673571f75a9a`).
-- Base: `ff42df2deaa85ce6354740dda1df00db8413a2ea`. Before publication this branch merges S9 (`feat/plasticos-export-s9-logistics-features`, head `ad9d35e5`), with a merge commit.
+- Contract digest: `sha256:2f2ec6c497d3ed1c2ad9e3d977103b1dce3ace0a6c9ad0d0b542ed7edde9aad2` (C11-STACK-BIND and C11-RULINGS-2026-11-12). Earlier freezes: `a09dcbf9…` (original), `a1675277…` (C11-SCOPE-2), `b85ee104…` (C11-SCOPE-3).
+- Base: `fb1391d48f1ac4077946fec1fa739ebfe0f24a1e`, the accepted S9 head (`feat/plasticos-export-s9-logistics-features`, PR #489), merged into this branch with a merge commit. The slice is judged on `fb1391d4..head`.
 - Part of the PlasticOS Export campaign; plan: `docs/campaigns/future-add-ons/PlasticOS_Export/STRATEGIC_EXECUTION_PLAN_v2.8.md`.
 
 The S6, S7, S8 and S9 evidence folders are unchanged. This folder adds the S10 witnesses and the final recount.
@@ -25,7 +24,7 @@ All facts are read from their owners as the acting user and are never stored by 
   - the Logistics load status;
   - the native stock move line and its package;
   - posted customer invoices and vendor bills.
-- **BRS-EXP-07-R006**. The slot shows native Stock package totals and package tare, labelled as not a certified VGM, and the Documents VGM verdict. It also shows the container tare and VGM weight that Logistics records on the bound journey (`plasticos.iso.journey.fact`, S9).
+- **BRS-EXP-07-R006**. The slot shows native Stock package totals and the package type nominal weight (Stock `base_weight`, summed per package; not a tare measurement), labelled as not a certified VGM, and the Documents VGM verdict. It also shows the container tare and VGM weight that Logistics records on the bound journey (`plasticos.iso.journey.fact`, S9).
 - **BRS-EXP-02-R006**. The cargo link stores the quoted FOB, FAS or CNF trade label and its wording. It is edited in its own dialog and audited on the booking. The order Incoterms are shown and never written.
 - **BRS-EXP-09-R001**, manual fallback. Record Booking Candidate hands typed terms to `record_booking_revision_candidate` with every command guard. Native Documents AI is not activated.
 - **BRS-EXP-14-R011**. A read-only projection lays out the 43 legacy headings, grouped by booking, with an explicit Missing, Unknown, Not recorded, Not mapped, Phase 2 or Restricted marker in every cell.
