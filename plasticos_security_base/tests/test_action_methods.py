@@ -645,13 +645,17 @@ class TestCrmLeadActions(PlasticosTestCase):
         self.assertEqual(result["res_model"], "plasticos.material.profile")
 
     def test_action_view_match_results(self):
-        # Local match-result navigation was retired: the button now returns a
-        # "Feature Disabled" notification (plasticos_crm_bridge/models/crm_lead.py:466-480).
+        # The button opens the Gate match results produced by this opportunity's
+        # runs (plasticos_crm_bridge/models/crm_lead.py action_view_match_results).
         lead = self._make_lead(partner_id=self.partner.id)
+        other = self._make_lead(partner_id=self.partner.id)
         result = lead.action_view_match_results()
-        self.assertEqual(result["type"], "ir.actions.client")
-        self.assertEqual(result["tag"], "display_notification")
-        self.assertEqual(result["params"]["type"], "warning")
+        self.assertEqual(result["type"], "ir.actions.act_window")
+        self.assertEqual(result["res_model"], "plasticos.match.result")
+        self.assertEqual(result["domain"], [("match_run_id.opportunity_id", "=", lead.id)])
+        self.assertNotEqual(result["domain"], other.action_view_match_results()["domain"])
+        # The domain is a real filter on the result model: a new lead has no runs.
+        self.assertFalse(self.env["plasticos.match.result"].search(result["domain"]))
 
     def test_action_view_transactions(self):
         lead = self._make_lead(partner_id=self.partner.id)

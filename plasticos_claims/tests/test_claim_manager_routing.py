@@ -2,6 +2,7 @@
 
 from unittest.mock import patch
 
+from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
@@ -158,3 +159,37 @@ class TestClaimManagerRouting(PlasticosTestCase):
             claim.with_user(self.cron_user)._create_reminder_activity()
         self.assertFalse(self._activities(claim, f"Open Claim Reminder: {claim.name}"))
         self.assertTrue(claim.message_ids.filtered(lambda message: "Not routed" in (message.body or "")))
+
+    # ── SLA cron ─────────────────────────────────────────────
+    def test_sla_cron_resolves_the_reviewer_once_for_the_run(self):
+        opened = fields.Datetime.to_datetime("2000-01-01 00:00:00")
+        overdue = self._create_claim(transaction=self.tx, opened_at=opened, sla_hours=1, state="pending")
+        waiting = self._create_claim(transaction=self.tx, opened_at=opened, state="in_progress")
+        reviewer = self.Claim._claims_manager_reviewer()
+        claim_cls = type(self.Claim)
+        real_reviewer = claim_cls._claims_manager_reviewer
+        lookups = []
+
+        def counting_reviewer(claims):
+            lookups.append(1)
+            return real_reviewer(claims)
+
+        with patch.object(claim_cls, "_claims_manager_reviewer", counting_reviewer):
+            self.Claim.with_user(self.cron_user)._cron_check_sla()
+        self.assertEqual(len(lookups), 1)
+        overdue.invalidate_recordset()
+        self.assertEqual(overdue.state, "escalated")
+        self.assertEqual(self._activities(overdue, f"Escalated Claim: {overdue.name}").user_id, reviewer)
+        self.assertEqual(self._activities(waiting, f"Open Claim Reminder: {waiting.name}").user_id, reviewer)
+
+    def test_sla_cron_without_a_manager_notes_each_claim(self):
+        opened = fields.Datetime.to_datetime("2000-01-01 00:00:00")
+        overdue = self._create_claim(transaction=self.tx, opened_at=opened, sla_hours=1, state="pending")
+        with self._no_manager(), self.assertLogs(CLAIM_LOGGER, level="ERROR"):
+            self.Claim.with_user(self.cron_user)._cron_check_sla()
+        overdue.invalidate_recordset()
+        self.assertEqual(overdue.state, "escalated")
+        self.assertFalse(
+            self.env["mail.activity"].search([("res_model", "=", "plasticos.claim"), ("res_id", "=", overdue.id)])
+        )
+        self.assertTrue(overdue.message_ids.filtered(lambda message: "Not routed" in (message.body or "")))
