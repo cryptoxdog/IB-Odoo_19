@@ -622,8 +622,7 @@ class PlasticosExportBookingCargoLink(models.Model):
         link a correction replaces.
         """
         excluding = excluding or self.browse()
-        # sudo: the guard must count every live link on the source, whatever cargo the actor may see.
-        Live = self.sudo().with_context(active_test=False)
+        Live = self.sudo().with_context(active_test=False)  # sudo: count every live link, not only the visible ones
         live = [("state", "in", LIVE_LINK_STATES), ("id", "not in", excluding.ids)]
         for name, label in _EXCLUSIVE_SOURCES.items():
             if values.get(name) and Live.search_count([*live, (name, "=", values[name])], limit=1):
