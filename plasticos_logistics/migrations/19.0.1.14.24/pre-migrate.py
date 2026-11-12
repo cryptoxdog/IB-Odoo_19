@@ -29,6 +29,17 @@ def migrate(cr, version):
     cr.execute("UPDATE plasticos_iso_journey_fact SET revision = 1 WHERE revision IS NULL")
     backfilled = cr.rowcount
     cr.execute(
-        "ALTER TABLE plasticos_iso_journey_fact DROP CONSTRAINT IF EXISTS plasticos_iso_journey_fact_one_fact_per_kind"
+        "SELECT 1 FROM pg_constraint WHERE conrelid = %s::regclass AND conname = %s",
+        (TABLE, OLD_CONSTRAINT),
     )
-    _logger.info("S11 journey facts: %s row(s) set to revision 1; %s dropped", backfilled, OLD_CONSTRAINT)
+    dropped = bool(cr.fetchone())
+    if dropped:
+        cr.execute(
+            "ALTER TABLE plasticos_iso_journey_fact DROP CONSTRAINT plasticos_iso_journey_fact_one_fact_per_kind"
+        )
+    _logger.info(
+        "S11 journey facts: %s row(s) set to revision 1; %s %s",
+        backfilled,
+        OLD_CONSTRAINT,
+        "dropped" if dropped else "already absent",
+    )
