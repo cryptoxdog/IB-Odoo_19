@@ -146,41 +146,104 @@
     "BRS-EXP-14-R022"
   ],
   "current_supplements": "SUPERSESSION.md",
-  "source_sha256": {
-    "BRS-EXP-01.md": "bb19c930249be012a714b5dc753d1ca7b0727499a3cab0baec944d464c6d9424",
-    "BRS-EXP-02.md": "7d84028dd05d4af30d7a4811ebcbd1145c9d3b0699f0e404b0aee005d05d66eb",
-    "BRS-EXP-03.md": "c9e40391f06d6f169895e28050030145f983fbc66e2c449f2dfd5e59fbea194c",
-    "BRS-EXP-04.md": "4d5c7fdf2e4a9586d0b20bb1bf7ecee0e580f28c77fcfdddcb86090736e89f2e",
-    "BRS-EXP-05.md": "d7e966af0b23b5a4574a655e7f3919f189bb03f440be186a774715fe2b59997e",
-    "BRS-EXP-06.md": "c45b4f8d6e2c7baea0460855d4a1071dacd350ade8070eda7a09b327988fcb3f",
-    "BRS-EXP-07.md": "79ac5245bce5a41f07683e888e54b01dd826c02cd68bea8aba3cd7a6a2e0b085",
-    "BRS-EXP-08.md": "295f92494b82bd466ad75eac951d7023d5479892a231631578f57428ce5e5059",
-    "BRS-EXP-09.md": "005732dee8a2bd744f94cfdd5071a74b89e304b9d22d6cc5379c971688fd29b4",
-    "BRS-EXP-10.md": "f3b9dd42d09628b4b2871c16c9cc5203e55c04422a9dc524994e0bebb2f4872e",
-    "BRS-EXP-11.md": "55a945de36268ab6fbbf7adda52d40d97e3694715312acb3287c82f4e14b0ddd",
-    "BRS-EXP-12.md": "8b880f76426fcb0c708734bcb27e89a6f8d4bee8d73e9abc268bd3847928357a",
-    "BRS-EXP-13.md": "89721681f66fc5c54223e16364e161f73a0bf33d87d76f0e4345c4e14e7590a4",
-    "BRS-EXP-14.md": "16ffc3cbba5d5828221e3ab249e9ffa835bdcfa1170c7f078c6ea4ab60a0dc8b",
-    "rules.json": "ef0b0383f2e3a2b0ea1381730e4f287faa21fcbf3fe62fc5b3d4fdd68a3dbcab",
-    "ACCEPTANCE.json": "81b7d07f20dbdffc94ee1ca7f1aea324c2d588fc627bc27795537b0b3a7008fc"
+  "normalization": "exactly one terminal newline (repository end-of-file-fixer); no other byte differs",
+  "copies": {
+    "BRS-EXP-01.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-01.md",
+      "source_sha256": "bb19c930249be012a714b5dc753d1ca7b0727499a3cab0baec944d464c6d9424",
+      "copy_sha256": "bb19c930249be012a714b5dc753d1ca7b0727499a3cab0baec944d464c6d9424",
+      "normalized": false
+    },
+    "BRS-EXP-02.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-02.md",
+      "source_sha256": "7d84028dd05d4af30d7a4811ebcbd1145c9d3b0699f0e404b0aee005d05d66eb",
+      "copy_sha256": "7d84028dd05d4af30d7a4811ebcbd1145c9d3b0699f0e404b0aee005d05d66eb",
+      "normalized": false
+    },
+    "BRS-EXP-03.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-03.md",
+      "source_sha256": "c9e40391f06d6f169895e28050030145f983fbc66e2c449f2dfd5e59fbea194c",
+      "copy_sha256": "c9e40391f06d6f169895e28050030145f983fbc66e2c449f2dfd5e59fbea194c",
+      "normalized": false
+    },
+    "BRS-EXP-04.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-04.md",
+      "source_sha256": "4d5c7fdf2e4a9586d0b20bb1bf7ecee0e580f28c77fcfdddcb86090736e89f2e",
+      "copy_sha256": "4d5c7fdf2e4a9586d0b20bb1bf7ecee0e580f28c77fcfdddcb86090736e89f2e",
+      "normalized": false
+    },
+    "BRS-EXP-05.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-05.md",
+      "source_sha256": "d7e966af0b23b5a4574a655e7f3919f189bb03f440be186a774715fe2b59997e",
+      "copy_sha256": "d7e966af0b23b5a4574a655e7f3919f189bb03f440be186a774715fe2b59997e",
+      "normalized": false
+    },
+    "BRS-EXP-06.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-06.md",
+      "source_sha256": "c45b4f8d6e2c7baea0460855d4a1071dacd350ade8070eda7a09b327988fcb3f",
+      "copy_sha256": "c45b4f8d6e2c7baea0460855d4a1071dacd350ade8070eda7a09b327988fcb3f",
+      "normalized": false
+    },
+    "BRS-EXP-07.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-07.md",
+      "source_sha256": "79ac5245bce5a41f07683e888e54b01dd826c02cd68bea8aba3cd7a6a2e0b085",
+      "copy_sha256": "79ac5245bce5a41f07683e888e54b01dd826c02cd68bea8aba3cd7a6a2e0b085",
+      "normalized": false
+    },
+    "BRS-EXP-08.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-08.md",
+      "source_sha256": "295f92494b82bd466ad75eac951d7023d5479892a231631578f57428ce5e5059",
+      "copy_sha256": "c7d6d8d995c1453b977616746e1a3af197b89e628e9d3b52e15dc38afd8cfaf3",
+      "normalized": true
+    },
+    "BRS-EXP-09.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-09.md",
+      "source_sha256": "005732dee8a2bd744f94cfdd5071a74b89e304b9d22d6cc5379c971688fd29b4",
+      "copy_sha256": "9462e25450a9eba15eb286e5b2bb6e47863ba0d25f42b17d8a985c2fab66495b",
+      "normalized": true
+    },
+    "BRS-EXP-10.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-10.md",
+      "source_sha256": "f3b9dd42d09628b4b2871c16c9cc5203e55c04422a9dc524994e0bebb2f4872e",
+      "copy_sha256": "f3b9dd42d09628b4b2871c16c9cc5203e55c04422a9dc524994e0bebb2f4872e",
+      "normalized": false
+    },
+    "BRS-EXP-11.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-11.md",
+      "source_sha256": "55a945de36268ab6fbbf7adda52d40d97e3694715312acb3287c82f4e14b0ddd",
+      "copy_sha256": "55a945de36268ab6fbbf7adda52d40d97e3694715312acb3287c82f4e14b0ddd",
+      "normalized": false
+    },
+    "BRS-EXP-12.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-12.md",
+      "source_sha256": "8b880f76426fcb0c708734bcb27e89a6f8d4bee8d73e9abc268bd3847928357a",
+      "copy_sha256": "8b880f76426fcb0c708734bcb27e89a6f8d4bee8d73e9abc268bd3847928357a",
+      "normalized": false
+    },
+    "BRS-EXP-13.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-13.md",
+      "source_sha256": "89721681f66fc5c54223e16364e161f73a0bf33d87d76f0e4345c4e14e7590a4",
+      "copy_sha256": "89721681f66fc5c54223e16364e161f73a0bf33d87d76f0e4345c4e14e7590a4",
+      "normalized": false
+    },
+    "BRS-EXP-14.md": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/RULES/BRS-EXP-14.md",
+      "source_sha256": "16ffc3cbba5d5828221e3ab249e9ffa835bdcfa1170c7f078c6ea4ab60a0dc8b",
+      "copy_sha256": "6dd1afd8eab1c4111d2a039439d85148455368fcbf71bd65d6de6625bf8b78a4",
+      "normalized": true
+    },
+    "rules.json": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/REGISTRY/rules.json",
+      "source_sha256": "ef0b0383f2e3a2b0ea1381730e4f287faa21fcbf3fe62fc5b3d4fdd68a3dbcab",
+      "copy_sha256": "ef0b0383f2e3a2b0ea1381730e4f287faa21fcbf3fe62fc5b3d4fdd68a3dbcab",
+      "normalized": false
+    },
+    "ACCEPTANCE.json": {
+      "source_path": "docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/ACCEPTANCE/cases.json",
+      "source_sha256": "81b7d07f20dbdffc94ee1ca7f1aea324c2d588fc627bc27795537b0b3a7008fc",
+      "copy_sha256": "81b7d07f20dbdffc94ee1ca7f1aea324c2d588fc627bc27795537b0b3a7008fc",
+      "normalized": false
+    }
   },
-  "source_paths": {
-    "BRS-EXP-01.md": "RULES/BRS-EXP-01.md",
-    "BRS-EXP-02.md": "RULES/BRS-EXP-02.md",
-    "BRS-EXP-03.md": "RULES/BRS-EXP-03.md",
-    "BRS-EXP-04.md": "RULES/BRS-EXP-04.md",
-    "BRS-EXP-05.md": "RULES/BRS-EXP-05.md",
-    "BRS-EXP-06.md": "RULES/BRS-EXP-06.md",
-    "BRS-EXP-07.md": "RULES/BRS-EXP-07.md",
-    "BRS-EXP-08.md": "RULES/BRS-EXP-08.md",
-    "BRS-EXP-09.md": "RULES/BRS-EXP-09.md",
-    "BRS-EXP-10.md": "RULES/BRS-EXP-10.md",
-    "BRS-EXP-11.md": "RULES/BRS-EXP-11.md",
-    "BRS-EXP-12.md": "RULES/BRS-EXP-12.md",
-    "BRS-EXP-13.md": "RULES/BRS-EXP-13.md",
-    "BRS-EXP-14.md": "RULES/BRS-EXP-14.md",
-    "rules.json": "REGISTRY/rules.json",
-    "ACCEPTANCE.json": "ACCEPTANCE/cases.json"
-  },
-  "note": "Source BRS chapters, rules.json and ACCEPTANCE.json are byte copies of the pack. Registration is not evidence that Odoo code implements any rule; every acceptance case is NOT_RUN."
+  "note": "Source BRS chapters, rules.json and ACCEPTANCE.json are copies of the pack that differ only by end-of-file normalization; normalized=true marks the files where that changed bytes. Registration is not evidence that Odoo code implements any rule; every acceptance case is NOT_RUN."
 }

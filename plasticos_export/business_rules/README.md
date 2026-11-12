@@ -2,7 +2,7 @@
 
 **Authoritative location:** `plasticos_export/business_rules/` inside the Export Odoo module. Not `docs/`, and not a standalone service.
 
-**Status:** operator-approved module baseline (module approval and code grant, 2026-11-11). The 14 chapters, `rules.json` (120 rules) and `ACCEPTANCE.json` (120 cases) are byte copies of Export BRS v2.0.0 from the campaign pack `docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/`. `REGISTRY.json` records their SHA-256. Registration is not evidence that any rule is implemented; every acceptance case is `NOT_RUN`.
+**Status:** operator-approved module baseline (module approval and code grant, 2026-11-11). The 14 chapters, `rules.json` (120 rules) and `ACCEPTANCE.json` (120 cases) are copies of Export BRS v2.0.0 from the campaign pack `docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/`. They differ from the pack only by the repository's end-of-file normalization (exactly one terminal newline; it changed `BRS-EXP-08`, `-09` and `-14`). `REGISTRY.json` records each copy's SHA-256, its pack source's SHA-256 and whether normalization changed it. Registration is not evidence that any rule is implemented; every acceptance case is `NOT_RUN`.
 
 ## Mandatory agent and implementation use
 
@@ -10,7 +10,7 @@
 2. Treat each rule as target behavior to realize and test, not as a claim that code already does it. Never weaken or delete a rule to pass a test.
 3. Each implementation PR names the rule IDs it realizes and gives an observable test, or marks the case `NOT_RUN`/blocked. `BUSINESS_RULE_TRACEABILITY.csv` gives each rule its campaign slice and witness case.
 4. The BRS say **what** Export must do. Accepted ADRs govern ownership and boundaries. When they conflict, name the exact conflict and stop the affected change.
-5. A change of business policy is a dated entry in `SUPERSESSION.md`. Never edit a byte copy.
+5. A change of business policy is a dated entry in `SUPERSESSION.md`. Never edit a copied chapter, `rules.json` or `ACCEPTANCE.json`.
 6. Phase `P2` rules (17, including FindTEU and ACE AESDirect) stay in force as requirements and are out of the Phase 1 campaign.
 7. Nothing here authorizes an external send, native AI activation, a migration, a merge or a deployment.
 
@@ -37,9 +37,9 @@
 
 | File | What it is |
 | --- | --- |
-| `rules.json` | The 120 rules, byte copy of `EXPORT_BRS/REGISTRY/rules.json`. |
-| `ACCEPTANCE.json` / `ACCEPTANCE.md` | The 120 cases, byte copy of `EXPORT_BRS/ACCEPTANCE/cases.json`, and its table rendering. |
-| `REGISTRY.json` | Chapter list, rule IDs in order, SHA-256 of every byte copy and its pack path. |
+| `rules.json` | The 120 rules, copy of `EXPORT_BRS/REGISTRY/rules.json`. |
+| `ACCEPTANCE.json` / `ACCEPTANCE.md` | The 120 cases, copy of `EXPORT_BRS/ACCEPTANCE/cases.json`, and its table rendering. |
+| `REGISTRY.json` | Chapter list, rule IDs in order, per copy: its SHA-256, its pack source path and SHA-256, and the `normalized` flag. |
 | `OWNER_INDEX.json` | Chapter to rule IDs and phases. |
 | `BUSINESS_RULE_TRACEABILITY.csv` | Rule to campaign slice, proposed owner surface, refined brief and witness case, from `MODULE_DESIGN/RULE_REALIZATION_MATRIX.csv`. |
 | `SUPERSESSION.md` | The v1.2 to v1.9 supersessions already folded into the text, and the place for future ones. |
@@ -52,4 +52,4 @@
 
 **Precedence:** an explicit later operator decision recorded in `SUPERSESSION.md` over an earlier rule; canonical organization law and accepted ADRs keep their own authority. A plan or prompt cannot overwrite a registered rule.
 
-`tests/contracts/test_export_brs_registry.py` checks the byte copies, the rule order, the chapter headings, the supersession references and the traceability map. It is a source-integrity test, not a runtime test.
+`tests/contracts/test_export_brs_registry.py` checks the copy hashes and the one-newline normalization, the rule order, the chapter headings, the supersession references and the traceability map. It is a source-integrity test, not a runtime test.

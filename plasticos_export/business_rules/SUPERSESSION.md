@@ -1,8 +1,8 @@
 # Export BRS | supersession register
 
-The 14 chapters and `rules.json` in this folder are byte copies of Export BRS v2.0.0. That pack already carries every supersession below **in place**: the rule keeps its stable ID and its current text is the effective one. This file records which IDs changed, when, and where the dated note lives, so no one reads an older wording as current.
+The 14 chapters and `rules.json` in this folder are copies of Export BRS v2.0.0 (identical except for one terminal newline, see `REGISTRY.json`). That pack already carries every supersession below **in place**: the rule keeps its stable ID and its current text is the effective one. This file records which IDs changed, when, and where the dated note lives, so no one reads an older wording as current.
 
-Business policy changes from now on are made **only** by adding a dated section here. Never edit a `BRS-EXP-NN.md`, `rules.json` or `ACCEPTANCE.json` byte copy; `tests/contracts/test_export_brs_registry.py` fails if any of them changes.
+Business policy changes from now on are made **only** by adding a dated section here. Never edit a `BRS-EXP-NN.md`, `rules.json` or `ACCEPTANCE.json` copy; `tests/contracts/test_export_brs_registry.py` fails if any of them changes.
 
 The dated source notes are kept as provenance in the campaign pack: `docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SUPERSESSION_v1_2.md` through `SUPERSESSION_v1_9.md`.
 

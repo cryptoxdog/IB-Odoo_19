@@ -38,14 +38,14 @@ Export owns only the export-specific context: the booking, its revisions, equipm
 
 ## Business rules
 
-The 120 Export rules (`BRS-EXP-01` to `BRS-EXP-14`) live in [`business_rules/`](business_rules/README.md), byte copies of the campaign pack with their SHA-256 recorded. Read that README before any Export change. Each change names the rule IDs it realizes and gives an observable test, or marks the case `NOT_RUN`. `tests/contracts/test_export_brs_registry.py` guards the copies.
+The 120 Export rules (`BRS-EXP-01` to `BRS-EXP-14`) live in [`business_rules/`](business_rules/README.md), copies of the campaign pack with their SHA-256 and their pack source's SHA-256 recorded. Read that README before any Export change. Each change names the rule IDs it realizes and gives an observable test, or marks the case `NOT_RUN`. `tests/contracts/test_export_brs_registry.py` guards the copies.
 
 The campaign pack stays the provenance. Its private operator originals (`EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/`) are evidence for the rule authors, not module payload; nothing in this addon reads or ships them.
 
 ## Tests
 
 - Pure Python: `tests/contracts/test_export_brs_registry.py` and the Export checks in `tests/test_repo_dependency_integrity.py`.
-- Odoo runtime: `plasticos_export/tests/` collects the acceptance suites the later slices add. It has none at this version.
+- Odoo runtime: `plasticos_export/tests/test_install.py` is the install witness: the module is installed at the manifest version, depends only on `plasticos_documents_native`, and owns no model, menu, view or record. The acceptance suites of later slices join it in `plasticos_export/tests/`.
 
 ## Read next
 

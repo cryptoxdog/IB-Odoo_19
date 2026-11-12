@@ -1,8 +1,11 @@
 """Preservation and referential conformance for the module-owned Export BRS baseline.
 
 Mirrors tests/contracts/test_logistics_brs_registry.py. These are source-integrity
-tests, not Odoo runtime or business-behavior tests. REGISTRY.json records the
-SHA-256 of each byte copy; repository tests do not read the campaign pack.
+tests, not Odoo runtime or business-behavior tests. REGISTRY.json records, per
+copy, its SHA-256, its pack source's SHA-256 and whether end-of-file normalization
+changed it. Repository tests do not read the campaign pack
+(tests/test_no_campaign_file_dependency.py); the copy-to-source comparison is a
+recorded validation step of the slice that registers the copies.
 """
 
 from __future__ import annotations
@@ -32,9 +35,16 @@ def test_export_brs_baseline_is_complete_and_unchanged():
     registry = _json("REGISTRY.json")
     assert registry["brs_files"] == [f"{chapter}.md" for chapter in CHAPTERS]
     preserved = {f"{chapter}.md" for chapter in CHAPTERS} | {"rules.json", "ACCEPTANCE.json"}
-    assert set(registry["source_sha256"]) == preserved
-    for filename, expected in registry["source_sha256"].items():
-        assert hashlib.sha256((BASE / filename).read_bytes()).hexdigest() == expected, filename
+    copies = registry["copies"]
+    assert set(copies) == preserved
+    for filename, entry in copies.items():
+        data = (BASE / filename).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == entry["copy_sha256"], filename
+        # The only permitted difference from the pack source is end-of-file
+        # normalization: exactly one terminal newline.
+        assert data.endswith(b"\n") and not data.endswith(b"\n\n"), filename
+        assert entry["normalized"] is (entry["copy_sha256"] != entry["source_sha256"]), filename
+        assert re.fullmatch(r"[0-9a-f]{64}", entry["source_sha256"]), filename
     rules = _rules()
     rule_ids = [rule["id"] for rule in rules]
     assert len(rule_ids) == len(set(rule_ids)) == 120

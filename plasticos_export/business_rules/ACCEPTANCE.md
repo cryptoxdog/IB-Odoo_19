@@ -1,6 +1,6 @@
 # Export BRS | acceptance cases
 
-Rendered from `ACCEPTANCE.json` (byte copy of the pack's `ACCEPTANCE/cases.json`). One case per rule, 120 in all. Every case is **NOT_RUN**: no Odoo runtime test has been written or run for them yet. A slice that realizes a rule names its case and turns it into an observable test, or marks it `NOT_RUN`/blocked.
+Rendered from `ACCEPTANCE.json` (copy of the pack's `ACCEPTANCE/cases.json`). One case per rule, 120 in all. Every case is **NOT_RUN**: no Odoo runtime test has been written or run for them yet. A slice that realizes a rule names its case and turns it into an observable test, or marks it `NOT_RUN`/blocked.
 
 | Case | Rule | Phase | Status | Positive | Negative |
 | --- | --- | --- | --- | --- | --- |
