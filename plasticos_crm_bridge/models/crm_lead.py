@@ -73,6 +73,11 @@ class CrmLeadPlastOS(models.Model):
         string="Partner Is a Company",
         help="Whether the opportunity partner is a company. The Personal Intel page is shown for individuals only.",
     )
+    stage_is_won = fields.Boolean(
+        related="stage_id.is_won",
+        string="Stage Is Won",
+        help="Whether the opportunity sits in a won stage. Form modifiers read this flag instead of stage_id.is_won.",
+    )
 
     # ── Delivery Term (captured during qualification) ──────
     delivery_term = fields.Selection(

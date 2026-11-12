@@ -124,6 +124,27 @@ class TestManualOffers(PlasticosTestCase):
         with self.assertRaisesRegex(UserError, "closed"):
             lost.action_select_offer_buyers()
 
+    def test_select_buyers_button_is_hidden_once_won(self):
+        from lxml import etree  # noqa: PLC0415
+
+        from odoo.tests import Form  # noqa: PLC0415
+        from odoo.tools.safe_eval import safe_eval  # noqa: PLC0415
+
+        arch = etree.fromstring(self.Lead.get_view(view_type="form")["arch"])
+        [button] = arch.xpath("//button[@name='action_select_offer_buyers']")
+        expression = button.get("invisible")
+        self.assertNotIn("stage_id.", expression, "a modifier cannot read through a many2one")
+
+        def hidden(record):
+            form = Form(record)
+            return bool(safe_eval(expression, form._get_eval_context(form._values)))
+
+        opportunity = self._opportunity()
+        self.assertFalse(hidden(opportunity), "an open opportunity offers Select Buyers")
+        opportunity._plasticos_mark_won()
+        self.assertTrue(opportunity.stage_is_won)
+        self.assertTrue(hidden(opportunity), "a won opportunity hides Select Buyers")
+
     def test_contact_picker_domain_is_valid_and_hides_the_supplier(self):
         from odoo.tools.safe_eval import safe_eval  # noqa: PLC0415
 

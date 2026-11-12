@@ -31,7 +31,7 @@
                         string="Select Buyers"
                         class="btn btn-primary"
                         title="PlasticOS: Pick existing buyer contacts and prepare one draft offer per buyer company. Nothing is sent and Gate is not used."
-                        invisible="not active or type != 'opportunity' or stage_id.is_won"/>
+                        invisible="not active or type != 'opportunity' or stage_is_won"/>
                 <!-- The one Opportunity matching command: approve a frozen lot, match it through Gate. -->
                 <button name="action_match_opportunity"
                         type="object"
@@ -50,12 +50,14 @@
                         string="Submit"
                         class="btn btn-primary"
                         title="PlasticOS: Creates one draft purchase order at the opportunity's supplier Offer Price, one draft sale order at the buyer price, and one draft transaction."
-                        invisible="type != 'opportunity' or not stage_id.is_won or release_sale_order_id"
+                        invisible="type != 'opportunity' or not stage_is_won or release_sale_order_id"
                         groups="plasticos_security_base.group_operations_manager"/>
             </xpath>
 
             <xpath expr="//div[@name='button_box']" position="after">
-                <group string="Admin Release" invisible="type != 'opportunity' or not stage_id.is_won" groups="plasticos_security_base.group_operations_manager">
+                <!-- Modifiers cannot read through a many2one: header buttons and Admin Release use this flag. -->
+                <field name="stage_is_won" invisible="1"/>
+                <group string="Admin Release" invisible="type != 'opportunity' or not stage_is_won" groups="plasticos_security_base.group_operations_manager">
                     <field name="release_buyer_company_id"/>
                     <field name="release_buyer_facility_id"/>
                     <field name="release_buyer_price"/>

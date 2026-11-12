@@ -145,7 +145,8 @@ class PlasticosOfferBuyerSelectionWizard(models.TransientModel):
         never fire, so the relation is read without either filter.
         """
         self.ensure_one()
-        return self.sudo().with_context(active_test=False).contact_ids.with_env(self.env)
+        stored = self.sudo().with_context(active_test=False).contact_ids  # sudo: raw selected ids; caller checks access
+        return stored.with_env(self.env)
 
     def _plasticos_validated_groups(self, opportunity):
         """Server-side check of the selection; never trusts the dialog domain."""
@@ -158,7 +159,7 @@ class PlasticosOfferBuyerSelectionWizard(models.TransientModel):
         # error. The company is read as superuser to name the cause; hidden
         # contacts are counted, never named.
         allowed_companies = self.env.companies
-        foreign = contacts.sudo().filtered(
+        foreign = contacts.sudo().filtered(  # sudo: company of rule-hidden contacts; only counted, never returned
             lambda partner: partner.company_id and partner.company_id not in allowed_companies
         )
         if foreign:

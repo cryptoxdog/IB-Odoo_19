@@ -8,6 +8,8 @@ hid the page.
 
 from __future__ import annotations
 
+import re
+
 from lxml import etree
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -15,6 +17,9 @@ from odoo.tests import Form
 from odoo.tests.common import tagged
 
 PAGE_XPATH = "//page[@name='personal_intel_tab']"
+MODIFIERS = ("invisible", "readonly", "required", "column_invisible")
+# A name followed by an attribute access, outside string literals; parent.* and context.* are evaluable.
+DOTTED_PATH = re.compile(r"(?<![\w'])(?!parent\.|context\.)[a-z_]\w*\.[a-z_]\w*")
 
 
 @tagged("post_install", "-at_install", "plasticos", "crm_bridge", "opportunity")
@@ -56,3 +61,19 @@ class TestCrmLeadPersonalIntelView(PlasticosTestCase):
                 lead = self._form(partner).save()
                 self.assertEqual(lead.partner_id, partner)
                 self.assertEqual(lead.partner_is_company, partner.is_company)
+
+    def test_bridge_views_use_no_dotted_path_in_a_modifier(self):
+        view_ids = (
+            self.env["ir.model.data"]
+            .search([("module", "=", "plasticos_crm_bridge"), ("model", "=", "ir.ui.view")])
+            .mapped("res_id")
+        )
+        self.assertTrue(view_ids)
+        offenders = []
+        for view in self.env["ir.ui.view"].browse(view_ids):
+            for node in etree.fromstring(view.arch_db.encode()).iter(tag=etree.Element):
+                for modifier in MODIFIERS:
+                    expression = node.get(modifier) or ""
+                    if DOTTED_PATH.search(re.sub(r"'[^']*'", "", expression)):
+                        offenders.append(f"{view.name}: {node.tag} {modifier}={expression!r}")
+        self.assertFalse(offenders)
