@@ -36,6 +36,7 @@ class TestLindaBookingSource(PlasticosTestCase):
         cls.Request = cls.env[LOGISTICS_REQUEST]
         cls.Response = cls.env[LOGISTICS_RESPONSE]
         cls.company = cls.env.company
+        cls.company.email = "logistics@s4-booking-company.example"
         cls.supplier = cls.env["res.partner"].create(
             {"name": "S4 Booking Mill", "is_company": True, "supplier_rank": 1, "email": SUPPLIER_EMAIL}
         )
@@ -207,6 +208,13 @@ class TestLindaBookingSource(PlasticosTestCase):
             self.assertEqual(self._request(audience_partner_id=self.buyer.id)["status"], "blocked")
             refused = self._request(recipient_email=BUYER_EMAIL)
             self.assertEqual((refused["status"], refused["reason"]), ("blocked", "recipient_not_audience"))
+        self.assertFalse(self._bookings())
+
+    def test_a_source_company_without_email_is_never_replaced_as_sender(self):
+        self.company.email = False
+        with self._booking_registered():
+            refused = self._request()
+        self.assertEqual((refused["status"], refused["reason"]), ("blocked", "sender_email_missing"))
         self.assertFalse(self._bookings())
 
     def test_reused_operation_key_with_other_content_is_stale(self):

@@ -1130,6 +1130,9 @@ class PlasticosLogisticsRequest(models.Model):
             return {"status": "blocked", "reason": "audience_company_mismatch"}
         if not email_normalize(result.get("recipient_email") or ""):
             return {"status": "blocked", "reason": "recipient_email_invalid"}
+        if not email_normalize(result["company"].email or ""):
+            # The sender is the source company; no other company or user stands in for it.
+            return {"status": "blocked", "reason": "sender_email_missing"}
         return result
 
     @api.model
