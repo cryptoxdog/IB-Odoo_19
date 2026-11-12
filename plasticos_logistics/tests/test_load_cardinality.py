@@ -1397,3 +1397,103 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         for report_ref in self._CARRIER_REPORTS:
             with self.subTest(report_ref):
                 self._assert_issuer_block(self._render(report_ref, load), order.company_id)
+
+
+@tagged("post_install", "-at_install")
+class TestCarrierComposerSendTimeRelease(TransactionCase):
+    """S4 D2 / V06 witness: opening a carrier composer is not the release authorization.
+
+    The guard is read again inside ``mail.compose.message._action_send_mail``. A lane
+    change made while the composer is open must refuse the send and queue no mail
+    (Codex 4545252969, BRS-EXP-10-R004/R008).
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env.company
+        cls.supplier = cls.env["res.partner"].create(
+            {"name": "S4 Composer Mill", "is_company": True, "supplier_rank": 1, "street": "2 Mill Rd"}
+        )
+        cls.terminal = cls.env["res.partner"].create(
+            {"name": "S4 Composer Ramp", "is_company": True, "street": "3 Ramp Way", "city": "Dallas"}
+        )
+        cls.carrier = cls.env["res.partner"].create(
+            {"name": "S4 Composer Carrier", "is_company": True, "email": "packet@s4-composer.example"}
+        )
+
+    def _scheduled_load(self):
+        load = self.env["plasticos.load"].create(
+            {
+                "company_id": self.company.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.terminal.id,
+                "reference_weight": 42000,
+                "carrier_id": self.carrier.id,
+                "rate_currency_id": self.company.currency_id.id,
+            }
+        )
+        load._transition("awaiting_ready")
+        load.action_confirm_ready()
+        load.action_confirm_rate(950.0)
+        now = fields.Datetime.now()
+        load.action_schedule(now, now)
+        return load
+
+    def _open(self, action):
+        return self.env["mail.compose.message"].with_context(**action["context"]).create({})
+
+    def _outgoing_for(self, load):
+        return self.env["mail.message"].search_count(
+            [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("message_type", "=", "email_outgoing")]
+        ) + self.env["mail.mail"].search_count([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
+
+    def test_lane_change_while_the_composer_is_open_refuses_the_send(self):
+        load = self._scheduled_load()
+        composer = self._open(load.action_send_dispatch_packet())
+        self.assertEqual(composer._plasticos_load_release_operation(), "dispatch_packet")
+        before = self._outgoing_for(load)
+        messages_before = len(load.message_ids)
+        # The governed context changes after the composer opened.
+        load.delivery_partner_id.street = "11 Moved Ramp Way"
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            composer.action_send_mail()
+        self.assertEqual(self._outgoing_for(load), before, "no dispatch mail is queued")
+        self.assertEqual(len(load.message_ids), messages_before, "no message is posted")
+
+    def test_each_carrier_document_composer_rechecks_at_send(self):
+        load = self._scheduled_load()
+        for action in (load.action_send_delivery_order, load.action_send_bol_pickup, load.action_send_bol_delivery):
+            with self.subTest(action=action.__name__):
+                composer = self._open(action())
+                self.assertEqual(composer._plasticos_load_release_operation(), "carrier_document")
+                with patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."]):
+                    with self.assertRaises(UserError), self.env.cr.savepoint():
+                        composer.action_send_mail()
+
+    def test_a_carrier_composer_cannot_be_scheduled_past_the_check(self):
+        load = self._scheduled_load()
+        composer = self._open(load.action_send_dispatch_packet())
+        composer.scheduled_date = fields.Datetime.now() + timedelta(hours=1)
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            composer.action_send_mail()
+        self.assertFalse(
+            self.env["mail.scheduled.message"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
+        )
+
+    def test_unchanged_context_still_sends_and_ordinary_notes_are_untouched(self):
+        load = self._scheduled_load()
+        composer = self._open(load.action_send_dispatch_packet())
+        messages_before = len(load.message_ids)
+        composer.action_send_mail()
+        self.assertGreater(len(load.message_ids), messages_before, "the unchanged packet is posted")
+        # An internal note on a held load issues no instruction and is not the guard's business.
+        note = (
+            self.env["mail.compose.message"]
+            .with_context(
+                default_model="plasticos.load", default_res_ids=load.ids, default_subtype_xmlid="mail.mt_note"
+            )
+            .create({"body": "internal"})
+        )
+        with patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."]):
+            note.action_send_mail()

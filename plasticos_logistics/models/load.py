@@ -2139,28 +2139,28 @@ class PlasticosLoad(models.Model):
         self.ensure_one()
         self._require_physical_release("carrier_document")
         template = self._get_email_template("email_template_delivery_order")
-        return self._open_mail_composer(template)
+        return self._open_mail_composer(template, operation="carrier_document")
 
     def action_send_bol_pickup(self):
         """Open email composer with BOL Pickup attached."""
         self.ensure_one()
         self._require_physical_release("carrier_document")
         template = self._get_email_template("email_template_bol_pickup")
-        return self._open_mail_composer(template)
+        return self._open_mail_composer(template, operation="carrier_document")
 
     def action_send_bol_delivery(self):
         """Open email composer with BOL Delivery attached."""
         self.ensure_one()
         self._require_physical_release("carrier_document")
         template = self._get_email_template("email_template_bol_delivery")
-        return self._open_mail_composer(template)
+        return self._open_mail_composer(template, operation="carrier_document")
 
     def action_send_dispatch_packet(self):
         """Open email composer with full dispatch packet (all 3 docs)."""
         self.ensure_one()
         self._require_physical_release("dispatch_packet")
         template = self._get_email_template("email_template_dispatch_packet")
-        return self._open_mail_composer(template)
+        return self._open_mail_composer(template, operation="dispatch_packet")
 
     def action_send_dispatch_direct(self):
         """Send the dispatch packet now; stamp ``dispatch_sent`` only on a confirmed send.
@@ -2208,8 +2208,13 @@ class PlasticosLoad(models.Model):
             )
         return template
 
-    def _open_mail_composer(self, template):
-        """Helper to open mail composer wizard with template."""
+    def _open_mail_composer(self, template, operation=None):
+        """Helper to open mail composer wizard with template.
+
+        ``operation`` names the physical release this composer carries. Opening it
+        is not the authorization point: mail.compose.message re-checks the release
+        guard when the composer actually sends (S4, D2).
+        """
         ctx = {
             "default_model": PLASTICOS_LOAD,
             "default_res_ids": self.ids,
@@ -2218,6 +2223,8 @@ class PlasticosLoad(models.Model):
             "mark_so_as_sent": True,
             "force_email": True,
         }
+        if operation:
+            ctx["plasticos_load_release_operation"] = operation
         return {
             "type": "ir.actions.act_window",
             "res_model": "mail.compose.message",

@@ -10,6 +10,7 @@ from . import linda_request
 from . import linda_response
 from . import purchase_order_inherit
 from . import mail_mail_inherit
+from . import mail_compose_message
 
 # J1/J2 physical journeys: registered before the SQL dashboard and its consumers.
 from . import iso_journey
