@@ -146,6 +146,21 @@ class AccountMove(models.Model):
                 transaction_by_move[move.id] = holders[0]
         return transaction_by_move, ambiguous_by_move
 
+    def _lock_resolved_transactions(self, transaction_by_move):
+        """Serialize this post with a concurrent close or link of the same transactions.
+
+        The row lock is held until commit. A transaction changed by another
+        request since this one began fails here with a serialization error,
+        which Odoo retries against fresh state, so the checks and the link
+        below never act on a stale closed state or invoice pointer.
+        """
+        transaction_ids = sorted({transaction.id for transaction in transaction_by_move.values()})
+        if transaction_ids:
+            self.env.cr.execute(
+                "SELECT id FROM plasticos_transaction WHERE id IN %s ORDER BY id FOR NO KEY UPDATE",
+                [tuple(transaction_ids)],
+            )
+
     def _existing_transaction_links(self):
         """Transactions that already hold each move as invoice, vendor bill or freight bill."""
         linked_by_move = {}
@@ -216,6 +231,7 @@ class AccountMove(models.Model):
         if self._historical_source_ids():
             raise UserError("Archived ERP invoices, vendor bills and credits cannot be posted.")
         transaction_by_move, ambiguous_by_move = self._resolve_origin_transactions()
+        self._lock_resolved_transactions(transaction_by_move)
 
         # Pre-check compliance BEFORE posting (prevents side effects on rollback)
         for rec in self:
