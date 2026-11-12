@@ -77,6 +77,12 @@ Gated commands are called only by people or RPC: `action_propose_shipment_event`
 | `pytest tests/` (pure Python) at `fabb7900` (final code head) | 3076 passed, 49 skipped, 0 failed |
 | `pre-commit run --from-ref e71599d5 --to-ref fabb7900` | all hooks passed |
 | `make audit-baseline` at `fabb7900` | no new finding (comprehensive and extended) |
+| `pytest tests/` at `38881b0d` (SCOPE-3 code head) | 3076 passed, 49 skipped, 0 failed |
+| `pre-commit run --from-ref e71599d5 --to-ref 38881b0d` | all hooks passed |
+| `make audit-baseline` at `38881b0d` | no new finding |
+| `python3 -I plasticos_logistics/tests/linda_gate_reach.py .` at `38881b0d` | 47 entry points, 0 gated paths |
+| Coordinator migration proof at `0beb2eb4` (S10 clone with gate_in + container_tare facts and two cursor parameters) | Passed (revision 1, unique key, cursors moved, correction appends revision 2, idempotent rerun) |
+| Coordinator runtime at `0beb2eb4` | 732 run, 1 failed, 15 errors in test_s11_linda_approval (Linda grant skipped on upgrade under noupdate; fixed in `49c366ab`); rerun on the final head PENDING_COORDINATOR |
 | `pytest tests/test_phantom_enum_values.py tests/test_repo_dependency_integrity.py` at the E02 head | 63 passed |
 | Static gate-reach scan (run outside Odoo) | 47 entry points, 0 gated paths; planted path detected |
 | Enterprise runtime `m=plasticos_logistics,plasticos_export,plasticos_documents,plasticos_security_base` | **PENDING_COORDINATOR** (C12-SCOPE-2: this session's fixture needs an operator rebuild, not authorized; the coordinator runs it on its admitted fixture) |
