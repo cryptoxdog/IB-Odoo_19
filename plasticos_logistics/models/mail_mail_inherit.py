@@ -29,6 +29,7 @@ import smtplib
 
 from odoo import fields, models
 from odoo.exceptions import LockError
+from odoo.tools import email_normalize, email_normalize_all
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
 PLASTICOS_LOAD = "plasticos.load"
@@ -231,15 +232,30 @@ class MailMailInherit(models.Model):
         return {}
 
     def _plasticos_dispatch_packet_loads(self):
-        """Loads whose own packet mail this is: header value must name the mail's own load."""
+        """Loads whose own carrier this packet mail reached.
+
+        The header value must name the mail's own load, and the mail must be addressed to
+        that load's carrier: one packet post also mails internal followers, and a follower
+        copy reaching "sent" is not the carrier receiving the instruction.
+        """
         load_ids = []
         for mail in self:
             if mail.model != PLASTICOS_LOAD or not mail.res_id:
                 continue
             marker = self._plasticos_header_map(mail.headers).get(DISPATCH_PACKET_HEADER)
-            if marker == f"{DISPATCH_PACKET_VALUE}:{mail.res_id}":
-                load_ids.append(mail.res_id)
-        return self.env[PLASTICOS_LOAD].browse(load_ids).exists()
+            if marker != f"{DISPATCH_PACKET_VALUE}:{mail.res_id}":
+                continue
+            load = self.env[PLASTICOS_LOAD].browse(mail.res_id).exists()
+            carrier = load.carrier_id
+            if not carrier:
+                continue
+            carrier_email = email_normalize(carrier.email or "")
+            addressed = carrier in mail.recipient_ids or (
+                carrier_email and carrier_email in email_normalize_all(mail.email_to or "")
+            )
+            if addressed:
+                load_ids.append(load.id)
+        return self.env[PLASTICOS_LOAD].browse(load_ids)
 
     def _plasticos_stamp_dispatch_sent(self):
         """First confirmed send of a dispatch packet starts the acknowledgement clock."""

@@ -5,6 +5,7 @@ from datetime import timedelta
 from odoo import SUPERUSER_ID, api, fields, models
 from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import email_normalize
 
 RES_PARTNER = "res.partner"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
@@ -2177,9 +2178,9 @@ class PlasticosLoad(models.Model):
         """
         self.ensure_one()
         company = self.company_id
-        if not company or not (company.email or "").strip():
+        if not company or not email_normalize(company.email or ""):
             name = company.name if company else "(none)"
-            return f"Company {name} of load {self.name} has no email address to send carrier mail from."
+            return f"Company {name} of load {self.name} has no valid email address to send carrier mail from."
         return False
 
     def action_send_dispatch_direct(self):

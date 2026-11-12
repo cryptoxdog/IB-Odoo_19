@@ -1509,6 +1509,7 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         )
         with sink[0], sink[1], sink[2]:
             self.env["mail.mail"].process_email_queue(email_ids=forged.ids)
+        self.assertEqual(forged.state, "sent", "the forged mail really went out, so the checks below are not vacuous")
         load.invalidate_recordset()
         other.invalidate_recordset()
         self.assertFalse(load.dispatch_sent, "a foreign marker does not stamp this load")
@@ -1576,6 +1577,11 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
             "no load mail reached sent",
         )
         self.assertFalse(load.dispatch_sent, "an unsent packet never starts the clock")
+        # A malformed address is no sender either.
+        self.company.email = "not-an-address"
+        with sink[0], sink[1], sink[2]:
+            self.assertFalse(load.action_send_dispatch_direct())
+        self.assertFalse(load.dispatch_sent)
 
     def test_a_composer_for_a_company_without_its_own_sender_refuses_the_send(self):
         """D5 fails closed on the composer path too: a UserError naming the company, and no mail."""
@@ -1593,6 +1599,54 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
             )
         )
         self.assertFalse(load.dispatch_sent)
+
+    def _packet_mail(self, load, **values):
+        return self.env["mail.mail"].create(
+            {
+                "model": "plasticos.load",
+                "res_id": load.id,
+                "subject": "packet",
+                "body_html": "<p>packet</p>",
+                "headers": repr({"X-Plasticos-Release": f"dispatch_packet:{load.id}"}),
+                **values,
+            }
+        )
+
+    def test_a_follower_copy_does_not_start_the_carrier_clock(self):
+        """Review R1: only the copy addressed to the load's own carrier proves the instruction left."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        follower = self.env["res.partner"].create({"name": "S4 Internal Follower", "email": "ops@s4-follower.example"})
+        follower_copy = self._packet_mail(load, recipient_ids=[(6, 0, follower.ids)])
+        carrier_copy = self._packet_mail(load, recipient_ids=[(6, 0, self.carrier.ids)])
+        sink = self._sink()
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=follower_copy.ids)
+        self.assertEqual(follower_copy.state, "sent", self._mail_diagnosis(follower_copy))
+        load.invalidate_recordset()
+        self.assertFalse(load.dispatch_sent, "a follower copy is not the carrier receiving the packet")
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=carrier_copy.ids)
+        self.assertEqual(carrier_copy.state, "sent", self._mail_diagnosis(carrier_copy))
+        load.invalidate_recordset()
+        self.assertTrue(load.dispatch_sent, "the carrier copy's confirmed send starts the clock")
+
+    def test_a_carrier_document_composer_never_tags_the_packet_header(self):
+        """Review item 5: only the dispatch packet starts the ACK clock; a BOL or Delivery Order does not."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        before = self.env["mail.mail"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
+        for action in (load.action_send_delivery_order, load.action_send_bol_pickup):
+            self._open(action()).action_send_mail()
+        created = self.env["mail.mail"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)]) - before
+        self.assertTrue(created, "the document composers produced carrier mail")
+        for mail in created:
+            self.assertNotIn("X-Plasticos-Release", mail.headers or "", self._mail_diagnosis(mail))
+        sink = self._sink()
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=created.ids)
+        load.invalidate_recordset()
+        self.assertFalse(load.dispatch_sent, "a carrier document is not the dispatch packet")
 
     def test_one_invalid_co_recipient_does_not_stop_the_clock(self):
         """Review O2: the transport's sent state is the gate, not the absence of any failure_type."""

@@ -119,6 +119,29 @@ class TestBuyerlessCarrierTemplates(TransactionCase):
                 self.assertFalse(template.use_default_to)
                 self.assertEqual(template._render_field("email_to", load.ids)[load.id], self.carrier.email)
 
+    def test_follow_up_templates_address_their_counterparty(self):
+        """Review item 2: these records have no default counterparty, so email_to must not be replaced."""
+        trucker = self.env.ref("plasticos_automation.email_template_trucker_followup")
+        confirmation = self.env.ref("plasticos_automation.email_template_supplier_confirmation")
+        self.assertFalse(trucker.use_default_to)
+        self.assertFalse(confirmation.use_default_to)
+        warehouse = self.env["stock.warehouse"].search([("company_id", "=", self.env.company.id)], limit=1)
+        picking = self.env["stock.picking"].create(
+            {
+                "picking_type_id": warehouse.out_type_id.id,
+                "location_id": warehouse.lot_stock_id.id,
+                "location_dest_id": self.env.ref("stock.stock_location_customers").id,
+                "partner_id": self.buyer.id,
+                "carrier_id": self.carrier.id,
+            }
+        )
+        self.assertEqual(trucker._render_field("email_to", picking.ids)[picking.id], self.carrier.email)
+        supplier = self.env["res.partner"].create(
+            {"name": "S4 Confirming Mill", "is_company": True, "supplier_rank": 1, "email": "ready@s4-mill.example"}
+        )
+        transaction = self.env["plasticos.transaction"].create({"name": "TX-S4-CONFIRM", "supplier_id": supplier.id})
+        self.assertEqual(confirmation._render_field("email_to", transaction.ids)[transaction.id], supplier.email)
+
     def test_each_template_attaches_only_its_carrier_reports(self):
         for xmlid, expected in EXPECTED_REPORTS.items():
             with self.subTest(template=xmlid):

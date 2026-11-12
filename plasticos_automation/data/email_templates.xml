@@ -31,6 +31,9 @@ Please confirm readiness at your earliest convenience.</p>
             <field name="subject">Readiness Confirmation Required — {{ object.name }}</field>
             <field name="email_from">{{ (object.user_id.email_formatted or user.email_formatted) }}</field>
             <field name="email_to">{{ object.supplier_id.email }}</field>
+            <!-- Odoo 19 defaults use_default_to to True, which replaces email_to with the record's
+                 default recipients; this record's default is not the intended counterparty. -->
+            <field name="use_default_to" eval="False"/>
             <field name="body_html"><![CDATA[
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px;">
     <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -99,6 +102,9 @@ Please confirm receipt at your earliest convenience.</p>
             ]]></field>
             <field name="email_from">{{ (object.company_id.email or user.email) }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19 defaults use_default_to to True, which replaces email_to with the record's
+                 default recipients; this record's default is not the intended counterparty. -->
+            <field name="use_default_to" eval="False"/>
             <field name="auto_delete" eval="True"/>
         </record>
 
