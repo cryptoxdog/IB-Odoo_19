@@ -42,6 +42,7 @@ class TestDocumentExportEvidence(PlasticosTestCase):
                             [
                                 cls.env.ref("base.group_user").id,
                                 cls.env.ref("plasticos_documents.group_documents_user").id,
+                                cls.env.ref("plasticos_claims.group_claims_user").id,
                             ],
                         )
                     ],

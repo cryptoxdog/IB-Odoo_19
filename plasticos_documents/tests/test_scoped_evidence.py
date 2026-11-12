@@ -299,7 +299,9 @@ class TestScopedEvidence(PlasticosTestCase):
         fresh = self._scope(self._shell(self.bol), load, revision="BKG-2/r1")
         fresh.with_user(self.verifier).action_verify()
         self.assertEqual(self._verdict(load, revision="BKG-2/r1")["status"], "applied")
-        fresh.attachment_id.write({"datas": base64.b64encode(b"replaced-original-bytes")})
+        self.env["ir.attachment"].browse(fresh.attachment_id.id).write(
+            {"datas": base64.b64encode(b"replaced-original-bytes")}
+        )
         self.assertEqual(self._verdict(load, revision="BKG-2/r1")["status"], "stale")
         self.assertTrue(fresh.association_review_required)
 

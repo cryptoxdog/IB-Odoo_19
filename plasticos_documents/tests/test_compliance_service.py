@@ -92,7 +92,10 @@ class TestDocumentRuleModel(PlasticosTestCase):
     def test_legacy_invoice_and_close_read_legacy_rows_only(self):
         """Export campaign S3: invoice/close stay legacy; operation rows never contaminate them."""
         source = inspect.getsource(PlasticosComplianceService.get_missing_documents)
-        self.assertIn('("obligation_kind", "=", LEGACY_OBLIGATION)', source)
+        self.assertIn("_legacy_obligation_domain()", source)
+        self.assertEqual(
+            self.env["plasticos.document"]._legacy_obligation_domain(), [("obligation_kind", "=", "legacy")]
+        )
         field = self.env["plasticos.document"]._fields["obligation_kind"]
         self.assertTrue(field.required)
         self.assertEqual(self.env["plasticos.document"].default_get(["obligation_kind"])["obligation_kind"], "legacy")
