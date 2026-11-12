@@ -444,7 +444,7 @@ def load_web_lead_vocabulary() -> dict[str, tuple[str, str]]:
     normalizer = _import_repo_module("plasticos_material_normalizer_words", NORMALIZER)
     for word, code in normalizer.form_words().items():
         vocabulary[word] = ("form", code)
-    for word, code in tables["_SOURCE_NORMALIZE"].items():
+    for word, code in tables.get("_SOURCE_NORMALIZE", {}).items():
         vocabulary[word] = ("source_type", code.upper())
     return vocabulary
 

@@ -520,6 +520,7 @@ def build_qualification_signals(
     risk_indicators: list[str] | None,
     hard_exclusions: list[str] | None,
     cold_max_lbs: float,
+    polymer_entries: tuple = (),
 ) -> dict:
     """Build the evidence dimensions and the closed set of evidence references.
 
@@ -599,7 +600,8 @@ def build_qualification_signals(
     # The seller's own words naming exactly one polymer are supported evidence.
     seller_polymers = sorted(
         polymers_named(
-            " ".join(str(seller.get(key) or "") for key in ("material_description", "material_composition_text"))
+            " ".join(str(seller.get(key) or "") for key in ("material_description", "material_composition_text")),
+            polymer_entries,
         )
     )
     if hard_exclusions:

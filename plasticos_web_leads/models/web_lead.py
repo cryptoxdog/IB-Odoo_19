@@ -67,8 +67,9 @@ from .evidence_keys import (
     KEY_STATUS,
     KEY_VISION,
 )
-from .evidence_reconciler import polymer_code, polymers_named, reconcile_evidence
+from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
+from .material_catalog import CatalogEntry, accept_value, match_codes, match_one
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, WEIGHT_SOURCE_AREA, replay_stored_mass
@@ -90,97 +91,18 @@ REVIEW_STATUS_APPROVED = "approved"
 
 # ── Pallet weight assumption when no lbs given ───────────────────────────────
 _LBS_PER_PALLET_ASSUMPTION = 1_500  # conservative: typical plastic pallet
-_FORM_TERM_CRATE = "crate"
 
-# ═══════════════════════════════════════════════════════════
-# Mapping helpers — translate AI output to Odoo field values
-# ═══════════════════════════════════════════════════════════
-
-_POLYMER_NORMALIZE: dict[str, str] = {
-    "hdpe": "HDPE",
-    "ldpe": "LDPE",
-    "lldpe": "LLDPE",
-    "pp": "PP",
-    "pet": "PET",
-    "rpet": "PET",
-    "ps": "PS",
-    "hips": "HIPS",
-    "pvc": "PVC",
-    "eva": "EVA",
-    "abs": "ABS",
-    "nylon": "NYLON",
-    "pa": "NYLON",
-    "pc": "PC",
-    "pbt": "PBT",
-    "pom": "POM",
-    "acetal": "POM",
-    "pmma": "PMMA",
-    "ppo": "PPO",
-    "tpe": "TPE",
-    "tpu": "TPU",
-    # PLA is not PET and is not in the polymer registry: keep it explicitly other.
-    "pla": "OTHER",
-    "e-waste": "EWASTE",
-    "ewaste": "EWASTE",
-}
-
-_FORM_NORMALIZE: dict[str, str] = {
-    "bale": "BALES",
-    "baled": "BALES",
-    "bales": "BALES",
-    "regrind": "REGRIND",
-    "flake": "FLAKE",
-    "flakes": "FLAKE",
-    "pellet": "PELLETS",
-    "pellets": "PELLETS",
-    "rollstock": "ROLLSTOCK",
-    "purge": "PURGE",
-    "lump": "OTHER",
-    "lumps": "OTHER",
-    "film": "FILM",
-    "fluff": "FLUFF",
-    "sheet": "SHEET",
-    "powder": "POWDER",
-    "parts": "PARTS",
-    "part": "PARTS",
-    "pallet": "PALLETS",
-    "pallets": "PALLETS",
-    "tote": "TOTES",
-    "totes": "TOTES",
-    _FORM_TERM_CRATE: "CRATES",
-    "crates": "CRATES",
-    "re-useable": "OTHER",
-    "reuseable": "OTHER",
-    "reusable": "OTHER",
-    "bottle": "BOTTLES",
-    "bottles": "BOTTLES",
-    "drum": "DRUMS",
-    "drums": "DRUMS",
-    "bucket": "BUCKETS",
-    "buckets": "BUCKETS",
-    "pail": "BUCKETS",
-    "pails": "BUCKETS",
-    "roll": "ROLLSTOCK",
-    "rolls": "ROLLSTOCK",
-}
-
-_SOURCE_NORMALIZE: dict[str, str] = {
-    "post_industrial": "post_industrial",
-    "post-industrial": "post_industrial",
-    "post_consumer": "post_consumer",
-    "post-consumer": "post_consumer",
-    "post_commercial": "post_commercial",
-    "post-commercial": "post_commercial",
-    "agricultural": "agricultural",
-    "prime": "prime",
-    "virgin": "prime",
-    "wide_spec": "wide_spec",
-    "wide spec": "wide_spec",
-    "off_spec": "off_spec",
-    "off spec": "off_spec",
-    "ocean_recovered": "ocean_recovered",
-    "ocean": "ocean_recovered",
-}
+# Active master rows that triage may write. Inactive rows, including form BALES, stay out.
+_CATALOG_MODELS: tuple[tuple[str, str], ...] = (
+    ("polymer", "plasticos.polymer"),
+    ("form", "plasticos.material.form"),
+    ("material_grade", "plasticos.material.grade"),
+    ("source_type", "plasticos.source.type"),
+    ("color", "plasticos.material.color"),
+    ("attribute", "plasticos.material.attribute"),
+    ("filler", "plasticos.filler.type"),
+    ("packaging", "plasticos.packaging.type"),
+)
 
 _FREQ_TO_DEAL: dict[str, str] = {
     "ongoing": "recurring",
@@ -866,6 +788,7 @@ class PlasticosWebLead(models.Model):
         """
         self.ensure_one()
         config = self.env["plasticos.web.lead.config"].get_config()
+        catalog = self._material_catalog()
         run_id = uuid.uuid4().hex
         log_lines = [f"[RUN] {run_id} started"]
 
@@ -903,6 +826,7 @@ class PlasticosWebLead(models.Model):
                     raw_payload=triage_input,
                     quantity_evidence=quantity_evidence,
                     provider=text_provider,
+                    catalog=catalog,
                 )
                 provider_used = ai_data.pop("_provider_used", "unknown")
                 log_lines.append(f"[AI] provider={provider_used}:{text_provider.model}")
@@ -922,6 +846,7 @@ class PlasticosWebLead(models.Model):
                         content,
                         content_type=mimetype,
                         provider=vision_provider,
+                        catalog=catalog,
                     )
                     log_lines.append(f"[VISION] provider={vision_provider.provider}:{vision_provider.model}")
 
@@ -954,6 +879,7 @@ class PlasticosWebLead(models.Model):
                 vision_results,
                 quantity_evidence=quantity_evidence,
                 seller_payload=triage_input if is_packet_path else None,
+                catalog=catalog,
             )
             evidence_bundle = None
             if is_packet_path and quantity_evidence is not None:
@@ -963,6 +889,7 @@ class PlasticosWebLead(models.Model):
                     ai_normalized=ai_data,
                     attachments=attachment_evidence,
                     run_id=run_id,
+                    polymer_entries=catalog["polymer"],
                 )
                 log_lines.append(f"[RECONCILE] conflicts={len(evidence_bundle['conflicts'])}")
                 if broker_corrections:
@@ -1215,6 +1142,26 @@ class PlasticosWebLead(models.Model):
     # Merge AI + Vision
     # ═══════════════════════════════════════════════════════════
 
+    def _material_catalog(self) -> dict[str, tuple[CatalogEntry, ...]]:
+        """Active master rows plus the intake process selection. Inactive rows stay out."""
+        catalog: dict[str, tuple[CatalogEntry, ...]] = {}
+        for kind, model_name in _CATALOG_MODELS:
+            model = self.env[model_name]
+            domain = [("active", "=", True)] if "active" in model._fields else []
+            entries: list[CatalogEntry] = []
+            for record in model.search(domain):
+                code = (record.code or "").strip()
+                if not code:
+                    continue
+                description = record.description if "description" in record._fields else ""
+                entries.append(CatalogEntry(code, record.name or "", description or ""))
+            catalog[kind] = tuple(entries)
+        selection = self.env["plasticos.intake"]._fields["origin_process_type"].selection
+        if callable(selection):
+            selection = selection(self.env["plasticos.intake"])
+        catalog["process"] = tuple(CatalogEntry(str(code), str(label), "") for code, label in (selection or []) if code)
+        return catalog
+
     def _merge_ai_and_vision(
         self,
         ai_data: dict[str, Any],
@@ -1222,6 +1169,7 @@ class PlasticosWebLead(models.Model):
         *,
         quantity_evidence: QuantityEvidence | None = None,
         seller_payload: Mapping[str, Any] | None = None,
+        catalog: Mapping[str, tuple[CatalogEntry, ...]] | None = None,
     ) -> dict[str, Any]:
         """Merge text AI normalization with vision analysis.
 
@@ -1239,14 +1187,8 @@ class PlasticosWebLead(models.Model):
         quantity stays area, including when an earlier model call stored that
         area number as pounds. A stated unit count uses the unit weight table.
         """
+        catalog = catalog or self._material_catalog()
         merged: dict[str, Any] = {}
-
-        polymer_raw = polymer_code(ai_data.get("polymer")).lower()
-        merged["polymer"] = _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw.upper() or None)
-        merged["polymer_source"] = "text_ai" if merged["polymer"] else None
-        merged["form"] = _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None)
-        merged["color"] = (ai_data.get("color") or "").lower().strip() or None
-        merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
         merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
         # Missing AI output is unknown evidence, never a negative fact. The
         # classifier owns the distinct treatment of None versus explicit False.
@@ -1319,16 +1261,17 @@ class PlasticosWebLead(models.Model):
         merged["estimated_lbs"] = lbs
         merged["lbs_source"] = lbs_source
 
-        # ── Vision overrides for form/color/contamination ──────────────
+        # ── Vision supplies form, grade, color, and contamination ──────
         vision_form = None
+        vision_grade = None
+        vision_color = None
         if vision_results:
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
             if best_vision:
-                vision_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
-                v_color = (best_vision.get("observed_color") or "").lower().strip()
-                if v_color and not merged["color"]:
-                    merged["color"] = v_color
+                vision_form = best_vision.get("observed_form")
+                vision_grade = best_vision.get("observed_material_grade")
+                vision_color = best_vision.get("observed_color")
                 merged["vision_summary"] = best_vision.get("visual_summary", "")
             # One clean photo never erases contamination another photo shows.
             dirty = [v for v in valid_vision if v.get("contamination_visible") is True]
@@ -1337,27 +1280,52 @@ class PlasticosWebLead(models.Model):
                 notes = [str(v.get("contamination_notes") or "").strip() for v in dirty]
                 merged["contamination_notes"] = "; ".join(dict.fromkeys(note for note in notes if note)) or None
 
-        # One material identity for qualification and intake creation: text AI,
-        # then a single polymer the seller names, then agreed confident photos.
+        def _slot(ai_key: str, kind: str) -> str | None:
+            accepted = accept_value(ai_data.get(ai_key), catalog.get(kind, ()))
+            return accepted or match_one(declared_material, catalog.get(kind, ()))
+
+        # A listed code wins. Seller text fills an empty slot. Nothing else is a vocabulary.
+        merged["polymer"] = accept_value(ai_data.get("polymer"), catalog.get("polymer", ()))
+        merged["polymer_source"] = "text_ai" if merged["polymer"] else None
         if not merged["polymer"]:
-            seller_codes = sorted(polymers_named(declared_material))
-            vision_code = polymer_code(agreed_confident_polymer(list(vision_results or [])))
-            if len(seller_codes) == 1:
-                merged["polymer"] = _POLYMER_NORMALIZE.get(seller_codes[0].lower(), seller_codes[0])
+            seller_polymer = match_one(declared_material, catalog.get("polymer", ()))
+            vision_polymer = accept_value(
+                agreed_confident_polymer(list(vision_results or [])),
+                catalog.get("polymer", ()),
+            )
+            if seller_polymer:
+                merged["polymer"] = seller_polymer
                 merged["polymer_source"] = "seller_text"
-            elif not seller_codes and vision_code:
-                merged["polymer"] = _POLYMER_NORMALIZE.get(vision_code.lower(), vision_code)
+            elif vision_polymer:
+                merged["polymer"] = vision_polymer
                 merged["polymer_source"] = "vision"
 
         # Grade and form stay in separate slots. A drum grade must not erase
         # regrind, and an AI form must not hide the item word.
-        from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
-
         merged["form"], merged["material_grade"] = merge_form_and_grade(
-            merged.get("form"),
+            ai_data.get("form"),
             declared_material,
             vision_form,
-            GRADE_CODES,
+            catalog.get("form", ()),
+            catalog.get("material_grade", ()),
+        )
+        explicit_grade = accept_value(ai_data.get("material_grade"), catalog.get("material_grade", ()))
+        if explicit_grade:
+            merged["material_grade"] = explicit_grade
+        elif not merged["material_grade"]:
+            merged["material_grade"] = accept_value(vision_grade, catalog.get("material_grade", ()))
+
+        merged["color"] = _slot("color", "color") or accept_value(vision_color, catalog.get("color", ()))
+        merged["source_type"] = _slot("source_type", "source_type")
+        merged["filler_type"] = _slot("filler_type", "filler")
+        merged["packaging_type"] = _slot("packaging_type", "packaging")
+        merged["process_type"] = _slot("process_type", "process")
+        attribute_text = ai_data.get("attributes")
+        if isinstance(attribute_text, (list, tuple)):
+            attribute_text = " ".join(str(item) for item in attribute_text)
+        merged["attributes"] = match_codes(
+            f"{attribute_text or ''} {declared_material}",
+            catalog.get("attribute", ()),
         )
         return merged
 
@@ -1422,7 +1390,7 @@ class PlasticosWebLead(models.Model):
         analysis = dict(self.ai_analysis) if isinstance(self.ai_analysis, dict) else {}
         normalized = self.ai_normalized if isinstance(self.ai_normalized, dict) else {}
         raw_polymer = str(analysis.get("polymer") or normalized.get("polymer") or "").strip()
-        polymer = _POLYMER_NORMALIZE.get(raw_polymer.lower(), raw_polymer or None) if raw_polymer else None
+        polymer = accept_value(raw_polymer, self._material_catalog()["polymer"]) if raw_polymer else None
         config = self.env["plasticos.web.lead.config"].get_config()
         economic = evaluate_economic_eligibility(
             estimated_lbs=lbs,
@@ -1523,9 +1491,7 @@ class PlasticosWebLead(models.Model):
         """Create intake record WITHOUT partner from merged AI data.
 
         Unified replacement for _create_intake_triage + _create_intake_simple.
-        Looks up polymer_id, form_id, material_grade_id, source_type_id from
-        master registries by code. Falls back to 'other' / 'post_consumer'
-        records if code not found; the optional material grade has no fallback.
+        Writes every catalog code the merge accepted. An empty slot stays empty.
         Analysis stored before merge split form from grade is split here.
 
         FIX: removed inconsistent qty_per_load defaults (1 vs 40000).
@@ -1537,8 +1503,6 @@ class PlasticosWebLead(models.Model):
             from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
 
             form_value, grade_value = split_material_code(merged.get("form"), GRADE_CODES)
-        polymer_code = (merged.get("polymer") or "other").lower()
-        form_code = (form_value or "other").lower()
         # An unknown source stays empty on the intake. A configured default is not
         # evidence about this seller and is never written as if it were.
         source_type_code = merged.get("source_type") or None
@@ -1552,21 +1516,24 @@ class PlasticosWebLead(models.Model):
         loads_per_month = max(merged.get("loads_per_month", 0), 0)
         deal_type = _FREQ_TO_DEAL.get(merged.get("frequency", ""), "spot")
 
-        def _lookup(Model, code, fallback_code):
-            rec = Model.search([("code", "=ilike", code)], limit=1)
-            if not rec and fallback_code and code != fallback_code:
-                rec = Model.search([("code", "=ilike", fallback_code)], limit=1)
-            return rec
+        def _one(model, code):
+            if not code:
+                return model.browse()
+            return model.search([("code", "=ilike", str(code))], limit=1)
 
-        Polymer = self.env["plasticos.polymer"]
-        Form = self.env["plasticos.material.form"]
-        Grade = self.env["plasticos.material.grade"]
-        SourceType = self.env["plasticos.source.type"]
-
-        polymer_rec = _lookup(Polymer, polymer_code, "other")
-        form_rec = _lookup(Form, form_code, "other")
-        grade_rec = _lookup(Grade, grade_value, None) if grade_value else Grade
-        source_type_rec = _lookup(SourceType, source_type_code, None) if source_type_code else SourceType
+        polymer_rec = _one(self.env["plasticos.polymer"], merged.get("polymer"))
+        form_rec = _one(self.env["plasticos.material.form"], form_value)
+        grade_rec = _one(self.env["plasticos.material.grade"], grade_value)
+        source_type_rec = _one(self.env["plasticos.source.type"], source_type_code)
+        color_rec = _one(self.env["plasticos.material.color"], merged.get("color"))
+        packaging_rec = _one(self.env["plasticos.packaging.type"], merged.get("packaging_type"))
+        filler_rec = _one(self.env["plasticos.filler.type"], merged.get("filler_type"))
+        attribute_codes = [code for code in (merged.get("attributes") or ()) if code]
+        attribute_recs = (
+            self.env["plasticos.material.attribute"].search([("code", "in", attribute_codes)])
+            if attribute_codes
+            else self.env["plasticos.material.attribute"]
+        )
 
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
 
@@ -1588,6 +1555,16 @@ class PlasticosWebLead(models.Model):
             ),
             "assigned_user_id": self.assigned_user_id.id or False,
         }
+        if color_rec:
+            intake_vals["color_id"] = color_rec.id
+        if packaging_rec:
+            intake_vals["packaging_type_id"] = packaging_rec.id
+        if filler_rec:
+            intake_vals["filler_type_id"] = filler_rec.id
+        if attribute_recs:
+            intake_vals["material_attribute_ids"] = [(6, 0, attribute_recs.ids)]
+        if merged.get("process_type"):
+            intake_vals["origin_process_type"] = merged["process_type"]
         intake_vals.update(
             web_lead_source_address(self.pickup_postal_code, self.pickup_place, self.pickup_location_text)
         )
@@ -1745,6 +1722,7 @@ class PlasticosWebLead(models.Model):
             risk_indicators=risk_indicators,
             hard_exclusions=hard_exclusions,
             cold_max_lbs=config.cold_max_lbs or 8_000,
+            polymer_entries=self._material_catalog()["polymer"],
         )
 
     def _review_activity_summary(self):

@@ -1,13 +1,11 @@
 """Web-lead material identity: one code splits to a form or a grade, and HOT/COLD does not move.
 
-Pure: loads the grade and form registries, the split helper, the economic policy, and the
-broker snapshot builder by file path. ``_FORM_NORMALIZE`` is read from ``web_lead.py``
-source because that module imports Odoo.
+Pure: loads the grade and form registries, the catalog matcher, the economic policy, and the
+broker snapshot builder by file path.
 """
 
 from __future__ import annotations
 
-import ast
 import importlib.util
 import sys
 import types
@@ -36,6 +34,7 @@ def _load(path: Path, name: str):
 
 GRADES = _load(PROFILE / "grade_codes.py", "_web_lead_identity_grade_codes")
 FORMS = _load(PROFILE / "form_codes.py", "_web_lead_identity_form_codes")
+CATALOG = _load(WEB_LEADS_MODELS / "material_catalog.py", f"{_PACKAGE}.material_catalog")
 IDENTITY = _load(WEB_LEADS_MODELS / "material_identity.py", f"{_PACKAGE}.material_identity")
 POLICY = _load(WEB_LEADS_MODELS / "economic_policy.py", f"{_PACKAGE}.economic_policy")
 KEYS = _load(WEB_LEADS_MODELS / "evidence_keys.py", f"{_PACKAGE}.evidence_keys")
@@ -45,18 +44,15 @@ split_material_code = IDENTITY.split_material_code
 merge_form_and_grade = IDENTITY.merge_form_and_grade
 GRADE_CODES = GRADES.GRADE_CODES
 FORM_CODES = FORMS.FORM_CODES
+MATERIAL_CODES = sorted(set(FORM_CODES) | set(GRADE_CODES))
 
 
-def _form_normalize_values() -> list[str]:
-    tree = ast.parse((WEB_LEADS_MODELS / "web_lead.py").read_text(encoding="utf-8"))
-    for node in tree.body:
-        if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", None) == "_FORM_NORMALIZE":
-            assert isinstance(node.value, ast.Dict)
-            return [value.value for value in node.value.values if isinstance(value, ast.Constant)]
-    raise AssertionError("_FORM_NORMALIZE not found in web_lead.py")
+def _entries(codes):
+    return tuple(CATALOG.CatalogEntry(code, code.replace("_", " ").title(), "") for code in codes)
 
 
-FORM_NORMALIZE_VALUES = sorted(set(_form_normalize_values()))
+FORM_ENTRIES = _entries(FORM_CODES)
+GRADE_ENTRIES = _entries(GRADE_CODES)
 NORMALIZER = _load(PROFILE / "models" / "material_normalizer.py", "_web_lead_identity_normalizer")
 FORM_WORD_CODES = sorted(set(NORMALIZER.form_words().values()))
 GRADE_WORD_CODES = sorted(set(NORMALIZER.grade_words().values()))
@@ -84,9 +80,12 @@ def test_normalizer_word_tables_keep_forms_and_grades_apart() -> None:
     assert not set(NORMALIZER.form_words()) & set(NORMALIZER.grade_words())
 
 
-def test_every_web_lead_material_code_is_a_form_or_a_grade() -> None:
-    known = set(GRADE_CODES) | set(FORM_CODES)
-    assert [code for code in FORM_NORMALIZE_VALUES if code not in known] == []
+def test_catalog_accepts_a_listed_code_and_drops_any_other() -> None:
+    assert CATALOG.accept_value("FILM", FORM_ENTRIES) == "FILM"
+    assert CATALOG.accept_value("film", FORM_ENTRIES) == "FILM"
+    assert CATALOG.accept_value("not-a-form", FORM_ENTRIES) is None
+    assert CATALOG.accept_value("PALLETS", GRADE_ENTRIES) == "PALLETS"
+    assert CATALOG.accept_value("rpet", _entries(("HDPE", "PP", "PET"))) is None
 
 
 @pytest.mark.parametrize("code", GRADE_CODES)
@@ -106,35 +105,46 @@ def test_split_upper_cases_and_treats_empty_as_unknown() -> None:
 
 
 def test_item_grade_keeps_a_vision_physical_form() -> None:
-    assert merge_form_and_grade(None, "HDPE drums", "REGRIND", GRADE_CODES) == ("REGRIND", "DRUMS")
+    assert merge_form_and_grade(None, "HDPE drums", "REGRIND", FORM_ENTRIES, GRADE_ENTRIES) == ("REGRIND", "DRUMS")
 
 
 def test_ai_physical_form_still_collects_the_item_grade() -> None:
-    assert merge_form_and_grade("FILM", "plastic buckets", None, GRADE_CODES) == ("FILM", "BUCKETS")
+    assert merge_form_and_grade("FILM", "plastic buckets", None, FORM_ENTRIES, GRADE_ENTRIES) == ("FILM", "BUCKETS")
 
 
 def test_ai_grade_does_not_block_a_vision_form() -> None:
-    assert merge_form_and_grade("DRUMS", "drums", "REGRIND", GRADE_CODES) == ("REGRIND", "DRUMS")
+    assert merge_form_and_grade("DRUMS", "drums", "REGRIND", FORM_ENTRIES, GRADE_ENTRIES) == ("REGRIND", "DRUMS")
 
 
 def test_pallet_text_alone_is_a_grade_with_no_form() -> None:
-    assert merge_form_and_grade(None, "HDPE plastic pallets", None, GRADE_CODES) == (None, "PALLETS")
+    assert merge_form_and_grade(None, "HDPE plastic pallets", None, FORM_ENTRIES, GRADE_ENTRIES) == (None, "PALLETS")
 
 
 def test_film_alone_stays_a_form() -> None:
-    assert merge_form_and_grade("FILM", "LDPE scrap", None, GRADE_CODES) == ("FILM", None)
+    assert merge_form_and_grade("FILM", "LDPE scrap", None, FORM_ENTRIES, GRADE_ENTRIES) == ("FILM", None)
+
+
+def test_stretch_film_fills_grade_and_form() -> None:
+    forms = (CATALOG.CatalogEntry("FILM", "Film", ""),)
+    grades = (CATALOG.CatalogEntry("STRETCH_FILM", "Stretch Film", ""),)
+    assert merge_form_and_grade(None, "HDPE stretch film", None, forms, grades) == ("FILM", "STRETCH_FILM")
+
+
+def test_pail_matches_only_when_the_master_uses_that_word() -> None:
+    grades = (CATALOG.CatalogEntry("BUCKETS", "Buckets", "pails"),)
+    assert merge_form_and_grade(None, "a pail of scrap", None, (), grades) == (None, None)
 
 
 def test_pallet_beats_tote_when_both_are_named() -> None:
-    assert merge_form_and_grade(None, "pallets and totes", None, GRADE_CODES)[1] == "PALLETS"
+    assert merge_form_and_grade(None, "pallets and totes", None, FORM_ENTRIES, GRADE_ENTRIES)[1] == "PALLETS"
 
 
 def test_vision_does_not_replace_an_ai_physical_form() -> None:
-    assert merge_form_and_grade("FILM", "LDPE scrap", "REGRIND", GRADE_CODES) == ("FILM", None)
+    assert merge_form_and_grade("FILM", "LDPE scrap", "REGRIND", FORM_ENTRIES, GRADE_ENTRIES) == ("FILM", None)
 
 
 def test_text_grade_wins_over_a_vision_grade() -> None:
-    assert merge_form_and_grade(None, "plastic pallets", "DRUMS", GRADE_CODES) == (None, "PALLETS")
+    assert merge_form_and_grade(None, "plastic pallets", "DRUMS", FORM_ENTRIES, GRADE_ENTRIES) == (None, "PALLETS")
 
 
 def test_web_lead_merge_collects_grade_separately_from_form() -> None:
@@ -144,7 +154,7 @@ def test_web_lead_merge_collects_grade_separately_from_form() -> None:
 
 
 @pytest.mark.parametrize("lbs", [7_900.0, 8_500.0, 10_500.0])
-@pytest.mark.parametrize("code", [*FORM_NORMALIZE_VALUES, None])
+@pytest.mark.parametrize("code", [*MATERIAL_CODES, None])
 def test_split_keeps_every_hot_cold_decision(code, lbs: float) -> None:
     form, grade = split_material_code(code, GRADE_CODES)
     before = _eligibility(lbs, polymer="HDPE", form=code)

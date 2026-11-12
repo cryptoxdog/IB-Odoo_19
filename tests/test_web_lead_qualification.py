@@ -42,6 +42,7 @@ from plasticos_web_leads.models.economic_evaluator import (  # noqa: E402
     validate_economic_assessment,
 )
 from plasticos_web_leads.models.evidence_reconciler import reconcile_evidence  # noqa: E402
+from plasticos_web_leads.models.material_catalog import CatalogEntry  # noqa: E402
 from plasticos_web_leads.models.quantity_normalizer import normalize_quantity_evidence  # noqa: E402
 
 COLD_FLOOR = 8_000.0
@@ -228,6 +229,14 @@ def test_wl07_fiberglass_reinforced_plastic_is_not_excluded_by_glass():
 # ── WL-08 / WL-09 / WL-16 text and vision ────────────────────────────────────
 
 
+_POLYMER_CATALOG = (
+    CatalogEntry("PP", "Polypropylene", ""),
+    CatalogEntry("PET", "PET", ""),
+    CatalogEntry("HDPE", "HDPE", ""),
+    CatalogEntry("LDPE", "LDPE", ""),
+)
+
+
 def _bundle(material, ai_polymer, vision):
     quantity = normalize_quantity_evidence(quantity_text="", weight_per_load_text="40000 lbs", frequency_text="")
     attachments = [{"analysis_type": "image", "analysis_status": "success", "analysis": item} for item in vision]
@@ -236,6 +245,7 @@ def _bundle(material, ai_polymer, vision):
         quantity=quantity,
         ai_normalized=dict(polymer=ai_polymer),
         attachments=attachments,
+        polymer_entries=_POLYMER_CATALOG,
     )
 
 

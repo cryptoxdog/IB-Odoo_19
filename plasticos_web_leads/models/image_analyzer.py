@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import base64
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .inference_provider import InferenceProvider, call_structured_vision, provider_audit_metadata, safe_provider_error
+from .material_catalog import CatalogEntry, code_list
 
 _logger = logging.getLogger(__name__)
 
@@ -27,9 +29,10 @@ _MIN_CONFIDENCE_THRESHOLD: float = 0.30
 _VISION_SYSTEM_PROMPT = """You are a recycled-plastics materials specialist.
 Analyse the image and return ONLY valid JSON with these fields (null if unknown):
 {
-  "observed_form": string | null,           // Bale | Pellet | Regrind | Flake | Film | Other
-  "observed_color": string | null,          // dominant color(s)
-  "observed_polymer_hint": string | null,   // HDPE | PP | PET | PS | PVC | LDPE | ABS | null
+  "observed_form": string | null,           // one listed form code, or null
+  "observed_material_grade": string | null, // one listed material grade code, or null
+  "observed_color": string | null,          // one listed color code, or null
+  "observed_polymer_hint": string | null,   // one listed polymer code, or null
   "material_form_observed": string | null,
   "commercial_color": string | null,
   "containment": string | null,
@@ -50,7 +53,27 @@ Rules:
 - Mixed is a valid commercial material colour.
 - Do not invent exact lot weight from an image.
 - The picture is a sample of the material; quantity_visible and quantity_notes describe the frame, not the seller's stock, and the model must not invent a lot weight.
+- Return a listed code or null. Never invent a code, and never put a grade code in observed_form.
+- Polymer codes: __POLYMER_CODES__
+- Form codes: __FORM_CODES__
+- Material grade codes: __GRADE_CODES__
+- Color codes: __COLOR_CODES__
 """
+
+
+def vision_prompt(catalog: Mapping[str, Sequence[CatalogEntry]] | None = None) -> str:
+    """The vision prompt with the live catalog codes filled in."""
+    catalog = catalog or {}
+    replacements = {
+        "__POLYMER_CODES__": code_list(catalog.get("polymer", ())),
+        "__FORM_CODES__": code_list(catalog.get("form", ())),
+        "__GRADE_CODES__": code_list(catalog.get("material_grade", ())),
+        "__COLOR_CODES__": code_list(catalog.get("color", ())),
+    }
+    text = _VISION_SYSTEM_PROMPT
+    for token, value in replacements.items():
+        text = text.replace(token, value)
+    return text
 
 
 def _encode_image(image_bytes: bytes) -> str:
@@ -63,6 +86,7 @@ def analyse_image(
     *,
     model: str = "gpt-4o",
     mime_type: str = "image/jpeg",
+    catalog: Mapping[str, Sequence[CatalogEntry]] | None = None,
 ) -> dict[str, Any]:
     """
     Analyse a single image. Returns a result dict or {"error": "..."} on failure.
@@ -76,7 +100,7 @@ def analyse_image(
             temperature=0.0,
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": _VISION_SYSTEM_PROMPT},
+                {"role": "system", "content": vision_prompt(catalog)},
                 {
                     "role": "user",
                     "content": [
@@ -106,9 +130,10 @@ def analyze_image_bytes(
     content_type: str,
     client: Any,
     model: str,
+    catalog: Mapping[str, Sequence[CatalogEntry]] | None = None,
 ) -> dict[str, Any]:
     """Analyze bytes already acquired by canonical attachment processing."""
-    return analyse_image(image_bytes, client, model=model, mime_type=content_type)
+    return analyse_image(image_bytes, client, model=model, mime_type=content_type, catalog=catalog)
 
 
 def analyze_image_with_provider(
@@ -116,12 +141,13 @@ def analyze_image_with_provider(
     *,
     content_type: str,
     provider: InferenceProvider,
+    catalog: Mapping[str, Sequence[CatalogEntry]] | None = None,
 ) -> dict[str, Any]:
     """Analyze admitted bytes using a configured native or compatible provider."""
     try:
         result, metadata = call_structured_vision(
             provider,
-            system_prompt=_VISION_SYSTEM_PROMPT,
+            system_prompt=vision_prompt(catalog),
             image_bytes=image_bytes,
             content_type=content_type,
             prompt="Analyse this plastic material image.",
