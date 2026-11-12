@@ -292,6 +292,16 @@ class TestLindaRecords(_LindaCase):
         self.assertEqual(again["approval_id"], winner.id)
         self.assertEqual(self.env[APPROVAL].search_count([("operation_key", "=", "lrace")]), 1)
 
+    def test_unseen_journey_original_is_held_without_its_name(self):
+        """R8: an original on a record Linda cannot read is held neutrally on the journey side too."""
+        other = self.env["res.company"].create({"name": "S11 R8 Other Co"})
+        foreign = self._load(company_id=other.id)
+        hidden = self._attach(foreign, "r8-foreign-eir.pdf")
+        journey = self._journey("S11-R8")
+        held = self._linda().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, hidden.id, "r8")
+        approval = self._held(held, "evidence_unverified", "record_gate_in")
+        self.assertNotIn("r8-foreign-eir", f"{approval.edge_reason} {held['reason']}")
+
     def test_retry_after_a_rejection_is_held_again(self):
         journey = self._journey("S11-L-RETRY")
         doc = self._attach(journey, "sailed.pdf")
@@ -737,6 +747,11 @@ class TestLindaRound2(_LindaCase):
         held = load.with_user(self.linda).action_record_actual_event("pickup", self._ago(6), hidden)
         approval = self._held(held, "evidence_unverified", "record_actual_event")
         self.assertEqual(approval.edge_reason, "the original document is not visible to Linda")
+        self.assertNotIn("other-company-ticket", held["reason"])
+        stored = self.env[APPROVAL].search([("subject_key", "=", f"load:{load.id}")])
+        for row in stored:
+            text = " ".join(filter(None, (row.edge_reason, row.result_reason, row.arguments)))
+            self.assertNotIn("other-company-ticket", text, "nothing stored for Linda names an original she cannot see")
         self.assertFalse(load.actual_pickup_at)
         with self.assertRaises(AccessError):
             load.with_user(self.logistics).action_record_actual_event("pickup", self._ago(6), hidden)

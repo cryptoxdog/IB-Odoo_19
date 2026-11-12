@@ -2070,7 +2070,7 @@ class PlasticosLoad(models.Model):
         verified evidence or follows a refusal on this load; those are held. Any other
         refusal is returned as ``blocked`` and recorded, never raised.
         """
-        from .linda_approval import as_approved, hold_for_approval, prior_refusal, record_refusal
+        from .linda_approval import as_approved, hold_for_approval, original_hidden, prior_refusal, record_refusal
 
         self.check_access("read")
         if not self.company_id:
@@ -2098,7 +2098,7 @@ class PlasticosLoad(models.Model):
                 refusal = {"status": "blocked", "record_id": self.id, "reason": "a correction needs a reason"}
                 return record_refusal(self.env, command, subject_key, self.company_id, refusal, arguments, key, self)
             edge, cause = "correction", f"Linda corrects the recorded actual {event_kind}"
-        elif not self._linda_can_read(attachment):
+        elif original_hidden(self.env, attachment):
             # R2/N4: only the attachment check makes an unreadable original unverified evidence;
             # the reason names nothing of it.
             edge, cause = "evidence_unverified", "the original document is not visible to Linda"
@@ -2128,18 +2128,6 @@ class PlasticosLoad(models.Model):
         return hold_for_approval(
             self.env, command, edge, cause, arguments, key, self.company_id, self, subject_key=subject_key
         )
-
-    @staticmethod
-    def _linda_can_read(attachment):
-        """Whether the acting user may read this original; a missing one is the owner command's refusal."""
-        attachment = attachment.exists() if attachment else attachment
-        if not attachment:
-            return True
-        try:
-            attachment.check_access("read")
-        except AccessError:
-            return False
-        return True
 
     def action_open_actual_event_wizard(self):
         self.ensure_one()

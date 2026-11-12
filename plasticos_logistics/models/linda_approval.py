@@ -93,6 +93,34 @@ def linda_acting(env):
     return is_linda(env) and env.context.get(_APPROVED_RUN) is not _APPROVED_TOKEN
 
 
+def original_hidden(env, attachment):
+    """Whether the acting user cannot see this original or the record it is attached to (round 3, R8).
+
+    ``ir.attachment.check_access`` alone can pass for an attachment whose record the
+    user cannot read (another company's load or journey). A caller that cannot see
+    the record must not learn the attachment's name from a refusal either.
+    """
+    attachment = attachment.exists() if attachment else attachment
+    if not attachment:
+        return False
+    try:
+        attachment.check_access("read")
+    except AccessError:
+        return True
+    if attachment.company_id and attachment.company_id not in env.user.company_ids:
+        return True
+    located = attachment.sudo()  # sudo: where the original sits, not what it says
+    model, res_id = located.res_model, located.res_id
+    if model and res_id and model in env:
+        record = env[model].browse(res_id).exists()
+        if record:
+            try:
+                record.check_access("read")
+            except AccessError:
+                return True
+    return False
+
+
 def as_approved(records):
     """``records`` with the approval token, for a gate's own probe or an approved run."""
     return records.with_context(**{_APPROVED_RUN: _APPROVED_TOKEN})

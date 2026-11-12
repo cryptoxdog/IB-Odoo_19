@@ -70,3 +70,4 @@ Round 3 R7,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s11_linda_app
 Round 3 R7,BRS-EXP-11-R010,positive+negative,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaPause::test_send_guard_withholds_while_archived_and_releases_on_return,PENDING_COORDINATOR
 Round 3 R7,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaPause::test_cancellation_notice_queues_while_archived_and_is_sent_on_return,PENDING_COORDINATOR
 Round 3 R7,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaPause::test_inbound_reply_is_recorded_while_archived,PENDING_COORDINATOR
+Round 3 R8,BRS-EXP-08-R007,positive,plasticos_logistics/tests/test_s11_linda_approval.py::TestLindaRecords::test_unseen_journey_original_is_held_without_its_name,PENDING_COORDINATOR

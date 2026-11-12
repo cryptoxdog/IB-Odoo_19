@@ -36,7 +36,14 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tools import float_compare, float_round
 
 from .iso_journey import _check_company_allowed, _lock, _normalize_text, _require_logistics_actor, _result
-from .linda_approval import hold_for_approval, linda_acting, linda_stop, prior_refusal, record_refusal
+from .linda_approval import (
+    hold_for_approval,
+    linda_acting,
+    linda_stop,
+    original_hidden,
+    prior_refusal,
+    record_refusal,
+)
 
 PLASTICOS_ISO_JOURNEY = "plasticos.iso.journey"
 IR_ATTACHMENT = "ir.attachment"
@@ -252,6 +259,9 @@ class PlasticosIsoJourneyFact(models.Model):
             return journey, attachment, None
         if not attachment:
             return journey, None, _result("blocked", journey, R_ORIGINAL_REQUIRED)
+        if linda_acting(self.env) and original_hidden(self.env, attachment):
+            # R8: an original Linda cannot see is held without naming it, before any refusal could.
+            return journey, None, _result("blocked", journey, R_EVIDENCE_NOT_VISIBLE)
         try:
             attachment.check_access("read")
         except AccessError:
