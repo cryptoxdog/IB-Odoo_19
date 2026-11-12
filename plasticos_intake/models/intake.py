@@ -588,6 +588,7 @@ class PlasticosIntake(models.Model):
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.material_grade_id = mp.material_grade_id.id if mp.material_grade_id else self.material_grade_id
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
+        self.quality_tier_id = mp.quality_tier_id.id if mp.quality_tier_id else self.quality_tier_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.moisture_pct = mp.moisture_percent or self.moisture_pct

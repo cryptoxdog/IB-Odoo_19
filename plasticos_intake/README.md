@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_intake
 component_name: PlasticOS Intake
-module_version: 19.0.5.4.8
+module_version: 19.0.5.4.9
 layer: 2
 installable: true
 auto_install: true

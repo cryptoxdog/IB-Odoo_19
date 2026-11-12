@@ -547,6 +547,7 @@ class CrmLeadPlastOS(models.Model):
             ("source_type_id", "source_type_id"),
             ("material_grade_id", "material_grade_id"),
             ("packaging_type_id", "packaging_type_id"),
+            ("quality_tier_id", "quality_tier_id"),
             ("filler_type_id", "filler_type_id"),
         ):
             related = profile[source_name]

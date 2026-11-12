@@ -73,6 +73,7 @@ class PlasticosMaterialProfileIntake(models.Model):
                 "default_color_ids": [(6, 0, self.color_ids.ids)],
                 "default_source_type_id": self.source_type_id.id if self.source_type_id else False,
                 "default_packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
+                "default_quality_tier_id": self.quality_tier_id.id if self.quality_tier_id else False,
                 "default_material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
                 "default_filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
                 "default_material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
