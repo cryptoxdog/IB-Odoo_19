@@ -13,7 +13,7 @@
         <field name="material_grade_id"/>
         <field name="form_id"/>
         <field name="color_id"/>
-        <field name="quality_tier"/>
+        <field name="quality_tier_id"/>
         <field name="usage_count"/>
       </list>
     </field>
@@ -35,7 +35,7 @@
               <field name="material_grade_id"/>
               <field name="form_id"/>
               <field name="color_id"/>
-              <field name="quality_tier"/>
+              <field name="quality_tier_id"/>
             </group>
             <group string="Packaging &amp; Source">
               <field name="packaging_type_id"/>
@@ -72,8 +72,7 @@
         <field name="code"/>
         <field name="polymer_id"/>
         <separator/>
-        <filter name="grade_a" string="Grade A" domain="[('quality_tier', '=', 'grade_a')]"/>
-        <filter name="prime" string="Prime" domain="[('quality_tier', '=', 'prime')]"/>
+        <filter name="grade_a" string="Grade A" domain="[('quality_tier_id.code', '=', 'GRADE_A')]"/>
         <separator/>
         <filter name="group_polymer" string="Polymer" context="{'group_by': 'polymer_id'}"/>
         <filter name="group_material_grade" string="Material Grade" context="{'group_by': 'material_grade_id'}"/>

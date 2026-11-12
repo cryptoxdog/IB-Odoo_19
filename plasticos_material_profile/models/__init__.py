@@ -4,6 +4,7 @@ from . import material_attribute
 from . import material_color
 from . import material_form
 from . import material_grade
+from . import material_quality_tier
 from . import material_normalizer
 from . import material_profile
 from . import packaging_type

@@ -473,8 +473,6 @@ _HINT_STATUS_UNSUPPORTED = "unsupported"
 
 def _preexisting_supersac_profile(profile) -> bool:
     """True when supersac identity was already on the profile, not written by this importer."""
-    if "supersac" in (profile.sub_grade or "").casefold():
-        return True
     for raw in (profile.freeform_notes or "").splitlines():
         line = " ".join(raw.split())
         folded = line.casefold()
@@ -2603,19 +2601,24 @@ class SyncOrchestrator:
         from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
 
         if normalized.grade:
-            current = (profile.sub_grade or "").strip()
-            if current and current != normalized.grade:
+            from odoo.addons.plasticos_material_profile.quality_tier_codes import (  # noqa: PLC0415
+                LETTER_TO_QUALITY_TIER,
+            )
+
+            code = LETTER_TO_QUALITY_TIER.get(normalized.grade)
+            current = profile.quality_tier_id
+            if code and current and current.code != code:
                 self._append_classified_error(
                     str(profile.id),
                     (
-                        f"grade {normalized.grade} conflicts with stored grade {current} "
+                        f"grade {normalized.grade} conflicts with stored grade {current.code} "
                         f"on profile {profile.id}; attributes unchanged"
                     ),
                     REQUIRED_MAPPING,
                 )
                 return
-            if not current:
-                profile.sub_grade = normalized.grade
+            if code and not current:
+                profile.quality_tier_id = self.env.ref(f"plasticos_material_profile.quality_tier_{code.lower()}")
         if normalized.source_type and not profile.source_type_id:
             profile.source_type_id = normalized.source_type
         elif normalized.source_type and profile.source_type_id and profile.source_type_id != normalized.source_type:

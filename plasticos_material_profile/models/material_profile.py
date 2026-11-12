@@ -118,8 +118,6 @@ class PlasticosMaterialProfile(models.Model):
         help="Auto-populated from polymer_id. Kept for backward compatibility.",
     )
 
-    sub_grade = fields.Char()  # TODO: Define sub-grade logic and re-enable in view
-
     # ── Form (Many2one to master) ────────────────────────────
     form_id = fields.Many2one(
         "plasticos.material.form",
@@ -148,6 +146,14 @@ class PlasticosMaterialProfile(models.Model):
         ondelete="restrict",
         tracking=True,
         help="What the material was before processing (Drums, Totes, Pallets). Optional.",
+    )
+    quality_tier_id = fields.Many2one(
+        "plasticos.material.quality.tier",
+        string="Quality Tier",
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="Quality tier from the material quality tier master (Grade A, Grade B, Grade C, Reusable, Standard).",
     )
 
     # ── Color ──
@@ -380,17 +386,6 @@ class PlasticosMaterialProfile(models.Model):
 
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
-    quality_tier = fields.Selection(
-        [
-            ("prime", "Prime"),
-            ("near_prime", "Near Prime"),
-            ("standard", "Standard"),
-            ("economy", "Economy"),
-            ("unknown", "Unknown"),
-        ],
-        string="Quality Tier",
-        help="AI-inferred quality tier based on material specifications.",
-    )
 
     # ── Navigation: Related Record Counts ──────────────────────
     # NOTE: intake_count is added by plasticos_intake module via inheritance
