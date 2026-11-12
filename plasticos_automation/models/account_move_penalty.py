@@ -20,7 +20,9 @@ class AccountMovePenalty(models.Model):
         string="Transaction",
         index=True,
         help="Linked transaction for scrap management",
-        ondelete="cascade",
+        # An invoice is a financial record: a transaction it names cannot be
+        # deleted from under it, and deleting one must never SQL-delete the invoice.
+        ondelete="restrict",
     )
 
     reconciliation_status = fields.Selection(
@@ -49,7 +51,9 @@ class AccountMovePenalty(models.Model):
     penalty_rule_id = fields.Many2one(
         "plasticos.penalty.rule",
         string="Applied Penalty Rule",
-        ondelete="cascade",
+        # The applied rule is the provenance of penalty_amount; archive a rule
+        # (active=False) instead of deleting one an invoice was penalized under.
+        ondelete="restrict",
     )
 
     # ── Weight Variance ───────────────────────────────────────
