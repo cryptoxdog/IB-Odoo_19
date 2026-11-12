@@ -2199,6 +2199,24 @@ class PlasticosLoad(models.Model):
         )
         return False
 
+    def _notify_by_email_get_headers(self, *args, **kwargs):
+        """Tag a carrier dispatch packet's notification mail with its own load (S4, V10).
+
+        Only the composer sets the context key, and only while it sends a release
+        packet; mail.mail then stamps ``dispatch_sent`` when native transport confirms
+        a mail whose header names that same load. Queueing stamps nothing.
+        """
+        from .mail_mail_inherit import (
+            DISPATCH_PACKET_HEADER,
+            DISPATCH_PACKET_SEND_CONTEXT,
+            DISPATCH_PACKET_VALUE,
+        )
+
+        headers = super()._notify_by_email_get_headers(*args, **kwargs)
+        if self.env.context.get(DISPATCH_PACKET_SEND_CONTEXT) and len(self) == 1:
+            headers[DISPATCH_PACKET_HEADER] = f"{DISPATCH_PACKET_VALUE}:{self.id}"
+        return headers
+
     def _get_email_template(self, template_name):
         """Get email template from plasticos_automation module.
 

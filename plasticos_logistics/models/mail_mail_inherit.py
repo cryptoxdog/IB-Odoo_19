@@ -24,6 +24,7 @@ as in-flight history. Ordinary mail never reaches this path.
 """
 
 import ast
+import json
 import smtplib
 
 from odoo import fields, models
@@ -31,8 +32,12 @@ from odoo.exceptions import LockError
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
 PLASTICOS_LOAD = "plasticos.load"
-# Set on the outgoing mail of a carrier dispatch-packet composer (S4, V10).
+# Set on the outgoing notification mail of a carrier dispatch-packet composer (S4, V10).
+# Its value names the load ("dispatch_packet:<load id>") and must match the mail's own res_id.
 DISPATCH_PACKET_HEADER = "X-Plasticos-Release"
+DISPATCH_PACKET_VALUE = "dispatch_packet"
+# Context set by the composer only while it sends a release packet.
+DISPATCH_PACKET_SEND_CONTEXT = "plasticos_dispatch_packet_send"
 REQUEST_TABLE = "plasticos_logistics_request"
 
 
@@ -211,28 +216,30 @@ class MailMailInherit(models.Model):
             post_send_callback=post_send_callback,
         )
 
-    def _plasticos_tag_dispatch_packet(self):
-        """Mark these load mails as a dispatch packet; a confirmed send stamps ``dispatch_sent``."""
-        for mail in self.filtered(lambda mail: mail.model == PLASTICOS_LOAD and mail.state in ("outgoing", "sent")):
-            headers = {}
-            if mail.headers:
-                try:
-                    headers = ast.literal_eval(mail.headers)
-                except (ValueError, SyntaxError):
-                    headers = {}
-            if not isinstance(headers, dict):
-                headers = {}
-            headers[DISPATCH_PACKET_HEADER] = "dispatch_packet"
-            mail.headers = repr(headers)
-        sent = self.filtered(lambda mail: mail.state == "sent")
-        if sent:
-            sent._plasticos_stamp_dispatch_sent()
+    @staticmethod
+    def _plasticos_header_map(raw):
+        """Headers stored on a mail.mail, as a dict; anything unreadable is no header."""
+        if not raw:
+            return {}
+        for parse in (json.loads, ast.literal_eval):
+            try:
+                value = parse(raw)
+            except (ValueError, SyntaxError, TypeError):
+                continue
+            if isinstance(value, dict):
+                return value
+        return {}
 
     def _plasticos_dispatch_packet_loads(self):
-        packets = self.filtered(
-            lambda mail: mail.model == PLASTICOS_LOAD and DISPATCH_PACKET_HEADER in (mail.headers or "")
-        )
-        return self.env[PLASTICOS_LOAD].browse(packets.mapped("res_id")).exists()
+        """Loads whose own packet mail this is: header value must name the mail's own load."""
+        load_ids = []
+        for mail in self:
+            if mail.model != PLASTICOS_LOAD or not mail.res_id:
+                continue
+            marker = self._plasticos_header_map(mail.headers).get(DISPATCH_PACKET_HEADER)
+            if marker == f"{DISPATCH_PACKET_VALUE}:{mail.res_id}":
+                load_ids.append(mail.res_id)
+        return self.env[PLASTICOS_LOAD].browse(load_ids).exists()
 
     def _plasticos_stamp_dispatch_sent(self):
         """First confirmed send of a dispatch packet starts the acknowledgement clock."""

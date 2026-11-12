@@ -14,6 +14,8 @@ Ordinary composers, and internal notes that email no one, are untouched.
 from odoo import _, models
 from odoo.exceptions import LockError, UserError
 
+from .mail_mail_inherit import DISPATCH_PACKET_SEND_CONTEXT
+
 PLASTICOS_LOAD = "plasticos.load"
 # Physical operation (PHYSICAL_RELEASE_OPERATIONS in load.py) whose confirmed send starts the ACK clock.
 DISPATCH_PACKET_OPERATION = "dispatch_packet"
@@ -76,31 +78,16 @@ class MailComposeMessagePlasticosLoad(models.TransientModel):
         # (runtime evidence C03-REAUTH-1), so the refusal lives on this path too.
         self._plasticos_refuse_scheduled_release()
         self._plasticos_recheck_load_release()
-        packet_loads = self.env[PLASTICOS_LOAD]
-        for wizard in self._plasticos_release_wizards():
-            if wizard._plasticos_load_release_operation() == DISPATCH_PACKET_OPERATION:
-                packet_loads |= self.env[PLASTICOS_LOAD].browse(wizard._evaluate_res_ids()).exists()
-        result = super()._action_send_mail(auto_commit=auto_commit)
-        if packet_loads:
-            self._plasticos_mark_dispatch_packet_mail(packet_loads, result[1] if isinstance(result, tuple) else None)
-        return result
-
-    def _plasticos_mark_dispatch_packet_mail(self, loads, messages):
-        """Tag the outgoing packet mail so its confirmed send starts the ACK clock (S4, V10).
-
-        Queueing is not sending: ``dispatch_sent`` is stamped by ``mail.mail`` only when
-        native transport reports this mail sent, never here.
-        """
-        if not messages:
-            # Only the messages this send produced are tagged; never older load mail.
-            return
-        messages = messages.filtered(lambda message: message.model == PLASTICOS_LOAD and message.res_id in loads.ids)
-        mails = (
-            self.env["mail.mail"]
-            .sudo()  # sudo: the composer tags only the outgoing mail it just created for these loads
-            .search([("mail_message_id", "in", messages.ids)])
+        packets = any(
+            wizard._plasticos_load_release_operation() == DISPATCH_PACKET_OPERATION
+            for wizard in self._plasticos_release_wizards()
         )
-        mails._plasticos_tag_dispatch_packet()
+        if not packets:
+            return super()._action_send_mail(auto_commit=auto_commit)
+        # plasticos.load._notify_by_email_get_headers tags the notification mail it builds
+        # under this key, so only the confirmed send of this packet starts the ACK clock (V10).
+        composer = self.with_context(**{DISPATCH_PACKET_SEND_CONTEXT: True})
+        return super(MailComposeMessagePlasticosLoad, composer)._action_send_mail(auto_commit=auto_commit)
 
     def _action_schedule_message(self):
         if self._plasticos_release_wizards():
