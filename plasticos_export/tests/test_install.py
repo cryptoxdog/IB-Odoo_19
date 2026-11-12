@@ -18,7 +18,7 @@ from odoo.modules.module import get_module_path
 from odoo.tests import TransactionCase, tagged
 
 MODULE = "plasticos_export"
-VERSION = "19.0.1.1.0"
+VERSION = "19.0.1.1.1"
 DEPENDS = [
     "base_automation",
     "plasticos_documents",
