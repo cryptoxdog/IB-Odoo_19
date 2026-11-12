@@ -1,6 +1,6 @@
 # S6 primary rules: witness review
 
-Branch feat/plasticos-export-s6-proof. Witness methods were re-verified at the final code head of PR #480 (every named method exists, checked with an AST check). A test is named as a witness only after its assertions were read.
+Branch feat/plasticos-export-s6-proof. Witness methods were re-verified at addon head 2b0ba4cd52f2a4e1f564f1cb9610046a0e656d32: all 155 named witness methods exist, checked with an AST check. No addon file changed after that head; the B2 fix touches only scripts/test_env.sh and tests/test_test_env_safety.py. A test is named as a witness only after its assertions were read.
 Result: 1 of 18 has a cited witness: BRS-EXP-14-R008, and that witness is partial. 3 of 18 are NOT_RUN with a real blocker. BRS-EXP-01-R005 has no CE environment. BRS-EXP-06-R004 and BRS-EXP-06-R005 are governance and process rules proven by review. The other 14 are DEFERRED_COVERAGE_DEBT: no witness test exists yet, and the coordinator records them for the final campaign audit.
 
 **Coverage labels (coordinator ruling on PR #480):** NOT_RUN is used only where a real blocker exists. That covers BRS-EXP-01-R005 (no CE environment) and BRS-EXP-06-R004/R005 (governance and process). Every other uncited rule is DEFERRED_COVERAGE_DEBT. Its witness would live in `plasticos_export/tests/`, and it is deferred to the final campaign audit rather than written in S6.
