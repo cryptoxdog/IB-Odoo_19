@@ -87,6 +87,14 @@ Concurrent commits planning on one PO or SO line serialize on one Export-owned r
 - Sales Rep see-all (C11-SCOPE-3). Booking search by container and seal goes through the slot's own fields. Only readers of the container journey (Logistics, Operations Manager, System) get an openable journey and the Open Container Journey button. The Export dialog offers a user outside Logistics no cargo-link source link and, outside the journey readers, no slot journey; the `*_ref` names stay exportable.
 - Legacy booking report (`BRS-EXP-14-R011`). `_legacy_booking_report_groups()` lays live cargo links out under the 43 legacy headings, grouped by booking. Every cell is a value or an explicit Missing, Unknown, Not recorded, Not mapped, Phase 2 or Restricted marker. It only reads. `tests/data/` holds a synthetic 43-heading workbook, its generator and the heading inventory.
 
+`19.0.1.3.0` (slice S12, contract `PLASTICOS-EXPORT-C13-S12-ALIGNMENT-CLEANUP`) aligns the displays:
+
+- Container facts are read only through `plasticos.iso.journey.current_facts()`, the Logistics current-fact helper (S11), as the acting user. A corrected fact shows its current revision.
+- For a reader of the journey facts, the shipment history lists every earlier revision with its correction reason, its author and the time. A non-reader still sees Restricted.
+- `planned_quantity` is never summed across units. The cargo pivot measures `planned_weight_lb`, converted through the native unit of measure. A unit that is not a weight is excluded and flagged in `planned_weight_basis`.
+- Slots order numerically through the stored `slot_number`, so `40HC-10` follows `40HC-9`.
+- The Commit Cargo screen defaults the planned unit to lb.
+
 Quantities use native `uom.uom` records. Pounds are `uom.product_uom_lb` (shipped inactive by Odoo 19 `uom`; Export references it and creates no unit). Odoo 19 has no US short ton record; `uom.product_uom_ton` is the metric tonne.
 
 ## Installation
@@ -106,7 +114,7 @@ The campaign pack stays the provenance. Its private operator originals (`EXPORT_
 ## Tests
 
 - Pure Python: `tests/contracts/test_export_brs_registry.py` and the Export checks in `tests/test_repo_dependency_integrity.py`.
-- Odoo runtime, in `plasticos_export/tests/`: `test_install.py` (install witness), `test_booking_and_revision.py` (E1/E2), `test_booking_allocation.py` (E3/E4, PHASE1 gate case, release hold, live PO constraints), `test_document_obligations.py` (E1/E2 obligations per operation kind), `test_export_owner_handoff.py` (Linda, E3, E6, reply trigger, no shadow writer), `test_views_and_reports.py` (six reports, QWeb), `test_multicompany_permissions.py` (company access; the Sales Rep allocation audience of 2026-11-12). `native_fixture.py` builds a native Enterprise fixture (30-load SO, 4-load supplier POs, weekly receipts with backorders, a partial delivery, a posted invoice, a verified document); on it `test_native_coverage.py` witnesses the deferred rules of S8 and `test_allocation_guard.py` witnesses `BRS-EXP-08-R006`. S10 adds `test_owner_facts.py` (owner facts, trade label), `test_manual_booking_candidate.py` (manual booking entry), `test_slot_command_screens.py` (Commit Cargo, Release Cargo and Bind Container screens) and `test_legacy_booking_report.py` (43-heading conformance). Each test names the BRS rules it witnesses.
+- Odoo runtime, in `plasticos_export/tests/`: `test_install.py` (install witness), `test_booking_and_revision.py` (E1/E2), `test_booking_allocation.py` (E3/E4, PHASE1 gate case, release hold, live PO constraints), `test_document_obligations.py` (E1/E2 obligations per operation kind), `test_export_owner_handoff.py` (Linda, E3, E6, reply trigger, no shadow writer), `test_views_and_reports.py` (six reports, QWeb), `test_multicompany_permissions.py` (company access; the Sales Rep allocation audience of 2026-11-12). `native_fixture.py` builds a native Enterprise fixture (30-load SO, 4-load supplier POs, weekly receipts with backorders, a partial delivery, a posted invoice, a verified document); on it `test_native_coverage.py` witnesses the deferred rules of S8 and `test_allocation_guard.py` witnesses `BRS-EXP-08-R006`. S10 adds `test_owner_facts.py` (owner facts, trade label), `test_manual_booking_candidate.py` (manual booking entry), `test_slot_command_screens.py` (Commit Cargo, Release Cargo and Bind Container screens) and `test_legacy_booking_report.py` (43-heading conformance). S12 adds `test_display_alignment.py` (units, slot order, lb default, supplier count) and `test_module_pages.py` (module pages). Each test names the BRS rules it witnesses.
 
 ## Read next
 

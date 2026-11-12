@@ -1,0 +1,23 @@
+effect_id,rule_id,aspect,witness
+OP12-E01,BRS-EXP-07-R006,positive,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_e01_reader_sees_the_current_revision_and_the_correction_with_its_reason
+OP12-E01,BRS-EXP-07-R006,negative,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_e01_negative_non_reader_sees_restricted_and_no_correction
+OP12-E01,BRS-EXP-08-R007,positive,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_e01_unrecorded_kind_is_absent_not_a_stale_revision
+OP12-E02a,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02a_planned_quantity_has_no_cross_unit_aggregate
+OP12-E02a,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02a_lb_weight_converts_kg_lb_ton_and_short_ton
+OP12-E02a,operator 2026-11-12 (B) display alignment,negative,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02a_negative_non_weight_unit_is_excluded_and_flagged
+OP12-E02b,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02b_twelve_slots_order_one_to_twelve
+OP12-E02b,operator 2026-11-12 (B) display alignment,negative,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02b_negative_string_order_would_misplace_slot_ten
+OP12-E02b,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02b_reduction_retires_the_highest_numbered_free_slot
+OP12-E02c,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02c_commit_screen_defaults_the_unit_to_lb
+OP12-E02c,BRS-EXP-14-R016,negative,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_commit_screen_shows_the_command_refusal
+OP12-E02d,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02d_supplier_count_is_the_same_for_every_reader
+OP12-E03,BRS-EXP-02-R006,positive,tests/test_erp_native_orders.py::test_incoterm_crosswalk_maps_only_the_literal_fas_and_skips_the_do_not_use_basis
+OP12-E03,BRS-EXP-02-R006,negative,tests/test_erp_native_orders.py::test_domestic_shipping_point_bases_are_declined_not_mapped_to_fob
+OP12-E03,BRS-EXP-02-R006,positive,plasticos_transaction/tests/test_erp_worksheet_import.py::TestErpWorksheetImport::test_domestic_fob_basis_sets_no_incoterm_and_fas_maps_to_fas
+OP12-E03,BRS-EXP-02-R006,negative,plasticos_transaction/tests/test_erp_worksheet_import.py::TestErpWorksheetImport::test_domestic_fob_basis_never_rewrites_an_already_imported_order
+OP12-E03,BRS-EXP-02-R006,positive,tests/production-rehearsal/test_fidelity.py::test_empty_header_uses_the_last_worksheet_basis_for_the_five_rehearsal_orders
+OP12-E03,BRS-EXP-02-R006,positive,tests/production-rehearsal/test_fidelity.py::test_header_basis_blocks_a_later_worksheet_and_string_order_is_the_importer_order
+OP12-E04,none (module pages),positive,tests/test_module_descriptions.py::test_module_page_source_carries_no_readme_front_matter
+OP12-E04,none (module pages),negative,tests/test_module_descriptions.py::test_front_matter_detection_is_not_vacuous
+OP12-E04,none (module pages),positive,plasticos_export/tests/test_module_pages.py::TestModulePages::test_every_plasticos_module_page_renders_without_front_matter
+OP12-E04,none (module pages),negative,plasticos_export/tests/test_module_pages.py::TestModulePages::test_the_check_detects_front_matter_when_a_page_would_show_it
