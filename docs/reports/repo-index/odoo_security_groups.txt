@@ -1,3 +1,4 @@
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/security/groups.xml:2:  <record id="group_broker_reviewer" model="res.groups">
 ./plasticos_automation/security/security.xml:15:        <record id="group_plasticos_automation_manager" model="res.groups">
 ./plasticos_automation/security/security.xml:24:        <record id="group_logistics_automation_manager" model="res.groups">
 ./plasticos_claims/security/claims_security.xml:14:    <record id="group_claims_user" model="res.groups">
