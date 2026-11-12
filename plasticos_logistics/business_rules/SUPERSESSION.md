@@ -136,6 +136,15 @@ The seven clauses keep their source text in `plasticos_documents`. Their clocks 
 | `BRS-EXP-11-R010` | A Linda reply comes from a supplier or the load's road carrier, so no cited Linda reply supports a `gate_accepted` or `sailed` proposal. The supplier role wins over the carrier role when the same party hauls its own load. Open operator decision (N9): without a cited Linda reply `asserted_by` is the proposer's own label, and the same Logistics user may propose and accept; attachment provenance and separation of duties are not enforced in this slice. |
 | `BRS-EXP-08-R007` | Journey facts are readable only by Logistics, Operations Manager and System. A recorded fact has no correction path in this slice; correcting or superseding one (re-weigh, rolled booking, superseded verdict) is an open operator decision. |
 
+## 2026-11-12 Export campaign S11: journey-fact corrections and the Linda sweep cursor
+
+**Source:** operator decisions 2026-11-12 (journey facts may be corrected with a mandatory reason; no second approver for humans; clean up the Linda sweep cursor) and contract `PLASTICOS-EXPORT-C12-S11-FACT-CORRECTIONS-LINDA-APPROVAL`. This section adds to the two S9 sections above and supersedes the S9 addendum's `BRS-EXP-08-R007` sentence "A recorded fact has no correction path in this slice". It edits no source BRS file.
+
+| Rule ID | Amended interpretation (2026-11-12) |
+| --- | --- |
+| `BRS-EXP-08-R007` | A recorded journey fact may be corrected with `plasticos.iso.journey.fact.action_correct_fact`, which records revision `n + 1` of the same kind with the revision it supersedes, a required reason, its author, its time and its operation key. The superseded row is never written or deleted. Every row is unique on journey, kind and revision; facts recorded before S11 are revision 1. A correction passes the same guards as the first record (the original attached to the journey in its company, visible same-company parties, gate-in before departure, a weight unit and, for a Documents basis, the applied VGM verdict about the same journey); an empty reason, a correction that changes nothing, a stale revision and a reused operation key are refused. The current fact of a kind is its highest revision, read through `plasticos.iso.journey.current_facts()` / `current_fact()`. A human Logistics user needs no second approver. |
+| `BRS-EXP-11-R010` | The Linda load-obligation sweep keeps its page cursor in `plasticos.linda.sweep.cursor`, one row per lane and company, and writes no `ir.config_parameter`. Migration 19.0.1.14.24 moved the stored `plasticos_logistics.linda_load_sweep_cursor.<lane>` values once and removed them. The pages, their order and their wrap are unchanged. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.
