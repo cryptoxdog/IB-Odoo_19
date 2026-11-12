@@ -287,7 +287,7 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
             booking.with_user(self.actor).unlink()
 
     def test_times_keep_their_zone_and_precision(self):
-        """BRS-EXP-02-R003, BRS-EXP-13-R002, BRS-EXP-14-R007: UTC only from date, time and zone; nothing borrowed."""
+        """BRS-EXP-02-R003, BRS-EXP-11-R004, BRS-EXP-13-R002, BRS-EXP-14-R007: UTC only from date, time and zone."""
         booking, revision = self.accepted_booking(confirmed=1)
         self.assertEqual(revision.erd_precision, "datetime")
         self.assertEqual(revision.erd_tz, "America/New_York")
@@ -300,6 +300,23 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(unknown_with_value["status"], "blocked")
         bad_zone = self.candidate(booking, terms=self.terms(erd_tz="Mars/Base"))
         self.assertEqual(bad_zone["status"], "blocked")
+
+    def test_other_places_and_references_stay_distinct_source_terms(self):
+        """BRS-EXP-13-R004, BRS-EXP-13-R006, BRS-EXP-11-R004: each place keeps its own label; none is borrowed."""
+        places = {
+            "place_of_receipt": "Dalton, GA",
+            "empty_pickup_facility": "Garden City Terminal",
+            "loaded_return_terminal": "Ocean Terminal",
+            "rail_ramp": None,
+            "booking_contact": "desk@s5b-fwd.example",
+            "max_cargo_weight_lb": "44000",
+        }
+        booking = self.make_booking()
+        recorded = self.candidate(booking, terms=self.terms(additional_terms=places))
+        revision = self.env[REVISION].browse(recorded["record_id"])
+        self.assertEqual(revision.additional_terms, places)
+        self.assertEqual((revision.pol_text, revision.pod_text), ("Savannah, GA", "Haiphong"))
+        self.assertIsNone(revision.additional_terms["rail_ramp"])
 
     def test_acceptance_needs_identity_and_a_new_number_is_not_a_revision(self):
         """BRS-EXP-02-R001, BRS-EXP-08-R005: issuer, number and booking cycle; a replacement is another booking."""

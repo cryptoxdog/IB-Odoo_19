@@ -3,6 +3,11 @@
 Native Odoo list, pivot, graph and QWeb only. Each report has one grain, so a
 container with two feeders is one availability row and two manifest rows. No
 outbound mail.
+
+BRS-EXP-14-R011: NOT_RUN (blocked). Its comparison fixture is the operator's
+private ``booking report.xlsx`` (EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/),
+which is evidence for the rule authors and not module payload; nothing in this
+addon reads or ships it. It runs when the operator supplies a redacted copy.
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -75,7 +80,10 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
         return booking, first, slot
 
     def test_six_reports_have_their_actions_menus_and_grain(self):
-        """BRS-EXP-14-R017, BRS-EXP-14-R021, BRS-EXP-14-R022, BRS-EXP-04-R005: six stable report entries."""
+        """BRS-EXP-14-R001, BRS-EXP-14-R017, BRS-EXP-14-R021, BRS-EXP-14-R022, BRS-EXP-04-R005: six native entries."""
+        for model in (BOOKING, SLOT, LINK, "plasticos.export.booking.revision"):
+            self.assertTrue(self.env[model]._auto, model)
+            self.assertFalse(self.env[model]._table_query, model)
         reporting = self.env.ref("plasticos_export.menu_export_reporting")
         self.assertEqual(
             sorted(reporting.child_id.mapped("name")), sorted(name for name, _model in SIX_REPORTS.values())
@@ -93,7 +101,7 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
         self.assertNotIn("aes", names)
 
     def test_report_rows_are_not_inflated_by_joins(self):
-        """V15, BRS-EXP-14-R002, BRS-EXP-14-R003, BRS-EXP-14-R009: slot grain counts containers once."""
+        """V15, BRS-EXP-14-R002, BRS-EXP-14-R003, BRS-EXP-14-R009, BRS-EXP-02-R005: one grain; derived exceptions."""
         booking, _first, slot = self._scenario()
         Slot = self.env[SLOT].with_user(self.actor)
         counts = dict(Slot._read_group([("booking_id", "=", booking.id)], ["allocation_state"], ["__count"]))
@@ -105,11 +113,19 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(Slot.search(safe_eval(register.domain)), slot)
         exceptions = self.env.ref("plasticos_export.action_export_report_exceptions")
         self.assertIn(booking, self.env[BOOKING].search(safe_eval(exceptions.domain)))
+        self.assertFalse(booking.current_cargo_cutoff_utc)  # date-only cutoff: an exception, never a guessed instant
+        unaccepted = self.make_booking()
+        self.assertIn(unaccepted, self.env[BOOKING].search(safe_eval(exceptions.domain)))
         missing = self.env.ref("plasticos_export.action_export_report_missing_documents")
         self.assertIn("booking_confirmation", missing.domain)
 
     def test_views_load_and_filters_evaluate(self):
-        """BRS-EXP-14-R004, BRS-EXP-14-R005, BRS-EXP-14-R018, BRS-EXP-14-R019: native views; saved filters run."""
+        """BRS-EXP-14-R004, BRS-EXP-14-R005, BRS-EXP-14-R018, BRS-EXP-14-R019, BRS-EXP-13-R009: native views."""
+        form = self.env.ref("plasticos_export.view_export_booking_form")
+        from lxml import etree as _etree
+
+        pages = [page.get("name") for page in _etree.fromstring(form.arch).iter("page")]
+        self.assertEqual(pages, ["revisions", "shipments"])
         booking, _first, _slot = self._scenario()
         for model, types in (
             (BOOKING, ["list", "form", "search", "calendar"]),
@@ -131,7 +147,7 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
         self.assertIn(booking, Booking.search([("slot_ids.supplier_count", ">", 1)]))
 
     def test_booking_summary_renders_currentness_and_never_an_unreviewed_candidate(self):
-        """BRS-EXP-14-R010, BRS-EXP-13-R010, BRS-EXP-03-R004: roll prints history; candidates are not terms."""
+        """BRS-EXP-14-R010, BRS-EXP-13-R010, BRS-EXP-03-R004, BRS-EXP-11-R012, BRS-EXP-14-R006: source and history."""
         booking, first, _slot = self._scenario()
         html, _kind = (
             self.env["ir.actions.report"]
@@ -147,6 +163,8 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
         self.assertNotIn("Nowhere", text)
         self.assertIn("2026-10-12 08:00", text)
         self.assertIn("America/New_York", text)
+        self.assertIn("booking-confirmation.pdf", text)  # which original supplied the current terms
+        self.assertIn("not stated", text)  # no steamship line in the source: shown as such, never fabricated
 
     def test_container_manifest_renders_two_feeders_and_no_inferred_movement(self):
         """BRS-EXP-14-R002, BRS-EXP-07-R008, BRS-EXP-13-R005: one container, two planned sources."""
