@@ -20,8 +20,11 @@ supplier's "booking complete", a loaded event or a gate appointment is not a
 gate-in, and a gate-in is not a sailing.
 """
 
+import psycopg2
+
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
+from odoo.tools import float_compare, float_round
 
 from .iso_journey import _check_company_allowed, _lock, _normalize_text, _require_logistics_actor, _result
 
@@ -41,6 +44,7 @@ _KIND_FACTS = {
 WEIGHT_KINDS = ("container_tare", "verified_gross_mass")
 # Documents owns verification; it depends on Logistics, so it is a soft reference here.
 DOCUMENT = "plasticos.document"
+WEIGHT_DIGITS = 3
 VGM_OBLIGATION = "verified_gross_mass"
 
 
@@ -82,7 +86,9 @@ class PlasticosIsoJourneyFact(models.Model):
         ondelete="restrict",
         help="Party that takes physical delivery at destination. Never set or changed by a buyer allocation.",
     )
-    weight = fields.Float(readonly=True, digits=(16, 3), help="Tare or VGM weight, as the evidence states it.")
+    weight = fields.Float(
+        readonly=True, digits=(16, WEIGHT_DIGITS), help="Tare or VGM weight, as the evidence states it."
+    )
     weight_uom_id = fields.Many2one("uom.uom", string="Weight Unit", readonly=True, ondelete="restrict")
     weight_basis = fields.Selection(
         [("scale_ticket", "Scale Ticket"), ("documents_verified_gross_mass", "Documents VGM Verdict")],
@@ -189,24 +195,59 @@ class PlasticosIsoJourneyFact(models.Model):
             return value.id or False
         return value or False
 
+    def _same_fact(self, name, value):
+        """Replay comparison at stored precision."""
+        if name == "weight":
+            return float_compare(self.weight, value or 0.0, precision_digits=WEIGHT_DIGITS) == 0
+        return self._value(name) == (value or False)
+
+    @api.model
+    def _partner_error(self, partner, journey, label):
+        """The actor must be able to read the party, and it must be shared or in the journey's company."""
+        try:
+            partner.check_access("read")
+        except AccessError:
+            return f"the {label} is not visible to you"
+        if partner.company_id and partner.company_id != journey.company_id:
+            return f"the {label} belongs to another company"
+        return None
+
+    @api.model
+    def _existing_result(self, journey, kind, facts):
+        existing = self.search([("journey_id", "=", journey.id), ("fact_kind", "=", kind)], limit=1)
+        if not existing:
+            return None
+        if all(existing._same_fact(name, facts.get(name)) for name in _KIND_FACTS[kind]):
+            return _result("already_applied", existing)
+        return _result("blocked", existing, f"this container journey's {kind.replace('_', ' ')} is recorded")
+
     @api.model
     def _record(self, journey, kind, facts):
-        """Record one fact once. The same facts replay; different facts are refused."""
-        existing = self.search([("journey_id", "=", journey.id), ("fact_kind", "=", kind)], limit=1)
+        """Record one fact once. The same facts replay; different facts are refused.
+
+        A concurrent duplicate that wins the unique index first is answered from the
+        row it wrote, never with a raw IntegrityError.
+        """
+        existing = self._existing_result(journey, kind, facts)
         if existing:
-            if all(existing._value(name) == (facts.get(name) or False) for name in _KIND_FACTS[kind]):
-                return _result("already_applied", existing)
-            return _result("blocked", existing, f"this container journey's {kind.replace('_', ' ')} is recorded")
-        fact = self.with_context(**{_RECORD_WRITE: _RECORD_WRITE_TOKEN}).create(
-            {
-                **facts,
-                "journey_id": journey.id,
-                "company_id": journey.company_id.id,
-                "fact_kind": kind,
-                "recorded_at": fields.Datetime.now(),
-                "recorded_by": self.env.user.id,
-            }
-        )
+            return existing
+        try:
+            with self.env.cr.savepoint():
+                fact = self.with_context(**{_RECORD_WRITE: _RECORD_WRITE_TOKEN}).create(
+                    {
+                        **facts,
+                        "journey_id": journey.id,
+                        "company_id": journey.company_id.id,
+                        "fact_kind": kind,
+                        "recorded_at": fields.Datetime.now(),
+                        "recorded_by": self.env.user.id,
+                    }
+                )
+        except psycopg2.IntegrityError:
+            self.env.invalidate_all()
+            return self._existing_result(journey, kind, facts) or _result(
+                "blocked", journey, "a concurrent record of this fact could not be read back"
+            )
         return _result("applied", fact)
 
     @api.model
@@ -224,6 +265,9 @@ class PlasticosIsoJourneyFact(models.Model):
         facility = self.env[RES_PARTNER].browse(int(facility_partner_id or 0)).exists()
         if error or not facility:
             return _result("blocked", journey, error or "the gate-in facility is required")
+        error = self._partner_error(facility, journey, "gate-in facility")
+        if error:
+            return _result("blocked", journey, error)
         return self._record(
             journey,
             "gate_in",
@@ -269,6 +313,10 @@ class PlasticosIsoJourneyFact(models.Model):
         delivery = partners.browse(int(delivery_partner_id or 0)).exists()
         if not filer and not delivery:
             return _result("blocked", journey, "name the customs filer or the delivery partner")
+        for partner, label in ((filer, "customs filer"), (delivery, "delivery partner")):
+            error = partner and self._partner_error(partner, journey, label)
+            if error:
+                return _result("blocked", journey, error)
         return self._record(
             journey,
             "regulatory_parties",
@@ -299,19 +347,30 @@ class PlasticosIsoJourneyFact(models.Model):
         """
         if DOCUMENT not in self.env:
             return None, None, ("not_available", "the Documents verification owner is not installed")
-        verdict = self.env[DOCUMENT].get_scoped_evidence_verdict(
-            journey.company_id.id, PLASTICOS_ISO_JOURNEY, journey.id, VGM_OBLIGATION, revision_key
-        )
+        documents = self.env[DOCUMENT]
+        if VGM_OBLIGATION not in documents._scoped_obligation_kinds():
+            # Documents is installed but no owner (Export) declares the VGM obligation.
+            return None, None, ("not_available", "no installed owner declares the verified_gross_mass obligation")
+        try:
+            verdict = documents.get_scoped_evidence_verdict(
+                journey.company_id.id, PLASTICOS_ISO_JOURNEY, journey.id, VGM_OBLIGATION, revision_key
+            )
+        except AccessError:
+            return None, None, ("blocked", "the Documents verdict is not visible to you")
         if verdict.get("status") != "applied" or not verdict.get("record_id"):
             reason = verdict.get("reason") or verdict.get("status")
             return None, None, ("blocked", f"the Documents verified_gross_mass verdict is not applied: {reason}")
-        document = self.env[DOCUMENT].browse(int(verdict["record_id"])).exists()
+        document = documents.browse(int(verdict["record_id"])).exists()
         if not document:
             return None, None, ("blocked", "the verified Documents record does not exist")
+        try:
+            document.check_access("read")
+        except AccessError:
+            return None, None, ("blocked", "the verified Documents record is not visible to you")
         if document.res_model != PLASTICOS_ISO_JOURNEY or document.res_id != journey.id:
             return None, None, ("blocked", "the verified Documents record is not about this container journey")
-        if document.subject_company_id and document.subject_company_id != journey.company_id:
-            return None, None, ("blocked", "the verified Documents record belongs to another company")
+        if document.subject_company_id != journey.company_id:
+            return None, None, ("blocked", "the verified Documents record is not established in this company")
         if not document.attachment_id:
             return None, None, ("blocked", "the verified Documents record has no original")
         return document.id, document.attachment_id, None
@@ -324,6 +383,9 @@ class PlasticosIsoJourneyFact(models.Model):
         documents_basis = weight_basis == "documents_verified_gross_mass"
         if weight_basis not in ("scale_ticket", "documents_verified_gross_mass"):
             return _result("blocked", reason="a tare or VGM weight needs a scale ticket or the Documents VGM verdict")
+        if documents_basis and kind != "verified_gross_mass":
+            # A VGM verdict proves gross mass only; it is not a tare measurement.
+            return _result("blocked", reason="the Documents VGM verdict attests gross mass, not container tare")
         journey, attachment, blocked = self._preconditions(
             journey_id, evidence_attachment_id, key, attachment_required=not documents_basis
         )
@@ -336,6 +398,7 @@ class PlasticosIsoJourneyFact(models.Model):
             weight = float(weight or 0.0)
         except (TypeError, ValueError):
             weight = 0.0
+        weight = float_round(weight, precision_digits=WEIGHT_DIGITS)
         if weight <= 0:
             return _result("blocked", journey, "a weight must be positive")
         uom = self.env["uom.uom"].browse(int(weight_uom_id or 0)).exists()

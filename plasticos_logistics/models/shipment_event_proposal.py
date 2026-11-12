@@ -24,8 +24,12 @@ A supplier's "booking complete" is supplier-reported: it may support a
 gate-in or a sailing, and it never touches the sibling loads of the same order.
 """
 
+import uuid
+
+import psycopg2
+
 from odoo import api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 from .iso_journey import _check_company_allowed, _normalize_text, _require_logistics_actor, _result
 
@@ -37,6 +41,15 @@ RES_PARTNER = "res.partner"
 _DECISION_WRITE = "plasticos_shipment_event_proposal_decision"
 _DECISION_WRITE_TOKEN = object()
 
+# Linda dispositions that still identify a current reply on the right request.
+_USABLE_DISPOSITIONS = frozenset({"identity_unverified", "unresolved"})
+# Who a Linda request was addressed to decides who its reply speaks for. Linda never
+# writes to a terminal, so a reply is never terminal-issued.
+_SUPPLIER_PURPOSES = frozenset({"po_issue", "po_cancel"})
+_CARRIER_PURPOSES = frozenset(
+    {"booking_issue", "booking_amend", "booking_cancel", "load_ack_notice", "load_ack_escalation", "document_chase"}
+)
+_DECISION_FIELDS = ("state", "command_status", "decision_note", "decided_at", "decided_by")
 _LOAD_EVENTS = frozenset({"supplier_ready", "loaded"})
 _JOURNEY_EVENTS = frozenset({"gate_accepted", "sailed"})
 # Who may attest each event. A supplier cannot attest a terminal gate-in or a sailing.
@@ -115,7 +128,12 @@ class PlasticosShipmentEventProposal(models.Model):
         help="Who states the event in the source. A supplier report never attests gate-in or a sailing.",
     )
     source_reference = fields.Char(help="Reference in the source, e.g. a scale ticket or an email subject.")
-    operation_key = fields.Char(required=True, index=True, help="Caller's idempotency key for proposing.")
+    operation_key = fields.Char(
+        required=True,
+        index=True,
+        default=lambda self: f"form:{uuid.uuid4()}",
+        help="Idempotency key for proposing. The form generates one; a caller may pass its own.",
+    )
     state = fields.Selection(
         [("candidate", "Candidate"), ("accepted", "Accepted"), ("rejected", "Rejected")],
         required=True,
@@ -167,12 +185,13 @@ class PlasticosShipmentEventProposal(models.Model):
     def create(self, vals_list):
         _require_logistics_actor(self.env)
         for vals in vals_list:
-            if vals.get("state", "candidate") != "candidate" or vals.get("command_status") or vals.get("decided_by"):
+            if vals.get("state", "candidate") != "candidate" or any(vals.get(name) for name in _DECISION_FIELDS[1:]):
                 raise UserError("A shipment event proposal starts as a candidate; accept it to run the owner command.")
             subject = self._subject_from_vals(vals)
             if subject and not vals.get("company_id"):
                 vals["company_id"] = subject.company_id.id
-            vals["operation_key"] = _normalize_text(vals.get("operation_key"))
+            if "operation_key" in vals:
+                vals["operation_key"] = _normalize_text(vals["operation_key"])
         records = super().create(vals_list)
         for rec in records:
             error = rec._proposal_error()
@@ -218,20 +237,88 @@ class PlasticosShipmentEventProposal(models.Model):
                 "A supplier's booking-complete note is not a terminal gate-in or a sailing."
             )
         attachment = self.evidence_attachment_id
-        attachment.check_access("read")
+        try:
+            attachment.check_access("read")
+        except AccessError:
+            return "The evidence is not visible to you."
         if attachment.res_model != subject._name or attachment.res_id != subject.id:
             return "Attach the original to the proposal's load or container journey first."
         if attachment.company_id and attachment.company_id != self.company_id:
             return "Proposal evidence belongs to another company."
-        response = self.linda_response_id
-        if response and response.company_id != self.company_id:
-            return "The Linda reply belongs to another company."
+        error = self._linda_response_error()
+        if error:
+            return error
         if self.event_kind != "supplier_ready" and not self.occurred_at:
             return "A loaded, gate-in or sailing proposal needs the time it happened."
         if self.event_kind == "gate_accepted" and not self.facility_partner_id:
             return "A gate-in proposal names the terminal or rail ramp."
+        facility = self.facility_partner_id
+        if facility:
+            try:
+                facility.check_access("read")
+            except AccessError:
+                return "The gate-in facility is not visible to you."
+            if facility.company_id and facility.company_id != self.company_id:
+                return "The gate-in facility belongs to another company."
         if self.event_kind == "sailed" and not _normalize_text(self.vessel):
             return "A sailing proposal names the vessel."
+        return None
+
+    def _linda_response_error(self):
+        """A cited Linda reply must answer the current request about this exact shipment.
+
+        It must be bound to its current request, keep a usable disposition, and be
+        about this load (its typed source, its sale order or a purchase order of its
+        transaction) or, for a journey, about a load accepted as a source of it.
+        """
+        self.ensure_one()
+        response = self.linda_response_id
+        if not response:
+            return None
+        if response.company_id != self.company_id:
+            return "The Linda reply belongs to another company."
+        if response.binding != "current" or response.disposition not in _USABLE_DISPOSITIONS:
+            return "The Linda reply is stale, unbound or unattributed; it cannot support a shipment event."
+        loads = self._subject_loads()
+        if not any(self._response_is_about(response, load) for load in loads):
+            return "The Linda reply is not about this shipment."
+        asserter = self._linda_asserter(response, loads)
+        if not asserter:
+            return "The Linda reply's recipient is not a party that can attest this shipment event."
+        if self.asserted_by != asserter:
+            return (
+                f"The cited Linda reply answers a request sent to a {asserter.split('_')[0]}, so it is "
+                f"{asserter.replace('_', ' ')}, not {self.asserted_by.replace('_', ' ')}."
+            )
+        return None
+
+    def _subject_loads(self):
+        self.ensure_one()
+        if self.load_id:
+            return self.load_id
+        return self.journey_id.source_ids.filtered(
+            lambda source: source.state == "accepted" and source.source_kind == "load"
+        ).load_id
+
+    @staticmethod
+    def _response_is_about(response, load):
+        if response.source_kind == "load" and response.source_res_id == load.id:
+            return True
+        if response.sale_order_id and response.sale_order_id == load.sale_order_id:
+            return True
+        return bool(response.purchase_order_id and response.purchase_order_id in load.transaction_id.purchase_order_ids)
+
+    @staticmethod
+    def _linda_asserter(response, loads):
+        """Who the cited reply speaks for, from the answered request's recipient. None if no one who may attest."""
+        request = response.request_id
+        if not request:
+            return None
+        recipient = request.partner_id.commercial_partner_id
+        if request.purpose in _SUPPLIER_PURPOSES:
+            return "supplier_reported"
+        if request.purpose in _CARRIER_PURPOSES and recipient and recipient in loads.carrier_id.commercial_partner_id:
+            return "carrier_issued"
         return None
 
     # ── Commands ──────────────────────────────────────────────────────
@@ -255,6 +342,8 @@ class PlasticosShipmentEventProposal(models.Model):
         subject.check_access("read")
         company = subject.company_id
         existing = self.search([("company_id", "=", company.id), ("operation_key", "=", key)], limit=1)
+        if existing and existing.state == "rejected":
+            return {"status": "rejected", "record_id": existing.id, "reason": "this operation key was rejected"}
         if existing:
             same = all(
                 existing._stored_value(name) == existing._proposed_value(name, values.get(name))
@@ -271,6 +360,13 @@ class PlasticosShipmentEventProposal(models.Model):
         try:
             with self.env.cr.savepoint():
                 proposal = self.create({**values, "company_id": company.id, "operation_key": key})
+        except psycopg2.IntegrityError:
+            # A concurrent propose with the same key won; answer from its row.
+            self.env.invalidate_all()
+            winner = self.search([("company_id", "=", company.id), ("operation_key", "=", key)], limit=1)
+            if winner:
+                return self.action_propose_shipment_event(values, key)
+            return _result("blocked", reason="the proposal violates a database constraint")
         except (UserError, ValidationError) as error:
             return _result("blocked", reason=str(error.args[0] if error.args else error))
         return _result("applied", proposal)
@@ -322,6 +418,10 @@ class PlasticosShipmentEventProposal(models.Model):
         """Accept a candidate: the owner command runs with its own guards, then the proposal is decided."""
         _require_logistics_actor(self.env)
         for rec in self:
+            # Serialize a concurrent accept of the same proposal on its row, then re-read it.
+            # justification: the ORM has no SELECT FOR UPDATE.
+            self.env.cr.execute("SELECT id FROM plasticos_shipment_event_proposal WHERE id = %s FOR UPDATE", [rec.id])
+            rec.invalidate_recordset()
             if rec.state == "accepted":
                 continue
             if rec.state != "candidate":
