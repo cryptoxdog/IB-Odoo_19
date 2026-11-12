@@ -171,7 +171,7 @@ class PlasticosLogisticsRequestExport(models.Model):
             "revision_key": revision_key,
             "snapshot": snapshot,
             "attachment_ids": revision._original_attachment_ids(),
-            "source_fingerprint": revision.notice_fingerprint(),
+            "source_fingerprint": revision._notice_fingerprint(),
         }
 
 

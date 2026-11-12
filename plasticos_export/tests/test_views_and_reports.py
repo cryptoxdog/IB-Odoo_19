@@ -5,9 +5,10 @@ container with two feeders is one availability row and two manifest rows. No
 outbound mail.
 
 BRS-EXP-14-R011: NOT_RUN (blocked). Its comparison fixture is the operator's
-private ``booking report.xlsx`` (EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/),
-which is evidence for the rule authors and not module payload; nothing in this
-addon reads or ships it. It runs when the operator supplies a redacted copy.
+``booking report.xlsx`` and its 43-column mapping, both in the campaign pack
+(EXPORT_BRS/SOURCES/). Module tests may not read the campaign pack
+(tests/test_no_campaign_file_dependency.py) and the addon does not ship the
+fixture, so this rule runs once a copy is registered as module test data.
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -182,3 +183,34 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
         self.assertIn("Planned cargo only", text)
         for inferred in ("gate-in", "Gate In", "sailed", "Sailed", "shipped weight"):
             self.assertNotIn(inferred, text)
+
+    def test_date_only_cutoff_appears_on_the_deadline_calendar(self):
+        """C05 review D4, BRS-EXP-14-R019, BRS-EXP-02-R003: the stated local date, never a guessed instant."""
+        from datetime import date
+
+        from lxml import etree
+
+        booking, _revision = self.accepted_booking(confirmed=1)
+        self.assertFalse(booking.current_cargo_cutoff_utc)
+        self.assertEqual(booking.current_cargo_cutoff_date, date(2026, 10, 2))
+        calendar = etree.fromstring(self.env.ref("plasticos_export.view_export_booking_calendar").arch)
+        self.assertEqual(calendar.get("date_start"), "current_cargo_cutoff_date")
+        deadlines = self.env.ref("plasticos_export.action_export_booking_deadlines")
+        on_day = (
+            self.env[BOOKING]
+            .with_user(self.actor)
+            .search([*safe_eval(deadlines.domain), ("current_cargo_cutoff_date", "=", "2026-10-02")])
+        )
+        self.assertIn(booking, on_day)
+
+    def test_planned_quantities_are_never_summed_across_units(self):
+        """C05 review D5, BRS-EXP-14-R008: no list total and a per-unit pivot column."""
+        from lxml import etree
+
+        listing = etree.fromstring(self.env.ref("plasticos_export.view_export_cargo_link_list").arch)
+        planned = [node for node in listing.iter("field") if node.get("name") == "planned_quantity"]
+        self.assertTrue(planned)
+        self.assertFalse([node for node in planned if node.get("sum") or node.get("avg")])
+        pivot = etree.fromstring(self.env.ref("plasticos_export.view_export_cargo_link_pivot").arch)
+        columns = [node.get("name") for node in pivot.iter("field") if node.get("type") == "col"]
+        self.assertEqual(columns[:1], ["uom_id"])

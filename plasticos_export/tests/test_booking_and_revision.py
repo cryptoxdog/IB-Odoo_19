@@ -390,7 +390,7 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
             self.original(booking).id, False, "rev-x", self.terms(), self.key()
         )
         self.assertEqual(refused["status"], "not_available")
-        through_sudo = booking.sudo().record_booking_revision_candidate(
+        through_sudo = booking.sudo().record_booking_revision_candidate(  # sudo: proves the command refuses sudo
             self.original(booking).id, False, "rev-y", self.terms(), self.key()
         )
         self.assertEqual(through_sudo["status"], "not_available")
@@ -467,3 +467,24 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(skipped["status"], "blocked")
         self.assertIn("does not exist", skipped["reason"])
         self.assertFalse(booking.revision_ids)
+
+    def test_form_acceptance_compares_against_the_revision_the_user_saw(self):
+        """C05 review D2, V05: a stale form is refused; it never overwrites a newer accepted revision."""
+        booking, first = self.accepted_booking(confirmed=1)
+        seen_by_form = self.env[REVISION].browse(self.candidate(booking)["record_id"])
+        seen_by_form.with_user(self.actor).write({"review_note": "Reviewed against the carrier PDF"})
+        expected_when_opened = seen_by_form.booking_current_revision_id.id
+        self.assertEqual(expected_when_opened, first.id)
+        newer = self.candidate(booking)
+        self.assertEqual(self.accept(booking, newer["record_id"], expected=first.id)["status"], "applied")
+        stale_form = seen_by_form.with_user(self.actor).with_context(expected_current_revision_id=expected_when_opened)
+        with self.assertRaisesRegex(UserError, "stale"), self.env.cr.savepoint():
+            stale_form.action_accept_from_form()
+        with self.assertRaisesRegex(UserError, "Reload"), self.env.cr.savepoint():
+            seen_by_form.with_user(self.actor).action_accept_from_form()
+        self.assertEqual(booking.current_revision_id.id, newer["record_id"])
+        reloaded = seen_by_form.with_user(self.actor).with_context(
+            expected_current_revision_id=seen_by_form.booking_current_revision_id.id
+        )
+        self.assertTrue(reloaded.action_accept_from_form())
+        self.assertEqual(booking.current_revision_id, seen_by_form)

@@ -39,7 +39,10 @@ class TestBookingAllocation(ExportFixtureMixin, PlasticosTestCase):
     def _journey(self, equipment="40HC", iso="MSKU1234565", company=None, cycle=None):
         # Another company's journey is registered by Logistics of that company, here the superuser.
         Journey = self.env["plasticos.iso.journey"]
-        Journey = Journey.sudo() if company else Journey.with_user(self.actor)
+        if company:
+            Journey = Journey.sudo()  # sudo: fixture registers another company's journey
+        else:
+            Journey = Journey.with_user(self.actor)
         outcome = Journey.action_register_iso_journey(
             (company or self.company).id, cycle or self.key("iso-cycle"), equipment, False, iso, "SEAL-1", self.key()
         )
@@ -108,7 +111,7 @@ class TestBookingAllocation(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(nothing["status"], "blocked")
         foreign_order = (
             self.env["purchase.order"]
-            .sudo()
+            .sudo()  # sudo: test fixture creates another company's PO
             .create(
                 {
                     "partner_id": self.suppliers[0].id,

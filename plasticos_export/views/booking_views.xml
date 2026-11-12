@@ -20,6 +20,7 @@
                 <field name="current_pod_text"/>
                 <field name="current_erd_utc"/>
                 <field name="current_cargo_cutoff_utc"/>
+                <field name="current_cargo_cutoff_date" optional="show"/>
                 <field name="slot_confirmed_count"/>
                 <field name="slot_committed_count"/>
                 <field name="slot_available_count"/>
@@ -85,7 +86,7 @@
                     </div>
                     <group>
                         <group string="Identity">
-                            <field name="company_id" readonly="current_revision_id" groups="base.group_multi_company"/>
+                            <field name="company_id" readonly="id" groups="base.group_multi_company"/>
                             <field name="issuer_id" readonly="current_revision_id"/>
                             <field name="carrier_id"/>
                             <field name="source_occurrence_key" readonly="current_revision_id"/>
@@ -151,7 +152,7 @@
         <field name="name">plasticos.export.booking.calendar</field>
         <field name="model">plasticos.export.booking</field>
         <field name="arch" type="xml">
-            <calendar date_start="current_cargo_cutoff_utc" color="current_steamship_line_id" mode="month">
+            <calendar date_start="current_cargo_cutoff_date" color="current_steamship_line_id" mode="month">
                 <field name="carrier_booking_no"/>
                 <field name="current_pol_text"/>
                 <field name="display_state"/>
@@ -181,7 +182,7 @@
         <field name="arch" type="xml">
             <form create="0" delete="0">
                 <header>
-                    <button name="action_accept_from_form" type="object" string="Accept Revision" class="btn-primary" invisible="decision != 'candidate'" groups="plasticos_security_base.group_logistics"/>
+                    <button name="action_accept_from_form" type="object" string="Accept Revision" class="btn-primary" invisible="decision != 'candidate'" groups="plasticos_security_base.group_logistics" context="{'expected_current_revision_id': booking_current_revision_id}"/>
                     <button name="action_reject" type="object" string="Reject" invisible="decision != 'candidate'" groups="plasticos_security_base.group_logistics"/>
                     <field name="decision" widget="statusbar"/>
                 </header>
@@ -189,6 +190,7 @@
                     <group>
                         <group string="Source">
                             <field name="booking_id" readonly="1"/>
+                            <field name="booking_current_revision_id" readonly="1"/>
                             <field name="source_revision_key" readonly="1"/>
                             <field name="source_original_id" readonly="1"/>
                             <field name="source_message_id" readonly="1"/>

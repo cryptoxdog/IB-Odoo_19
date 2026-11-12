@@ -32,7 +32,7 @@ class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
 
     def setUp(self):
         super().setUp()
-        self.env["ir.config_parameter"].sudo().set_param(LINDA_MODE_PARAM, "live")
+        self.env["ir.config_parameter"].sudo().set_param(LINDA_MODE_PARAM, "live")  # sudo: test sets the Linda mode
 
     def _booking_with_supplier(self):
         booking, revision = self.accepted_booking(confirmed=2)
@@ -99,12 +99,13 @@ class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
             self.suppliers[0].id,
             self.suppliers[0].email,
             revision._original_attachment_ids(),
-            revision.notice_fingerprint(),
+            revision._notice_fingerprint(),
         )
         for user in (self.outsider, self.foreign_actor):
             outcome = Request.with_user(user).request_booking_correspondence(*args, self.key("direct"))
             self.assertEqual(outcome["status"], "not_available", (user.login, outcome))
-        through_sudo = Request.sudo().request_booking_correspondence(*args, self.key("direct"))
+        as_superuser = Request.sudo()  # sudo: proves E3 refuses a sudo caller
+        through_sudo = as_superuser.request_booking_correspondence(*args, self.key("direct"))
         self.assertEqual(through_sudo["status"], "not_available")
         allowed = Request.with_user(self.actor).request_booking_correspondence(*args, self.key("direct"))
         self.assertEqual(allowed["status"], "applied", allowed)
@@ -148,7 +149,7 @@ class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
     def test_linda_off_records_nothing(self):
         """External effects stay disabled by default (V19)."""
         booking, _revision = self._booking_with_supplier()
-        self.env["ir.config_parameter"].sudo().set_param(LINDA_MODE_PARAM, "off")
+        self.env["ir.config_parameter"].sudo().set_param(LINDA_MODE_PARAM, "off")  # sudo: test sets the Linda mode
         self.assertEqual(self._notice(booking)["status"], "not_available")
 
     def test_booking_reply_is_recorded_once_and_withheld_without_its_original(self):

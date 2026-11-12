@@ -146,3 +146,70 @@ class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
             Link.browse(other["record_id"]).read(["supplier_id"])
         everything = self.env[LINK].with_user(self.actor).search([("booking_id", "=", booking.id)])
         self.assertEqual(len(everything), 3)
+
+    def test_derived_and_company_fields_cannot_be_written(self):
+        """C05 review D1, BRS-EXP-14-R012: no row is relabelled across companies; derived state is never forged."""
+        booking, revision = self._populated_booking()
+        slot = booking.slot_ids.sorted("slot_key")[0]
+        link = self.env[LINK].search([("booking_id", "=", booking.id)], limit=1)
+        attempts = [
+            (booking, {"company_id": self.company_b.id}),
+            (booking, {"display_state": "cancelled"}),
+            (booking, {"current_pol_text": "Elsewhere"}),
+            (booking, {"current_cargo_cutoff_date": "2026-01-01"}),
+            (revision, {"company_id": self.company_b.id}),
+            (slot, {"company_id": self.company_b.id}),
+            (slot, {"allocation_state": "available"}),
+            (slot, {"supplier_count": 0}),
+            (slot, {"carrier_booking_no": "FORGED"}),
+            (link, {"company_id": self.company_b.id}),
+            (link, {"booking_id": self.make_booking().id}),
+            (link, {"supplier_id": self.suppliers[3].id}),
+            (link, {"purchase_order_id": False}),
+            (link, {"sale_order_id": False}),
+            (link, {"equipment_class": "20STD"}),
+        ]
+        for record, vals in attempts:
+            for user in (self.actor, self.env.user):
+                with self.assertRaises(UserError, msg=f"{record._name} {vals}"), self.env.cr.savepoint():
+                    record.with_user(user).write(vals)
+        self.assertEqual((slot.company_id, link.company_id, booking.company_id), (self.company,) * 3)
+        self.assertEqual(booking.display_state, "confirmed")
+
+    def test_sales_rep_opens_cargo_without_purchase_rights(self):
+        """C05 review D3: a role without purchase read sees the link, not the PO terms, and nothing raises."""
+        booking, revision = self._populated_booking()
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id, "user_id": self.sales_reader.id})
+        order.order_line = [(0, 0, {"product_id": self.product.id, "product_uom_qty": 1})]
+        purchase = self.env["purchase.order"].create(
+            {
+                "partner_id": self.suppliers[1].id,
+                "order_line": [
+                    (0, 0, {"product_id": self.product.id, "product_qty": 500, "product_uom_id": self.lb.id})
+                ],
+            }
+        )
+        slot = booking.slot_ids.sorted("slot_key")[1]
+        applied = slot.with_user(self.actor).action_commit_cargo(
+            {"sale_line_id": order.order_line.id, "purchase_line_id": purchase.order_line.id},
+            None,
+            None,
+            revision.id,
+            self.key(),
+        )
+        self.assertEqual(applied["status"], "applied", applied)
+        self.assertFalse(self.sales_reader.has_group("purchase.group_purchase_user"))
+        form = self.env.ref("plasticos_export.view_export_cargo_link_form")
+        link = self.env[LINK].with_user(self.sales_reader).browse(applied["record_id"])
+        from lxml import etree
+
+        names = {node.get("name") for node in etree.fromstring(form.arch).iter("field")}
+        spec = {
+            name: ({"fields": {"display_name": {}}} if link._fields[name].type == "many2one" else {})
+            for name in names
+            if name in link._fields
+        }
+        values = link.web_read(spec)[0]
+        self.assertEqual(values["po_constraint_display"], "PO not readable for your role.")
+        actor_view = self.env[LINK].with_user(self.actor).browse(applied["record_id"])
+        self.assertIn("Quantity: 500 lb", actor_view.po_constraint_display)

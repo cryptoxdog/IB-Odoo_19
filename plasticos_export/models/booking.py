@@ -144,6 +144,25 @@ def guard(records):
     return records.with_context(**{_GUARD: _GUARD_TOKEN})
 
 
+def derived_write_error(records, vals):
+    """Why an ordinary write may not set these keys, or False.
+
+    Computed and related fields are derived: a related field's inverse would
+    otherwise write through to its source, and a stored computed value could be
+    forged. ``company_id`` is set at creation or by an Export command only, so a
+    row is never relabelled across the company rules (C05 review D1).
+    """
+    derived = sorted(
+        name
+        for name in vals
+        if name == "company_id"
+        or (name in records._fields and (records._fields[name].compute or records._fields[name].related))
+    )
+    if derived:
+        return f"{records._description}: {', '.join(derived)} cannot be written; it is derived or set by its owner."
+    return False
+
+
 def export_actor_error(env, company=None):
     """Why this user may not run an Export command for ``company``, or False.
 
@@ -297,6 +316,14 @@ class PlasticosExportBooking(models.Model):
     current_cargo_cutoff_utc = fields.Datetime(
         related="current_revision_id.cargo_cutoff_utc", string="Cargo Cutoff (UTC)", store=True
     )
+    current_cargo_cutoff_date = fields.Date(
+        compute="_compute_current_cargo_cutoff_date",
+        store=True,
+        index=True,
+        string="Cargo Cutoff Date",
+        help="Calendar day of the current cargo cutoff: the UTC day when the source gave a precise time, "
+        "else the local date the source stated. Unset when no cutoff is stated (review D4).",
+    )
     slot_confirmed_count = fields.Integer(compute="_compute_slot_counts", string="Confirmed Slots")
     slot_committed_count = fields.Integer(compute="_compute_slot_counts", string="Committed Slots")
     slot_available_count = fields.Integer(compute="_compute_slot_counts", string="Available Slots")
@@ -330,6 +357,21 @@ class PlasticosExportBooking(models.Model):
                 booking.display_state = "confirmed"
 
     @api.depends(
+        "current_revision_id.cargo_cutoff_utc",
+        "current_revision_id.cargo_cutoff_local",
+        "current_revision_id.cargo_cutoff_precision",
+    )
+    def _compute_current_cargo_cutoff_date(self):
+        for booking in self:
+            revision = booking.current_revision_id
+            if revision.cargo_cutoff_utc:
+                booking.current_cargo_cutoff_date = revision.cargo_cutoff_utc.date()
+            elif revision.cargo_cutoff_precision in ("date", "datetime") and revision.cargo_cutoff_local:
+                booking.current_cargo_cutoff_date = fields.Date.to_date(revision.cargo_cutoff_local.strip()[:10])
+            else:
+                booking.current_cargo_cutoff_date = False
+
+    @api.depends(
         "slot_ids.allocation_state",
         "current_revision_id",
         "current_revision_id.equipment_counts",
@@ -340,7 +382,7 @@ class PlasticosExportBooking(models.Model):
             states = booking.slot_ids.mapped("allocation_state")
             # Confirmed capacity is what the current accepted revision confirms; held slots are counted apart.
             revision = booking.current_revision_id
-            booking.slot_confirmed_count = sum(revision.confirmed_counts().values()) if revision else 0
+            booking.slot_confirmed_count = sum(revision._confirmed_counts().values()) if revision else 0
             booking.slot_committed_count = states.count("committed")
             booking.slot_available_count = states.count("available")
             booking.slot_held_count = states.count("held")
@@ -368,6 +410,9 @@ class PlasticosExportBooking(models.Model):
 
     def write(self, vals):
         if not guarded(self.env):
+            error = derived_write_error(self, vals)
+            if error:
+                raise UserError(error)
             if "current_revision_id" in vals:
                 raise UserError("Only Accept Revision moves a booking's current revision.")
             accepted = self.filtered("current_revision_id")
@@ -658,7 +703,7 @@ class PlasticosExportBooking(models.Model):
             audience_partner_id,
             recipient_email,
             attachments,
-            current.notice_fingerprint(),
+            current._notice_fingerprint(),
             operation_key,
         )
 
@@ -684,6 +729,11 @@ class PlasticosExportBookingRevision(models.Model):
 
     booking_id = fields.Many2one(EXPORT_BOOKING, required=True, index=True, ondelete="restrict")
     company_id = fields.Many2one(related="booking_id.company_id", store=True, index=True)
+    booking_current_revision_id = fields.Many2one(
+        related="booking_id.current_revision_id",
+        string="Booking's Current Revision",
+        help="The revision the booking had when this form was loaded. Accept Revision compares against it.",
+    )
     source_revision_key = fields.Char(required=True, index=True, help="Source revision identity; unique per booking.")
     source_original_id = fields.Many2one(
         DOCUMENTS_DOCUMENT, string="Source Original", index=True, ondelete="restrict", help="Native original file."
@@ -755,7 +805,7 @@ class PlasticosExportBookingRevision(models.Model):
         self.ensure_one()
         return (self.additional_terms or {}).get("booking_status") or False
 
-    def confirmed_counts(self):
+    def _confirmed_counts(self):
         """Confirmed slots per class. A missing confirmed count is zero confirmed capacity."""
         self.ensure_one()
         if self._stated_status() == CANCELLED:
@@ -795,7 +845,7 @@ class PlasticosExportBookingRevision(models.Model):
             self.source_revision_key, self.source_original_id, self.source_message_id, vals
         )
 
-    def notice_fingerprint(self):
+    def _notice_fingerprint(self):
         """Digest of this revision's source snapshot; Linda checks it before recording a notice."""
         self.ensure_one()
         return hashlib.sha256(self._fingerprint().encode()).hexdigest()
@@ -808,6 +858,9 @@ class PlasticosExportBookingRevision(models.Model):
 
     def write(self, vals):
         if not guarded(self.env):
+            error = derived_write_error(self, vals)
+            if error:
+                raise UserError(error)
             if set(vals) != {"review_note"}:
                 raise UserError("A booking revision is a source snapshot and is not edited.")
             if self.filtered(lambda revision: revision.decision != "candidate"):
@@ -821,12 +874,23 @@ class PlasticosExportBookingRevision(models.Model):
         raise UserError("Booking revisions are history and cannot be deleted.")
 
     def action_accept_from_form(self):
-        """Form button: accept this candidate against the booking's current revision as displayed."""
+        """Form button: accept this candidate against the current revision the user saw.
+
+        The form sends ``expected_current_revision_id`` from the value it displayed;
+        a form opened before another acceptance is therefore refused as stale instead
+        of overwriting the newer revision (C05 review D2). Without that context the
+        button refuses rather than reading the current pointer at click time.
+        """
         self.ensure_one()
+        if "expected_current_revision_id" not in self.env.context:
+            raise UserError("Reload the revision and accept it again: the displayed current revision is unknown.")
+        expected = self.env.context["expected_current_revision_id"] or False
+        if isinstance(expected, (list, tuple)):
+            expected = expected[0] if expected else False
         booking = self.booking_id
         outcome = booking.action_accept_booking_revision(
             self.id,
-            booking.current_revision_id.id or False,
+            expected,
             f"form-accept:{self.id}",
             self.review_note or "",
         )

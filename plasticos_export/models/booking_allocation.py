@@ -30,6 +30,7 @@ from .booking import (
     EXPORT_REVISION,
     NOT_AVAILABLE,
     STALE,
+    derived_write_error,
     export_actor_error,
     guard,
     guarded,
@@ -37,6 +38,7 @@ from .booking import (
 )
 
 ISO_JOURNEY = "plasticos.iso.journey"
+PO_NOT_READABLE = "PO not readable for your role."
 PLASTICOS_LOAD = "plasticos.load"
 PURCHASE_LINE = "purchase.order.line"
 SALE_LINE = "sale.order.line"
@@ -195,8 +197,12 @@ class PlasticosExportBookingSlot(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        if not guarded(self.env) and _SLOT_COMMAND_FIELDS & set(vals):
-            raise UserError("Booking slots change only through Export booking commands.")
+        if not guarded(self.env):
+            error = derived_write_error(self, vals)
+            if error:
+                raise UserError(error)
+            if _SLOT_COMMAND_FIELDS & set(vals):
+                raise UserError("Booking slots change only through Export booking commands.")
         return super().write(vals)
 
     def unlink(self):
@@ -220,7 +226,7 @@ class PlasticosExportBookingSlot(models.Model):
         existing = Slot.search([("booking_id", "=", booking.id)], order="id ASC")
         existing.lock_for_update()
         live = existing.filtered("active")
-        wanted = revision.confirmed_counts()
+        wanted = revision._confirmed_counts()
         for code in sorted(set(wanted) | set(live.mapped("equipment_class"))):
             target = wanted.get(code, 0)
             slots = live.filtered(lambda slot, code=code: slot.equipment_class == code)
@@ -484,12 +490,19 @@ class PlasticosExportBookingCargoLink(models.Model):
         "purchase_line_id.name",
         "purchase_line_id.order_id.incoterm_id",
     )
+    @api.depends_context("uid")
     def _compute_po_constraint_display(self):
         """Quantity, grade, unit, trade label and terms as the PO line states them now."""
         for link in self:
             line = link.purchase_line_id
             if not line:
                 link.po_constraint_display = False
+                continue
+            try:
+                line.check_access("read")
+            except AccessError:
+                # No sudo: a role without purchase read sees that the PO exists, not its terms (review D3).
+                link.po_constraint_display = PO_NOT_READABLE
                 continue
             order = line.order_id
             rows = [
@@ -511,8 +524,12 @@ class PlasticosExportBookingCargoLink(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        if not guarded(self.env) and _LINK_COMMAND_FIELDS & set(vals):
-            raise UserError("Cargo links change only through Export booking commands.")
+        if not guarded(self.env):
+            error = derived_write_error(self, vals)
+            if error:
+                raise UserError(error)
+            if _LINK_COMMAND_FIELDS & set(vals):
+                raise UserError("Cargo links change only through Export booking commands.")
         return super().write(vals)
 
     def unlink(self):

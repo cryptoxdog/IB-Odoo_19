@@ -130,7 +130,7 @@
                 <field name="sale_order_id"/>
                 <field name="source_load_id"/>
                 <field name="physical_source_kind"/>
-                <field name="planned_quantity" sum="Planned"/>
+                <field name="planned_quantity"/>
                 <field name="uom_id"/>
                 <field name="allocation_key" optional="hide"/>
             </list>
@@ -201,8 +201,10 @@
         <field name="name">plasticos.export.booking.cargo.link.pivot</field>
         <field name="model">plasticos.export.booking.cargo.link</field>
         <field name="arch" type="xml">
+            <!-- Planned quantities are summed only within one unit: the unit is the first column group (review D5). -->
             <pivot string="Open PO / SO Fulfillment">
                 <field name="purchase_order_id" type="row"/>
+                <field name="uom_id" type="col"/>
                 <field name="sale_order_id" type="col"/>
                 <field name="planned_quantity" type="measure"/>
             </pivot>
