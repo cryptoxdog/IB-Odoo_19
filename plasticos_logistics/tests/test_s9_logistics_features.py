@@ -596,6 +596,53 @@ class TestContainerTareAndVgm(_S9Case):
         self.assertEqual((fact.verified_document_id, fact.evidence_attachment_id), (document.id, original))
         self.assertEqual((fact.weight, fact.weight_uom_id), (22000.0, self.kg))
 
+    def test_documents_basis_refuses_dangling_or_foreign_documents(self):
+        """Negative: the verdict's document must exist and be about this exact journey in its company."""
+        journey = self._journey("S9-VGM-DANGLING")
+        other_journey = self._journey("S9-VGM-OTHER", iso="TGHU7654321")
+        tag = self.env["plasticos.document.tag"].search([], limit=1)
+        foreign = self.env["plasticos.document"].create(
+            {
+                "name": "VGM of another container",
+                "res_model": JOURNEY,
+                "res_id": other_journey.id,
+                "attachment_id": self._attach(other_journey, "other-vgm.pdf").id,
+                "tag_id": tag.id,
+            }
+        )
+        missing_id = (self.env["plasticos.document"].search([], order="id desc", limit=1).id or 0) + 1000
+        document_class = type(self.env["plasticos.document"])
+        for label, record_id in (("dangling", missing_id), ("other journey", foreign.id)):
+            with (
+                self.subTest(label=label),
+                patch.object(
+                    document_class,
+                    "get_scoped_evidence_verdict",
+                    lambda *args, record_id=record_id: {"status": "applied", "record_id": record_id},
+                ),
+            ):
+                result = self._weigh(
+                    "verified_gross_mass", journey, 9, self.lb, "documents_verified_gross_mass", None, "rev-1"
+                )
+                self.assertEqual(result["status"], "blocked")
+        self.assertFalse(self._fact(journey, "verified_gross_mass"))
+
+    def test_documents_basis_without_documents_is_not_available(self):
+        """Without plasticos_documents the Documents basis answers not_available and never crashes."""
+        from odoo.addons.plasticos_logistics.models import iso_journey_fact
+
+        journey = self._journey("S9-VGM-NODOCS")
+        with patch.object(iso_journey_fact, "DOCUMENT", "plasticos.document.not.installed"):
+            result = self._weigh(
+                "verified_gross_mass", journey, 9, self.lb, "documents_verified_gross_mass", None, "rev-1"
+            )
+        self.assertEqual(result["status"], "not_available")
+        self.assertFalse(self._fact(journey, "verified_gross_mass"))
+        ticket = self._attach(journey, "ticket.pdf")
+        self.assertEqual(
+            self._weigh("verified_gross_mass", journey, 9, self.lb, "scale_ticket", ticket, "T-1")["status"], "applied"
+        )
+
     def test_tare_and_vgm_are_never_inferred(self):
         """Negative: no weight from the equipment class or a trailer type; unverified evidence is refused."""
         journey = self._journey("S9-VGM-NEG")

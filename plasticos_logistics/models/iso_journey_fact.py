@@ -291,18 +291,29 @@ class PlasticosIsoJourneyFact(models.Model):
         return None
 
     def _documents_vgm_evidence(self, journey, revision_key):
-        """The Documents VGM verdict on this journey. Returns ``(document_id, attachment, error)``."""
+        """The Documents VGM verdict on this journey. Returns ``(document_id, attachment, error)``.
+
+        The error is ``(status, reason)``. Without Documents the answer is ``not_available``.
+        The verified row must exist and be about this exact journey in its company,
+        so no dangling or foreign document id is ever stored.
+        """
         if DOCUMENT not in self.env:
-            return None, None, "the Documents verification owner is not installed"
+            return None, None, ("not_available", "the Documents verification owner is not installed")
         verdict = self.env[DOCUMENT].get_scoped_evidence_verdict(
             journey.company_id.id, PLASTICOS_ISO_JOURNEY, journey.id, VGM_OBLIGATION, revision_key
         )
         if verdict.get("status") != "applied" or not verdict.get("record_id"):
             reason = verdict.get("reason") or verdict.get("status")
-            return None, None, f"the Documents verified_gross_mass verdict is not applied: {reason}"
-        document = self.env[DOCUMENT].browse(verdict["record_id"]).exists()
-        if not document or not document.attachment_id:
-            return None, None, "the verified Documents record has no original"
+            return None, None, ("blocked", f"the Documents verified_gross_mass verdict is not applied: {reason}")
+        document = self.env[DOCUMENT].browse(int(verdict["record_id"])).exists()
+        if not document:
+            return None, None, ("blocked", "the verified Documents record does not exist")
+        if document.res_model != PLASTICOS_ISO_JOURNEY or document.res_id != journey.id:
+            return None, None, ("blocked", "the verified Documents record is not about this container journey")
+        if document.subject_company_id and document.subject_company_id != journey.company_id:
+            return None, None, ("blocked", "the verified Documents record belongs to another company")
+        if not document.attachment_id:
+            return None, None, ("blocked", "the verified Documents record has no original")
         return document.id, document.attachment_id, None
 
     @api.model
@@ -335,7 +346,7 @@ class PlasticosIsoJourneyFact(models.Model):
         if documents_basis:
             document_id, verified, error = self._documents_vgm_evidence(journey, reference)
             if error:
-                return _result("blocked", journey, error)
+                return _result(error[0], journey, error[1])
             if attachment and attachment != verified:
                 return _result("blocked", journey, "the evidence is not the verified Documents original")
             attachment = verified
