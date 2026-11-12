@@ -87,6 +87,22 @@ class TestWebLeadMaterialGrade(TransactionCase):
         self.assertEqual(merged["form"], "FILM")
         self.assertEqual(merged["material_grade"], "BUCKETS")
 
+    def test_seller_naming_two_polymers_leaves_the_polymer_unresolved(self):
+        lead = self._lead("polymer-two", "HDPE and PP regrind", "40000 lbs")
+
+        merged = lead._merge_ai_and_vision({"polymer": "PP"}, [])
+
+        self.assertIsNone(merged["polymer"])
+        self.assertIsNone(merged["polymer_source"])
+
+    def test_seller_naming_one_polymer_still_resolves_it(self):
+        lead = self._lead("polymer-one", "Clean PP regrind", "40000 lbs")
+
+        merged = lead._merge_ai_and_vision({}, [])
+
+        self.assertEqual(merged["polymer"], "PP")
+        self.assertEqual(merged["polymer_source"], "seller_text")
+
     def test_punctuated_item_words_keep_the_reusable_grade(self):
         pallets = self._lead("grade-pallets-punct", "HDPE pallets, clean", "9000 lbs")
         crates = self._lead("grade-crates-punct", "plastic crates.", "9000 lbs")

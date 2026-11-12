@@ -2288,7 +2288,14 @@ class SyncOrchestrator:
         profiles = self.env["plasticos.material.profile"]
         ref = self._material_ref(lead, external_id)
         use_structured = structured if structured and len(texts) == 1 else None
+        from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
+            is_not_material,
+        )
+
         for text in texts:
+            if is_not_material(text):
+                # The mapping sheet records this text as a call note or not a material.
+                continue
             normalized, hint_status = self._resolve_material(text, use_structured)
             if hint_status == "conflict" or "conflicting material evidence" in normalized.unresolved:
                 self._append_classified_error(ref, f"conflicting material evidence: {text}", REQUIRED_MAPPING)

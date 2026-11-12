@@ -147,6 +147,61 @@ def test_text_grade_wins_over_a_vision_grade() -> None:
     assert merge_form_and_grade(None, "plastic pallets", "DRUMS", FORM_ENTRIES, GRADE_ENTRIES) == (None, "PALLETS")
 
 
+POLYMER_ENTRIES = (
+    CATALOG.CatalogEntry("PP", "PP", "", "Polypropylene"),
+    CATALOG.CatalogEntry("HDPE", "HDPE", "", "High-Density Polyethylene"),
+    CATALOG.CatalogEntry("HDPE_HMW", "HDPE HMW", "", "High Molecular Weight HDPE"),
+    CATALOG.CatalogEntry("LDPE", "LDPE", "low density polyethylene"),
+    CATALOG.CatalogEntry("LLDPE", "LLDPE", "linear low density polyethylene"),
+    CATALOG.CatalogEntry("PET_HDPE", "PET/HDPE", ""),
+    CATALOG.CatalogEntry("PLASTIC_PALLETS", "Plastic Pallets", ""),
+    CATALOG.CatalogEntry("OTHER", "Other", ""),
+)
+ITEM_ENTRIES = (CATALOG.CatalogEntry("PALLETS", "Pallets", "Plastic pallets or pallet parts."),)
+
+
+def test_seller_text_naming_two_polymers_keeps_both() -> None:
+    assert CATALOG.match_distinct("HDPE and PP regrind", POLYMER_ENTRIES) == ("HDPE", "PP")
+    assert CATALOG.match_distinct("PP / HDPE mixed caps", POLYMER_ENTRIES) == ("PP", "HDPE")
+    # The single-code matcher alone would have picked one of them by label length.
+    assert CATALOG.match_one("HDPE and PP regrind", POLYMER_ENTRIES) == "HDPE"
+
+
+def test_seller_text_naming_one_polymer_resolves_it() -> None:
+    assert CATALOG.match_distinct("Clean PP regrind", POLYMER_ENTRIES) == ("PP",)
+    assert CATALOG.match_distinct("PP purge, PP lumps", POLYMER_ENTRIES) == ("PP",)
+    assert CATALOG.match_distinct("mixed scrap", POLYMER_ENTRIES) == ()
+
+
+def test_label_inside_a_longer_label_is_not_a_second_polymer() -> None:
+    assert CATALOG.match_distinct("HDPE HMW film", POLYMER_ENTRIES) == ("HDPE_HMW",)
+    assert CATALOG.match_distinct("linear low density polyethylene film", POLYMER_ENTRIES) == ("LLDPE",)
+    assert CATALOG.match_distinct("HDPE HMW and HDPE drums", POLYMER_ENTRIES) == ("HDPE_HMW", "HDPE")
+    assert CATALOG.match_distinct("PET/HDPE bales", POLYMER_ENTRIES) == ("PET_HDPE",)
+
+
+def test_item_word_row_is_set_aside_only_beside_another_polymer() -> None:
+    assert CATALOG.match_distinct("HDPE plastic pallets", POLYMER_ENTRIES, ITEM_ENTRIES) == ("HDPE",)
+    assert CATALOG.match_distinct("plastic pallets", POLYMER_ENTRIES, ITEM_ENTRIES) == ("PLASTIC_PALLETS",)
+    assert CATALOG.match_distinct("HDPE and PP pallets", POLYMER_ENTRIES, ITEM_ENTRIES) == ("HDPE", "PP")
+    # Without the item catalog the pallet row still counts as a second code.
+    assert CATALOG.match_distinct("HDPE plastic pallets", POLYMER_ENTRIES) == ("HDPE", "PLASTIC_PALLETS")
+    # A vague second row is not an item word and keeps the text unresolved.
+    assert CATALOG.match_distinct("HDPE and other plastics", POLYMER_ENTRIES, ITEM_ENTRIES) == ("HDPE", "OTHER")
+
+
+def test_web_lead_merge_leaves_a_multi_polymer_seller_unresolved() -> None:
+    source = (WEB_LEADS_MODELS / "web_lead.py").read_text(encoding="utf-8")
+    assert "seller_polymers = match_distinct(" in source
+    assert 'match_one(declared_material, catalog.get("polymer", ()))' not in source
+    assert "if len(seller_polymers) > 1:" in source
+    # The merge and the stored-evidence replay read the same seller text.
+    assert source.count("_declared_material_text(") == 3
+    assert "declared_material = _declared_material_text(canonical, raw)" in source
+    assert "_declared_material_text(self.canonical_payload or {}, self.raw_payload or {})" in source
+    assert "match_distinct(declared_material, polymer_entries" in source
+
+
 def test_web_lead_merge_collects_grade_separately_from_form() -> None:
     source = (WEB_LEADS_MODELS / "web_lead.py").read_text(encoding="utf-8")
     assert "merge_form_and_grade(" in source
