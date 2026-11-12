@@ -1258,8 +1258,9 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
             load.with_user(user).write({"company_id": False})
         load.invalidate_recordset(["company_id"])
         self.assertEqual(load.company_id, self.company)
-        load.write({"company_id": False})
-        self.assertFalse(load.company_id, "only the superuser may clear a company")
+        as_superuser = self.env["plasticos.load"].sudo().browse(load.id)
+        as_superuser.write({"company_id": False})
+        self.assertFalse(as_superuser.company_id, "only the superuser may clear a company")
 
     def test_actual_event_replay_ignores_sub_second_precision(self):
         load = self._buyerless_load()
@@ -1275,6 +1276,8 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         self.assertEqual(corrected, 0)
 
     def _null_company(self, load):
+        # Pending ORM writes reach the table before the raw census reads it.
+        self.env.flush_all()
         self.env.cr.execute("UPDATE plasticos_load SET company_id = NULL WHERE id = %s", (load.id,))
         load.invalidate_recordset(["company_id"])
 
