@@ -1497,3 +1497,55 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         )
         with patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."]):
             note.action_send_mail()
+
+
+@tagged("post_install", "-at_install")
+class TestCarrierPaperworkWithoutABuyer(TransactionCase):
+    """S4 RP-03-E007..E009: carrier paperwork renders a buyerless load from its own company.
+
+    No sale-order or buyer detail is printed when the load has none, and no literal
+    stands in for a missing company (BRS-EXP-08-R001, BRS-EXP-10-R003).
+    """
+
+    REPORTS = (
+        "plasticos_logistics.report_delivery_order",
+        "plasticos_logistics.report_bol_pickup",
+        "plasticos_logistics.report_bol_delivery",
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.issuer = cls.env["res.company"].create({"name": "S4 Paperwork Co", "street": "8 Yard Rd"})
+        cls.supplier = cls.env["res.partner"].create({"name": "S4 Paper Mill", "is_company": True})
+        cls.terminal = cls.env["res.partner"].create({"name": "S4 Paper Ramp", "is_company": True})
+        cls.buyer = cls.env["res.partner"].create({"name": "S4 Hidden Buyer", "is_company": True, "customer_rank": 1})
+
+    def _render(self, report_ref, load):
+        html, _kind = self.env["ir.actions.report"]._render_qweb_html(report_ref, load.ids)
+        return html.decode() if isinstance(html, bytes) else str(html)
+
+    def test_buyerless_paperwork_prints_no_order_or_buyer(self):
+        load = self.env["plasticos.load"].create(
+            {
+                "company_id": self.issuer.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.terminal.id,
+            }
+        )
+        self.assertFalse(load.sale_order_id)
+        for report_ref in self.REPORTS:
+            with self.subTest(report_ref):
+                html = self._render(report_ref, load)
+                self.assertIn(self.issuer.name, html)
+                self.assertNotIn("Order No.", html)
+                self.assertNotIn(self.buyer.name, html)
+
+    def test_sale_backed_paperwork_keeps_its_order_number(self):
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        load = self.env["plasticos.load"].create(
+            {"sale_order_id": order.id, "pickup_partner_id": self.supplier.id, "delivery_partner_id": self.terminal.id}
+        )
+        html = self._render("plasticos_logistics.report_bol_delivery", load)
+        self.assertIn("Order No.", html)
+        self.assertIn(order.name, html)

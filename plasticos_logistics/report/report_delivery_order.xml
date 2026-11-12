@@ -206,7 +206,7 @@
                         <div style="font-size: 10px; text-align: justify; border-top: 2px solid #000; padding-top: 10px;">
                             By Accepting This Delivery Order, The Above Named Trucker Agrees To Obtain LIGHT &amp; HEAVY 3rd Party Certified Scale
                             Tickets &amp; PROTECT THE BLIND PICK UP By Using The BOL-PICKUP Document Prepared By
-                            <t t-out="doc.company_id.name or 'Company'"/>
+                            <t t-out="doc.company_id.name or ''"/>
                         </div>
 
                     </div>
