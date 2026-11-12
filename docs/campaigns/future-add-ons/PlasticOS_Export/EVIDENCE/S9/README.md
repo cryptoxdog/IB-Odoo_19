@@ -1,6 +1,6 @@
 # S9 evidence: Logistics facts for the deferred Export rules
 
-Contract `PLASTICOS-EXPORT-C10-S9-LOGISTICS-FEATURES` (sha256 `5b18a582…`), amended by coordinator C10-SCOPE-2 (`6ba954c8…`) and C10-SCOPE-3 (`a5fe52cf…`, the binding digest). Base `ff42df2d`. Predecessor `feat/plasticos-export-s8-coverage` at `3fda2e04` merged in with a merge commit (no conflicts). This folder holds no Odoo logs and no real data.
+Contract `PLASTICOS-EXPORT-C10-S9-LOGISTICS-FEATURES` (sha256 `5b18a582…`), amended by coordinator C10-SCOPE-2 (`6ba954c8…`) and C10-SCOPE-3 (`a5fe52cf…`, the binding digest). Base `ff42df2d`. Predecessor `feat/plasticos-export-s8-coverage` merged in with merge commits (no conflicts): `3fda2e04`, then the accepted head `6c7789ef`. This folder holds no Odoo logs and no real data.
 
 | File | Contents |
 |---|---|
@@ -28,6 +28,8 @@ Fixture `odoo_test_tpl_ee_c9e8a81f52f23680` (fingerprint `f44b9807`), Enterprise
 |---|---|---|
 | `cd10a57f` (pre-merge) | `make runtime-test m=plasticos_logistics,plasticos_security_base` | 472 run, 0 failed, 0 errors |
 | `8e1a20f6` (S8 `3fda2e04` merged) | `make runtime-test m=plasticos_logistics,plasticos_export,plasticos_documents,plasticos_security_base` | 649 run, 0 failed, 0 errors (documents 128, export 101, logistics 337, security_base 215 incl. post-install) |
+
+| `4b360072` (accepted S8 `6c7789ef` merged) | same four modules | 652 run, 0 failed, 0 errors (documents 128, export 104, logistics 337, security_base 215); `pytest tests/` 3076 passed, 0 failed; pre-commit `6c7789ef..HEAD` clean; `make audit-baseline` no new finding |
 
 No S9 fixture needed repair for the S8 08-R006 allocation guard: S9 tests create no Export allocation.
 
