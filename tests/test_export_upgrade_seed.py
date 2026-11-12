@@ -1,7 +1,7 @@
 """scripts/export_upgrade_seed.py: the pure plan, guard and SQL contract (Export campaign S6, F7/F8).
 
 The Odoo part runs inside ``odoo shell`` on an owned test clone; its observed counts
-are recorded in docs/campaigns/future-add-ons/PlasticOS_Export/EVIDENCE/S6/. These
+are recorded with the slice's runtime evidence, which this test never reads. These
 tests need no Odoo: they pin the shapes the upgrade proof depends on.
 """
 
