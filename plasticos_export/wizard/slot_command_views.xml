@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Commit Cargo, Release Cargo and Bind Container screens (C11-SCOPE-2, OP10-E05).
+    Each one calls the existing frozen slot command as the acting user and stores nothing.
+-->
+<odoo>
+    <record id="view_export_slot_commit_cargo_form" model="ir.ui.view">
+        <field name="name">plasticos.export.slot.commit.cargo.form</field>
+        <field name="model">plasticos.export.slot.commit.cargo</field>
+        <field name="arch" type="xml">
+            <form>
+                <p class="text-muted">
+                    Name the exact native sources of this cargo. The quantity is planned only; nothing is stocked, weighed or invoiced here.
+                </p>
+                <group>
+                    <group string="Slot">
+                        <field name="slot_id" force_save="1"/>
+                        <field name="booking_id"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="expected_booking_revision_id" force_save="1"/>
+                    </group>
+                    <group string="Exact Sources">
+                        <field name="purchase_line_id"/>
+                        <field name="sale_line_id"/>
+                        <field name="source_load_id"/>
+                        <field name="stock_move_line_id"/>
+                        <field name="original_attachment_id"/>
+                        <field name="physical_source_kind"/>
+                        <field name="physical_source_ref"/>
+                        <field name="source_revision_key"/>
+                    </group>
+                    <group string="Planned Quantity">
+                        <field name="planned_quantity_known"/>
+                        <field name="planned_quantity" invisible="not planned_quantity_known"/>
+                        <field name="uom_id" invisible="not planned_quantity_known" required="planned_quantity_known"/>
+                    </group>
+                </group>
+                <field name="operation_key" invisible="1"/>
+                <footer>
+                    <button name="action_confirm" type="object" string="Commit Cargo" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_export_slot_release_cargo_form" model="ir.ui.view">
+        <field name="name">plasticos.export.slot.release.cargo.form</field>
+        <field name="model">plasticos.export.slot.release.cargo</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="slot_id" force_save="1"/>
+                    <field name="booking_id"/>
+                    <field name="expected_booking_revision_id" force_save="1"/>
+                    <field name="cargo_link_id"/>
+                    <field name="reason"/>
+                </group>
+                <field name="operation_key" invisible="1"/>
+                <footer>
+                    <button name="action_confirm" type="object" string="Release Cargo" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_export_slot_bind_journey_form" model="ir.ui.view">
+        <field name="name">plasticos.export.slot.bind.journey.form</field>
+        <field name="model">plasticos.export.slot.bind.journey</field>
+        <field name="arch" type="xml">
+            <form>
+                <p class="text-muted">
+                    A container whose equipment differs from the slot is refused; an authorized booking amendment or exception decides.
+                </p>
+                <group>
+                    <field name="slot_id" force_save="1"/>
+                    <field name="booking_id"/>
+                    <field name="company_id" invisible="1"/>
+                    <field name="expected_booking_revision_id" force_save="1"/>
+                    <field name="journey_id"/>
+                    <field name="source_basis"/>
+                </group>
+                <field name="operation_key" invisible="1"/>
+                <footer>
+                    <button name="action_confirm" type="object" string="Bind Container" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

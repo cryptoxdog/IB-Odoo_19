@@ -37,6 +37,11 @@ MODELS = [
     "plasticos.export.booking.revision",
     "plasticos.export.booking.revision.accept",
     "plasticos.export.booking.slot",
+    # S10 (C11-SCOPE-2, OP10-E05): the slot command screens and their shared mixin.
+    "plasticos.export.slot.bind.journey",
+    "plasticos.export.slot.command.mixin",
+    "plasticos.export.slot.commit.cargo",
+    "plasticos.export.slot.release.cargo",
 ]
 # Every record the data files declare, by model. Nothing else is Export data.
 DECLARED = {
@@ -69,6 +74,12 @@ DECLARED = {
         "access_export_manual_candidate_ops_manager",
         "access_export_manual_candidate_line_logistics",
         "access_export_manual_candidate_line_ops_manager",
+        # S10 (C11-SCOPE-2, OP10-E05): the slot command screens.
+        *(
+            f"access_export_slot_{screen}_{role}"
+            for screen in ("commit_cargo", "release_cargo", "bind_journey")
+            for role in ("logistics", "ops_manager")
+        ),
     ],
     "ir.rule": [
         "rule_export_booking_company",
@@ -111,10 +122,13 @@ DECLARED = {
         "view_export_cargo_link_search",
         "view_export_cargo_link_trade_label_form",
         "view_export_shipment_list",
+        "view_export_slot_bind_journey_form",
+        "view_export_slot_commit_cargo_form",
         "view_export_slot_form",
         "view_export_slot_graph",
         "view_export_slot_list",
         "view_export_slot_pivot",
+        "view_export_slot_release_cargo_form",
         "view_export_slot_search",
     ],
 }

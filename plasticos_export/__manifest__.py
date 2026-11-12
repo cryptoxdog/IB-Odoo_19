@@ -35,6 +35,7 @@
         "views/export_analysis_views.xml",
         "views/export_menus.xml",
         "wizard/manual_booking_candidate_views.xml",
+        "wizard/slot_command_views.xml",
         "report/export_report_actions.xml",
         "report/report_booking_summary.xml",
         "report/report_container_manifest.xml",

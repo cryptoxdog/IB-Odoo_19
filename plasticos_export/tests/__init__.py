@@ -9,3 +9,4 @@ from . import test_multicompany_permissions
 from . import test_owner_facts
 from . import test_manual_booking_candidate
 from . import test_legacy_booking_report
+from . import test_slot_command_screens
