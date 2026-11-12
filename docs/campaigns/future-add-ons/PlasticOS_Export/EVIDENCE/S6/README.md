@@ -16,7 +16,7 @@ This folder holds no full Odoo logs and no real data. Every seeded row is a synt
 | `F6_LINDA_SWEEP_CURSOR.md` | F6 measurement and verdict |
 | `F10_RELEASE_NOTES.md` | Inherited residuals and release notes |
 | `REPIN_RECONCILIATION.md` | Validation obligation 0 and V17 |
-| `FINDINGS_OUTSIDE_S6.md` | D1–D8, returned to GAR |
+| `S6_FINDINGS.md` | Defects the proof found (D1–D4b, a, b, D9) and their dispositions |
 
 The harness changes in S6 are in `scripts/test_env.sh`, with tests appended to `tests/test_test_env_safety.py`:
 
