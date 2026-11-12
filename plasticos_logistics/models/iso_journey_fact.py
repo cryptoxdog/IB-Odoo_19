@@ -58,12 +58,19 @@ WEIGHT_KINDS = ("container_tare", "verified_gross_mass")
 R_ORIGINAL_REQUIRED = "the original document is required"
 R_ATTACH_TO_JOURNEY = "attach the original to this container journey first"
 R_EVIDENCE_COMPANY = "evidence belongs to another company"
+R_EVIDENCE_NOT_VISIBLE = "the original document is not visible to you"
 R_NOT_VERIFIED_ORIGINAL = "the evidence is not the verified Documents original"
 R_GATE_IN_FIRST = "record the terminal gate-in before the departure"
 R_SAIL_BEFORE_GATE_IN = "a vessel cannot sail before the container's gate-in"
 R_GATE_IN_AFTER_SAILING = "a container's gate-in cannot follow its vessel's departure"
 R_WEIGHT_UNIT_REQUIRED = "the weight unit is required"
-_EVIDENCE_REASONS = (R_ORIGINAL_REQUIRED, R_ATTACH_TO_JOURNEY, R_EVIDENCE_COMPANY, R_NOT_VERIFIED_ORIGINAL)
+_EVIDENCE_REASONS = (
+    R_ORIGINAL_REQUIRED,
+    R_ATTACH_TO_JOURNEY,
+    R_EVIDENCE_COMPANY,
+    R_EVIDENCE_NOT_VISIBLE,
+    R_NOT_VERIFIED_ORIGINAL,
+)
 _SEQUENCE_REASONS = (R_GATE_IN_FIRST, R_SAIL_BEFORE_GATE_IN, R_GATE_IN_AFTER_SAILING)
 NOT_A_WEIGHT_UNIT = " is not a unit of weight"
 _DOCUMENTS_EVIDENCE_PREFIXES = ("the Documents ", "the verified Documents ", "no installed owner declares")
@@ -240,7 +247,13 @@ class PlasticosIsoJourneyFact(models.Model):
             return journey, attachment, None
         if not attachment:
             return journey, None, _result("blocked", journey, R_ORIGINAL_REQUIRED)
-        attachment.check_access("read")
+        try:
+            attachment.check_access("read")
+        except AccessError:
+            if not linda_acting(self.env):
+                raise
+            # Linda's unreadable original is unverified evidence: held, and the refusal names nothing (Codex P2).
+            return journey, None, _result("blocked", journey, R_EVIDENCE_NOT_VISIBLE)
         if attachment.res_model != PLASTICOS_ISO_JOURNEY or attachment.res_id != journey.id:
             return journey, None, _result("blocked", journey, R_ATTACH_TO_JOURNEY)
         if attachment.company_id and attachment.company_id != journey.company_id:

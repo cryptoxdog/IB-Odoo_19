@@ -39,10 +39,10 @@ A gated command run by Linda returns `{"status": "pending", "approval_id": …, 
 | `value_conflict` | `action_record_*` | a current revision of that kind exists with a different value; approval supersedes it |
 | `out_of_sequence` | `action_record_*`, `action_correct_fact` | departure without or before gate-in; gate-in after departure |
 | `unit_mismatch` | `action_record_*`, `action_correct_fact` | missing weight unit, or a unit that is not a weight |
-| `evidence_unverified` | `action_record_*`, `action_correct_fact` | original missing, not on the journey, in another company, or the Documents VGM verdict missing, unreadable or not about the journey |
+| `evidence_unverified` | `action_record_*`, `action_correct_fact` | original missing, not readable by Linda (refusal names nothing), not on the journey, in another company, or the Documents VGM verdict missing, unreadable or not about the journey |
 | `refusal_retry` | any gated command | the same operation key was rejected, or its approved run was refused, before |
 
-Only a `group_operations_manager` user who is not Linda can approve or reject (`AccessError` otherwise). Approval runs the held command as Linda under an object-identity context token that RPC cannot carry, so the owner guards still run and the fact, proposal or decision keeps Linda as its author; the approval row records the approver, time, note and the command's answer. A straight-through Linda outcome and every person's command apply at once; a person needs no second approver, which also settles N9 for people.
+Filing is idempotent per company, command and key, including a concurrent filing that loses the pending index (it answers the winning approval). Only a `group_operations_manager` user who is not Linda can approve or reject (`AccessError` otherwise). Approval runs the held command as Linda under an object-identity context token that RPC cannot carry, so the owner guards still run and the fact, proposal or decision keeps Linda as its author; the approval row records the approver, time, note and the command's answer. A straight-through Linda outcome and every person's command apply at once; a person needs no second approver, which also settles N9 for people.
 
 ### Linda write-path inventory (e71599d5 + S11)
 

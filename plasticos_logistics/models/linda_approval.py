@@ -24,6 +24,8 @@ reassigned; today no automated path calls a gated command (EVIDENCE/S11).
 import json
 from datetime import date, datetime
 
+import psycopg2.errors
+
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
@@ -92,30 +94,35 @@ def hold_for_approval(env, command, edge_case, reason, arguments, operation_key,
     """Hold Linda's edge case pending Operations Manager approval. Idempotent per key."""
     approvals = env[APPROVAL].sudo()  # sudo: Linda files her own request; she cannot write or approve it
     key = _normalize_text(operation_key)
-    pending = approvals.search(
-        [
-            ("company_id", "=", company.id),
-            ("command", "=", command),
-            ("operation_key", "=", key),
-            ("state", "=", "pending"),
-        ],
-        limit=1,
-    )
+    domain = [
+        ("company_id", "=", company.id),
+        ("command", "=", command),
+        ("operation_key", "=", key),
+        ("state", "=", "pending"),
+    ]
+    pending = approvals.search(domain, limit=1)
+    vals = {
+        "company_id": company.id,
+        "command": command,
+        "edge_case": edge_case,
+        "edge_reason": reason,
+        "arguments": json.dumps(arguments, default=_json_default, sort_keys=True),
+        "operation_key": key,
+        "subject_model": subject._name if subject else False,
+        "subject_id": subject.id if subject else False,
+        "requested_by": env.uid,
+        "requested_at": fields.Datetime.now(),
+    }
     if not pending:
-        pending = approvals.with_context(**{_DECISION_WRITE: _DECISION_TOKEN}).create(
-            {
-                "company_id": company.id,
-                "command": command,
-                "edge_case": edge_case,
-                "edge_reason": reason,
-                "arguments": json.dumps(arguments, default=_json_default, sort_keys=True),
-                "operation_key": key,
-                "subject_model": subject._name if subject else False,
-                "subject_id": subject.id if subject else False,
-                "requested_by": env.uid,
-                "requested_at": fields.Datetime.now(),
-            }
-        )
+        try:
+            with env.cr.savepoint():
+                pending = approvals.with_context(**{_DECISION_WRITE: _DECISION_TOKEN}).create(vals)
+        except psycopg2.errors.UniqueViolation:
+            # A concurrent filing of the same command and key won the pending index; answer with its row.
+            env.invalidate_all()
+            pending = approvals.search(domain, limit=1)
+            if not pending:
+                raise
     return {
         "status": "pending",
         "approval_id": pending.id,

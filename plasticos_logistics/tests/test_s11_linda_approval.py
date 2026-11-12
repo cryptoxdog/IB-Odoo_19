@@ -10,13 +10,15 @@ applies at once). All actors are non-superuser users.
 import importlib.util
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from odoo.exceptions import AccessError, UserError
 from odoo.modules.module import get_module_path
 from odoo.tests.common import tagged
+from odoo.tools import mute_logger
 
 from . import test_s9_logistics_features as s9
-from .test_s9_logistics_features import FACT, PROPOSAL
+from .test_s9_logistics_features import FACT, JOURNEY, PROPOSAL
 from .test_s11_fact_corrections import _S11Case
 
 APPROVAL = "plasticos.linda.approval"
@@ -213,6 +215,46 @@ class TestLindaRecords(_LindaCase):
         missing = self._linda().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, None, "le2")
         self._held(missing, "evidence_unverified", "record_gate_in")
         self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+
+    def test_unreadable_evidence_is_held_without_disclosure(self):
+        """Codex P2: an original Linda cannot read is unverified evidence, held, not an AccessError."""
+        other = self.env["res.company"].create({"name": "S11 Linda Other Co"})
+        foreign = self.env[JOURNEY].browse(
+            self.env[JOURNEY].action_register_iso_journey(
+                other.id, "S11-L-FOREIGN", "40HC", None, "MSCU7654321", "SL-11", "op-l-foreign"
+            )["record_id"]
+        )
+        hidden = self._attach(foreign, "other-company-eir.pdf")
+        hidden.company_id = other
+        journey = self._journey("S11-L-HIDDEN")
+        held = self._linda().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, hidden.id, "lh1")
+        approval = self._held(held, "evidence_unverified", "record_gate_in")
+        self.assertNotIn("other-company-eir", approval.edge_reason, "the refusal names nothing it cannot show")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+        with self.assertRaises(AccessError):
+            self._as().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, hidden.id, "hh1")
+
+    def test_concurrent_filing_answers_the_winning_approval(self):
+        """Codex P2: a filing that loses the pending index answers the winner, never an IntegrityError."""
+        journey = self._journey("S11-L-RACE")
+        doc = self._attach(journey, "sailed.pdf")
+        args = (journey.id, self._ago(2), "MSC Aurora", "A1", doc.id, "lrace")
+        winner = self._held(self._linda().action_record_departure(*args), "out_of_sequence", "record_departure")
+        approval_class = type(self.env[APPROVAL])
+        original = approval_class.search
+        calls = []
+
+        def miss_first(model, domain, *rest, **kwargs):
+            calls.append(domain)
+            if len(calls) == 1:
+                return model.browse()
+            return original(model, domain, *rest, **kwargs)
+
+        with patch.object(approval_class, "search", miss_first), mute_logger("odoo.sql_db"):
+            again = self._linda().action_record_departure(*args)
+        self.assertEqual(again["status"], "pending")
+        self.assertEqual(again["approval_id"], winner.id)
+        self.assertEqual(self.env[APPROVAL].search_count([("operation_key", "=", "lrace")]), 1)
 
     def test_retry_after_a_rejection_is_held_again(self):
         journey = self._journey("S11-L-RETRY")
