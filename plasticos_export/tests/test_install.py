@@ -33,6 +33,7 @@ MODELS = [
     "plasticos.export.booking",
     "plasticos.export.booking.cargo.link",
     "plasticos.export.booking.revision",
+    "plasticos.export.booking.revision.accept",
     "plasticos.export.booking.slot",
 ]
 # Every record the data files declare, by model. Nothing else is Export data.
@@ -54,9 +55,13 @@ DECLARED = {
     "ir.actions.report": ["action_report_booking_summary", "action_report_container_manifest"],
     "ir.actions.server": ["action_linda_record_booking_reply"],
     "ir.model.access": [
-        f"access_export_{model}_{role}"
-        for model in ("booking", "cargo_link", "revision", "slot")
-        for role in ("logistics", "ops_manager", "sales")
+        *(
+            f"access_export_{model}_{role}"
+            for model in ("booking", "cargo_link", "revision", "slot")
+            for role in ("logistics", "ops_manager", "sales")
+        ),
+        "access_export_revision_accept_logistics",
+        "access_export_revision_accept_ops_manager",
     ],
     "ir.rule": [
         "rule_export_booking_company",
@@ -88,6 +93,7 @@ DECLARED = {
         "view_export_booking_calendar",
         "view_export_booking_form",
         "view_export_booking_list",
+        "view_export_booking_revision_accept_form",
         "view_export_booking_revision_form",
         "view_export_booking_revision_list",
         "view_export_booking_search",

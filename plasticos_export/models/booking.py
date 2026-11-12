@@ -32,6 +32,7 @@ _logger = logging.getLogger(__name__)
 
 EXPORT_BOOKING = "plasticos.export.booking"
 EXPORT_REVISION = "plasticos.export.booking.revision"
+EXPORT_REVISION_ACCEPT = "plasticos.export.booking.revision.accept"
 EXPORT_SLOT = "plasticos.export.booking.slot"
 EXPORT_CARGO_LINK = "plasticos.export.booking.cargo.link"
 RES_COMPANY = "res.company"
@@ -321,8 +322,8 @@ class PlasticosExportBooking(models.Model):
         store=True,
         index=True,
         string="Cargo Cutoff Date",
-        help="Calendar day of the current cargo cutoff: the UTC day when the source gave a precise time, "
-        "else the local date the source stated. Unset when no cutoff is stated (review D4).",
+        help="Calendar day of the current cargo cutoff: the local date the source stated, at date or "
+        "datetime precision. Unset when no cutoff is stated (reviews D4, R2).",
     )
     slot_confirmed_count = fields.Integer(compute="_compute_slot_counts", string="Confirmed Slots")
     slot_committed_count = fields.Integer(compute="_compute_slot_counts", string="Committed Slots")
@@ -357,16 +358,15 @@ class PlasticosExportBooking(models.Model):
                 booking.display_state = "confirmed"
 
     @api.depends(
-        "current_revision_id.cargo_cutoff_utc",
         "current_revision_id.cargo_cutoff_local",
         "current_revision_id.cargo_cutoff_precision",
     )
     def _compute_current_cargo_cutoff_date(self):
         for booking in self:
             revision = booking.current_revision_id
-            if revision.cargo_cutoff_utc:
-                booking.current_cargo_cutoff_date = revision.cargo_cutoff_utc.date()
-            elif revision.cargo_cutoff_precision in ("date", "datetime") and revision.cargo_cutoff_local:
+            # The day the source stated, in its own zone: a late-evening local cutoff stays on its
+            # local day instead of moving to the next UTC day (review R2, BRS-EXP-02-R003).
+            if revision.cargo_cutoff_precision in ("date", "datetime") and revision.cargo_cutoff_local:
                 booking.current_cargo_cutoff_date = fields.Date.to_date(revision.cargo_cutoff_local.strip()[:10])
             else:
                 booking.current_cargo_cutoff_date = False
@@ -767,10 +767,6 @@ class PlasticosExportBookingRevision(models.Model):
     )
     operation_key = fields.Char(readonly=True, index=True, help="Operation that recorded this candidate.")
     accept_operation_key = fields.Char(readonly=True, help="Operation that accepted it.")
-    review_note = fields.Text(
-        string="Acceptance Reason Draft",
-        help="Reviewer's reason, used by Accept Revision. The accepted reason is frozen in Acceptance Basis.",
-    )
     equipment_summary = fields.Char(compute="_compute_equipment_summary", string="Equipment")
     booking_status = fields.Char(compute="_compute_equipment_summary", string="Stated Status")
 
@@ -861,10 +857,7 @@ class PlasticosExportBookingRevision(models.Model):
             error = derived_write_error(self, vals)
             if error:
                 raise UserError(error)
-            if set(vals) != {"review_note"}:
-                raise UserError("A booking revision is a source snapshot and is not edited.")
-            if self.filtered(lambda revision: revision.decision != "candidate"):
-                raise UserError("Only a candidate revision takes a review note.")
+            raise UserError("A booking revision is a source snapshot and is not edited.")
         frozen = self.filtered(lambda revision: revision.decision != "candidate")
         if frozen and _REVISION_IMMUTABLE & set(vals):
             raise UserError("An accepted or rejected booking revision is immutable.")
@@ -873,30 +866,19 @@ class PlasticosExportBookingRevision(models.Model):
     def unlink(self):
         raise UserError("Booking revisions are history and cannot be deleted.")
 
-    def action_accept_from_form(self):
-        """Form button: accept this candidate against the current revision the user saw.
-
-        The form sends ``expected_current_revision_id`` from the value it displayed;
-        a form opened before another acceptance is therefore refused as stale instead
-        of overwriting the newer revision (C05 review D2). Without that context the
-        button refuses rather than reading the current pointer at click time.
-        """
+    def action_open_accept_wizard(self):
+        """Open the acceptance confirmation; it captures the booking's current revision now (review R1)."""
         self.ensure_one()
-        if "expected_current_revision_id" not in self.env.context:
-            raise UserError("Reload the revision and accept it again: the displayed current revision is unknown.")
-        expected = self.env.context["expected_current_revision_id"] or False
-        if isinstance(expected, (list, tuple)):
-            expected = expected[0] if expected else False
-        booking = self.booking_id
-        outcome = booking.action_accept_booking_revision(
-            self.id,
-            expected,
-            f"form-accept:{self.id}",
-            self.review_note or "",
-        )
-        if outcome["status"] not in ("applied", "already_applied"):
-            raise UserError(f"Revision not accepted ({outcome['status']}): {outcome.get('reason', '')}")
-        return True
+        if self.decision != "candidate":
+            raise UserError("Only a candidate revision can be accepted.")
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Accept Revision",
+            "res_model": EXPORT_REVISION_ACCEPT,
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_revision_id": self.id},
+        }
 
     def action_reject(self):
         """Reject a candidate; it stays as history."""
@@ -908,3 +890,49 @@ class PlasticosExportBookingRevision(models.Model):
                 raise UserError("Only a candidate revision can be rejected.")
             guard(revision).write({"decision": "rejected"})
         return True
+
+
+class PlasticosExportBookingRevisionAccept(models.TransientModel):
+    """Confirmation of one revision acceptance (C05 review R1).
+
+    The booking's current revision is captured when the confirmation opens and
+    stored on the wizard; the reason is typed here, not on the revision form, so
+    no form save reloads the expected value at click time. Confirm runs the
+    frozen compare-and-set command: if another acceptance moved the booking in
+    between, the answer is stale and nothing changes.
+    """
+
+    _name = "plasticos.export.booking.revision.accept"
+    _description = "Accept Export Booking Revision"
+
+    revision_id = fields.Many2one(EXPORT_REVISION, required=True, readonly=True, ondelete="cascade")
+    booking_id = fields.Many2one(related="revision_id.booking_id", string="Booking")
+    expected_current_revision_id = fields.Many2one(
+        EXPORT_REVISION,
+        string="Current Revision When Opened",
+        readonly=True,
+        ondelete="cascade",
+        help="The booking's current revision when this confirmation opened. Acceptance compares against it.",
+    )
+    acceptance_reason = fields.Text(required=True, help="Why this source is accepted. Frozen in Acceptance Basis.")
+
+    @api.model
+    def default_get(self, fields_list):
+        values = super().default_get(fields_list)
+        revision = self.env[EXPORT_REVISION].browse(values.get("revision_id") or 0).exists()
+        if revision:
+            values["expected_current_revision_id"] = revision.booking_id.current_revision_id.id or False
+        return values
+
+    def action_confirm(self):
+        self.ensure_one()
+        revision = self.revision_id
+        outcome = revision.booking_id.action_accept_booking_revision(
+            revision.id,
+            self.expected_current_revision_id.id or False,
+            f"wizard-accept:{self.id}",
+            self.acceptance_reason or "",
+        )
+        if outcome["status"] not in (APPLIED, ALREADY_APPLIED):
+            raise UserError(f"Revision not accepted ({outcome['status']}): {outcome.get('reason', '')}")
+        return {"type": "ir.actions.act_window_close"}

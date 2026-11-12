@@ -203,6 +203,22 @@ class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
         )
         self.assertIn(booking, on_day)
 
+    def test_late_local_cutoff_stays_on_its_local_day(self):
+        """C05 review R2, BRS-EXP-02-R003, BRS-EXP-14-R019: 22:00 in Los Angeles is that local day, not the next UTC day."""
+        from datetime import date
+
+        booking = self.make_booking()
+        terms = self.terms(
+            confirmed=1,
+            cargo_cutoff_local="2026-10-02 22:00",
+            cargo_cutoff_tz="America/Los_Angeles",
+            cargo_cutoff_precision="datetime",
+        )
+        recorded = self.candidate(booking, terms=terms)
+        self.assertEqual(self.accept(booking, recorded["record_id"])["status"], "applied")
+        self.assertEqual(str(booking.current_cargo_cutoff_utc), "2026-10-03 05:00:00")
+        self.assertEqual(booking.current_cargo_cutoff_date, date(2026, 10, 2))
+
     def test_planned_quantities_are_never_summed_across_units(self):
         """C05 review D5, BRS-EXP-14-R008: no list total and a per-unit pivot column."""
         from lxml import etree

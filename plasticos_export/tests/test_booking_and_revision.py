@@ -468,23 +468,32 @@ class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
         self.assertIn("does not exist", skipped["reason"])
         self.assertFalse(booking.revision_ids)
 
-    def test_form_acceptance_compares_against_the_revision_the_user_saw(self):
-        """C05 review D2, V05: a stale form is refused; it never overwrites a newer accepted revision."""
+    def test_acceptance_confirmation_compares_against_the_revision_it_captured(self):
+        """C05 reviews D2 and R1, V05: the confirmation captures currentness when it opens; a stale one is refused."""
+        Wizard = self.env["plasticos.export.booking.revision.accept"].with_user(self.actor)
         booking, first = self.accepted_booking(confirmed=1)
-        seen_by_form = self.env[REVISION].browse(self.candidate(booking)["record_id"])
-        seen_by_form.with_user(self.actor).write({"review_note": "Reviewed against the carrier PDF"})
-        expected_when_opened = seen_by_form.booking_current_revision_id.id
-        self.assertEqual(expected_when_opened, first.id)
+        candidate = self.env[REVISION].browse(self.candidate(booking)["record_id"])
+        opened = candidate.with_user(self.actor).action_open_accept_wizard()
+        self.assertEqual(opened["res_model"], "plasticos.export.booking.revision.accept")
+        defaults = Wizard.with_context(opened["context"]).default_get(
+            ["revision_id", "expected_current_revision_id", "acceptance_reason"]
+        )
+        self.assertEqual(defaults["expected_current_revision_id"], first.id)
+        stale_wizard = Wizard.create({**defaults, "acceptance_reason": "Reviewed against the carrier PDF"})
+        # Meanwhile another operator accepts a newer revision through the command.
         newer = self.candidate(booking)
         self.assertEqual(self.accept(booking, newer["record_id"], expected=first.id)["status"], "applied")
-        stale_form = seen_by_form.with_user(self.actor).with_context(expected_current_revision_id=expected_when_opened)
         with self.assertRaisesRegex(UserError, "stale"), self.env.cr.savepoint():
-            stale_form.action_accept_from_form()
-        with self.assertRaisesRegex(UserError, "Reload"), self.env.cr.savepoint():
-            seen_by_form.with_user(self.actor).action_accept_from_form()
+            stale_wizard.action_confirm()
         self.assertEqual(booking.current_revision_id.id, newer["record_id"])
-        reloaded = seen_by_form.with_user(self.actor).with_context(
-            expected_current_revision_id=seen_by_form.booking_current_revision_id.id
-        )
-        self.assertTrue(reloaded.action_accept_from_form())
-        self.assertEqual(booking.current_revision_id, seen_by_form)
+        self.assertEqual(candidate.decision, "candidate")
+        # Reopened on the unchanged booking, the confirmation accepts normally.
+        defaults = Wizard.with_context(
+            candidate.with_user(self.actor).action_open_accept_wizard()["context"]
+        ).default_get(["revision_id", "expected_current_revision_id"])
+        fresh = Wizard.create({**defaults, "acceptance_reason": "Reviewed again"})
+        fresh.action_confirm()
+        self.assertEqual(booking.current_revision_id, candidate)
+        self.assertEqual(candidate.acceptance_basis, "Reviewed again")
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            candidate.with_user(self.actor).action_open_accept_wizard()

@@ -206,7 +206,7 @@
                 <field name="purchase_order_id" type="row"/>
                 <field name="uom_id" type="col"/>
                 <field name="sale_order_id" type="col"/>
-                <field name="planned_quantity" type="measure"/>
+                <field name="planned_quantity" type="measure" string="Planned (per unit column; totals across units are not meaningful)"/>
             </pivot>
         </field>
     </record>
