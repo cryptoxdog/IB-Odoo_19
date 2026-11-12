@@ -12,7 +12,100 @@
  ],
  "contract_digest": "sha256:3383d697f85b3f3ee731ebabbf0a1e9ef35c96c756ee910eef48b4248a28cddd",
  "final_run": {
-  "label": "FINAL RUN on the final addon head f8bb8f9c (all S6 fixes)",
+  "label": "FINAL RUN (chain r4) on the final addon head 2f4dd682 (B1, N1); migrated to d46b2a60, whose addon source equals 2f4dd682",
+  "admission": {
+   "tree": "Staging worktree (wired worktree of this repository at 08504e12)",
+   "head": "08504e12ba2243b532319918019680bee5e06b59",
+   "git_status_porcelain_before": "",
+   "command": "ODOO_ENTERPRISE_PATH=<enterprise clone> make test-env-rebuild",
+   "exit": 0,
+   "fingerprint": "340ec5d0f5c3734c…",
+   "installed": 172,
+   "source_binding": "The template marker records no srcdigest (pre-F4 harness on Staging), so migrate required and logged: '→ source bound by acknowledgement: TEST_ENV_MIGRATE_SOURCE_ACK=08504e12ba2243b532319918019680bee5e06b59 (the template records no addon source)'."
+  },
+  "seed": {
+   "clone": "odoo_test_s6up3",
+   "observed": {
+    "accepted_documents": 6,
+    "dispatched_unacknowledged": 240,
+    "documents": 8,
+    "legacy_parent_links": 6,
+    "loads": 254,
+    "multi_load_transactions": 4,
+    "null_company_loads": 10,
+    "transactions": 6
+   },
+   "observed_equals_plan": true
+  },
+  "versions_before": {
+   "plasticos_accounting": "19.0.1.6.2",
+   "plasticos_admin_dashboard": "19.0.1.1.3",
+   "plasticos_automation": "19.0.2.1.9",
+   "plasticos_base": "19.0.1.1.10",
+   "plasticos_claims": "19.0.1.1.6",
+   "plasticos_commission": "19.0.1.4.8",
+   "plasticos_crm_bridge": "19.0.3.6.0",
+   "plasticos_crm_sync": "19.0.1.9.25",
+   "plasticos_documents": "19.0.2.1.17",
+   "plasticos_documents_native": "19.0.1.2.13",
+   "plasticos_enrichment": "19.0.2.5.9",
+   "plasticos_facility_profile": "19.0.5.4.11",
+   "plasticos_gate": "19.0.1.9.9",
+   "plasticos_geolocalize": "19.0.1.1.1",
+   "plasticos_intake": "19.0.5.4.4",
+   "plasticos_intake_normalizer": "19.0.1.0.5",
+   "plasticos_logistics": "19.0.1.14.19",
+   "plasticos_matching": "19.0.3.1.5",
+   "plasticos_material_profile": "19.0.5.11.16",
+   "plasticos_odoo_standard_apps": "19.0.1.0.0",
+   "plasticos_offer": "19.0.1.2.0",
+   "plasticos_order_lines": "19.0.1.1.1",
+   "plasticos_partner_import": "19.0.2.10.38",
+   "plasticos_product": "19.0.1.0.3",
+   "plasticos_screen_views": "19.0.1.0.0",
+   "plasticos_security_base": "19.0.1.2.24",
+   "plasticos_transaction": "19.0.2.3.66",
+   "plasticos_web_leads": "19.0.2.11.1"
+  },
+  "upgrade": {
+   "command": "TEST_ENV_MIGRATE_SOURCE_ACK=08504e12ba2243b532319918019680bee5e06b59 scripts/test_env.sh migrate odoo_test_s6up3 08504e12ba2243b532319918019680bee5e06b59",
+   "exit": 0,
+   "result_line": "✅ odoo_test_s6up3 migrated to d46b2a6099ac (inputs b46f6d6f4d881224;",
+   "running_upgrade_lines": [
+    "module plasticos_base: Running upgrade [19.0.1.1.11>] post-migrate",
+    "module plasticos_logistics: Running upgrade [>19.0.1.14.20] pre-migrate",
+    "module plasticos_logistics: Running upgrade [19.0.1.14.20>] post-migrate",
+    "module plasticos_documents: Running upgrade [>19.0.2.1.18] pre-migrate",
+    "module plasticos_documents: Running upgrade [19.0.2.1.18>] post-migrate",
+    "module plasticos_security_base: Running upgrade [>19.0.1.2.25] pre-migrate"
+   ],
+   "logistics_census": "load company census: 10 repaired, 0 refused",
+   "documents_census": "census: 8 rows, 6 accepted, 6 decided, digest c2d70903460a1b5b747fa57d3487fb65 ",
+   "documents_classified": "8 rows classified legacy (0 set here, 8 by the column default)",
+   "note": "The census digest is computed over the seeded rows, so it differs on every fresh seed; within one database the replay keeps it identical (V13 replay in previous_run_f8bb8f9c)."
+  },
+  "runtime_on_upgraded_seeded_data": {
+   "m=all": {
+    "tests": 1570,
+    "failed": 0,
+    "errors": 0
+   },
+   "m=plasticos_documents_native": {
+    "tests": 31,
+    "failed": 0,
+    "errors": 0
+   },
+   "m=plasticos_transaction": {
+    "tests": 88,
+    "failed": 0,
+    "errors": 0,
+    "note": "TestErpWorksheetImport ran after 'Starting post tests' (post_install), fixing B1"
+   }
+  },
+  "v13_replay": "Not repeated: no migration script changed after f8bb8f9c (git log f8bb8f9c..d46b2a60 -- */migrations is empty). The replay and the four refusals are in previous_run_f8bb8f9c."
+ },
+ "previous_run_f8bb8f9c": {
+  "label": "SUPERSEDED by final_run (r4). Addon head f8bb8f9c. Its m=all count of 1569 included TestErpWorksheetImport run at_install (B1), and load.py changed afterwards (N1).",
   "admission": {
    "tree": "Staging worktree (wired worktree of this repository at 08504e12)",
    "head": "08504e12ba2243b532319918019680bee5e06b59",

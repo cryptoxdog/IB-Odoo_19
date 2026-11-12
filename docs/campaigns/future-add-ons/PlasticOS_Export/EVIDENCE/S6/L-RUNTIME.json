@@ -44,6 +44,23 @@
    "srchead": "96223f92b798b94073142be8c61ba59259f25457",
    "srcdigest": "4f4d1dd794f7f2ba034e583c45807e04d16eeb3689821f22dfea994ffa9abc72",
    "srchead_note": "a docs-only commit (96223f92, EVIDENCE/S6) landed while the build ran, and the marker read HEAD at stamp time. The addon digest is the source that was installed (f8bb8f9c addons). Fixed in the harness afterwards: the marker is now taken at build start, and a change before the stamp is refused."
+  },
+  "slice_rebuild_attempt_r4": {
+   "tree": "slice worktree",
+   "head": "cbd1a30986feb23db6a8a5eacea001648351c5fc",
+   "porcelain": "",
+   "command": "make test-env-rebuild",
+   "exit": 2,
+   "output": "❌ test-env refused: odoo_test_tpl_ee_c9e8a81f52f23680 is already admitted for the current inputs; not rebuilding it",
+   "meaning": "The admitted slice fixture already matched the clean tree's inputs; the clean m=all below ran on it."
+  },
+  "staging_for_F7_r4": {
+   "tree": "Staging worktree",
+   "head": "08504e12ba2243b532319918019680bee5e06b59",
+   "porcelain": "",
+   "fp": "340ec5d0f5c3734c…",
+   "installed": 172,
+   "backs": "L-MIGRATE final_run (r4)"
   }
  },
  "runs": [
@@ -89,14 +106,16 @@
    "tests": 1569,
    "failed": 0,
    "errors": 0,
-   "code": "f8bb8f9c"
+   "code": "f8bb8f9c",
+   "superseded_by": "chain r4 (B1, N1)"
   },
   {
    "db": "odoo_test_s6up2 (FINAL)",
    "scope": "plasticos_documents_native",
    "tests": 31,
    "failed": 0,
-   "errors": 0
+   "errors": 0,
+   "superseded_by": "chain r4 (B1, N1)"
   },
   {
    "db": "odoo_test_s6rst2 (FINAL restore)",
@@ -121,6 +140,47 @@
    "db": "same clone",
    "scope": "plasticos_documents_native",
    "tests": 31,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "fresh clone of the slice fixture, code cbd1a309 (addons = 2f4dd682)",
+   "scope": "roster (m=all)",
+   "tests": 1570,
+   "failed": 0,
+   "errors": 0,
+   "note": "1570 = 1569 + the N1 timezone test; TestErpWorksheetImport ran post_install"
+  },
+  {
+   "chain": "r4",
+   "db": "same clone",
+   "scope": "plasticos_documents_native",
+   "tests": 31,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "odoo_test_s6up3 (FINAL, seeded on Staging 08504e12, migrated to d46b2a60)",
+   "scope": "roster (m=all)",
+   "tests": 1570,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "odoo_test_s6up3",
+   "scope": "plasticos_documents_native",
+   "tests": 31,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "odoo_test_s6up3",
+   "scope": "plasticos_transaction",
+   "tests": 88,
    "failed": 0,
    "errors": 0
   }

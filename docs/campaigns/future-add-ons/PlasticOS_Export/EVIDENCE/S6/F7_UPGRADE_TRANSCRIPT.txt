@@ -20,3 +20,28 @@
 08:18:26,594 odoo.upgrade.plasticos_documents.19.0.2.1.18.post-migrate: plasticos_documents: 8 rows classified legacy (0 set here, 8 by the column default); provenance unchanged ([8, 6, 6, '41e1c9e0001d56f4676bc1e93113d38e']) 
 08:18:28,509 odoo.modules.migration: module plasticos_security_base: Running upgrade [>19.0.1.2.25] pre-migrate 
 08:18:28,517 odoo.upgrade.plasticos_security_base.19.0.1.2.25.pre-migrate: plasticos_security_base pre-migrate: every load has a company; dashboard projects company_id; active user company scopes cover every load-owning company 
+
+# Chain r4 (FINAL): odoo_test_s6up3, Staging 08504e12 -> d46b2a60 (addon source = 2f4dd682)
+→ source bound by acknowledgement: TEST_ENV_MIGRATE_SOURCE_ACK=08504e12ba2243b532319918019680bee5e06b59 (the template records no addon source)
+09:55:16,537 odoo.modules.migration: module plasticos_base: Running upgrade [19.0.1.1.11>] post-migrate 
+09:55:16,643 odoo.upgrade.plasticos_base.19.0.1.1.11.post-migrate: plasticos_base 19.0.1.1.11: attachment orphan cleanup retired; deleted ir.cron [42], deleted ir.actions.server [668], removed ir.model.data [] 
+09:55:24,012 odoo.modules.migration: module plasticos_logistics: Running upgrade [>19.0.1.14.20] pre-migrate 
+09:55:24,034 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 2 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,035 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 3 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,036 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 5 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,036 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 6 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,037 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 8 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,038 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 9 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,038 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 11 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,039 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 12 company: NULL -> 1 (source transaction_sale_order) 
+09:55:24,039 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 13 company: NULL -> 1 (source transaction_purchase_order) 
+09:55:24,040 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate repaired load 14 company: NULL -> 1 (source transaction_purchase_order) 
+09:55:24,040 odoo.upgrade.plasticos_logistics.19.0.1.14.20.pre-migrate: plasticos_logistics pre-migrate load company census: 10 repaired, 0 refused 
+09:55:25,465 odoo.modules.migration: module plasticos_logistics: Running upgrade [19.0.1.14.20>] post-migrate 
+09:55:25,481 odoo.upgrade.plasticos_logistics.19.0.1.14.20.post-migrate: plasticos_logistics post-migrate verified load companies (first run); 0 container journeys present 
+09:55:25,552 odoo.modules.migration: module plasticos_documents: Running upgrade [>19.0.2.1.18] pre-migrate 
+09:55:25,561 odoo.upgrade.plasticos_documents.19.0.2.1.18.pre-migrate: plasticos_documents census: 8 rows, 6 accepted, 6 decided, digest c2d70903460a1b5b747fa57d3487fb65 
+09:55:26,246 odoo.modules.migration: module plasticos_documents: Running upgrade [19.0.2.1.18>] post-migrate 
+09:55:26,249 odoo.upgrade.plasticos_documents.19.0.2.1.18.post-migrate: plasticos_documents: 8 rows classified legacy (0 set here, 8 by the column default); provenance unchanged ([8, 6, 6, 'c2d70903460a1b5b747fa57d3487fb65']) 
+09:55:28,082 odoo.modules.migration: module plasticos_security_base: Running upgrade [>19.0.1.2.25] pre-migrate 
+✅ odoo_test_s6up3 migrated to d46b2a6099ac (inputs b46f6d6f4d881224; log .l9/runtime/test-env/odoo_test_s6up3.migrate.log)
