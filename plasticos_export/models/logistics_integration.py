@@ -92,8 +92,8 @@ class PlasticosLogisticsRequestExport(models.Model):
         recheck = params.get("recheck")
         Booking = self.env[EXPORT_BOOKING]
         if recheck:
-            # sudo: send-time recheck by the mail queue; the request was authorized when it was recorded
-            Booking = Booking.sudo()
+            # The request was authorized when it was recorded; the mail queue rechecks the source.
+            Booking = Booking.sudo()  # sudo: send-time recheck by the mail queue, read-only
         booking = Booking.browse(int(res_id or 0)).exists()
         if not booking:
             return {"status": NOT_AVAILABLE, "reason": "booking_not_found"}
