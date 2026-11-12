@@ -866,6 +866,6 @@ module/
 |---|---|
 | `plasticos_logistics` | `plasticos.load.company_id` (source company, not related to the sale order), `plasticos.load.transaction_id` (one parent per load; a transaction owns many loads), J1 `plasticos.iso.journey`, J2 `plasticos.iso.journey.source`, the physical-release guard, actual pickup/delivery clocks, the manual freight context |
 | `plasticos_security_base` | Global company rules for loads (no company-null escape) and the Load dashboard; J1/J2 grants for Logistics and Operations Manager |
-| `plasticos_export` (planned, S5) | Bookings, slots and cargo allocation (E1-E4); specializes the Logistics guard and Linda by `_inherit` |
+| `plasticos_export` (19.0.1.0.0 scaffold from PR #474: installable, `auto_install` False, depends on `plasticos_documents_native`, no models or data yet, module-owned `business_rules/`; models arrive in S5B) | Bookings, slots and cargo allocation (E1-E4) once S5B adds them; will specialize the Logistics guard and Linda by `_inherit` |
 
 Dependency direction: Export → Logistics / Documents / Security Base. No upstream module depends on Export, and Logistics depends on none of Documents, Native Documents, Security Base or Export.
