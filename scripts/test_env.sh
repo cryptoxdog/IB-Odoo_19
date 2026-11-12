@@ -1435,6 +1435,19 @@ config_digest_at() {
 }
 MIGRATE_CONFIG_FILES=(config/odoo.conf config/odoo_module_order.yaml docker-compose.yml Dockerfile requirements.txt constraints.txt scripts/get_odoo_module_order.py)
 
+# Content digest of the PlasticOS addon source as it is at Git revision $1, in the same
+# form as addon_source (relative path and content of every file under plasticos_*).
+addon_digest_at() {
+  local rev="$1" tmp
+  tmp="$(mktemp -d)"
+  if ! git -C "$ROOT" archive "$rev" -- 'plasticos_*' | tar -x -C "$tmp"; then
+    rm -rf "$tmp"
+    return 1
+  fi
+  content_digest dir "$tmp"
+  rm -rf "$tmp"
+}
+
 # F8. `migrate <db> <from-rev>` upgrades an owned clone that was cloned in another
 # checkout of this repository (a clean Staging tree) to the source on disk, when the
 # two trees differ only by PlasticOS modules appended to the roster. Every other
@@ -1480,6 +1493,22 @@ migrate_clone() {
     "$old_modules",?*) added="${new_modules#"$old_modules",}" ;;
     *) refuse "the roster is not the recorded roster with modules appended" ;;
   esac
+  # The fingerprint leaves addon source out, so <from-rev> is bound to the source the
+  # template installed: its recorded srcdigest, or, for a template admitted before that
+  # was recorded, an explicit acknowledgement naming the full revision (PR #480 review).
+  local tcomment srcdigest atrev binding
+  tcomment="$(db_comment "$TEMPLATE_DB")"
+  srcdigest="$(field "$tcomment" srcdigest)"
+  if [ -n "$srcdigest" ]; then
+    atrev="$(addon_digest_at "$rev")" || refuse "cannot read the PlasticOS addon source at ${rev:0:12}"
+    [ "$atrev" = "$srcdigest" ] ||
+      refuse "the PlasticOS addon source at ${rev:0:12} is not the source $TEMPLATE_DB was admitted from (srcdigest ${srcdigest:0:16}, at ${rev:0:12}: ${atrev:0:16})"
+    binding="source bound: the addon digest at $rev equals the template srcdigest $srcdigest"
+  else
+    [ "${TEST_ENV_MIGRATE_SOURCE_ACK:-}" = "$rev" ] ||
+      refuse "$TEMPLATE_DB records no addon source (admitted before the source was recorded). Name the tree it was admitted from: TEST_ENV_MIGRATE_SOURCE_ACK=<full 40-character sha of ${rev:0:12}>"
+    binding="source bound by acknowledgement: TEST_ENV_MIGRATE_SOURCE_ACK=$rev (the template records no addon source)"
+  fi
   roster="$(python3 scripts/get_odoo_module_order.py)"
   existing="$(tr ',' '\n' <<<"$roster" | grep -vxF -f <(tr ',' '\n' <<<"$added") | paste -sd, -)"
   head="$(git -C "$ROOT" rev-parse --verify -q HEAD)"
@@ -1487,10 +1516,11 @@ migrate_clone() {
   mkdir -p "$EVIDENCE_DIR"
   log="$EVIDENCE_DIR/${target}.migrate.log"
   echo "→ Migrating $target from ${rev:0:12} (inputs ${old:0:16}) to ${head:0:12} (inputs ${FP:0:16}): -u existing roster, -i $added"
+  echo "→ $binding" | tee "$log"
   rc=0
   compose run --rm --no-deps -T odoo odoo -u "$existing" -i "$added" --stop-after-init --workers=0 \
     --max-cron-threads=0 --no-http --log-level=info -d "$target" --addons-path="$(addons_path)" </dev/null 2>&1 |
-    tee "$log" || rc=$?
+    tee -a "$log" || rc=$?
   [ "$(addon_source)" = "$TEST_SOURCE" ] || die "PlasticOS addon source changed during the migration of $target"
   [ "$rc" -eq 0 ] || die "the migration of $target failed (exit $rc; log: ${log#"$ROOT"/}); its marker is unchanged"
   pending="$(psql_on "$target" "SELECT string_agg(name || ':' || state, ',') FROM ir_module_module

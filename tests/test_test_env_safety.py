@@ -1447,6 +1447,8 @@ def _migrate(tmp_path: Path, root: Path, rev: str, case: dict) -> subprocess.Com
 
 def test_migrate_upgrades_the_roster_installs_the_added_module_and_stamps_the_lineage(tmp_path):
     root, head, case, old_fp = _migration_case(tmp_path)
+    # The fixture template records no addon source (pre-F4), so the source is acknowledged.
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
     result = _migrate(tmp_path, root, head, case)
     assert result.returncode == 0, result.stderr
     assert "migrated to" in result.stdout
@@ -1583,3 +1585,61 @@ def test_restore_loads_with_odoo_and_stamps_the_restored_lineage(tmp_path):
     stamp = [line for line in calls.splitlines() if "COMMENT ON DATABASE" in line and "odoo_test_b" in line]
     assert stamp and "restored_from=odoo_test_a" in stamp[-1] and f"backup={sha}" in stamp[-1]
     assert "role=clone owner=agenta" in stamp[-1]
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 (PR #480 review, coordinator ruling): migrate binds <from-rev> to the
+# addon source the template installed. A template that records srcdigest must
+# match the addon digest at <from-rev>; one that records none (admitted before
+# F4) needs TEST_ENV_MIGRATE_SOURCE_ACK equal to the full resolved sha.
+# ---------------------------------------------------------------------------
+def _with_srcdigest(case: dict, digest: str) -> dict:
+    case["databases"][PINNED_FIXTURE] += f" srchead={'a' * 40} srcdigest={digest}"
+    return case
+
+
+def test_migrate_accepts_a_revision_whose_addon_source_is_the_template_source(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    digest = _status(tmp_path, root=root, **_enterprise(tmp_path))["source"]
+    result = _migrate(tmp_path, root, head, _with_srcdigest(case, digest))
+    assert result.returncode == 0, result.stderr
+    assert f"source bound: the addon digest at {head} equals the template srcdigest {digest}" in result.stdout
+    log = (tmp_path / "evidence" / "odoo_test_a.migrate.log").read_text()
+    assert "source bound: the addon digest" in log
+
+
+def test_migrate_refuses_a_revision_whose_addon_source_differs_from_the_template(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    result = _migrate(tmp_path, root, head, _with_srcdigest(case, "f" * 64))
+    assert result.returncode == 2, result.stdout
+    assert "is not the source odoo_test_tpl_ee_c9e8a81f52f23680 was admitted from" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_refuses_a_template_without_source_and_without_acknowledgement(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "records no addon source" in result.stderr
+    assert "TEST_ENV_MIGRATE_SOURCE_ACK=<full 40-character sha" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+@pytest.mark.parametrize("ack", ["short", "branch", "other"])
+def test_migrate_refuses_an_acknowledgement_that_is_not_the_full_revision(tmp_path, ack):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = {"short": head[:12], "branch": "HEAD", "other": "0" * 40}[ack]
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "records no addon source" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_accepts_the_full_revision_as_acknowledgement_and_logs_it(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    result = _migrate(tmp_path, root, head[:12], case)
+    assert result.returncode == 0, result.stderr
+    line = f"source bound by acknowledgement: TEST_ENV_MIGRATE_SOURCE_ACK={head}"
+    assert line in result.stdout
+    assert line in (tmp_path / "evidence" / "odoo_test_a.migrate.log").read_text()

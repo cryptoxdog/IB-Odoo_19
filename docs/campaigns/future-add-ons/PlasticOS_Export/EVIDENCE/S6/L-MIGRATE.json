@@ -22,7 +22,8 @@
    "fingerprint": "340ec5d0f5c3734cff97642ad8bd19c82a748198283a87fe1686e95179277cf7",
    "enterprise": "git:3225e0e80692b77e49e0bfe021aab0ee6f757b96",
    "installed": 172,
-   "srchead_note": "the Staging tree's scripts/test_env.sh predates F4, so srchead/srcdigest are not in that marker; HEAD and porcelain are recorded here instead"
+   "srchead_note": "the Staging tree's scripts/test_env.sh predates F4, so srchead/srcdigest are not in that marker; HEAD and porcelain are recorded here instead",
+   "source_binding": "The template was admitted by the pre-F4 harness, so its marker records no srcdigest. It is bound to its source by the admission record: HEAD 08504e12ba2243b532319918019680bee5e06b59 of a clean worktree (git status --porcelain empty before and after). That is the same fact that `TEST_ENV_MIGRATE_SOURCE_ACK=08504e12ba2243b532319918019680bee5e06b59` now encodes. Since PR #480 review, migrate requires that acknowledgement for such a template. No rerun is needed: the addon code is unchanged."
   },
   "seed": {
    "clone": "odoo_test_s6up2",
